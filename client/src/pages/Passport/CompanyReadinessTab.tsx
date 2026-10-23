@@ -51,13 +51,13 @@ const card: React.CSSProperties = {
 const Figure: React.FC<{ title: string; value: number | null | undefined; note: string; tone?: string }> =
   ({ title, value, note, tone }) => (
     <div style={{ flex: '1 1 150px', minWidth: 150 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+      <div style={{ fontSize: 11, fontWeight: 800, color: '#2F3F56', textTransform: 'uppercase', letterSpacing: '.06em' }}>
         {title}
       </div>
       <div style={{ fontSize: 30, fontWeight: 800, color: tone || '#0f172a', lineHeight: 1.15 }}>
         {value === null || value === undefined ? '—' : `${value}%`}
       </div>
-      <div style={{ fontSize: 12, color: '#64748b' }}>{note}</div>
+      <div style={{ fontSize: 12, color: '#2F3F56' }}>{note}</div>
     </div>
   );
 
@@ -70,10 +70,10 @@ const SkillRow: React.FC<{ s: CompanySkillFitRow }> = ({ s }) => {
         <div style={{ fontWeight: 700, fontSize: 13.5, color: '#0f172a' }}>
           {s.skillName}
           {s.skillInactive && (
-            <span style={{ marginLeft: 6, fontSize: 11, color: '#94a3b8' }}>(retired)</span>
+            <span style={{ marginLeft: 6, fontSize: 11, color: '#3F4F66' }}>(retired)</span>
           )}
         </div>
-        <div style={{ fontSize: 11.5, color: '#64748b' }}>
+        <div style={{ fontSize: 11.5, color: '#2F3F56' }}>
           {/* The target is the company's bar, so a student can see what they are aiming at
               rather than assuming it is 100. */}
           Target {s.targetScore}
@@ -104,10 +104,10 @@ const Criterion: React.FC<{ c: EligibilityCriterionRow }> = ({ c }) => {
       <i className={`bi ${t.icon}`} style={{ color: t.fg, fontSize: 15, marginTop: 1 }} />
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
-          {c.label} <span style={{ fontWeight: 500, color: '#64748b' }}>· {c.required}</span>
+          {c.label} <span style={{ fontWeight: 500, color: '#2F3F56' }}>· {c.required}</span>
         </div>
         {/* The reason is never hidden, including when the reason is that we do not know. */}
-        <div style={{ fontSize: 12, color: '#64748b' }}>{c.detail}</div>
+        <div style={{ fontSize: 12, color: '#2F3F56' }}>{c.detail}</div>
       </div>
     </div>
   );
@@ -129,7 +129,7 @@ const CompanyReadinessTab: React.FC<{ slug: string }> = ({ slug }) => {
     return () => { alive = false; };
   }, [slug]);
 
-  if (busy) return <div style={{ ...card, color: '#64748b' }}>Working out where you stand…</div>;
+  if (busy) return <div style={{ ...card, color: '#2F3F56' }}>Working out where you stand…</div>;
   if (err) return <div style={{ ...card, color: '#991b1b' }}>{err}</div>;
   if (!r) return null;
 
@@ -164,20 +164,20 @@ const CompanyReadinessTab: React.FC<{ slug: string }> = ({ slug }) => {
             note={role.available ? (role.role?.name || 'Your target role') : 'Choose a target role'}
           />
           <div style={{ flex: '1 1 150px', minWidth: 150 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#2F3F56', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               Eligibility
             </div>
             <span style={{
               display: 'inline-block', marginTop: 6, fontSize: 12.5, fontWeight: 800,
               padding: '5px 10px', borderRadius: 20, color: verdict.fg, background: verdict.bg,
             }}>{verdict.label}</span>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{el.message}</div>
+            <div style={{ fontSize: 12, color: '#2F3F56', marginTop: 4 }}>{el.message}</div>
           </div>
         </div>
 
         {/* Said plainly, because these two get confused constantly and the consequences of
             confusing them run in both directions. */}
-        <p style={{ margin: '14px 0 0', fontSize: 12, color: '#94a3b8' }}>
+        <p style={{ margin: '14px 0 0', fontSize: 12, color: '#3F4F66' }}>
           Readiness and eligibility are separate. Meeting the criteria does not mean you are prepared,
           and being well prepared does not override a published cut-off.
         </p>
@@ -189,7 +189,7 @@ const CompanyReadinessTab: React.FC<{ slug: string }> = ({ slug }) => {
           <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 800 }}>
             What {r.company.name} asks for
           </h3>
-          <p style={{ margin: '0 0 10px', fontSize: 12, color: '#64748b' }}>
+          <p style={{ margin: '0 0 10px', fontSize: 12, color: '#2F3F56' }}>
             Your measured level against this company's own target for each skill
             {fit.profileVersion ? ` · profile v${fit.profileVersion}` : ''}
             {fit.role && !fit.role.matched ? ' · general guidance, not role-specific' : ''}
@@ -203,7 +203,7 @@ const CompanyReadinessTab: React.FC<{ slug: string }> = ({ slug }) => {
           <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 800 }}>Not configured yet</h3>
           {/* No fabricated 0%. The honest answer is that nobody has said what this company
               expects for this role. */}
-          <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{fit.message}</p>
+          <p style={{ margin: 0, fontSize: 13, color: '#2F3F56' }}>{fit.message}</p>
         </div>
       )}
 
@@ -213,7 +213,7 @@ const CompanyReadinessTab: React.FC<{ slug: string }> = ({ slug }) => {
           <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 800 }}>
             {prep.horizon === 'LONG_TERM' ? 'Building towards this' : 'Focus for this company'}
           </h3>
-          <p style={{ margin: '0 0 12px', fontSize: 12, color: '#64748b' }}>
+          <p style={{ margin: '0 0 12px', fontSize: 12, color: '#2F3F56' }}>
             {prep.horizon === 'LONG_TERM'
               ? 'You have time before placements. These are the foundations this company builds on.'
               : 'Most urgent first, based on how far each is from this company\'s target.'}
@@ -227,7 +227,7 @@ const CompanyReadinessTab: React.FC<{ slug: string }> = ({ slug }) => {
               }}>{i + 1}</span>
               <div>
                 <div style={{ fontSize: 13.5, fontWeight: 700 }}>{f.skillName}</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>
+                <div style={{ fontSize: 12, color: '#2F3F56' }}>
                   You {f.current} · target {f.target}
                   {f.gap ? ` · ${f.gap} points to close` : ''}
                 </div>
@@ -242,7 +242,7 @@ const CompanyReadinessTab: React.FC<{ slug: string }> = ({ slug }) => {
               </div>
               {/* Deliberately a separate heading. These are unknowns, not weaknesses — telling
                   a student to "improve" something nobody has measured would be a guess. */}
-              <p style={{ margin: '0 0 8px', fontSize: 12, color: '#64748b' }}>
+              <p style={{ margin: '0 0 8px', fontSize: 12, color: '#2F3F56' }}>
                 This company asks for these and we have not measured them yet. Take an assessment
                 or a mock interview covering them to find out where you stand.
               </p>
@@ -269,7 +269,7 @@ const CompanyReadinessTab: React.FC<{ slug: string }> = ({ slug }) => {
           <h3 style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 800 }}>Eligibility criteria</h3>
           {el.criteria.map(c => <Criterion key={c.key} c={c} />)}
           {el.verdict === 'POTENTIALLY_ELIGIBLE' && (
-            <p style={{ margin: '12px 0 0', fontSize: 12, color: '#64748b' }}>
+            <p style={{ margin: '12px 0 0', fontSize: 12, color: '#2F3F56' }}>
               We could not check everything from your profile. That is not a rejection — confirm
               the unchecked items with your placement office before you apply.
             </p>

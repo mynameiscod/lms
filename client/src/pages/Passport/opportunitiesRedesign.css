@@ -3,7 +3,7 @@
    Several shell rules colour .opp-head h1/p and card headings with #root-level !important, so the text on navy is
    pinned with #root .gd selectors that outrank them. */
 #root .gd .cb-member-companies .opp-shell.opp2, .opp-shell.opp2 {
-  --primary: #051D64; --primary-hover: #0A2A7A; --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --tint: #EAF3FD;
+  --primary: #051D64; --primary-hover: #0A2A7A; --ink: #102A4F; --text: #33475B; --muted: #2F3F56; --line: #E2EAF2; --tint: #EAF3FD;
   max-width: 1760px !important; width: 100%; background: none; padding: 0 0 40px; display: flex; flex-direction: column; gap: 18px;
 }
 .opp2 > * { margin-top: 0 !important; margin-bottom: 0 !important; }
@@ -58,7 +58,7 @@
 .opp2 .opp-skill-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; font-size: 14px; }
 .opp2 .opp-skill-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .opp2-skill-bar { grid-column: 1 / -1; display: block; height: 6px; border-radius: 999px; background: #EDF2F7; overflow: hidden; }
-.opp2-skill-bar em { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #E7A43A, #B86B00); }
+.opp2-skill-bar em { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #E7A43A, #9A5A00); }
 .opp2 .opp-status-row { font-size: 14px; }
 #root .gd .opp2 .opp-side-card.premium h3 { font-size: 18px; color: #fff !important; }
 #root .gd .opp2 .opp-side-card.premium p { font-size: 13.5px !important; color: #D5E2F5 !important; }
@@ -99,8 +99,8 @@
   background: #EAF1FB; color: #1B3C77 !important; opacity: 1 !important;
 }
 #root .gd .opp2 .opp2-hero h1, .opp2 .opp2-hero h1 { color: #051D64 !important; }
-#root .gd .opp2 .opp2-hero h1 span, .opp2 .opp2-hero h1 span { color: #17869B !important; }
-#root .gd .opp2 .opp2-hero p, .opp2 .opp2-hero p { color: #5D6E88 !important; }
+#root .gd .opp2 .opp2-hero h1 span, .opp2 .opp2-hero h1 span { color: #167E92 !important; }
+#root .gd .opp2 .opp2-hero p, .opp2 .opp2-hero p { color: #2F3F56 !important; }
 
 /* The white hero button becomes the navy primary; the ghost becomes an outline. */
 #root .gd .opp2 .opp2-hero .opp2-btn.light, .opp2 .opp2-hero .opp2-btn.light {
@@ -128,7 +128,7 @@
   background: #EAF1FB !important; color: #1B7D91 !important;
 }
 #root .gd .opp2 .opp2-metrics .opp-metric .icon.violet, .opp2 .opp2-metrics .opp-metric .icon.violet { color: #6246C9 !important; }
-#root .gd .opp2 .opp2-metrics .opp-metric .icon.green, .opp2 .opp2-metrics .opp-metric .icon.green { color: #17885D !important; }
+#root .gd .opp2 .opp2-metrics .opp-metric .icon.green, .opp2 .opp2-metrics .opp-metric .icon.green { color: #17855B !important; }
 #root .gd .opp2 .opp2-metrics .opp-metric .icon.blue, .opp2 .opp2-metrics .opp-metric .icon.blue { color: #1B3C77 !important; }
 #root .gd .opp2 .opp2-metrics .opp-metric b, .opp2 .opp2-metrics .opp-metric b { color: #051D64 !important; }
 #root .gd .opp2 .opp2-metrics .opp-metric span, .opp2 .opp2-metrics .opp-metric span { color: #1B7D91 !important; }

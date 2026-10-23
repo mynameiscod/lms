@@ -41,7 +41,9 @@ export type MemberSection =
   | 'communication'   // AI Communication Lab
   | 'experiences'     // Interview Experiences
   | 'questionBooks'   // Question Books
-  | 'mentor';         // AI Mentor
+  | 'mentor'          // AI Mentor
+  | 'thinkingLab'     // Thinking Lab
+  | 'industryConnect'; // Industry Connect
 
 /**
  * Section to the entitlement key that pays for it.
@@ -67,6 +69,8 @@ export const SECTION_FEATURE: Record<MemberSection, string> = {
   experiences:   'interview_experiences',
   questionBooks: 'question_books',
   mentor:        'ai_mentor',
+  thinkingLab:   'thinking_lab',
+  industryConnect: 'industry_connect',
 };
 
 export const MEMBER_SECTIONS = Object.keys(SECTION_FEATURE) as MemberSection[];
@@ -80,7 +84,7 @@ export const MEMBER_SECTIONS = Object.keys(SECTION_FEATURE) as MemberSection[];
  */
 export const SECTION_COPY: Record<MemberSection, { title: string; blurb: string }> = {
   score:     { title: 'Your skill profile', blurb: 'What your assessment measured, skill by skill.' },
-  roadmap:   { title: 'Your 90-day plan',   blurb: 'Your gaps, in the order they are worth closing, sized to the time you have.' },
+  roadmap:   { title: 'Your day-by-day plan',   blurb: 'Your gaps, in the order they are worth closing, sized to the time you have.' },
   missions:  { title: 'Today’s work',       blurb: 'A short, finishable list every day, drawn from your plan.' },
   progress:  { title: 'Your progress',      blurb: 'XP, streaks and badges — earned by finishing the work in your plan.' },
   practice:  { title: 'Practice Lab',       blurb: 'Problems that run and test your code, mapped to the skills you are weakest in.' },
@@ -94,6 +98,8 @@ export const SECTION_COPY: Record<MemberSection, { title: string; blurb: string 
   experiences:   { title: 'Interview Experiences', blurb: 'What real candidates were asked, round by round, at real companies.' },
   questionBooks: { title: 'Question Books',       blurb: 'Interview question books by topic, with worked answers.' },
   mentor:        { title: 'AI Mentor',            blurb: 'Ask anything about your plan, your code or your career, any time.' },
+  thinkingLab:   { title: 'Thinking Lab',         blurb: 'Daily logic and problem-solving challenges that build how you think before you code.' },
+  industryConnect: { title: 'Industry Connect',   blurb: 'Meet people working in the industry you are preparing for.' },
 };
 
 /**

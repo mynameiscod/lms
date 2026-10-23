@@ -341,6 +341,18 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'view_activity_logs', label: 'View API Logs & Student Activity' },
     ]
   },
+  /**
+   * Help & Support (CareerPilot). Deliberately NOT in FEATURE_PERMISSIONS: no role gets these by
+   * default, because an agent reads members' tickets and, in the support HQ tenant, every
+   * college's. A college admin sees their own college's tickets without either (services/supportAccess.ts).
+   */
+  support: {
+    label: 'Help & Support',
+    permissions: [
+      { key: 'support_agent', label: 'Support agent — work tickets: reply, internal notes, assign, change status' },
+      { key: 'support_manager', label: 'Support manager — everything an agent does, plus FAQs, SLA settings and analytics' },
+    ]
+  },
 };
 
 /** Every key added for a feature that used to borrow another's — admins get them all by default. */

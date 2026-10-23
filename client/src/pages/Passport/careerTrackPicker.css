@@ -2,9 +2,9 @@
 .ctp { background: #fff; border: 1px solid #e3eaf2; border-radius: 16px; padding: 14px 16px; margin: 0 0 16px; box-shadow: 0 8px 22px rgba(5, 29, 100, .04); }
 .ctp.choosing { border-color: #9fd3dd; background: linear-gradient(180deg, #f3fafc, #fff 60%); }
 .ctp-current { display: flex; align-items: center; gap: 12px; }
-.ctp-current > i { font-size: 22px; color: #359AAD; }
+.ctp-current > i { font-size: 22px; color: #2B7E8E; }
 .ctp-current div { flex: 1; min-width: 0; }
-.ctp-current small { display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #6b7a91; }
+.ctp-current small { display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #2F3F56; }
 .ctp-current b { color: #051D64; font-size: 15px; }
 .ctp-current button, .ctp-cancel { border: 1px solid #c9d6e4; background: #fff; color: #051D64; border-radius: 10px; padding: 7px 14px; font-weight: 700; font-size: 13px; cursor: pointer; }
 .ctp-hd b { display: block; color: #051D64; font-size: 16px; }
@@ -14,7 +14,7 @@
 .ctp-card:hover:not(:disabled) { border-color: #359AAD; box-shadow: 0 0 0 2px rgba(53, 154, 173, .15); }
 .ctp-card.on { border-color: #359AAD; background: #eef8fa; }
 .ctp-card b { color: #051D64; font-size: 14.5px; }
-.ctp-lang { font-size: 12px; font-weight: 800; color: #359AAD; }
+.ctp-lang { font-size: 12px; font-weight: 800; color: #2B7E8E; }
 .ctp-desc { margin-bottom: 6px; font-size: 12.5px; color: #55657e; overflow-wrap: anywhere; }
 .ctp-go { margin-top: auto;  align-self: flex-start; font-size: 12.5px; font-weight: 800; color: #fff; background: #051D64; border-radius: 8px; padding: 5px 12px; }
 .ctp-card.on .ctp-go { background: #359AAD; }
@@ -23,3 +23,8 @@
 .ctp-msg.ok { background: #ecfdf3; color: #106b3a; }
 .ctp-msg.err { background: #fef3f2; color: #b42318; }
 @media (max-width: 480px) { .ctp-grid { grid-template-columns: minmax(0, 1fr); } }
+/* Read-only track card: name and the line under it on their own lines; the button never squeezes the text. */
+.ctp-current b { display: block; }
+.ctp-current .ctp-desc { display: block; margin: 2px 0 0; }
+.ctp-current button { flex: none; white-space: nowrap; }
+@media (max-width: 560px) { .ctp-current { flex-wrap: wrap; } .ctp-current button { width: 100%; } }

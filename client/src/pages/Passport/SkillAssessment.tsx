@@ -9,6 +9,7 @@ import { useMember } from './MemberLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import './skillAssessment.css';
 import { copyrightLine } from '../../config/brand';
+import { useProgramDays, daysLabel } from './useProgramDays';
 
 /**
  * A stage key as the member's own year, for the identity strip.
@@ -103,6 +104,7 @@ const PlacementDone: React.FC<{ result: PlacementResult; topic: string; onBack: 
 
 const SkillAssessment: React.FC = () => {
   const { data: member, reload: reloadMember } = useMember();
+  const days = useProgramDays();
   const { logout } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
@@ -154,11 +156,16 @@ const SkillAssessment: React.FC = () => {
   /** "Save & exit" with nowhere to exit to: the paper is saved and set aside, see saveAndExit. */
   const [paused, setPaused] = useState(false);
   /**
-   * Questions the member said they could not answer. Client-side only — the server is sent the
-   * same empty response it already understands, so this changes what the PALETTE shows and
-   * nothing about what is measured.
+   * Questions the member said they could not answer. The server stores an empty response with a
+   * `dontKnow` mark, so the mark survives a reload; what is measured is unchanged (an empty
+   * response scores the same as before).
    */
   const [dontKnow, setDontKnow] = useState<Set<string>>(new Set());
+  const dontKnowRef = useRef<Set<string>>(new Set());
+  useEffect(() => { dontKnowRef.current = dontKnow; }, [dontKnow]);
+  /** The question on screen, sent with every save so a reload resumes here. */
+  const atRef = useRef(0);
+  const sentAt = useRef(-1);
   /** Preflight: whether they have already sat one, and whether a real attempt is open. */
   const [avail, setAvail] = useState<AssessmentAvailability | null>(null);
 
@@ -196,8 +203,24 @@ const SkillAssessment: React.FC = () => {
       setSaveState('retrying');
     }
     setAnswers(merged);
-    const firstOpen = p.items.findIndex(i => merged[keyOf(i)] === undefined);
-    setAt(firstOpen >= 0 ? firstOpen : 0);
+    // "I don't know" marks: the server's, plus any this browser had not sent yet.
+    const dk = new Set<string>(p.items.filter(i => i.dontKnow).map(keyOf));
+    for (const k of draft?.dontKnow || []) dk.add(k);
+    for (const k of Object.keys(merged)) if (merged[k] !== '' && merged[k] !== undefined) dk.delete(k);
+    setDontKnow(dk);
+    /*
+     * Resume where the member was. The server keeps the last position; a draft newer than it
+     * wins. Without either, the first question with nothing in it — and when every question
+     * has something, the last one, never question 1.
+     */
+    const last = p.items.length - 1;
+    const firstOpen = p.items.findIndex(i => merged[keyOf(i)] === undefined && !dk.has(keyOf(i)));
+    const remembered = typeof draft?.at === 'number' ? draft.at : p.lastPosition;
+    const resumeAt = typeof remembered === 'number' ? Math.min(Math.max(0, remembered), last) : (firstOpen >= 0 ? firstOpen : last);
+    setAt(Math.max(0, resumeAt));
+    sentAt.current = typeof p.lastPosition === 'number' ? p.lastPosition : -1;
+    // Anything the last visit could not send goes now, not on the next click.
+    if (draft && Object.keys(draft.pending).length) setTimeout(() => { void flushRef.current(); }, 0);
   }, []);
 
   useEffect(() => {
@@ -247,10 +270,13 @@ const SkillAssessment: React.FC = () => {
   const flush = useCallback(async () => {
     const { batch, rest } = drainQueue(pending.current);
     pending.current = rest;
-    if (!batch.length) return;
+    const position = atRef.current;
+    // Nothing new to say: no answers and the member has not moved.
+    if (!batch.length && position === sentAt.current) return;
     setSaveState('saving');
     try {
-      await passportApi.saveSkillAnswers(batch as any);
+      await passportApi.saveSkillAnswers(batch as any, position);
+      sentAt.current = position;
       setSaveState(hasPending(pending.current) ? 'saving' : 'saved');
     } catch {
       pending.current = requeueFailed(pending.current, batch);
@@ -264,12 +290,14 @@ const SkillAssessment: React.FC = () => {
      * after a reload, which is the whole point.
      */
     const p = paperRef.current;
-    if (p) saveDraft(p.id, { answers: answersRef.current, pending: pending.current });
+    if (p) saveDraft(p.id, { answers: answersRef.current, pending: pending.current, dontKnow: [...dontKnowRef.current], at: atRef.current });
   }, []);
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
 
-  const queueSave = useCallback((item: SkillAssessmentItem, response: any) => {
+  const queueSave = useCallback((item: SkillAssessmentItem, response: any, dk = false) => {
     pending.current = enqueueAnswer(pending.current, {
-      sourceType: item.sourceType, sourceId: item.sourceId, response,
+      sourceType: item.sourceType, sourceId: item.sourceId, response, ...(dk ? { dontKnow: true } : {}),
     });
     setSaveState('saving');
     clearTimeout(timer.current);
@@ -339,12 +367,12 @@ const SkillAssessment: React.FC = () => {
    */
   const markDontKnow = (item: SkillAssessmentItem) => {
     const key = keyOf(item);
-    setDontKnow(s => { const n = new Set(s); n.add(key); return n; });
-    answer(item, '');
+    setDontKnow(s => { const n = new Set(s); n.add(key); dontKnowRef.current = n; return n; });
+    answer(item, '', true);
     setAt(n => Math.min(paperRef.current ? paperRef.current.items.length - 1 : n, n + 1));
   };
 
-  const answer = (item: SkillAssessmentItem, response: any) => {
+  const answer = (item: SkillAssessmentItem, response: any, dk = false) => {
     /* Answering a question they had marked unknown takes the mark off — otherwise the palette
        would keep calling it unknown while holding their answer to it. */
     if (response !== '' && response !== undefined && response !== null) {
@@ -354,14 +382,26 @@ const SkillAssessment: React.FC = () => {
     setAnswers(a => {
       const next = { ...a, [keyOf(item)]: response };
       /* Written before the network is even attempted, so a drop later cannot take it. */
-      if (paper) saveDraft(paper.id, { answers: next, pending: pending.current });
+      if (paper) saveDraft(paper.id, { answers: next, pending: pending.current, dontKnow: [...dontKnowRef.current], at: atRef.current });
       return next;
     });
-    queueSave(item, response);
+    queueSave(item, response, dk);
   };
 
   useEffect(() => { paperRef.current = paper; }, [paper]);
   useEffect(() => { answersRef.current = answers; }, [answers]);
+  /*
+   * Moving between questions (including "Save & next", which used to send nothing) records the
+   * position: in the local draft at once, and on the server with the next save.
+   */
+  useEffect(() => {
+    atRef.current = at;
+    const p = paperRef.current;
+    if (!p || at === sentAt.current) return;
+    saveDraft(p.id, { answers: answersRef.current, pending: pending.current, dontKnow: [...dontKnowRef.current], at });
+    clearTimeout(timer.current);
+    timer.current = setTimeout(flush, AUTOSAVE_MS);
+  }, [at, flush]);
 
   /**
    * Try again the moment the network comes back, rather than on the next timer tick.
@@ -379,6 +419,19 @@ const SkillAssessment: React.FC = () => {
     () => paper ? paper.items.filter(i => answers[keyOf(i)] !== undefined && answers[keyOf(i)] !== '').length : 0,
     [paper, answers],
   );
+  /**
+   * EVERY QUESTION NEEDS AN ANSWER: one of its options, or "I don't know".
+   * "Save & next" waits for the question on screen, and submitting waits for all of them — the
+   * server refuses a paper with an untouched question too.
+   */
+  const isSettled = (i: SkillAssessmentItem) => {
+    const r = answers[keyOf(i)];
+    const has = r !== undefined && r !== null && r !== '' && !(Array.isArray(r) && r.length === 0);
+    return has || dontKnow.has(keyOf(i));
+  };
+  const settledCount = paper ? paper.items.filter(isSettled).length : 0;
+  const firstOpen = paper ? paper.items.findIndex(i => !isSettled(i)) : -1;
+  const allSettled = !!paper && settledCount === paper.items.length;
 
   const submit = async () => {
     if (!paper) return;
@@ -389,6 +442,7 @@ const SkillAssessment: React.FC = () => {
         sourceType: i.sourceType,
         sourceId: i.sourceId,
         response: answers[keyOf(i)],
+        ...(dontKnow.has(keyOf(i)) ? { dontKnow: true } : {}),
       }));
       /*
        * Everything still in the outbox goes first. Submitting with unsent answers is how a
@@ -511,7 +565,7 @@ const SkillAssessment: React.FC = () => {
                   <div className="skc-note ok"><i className="bi bi-check-circle-fill" /><span>Your roadmap has been rebuilt around what this paper measured.</span></div>
                 )}
                 {!done.skillDnaPending && done.roadmapStatus === 'MEMBERSHIP_REQUIRED' && (
-                  <div className="skc-note"><i className="bi bi-stars" /><span>Your Skill DNA is ready and free to view. The full 90-day roadmap is part of membership.</span></div>
+                  <div className="skc-note"><i className="bi bi-stars" /><span>Your Skill DNA is ready and free to view. The full {daysLabel(days)} roadmap is part of membership.</span></div>
                 )}
                 {!done.skillDnaPending && done.roadmapStatus === 'NOT_ENOUGH_EVIDENCE' && (
                   <div className="skc-note"><i className="bi bi-lightbulb" /><span>Your Skill DNA is ready. We need a target role and a little more evidence before we can build a full roadmap.</span></div>
@@ -805,11 +859,20 @@ const SkillAssessment: React.FC = () => {
               <i className="bi bi-question-circle" /> I don&apos;t know the answer
             </button>
             {at < paper.items.length - 1 ? (
-              <button className="ska-btn primary" onClick={() => setAt(n => n + 1)}>Save & next <i className="bi bi-arrow-right" /></button>
+              <button className="ska-btn primary" disabled={!paper.items[at] || !isSettled(paper.items[at])} onClick={() => setAt(n => n + 1)}>Save & next <i className="bi bi-arrow-right" /></button>
             ) : (
-              <button className="ska-btn primary" onClick={() => setConfirming(true)}>Review & submit <i className="bi bi-arrow-right" /></button>
+              <button className="ska-btn primary" disabled={!allSettled} onClick={() => setConfirming(true)}>Review & submit <i className="bi bi-arrow-right" /></button>
             )}
           </div>
+          {paper.items[at] && !isSettled(paper.items[at]) && (
+            <p className="ska-required">Choose an answer, or “I don’t know the answer”, to continue.</p>
+          )}
+          {at === paper.items.length - 1 && isSettled(paper.items[at]) && !allSettled && firstOpen >= 0 && (
+            <p className="ska-required">
+              {paper.items.length - settledCount} {paper.items.length - settledCount === 1 ? 'question still needs' : 'questions still need'} an answer before you can submit.{' '}
+              <button type="button" className="ska-link" onClick={() => setAt(firstOpen)}>Go to question {firstOpen + 1}</button>
+            </p>
+          )}
 
           <div className="ska-question-palette">
             {paper.items.map((q, i) => {
@@ -834,7 +897,7 @@ const SkillAssessment: React.FC = () => {
           <div className="bx">
             <span className="ska-modal-icon"><i className="bi bi-send-check" /></span>
             <b>{placing ? 'Submit your check?' : 'Submit your assessment?'}</b>
-            <p>{answeredCount} of {paper.items.length} answered{answeredCount < paper.items.length && ` · ${paper.items.length - answeredCount} left blank`}. You cannot change your answers afterwards.</p>
+            <p>{answeredCount} of {paper.items.length} answered{answeredCount < paper.items.length && ` · ${paper.items.length - answeredCount} marked “I don’t know”`}. You cannot change your answers afterwards.</p>
             <div className="ska-actions">
               <button className="ska-btn ghost" onClick={() => setConfirming(false)}>Keep working</button>
               <button className="ska-btn primary" disabled={submitting} onClick={submit}>{submitting ? (placing ? 'Rebuilding your plan…' : 'Submitting…') : (placing ? 'Submit check' : 'Submit assessment')}</button>

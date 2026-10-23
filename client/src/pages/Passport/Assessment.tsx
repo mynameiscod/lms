@@ -154,7 +154,7 @@ const Assessment: React.FC = () => {
     </div></div>
   );
 
-  if (loading) return <div className="pf-shell">{Top(<div className="pf-spacer" />)}<div style={{ textAlign: 'center', color: '#64748b', padding: 80 }}>Loading…</div></div>;
+  if (loading) return <div className="pf-shell">{Top(<div className="pf-spacer" />)}<div style={{ textAlign: 'center', color: '#2F3F56', padding: 80 }}>Loading…</div></div>;
 
   if (result) return <ResultView result={result} firstName={firstName} initial={initial} onHome={() => nav('/careerpilot')} topBrand={Top} />;
 
@@ -257,7 +257,7 @@ const Assessment: React.FC = () => {
                   <button className="cpa-btn-next" disabled={!canSubmit || submitting} onClick={submit}>{submitting ? 'Scoring…' : <>See my Career Score <i className="bi bi-arrow-right" /></>}</button>
                 )}
               </div>
-              {!canSubmit && idx === total - 1 && <div style={{ textAlign: 'right', fontSize: 12, color: '#94a3b8', marginTop: 8 }}>Answer all {total} questions to submit ({answeredCount}/{total}).</div>}
+              {!canSubmit && idx === total - 1 && <div style={{ textAlign: 'right', fontSize: 12, color: '#3F4F66', marginTop: 8 }}>Answer all {total} questions to submit ({answeredCount}/{total}).</div>}
             </div>
           )}
 
@@ -564,7 +564,7 @@ const ResultView: React.FC<{
                 <span className="pc">{c.score}%</span>
               </div>
             ))}
-            <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 8 }}>Keep it up! You're doing great.</div>
+            <div style={{ fontSize: 12.5, color: '#2F3F56', marginTop: 8 }}>Keep it up! You're doing great.</div>
           </div>
 
           {/* Next steps = today's real missions, with their real XP */}

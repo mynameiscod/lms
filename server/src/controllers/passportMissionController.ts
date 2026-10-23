@@ -8,7 +8,7 @@ import PassportProgress from '../models/PassportProgress';
 import { isEntitled } from '../services/passportEntitlementService';
 import { missionsForDay, dayNumber, ensureContent, poolMapOf, ymd, clampSlots } from '../services/passportMissionService';
 import { curriculumFor } from '../services/curriculumService';
-import { completeMissionOnce } from '../services/passportXpService';
+import { completeMissionOnce, liveStreak } from '../services/passportXpService';
 import PassportInterview from '../models/PassportInterview';
 import PassportResume from '../models/PassportResume';
 import { awardCoins } from '../services/coinService';
@@ -98,7 +98,7 @@ export const getToday = async (req: Request, res: Response) => {
       day: plan.roadmapDay,
       today: plan.roadmapDay,
       isPast: false,
-      streak: progress?.streak || 0,
+      streak: progress ? liveStreak(progress) : 0,
       longestStreak: progress?.longestStreak || 0,
       xp: progress?.xp || 0,
       missions,

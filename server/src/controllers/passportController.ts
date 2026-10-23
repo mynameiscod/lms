@@ -22,6 +22,8 @@ import { foundationReadiness } from '../services/foundationReadinessService';
 import { passwordProblem } from '../utils/passwordPolicy';
 import { validateProgramDays, programDaysFor } from '../services/foundationProgramLengthService';
 import { UNIT_ENGINE_STAGES } from '../data/curriculumEnginePolicy';
+import { liveStreak } from '../services/passportXpService';
+import { resizeToProgramDays } from '../services/roadmapRebuildService';
 import { resolveRoadmapV2, validateRoadmapV2Patch } from '../data/roadmapV2Policy';
 import { membershipPriceFor, validatePriceInr } from '../services/membershipPricingService';
 import { clampPreviewDays } from '../data/foundationAccessPolicy';
@@ -170,7 +172,7 @@ export const updateConfig = async (req: Request, res: Response) => {
     /**
      * The length of the Foundation programme. Refused rather than clamped: a tenant typing 1200
      * meant something, and silently storing 180 would have them believe a plan they never chose.
-     * Journeys already composed keep the length they were written with.
+     * Journeys already composed are resized to it after the save (resizeToProgramDays).
      */
     if ($set.foundationProgramDays !== undefined) {
       const checked = validateProgramDays($set.foundationProgramDays);
@@ -246,9 +248,27 @@ export const updateConfig = async (req: Request, res: Response) => {
       }
       $set.paymentMode = wanted;
     }
+    const daysTouched = $set.programDaysByStage !== undefined || $set.foundationProgramDays !== undefined;
+    const daysBefore = daysTouched
+      ? Object.fromEntries(await Promise.all(UNIT_ENGINE_STAGES.map(async k => [k, await programDaysFor(tenantId, k)] as const)))
+      : {};
     const cfg = await PassportConfig.findOneAndUpdate({ tenantId }, { $set }, { new: true });
+    /* A year's days changed: that year's roadmaps are rebuilt to the new length, in the background. */
+    let roadmapsResizing: Record<string, number> | null = null;
+    if (daysTouched) {
+      const changed: Record<string, number> = {};
+      for (const k of UNIT_ENGINE_STAGES) {
+        const now = await programDaysFor(tenantId, k);
+        if (now !== (daysBefore as Record<string, number>)[k]) changed[k] = now;
+      }
+      if (Object.keys(changed).length) {
+        resizeToProgramDays(tenantId, changed, (req as any).user?.id || null);
+        roadmapsResizing = changed;
+      }
+    }
     res.json({
       config: cfg,
+      roadmapsResizing,
       engine: describeEngineConfig(cfg as any),
       foundation: await foundationReadiness(tenantId),
       stageReadiness: await stageReadinessSummary(tenantId),
@@ -302,13 +322,13 @@ export const getMyStatus = async (req: Request, res: Response) => {
      */
     const progress = await PassportProgress
       .findOne({ tenantId, studentId: String(user?._id || userIdOf(req)) })
-      .select('xp streak longestStreak').lean() as any;
+      .select('xp streak longestStreak lastCompletedDate').lean() as any;
 
     res.json({
       assessed: assessedState.assessed,
       progress: {
         xp: progress?.xp ?? 0,
-        streak: progress?.streak ?? 0,
+        streak: progress ? liveStreak(progress) : 0,
         longestStreak: progress?.longestStreak ?? 0,
       },
       assessedVia: assessedState.source,
@@ -707,7 +727,8 @@ export const createMembershipOrder = async (req: Request, res: Response) => {
     res.json({
       orderId: order.id, amount: order.amount, currency: order.currency, keyId: order.keyId, priceInr,
       name: 'CodeBegun CareerPilot',
-      description: 'Unlock your full 90-day journey',
+      // The member's own year length (admin-set), never a fixed ninety.
+      description: `Unlock your full ${await programDaysFor(tenantId, user?.passport?.stage)}-day journey`,
       prefill: {
         name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
         email: user?.email || '', contact: user?.phone || '',

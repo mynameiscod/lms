@@ -8,6 +8,8 @@ import './pages/MyLearningPlan/DayView.system.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { captureCareerPilotAttribution } from './utils/careerPilotAttribution';
+import { installClientMonitor } from './utils/clientMonitor';
+import AppErrorBoundary from './components/AppErrorBoundary';
 
 /**
  * DEVELOPMENT ONLY: keep opaque cross-origin errors off the dev-server overlay.
@@ -56,6 +58,8 @@ if (process.env.NODE_ENV === 'development') {
  * It is a no-op for an untagged visit and cannot throw: see the utility.
  */
 captureCareerPilotAttribution();
+// Help & Support monitoring: page errors and failed API calls, scrubbed (utils/clientMonitor).
+installClientMonitor();
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -65,7 +69,9 @@ const root = ReactDOM.createRoot(
 // (instant on platform.codebegun.com — nothing is fetched there).
 loadHostTenant().finally(() => root.render(
   <React.StrictMode>
-    <App />
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
   </React.StrictMode>
 ));
 

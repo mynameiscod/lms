@@ -7,6 +7,7 @@ import SkillPlan, { SkillPlanState } from './SkillPlan';
 import SectionLock from './SectionLock';
 import FoundationRoadmap from './FoundationRoadmap';
 import './roadmap.css';
+import { useProgramDays, daysLabel } from './useProgramDays';
 
 /**
  * The 90-day journey the ₹499 unlock promises, in two views:
@@ -33,6 +34,7 @@ function weekItems(w: RoadmapWeek, limit = 4) {
 const Roadmap: React.FC = () => {
   const nav = useNavigate();
   const { data: member } = useMember();
+  const days = useProgramDays();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Record<number, boolean>>({});
@@ -174,7 +176,7 @@ const Roadmap: React.FC = () => {
             they have none. */}
         <SkillPlan />
         <div className="pm-head">
-          <h1>Your 90-Day Roadmap</h1>
+          <h1>{days ? `Your ${days}-Day Roadmap` : 'Your Roadmap'}</h1>
           <p>Your roadmap is built from your Career Readiness Assessment — take it first (it's free, about 5 minutes) and your personalised journey appears here.</p>
         </div>
         <div className="pm-card" style={{ textAlign: 'center', padding: '40px 24px' }}>
@@ -213,7 +215,7 @@ const Roadmap: React.FC = () => {
    * ninety days, with a year of access. It is neither a bug nor a shorter entitlement, and the
    * screen is the only place that can say so.
    */
-  const shortOfWindow = rm.totalDays < 90;
+  const shortOfWindow = rm.totalDays < (days || 90);
   const allWeeks = rm.phases.flatMap(p => p.weeks);
   const todayDone = allWeeks.flatMap(w => w.days).find(d => d.isToday)?.done ?? false;
   const inProgress = entitled && !todayDone ? 1 : 0;
@@ -319,7 +321,7 @@ const Roadmap: React.FC = () => {
           <p>
             {rm.totalDays} day{rm.totalDays === 1 ? '' : 's'} of work, in the order it builds.
             {shortOfWindow && <> That is everything assigned to you so far — your plan can run to
-              90 days, and it grows as more is assigned.</>}
+              {days || 90} days, and it grows as more is assigned.</>}
           </p>
         </div>
 
@@ -536,8 +538,8 @@ const Roadmap: React.FC = () => {
             {shortOfWindow
               ? ' That is everything assigned to you so far.'
               : ''}
-            {' '}Your full first-year curriculum — ninety days, day by day — is under{' '}
-            <button className="rq-inline" onClick={() => nav('/careerpilot/plan')}>My 90 Days</button>.
+            {' '}Your full curriculum — {days ? `${days} days` : 'every day'}, day by day — is under{' '}
+            <button className="rq-inline" onClick={() => nav('/careerpilot/plan')}>{days ? `My ${days} Days` : 'My Plan'}</button>.
           </p>
         </div>
         <div className="rq-title-chips">

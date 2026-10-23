@@ -1,0 +1,19 @@
+/* Video controls (SeekControls): skip / time / float on one row, quality + speed on the right —
+   and on a phone, two tidy rows: the buttons, then quality and speed side by side, full width. */
+.vpc { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-top: 10px; }
+.vpc-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.vpc-time { font-size: 12.5px; color: #2F3F56; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vpc-sel { display: flex; align-items: center; gap: 12px; margin-left: auto; flex-wrap: wrap; }
+.vpc-sel:empty { display: none; }
+.vpc-pick { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #2F3F56; white-space: nowrap; }
+.vpc-pick select { border: 1px solid #C9D8E5; border-radius: 8px; padding: 5px 8px; font-size: 13px; color: #102A4F; background: #fff; cursor: pointer; min-height: 34px; }
+.vpc-note { width: 100%; font-size: 11.5px; line-height: 1.45; color: #3F4F66; }
+@media (max-width: 560px) {
+  .vpc { gap: 10px; }
+  .vpc-row { width: 100%; }
+  .vpc-row > button { flex: 1 1 0; justify-content: center; min-height: 38px; }
+  .vpc-time { width: 100%; order: 3; }
+  .vpc-sel { width: 100%; margin-left: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 10px; }
+  .vpc-pick { justify-content: space-between; }
+  .vpc-pick select { flex: 1; min-width: 0; }
+}

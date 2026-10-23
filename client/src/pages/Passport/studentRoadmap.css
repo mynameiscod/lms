@@ -3,9 +3,9 @@
    `.gd` scope, so --cb-* would resolve to nothing. Values mirror the CodeBegun guide. */
 .sr{
   --sr-navy:#051D64; --sr-teal:#359AAD; --sr-ink:#102A4F; --sr-text:#33475B;
-  --sr-muted:#64748B; --sr-line:#E2EAF2; --sr-card:#FFFFFF;
-  --sr-green:#17885D; --sr-green-bg:#EAF8F1;
-  --sr-amber:#B86B00; --sr-amber-bg:#FFF7E8;
+  --sr-muted:#2F3F56; --sr-line:#E2EAF2; --sr-card:#FFFFFF;
+  --sr-green:#13784F; --sr-green-bg:#EAF8F1;
+  --sr-amber:#9A5A00; --sr-amber-bg:#FFF7E8;
   --sr-red:#C93737;   --sr-red-bg:#FFF0F0;
   --sr-violet:#4338CA; --sr-violet-bg:#EEF2FF;
   color:var(--sr-text); padding:22px 26px 60px;
@@ -76,7 +76,7 @@
 .sr-table td.num{font-variant-numeric:tabular-nums; font-weight:600; color:var(--sr-ink)}
 .sr-table td.seq{color:var(--sr-muted); font-variant-numeric:tabular-nums}
 .sr-table td b{display:block; color:var(--sr-ink); font-weight:700}
-.sr-table td .key{display:block; font-size:10px; color:#93a1b2; margin-top:2px;
+.sr-table td .key{display:block; font-size:10px; color:#3F4F66; margin-top:2px;
   font-family:ui-monospace,Menlo,monospace}
 .sr-table td.why{max-width:420px}
 .sr-table td.why p{margin:6px 0 0; font-size:12px; line-height:1.5; color:var(--sr-muted)}
@@ -87,7 +87,7 @@
 .w-assess{background:var(--sr-violet-bg); color:var(--sr-violet)}
 .w-learn{background:#E7F1FF; color:#1F5FBF}
 .w-practice{background:var(--sr-green-bg); color:var(--sr-green)}
-.w-review{background:#F1F4F8; color:#5b6b7f}
+.w-review{background:#F1F4F8; color:#2F3F56}
 
 /* reason */
 .rc{display:inline-block; font-size:11px; font-weight:700; color:var(--sr-ink)}
@@ -99,7 +99,7 @@
 
 /* gap status */
 .gap{display:inline-block; font-size:10.5px; font-weight:800; border-radius:99px; padding:3px 9px}
-.g-not_assessed{background:#F1F4F8; color:#5b6b7f}
+.g-not_assessed{background:#F1F4F8; color:#2F3F56}
 .g-critical{background:var(--sr-red-bg); color:var(--sr-red)}
 .g-behind{background:var(--sr-amber-bg); color:var(--sr-amber)}
 .g-on_track,.g-strong{background:var(--sr-green-bg); color:var(--sr-green)}
@@ -107,14 +107,14 @@
 /* status */
 .st{display:inline-block; font-size:10.5px; font-weight:800; border-radius:99px; padding:3px 9px}
 .st-active{background:var(--sr-green-bg); color:var(--sr-green)}
-.st-superseded{background:#F1F4F8; color:#5b6b7f}
+.st-superseded{background:#F1F4F8; color:#2F3F56}
 
 /* ── deferred / workings / history ──────────────────── */
 .sr-deferred,.sr-workings,.sr-history{margin-top:26px; padding-top:20px; border-top:1px solid var(--sr-line)}
 .sr-deferred h2,.sr-history h2{font-size:17px; font-weight:800; color:var(--sr-navy); margin:0 0 6px}
 .sr-deferred p,.sr-history p{font-size:13px; color:var(--sr-muted); margin:0 0 11px; max-width:74ch}
 .sr-chips{display:flex; gap:7px; flex-wrap:wrap}
-.sr-chips span{background:#F1F4F8; color:#5b6b7f; border-radius:99px; padding:5px 12px;
+.sr-chips span{background:#F1F4F8; color:#2F3F56; border-radius:99px; padding:5px 12px;
   font-size:11.5px; font-weight:700}
 .sr-workings button{border:1px solid var(--sr-line); background:#fff; border-radius:9px;
   padding:8px 14px; font-size:12.5px; font-weight:700; color:var(--sr-ink); cursor:pointer;
@@ -133,7 +133,7 @@
 @media (max-width:900px){ .sr{padding:16px} .sr-hd{flex-direction:column} }
 
 /* The remaining reason and gap codes, so no row falls back to an unstyled raw value. */
-.rc-assessment_needed{color:#5b6b7f}
+.rc-assessment_needed{color:#2F3F56}
 .rc-limited_evidence{color:var(--sr-amber)}
 .rc-needs_work{color:var(--sr-amber)}
 .rc-maintenance{color:var(--sr-green)}

@@ -35,6 +35,12 @@ describe('a day’s state comes from the server, never from the client', () => {
     expect(canOpenDay({ status: 'COMPLETED', locked: false })).toBe(true);
   });
 
+  it('never shows Day 1 as today while the welcome days must come first', () => {
+    expect(dayState({ status: 'CURRENT', locked: false }, true)).toBe('LOCKED');
+    expect(dayState({ status: 'COMPLETED', locked: false }, true)).toBe('COMPLETED');
+    expect(groupJourneyDays([{ day: 1, status: 'CURRENT', locked: false, title: 'Day 1', topic: 'Intro' } as any], true)[0].state).toBe('LOCKED');
+  });
+
   it('shows an open day that is not today as available, not locked', () => {
     expect(dayState({ status: 'UPCOMING', locked: false })).toBe('AVAILABLE');
   });

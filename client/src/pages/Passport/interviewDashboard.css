@@ -3,7 +3,7 @@
    size. The shell forces .gd-main h1/p colours with !important, so text on navy carries !important to stay light. */
 .gd .cb-member-interview .cp-iv-page.iv2, .cp-iv-page.iv2 {
   --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD;
-  --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
+  --ink: #102A4F; --text: #33475B; --muted: #2F3F56; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
   max-width: 1760px !important; width: 100%; display: flex; flex-direction: column; gap: 18px; padding-bottom: 40px;
 }
 .iv2 > * { margin-top: 0 !important; margin-bottom: 0 !important; }
@@ -33,7 +33,7 @@
 .iv2-ring { --iv2-deg: 0deg; flex: none; width: 136px; height: 136px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#7FD3E0 var(--iv2-deg), rgba(255, 255, 255, .16) 0); }
 .iv2-ring > div { width: 108px; height: 108px; border-radius: 50%; background: var(--navy); display: flex; flex-wrap: wrap; align-content: center; align-items: baseline; justify-content: center; }
 .iv2-ring strong { font-size: 38px; line-height: 1; font-weight: 800; color: #fff; }
-.iv2-ring span { font-size: 14px; font-weight: 700; color: #9FB6D8; margin-left: 2px; }
+.iv2-ring span { font-size: 14px; font-weight: 700; color: #3F4F66; margin-left: 2px; }
 .iv2 .iv2-score-copy small { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6 !important; }
 .iv2 .iv2-score-copy b { display: block; margin-top: 4px; font-size: 21px; color: #fff !important; }
 .iv2 .iv2-score-copy span { display: block; margin-top: 4px; font-size: 13.5px; color: #C4D5EE !important; }
@@ -102,8 +102,8 @@
   background: #EAF1FB; color: #1B3C77 !important;
 }
 #root .gd .iv2 .iv2-hero h1, .iv2 .iv2-hero h1 { color: var(--navy) !important; }
-#root .gd .iv2 .iv2-hero h1 span, .iv2 .iv2-hero h1 span { color: #17869B !important; }
-#root .gd .iv2 .iv2-hero-copy > p, .iv2 .iv2-hero-copy > p { color: #5D6E88 !important; }
+#root .gd .iv2 .iv2-hero h1 span, .iv2 .iv2-hero h1 span { color: #167E92 !important; }
+#root .gd .iv2 .iv2-hero-copy > p, .iv2 .iv2-hero-copy > p { color: #2F3F56 !important; }
 #root .gd .iv2 .iv2-hero .iv2-chips span, .iv2 .iv2-hero .iv2-chips span {
   background: #EEF4FB; border-color: #DFE8F4; color: #1B3C77 !important;
 }
@@ -132,10 +132,10 @@
   background: #fff; box-shadow: inset 0 0 0 1px #EDF2F8;
 }
 #root .gd .iv2 .iv2-hero .iv2-ring strong, .iv2 .iv2-hero .iv2-ring strong { color: var(--navy) !important; }
-#root .gd .iv2 .iv2-hero .iv2-ring span, .iv2 .iv2-hero .iv2-ring span { color: #6B7C96 !important; }
+#root .gd .iv2 .iv2-hero .iv2-ring span, .iv2 .iv2-hero .iv2-ring span { color: #2F3F56 !important; }
 #root .gd .iv2 .iv2-score-copy small, .iv2 .iv2-score-copy small { color: #1B7D91 !important; }
 #root .gd .iv2 .iv2-score-copy b, .iv2 .iv2-score-copy b { color: var(--navy) !important; }
-#root .gd .iv2 .iv2-score-copy span, .iv2 .iv2-score-copy span { color: #6B7C96 !important; }
+#root .gd .iv2 .iv2-score-copy span, .iv2 .iv2-score-copy span { color: #2F3F56 !important; }
 
 /* ────────────────────────────────────────────────────────────────────────────
    YOUR PRACTICE — the middle column of the banner, the same shape as the
@@ -151,10 +151,10 @@
 .iv2-momentum { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 0 26px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
 
 .iv2-strip { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: linear-gradient(120deg, #EAF7F1, #E6F4EE); border: 1px solid #CFE8DD; }
-.iv2-strip .ic { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: #fff; color: #17885D; }
+.iv2-strip .ic { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: #fff; color: #17855B; }
 .iv2-strip > div { flex: 1; min-width: 0; }
 .iv2 .iv2-strip b { display: block; font-size: 17px; font-weight: 800; color: var(--navy); }
-.iv2 .iv2-strip > div > span { display: block; margin-top: 2px; font-size: 13.5px; line-height: 1.45; color: #5D6E88; }
+.iv2 .iv2-strip > div > span { display: block; margin-top: 2px; font-size: 13.5px; line-height: 1.45; color: #2F3F56; }
 .iv2-strip-bar { display: block; margin-top: 9px; height: 7px; border-radius: 999px; background: #D9EDE4; overflow: hidden; }
 .iv2-strip-bar em { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1E9AA8, #2FB27F); transition: width .5s ease; }
 
@@ -162,11 +162,11 @@
 .iv2-steps2::before { content: ""; position: absolute; left: 14px; right: 14px; top: 11px; height: 2px; background: #DFE7F1; }
 .iv2-steps2 li { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .iv2-steps2 li i { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid #DFE7F1; }
-.iv2-steps2 li span { max-width: 100%; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #8497AE; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iv2-steps2 li span { max-width: 100%; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #3F4F66; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .iv2-steps2 li.done i { background: var(--primary); border-color: var(--primary); box-shadow: inset 0 0 0 3px #fff; }
 .iv2-steps2 li.done span { color: var(--navy); }
 .iv2-steps2 li.current i { background: #2FB27F; border-color: #2FB27F; box-shadow: 0 0 0 4px rgba(47, 178, 127, .18); }
-.iv2-steps2 li.current span { color: #17885D; }
+.iv2-steps2 li.current span { color: #17855B; }
 
 .iv2-next { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; padding: 13px 14px; border-radius: 16px; border: 1px solid var(--line); background: #fff; cursor: pointer; transition: border-color .15s, background .15s; }
 .iv2-next:hover:not(:disabled) { border-color: var(--border-strong); background: #F7FAFE; }
@@ -175,8 +175,8 @@
 .iv2-next > div { flex: 1; min-width: 0; }
 .iv2 .iv2-next b { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #1B7D91; }
 .iv2 .iv2-next > div > span { display: block; margin-top: 2px; font-size: 15px; font-weight: 700; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.iv2 .iv2-next em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; color: #17885D; }
-.iv2-next > i.bi-chevron-right { flex: none; color: #8497AE; }
+.iv2 .iv2-next em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; color: #17855B; }
+.iv2-next > i.bi-chevron-right { flex: none; color: #3F4F66; }
 
 /* The readiness ring loses its tile: it is now the banner's third column, not a card inside one. */
 #root .gd .iv2 .iv2-hero .iv2-score, .iv2 .iv2-hero .iv2-score { margin: 0 26px; background: none; border: 0; padding: 0; backdrop-filter: none; }
@@ -193,4 +193,44 @@
 }
 @media (max-width: 560px) {
   .iv2-steps2 li span { font-size: 10.5px; letter-spacing: 0; }
+}
+
+/* ≤1280px: two even columns, then the readiness score as a full-width strip with a straight
+   divider and the same inset as the copy (it used to drop below as a stray ring with a curved line). */
+@media (max-width: 1280px) {
+  .iv2 .iv2-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  #root .gd .iv2 .iv2-hero .iv2-score, .iv2 .iv2-hero .iv2-score { grid-column: 1 / -1; margin: 22px 28px 0; padding: 20px 0 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; gap: 18px; justify-content: flex-start; }
+  .iv2 .iv2-hero .iv2-ring { width: 96px; height: 96px; }
+  .iv2 .iv2-hero .iv2-ring > div { width: 76px; height: 76px; }
+  .iv2 .iv2-hero .iv2-ring strong { font-size: 28px; }
+  .iv2-steps2 li span { font-size: 10.5px; letter-spacing: 0; white-space: normal; overflow: visible; text-overflow: clip; text-align: center; line-height: 1.25; max-width: 92px; overflow-wrap: normal; word-break: normal; }
+}
+@media (max-width: 980px) {
+  /* Restated after the ≤1280px two-column rule above, which otherwise kept phones on two columns. */
+  .iv2 .iv2-hero { grid-template-columns: minmax(0, 1fr); }
+  #root .gd .iv2 .iv2-hero .iv2-score, .iv2 .iv2-hero .iv2-score { margin: 18px 20px 0; padding: 18px 0 0; }
+}
+
+/* One row, three sections, from 981px up: readiness becomes a compact column (ring above text). */
+@media (min-width: 981px) and (max-width: 1280px) {
+  .iv2 .iv2-hero { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, .72fr); }
+  .iv2-momentum { border-right: 1px solid var(--line); padding: 0 20px; }
+  #root .gd .iv2 .iv2-hero .iv2-score, .iv2 .iv2-hero .iv2-score { grid-column: auto; margin: 0 20px; padding: 0; border: 0; border-radius: 0; flex-direction: column; align-items: flex-start; gap: 12px; align-self: center; }
+}
+/* 981–1150px: tighter so the three columns keep whole words and the start button one line. */
+@media (min-width: 981px) and (max-width: 1150px) {
+  .iv2 .iv2-hero-copy { padding: 0 18px; }
+  .iv2-momentum { padding: 0 14px; gap: 10px; }
+  #root .gd .iv2 .iv2-hero .iv2-score, .iv2 .iv2-hero .iv2-score { margin: 0 14px; }
+  .iv2 .iv2-hero .iv2-ring { width: 84px; height: 84px; }
+  .iv2 .iv2-hero .iv2-ring > div { width: 66px; height: 66px; }
+  .iv2 .iv2-hero .iv2-ring strong { font-size: 24px; }
+  .iv2 .iv2-hero .iv2-btn { padding: 0 16px; font-size: 14px; white-space: nowrap; }
+  .iv2-strip { gap: 10px; padding: 12px; }
+  .iv2-strip .ic { width: 38px; height: 38px; font-size: 17px; }
+  .iv2 .iv2-strip b { font-size: 15px; }
+  .iv2 .iv2-strip > div > span { font-size: 12.5px; }
+  .iv2-steps2 li span { font-size: 9.5px; max-width: none; }
+  .iv2-next { padding: 11px 12px; gap: 10px; }
+  .iv2-next .ic { width: 36px; height: 36px; font-size: 16px; }
 }

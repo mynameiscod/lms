@@ -1,5 +1,6 @@
 import React from 'react';
 import './member.css';
+import { useProgramDays } from './useProgramDays';
 
 /**
  * Adapter kept so the member pages (Roadmap / Practice / Interview / Resume) didn't
@@ -42,15 +43,18 @@ const PassportShell: React.FC<Props> = ({ children, meta }) => (
 
 /** Shown wherever a paid surface is reached without an active membership. */
 export const LockedPanel: React.FC<{ title: string; blurb: string; priceInr?: number; busy?: boolean; onUnlock?: () => void }> =
-  ({ title, blurb, priceInr, busy, onUnlock }) => (
+  ({ title, blurb, priceInr, busy, onUnlock }) => {
+    const days = useProgramDays();
+    return (
     <div className="pm-locked">
       <div className="ic">🔒</div>
       <h2>{title}</h2>
       <p>{blurb}</p>
       <button className="pm-btn primary" onClick={onUnlock} disabled={busy}>
-        {busy ? 'Opening payment…' : priceInr ? `Unlock My 90-Day CareerPilot — ₹${priceInr}` : 'Unlock my CareerPilot'}
+        {busy ? 'Opening payment…' : priceInr ? `Unlock My ${days ? `${days}-Day ` : ''}CareerPilot — ₹${priceInr}` : 'Unlock my CareerPilot'}
       </button>
     </div>
-  );
+    );
+  };
 
 export default PassportShell;

@@ -11,6 +11,10 @@ import { jsonExceptImports } from './routes/problemBankRoutes';
 import { ApiResponse } from './types';
 import { processDueMessages } from './services/whatsAppDripService';
 import { apiErrorLogger } from './middleware/errorLogger';
+import { requestId } from './middleware/requestId';
+import { requestMonitoring } from './middleware/monitoring';
+import { captureException } from './services/supportMonitoring';
+import { redactText } from './utils/redact';
 import { logger } from './utils/logger';
 import { readiness } from './services/healthService';
 
@@ -52,7 +56,8 @@ const corsOptions = process.env.NODE_ENV === 'production'
   ? { 
       origin: true, 
       credentials: true,
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id', 'x-cp-visitor', 'x-cp-session'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id', 'x-cp-visitor', 'x-cp-session', 'x-request-id'],
+      exposedHeaders: ['X-Request-Id'],
     }
   : {
       origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -74,7 +79,8 @@ const corsOptions = process.env.NODE_ENV === 'production'
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id', 'x-cp-visitor', 'x-cp-session'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id', 'x-cp-visitor', 'x-cp-session', 'x-request-id'],
+      exposedHeaders: ['X-Request-Id'],
     };
 
 /**
@@ -118,6 +124,15 @@ app.use(compression({
 app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP to avoid blocking static assets
 }));
+// Every request gets an id (X-Request-Id), first, so the access log, error log and any support
+// ticket raised about the request can be matched up.
+app.use(requestId);
+// Errors, slow requests and refusal counts for the support monitor (services/supportMonitoring).
+app.use(requestMonitoring);
+// The access log prints the URL as requested; a reset link or a provider callback carries its
+// token in the query, so the URL is scrubbed before it is written (utils/redact.ts).
+morgan.token('url', (req: Request) => redactText(req.originalUrl || req.url));
+morgan.token('referrer', (req: Request) => redactText(String(req.headers.referer || req.headers.referrer || '')));
 app.use(morgan('combined'));
 /**
  * THE PAYMENT CALLBACKS ARE NOT BROWSER XHR, AND CORS MUST NOT JUDGE THEM.
@@ -348,16 +363,23 @@ app.use((req: Request, res: Response<ApiResponse<any>>) => {
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response<ApiResponse<any>>, next: NextFunction) => {
+  const reqId = (req as any).requestId;
+  (req as any).monitorCaptured = true; // the 5xx this becomes is the same problem
+  captureException(err, { method: req.method, route: (req as any).route?.path ? `${req.baseUrl || ''}${(req as any).route.path}` : req.originalUrl, requestId: reqId, tenantId: (req as any).user?.tenantId ? String((req as any).user.tenantId) : undefined });
   logger.error(`Unhandled exception: ${req.method} ${req.originalUrl}`, {
     error: err.message,
     stack: err.stack?.split('\n').slice(0, 5),
     ip: req.ip,
+    requestId: reqId,
   });
-  res.status(err.status || 500).json({
+  // The caller gets a reference to quote, never a stack; the message itself only in development.
+  const status = Number(err.status || err.statusCode) || 500;
+  res.status(status >= 400 && status < 600 ? status : 500).json({
     success: false,
     message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
-  });
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
+    requestId: reqId,
+  } as any);
 });
 
 // P5: WhatsApp drip sequence runner — every 60 minutes

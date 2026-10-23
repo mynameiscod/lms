@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import passportApi, { SpineOutcome, SpineDay } from '../../api/passportApi';
 import FoundationJourneyPage from './FoundationJourney';
 import './myPlan.css';
+import { useProgramDays, daysLabel } from './useProgramDays';
 
 /**
  * The ninety days, day by day.
@@ -31,6 +32,7 @@ const mins = (n: number) =>
 
 const MyPlan: React.FC = () => {
   const nav = useNavigate();
+  const days = useProgramDays();
   const [spine, setSpine] = useState<SpineOutcome | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -82,14 +84,14 @@ const MyPlan: React.FC = () => {
 
   if (!spine.available) {
     const authored = spine.authored ?? 0;
-    const total = spine.total ?? 90;
+    const total = spine.total ?? days ?? 90;
     const shortfalls = spine.shortfalls || [];
     const pct = total ? Math.round((authored / total) * 100) : 0;
     return (
       <div className="mpl">
         <header className="mpl-hd">
           <span className="mpl-kicker">Your first year</span>
-          <h1>Your ninety days are being written</h1>
+          <h1>Your {total} days are being written</h1>
           <p>{spine.message}</p>
         </header>
 
@@ -128,7 +130,7 @@ const MyPlan: React.FC = () => {
     <div className="mpl">
       <header className="mpl-hd">
         <span className="mpl-kicker">Your first year</span>
-        <h1>Your {spine.totalDays ?? 90} days</h1>
+        <h1>Your {spine.totalDays ?? days ?? 90} days</h1>
         <p>
           Built from what you are studying, where you are heading and the language you chose —
           and sized to what your assessment measured. About {mins(spine.estimatedMinutes ?? 0)} of work
@@ -186,7 +188,7 @@ const MyPlan: React.FC = () => {
 
       <footer className="mpl-foot">
         <p>
-          Ninety days is the curriculum, not a deadline. Your membership runs a year, and every
+          {spine.totalDays ?? days ?? 90} days is the curriculum, not a deadline. Your membership runs a year, and every
           day you finish stays open for the whole of it.
         </p>
       </footer>

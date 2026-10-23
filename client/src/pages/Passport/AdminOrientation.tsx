@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import passportApi, { AuthoredOrientationDay, OrientationItem, OrientationItemKind } from '../../api/passportApi';
 import './adminOrientation.css';
+import { mediaUrl, mediaPathFor } from '../../utils/mediaUrl';
 
 /**
  * The welcome, as an admin writes it.
@@ -66,8 +67,7 @@ const MediaUploadButton: React.FC<{
     setBusy(true); onError('');
     try {
       const { attachment } = await passportApi.uploadAttachment(file);
-      const base = (process.env.REACT_APP_API_URL || '/api/v1');
-      onUploaded(`${base}/passport/skill-resources/media/${attachment.fileKey}`);
+      onUploaded(mediaPathFor(attachment.fileKey));
     } catch (e: any) {
       onError(e?.response?.data?.message || 'That file could not be uploaded.');
     }

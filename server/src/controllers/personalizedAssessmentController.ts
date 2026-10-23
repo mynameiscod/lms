@@ -63,9 +63,11 @@ const studentShape = (a: any, texts: Map<string, any>) => {
   const saved = new Map<string, any>(
     (a.answers || []).map((x: any) => [refKey(x.sourceType, x.sourceId), x.response]),
   );
+  const dk = new Set<string>((a.answers || []).filter((x: any) => x?.dontKnow).map((x: any) => refKey(x.sourceType, x.sourceId)));
 
   return {
     id: String(a._id),
+    lastPosition: typeof a.lastPosition === 'number' ? a.lastPosition : undefined,
     attemptNumber: a.attemptNumber,
     status: a.status,
     /** What the paper is for, so one screen can take every kind and say which it is. */
@@ -99,6 +101,7 @@ const studentShape = (a: any, texts: Map<string, any>) => {
         options: presentOptions(src?.options, `${String(a._id)}:${key}`),
         points: i.points,
         response: saved.has(key) ? saved.get(key) : undefined,
+        dontKnow: dk.has(key) || undefined,
       };
     }),
   };
@@ -143,7 +146,7 @@ export const startPersonalizedAssessment = async (req: Request, res: Response) =
         ? (openSkills.length === 1 && openSkills[0] === wantSkill)
         : open.purpose !== 'SKILL_CHECK';
       const answered = (open.answers || []).some(
-        (a: any) => a?.response !== undefined && a?.response !== null && a?.response !== '',
+        (a: any) => a?.dontKnow || (a?.response !== undefined && a?.response !== null && a?.response !== ''),
       );
 
       if (matches || answered) {
@@ -337,7 +340,9 @@ export const savePersonalizedAnswers = async (req: Request, res: Response) => {
       .map((a: any) => ({
         sourceType: String(a?.sourceType || ''),
         sourceId: String(a?.sourceId || ''),
-        response: a?.response,
+        response: a?.dontKnow === true ? '' : a?.response,
+        // "I don't know" is kept as its own mark, so a reload shows it and the paper counts as started.
+        ...(a?.dontKnow === true ? { dontKnow: true } : {}),
       }))
       .filter((a: any) => onPaper.has(refKey(a.sourceType, a.sourceId)));
 
@@ -349,6 +354,8 @@ export const savePersonalizedAnswers = async (req: Request, res: Response) => {
     for (const a of incoming) merged.set(refKey(a.sourceType, a.sourceId), a);
 
     open.answers = [...merged.values()];
+    const pos = Number(req.body?.position);
+    if (Number.isInteger(pos) && pos >= 0 && pos < (open.items || []).length) open.lastPosition = pos;
     await open.save();
 
     res.json({ saved: true, answered: open.answers.filter((a: any) => a.response !== undefined && a.response !== null && a.response !== '').length });

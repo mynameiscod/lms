@@ -61,7 +61,7 @@ export const XP_EVENTS: XpEventDefinition[] = [
   {
     key: 'CAREER_MISSION_COMPLETED',
     name: 'Daily roadmap mission completed',
-    description: 'One slice of the 90-day roadmap, finished.',
+    description: 'One slice of your roadmap, finished.',
     // The amount Module 10 already awards. Changing it here would silently re-price the
     // product for every existing member.
     defaultXp: 10,
@@ -127,7 +127,7 @@ export const XP_EVENTS: XpEventDefinition[] = [
   {
     key: 'FOUNDATION_DAY_COMPLETED',
     name: 'Foundation journey day completed',
-    description: 'Every required task of a Foundation journey day finished. Paid once per day of the ninety.',
+    description: 'Every required task of a journey day finished. Paid once per day of your plan.',
     defaultXp: 25,
     defaultDailyLimit: 0,
     uniqueSource: true,
@@ -244,7 +244,7 @@ export const BADGE_SEEDS: BadgeSeed[] = [
   },
   {
     key: 'ROADMAP_COMPLETE', name: 'Plan complete',
-    description: 'Finished the work your 90-day roadmap planned.',
+    description: 'Finished the work your roadmap planned.',
     iconKey: 'bi-trophy-fill', conditionType: 'ROADMAP_PERCENT',
     conditionConfig: { threshold: 100 }, displayOrder: 90,
   },

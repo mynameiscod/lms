@@ -10,6 +10,7 @@ import ShareCardDialog from './ShareCardDialog';
 import { useUnlock } from './useUnlock';
 import { startActivityBeacon, trackPage } from './activityBeacon';
 import visualizerApi from '../../api/visualizerApi';
+import supportApi from '../../api/supportApi';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
 
 const ICONS: Record<string, string> = {
@@ -37,6 +38,12 @@ const ICONS: Record<string, string> = {
   code: 'code-slash',
   db: 'database',
   brain: 'lightbulb',
+  handshake: 'people-fill',
+  support: 'life-preserver',
+  /* One icon per sidebar item: these three used to repeat Practice's, Mock Interview's and Resume's. */
+  codeSets: 'collection',
+  experiences: 'chat-quote',
+  books: 'journal-bookmark',
 };
 
 export const Icon: React.FC<{ name: string }> = ({ name }) => (
@@ -128,6 +135,18 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
     visualizerApi.access().then(a => alive && setVzAllowed(!!a.allowed)).catch(() => alive && setVzAllowed(false));
     return () => { alive = false; };
   }, []);
+  /*
+   * Support replies the member has not opened. The member app has no notification bell, so the
+   * Help & Support item carries the count instead. Re-read on every page change, which is also
+   * when a ticket is opened and the count falls.
+   */
+  const [supportUnread, setSupportUnread] = useState(0);
+  const { pathname: shellPath } = useLocation();
+  useEffect(() => {
+    let alive = true;
+    supportApi.unread().then(n => alive && setSupportUnread(n)).catch(() => undefined);
+    return () => { alive = false; };
+  }, [shellPath]);
   useEffect(() => {
     if ((user as any)?.profilePicture) return;
     let alive = true;
@@ -256,7 +275,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
    * and it also makes the product look smaller than it is. It still navigates, because the
    * destination now explains itself rather than dead-ending.
    */
-  const navBtn = (label: string, icon: string, to: string, section?: MemberSection, feature?: CareerPilotFeatureKey) => {
+  const navBtn = (label: string, icon: string, to: string, section?: MemberSection, feature?: CareerPilotFeatureKey, badge = 0) => {
     // Switched off by the institute's admin (Student Features, CareerPilot tab): not shown at all.
     if (feature && hiddenSet.has(feature)) return null;
     const locked = !!section && lockedSet.has(section);
@@ -276,6 +295,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
       >
         <span className="ic"><Icon name={icon} /></span>
         <span className="lbl">{label}</span>
+        {badge > 0 && <span className="gd-nav-badge" aria-label={`${badge} new`}>{badge > 9 ? '9+' : badge}</span>}
         {locked && <span className="lk" aria-label="Membership"><i className="bi bi-lock-fill" /></span>}
       </button>
     );
@@ -359,14 +379,14 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap', 'plan')}
           {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap', 'roadmap')}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice', 'practice')}
-          {navBtn('Coding Sets', 'code', '/careerpilot/coding', 'coding', 'coding')}
+          {navBtn('Coding Sets', 'codeSets', '/careerpilot/coding', 'coding', 'coding')}
           {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
           {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
-          {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'practice', 'thinkingLab')}
+          {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'thinkingLab', 'thinkingLab')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication', 'communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview', 'interview')}
-          {navBtn('Interview Experiences', 'interview', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
-          {navBtn('Question Books', 'resume', '/careerpilot/question-books', 'questionBooks', 'questionBooks')}
+          {navBtn('Interview Experiences', 'experiences', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
+          {navBtn('Question Books', 'books', '/careerpilot/question-books', 'questionBooks', 'questionBooks')}
           {navBtn('AI Mentor', 'robot', '/careerpilot/mentor', 'mentor', 'mentor')}
           {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies', 'companies')}
           {/* Sits with Opportunities because it answers the same question — what is happening in
@@ -375,6 +395,11 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Tech News', 'news', '/careerpilot/news', 'news', 'news')}
           {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume', 'resume')}
           {navBtn('My Progress', 'trophy', '/careerpilot/progress', 'progress', 'progress')}
+          {/* Membership-only like the rest of the product; the institute can also hide it
+              (Student Features, CareerPilot tab). */}
+          {navBtn('Industry Connect', 'handshake', '/careerpilot/industry-connect', 'industryConnect', 'industryConnect')}
+          {/* Never locked behind membership: anyone signed in must be able to ask for help, including about paying. */}
+          {navBtn('Help & Support', 'support', '/careerpilot/support', undefined, 'support', supportUnread)}
         </nav>
 
         {lockedSet.size > 0 && (
@@ -431,7 +456,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                   <span className="gd-stat-tx"><b>{st.streak}</b><small>Day streak</small></span>
                   <span className="gd-tip" aria-hidden>Days in a row you have learned. Miss a day and it starts again.</span>
                 </Link>
-                {!!d?.coins?.balance && (
+                {d?.coins && typeof d.coins.balance === 'number' && (
                   <Link to="/careerpilot/coins" className="gd-stat s-coins"
                         aria-label={`${d.coins.balance.toLocaleString('en-IN')} coins. Open your coins`}>
                     <span className="gd-stat-ic" aria-hidden><i className="bi bi-coin" /></span>

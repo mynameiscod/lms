@@ -1,3 +1,4 @@
+import { deriveTrackKey } from '../data/careerTrackPolicy';
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import CareerTrack from '../models/CareerTrack';
@@ -238,22 +239,26 @@ export const setStudentTrackAdmin = async (req: Request, res: Response) => {
  * Student
  * ------------------------------------------------------------------ */
 
-/** GET /passport/me/career-tracks — the tracks open to pick, and the student's current one. */
+/**
+ * GET /passport/me/career-tracks — the member's track, read only.
+ *
+ * The track follows the role and main language chosen in setup (deriveTrackKey); once a roadmap
+ * is built from it, it is fixed. `current` is the fixed track if there is one, else the one setup
+ * points to (shown before the roadmap is built), else null.
+ */
 export const myTracks = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
-    const me = await User.findOne({ _id: userIdOf(req), tenantId }).select('passport.careerTrack passport.stage').lean() as any;
-    res.json({ stage: me?.passport?.stage || null, current: me?.passport?.careerTrack?.key || null, tracks: await liveTracks(tenantId) });
+    const me = await User.findOne({ _id: userIdOf(req), tenantId }).select('passport.careerTrack passport.stage passport.primaryRole passport.preferredLanguages').lean() as any;
+    const stored = me?.passport?.careerTrack;
+    const fixed = stored?.key && stored.chosenBy && stored.chosenBy !== 'student';
+    const current = fixed ? String(stored.key) : deriveTrackKey(me?.passport?.primaryRole, me?.passport?.preferredLanguages);
+    const tracks = await liveTracks(tenantId);
+    res.json({ stage: me?.passport?.stage || null, current, fixed: !!fixed, tracks, canChange: false });
   } catch (e) { fail(res, e, 'load the tracks'); }
 };
 
-/** PUT /passport/me/career-track { key } — the student picks a LIVE track. */
-export const pickMyTrack = async (req: Request, res: Response) => {
-  try {
-    const key = normaliseKey(req.body?.key);
-    if (!key) return res.status(400).json({ message: 'Pick a track.' });
-    const r = await setStudentTrack(tenantOf(req), userIdOf(req), key, 'student');
-    if (!r.ok) return res.status(400).json({ message: r.reason });
-    res.json({ ok: true, key, rebuilt: await rebuildIfNotStarted(tenantOf(req), userIdOf(req), 'student') });
-  } catch (e) { fail(res, e, 'save your track'); }
+/** PUT /passport/me/career-track — no longer open to members: the track follows setup. */
+export const pickMyTrack = async (_req: Request, res: Response) => {
+  res.status(403).json({ ok: false, message: 'Your career track comes from the role and language you chose in setup. To change it, raise a ticket in Help & Support.' });
 };

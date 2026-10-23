@@ -7,6 +7,7 @@ import TodayPlan from './TodayPlan';
 import SkillCheckIn from './SkillCheckIn';
 import SectionLock from './SectionLock';
 import './skillPlan.css';
+import { useProgramDays, daysLabel } from './useProgramDays';
 
 /**
  * The 90-day skill plan, shown above the mission journey on the same page.
@@ -80,6 +81,7 @@ export type SkillPlanState = 'loading' | 'none' | 'cta' | 'plan';
 
 const SkillPlan: React.FC<{ onState?: (s: SkillPlanState) => void }> = ({ onState }) => {
   const nav = useNavigate();
+  const days = useProgramDays();
   const [data, setData] = useState<SkillRoadmapResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -176,7 +178,7 @@ const SkillPlan: React.FC<{ onState?: (s: SkillPlanState) => void }> = ({ onStat
     return (
       <div className="skp skp-cta">
         <div className="tx">
-          <b>{canGenerate ? 'Your 90-day plan is ready to build' : 'Your 90-day plan needs one more thing'}</b>
+          <b>{canGenerate ? `Your ${daysLabel(days)} plan is ready to build` : `Your ${daysLabel(days)} plan needs one more thing`}</b>
           <span>{un.message}</span>
           {!!un.missing?.length && (
             <em>Still needed: {un.missing.map(m => m.split('.').pop()).join(', ')}</em>
@@ -184,7 +186,7 @@ const SkillPlan: React.FC<{ onState?: (s: SkillPlanState) => void }> = ({ onStat
         </div>
         {canGenerate ? (
           <button className="skp-btn primary" disabled={busy} onClick={() => generate(false)}>
-            {busy ? 'Building…' : 'Generate my 90-day plan'}
+            {busy ? 'Building…' : `Generate my ${daysLabel(days)} plan`}
           </button>
         ) : action && (
           <button className="skp-btn" onClick={() => nav(action.to)}>{action.label}</button>
@@ -262,7 +264,7 @@ const SkillPlan: React.FC<{ onState?: (s: SkillPlanState) => void }> = ({ onStat
 
       {view.completed && (
         <div className="skp-note done">
-          This 90-day plan has finished. Your progress and everything it asked of you are kept.
+          This {daysLabel(days, '')} plan has finished. Your progress and everything it asked of you are kept.
         </div>
       )}
 

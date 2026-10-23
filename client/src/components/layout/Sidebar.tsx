@@ -253,6 +253,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'CareerPilot Question Bank', path: '/admin/passport/question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-list-check', permissions: ['manage_passport', 'manage_passport_assessment'] },
     { label: 'CareerPilot Roadmap V2', path: '/admin/passport/roadmap-v2', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-route', permissions: ['manage_passport', 'manage_passport_content'] },
     { label: 'CareerPilot Career Tracks', path: '/admin/passport/career-tracks', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport', 'manage_passport_content'] },
+    { label: 'CareerPilot Help & Support', path: '/admin/support', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-life-ring', permissions: ['support_agent', 'support_manager', 'manage_tenant', 'manage_tenant_users'] },
     { label: 'CareerPilot News', path: '/admin/passport/news', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-newspaper', permissions: ['manage_passport', 'manage_passport_setup'] },
     { label: 'Company Questions', path: '/admin/passport/companies', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_passport', 'manage_passport_content'] },
     /* Career Stage Tagging and Paper Designer stay removed — see the note above. Master still

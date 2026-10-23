@@ -1,4 +1,5 @@
-import React, { Suspense, createContext, lazy, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, createContext, lazy, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import axios from 'axios';
 import CareerSetupPrompt from './CareerSetupPrompt';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import type { CareerPilotFeatureKey } from '../../config/studentFeatureCatalog';
@@ -55,6 +56,11 @@ const ROUTE_SECTIONS: { prefix: string; section: MemberSection }[] = [
   { prefix: '/careerpilot/interview-experiences', section: 'experiences' },
   { prefix: '/careerpilot/question-books',        section: 'questionBooks' },
   { prefix: '/careerpilot/mentor',                section: 'mentor' },
+  // Before membership these show the unlock page, never their content (the APIs refuse too).
+  { prefix: '/careerpilot/practice',              section: 'practice' },
+  { prefix: '/careerpilot/thinking-lab',          section: 'thinkingLab' },
+  { prefix: '/careerpilot/industry-connect',      section: 'industryConnect' },
+  { prefix: '/careerpilot/progress',              section: 'progress' },
 ];
 /**
  * Which menu switch (Student Features, CareerPilot tab) each page belongs to. Longest prefix first,
@@ -66,6 +72,7 @@ const ROUTE_FEATURES: [string, CareerPilotFeatureKey][] = [
   ['/careerpilot/playground', 'playground'], ['/careerpilot/visualizer', 'visualizer'], ['/careerpilot/practice', 'practice'], ['/careerpilot/coding', 'coding'],
   ['/careerpilot/roadmap', 'roadmap'], ['/careerpilot/plan', 'plan'], ['/careerpilot/mentor', 'mentor'],
   ['/careerpilot/companies', 'companies'], ['/careerpilot/news', 'news'], ['/careerpilot/resume', 'resume'], ['/careerpilot/progress', 'progress'],
+  ['/careerpilot/industry-connect', 'industryConnect'], ['/careerpilot/support', 'support'],
 ];
 const featureForRoute = (pathname: string) =>
   ROUTE_FEATURES.find(([p]) => pathname === p || pathname.startsWith(`${p}/`))?.[1];
@@ -97,6 +104,8 @@ const pageKeyFor = (pathname: string) => {
   if (pathname.startsWith('/careerpilot/visualizer')) return 'visualizer';
   if (pathname.startsWith('/careerpilot/readiness')) return 'readiness';
   if (pathname.startsWith('/careerpilot/news')) return 'news';
+  if (pathname.startsWith('/careerpilot/industry-connect')) return 'industry';
+  if (pathname.startsWith('/careerpilot/support')) return 'support';
   return 'other';
 };
 
@@ -106,13 +115,54 @@ const MemberLayout: React.FC = () => {
   const { pathname } = useLocation();
   const pageKey = useMemo(() => pageKeyFor(pathname), [pathname]);
 
+  /* One request at a time; a reload asked for while one is out runs once when it returns. */
+  const inFlight = useRef(false);
+  const again = useRef(false);
+  const loadedOnce = useRef(false);
   const load = useCallback(async () => {
-    try { setData(await passportApi.getDashboard()); }
-    catch { setData(null); }
-    setLoading(false);
+    if (inFlight.current) { again.current = true; return; }
+    inFlight.current = true;
+    try {
+      do {
+        again.current = false;
+        try { setData(await passportApi.getDashboard()); loadedOnce.current = true; }
+        // A failed QUIET reload keeps what is on screen; only the first load may show the error page.
+        catch { if (!loadedOnce.current) setData(null); }
+      } while (again.current);
+    } finally {
+      inFlight.current = false;
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  /**
+   * The top bar (streak, coins, level, XP), the home cards, missions and locks all read this one
+   * payload. It was loaded once, so work done on one page (a lesson, a solved problem, a mission)
+   * showed on the others only after a browser refresh. It is now read again, quietly, on every
+   * page change and shortly after any save or submit a member page sends.
+   */
+  const firstPath = useRef(true);
+  useEffect(() => {
+    if (firstPath.current) { firstPath.current = false; return; }
+    load();
+  }, [pathname, load]);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const id = axios.interceptors.response.use(res => {
+      const method = String(res.config?.method || 'get').toLowerCase();
+      const url = String(res.config?.url || '');
+      // Not for background writes that repeat while a page is open (page-view activity, video watch
+      // time, autosave, logs) — a page change already reloads.
+      if (method !== 'get' && !/\/auth\/|\/logout|\/activity|progress|heartbeat|telemetry|watch|autosave|draft|\/log|analytics|events?\b/i.test(url)) {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => load(), 700);
+      }
+      return res;
+    });
+    return () => { axios.interceptors.response.eject(id); if (timer) clearTimeout(timer); };
+  }, [load]);
 
   // Reflect work finished in another tab (a payment, a solved problem) on return.
   useEffect(() => {

@@ -219,6 +219,34 @@ export const POLICIES = {
     max: 20, windowMs: 5 * 60_000,
     message: 'Too many submissions in a few minutes. Take a moment to check your code, then submit again.',
   },
+  /**
+   * Help & Support, counted per signed-in person (the default key). A person with a real problem
+   * raises one or two tickets; ten in an hour is a script or a loop in the client.
+   */
+  supportTicketCreate: {
+    max: 10, windowMs: 60 * 60_000,
+    message: 'You have raised several tickets in a short time. Our team will see the ones you have sent.',
+  },
+  /** Replies on tickets: a conversation, not a flood. */
+  supportTicketMessage: {
+    max: 30, windowMs: 10 * 60_000,
+    message: 'You are sending messages very quickly.',
+  },
+  /** The support assistant. Each message is a paid AI call. */
+  supportChat: {
+    max: 20, windowMs: 10 * 60_000,
+    message: 'You have sent a lot of messages to the assistant in a few minutes.',
+  },
+  /** Browser error reports. A broken page can loop; this keeps one tab from flooding the monitor. */
+  clientErrors: {
+    max: 30, windowMs: 60_000,
+    message: 'Too many error reports.',
+  },
+  /** Help Center search, typed live as suggestions, so allowed to be busy. */
+  supportSearch: {
+    max: 120, windowMs: 60_000,
+    message: 'Searching very quickly.',
+  },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type PolicyName = keyof typeof POLICIES;

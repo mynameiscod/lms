@@ -91,3 +91,23 @@ describe('admin input', () => {
     expect(ok.ok && ok.value).toEqual({ key: 'SPRING_BOOT', title: 'Spring Boot', kind: 'SKILL', topics: [{ topicCode: 'SB_REST', priority: 'MUST' }] });
   });
 });
+
+describe('the track follows setup (role + main language)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { deriveTrackKey } = require('../data/careerTrackPolicy');
+  it('maps software / full stack roles by language', () => {
+    expect(deriveTrackKey('FULLSTACK_ENGINEER', ['Java', 'JavaScript'])).toBe('JAVA_FULLSTACK_AI');
+    expect(deriveTrackKey('SOFTWARE_ENGINEER', ['Python'])).toBe('PY_FULLSTACK_AI');
+    expect(deriveTrackKey('BACKEND_ENGINEER', ['C#'])).toBe('DOTNET_FULLSTACK_AI');
+  });
+  it('maps the data roles whatever the language', () => {
+    expect(deriveTrackKey('DATA_ANALYST', [])).toBe('DATA_ANALYTICS_AI');
+    expect(deriveTrackKey('DATA_SCIENTIST', ['Python'])).toBe('DATA_SCIENCE_AI');
+  });
+  it('gives no track when the member is not sure or has no main language', () => {
+    expect(deriveTrackKey('NOT_SURE', ['Java'])).toBeNull();
+    expect(deriveTrackKey('FULLSTACK_ENGINEER', ['Not Sure'])).toBeNull();
+    expect(deriveTrackKey('FULLSTACK_ENGINEER', ['JavaScript'])).toBeNull();
+    expect(deriveTrackKey('QA_SDET', ['Java'])).toBeNull();
+  });
+});

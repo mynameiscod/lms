@@ -6,6 +6,7 @@ import {
 import { ensureGamificationDefaults } from '../services/gamificationEngine';
 import { getLeaderboard, rankSummary } from '../services/leaderboardService';
 import { levelFromXp } from '../services/passportGamificationService';
+import { liveStreak } from '../services/passportXpService';
 import {
   XP_EVENTS, LEADERBOARD_PERIODS, LeaderboardScope, LeaderboardPeriod,
   DEFAULT_TOP_N, isScopeSupported,
@@ -40,7 +41,7 @@ export const getMyGamification = async (req: Request, res: Response) => {
     await ensureGamificationDefaults(tenantId);
 
     const [progress, earned, definitions, ranks] = await Promise.all([
-      PassportProgress.findOne({ tenantId, studentId }).select('xp streak longestStreak').lean() as any,
+      PassportProgress.findOne({ tenantId, studentId }).select('xp streak longestStreak lastCompletedDate').lean() as any,
       StudentBadge.find({ tenantId, studentId }).sort({ awardedAt: -1 }).lean() as any,
       BadgeDefinition.find({ tenantId, active: true }).sort({ displayOrder: 1 }).lean() as any,
       rankSummary(tenantId, studentId),
@@ -53,7 +54,9 @@ export const getMyGamification = async (req: Request, res: Response) => {
       xp,
       // Reuses the existing level curve rather than inventing a second progression.
       level: levelFromXp(xp),
-      streak: progress?.streak || 0,
+      // The streak as it stands today (Home and the top bar show the same): the stored number only
+      // changes when XP is earned, so a lapsed streak kept showing here.
+      streak: progress ? liveStreak(progress) : 0,
       longestStreak: progress?.longestStreak || 0,
       badges: (definitions as any[]).map(d => ({
         key: d.key, name: d.name, description: d.description, iconKey: d.iconKey,

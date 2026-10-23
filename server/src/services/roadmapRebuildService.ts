@@ -22,7 +22,8 @@ import { trackForStudent } from './careerTrackService';
  *   for the year. The student is on day 1 of something they have not opened.
  *
  *   STARTED: the days they completed and the day they are on stay exactly as they are; every later
- *   day is rebuilt by V2 (moveFutureToV2). The length stays what it was.
+ *   day is rebuilt by V2 (moveFutureToV2), and the roadmap ends at the admin's days for the year —
+ *   longer or shorter than it was (never before the day they are on).
  *
  * Always V2, whatever the switch says: an admin who presses Rebuild is choosing V2 for this
  * student. A preview writes nothing. If V2 cannot fill the days, the roadmap stays as it was and
@@ -101,9 +102,10 @@ export async function rebuildRoadmap(
     }
     : { version: 'NONE' as const, totalDays: 0, completedDays: 0, days: [] };
 
+  const programDays = await programDaysFor(tenantId, stageKey);
+
   // ── NOT STARTED: the whole roadmap, at the admin's days. ──
   if (!curriculum || !completed.length) {
-    const programDays = await programDaysFor(tenantId, stageKey);
     if (!opts.apply) {
       const { composition, v2 } = await composeFoundationJourney(tenantId, profile, {
         stageKey, programDays, source: 'PRODUCTION', studentId, roadmapV2: settings,
@@ -125,7 +127,7 @@ export async function rebuildRoadmap(
   }
 
   // ── STARTED: keep what they did, rebuild the rest. ──
-  const result = await moveFutureToV2(tenantId, sid, profile, curriculum._id, stageKey, { source: 'PRODUCTION' }, !opts.apply);
+  const result = await moveFutureToV2(tenantId, sid, profile, curriculum._id, stageKey, { source: 'PRODUCTION' }, !opts.apply, programDays);
   if (!result.ok) return { ok: false, reason: result.reason, studentId, stageKey, mode: 'FUTURE', before };
   if (!opts.apply) {
     const kept = await DayPlan.find({ curriculumId: curriculum._id, dayNumber: { $in: result.frozenDays } }).select('dayNumber phase title').sort({ dayNumber: 1 }).lean() as any[];
@@ -222,4 +224,99 @@ export async function startBulkRebuild(tenantId: string, opts: { stageKey?: stri
     console.log(`[roadmap-rebuild] ${tenantId}: ${job.rebuilt} of ${job.total} moved to V2, ${job.failed.length} not`);
   })();
   return job;
+}
+
+/* ------------------------------------------------------------------ *
+ * The roadmap follows the admin's days for the year
+ * ------------------------------------------------------------------ */
+
+export interface ResizeJob { running: boolean; stages: Record<string, number>; total: number; done: number; resized: number; failed: { studentId: string; reason: string }[]; startedAt: Date; finishedAt: Date | null }
+const resizeJobs = new Map<string, ResizeJob>();
+export const resizeJobOf = (tenantId: string): ResizeJob | null => resizeJobs.get(tenantId) || null;
+
+/**
+ * When an admin changes a year's programme days, every roadmap of that year is rebuilt to the new
+ * length, in the background: one not started is built again at the new days; one started keeps
+ * its completed days and the day the member is on, and the rest is rebuilt to end at the new day.
+ * A roadmap already at the new length is left alone. If a job is still running, the stages are
+ * added to the next pass rather than run twice at once.
+ */
+export function resizeToProgramDays(tenantId: string, stages: Record<string, number>, by?: string | null): ResizeJob {
+  const current = resizeJobs.get(tenantId);
+  if (current?.running) {
+    Object.assign(current.stages, stages);
+    pendingResize.set(tenantId, { ...(pendingResize.get(tenantId) || {}), ...stages });
+    return current;
+  }
+  const job: ResizeJob = { running: true, stages: { ...stages }, total: 0, done: 0, resized: 0, failed: [], startedAt: new Date(), finishedAt: null };
+  resizeJobs.set(tenantId, job);
+  void (async () => {
+    try {
+      for (const [stageKey, days] of Object.entries(stages)) {
+        const list = await LearningCurriculum.find({
+          tenantId, journeyKind: FOUNDATION_JOURNEY_KIND, personalizedFor: { $ne: null }, adaptiveStage: stageKey, totalDays: { $ne: days },
+        }).select('personalizedFor').lean() as any[];
+        job.total += list.length;
+        for (const c of list) {
+          const studentId = String(c.personalizedFor);
+          try {
+            const r = await rebuildRoadmap(tenantId, studentId, { apply: true, by: by || 'programme-days' });
+            if (r.ok) job.resized++;
+            else job.failed.push({ studentId, reason: r.reason || 'Not rebuilt.' });
+          } catch (e: any) {
+            job.failed.push({ studentId, reason: String(e?.message || e) });
+          }
+          job.done++;
+        }
+      }
+    } finally {
+      job.running = false;
+      job.finishedAt = new Date();
+      console.log(`[programme-days] ${tenantId}: ${job.resized} of ${job.total} roadmaps resized to ${JSON.stringify(job.stages)}, ${job.failed.length} not`);
+      job.failed.slice(0, 5).forEach(f => console.log(`  ${f.studentId}: ${f.reason}`));
+      const next = pendingResize.get(tenantId);
+      if (next) { pendingResize.delete(tenantId); resizeToProgramDays(tenantId, next, by); }
+    }
+  })();
+  return job;
+}
+const pendingResize = new Map<string, Record<string, number>>();
+
+/* ------------------------------------------------------------------ *
+ * The roadmap follows the track setup gives
+ * ------------------------------------------------------------------ */
+
+/** One attempt per member per ten minutes, so a rebuild V2 cannot make is not retried on every read. */
+const ADOPT_RETRY_MS = 10 * 60 * 1000;
+const adoptAttempts = new Map<string, number>();
+
+/**
+ * A Year 3/4 roadmap built WITHOUT the track the member's setup gives — before the track could be
+ * read from setup, or while it was not live — is rebuilt on that track, once, if the member has
+ * not completed a learning day. Software / Full Stack Engineer + Java is the Java Full Stack
+ * roadmap; + Python, Python Full Stack. A started roadmap is left as it is (an admin rebuilds it,
+ * completed days kept). Never throws: the roadmap is still served as it stands.
+ */
+export async function adoptSetupTrack(
+  tenantId: string, studentId: string, stageKey: string | null | undefined,
+  curriculum: { _id: mongoose.Types.ObjectId; trackKey?: string | null } | null,
+): Promise<boolean> {
+  if (!curriculum || curriculum.trackKey) return false;
+  if (!['specialize', 'placement'].includes(String(stageKey || ''))) return false;
+  if (!mongoose.Types.ObjectId.isValid(studentId)) return false;
+  const k = `${tenantId}:${studentId}`;
+  if (Date.now() - (adoptAttempts.get(k) || 0) < ADOPT_RETRY_MS) return false;
+  adoptAttempts.set(k, Date.now());
+  try {
+    const sid = new mongoose.Types.ObjectId(studentId);
+    const started = await CurriculumEnrollment.exists({ tenantId, curriculumId: curriculum._id, studentId: sid, completedDays: { $elemMatch: { $gt: 0 } } });
+    if (started) return false;
+    if (!(await trackForStudent(tenantId, studentId, stageKey))) return false;
+    const r = await rebuildRoadmap(tenantId, studentId, { apply: true, by: 'setup-track' });
+    if (!r.ok) console.error(`[career-track] could not rebuild ${studentId} on their setup track: ${r.reason}`);
+    return r.ok;
+  } catch (e: any) {
+    console.error('[career-track] adopting the setup track failed:', e?.message || e);
+    return false;
+  }
 }

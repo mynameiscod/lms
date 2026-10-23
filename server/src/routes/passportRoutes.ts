@@ -129,6 +129,8 @@ router.get('/skill-resources/attachment-file/:folder/:name', skillResources.stre
  * every type that is not media, so widening it cannot widen those.
  */
 router.get('/skill-resources/media/:folder/:name', skillResources.streamPublicMedia);
+router.get('/skill-resources/media/:folder/:name/qualities', skillResources.mediaQualities);
+router.get('/skill-resources/media/:folder/:name/q/:height', skillResources.streamMediaQuality);
 
 router.use(authMiddleware, tenantMiddleware);
 

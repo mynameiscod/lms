@@ -8,9 +8,9 @@
   --mgc-navy: #051d64;
   --mgc-teal: #359aad;
   --mgc-line: #e3e9f0;
-  --mgc-muted: #6a7688;
+  --mgc-muted: #2F3F56;
   --mgc-bad: #c0392b;
-  --mgc-warn: #b86b00;
+  --mgc-warn: #9A5A00;
   --mgc-ok: #16835d;
   padding: 22px clamp(14px, 3vw, 34px) 44px;
   color: var(--mgc-navy);
@@ -37,7 +37,7 @@
 
 .mgc-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
 .mgc-kpi { border: 1px solid var(--mgc-line); border-radius: 14px; background: #fff; padding: 14px; }
-.mgc-kpi > span { display: block; font-size: 10px; font-weight: 800; color: #8290a5; letter-spacing: .05em; text-transform: uppercase; }
+.mgc-kpi > span { display: block; font-size: 10px; font-weight: 800; color: #3F4F66; letter-spacing: .05em; text-transform: uppercase; }
 .mgc-kpi > b { display: block; font-size: 25px; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
 .mgc-kpi > small { font-size: 10.5px; color: var(--mgc-muted); }
 .mgc-kpi.good > b { color: var(--mgc-ok); }
@@ -93,7 +93,7 @@
 .mgc-unitmain:hover { background: #f8fafc; }
 
 .mgc-order {
-  font-size: 11px; font-weight: 800; color: #93a2b8; font-variant-numeric: tabular-nums; text-align: right;
+  font-size: 11px; font-weight: 800; color: #3F4F66; font-variant-numeric: tabular-nums; text-align: right;
 }
 .mgc-unitname { min-width: 0; }
 .mgc-unitname b { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -106,13 +106,13 @@
   font-size: 9.5px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase;
   text-align: center; border-radius: 99px; padding: 3px 0;
 }
-.mgc-status.s-draft { background: #eef1f6; color: #6a7688; }
+.mgc-status.s-draft { background: #eef1f6; color: #2F3F56; }
 .mgc-status.s-published { background: #e7f6ef; color: var(--mgc-ok); }
-.mgc-status.s-archived { background: #f4f5f7; color: #97a1b0; }
+.mgc-status.s-archived { background: #f4f5f7; color: #3F4F66; }
 
 .mgc-unitactions { display: flex; align-items: center; gap: 2px; padding-right: 8px; }
 .mgc-unitactions button {
-  border: 0; background: none; color: #8290a5; cursor: pointer;
+  border: 0; background: none; color: #3F4F66; cursor: pointer;
   width: 30px; height: 30px; border-radius: 8px; font-size: 13px;
 }
 .mgc-unitactions button:hover { background: #eef2f7; color: var(--mgc-navy); }
@@ -138,12 +138,12 @@
 }
 .mgc-drawerhead h2 { font-size: 16px; margin: 0; }
 .mgc-drawerhead small { font-size: 10.5px; color: var(--mgc-muted); }
-.mgc-x { border: 0; background: none; color: #8290a5; cursor: pointer; font-size: 14px; padding: 4px; }
+.mgc-x { border: 0; background: none; color: #3F4F66; cursor: pointer; font-size: 14px; padding: 4px; }
 .mgc-x:hover { color: var(--mgc-navy); }
 
 .mgc-form { padding: 16px 18px 28px; overflow-y: auto; display: flex; flex-direction: column; gap: 13px; }
-.mgc-form label { display: flex; flex-direction: column; gap: 5px; font-size: 10.5px; font-weight: 800; color: #78859a; }
-.mgc-form label em { font-style: normal; font-weight: 600; color: #9aa6b8; text-transform: none; letter-spacing: 0; }
+.mgc-form label { display: flex; flex-direction: column; gap: 5px; font-size: 10.5px; font-weight: 800; color: #2F3F56; }
+.mgc-form label em { font-style: normal; font-weight: 600; color: #3F4F66; text-transform: none; letter-spacing: 0; }
 .mgc-form input, .mgc-form select {
   border: 1px solid var(--mgc-line); border-radius: 9px; padding: 9px 10px;
   font-size: 12.5px; color: var(--mgc-navy); background: #fff; font-family: inherit;
@@ -152,24 +152,24 @@
 .mgc-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
 .mgc-hint { font-size: 10.5px; color: var(--mgc-muted); line-height: 1.55; margin: -6px 0 0; }
 
-.mgc-lbl { display: block; font-size: 10.5px; font-weight: 800; color: #78859a; margin-bottom: 6px; }
-.mgc-lbl em { font-style: normal; font-weight: 600; color: #9aa6b8; }
+.mgc-lbl { display: block; font-size: 10.5px; font-weight: 800; color: #2F3F56; margin-bottom: 6px; }
+.mgc-lbl em { font-style: normal; font-weight: 600; color: #3F4F66; }
 .mgc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .mgc-chip {
   border: 1px solid var(--mgc-line); background: #fff; border-radius: 99px;
   padding: 5px 11px; font-size: 11.5px; color: #55637a; cursor: pointer; font-family: inherit;
 }
-.mgc-chip em { font-style: normal; color: #9aa6b8; font-size: 10px; margin-left: 3px; }
+.mgc-chip em { font-style: normal; color: #3F4F66; font-size: 10px; margin-left: 3px; }
 .mgc-chip:hover { border-color: #c5d2e0; }
 .mgc-chip.on { background: var(--mgc-navy); border-color: var(--mgc-navy); color: #fff; }
-.mgc-chip.on em { color: #a9bce0; }
+.mgc-chip.on em { color: #3F4F66; }
 
 .mgc-derived {
   border: 1px solid #d9ecf1; background: #f4fbfc; border-radius: 11px; padding: 11px 13px;
 }
-.mgc-derived span { font-size: 10px; font-weight: 800; color: #5d7f88; text-transform: uppercase; letter-spacing: .05em; }
+.mgc-derived span { font-size: 10px; font-weight: 800; color: #2F3F56; text-transform: uppercase; letter-spacing: .05em; }
 .mgc-derived b { display: block; font-size: 20px; margin: 2px 0 3px; font-variant-numeric: tabular-nums; }
-.mgc-derived small { font-size: 10.5px; color: #6d8992; line-height: 1.5; display: block; }
+.mgc-derived small { font-size: 10.5px; color: #2F3F56; line-height: 1.5; display: block; }
 
 .mgc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 
@@ -187,11 +187,11 @@
 .mgc-module { margin: 0 0 26px; }
 .mgc-module h2 {
   font-size: 13px; text-transform: uppercase; letter-spacing: .08em;
-  color: #8290a5; margin: 0 0 9px; display: flex; align-items: center; gap: 9px;
+  color: #3F4F66; margin: 0 0 9px; display: flex; align-items: center; gap: 9px;
 }
 .mgc-module h2 code {
   font-size: 10.5px; letter-spacing: 0; text-transform: none;
-  background: #f1f4f8; border-radius: 5px; padding: 2px 6px; color: #6a7688;
+  background: #f1f4f8; border-radius: 5px; padding: 2px 6px; color: #2F3F56;
 }
 .mgc-topic { border: 1px solid var(--mgc-line); border-radius: 12px; background: #fff; margin-bottom: 7px; overflow: hidden; }
 .mgc-topic.open { border-color: #c9d6e6; }
@@ -216,12 +216,12 @@
   padding: 9px 11px; cursor: pointer; text-align: left; color: inherit;
 }
 .mgc-unitmain:hover { background: #f8fafc; }
-.mgc-ord { font-size: 11px; font-weight: 800; color: #93a2b8; text-align: right; font-variant-numeric: tabular-nums; }
+.mgc-ord { font-size: 11px; font-weight: 800; color: #3F4F66; text-align: right; font-variant-numeric: tabular-nums; }
 .mgc-uname { min-width: 0; }
 .mgc-uname b { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mgc-uname small { display: block; font-size: 10.5px; color: var(--mgc-muted); margin-top: 2px; }
 .mgc-acts { display: flex; align-items: center; gap: 2px; padding-right: 7px; }
-.mgc-acts button { border: 0; background: none; color: #8290a5; cursor: pointer; width: 29px; height: 29px; border-radius: 8px; font-size: 13px; }
+.mgc-acts button { border: 0; background: none; color: #3F4F66; cursor: pointer; width: 29px; height: 29px; border-radius: 8px; font-size: 13px; }
 .mgc-acts button:hover { background: #eef2f7; color: var(--mgc-navy); }
 .mgc-acts button.danger:hover { background: #fdf1f0; color: var(--mgc-bad); }
 .mgc-msg.info { background: #f4f8fc; color: #44586f; border: 1px solid #dde7f1; }
@@ -234,10 +234,10 @@
 .mgc-check span { font-weight: 600; color: #55637a; text-transform: none; letter-spacing: 0; font-size: 12px; }
 .mgc-bundle { border: 1px solid #d9ecf1; background: #f4fbfc; border-radius: 11px; padding: 11px 13px; }
 .mgc-bundle.thin { border-color: #f2e0c0; background: #fff8ec; }
-.mgc-bundle span { font-size: 10px; font-weight: 800; color: #5d7f88; text-transform: uppercase; letter-spacing: .05em; }
+.mgc-bundle span { font-size: 10px; font-weight: 800; color: #2F3F56; text-transform: uppercase; letter-spacing: .05em; }
 .mgc-bundle.thin span { color: var(--mgc-warn); }
 .mgc-bundle b { display: block; font-size: 16px; margin: 2px 0 3px; }
-.mgc-bundle small { font-size: 10.5px; color: #6d8992; line-height: 1.5; display: block; }
+.mgc-bundle small { font-size: 10.5px; color: #2F3F56; line-height: 1.5; display: block; }
 
 /* ---- Content bundle, in teaching order ---- */
 .mgc-content { display: flex; flex-direction: column; gap: 11px; }
@@ -250,14 +250,14 @@
 .mgc-clist.cand li { background: #fbfcfd; }
 .mgc-crole {
   font-size: 8.5px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase;
-  color: #7b8aa0; background: #f0f3f7; border-radius: 4px; padding: 3px 0; text-align: center;
+  color: #2F3F56; background: #f0f3f7; border-radius: 4px; padding: 3px 0; text-align: center;
 }
 .mgc-clist li.bound .mgc-crole { background: #e2f2f6; color: #2b7d8f; }
 .mgc-cbody { min-width: 0; }
 .mgc-cbody b { display: block; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mgc-cbody small { display: block; font-size: 10px; color: var(--mgc-muted); margin-top: 1px; }
 .mgc-cbtn {
-  border: 0; background: none; color: #9aa6b8; cursor: pointer;
+  border: 0; background: none; color: #3F4F66; cursor: pointer;
   width: 26px; height: 26px; border-radius: 7px; font-size: 11px;
 }
 .mgc-cbtn:hover { background: #fdf1f0; color: var(--mgc-bad); }
@@ -289,7 +289,7 @@ a.mgc-cbtn { display: inline-flex; align-items: center; justify-content: center;
 .mgc-cov b.r-ready     { background: var(--mgc-ok); color: #fff; }
 @media (max-width: 900px) { .mgc-cov { display: none; } }
 
-.mgc-cov em.inh { color: #8290a5; background: #eef1f6; }
+.mgc-cov em.inh { color: #3F4F66; background: #eef1f6; }
 .mgc-cov em.unpub { color: var(--mgc-warn); background: var(--mgc-warn-w, #fff8ec); }
 .mgc-legend {
   font-size: 11px; color: var(--mgc-muted); line-height: 1.6;
@@ -308,7 +308,7 @@ a.mgc-cbtn { display: inline-flex; align-items: center; justify-content: center;
   margin-bottom: 6px; min-height: 4px;
 }
 
-.mgc-chips-empty { font-size: 12px; color: #94a3b8; font-style: italic; }
+.mgc-chips-empty { font-size: 12px; color: #3F4F66; font-style: italic; }
 
 .mgc-chip {
   display: inline-flex; align-items: baseline; gap: 6px;
@@ -318,7 +318,7 @@ a.mgc-cbtn { display: inline-flex; align-items: center; justify-content: center;
 }
 
 .mgc-chip-key { font-weight: 600; color: #3730a3; letter-spacing: .01em; }
-.mgc-chip-name { color: #6366f1; font-size: 11px; }
+.mgc-chip-name { color: #6164EC; font-size: 11px; }
 
 /* An unrecognised key is flagged rather than rendered like any other chip. */
 .mgc-chip-unknown { background: #fef2f2; border-color: #fecaca; }
@@ -347,7 +347,7 @@ a.mgc-cbtn { display: inline-flex; align-items: center; justify-content: center;
 }
 .mgc-skill-matches button:hover { background: #f8fafc; }
 .mgc-skill-matches strong { font-size: 13px; color: #0f172a; font-weight: 600; }
-.mgc-skill-matches span { font-size: 11px; color: #64748b; letter-spacing: .02em; }
+.mgc-skill-matches span { font-size: 11px; color: #2F3F56; letter-spacing: .02em; }
 
 /* ── suitability override ────────────────────────────────────────────────────
    Deliberately plain. Overriding is rare and should not look like a setting
@@ -358,7 +358,7 @@ a.mgc-cbtn { display: inline-flex; align-items: center; justify-content: center;
 .mgc-state-grid button {
   padding: 3px 8px; border-radius: 999px; cursor: pointer;
   border: 1px solid #e2e8f0; background: #fff;
-  font-size: 11px; color: #64748b; text-transform: capitalize;
+  font-size: 11px; color: #2F3F56; text-transform: capitalize;
 }
 .mgc-state-grid button:hover { border-color: #cbd5e1; color: #475569; }
 .mgc-state-grid button.on {
@@ -377,7 +377,7 @@ a.mgc-cbtn { display: inline-flex; align-items: center; justify-content: center;
 .mgc-move { display: inline-flex; gap: 2px; margin-left: 8px; vertical-align: middle; }
 .mgc-move.topic { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); z-index: 2; }
 .mgc-move button {
-  border: 1px solid #e2e8f0; background: #fff; color: #64748b;
+  border: 1px solid #e2e8f0; background: #fff; color: #2F3F56;
   border-radius: 6px; width: 24px; height: 24px; line-height: 1;
   font-size: 11px; cursor: pointer; padding: 0;
 }

@@ -220,6 +220,12 @@ export const learningContentLibraryApi = {
     return data;
   },
 
+  /** The quality versions made for an uploaded video (heights, highest first) and the conversion state. */
+  getQualities: async (id: string): Promise<{ status: string; sourceHeight: number | null; heights: number[] }> => {
+    const { data } = await axios.get(`${BASE}/${id}/qualities`, { headers: authHeader() });
+    return data;
+  },
+
   getStreamUrl: (id: string): string => {
     const token    = localStorage.getItem('token') || '';
     const tenantId = localStorage.getItem('tenantId') || '';

@@ -115,7 +115,7 @@ export const STUDENT_FEATURE_KEYS: StudentFeatureKey[] = FEATURE_META.map(f => f
 
 export type CareerPilotFeatureKey =
   | 'plan' | 'roadmap' | 'practice' | 'coding' | 'playground' | 'visualizer' | 'thinkingLab' | 'communication'
-  | 'interview' | 'experiences' | 'questionBooks' | 'mentor' | 'companies' | 'news' | 'resume' | 'progress';
+  | 'interview' | 'experiences' | 'questionBooks' | 'mentor' | 'companies' | 'news' | 'resume' | 'progress' | 'industryConnect' | 'support';
 
 export type CareerPilotGroup = 'Plan' | 'Practice' | 'Interview prep' | 'Career';
 export const CAREERPILOT_GROUP_ORDER: CareerPilotGroup[] = ['Plan', 'Practice', 'Interview prep', 'Career'];
@@ -145,6 +145,8 @@ export const CAREERPILOT_FEATURE_META: CareerPilotFeatureMeta[] = [
   { key: 'news',          label: 'Tech News',             description: 'Daily industry reading', icon: '📰', group: 'Career' },
   { key: 'resume',        label: 'Resume',                description: 'Build and share a resume', icon: '📄', group: 'Career' },
   { key: 'progress',      label: 'My Progress',           description: 'Streaks, XP, badges and standings', icon: '🏆', group: 'Career' },
+  { key: 'industryConnect', label: 'Industry Connect',    description: 'Meet people working in industry (coming soon)', icon: '🤝', group: 'Career' },
+  { key: 'support',       label: 'Help & Support',        description: 'Report a problem and follow the reply', icon: '🛟', group: 'Career' },
 ];
 
 export const CAREERPILOT_FEATURE_KEYS: CareerPilotFeatureKey[] = CAREERPILOT_FEATURE_META.map(f => f.key);

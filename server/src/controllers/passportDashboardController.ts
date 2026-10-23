@@ -10,6 +10,7 @@ import { membershipActive, entitlementMap } from '../services/passportEntitlemen
 import { lockedSections, lockedSectionViews } from '../data/memberAccessPolicy';
 import { hiddenCareerPilotFeatures } from '../services/careerPilotFeatureService';
 import { ensureContent, poolMapOf, dayNumber, ymd, clampSlots } from '../services/passportMissionService';
+import { liveStreak } from '../services/passportXpService';
 import { awardCoins, getAccount } from '../services/coinService';
 import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap } from '../services/passportRoadmapService';
@@ -33,7 +34,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     const limit = Math.min(200, Math.max(10, Number(req.query.limit) || 50));
 
     const board = await PassportProgress.find({ tenantId })
-      .select('studentId xp streak').sort({ xp: -1 }).limit(500).lean();
+      .select('studentId xp streak lastCompletedDate').sort({ xp: -1 }).limit(500).lean();
     const users = await User.find({ _id: { $in: board.map((b: any) => b.studentId) } })
       .select('firstName lastName passport.city').lean();
     const byId = new Map(users.map((u: any) => [String(u._id), u]));
@@ -44,7 +45,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
         rank: i + 1,
         name: u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Member' : 'Member',
         city: u?.passport?.city || '',
-        xp: b.xp, streak: b.streak || 0,
+        xp: b.xp, streak: liveStreak(b),
         me: String(b.studentId) === studentId,
       };
     });
@@ -317,7 +318,7 @@ export const getDashboard = async (req: Request, res: Response) => {
         solvedToday: g.solvedToday(progress, now),
         totalProblems: library.total,
         accuracy: g.accuracy(progress),
-        streak: progress.streak,
+        streak: liveStreak(progress, now),
         longestStreak: progress.longestStreak,
         xp: progress.xp,
         day: dailyPlan.available ? dailyPlan.roadmapDay : day,
@@ -349,7 +350,7 @@ export const getDashboard = async (req: Request, res: Response) => {
         solvedCount,
         codingSolved: solvedCount,
         totalCoding: g.PRACTICE_TARGET,
-        streak: progress.streak,
+        streak: liveStreak(progress, now),
         longestStreak: progress.longestStreak,
         completedDays: roadmap.completedDays,
         interviewsCompleted: interviews.length,

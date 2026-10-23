@@ -32,12 +32,12 @@ import passportApi, {
 } from '../../api/passportApi';
 import SectionLock, { useUnlock } from './SectionLock';
 import { dayState, dayRanges, initialDay, STATE_LABEL } from './foundationRoadmapPresenter';
-import RoadmapPhaseBands from './RoadmapPhaseBands';
 import CareerTrackPicker from './CareerTrackPicker';
 import './foundationJourney.css';
 import './foundationPreview.css';
 import './foundationMember.css';
 import './orientation.css';
+import { useProgramDays } from './useProgramDays';
 
 /** Content types, in words a first-year recognises. */
 const TYPE_LABEL: Record<string, string> = {
@@ -265,13 +265,14 @@ const NotReady: React.FC<{ totalDays: number; stage?: string; message?: string; 
  * and the gate is honest. The server agrees: it composes these days live and stores nothing.
  */
 const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = ({ journey, onUnlocked }) => {
+  const programDays = useProgramDays();
   const previewDays = journey.preview || [];
   const [open, setOpen] = useState<number>(previewDays[0]?.day ?? 1);
   const { unlock, busy, msg, priceInr } = useUnlock();
 
   /** The programme's own name, from the server. Falls back to the only name this page ever had. */
   const stage = journey.stageLabel || 'Foundation';
-  const totalDays = journey.totalDays ?? 90;
+  const totalDays = journey.totalDays ?? programDays ?? 90;
   const openCount = previewDays.length;
   const lockedCount = journey.lockedDays ?? Math.max(0, totalDays - openCount);
   const day = previewDays.find(d => d.day === open) || previewDays[0];
@@ -417,16 +418,19 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
  * Shows only what the roadmap already knows about the day (its number, title and topic). The day's
  * content is not fetched for it, and the server would refuse it if it were.
  */
-const LockedDay: React.FC<{ day: number; title?: string | null; topic?: string | null; currentDay: number; onBack: () => void }> =
-  ({ day, title, topic, currentDay, onBack }) => (
+const LockedDay: React.FC<{ day: number; title?: string | null; topic?: string | null; currentDay: number; onBack: () => void; welcomeLabel?: string | null }> =
+  ({ day, title, topic, currentDay, onBack, welcomeLabel }) => (
     <div className="fj-locked" role="status">
       <span className="fj-locked-icon" aria-hidden><i className="bi bi-lock-fill" /></span>
       <span className="fj-status s-locked">Locked</span>
       <h2>Day {day}{title ? ` · ${title}` : ''}</h2>
       {topic && <p className="fj-locked-topic">{topic}</p>}
       <p className="fj-locked-title">This learning day is locked</p>
-      <p className="fj-locked-text">Complete your current learning day to continue your journey.</p>
-      <button type="button" className="fj-start" onClick={onBack}>Back to current day (Day {currentDay})</button>
+      {/* While the welcome is owed, what holds a learning day is the welcome, not a learning day. */}
+      <p className="fj-locked-text">{welcomeLabel
+        ? 'Finish your welcome days first — Day 1 opens once they are done.'
+        : 'Complete your current learning day to continue your journey.'}</p>
+      <button type="button" className="fj-start" onClick={onBack}>Back to today (Day {welcomeLabel || currentDay})</button>
     </div>
   );
 
@@ -536,6 +540,7 @@ const OrientationCard: React.FC<{ view: OrientationView; onOpen: () => void }> =
 };
 
 const FoundationJourneyPage: React.FC = () => {
+  const programDays = useProgramDays();
   const [journey, setJourney] = useState<Journey | null>(null);
   const [orientation, setOrientation] = useState<OrientationView | null>(null);
   const [day, setDay] = useState<FoundationJourneyDay | null>(null);
@@ -664,7 +669,7 @@ const FoundationJourneyPage: React.FC = () => {
      * open, that refusal is shown as the same locked card rather than as an empty panel.
      */
     const summary = (journey?.days || []).find(d => d.day === openDay);
-    if (summary && dayState(summary) === 'LOCKED') {
+    if (summary && dayState(summary, !!journey?.orientation?.blocking) === 'LOCKED') {
       setLockedDay({ day: summary.day, title: summary.title, topic: summary.topic });
       setDayLoading(false);
       return undefined;
@@ -705,7 +710,7 @@ const FoundationJourneyPage: React.FC = () => {
    * with the availability check by `||`, leaves the union undiscriminated in the body. Split
    * apart, the second guard discriminates cleanly.
    */
-  if (!journey) return <NotReady totalDays={90} />;
+  if (!journey) return <NotReady totalDays={programDays ?? 90} />;
   // No preview for this learner: the membership offer is the page.
   if (!journey.available && journey.reason === 'MEMBERSHIP_REQUIRED') return <SectionLock section="roadmap" />;
   if (!journey.available) {
@@ -738,12 +743,14 @@ const FoundationJourneyPage: React.FC = () => {
     ? journey.orientation.days.find(d => !d.day.startsWith('done') && d.status !== 'COMPLETED') || null
     : null;
   const onWelcome = !!welcomeOutstanding;
+  /** The welcome must be finished before Day 1 opens, so Day 1 is not "today" yet. */
+  const welcomeFirst = !!journey.orientation?.blocking && onWelcome;
   const welcomeLabel = welcomeOutstanding?.day || '0.1';
   /** The welcome day the panel is showing, from the view the page already holds. */
   const welcomeDay = openOrientationDay === null
     ? null
     : (orientation?.days || []).find(d => d.dayNumber === openOrientationDay) || null;
-  const totalDays = journey.totalDays ?? 90;
+  const totalDays = journey.totalDays ?? programDays ?? 90;
   const currentDay = journey.currentDay ?? 1;
   const completedCount = journey.completedCount ?? 0;
   const percentComplete = journey.percentComplete ?? 0;
@@ -877,9 +884,7 @@ const FoundationJourneyPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Roadmap V2: why a day is locked, while earlier checkpoints hold it. The bridge/year split is admin-only. */}
       <CareerTrackPicker onPicked={() => { load(); }} />
-      <RoadmapPhaseBands gate={journey.gate} />
 
       {/* The card invites; once the welcome is finished it stops asking. The days stay in the strip. */}
       {orientation && !orientation.complete && (
@@ -890,7 +895,7 @@ const FoundationJourneyPage: React.FC = () => {
       {/* The ninety, as a strip you step through with the arrows either side (see DayStrip) —
           with range jumps, so the days beyond the edge are never a guess, and a lock on every
           day that cannot be opened yet. */}
-      <DayStrip totalDays={totalDays} label={`All ${totalDays} days`} focusDay={openDay}>
+      <DayStrip totalDays={totalDays} label={`All ${totalDays} days`} focusDay={openOrientationDay === null ? openDay : null}>
           {/*
             * The welcome days sit at the head of the strip, numbered 0.1 onward, so the plan
             * reads in the order it is actually met. They open the welcome screen rather than the
@@ -914,15 +919,17 @@ const FoundationJourneyPage: React.FC = () => {
             </li>
           ))}
           {days.map(d => {
-            const state = dayState(d);
+            const state = dayState(d, welcomeFirst);
+            /* Day 1 while the welcome is owed: the server calls it CURRENT, but today is the welcome day. */
+            const statusClass = d.status === 'CURRENT' && state === 'LOCKED' ? 'upcoming' : d.status.toLowerCase();
             return (
               <li key={d.day}>
                 <button
                   type="button"
                   id={`fj-chip-${d.day}`}
-                  className={`fj-chip s-${d.status.toLowerCase()}${state === 'LOCKED' ? ' s-locked' : ''}${openDay === d.day ? ' open' : ''}`}
+                  className={`fj-chip s-${statusClass}${state === 'LOCKED' ? ' s-locked' : ''}${openDay === d.day && openOrientationDay === null ? ' open' : ''}`}
                   onClick={() => selectDay(d.day)}
-                  aria-current={d.day === currentDay ? 'step' : undefined}
+                  aria-current={d.day === currentDay && !welcomeFirst ? 'step' : undefined}
                   aria-label={`Day ${d.day}, ${STATE_LABEL[state]}: ${d.title}`}
                   title={`Day ${d.day} — ${d.title} (${STATE_LABEL[state]})`}
                 >
@@ -964,7 +971,7 @@ const FoundationJourneyPage: React.FC = () => {
                   <h2>Day {wd.day} · {wd.title}</h2>
                   {wd.blurb && <p className="fj-objective">{wd.blurb}</p>}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                <div className="fj-day-actions">
                   {minutes > 0 && <span className="fj-mins">{mins(minutes)}</span>}
                   {!wd.locked && (
                     <button
@@ -1012,7 +1019,11 @@ const FoundationJourneyPage: React.FC = () => {
         {openOrientationDay === null && !dayLoading && lockedDay && (
           <LockedDay
             day={lockedDay.day} title={lockedDay.title} topic={lockedDay.topic}
-            currentDay={currentDay} onBack={() => selectDay(currentDay)}
+            currentDay={currentDay}
+            welcomeLabel={welcomeFirst && welcomeOutstanding ? welcomeOutstanding.day : null}
+            onBack={() => (welcomeFirst && welcomeOutstanding
+              ? nav(`/careerpilot/journey/welcome/${welcomeOutstanding.dayNumber}`)
+              : selectDay(currentDay))}
           />
         )}
 
@@ -1035,7 +1046,7 @@ const FoundationJourneyPage: React.FC = () => {
                 {/* The one piece of planning a student sees, in the unit's own words. */}
                 {day.objective && <p className="fj-objective">{day.objective}</p>}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+              <div className="fj-day-actions">
                 {day.minutes > 0 && <span className="fj-mins">{mins(day.minutes)}</span>}
                 {/* The day opens inside CareerPilot, where each lesson, checkpoint and project
                     is worked through without leaving the member rail. Locking stays the

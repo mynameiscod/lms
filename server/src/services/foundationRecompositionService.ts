@@ -393,12 +393,14 @@ export async function moveFutureToV2(
   stageKey: string,
   opts: JourneyBuildOptions = {},
   dryRun = false,
+  /** The length the roadmap should end up (the admin's days for the year); omitted keeps its length. */
+  resizeTo?: number,
 ): Promise<RecompositionResult> {
   const curriculum = await LearningCurriculum.findById(curriculumId).select('_id trackKey').lean() as any || { _id: curriculumId };
-  if (dryRun) return recomposeV2(tenantId, sid, profile, curriculum, stageKey, opts, true);
+  if (dryRun) return recomposeV2(tenantId, sid, profile, curriculum, stageKey, opts, true, resizeTo);
   const before = await LearningCurriculum.findById(curriculumId).select('roadmapVersion').lean() as any;
   await LearningCurriculum.updateOne({ _id: curriculumId }, { $set: { roadmapVersion: 'ROADMAP_V2' } });
-  const result = await recomposeV2(tenantId, sid, profile, curriculum, stageKey, opts);
+  const result = await recomposeV2(tenantId, sid, profile, curriculum, stageKey, opts, false, resizeTo);
   if (!result.ok) {
     /* Nothing was written to the days, so the roadmap is V1 again exactly as it was. */
     await LearningCurriculum.updateOne({ _id: curriculumId }, before?.roadmapVersion
@@ -415,16 +417,31 @@ async function recomposeV2(
   stageKey: string,
   opts: JourneyBuildOptions,
   dryRun = false,
+  resizeTo?: number,
 ): Promise<RecompositionResult> {
   const [existing, enrollment, cfg] = await Promise.all([
     DayPlan.find({ curriculumId: curriculum._id }).select('dayNumber primaryUnitCode unitCodes items phase').sort({ dayNumber: 1 }).lean() as any,
     CurriculumEnrollment.findOne({ tenantId, curriculumId: curriculum._id, studentId: sid }).select('completedDays currentDay').lean() as any,
     PassportConfig.findOne({ tenantId }).select('roadmapV2').lean() as any,
   ]);
-  const totalDays = (existing as any[]).length;
-  const frozen = frozenDayNumbers(enrollment || {}, totalDays);
+  const frozen = frozenDayNumbers(enrollment || {}, (existing as any[]).length);
   const frozenSet = new Set(frozen);
-  const futureSlots = (existing as any[]).map(d => Number(d.dayNumber)).filter(d => !frozenSet.has(d));
+  /*
+   * The length: what it is, or the admin's days for the year when asked to resize. Days the member
+   * has done (and the day they are on) are never cut, so the roadmap cannot end before them.
+   */
+  const lastFrozen = frozen.length ? frozen[frozen.length - 1] : 0;
+  if (resizeTo && resizeTo <= lastFrozen) {
+    return {
+      ok: false,
+      reason: `This member is already on day ${lastFrozen}, so the roadmap cannot be cut to ${resizeTo} days.`,
+      frozenDays: frozen, rewrittenDays: [], unchangedFutureDays: [], totalDays: (existing as any[]).length,
+    };
+  }
+  const totalDays = resizeTo || (existing as any[]).length;
+  const futureSlots = resizeTo
+    ? Array.from({ length: totalDays }, (_, i) => i + 1).filter(d => !frozenSet.has(d))
+    : (existing as any[]).map(d => Number(d.dayNumber)).filter(d => !frozenSet.has(d));
   if (!futureSlots.length) return { ok: true, frozenDays: frozen, rewrittenDays: [], unchangedFutureDays: [], totalDays };
 
   const unitsOf = (day: any): string[] => {
@@ -474,9 +491,14 @@ async function recomposeV2(
     ops.push({ updateOne: { filter: { curriculumId: curriculum._id, dayNumber }, update: { $set: {
       tenantId, topicId: units[0].topicCode, primaryUnitCode: units[0].unitCode, unitCodes: units.map(u => u.unitCode),
       title: dayTitle(units), items: dayItems(units, assets), phase,
-    } } } });
+    }, $setOnInsert: { curriculumId: curriculum._id, dayNumber } }, upsert: true } });
   });
   if (ops.length) await DayPlan.bulkWrite(ops, { ordered: false });
+  if (resizeTo) {
+    /* A shorter year loses its last days; a longer one got its new days above. */
+    await DayPlan.deleteMany({ curriculumId: curriculum._id, dayNumber: { $gt: totalDays } });
+    await LearningCurriculum.updateOne({ _id: curriculum._id }, { $set: { totalDays } });
+  }
 
   /* The phase counts follow the days, frozen ones included. */
   const phases = await DayPlan.find({ curriculumId: curriculum._id }).select('phase').lean() as any[];

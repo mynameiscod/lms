@@ -134,6 +134,8 @@ import companyExpenseRoutes from './companyExpenseRoutes';
 import interviewHubRoutes from './interviewHubRoutes';
 import questionBookRoutes from './questionBookRoutes';
 import concernRoutes from './concernRoutes';
+import supportRoutes from './supportRoutes';
+import monitorRoutes from './monitorRoutes';
 import paymentRoutes from './paymentRoutes';
 import { webhook as paymentWebhook, paymentReturn } from '../controllers/paymentController';
 import { partnerUnsubscribe } from '../controllers/partnerPublicController';
@@ -235,6 +237,8 @@ router.use('/assessment-items', assessmentItemRoutes);
 router.use('/hackathon-exams', hackathonExamRoutes);
 router.use('/assessment-candidates', assessmentCandidatesRoutes);
 router.use('/concerns', concernRoutes);
+router.use('/support', supportRoutes);  // Help & Support (CareerPilot)
+router.use('/monitor', monitorRoutes);  // browser error reports for the support monitor
 router.use('/questions', questionRoutes);
 router.use('/content', contentRoutes);
 router.use('/progress', progressRoutes);

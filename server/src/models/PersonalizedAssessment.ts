@@ -126,7 +126,9 @@ export interface IPersonalizedAssessment extends Document {
    * Absent on any assessment generated before this existed, and absent while one is still
    * in progress; both are handled as "cannot replay" rather than as zero marks.
    */
-  answers?: { sourceType: string; sourceId: string; response?: any }[];
+  answers?: { sourceType: string; sourceId: string; response?: any; dontKnow?: boolean }[];
+  /** The question the member was on (resume position). */
+  lastPosition?: number;
 
   generationReport: {
     requestedSlots: number;
@@ -214,10 +216,14 @@ const PersonalizedAssessmentSchema = new Schema<IPersonalizedAssessment>(
         sourceType: String,
         sourceId: String,
         response: Schema.Types.Mixed,
+        /** The member pressed "I don't know": an empty response that is an answer, not a gap. */
+        dontKnow: { type: Boolean, default: undefined },
         _id: false,
       }],
       default: undefined,
     },
+    /** The question the member was on, so a reload resumes there instead of at question 1. */
+    lastPosition: { type: Number, min: 0, default: undefined },
 
     generationReport: {
       requestedSlots: { type: Number, default: 0 },

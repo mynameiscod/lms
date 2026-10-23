@@ -190,3 +190,35 @@ export function validatePackInput(input: any): { ok: true; value: PackDef } | { 
   if (errors.length) return { ok: false, errors };
   return { ok: true, value: { key, title, kind, topics } };
 }
+
+/*
+ * ── WHICH TRACK A MEMBER IS ON ───────────────────────────────────────────────────────────────
+ *
+ * Not a free choice. The track follows what the member told setup: the role they are aiming for
+ * and their ONE main language (setup allows exactly one — careerDomainService.normalizeLanguages).
+ *   Software / Full Stack / Backend / Frontend Engineer + Java   → Java Full Stack + AI
+ *                                                       + Python → Python Full Stack + AI
+ *                                                       + C#     → .NET Full Stack + AI
+ *   Data Analyst (any language)                                   → Data Analytics + AI
+ *   Data Scientist / Machine Learning Engineer                    → Data Science + AI
+ * Anything else (Not sure, no main language, other roles) has no track and keeps the regular
+ * Year 3/4 roadmap. Once a roadmap is built from a track the track is fixed; only an admin changes it.
+ */
+export const FULL_STACK_TRACK_ROLES = ['SOFTWARE_ENGINEER', 'SDE', 'FULLSTACK_ENGINEER', 'BACKEND_ENGINEER', 'FRONTEND_ENGINEER'];
+export const DATA_ANALYTICS_TRACK_ROLES = ['DATA_ANALYST', 'BUSINESS_ANALYST', 'BI_ANALYST'];
+export const DATA_SCIENCE_TRACK_ROLES = ['DATA_SCIENTIST', 'MACHINE_LEARNING_ENGINEER', 'ML_ENGINEER'];
+export const FULL_STACK_TRACK_BY_LANGUAGE: Record<string, string> = {
+  java: 'JAVA_FULLSTACK_AI', python: 'PY_FULLSTACK_AI', 'c#': 'DOTNET_FULLSTACK_AI',
+};
+
+export function deriveTrackKey(primaryRole: string | null | undefined, languages: string[] | null | undefined): string | null {
+  const role = String(primaryRole || '').toUpperCase();
+  if (DATA_ANALYTICS_TRACK_ROLES.includes(role)) return 'DATA_ANALYTICS_AI';
+  if (DATA_SCIENCE_TRACK_ROLES.includes(role)) return 'DATA_SCIENCE_AI';
+  if (!FULL_STACK_TRACK_ROLES.includes(role)) return null;
+  for (const l of languages || []) {
+    const key = FULL_STACK_TRACK_BY_LANGUAGE[String(l).trim().toLowerCase()];
+    if (key) return key;
+  }
+  return null;
+}

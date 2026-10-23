@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { CurriculumLearningUnit, DirectionCoverageReport, MegaCurriculumTopicRow, UnitStudentPreview } from '../../api/passportApi';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import './adminContentBuilder.css';
+import { mediaUrl, mediaPathFor } from '../../utils/mediaUrl';
 
 /**
  * Content Builder — one screen for "what does a learner do on this day, and let me change it".
@@ -495,8 +496,7 @@ const NotesField: React.FC<{
     setBusy(true); onError('');
     try {
       const { attachment } = await passportApi.uploadAttachment(file);
-      const base = (process.env.REACT_APP_API_URL || '/api/v1');
-      const src = `${base}/passport/skill-resources/media/${attachment.fileKey}`;
+      const src = mediaPathFor(attachment.fileKey);
       const alt = attachment.fileName.replace(/\.[^.]+$/, '').replace(/[[\]]/g, '');
       const md = `\n\n![${alt}](${src})\n\n`;
       const el = ref.current;

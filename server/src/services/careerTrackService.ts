@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import CareerTrack from '../models/CareerTrack';
 import SkillPack from '../models/SkillPack';
 import User from '../models/User';
+import { deriveTrackKey } from '../data/careerTrackPolicy';
 import { PackDef, TrackDef, TrackStage, TRACK_STAGES, resolveSplit, trackProblems, stageProblems } from '../data/careerTrackPolicy';
 
 /**
@@ -61,14 +62,24 @@ export async function trackForStudent(tenantId: string, studentId: string | null
   try {
     if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) return null;
     if (!TRACK_STAGES.includes(String(stageKey || '') as TrackStage)) return null;
-    const user = await User.findOne({ _id: studentId, tenantId }).select('passport.careerTrack').lean() as any;
+    const user = await User.findOne({ _id: studentId, tenantId }).select('passport.careerTrack passport.primaryRole passport.preferredLanguages').lean() as any;
     const chosen = user?.passport?.careerTrack;
-    if (!chosen?.key) return null;
-    const resolved = await loadTrack(tenantId, String(chosen.key));
+    /*
+     * A track set by an admin, or already fixed from setup, stands. A track the student picked
+     * under the old free picker does not: the track now follows setup (deriveTrackKey).
+     */
+    const fixed = chosen?.key && chosen.chosenBy && chosen.chosenBy !== 'student';
+    const key = fixed ? String(chosen.key) : deriveTrackKey(user?.passport?.primaryRole, user?.passport?.preferredLanguages);
+    if (!key) return null;
+    const resolved = await loadTrack(tenantId, key);
     if (!resolved) return null;
-    const byAdmin = chosen.chosenBy && chosen.chosenBy !== 'student';
+    const byAdmin = fixed && chosen.chosenBy !== 'setup';
     if (resolved.track.status !== 'LIVE' && !byAdmin) return null;
     if (stageProblems(resolved.track, resolved.packs, String(stageKey)).length) return null;
+    // First roadmap built from it: fix the track, so editing setup later cannot switch it.
+    if (!fixed) {
+      await User.updateOne({ _id: studentId, tenantId }, { $set: { 'passport.careerTrack': { key, chosenAt: new Date(), chosenBy: 'setup' } } });
+    }
     return resolved;
   } catch (e: any) {
     console.error('[career-track] could not read the student\'s track:', e?.message || e);

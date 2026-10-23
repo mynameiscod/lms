@@ -1,4 +1,8 @@
 import CareerRole, { ICareerRole, SYSTEM_CAREER_ROLES, CAREER_ROLE_KEY_PATTERN } from '../models/CareerRole';
+import RoleSkillBlueprint from '../models/RoleSkillBlueprint';
+
+/** Roles that cannot be assessed without a skill blueprint, so are hidden until one exists. */
+const BLUEPRINT_REQUIRED_ROLES = ['DATA_ANALYST', 'DATA_SCIENTIST'];
 import User from '../models/User';
 import { DEFAULT_DOMAIN, ROLE_NOT_SURE, normalizeDomain, domainOf } from './careerDomainService';
 
@@ -95,12 +99,17 @@ export async function getSelectableCareerRoles(
   domainKey?: string | null,
 ): Promise<StudentFacingRole[]> {
   await ensureCareerRoles(tenantId);
-  const roles = await CareerRole.find({
+  const found = await CareerRole.find({
     tenantId,
     domainKey: normalizeDomain(domainKey),
     active: true,
     studentSelectable: true,
   }).sort({ displayOrder: 1, name: 1 }).lean() as any[];
+  // The data roles are offered only once their skill blueprint exists (seedAiDataSecurityRoles).
+  const withBlueprint = new Set<string>(
+    (await RoleSkillBlueprint.find({ tenantId, roleKey: { $in: BLUEPRINT_REQUIRED_ROLES } }).distinct('roleKey')).map(String),
+  );
+  const roles = found.filter(r => !BLUEPRINT_REQUIRED_ROLES.includes(r.key) || withBlueprint.has(r.key));
 
   return [
     NOT_SURE_OPTION,

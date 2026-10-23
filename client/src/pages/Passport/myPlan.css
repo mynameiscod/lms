@@ -5,8 +5,8 @@
    stepping from the plan into a course does not look like stepping into a different product. */
 .mpl{
   --mpl-navy:#051D64; --mpl-teal:#359AAD; --mpl-ink:#102A4F; --mpl-text:#33475B;
-  --mpl-muted:#64748B; --mpl-line:#E2EAF2; --mpl-card:#FFFFFF; --mpl-bg:#F4F8FC;
-  --mpl-green:#17885D; --mpl-red:#C93737; --mpl-red-bg:#FFF0F0;
+  --mpl-muted:#2F3F56; --mpl-line:#E2EAF2; --mpl-card:#FFFFFF; --mpl-bg:#F4F8FC;
+  --mpl-green:#13784F; --mpl-red:#C93737; --mpl-red-bg:#FFF0F0;
   color:var(--mpl-text); background:var(--mpl-bg); min-height:100%;
   padding:22px clamp(16px,4vw,40px) 70px;
   font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
@@ -64,7 +64,7 @@
 .mpl-band-tx b{font-size:15.5px; font-weight:700; color:var(--mpl-ink)}
 .mpl-band-tx span{font-size:12.5px; color:var(--mpl-muted); line-height:1.5}
 .mpl-band-n{flex-shrink:0; font-size:12px; color:var(--mpl-muted); font-variant-numeric:tabular-nums}
-.mpl-chev{flex-shrink:0; font-size:17px; color:#9FB0C4; width:14px; text-align:center}
+.mpl-chev{flex-shrink:0; font-size:17px; color:#3F4F66; width:14px; text-align:center}
 
 /* ── the days ───────────────────────────────────────── */
 .mpl-days{list-style:none; margin:0; padding:0 0 8px; border-top:1px solid #EEF3F8}
@@ -83,7 +83,7 @@
 .mpl-subs{font-size:11.5px; color:var(--mpl-teal)}
 
 .mpl-open{flex-shrink:0; border:1px solid var(--mpl-line); background:#fff; border-radius:8px;
-  width:30px; height:30px; color:#7C8CA3; cursor:pointer; font-family:inherit; font-size:14px}
+  width:30px; height:30px; color:#2F3F56; cursor:pointer; font-family:inherit; font-size:14px}
 .mpl-open:hover{border-color:var(--mpl-teal); color:var(--mpl-navy)}
 
 /* ── footer / states ────────────────────────────────── */

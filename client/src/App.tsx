@@ -154,6 +154,14 @@ const PassportCoins = lazy(() => import('./pages/Passport/Coins'));
 const PassportLeaderboard = lazy(() => import('./pages/Passport/Leaderboard'));
 const PassportAchievements = lazy(() => import('./pages/Passport/Achievements'));
 const PassportNews = lazy(() => import('./pages/Passport/News'));
+const PassportIndustryConnect = lazy(() => import('./pages/Passport/IndustryConnect'));
+const MemberSupportHome = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportHome })));
+const MemberSupportNew = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportNew })));
+const MemberSupportTickets = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportTickets })));
+const MemberSupportTicket = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportTicket })));
+const MemberSupportArticle = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportArticle })));
+const MemberSupportBrowse = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportBrowse })));
+const MemberSupportAssistant = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportAssistant })));
 const PassportCompanies = lazy(() => import('./pages/Passport/Companies'));
 const PassportMockTest = lazy(() => import('./pages/Passport/MockTest'));
 const PassportAdminNews = lazy(() => import('./pages/Passport/AdminNews'));
@@ -261,6 +269,13 @@ const MyLearningPlanPage = lazy(() => import('./pages/MyLearningPlan'));
 const DayViewPage = lazy(() => import('./pages/MyLearningPlan/LearningPlanPro'));
 const MyJourneyPage = lazy(() => import('./pages/MyLearningPlan/Journey'));
 const AdminConcernsPage = lazy(() => import('./pages/AdminConcerns'));
+const AdminSupportDesk = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportDesk })));
+const AdminSupportTicketPage = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportTicketPage })));
+const AdminSupportFaqs = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportFaqs })));
+const AdminSupportDashboard = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportDashboard })));
+const AdminSupportSettings = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportSettings })));
+const AdminSupportErrors = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportErrors })));
+const AdminSupportErrorDetail = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportErrorDetail })));
 const QuizSession = lazy(() => import('./pages/QuizSession'));
 const AssessmentRegister = lazy(() => import('./pages/Assessment/Register'));
 const AssessmentLanding = lazy(() => import('./pages/Assessment/Landing'));
@@ -862,6 +877,14 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/leaderboard" element={<PassportLeaderboard />} />
         <Route path="/careerpilot/achievements" element={<PassportAchievements />} />
         <Route path="/careerpilot/news" element={<PassportNews />} />
+        <Route path="/careerpilot/industry-connect" element={<PassportIndustryConnect />} />
+        <Route path="/careerpilot/support" element={<MemberSupportHome />} />
+        <Route path="/careerpilot/support/new" element={<MemberSupportNew />} />
+        <Route path="/careerpilot/support/tickets" element={<MemberSupportTickets />} />
+        <Route path="/careerpilot/support/tickets/:id" element={<MemberSupportTicket />} />
+        <Route path="/careerpilot/support/articles/:id" element={<MemberSupportArticle />} />
+        <Route path="/careerpilot/support/browse" element={<MemberSupportBrowse />} />
+        <Route path="/careerpilot/support/assistant" element={<MemberSupportAssistant />} />
         <Route path="/careerpilot/companies" element={<PassportCompanies />} />
         <Route path="/careerpilot/companies/:slug" element={<PassportCompanies />} />
         <Route path="/careerpilot/mock-test/:id" element={<PassportMockTest />} />
@@ -2654,6 +2677,63 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <Layout><AdminConcernsPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* Help & Support desk. The server decides who sees which tickets (routes/supportRoutes.ts). */}
+      <Route
+        path="/admin/support"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout><AdminSupportDesk /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/dashboard"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout><AdminSupportDashboard /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/errors"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout><AdminSupportErrors /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/errors/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout><AdminSupportErrorDetail /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/settings"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout><AdminSupportSettings /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/faqs"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout><AdminSupportFaqs /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/tickets/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout><AdminSupportTicketPage /></Layout>
           </ProtectedRoute>
         }
       />

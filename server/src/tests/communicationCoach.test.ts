@@ -87,3 +87,34 @@ describe('comparison periods', () => {
     expect(compareTwo('day', 'x', none, t, { now: 'today', before: 'yesterday' }).headline).toMatch(/No practice today yet/);
   });
 });
+
+describe('a recording with no voice in it', () => {
+  const { isNoSpeechTranscript, isSilentAudio, isNoSpeechRow } = require('../services/communicationCoachService');
+  const { computeSignals } = require('../services/communicationSignalsService');
+
+  it('recognises the "you you you" the speech service invents for silence', () => {
+    expect(isNoSpeechTranscript('you you you', 83)).toBe(true);
+    expect(isNoSpeechTranscript('Thank you. Thank you. Bye.', 40)).toBe(true);
+    expect(isNoSpeechTranscript('', 60)).toBe(true);
+  });
+  it('does not mistake a real answer, however short, or a short clip, for silence', () => {
+    expect(isNoSpeechTranscript('Good morning sir my name is Arjun and I studied computer science', 30)).toBe(false);
+    expect(isNoSpeechTranscript('Yes I do', 14)).toBe(false);
+    expect(isNoSpeechTranscript('you', 5)).toBe(false);
+  });
+  it('spots digital silence by its size: speech is ~16 KB a second, silence ~250 bytes', () => {
+    expect(isSilentAudio(20766, 83, 'audio')).toBe(true);
+    expect(isSilentAudio(1124711, 70, 'audio')).toBe(false);
+    expect(isSilentAudio(25754946, 125, 'video')).toBe(false); // video size says nothing about the sound
+  });
+  it('ignores such an attempt in the picture even when it was saved before this check existed', () => {
+    expect(isNoSpeechRow({ recordingDuration: 83, wordCount: 3 })).toBe(true);
+    expect(isNoSpeechRow({ recordingDuration: 0, wordCount: 0 })).toBe(true);
+    expect(isNoSpeechRow({ recordingDuration: 70, wordCount: 150 })).toBe(false);
+  });
+  it('is not "calm" when almost nothing was said: it is silence', () => {
+    const s = computeSignals({ transcript: 'you you you', durationSec: 83, targetSec: 60 });
+    expect(s.hesitationIndex).toBe(100);
+    expect(s.label).toBe('freezing');
+  });
+});

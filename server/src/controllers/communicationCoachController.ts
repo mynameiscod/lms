@@ -12,7 +12,7 @@ import { computeSpeechMetrics } from '../services/communicationEvalService';
 import { computeSignals } from '../services/communicationSignalsService';
 import { coachCompare, coachStudentDetail, setReadinessOverride } from '../services/communicationCoachService';
 import {
-  AREAS, AREA_TYPE, Area, MAX_COACH_ATTEMPTS_PER_DAY, buildPrompt, coachOverview, coachToday, ensureCoachChallenges, evaluateCoachAnswer,
+  AREAS, AREA_TYPE, Area, MAX_COACH_ATTEMPTS_PER_DAY, isNoSpeechTranscript, isSilentAudio, buildPrompt, coachOverview, coachToday, ensureCoachChallenges, evaluateCoachAnswer,
   getCoachState, readinessFor, signalTips, skillsOf, toEvaluation,
 } from '../services/communicationCoachService';
 import { evaluateAchievements } from '../services/communicationGamificationService';
@@ -64,9 +64,10 @@ export const submitCoach = async (req: Request, res: Response) => {
     // 1) Words with timings → measured hesitation
     let transcript = ''; let durationSec = 0; let words: any[] | undefined;
     try { const t = await transcribeFile(file.path, tenantId, 'communication_stt', { words: true }); transcript = t.text; durationSec = t.durationSec; words = t.words; } catch { /* handled below */ }
-    if (transcript.trim().length < 10) {
+    // Nothing to judge: a muted or wrong microphone gives digital silence, which the speech service turns into "you you you".
+    if (transcript.trim().length < 10 || isNoSpeechTranscript(transcript, durationSec) || isSilentAudio(file.size, durationSec, recordingType)) {
       cleanup(file.path);
-      return res.status(422).json({ message: 'We could not hear anything in that recording, so it was not counted. Check your microphone, then record this answer again.' });
+      return res.status(422).json({ message: 'We could not hear your voice in that recording, so it was not counted. Check that your microphone is not muted and the right one is selected, say a few words while watching the level bar, then record this answer again.' });
     }
     const metrics = computeSpeechMetrics(transcript, durationSec);
     const signals = computeSignals({ words, transcript, durationSec, targetSec: prompt.targetSec, fillerTotal: metrics.fillerWords.total });

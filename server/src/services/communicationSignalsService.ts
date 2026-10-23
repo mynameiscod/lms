@@ -24,6 +24,7 @@ export interface HesitationSignals {
   restarts: number;              // "I I", "the the", "sorry", "let me start again"
   fillerPer100Words: number;
   stoppedEarly: boolean;         // spoke for well under the time asked for
+  speechShare: number;           // share of the recording that was speech, estimated from the word count (0–1)
   hesitationIndex: number;       // 0 calm … 100 frozen
   label: 'calm' | 'some_hesitation' | 'high_hesitation' | 'freezing';
 }
@@ -91,12 +92,15 @@ export function computeSignals(opts: {
     ? 25 * clamp01(pausesPerMinute / 12) + 15 * clamp01(longestPauseSec / 6) + 20 * clamp01(silenceRatio / 0.4)
       + 10 * clamp01(timeToFirstWordSec / 6) + 10 * paceVariation
     : 0;
+  // Barely any words in a long recording is silence, not calm: nobody is "steady" by saying nothing.
+  const speechShare = durationSec > 0 ? Math.round(clamp01((wordCount * 0.4) / durationSec) * 100) / 100 : 0;
+  const mostlySilent = durationSec >= 15 && speechShare < 0.12;
   const sum = parts + 10 * clamp01(fillerPer100Words / 12) + 5 * clamp01(restarts / 4) + (stoppedEarly ? 10 : 0);
   // Without word timings only the filler, restart and stopped-early parts are known (25 at most): scale them up.
-  const index = Math.round(Math.min(100, hasTiming ? sum : (sum / 25) * 100));
+  const index = mostlySilent ? 100 : Math.round(Math.min(100, hasTiming ? sum : (sum / 25) * 100));
 
   return {
     hasTiming, timeToFirstWordSec, pauseCount, longPauseCount, longestPauseSec, pausesPerMinute, silenceRatio, paceVariation,
-    restarts, fillerPer100Words, stoppedEarly, hesitationIndex: index, label: labelFor(index),
+    restarts, fillerPer100Words, stoppedEarly, speechShare, hesitationIndex: index, label: labelFor(index),
   };
 }

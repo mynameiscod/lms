@@ -81,6 +81,33 @@ export function buildPrompt(area: Area, level: number, profile: any, seed = 0): 
     script: lv === 1 ? `Here is one way to start: "Thank you for asking. In short, ..." — then give one real example from your own life.` : null };
 }
 
+// ── "We heard nothing" ─────────────────────────────────────────────────────────
+
+/**
+ * When a microphone is muted or the wrong one is picked, the recording is digital silence and the speech
+ * service invents words for it, almost always "you" ("you you you"). Seven of the first eight coach
+ * recordings were exactly that. Such a recording tells us nothing about the student, so it is never scored
+ * or counted: not as a level, a baseline, a streak or a readiness.
+ */
+const NOT_SPEECH = new Set(['you', 'thank', 'thanks', 'bye', 'goodbye', 'okay', 'ok', 'uh', 'um', 'umm', 'hmm', 'mm', 'oh', 'so', 'the', 'a', 'for', 'watching', 'please', 'subscribe', 'like', 'and']);
+
+export function isNoSpeechTranscript(transcript: string, durationSec: number): boolean {
+  if (durationSec < 12) return false;
+  const words = String(transcript || '').toLowerCase().replace(/[^a-z\u0900-\u0dff\s']/g, ' ').split(/\s+/).filter(Boolean);
+  return words.filter((w) => !NOT_SPEECH.has(w)).length < 3;
+}
+
+/** An audio-only recording of speech is about 16 KB per second; digital silence is about 250 bytes. */
+export function isSilentAudio(sizeBytes: number, durationSec: number, recordingType: string): boolean {
+  return recordingType === 'audio' && durationSec >= 5 && sizeBytes > 0 && sizeBytes / durationSec < 1500;
+}
+
+/** From what is already stored on an attempt, so recordings saved before this check existed are ignored too. */
+export function isNoSpeechRow(a: { recordingDuration?: number; wordCount?: number }): boolean {
+  const d = a.recordingDuration || 0;
+  return d < 5 || (d >= 15 && (a.wordCount ?? 0) <= 5);
+}
+
 // ── What the numbers say, in words a student can act on ───────────────────────
 
 export function signalTips(s: HesitationSignals | null | undefined): string[] {
@@ -158,10 +185,10 @@ export const readyThreshold = (tenantId: string) => {
 export async function getCoachState(tenantId: string, studentId: string) {
   const [attempts, profile] = await Promise.all([
     CommunicationAttempt.find({ tenantId, studentId, kind: 'coach', status: 'completed' }).sort({ createdAt: 1 }).limit(300)
-      .select('practiceDate createdAt evaluation.overallScore overriddenScore coach').lean(),
+      .select('practiceDate createdAt recordingDuration wordCount evaluation.overallScore overriddenScore coach').lean(),
     mongoose.model('CommunicationProfile').findOne({ tenantId, studentId }).lean(),
   ]);
-  const rows = (attempts as any[]).map(toRow);
+  const rows = (attempts as any[]).filter((a) => !isNoSpeechRow(a)).map(toRow);
   const baselineDone = new Set(rows.filter((r) => r.baseline && r.area).map((r) => r.area as Area));
   const inBaseline = baselineDone.size < AREAS.length;
   const today = coachToday();
@@ -310,14 +337,14 @@ export async function coachOverview(tenantId: string, batchId?: string) {
   const ids = students.map((s) => s._id);
   const since = new Date(Date.now() - 45 * 86400_000);
   const atts: any[] = await CommunicationAttempt.find({ tenantId, studentId: { $in: ids }, status: 'completed', createdAt: { $gte: since } })
-    .select('studentId practiceDate createdAt kind evaluation.overallScore overriddenScore coach').lean();
+    .select('studentId practiceDate createdAt kind recordingDuration wordCount evaluation.overallScore overriddenScore coach').lean();
   const base: any[] = await CommunicationAttempt.aggregate([
-    { $match: { tenantId: new mongoose.Types.ObjectId(tenantId), studentId: { $in: ids }, kind: 'coach', 'coach.isBaseline': true, status: 'completed' } },
+    { $match: { tenantId: new mongoose.Types.ObjectId(tenantId), studentId: { $in: ids }, kind: 'coach', 'coach.isBaseline': true, status: 'completed', recordingDuration: { $gte: 5 }, $or: [{ recordingDuration: { $lt: 15 } }, { wordCount: { $gt: 5 } }] } },
     { $group: { _id: '$studentId', areas: { $addToSet: '$coach.area' } } },
   ]);
   const baseMap = new Map(base.map((b) => [String(b._id), (b.areas || []).length]));
   const by = new Map<string, any[]>();
-  for (const a of atts) { const k = String(a.studentId); (by.get(k) || by.set(k, []).get(k)!).push(a); }
+  for (const a of atts) { if (a.kind === 'coach' && isNoSpeechRow(a)) continue; const k = String(a.studentId); (by.get(k) || by.set(k, []).get(k)!).push(a); }
   const threshold = readyThreshold(tenantId);
   const today = coachToday();
   const dayDiff = (d: string) => Math.round((Date.parse(today) - Date.parse(d)) / 86400_000);
@@ -357,8 +384,8 @@ export async function coachOverview(tenantId: string, batchId?: string) {
 /** Is this student ready to be put in front of a company? Used by the placement side. */
 export async function readinessFor(tenantId: string, studentId: string) {
   const rows: any[] = await CommunicationAttempt.find({ tenantId, studentId, kind: 'coach', status: 'completed' }).sort({ createdAt: 1 }).limit(300)
-    .select('practiceDate createdAt evaluation.overallScore overriddenScore coach').lean();
-  const rr = rows.map(toRow);
+    .select('practiceDate createdAt recordingDuration wordCount evaluation.overallScore overriddenScore coach').lean();
+  const rr = rows.filter((a) => !isNoSpeechRow(a)).map(toRow);
   const areas = new Set(rr.filter((r) => r.baseline && r.area).map((r) => r.area)).size;
   return readinessOf(rr, areas, readyThreshold(tenantId));
 }
@@ -383,7 +410,7 @@ export async function coachStudentDetail(tenantId: string, studentId: string) {
     recordings: (recent as any[]).map((a) => ({
       id: String(a._id), date: a.practiceDate, title: a.challengeTitle, type: a.recordingType === 'video' ? 'video' : 'audio', area: a.coach?.area, level: a.coach?.level, baseline: !!a.coach?.isBaseline,
       score: a.overriddenScore ?? a.evaluation?.overallScore ?? 0, hesitation: a.coach?.signals?.hesitationIndex ?? null, signals: a.coach?.signals || null,
-      tips: a.coach?.tips || [], seconds: a.recordingDuration, wordsPerMinute: a.wordsPerMinute, transcript: a.transcript || '', coachMessage: a.evaluation?.dailyCoachMessage || '',
+      noSpeech: isNoSpeechRow(a), tips: a.coach?.tips || [], seconds: a.recordingDuration, wordsPerMinute: a.wordsPerMinute, transcript: a.transcript || '', coachMessage: a.evaluation?.dailyCoachMessage || '',
     })),
   };
 }
@@ -443,7 +470,7 @@ export async function studentsToRemind(tenantId: string, limit = 800) {
   const today = coachToday();
   const did = new Set((await CommunicationAttempt.distinct('studentId', { tenantId, kind: 'coach', practiceDate: today, status: 'completed', studentId: { $in: students.map((s) => s._id) } })).map(String));
   const baseline = await CommunicationAttempt.aggregate([
-    { $match: { tenantId: new mongoose.Types.ObjectId(tenantId), kind: 'coach', 'coach.isBaseline': true, status: 'completed', studentId: { $in: students.map((s) => s._id) } } },
+    { $match: { tenantId: new mongoose.Types.ObjectId(tenantId), kind: 'coach', 'coach.isBaseline': true, status: 'completed', recordingDuration: { $gte: 5 }, $or: [{ recordingDuration: { $lt: 15 } }, { wordCount: { $gt: 5 } }], studentId: { $in: students.map((s) => s._id) } } },
     { $group: { _id: '$studentId', n: { $addToSet: '$coach.area' } } },
   ]);
   const bmap = new Map(baseline.map((b: any) => [String(b._id), (b.n || []).length]));
@@ -516,7 +543,8 @@ export async function coachCompare(tenantId: string, studentId: string) {
   const lastMonthEnd = addDays(monthStart, -1); const lastMonthStart = `${lastMonthEnd.slice(0, 7)}-01`;
   const since = [lastMonthStart, lastWeekStart].sort()[0];
   const rows: any[] = await CommunicationAttempt.find({ tenantId, studentId, kind: 'coach', status: 'completed', practiceDate: { $gte: since } })
-    .select('practiceDate wordsPerMinute evaluation.overallScore overriddenScore coach.signals coach.skills').lean();
+    .select('practiceDate wordsPerMinute recordingDuration wordCount evaluation.overallScore overriddenScore coach.signals coach.skills').lean()
+    .then((r: any[]) => r.filter((a) => !isNoSpeechRow(a)));
   const A = (l: string, f: string, t: string) => aggregate(l, f, t, rows);
   return [
     compareTwo('day', 'Today vs yesterday', A('Today', today, today), A('Yesterday', yesterday, yesterday), { now: 'today', before: 'yesterday' }),

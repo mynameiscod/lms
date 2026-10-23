@@ -133,3 +133,23 @@
 @media (prefers-reduced-motion: reduce) {
   .cpv-box, .cpv-go { transition: none; }
 }
+
+/* 981–1200px (a 1024px laptop): copy | picture | code card stay in ONE row, as on wider screens.
+   It used to drop to one column at 1200px, putting the copy above and the picture + card below. */
+@media (min-width: 981px) and (max-width: 1200px) {
+  .cpv-grid { grid-template-columns: minmax(0, .82fr) minmax(0, 1.4fr); gap: 24px; }
+  .cpv-copy { max-width: none; }
+  .cpv-copy h1 { font-size: 30px; }
+  .cpv .cpv-lead { font-size: 15px; }
+  .cpv-benefits { flex-direction: column; max-width: none; gap: 10px; }
+  .cpv-benefits li { flex: none; padding: 12px 14px; }
+  .cpv-stage { grid-template-columns: minmax(0, .9fr) minmax(330px, 380px); gap: 8px; }
+  .cpv-visual img { max-width: 360px; }
+  .cpv-card { padding: 24px 22px 20px; }
+  .cpv-card h2 { font-size: 22px; }
+}
+@media (min-width: 981px) and (max-width: 1200px) {
+  .cpv-stage { grid-template-columns: minmax(0, 1fr) minmax(300px, 340px); }
+  .cpv-visual img { max-width: 420px; }
+  .cpv-box { height: 50px; }
+}

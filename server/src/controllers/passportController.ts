@@ -707,7 +707,8 @@ export const createMembershipOrder = async (req: Request, res: Response) => {
     res.json({
       orderId: order.id, amount: order.amount, currency: order.currency, keyId: order.keyId, priceInr,
       name: 'CodeBegun CareerPilot',
-      description: 'Unlock your full 90-day journey',
+      // The member's own year length (admin-set), never a fixed ninety.
+      description: `Unlock your full ${await programDaysFor(tenantId, user?.passport?.stage)}-day journey`,
       prefill: {
         name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
         email: user?.email || '', contact: user?.phone || '',

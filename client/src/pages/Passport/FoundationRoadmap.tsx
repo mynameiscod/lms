@@ -31,6 +31,7 @@ import {
 import './foundationJourney.css';
 import './foundationRoadmap.css';
 import './foundationMember.css';
+import { useProgramDays } from './useProgramDays';
 
 const GROUP_LABEL: Record<RoadmapGroup['state'], string> = {
   COMPLETED: 'Completed',
@@ -51,6 +52,7 @@ const STATE_ICON: Record<string, string> = {
 
 const FoundationRoadmap: React.FC = () => {
   const nav = useNavigate();
+  const programDays = useProgramDays();
   const [journey, setJourney] = useState<Journey | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -70,7 +72,7 @@ const FoundationRoadmap: React.FC = () => {
   /* While the welcome is required, today is a welcome day and Day 1 is shut — never a second "Today". */
   const welcomeFirst = !!journey?.orientation?.blocking;
   const groups = useMemo(() => groupJourneyDays(journey?.days || [], welcomeFirst), [journey, welcomeFirst]);
-  const totalDays = journey?.totalDays ?? 90;
+  const totalDays = journey?.totalDays ?? programDays ?? 90;
   /** The welcome days, 0.1–0.5. Open by default while they still have to be done. */
   const orientation = journey?.orientation || null;
   const [welcomeOpen, setWelcomeOpen] = useState(true);

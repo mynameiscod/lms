@@ -4,6 +4,7 @@ import passportApi, {
   RoleReadinessResponse, RoleReadinessAvailable, RoleReadinessUnavailable,
 } from '../../api/passportApi';
 import './roleReadiness.css';
+import { useProgramDays, daysLabel } from './useProgramDays';
 
 const CONFIDENCE_LABEL: Record<string, string> = { HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' };
 const STATUS_COPY: Record<string, { label: string; tone: string }> = {
@@ -16,6 +17,7 @@ const STATUS_ORDER: Record<string, number> = { PRIORITY_GAP: 0, NEEDS_WORK: 1, L
 
 const RoleReadiness: React.FC = () => {
   const nav = useNavigate();
+  const days = useProgramDays();
   const [data, setData] = useState<RoleReadinessResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -272,7 +274,7 @@ const RoleReadiness: React.FC = () => {
           <article className="rr-card rr-next">
             <span className="rr-next-ic"><i className="bi bi-compass" /></span>
             <h2>What’s next?</h2>
-            <p>Your dashboard builds your 90-day plan from the curriculum you are being taught, adjusted to what this assessment measured.</p>
+            <p>Your dashboard builds your {daysLabel(days)} plan from the curriculum you are being taught, adjusted to what this assessment measured.</p>
             <button className="rr-btn primary" onClick={() => nav('/careerpilot')}>Go to my dashboard <i className="bi bi-arrow-right" /></button>
           </article>
         </div>

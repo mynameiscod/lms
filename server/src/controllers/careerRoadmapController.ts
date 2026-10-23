@@ -185,7 +185,7 @@ export const replanMyRoadmap = async (req: Request, res: Response) => {
       return res.status(409).json({
         ...studentShape(result.outcome),
         refused: result.refused,
-        message: 'This 90-day plan has finished. Starting another one is a renewal, not a replan.',
+        message: 'This plan has finished. Starting another one is a renewal, not a replan.',
       });
     }
 

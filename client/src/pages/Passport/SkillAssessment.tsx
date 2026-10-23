@@ -9,6 +9,7 @@ import { useMember } from './MemberLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import './skillAssessment.css';
 import { copyrightLine } from '../../config/brand';
+import { useProgramDays, daysLabel } from './useProgramDays';
 
 /**
  * A stage key as the member's own year, for the identity strip.
@@ -103,6 +104,7 @@ const PlacementDone: React.FC<{ result: PlacementResult; topic: string; onBack: 
 
 const SkillAssessment: React.FC = () => {
   const { data: member, reload: reloadMember } = useMember();
+  const days = useProgramDays();
   const { logout } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
@@ -563,7 +565,7 @@ const SkillAssessment: React.FC = () => {
                   <div className="skc-note ok"><i className="bi bi-check-circle-fill" /><span>Your roadmap has been rebuilt around what this paper measured.</span></div>
                 )}
                 {!done.skillDnaPending && done.roadmapStatus === 'MEMBERSHIP_REQUIRED' && (
-                  <div className="skc-note"><i className="bi bi-stars" /><span>Your Skill DNA is ready and free to view. The full 90-day roadmap is part of membership.</span></div>
+                  <div className="skc-note"><i className="bi bi-stars" /><span>Your Skill DNA is ready and free to view. The full {daysLabel(days)} roadmap is part of membership.</span></div>
                 )}
                 {!done.skillDnaPending && done.roadmapStatus === 'NOT_ENOUGH_EVIDENCE' && (
                   <div className="skc-note"><i className="bi bi-lightbulb" /><span>Your Skill DNA is ready. We need a target role and a little more evidence before we can build a full roadmap.</span></div>

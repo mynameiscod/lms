@@ -37,6 +37,7 @@ import './foundationJourney.css';
 import './foundationPreview.css';
 import './foundationMember.css';
 import './orientation.css';
+import { useProgramDays } from './useProgramDays';
 
 /** Content types, in words a first-year recognises. */
 const TYPE_LABEL: Record<string, string> = {
@@ -264,13 +265,14 @@ const NotReady: React.FC<{ totalDays: number; stage?: string; message?: string; 
  * and the gate is honest. The server agrees: it composes these days live and stores nothing.
  */
 const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = ({ journey, onUnlocked }) => {
+  const programDays = useProgramDays();
   const previewDays = journey.preview || [];
   const [open, setOpen] = useState<number>(previewDays[0]?.day ?? 1);
   const { unlock, busy, msg, priceInr } = useUnlock();
 
   /** The programme's own name, from the server. Falls back to the only name this page ever had. */
   const stage = journey.stageLabel || 'Foundation';
-  const totalDays = journey.totalDays ?? 90;
+  const totalDays = journey.totalDays ?? programDays ?? 90;
   const openCount = previewDays.length;
   const lockedCount = journey.lockedDays ?? Math.max(0, totalDays - openCount);
   const day = previewDays.find(d => d.day === open) || previewDays[0];
@@ -538,6 +540,7 @@ const OrientationCard: React.FC<{ view: OrientationView; onOpen: () => void }> =
 };
 
 const FoundationJourneyPage: React.FC = () => {
+  const programDays = useProgramDays();
   const [journey, setJourney] = useState<Journey | null>(null);
   const [orientation, setOrientation] = useState<OrientationView | null>(null);
   const [day, setDay] = useState<FoundationJourneyDay | null>(null);
@@ -707,7 +710,7 @@ const FoundationJourneyPage: React.FC = () => {
    * with the availability check by `||`, leaves the union undiscriminated in the body. Split
    * apart, the second guard discriminates cleanly.
    */
-  if (!journey) return <NotReady totalDays={90} />;
+  if (!journey) return <NotReady totalDays={programDays ?? 90} />;
   // No preview for this learner: the membership offer is the page.
   if (!journey.available && journey.reason === 'MEMBERSHIP_REQUIRED') return <SectionLock section="roadmap" />;
   if (!journey.available) {
@@ -747,7 +750,7 @@ const FoundationJourneyPage: React.FC = () => {
   const welcomeDay = openOrientationDay === null
     ? null
     : (orientation?.days || []).find(d => d.dayNumber === openOrientationDay) || null;
-  const totalDays = journey.totalDays ?? 90;
+  const totalDays = journey.totalDays ?? programDays ?? 90;
   const currentDay = journey.currentDay ?? 1;
   const completedCount = journey.completedCount ?? 0;
   const percentComplete = journey.percentComplete ?? 0;

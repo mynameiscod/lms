@@ -479,7 +479,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <div className="md-empty">
               {data.dailyPlan && !data.dailyPlan.available ? <>
                 <p>{data.dailyPlan.message}</p>
-                {data.dailyPlan.reason === 'ROADMAP_REQUIRED' && <button className="md-btn primary" onClick={() => nav('/careerpilot/roadmap')}>Build my 90-day plan</button>}
+                {data.dailyPlan.reason === 'ROADMAP_REQUIRED' && <button className="md-btn primary" onClick={() => nav('/careerpilot/roadmap')}>{d.programDays ? `Build my ${d.programDays}-day plan` : 'Build my plan'}</button>}
               </> : 'No missions generated for today.'}
             </div>
           ) : <>

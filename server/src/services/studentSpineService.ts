@@ -140,7 +140,7 @@ export async function buildStudentSpine(tenantId: string, studentId: string): Pr
   if (!student) {
     return {
       available: false, reason: 'NO_CONTEXT', shortfalls: [], authored: 0, total: SPINE_DAYS,
-      message: 'Finish your profile and we will build your ninety days.',
+      message: 'Finish your profile and we will build your day-by-day plan.',
     };
   }
 
@@ -171,7 +171,7 @@ export async function buildStudentSpine(tenantId: string, studentId: string): Pr
       shortfalls: result.shortfalls,
       authored: coverage.filled,
       total: SPINE_DAYS,
-      message: 'Your ninety-day plan is being written. We will not hand you one with gaps in it.',
+      message: 'Your day-by-day plan is being written. We will not hand you one with gaps in it.',
     };
   }
 

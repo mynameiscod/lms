@@ -38,6 +38,7 @@ import { useMember } from './MemberLayout';
 import { withReturn } from '../../utils/careerpilotReturn';
 import './journeyDay.css';
 import './journeyDayMember.css';
+import { useProgramDays } from './useProgramDays';
 
 /** Content types, in words a first-year recognises. Mirrors the roadmap screen. */
 export const TYPE_LABEL: Record<string, string> = {
@@ -134,6 +135,7 @@ export const ItemBody: React.FC<{ item: any; onLaunch: (path: string) => void }>
 
 const JourneyDay: React.FC = () => {
   const { day: dayParam } = useParams();
+  const programDays = useProgramDays();
   const nav = useNavigate();
   const dayNumber = Math.max(1, parseInt(String(dayParam || '1'), 10) || 1);
 
@@ -242,7 +244,7 @@ const JourneyDay: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const totalDays = journey?.totalDays ?? 90;
+  const totalDays = journey?.totalDays ?? programDays ?? 90;
   const dayTitle = journey?.days?.find((d: any) => d.day === dayNumber)?.title || '';
   const selected = items[selIdx];
 

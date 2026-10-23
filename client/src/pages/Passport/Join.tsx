@@ -249,9 +249,23 @@ const PassportJoin: React.FC = () => {
     document.getElementById('careerpilot-signup')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     window.setTimeout(() => document.getElementById('jn-name')?.focus({ preventScroll: true }), 450);
   };
+  /**
+   * A section lands BELOW the sticky top bar, not under it.
+   *
+   * scrollIntoView({ block: 'start' }) put the section's top at the window's top, where the bar
+   * covered its heading. The bar's height is measured at the moment of the jump (it is taller on a
+   * phone, and the menu closes first), and the section stops just beneath it.
+   */
   const scrollTo = (id: string) => {
     setMenuOpen(false);
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const target = document.getElementById(id);
+      if (!target) return;
+      const bar = document.querySelector('.cpx-nav') as HTMLElement | null;
+      const barBottom = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+      const top = target.getBoundingClientRect().top + window.scrollY - barBottom - 12;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }));
   };
 
   const submit = async () => {

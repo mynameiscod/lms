@@ -576,3 +576,7 @@
 @media (max-width: 1700px) {
   .cpx-fields .cpx-field:not(.full) > label { font-size: 13px; letter-spacing: -.01em; }
 }
+
+/* Fallback for a plain #anchor (e.g. a shared link to /careerpilot/login#faqs): keep the section
+   heading clear of the sticky top bar. The click handler measures the bar exactly. */
+.cpx-section[id], [id="career-tools"], [id="opportunities"] { scroll-margin-top: 96px; }

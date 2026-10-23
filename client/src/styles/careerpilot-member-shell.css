@@ -553,3 +553,21 @@
   #root .gd .gd-side { z-index: 1200 !important; }
   #root .gd .gd-side-backdrop, #root .gd .gd-scrim, #root .gd .gd-overlay { z-index: 1190 !important; }
 }
+
+/* ── Phones: every tab visible, nothing past the right edge ─────────────────────────────────
+   Tab bars wrap onto a second line instead of scrolling tabs off-screen (Thinking Lab, roadmap
+   day ranges, Communication Lab, Opportunities, profile steps). The day strip on My N Days keeps
+   its sideways scroll — that one is a timeline with arrows. */
+@media (max-width: 600px) {
+  #root .gd .tl-cp-tabs, #root .gd .fr-ranges, #root .gd .clx .clx-tabs, #root .gd .opp-tabs {
+    flex-wrap: wrap !important; overflow-x: visible !important; row-gap: 6px;
+  }
+  #root .gd .opp-tabs { gap: 6px 14px !important; }
+  #root .gd .tl-cp-tabs > button, #root .gd .clx .clx-tab { min-height: 38px; padding: 0 14px; }
+  #root .gd .student-profile-page .step-indicators { flex-wrap: wrap !important; overflow-x: visible !important; gap: 8px !important; justify-content: flex-start !important; }
+  #root .gd .student-profile-page .step-indicator { min-width: 0 !important; flex: 1 1 30% !important; }
+  /* My result: the overall-readiness block keeps inside the card. */
+  #root .gd .rr .rr-hero .rr-hero-score { min-width: 0; max-width: 100%; flex-wrap: wrap; }
+  #root .gd .rr .rr-hero-score-copy { min-width: 0; flex: 1 1 140px; }
+  #root .gd .rr .rr-hero-score-copy span { max-width: none; }
+}

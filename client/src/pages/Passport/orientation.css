@@ -292,3 +292,6 @@
 .jd-body > .ori-item { border-top: 0; padding: 0; }
 .jd-body > .ori-item > header { display: none; }
 .ori-video-wrap { outline: none; }
+/* The day page's body clips its overflow, and text set flush on that edge lost the left of its
+   first glyph ("0% watched" read "9%…"). A hair of inset keeps glyphs inside the clip. */
+.jd-body .ori-item { padding-left: 2px; padding-right: 2px; }

@@ -356,3 +356,6 @@
   .fjm-hero > .fjm-momentum, .fjm-momentum { border-left: 0; border-right: 0; }
   .fjm-challenge span, .fjm-challenge em { white-space: normal; overflow: visible; text-overflow: clip; }
 }
+@media (max-width: 980px) {
+  .fjm-hero .fjm-challenge > div span { white-space: normal; overflow: visible; text-overflow: clip; }
+}

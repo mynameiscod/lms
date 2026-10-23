@@ -535,54 +535,67 @@ const PassportJoin: React.FC = () => {
               <h2>Your Entire Career, In One Dashboard</h2>
               <p>Know where you stand, what to improve and exactly what you should do next.</p>
             </div>
-            <div className="cpx-dash" aria-label="CareerPilot dashboard preview">
-              <aside className="cpx-dash-side">
-                <div className="cpx-dash-brand">CareerPilot</div>
-                {[['bi-grid-1x2-fill', 'Dashboard'], ['bi-signpost-split-fill', 'My Roadmap'], ['bi-fingerprint', 'Skill DNA'], ['bi-flag-fill', 'Missions'], ['bi-clipboard2-check-fill', 'Assessments'], ['bi-briefcase-fill', 'Opportunities'], ['bi-gift-fill', 'Rewards']].map(([ic, label], i) => (
-                  <div key={label} className={`cpx-dash-item${i === 0 ? ' active' : ''}`}><i className={`bi ${ic}`} />{label}</div>
-                ))}
+            {/*
+              * THE PREVIEW IS THE REAL HOME, IN MINIATURE.
+              *
+              * Same sidebar (items and icons as MemberShell), same top bar of stats, same three-part
+              * banner (Today's focus | Daily momentum | Coder score) and Today's missions — so what a
+              * visitor is shown is what a member gets. Illustrative numbers, built in HTML (no image),
+              * and it adapts like the app: icon rail on tablets, stacked on phones.
+              */}
+            <div className="cpd" role="img" aria-label="Preview of the CareerPilot member home: sidebar, today's focus, daily momentum, coder score and today's missions">
+              <aside className="cpd-side" aria-hidden="true">
+                <div className="cpd-logo"><img src={LOGO} alt="" /></div>
+                <nav>
+                  {[['house-door-fill', 'Home'], ['grid', 'My 90 Days'], ['map', 'My Roadmap'], ['code-slash', 'Practice'], ['collection', 'Coding Sets'], ['lightbulb', 'Thinking Lab'], ['chat-dots', 'Communication Lab'], ['mic-fill', 'Mock Interview'], ['file-earmark-text', 'Resume'], ['trophy-fill', 'My Progress']].map(([ic, label], i) => (
+                    <span key={label} className={`cpd-nav${i === 0 ? ' on' : ''}`}><i className={`bi bi-${ic}`} /><em>{label}</em></span>
+                  ))}
+                </nav>
+                <div className="cpd-goal"><b><i className="bi bi-bullseye" /> <em>Daily Goal</em></b><span><strong>40</strong> / 115 XP</span><i className="cpd-goal-bar"><s style={{ width: '35%' }} /></i></div>
               </aside>
-              <div className="cpx-dash-main">
-                <div className="cpx-dash-top">
-                  <div><h3>Good morning, Arjun <span aria-hidden="true">👋</span></h3><p>Keep going. You’re building something great.</p></div>
-                  <span className="cpx-pill">Career Ready: 64%</span>
-                </div>
-                <div className="cpx-dash-row">
-                  <div className="cpx-panel">
-                    <h4>Career Readiness</h4>
-                    <div className="cpx-ready">
-                      <div className="cpx-ring" style={{ ['--p' as any]: 64 }}><strong>64</strong></div>
-                      <div className="cpx-bars">
-                        {[['Problem Solving', 78], ['Technical Skills', 64], ['Communication', 58], ['Learning Agility', 72]].map(([n, v]) => (
-                          <div className="cpx-bar" key={String(n)}>
-                            <div className="cpx-bar-top"><span>{n}</span><b>{v}%</b></div>
-                            <div className="cpx-bar-track"><i style={{ width: `${v}%` }} /></div>
-                          </div>
-                        ))}
-                      </div>
+              <div className="cpd-main" aria-hidden="true">
+                <header className="cpd-top">
+                  <div className="cpd-hello"><h3>Hey Arjun!</h3><p>Let’s code, solve problems and level up your skills.</p></div>
+                  <div className="cpd-stats">
+                    <span><i className="bi bi-fire c-fire" /><b>7</b></span>
+                    <span><i className="bi bi-coin c-coin" /><b>120</b></span>
+                    <span><i className="bi bi-award-fill c-lvl" /><b>Level 4</b></span>
+                    <span><i className="bi bi-lightning-charge-fill c-xp" /><b>1,240</b><em>XP</em></span>
+                  </div>
+                </header>
+                <section className="cpd-hero">
+                  <div className="cpd-focus">
+                    <span className="cpd-eyebrow">Day 12 of 90</span>
+                    <h4>Today’s <span>focus</span></h4>
+                    <p>75 XP to today’s goal. Finish your missions to get there.</p>
+                    <div className="cpd-goalrow"><b>Today’s goal</b><span>40 / 115 XP</span></div>
+                    <i className="cpd-bar"><s style={{ width: '35%' }} /></i>
+                    <div className="cpd-btns"><span className="cpd-btn primary">Start today’s work <i className="bi bi-arrow-right" /></span><span className="cpd-btn"><i className="bi bi-map" /> My roadmap</span></div>
+                  </div>
+                  <div className="cpd-momentum">
+                    <span className="cpd-eyebrow">Daily momentum</span>
+                    <div className="cpd-streak"><span className="ic"><i className="bi bi-fire" /></span><div><b>7 day streak</b><small>Show up today. Build consistency.</small></div></div>
+                    <ol className="cpd-steps"><li className="done"><i /><span>Start</span></li><li className="now"><i /><span>Today</span></li><li className="done"><i /><span>7 days</span></li><li><i /><span>30 days</span></li></ol>
+                    <div className="cpd-challenge"><i className="bi bi-bullseye" /><div><b>Today’s challenge</b><small>Finish all 4 tasks today (2 to go)</small></div></div>
+                  </div>
+                  <div className="cpd-score">
+                    <div className="cpd-ring" style={{ ['--p' as any]: 64 }}><div><strong>640</strong><small>/ 1000</small></div></div>
+                    <span className="cpd-eyebrow t">Coder score</span>
+                    <b>On track</b>
+                    <small>Ahead of <strong>72%</strong> of members</small>
+                  </div>
+                </section>
+                <section className="cpd-missions">
+                  <header><b><i className="bi bi-list-task" /> Today’s missions</b><span>2 of 4 done</span></header>
+                  {[['play-circle', 'Collections in Java — List, Set and Map', 'Watch · 12 min', 20, true], ['code-slash', 'Count word frequencies with a HashMap', 'Code practice · 20 min', 40, true], ['patch-question', 'Checkpoint: choosing the right collection', 'Checkpoint · 10 min', 30, false]].map(([ic, t, meta, xp, done]) => (
+                    <div key={String(t)} className={`cpd-mission${done ? ' done' : ''}`}>
+                      <span className="ic"><i className={`bi bi-${ic}`} /></span>
+                      <span className="tx"><b>{t}</b><small>{meta}</small></span>
+                      <span className="xp">+{xp} XP</span>
+                      <span className="ck">{done && <i className="bi bi-check-lg" />}</span>
                     </div>
-                  </div>
-                  <div className="cpx-panel cpx-focus">
-                    <small>Today’s Focus</small>
-                    <strong>Master Java Collections</strong>
-                    <p>Complete this guided module and assessment to improve your backend readiness.</p>
-                    <span className="cpx-focus-btn">Continue Learning <i className="bi bi-arrow-right" /></span>
-                  </div>
-                </div>
-                <div className="cpx-panel">
-                  <h4>Your Career Roadmap</h4>
-                  <div className="cpx-road">
-                    {[['Foundation', 'Build core skills', 'done'], ['Direction', 'Choose your path', 'current'], ['Practice', 'Build real skills', ''], ['Opportunities', 'Apply and grow', '']].map(([t, s, state], i, all) => (
-                      <React.Fragment key={t}>
-                        <div className={`cpx-road-step ${state}`}>
-                          <span className="cpx-road-n">{i + 1}</span>
-                          <div><b>{t}</b><small>{s}</small></div>
-                        </div>
-                        {i < all.length - 1 && <i className="bi bi-arrow-right cpx-road-arrow" aria-hidden="true" />}
-                      </React.Fragment>
-                    ))}
-                  </div>
-                </div>
+                  ))}
+                </section>
               </div>
             </div>
           </div>

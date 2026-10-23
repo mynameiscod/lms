@@ -610,3 +610,25 @@
   #root .gd .jdm-complete { display: grid !important; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px 14px; }
   #root .gd .jdm-complete > button, #root .gd .jdm-complete .jd-btn { grid-column: 1 / -1; width: 100%; justify-content: center; }
 }
+
+/* The code editor's hidden typing field (Monaco's .inputarea / .ime-text-area) picked up the
+   member-wide textarea style — white, rounded, bordered, a minimum size — and showed as an empty box
+   in the editor on phones. It must stay invisible, exactly as the editor draws it. */
+#root .gd .monaco-editor textarea, #root .gd .monaco-editor textarea:focus, .monaco-editor textarea.inputarea, .monaco-editor textarea.ime-text-area {
+  background: transparent !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+  outline: none !important; padding: 0 !important; margin: 0 !important; min-width: 0 !important; min-height: 0 !important;
+  color: transparent !important; resize: none !important;
+}
+
+@media (max-width: 760px) {
+  /* Resume action bar: space between "Keep improving" and the buttons (they touched). */
+  #root .gd .rc2 .rc-sticky-actions, .rc2 .rc-sticky-actions { gap: 14px !important; }
+  #root .gd .rc2 .rc-sticky-actions > div:last-child { gap: 10px !important; }
+}
+
+@media (max-width: 640px) {
+  /* "CODER SCORE ?" centred under its ring like the lines below it. */
+  #root .gd .md .md-hero-score small, #root .gd .md .md-hero-score .md-score-label {
+    display: flex !important; justify-content: center !important; align-items: center; width: 100%; text-align: center !important;
+  }
+}

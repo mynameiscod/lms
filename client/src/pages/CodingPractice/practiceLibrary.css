@@ -137,3 +137,12 @@
   .pl-filters { grid-template-columns: 1fr 1fr; }
   .pl-filters > .pl-btn { grid-column: 1 / -1; }
 }
+
+/* Quote card: opening and closing marks inline with the words, attribution on its own line. */
+.pl-quote { margin: 0; }
+.pl-quote blockquote { margin: 0; font-size: 15px; line-height: 1.55; font-style: italic; color: #134e4a; text-wrap: balance; }
+.pl-quote .q { font-style: normal; font-weight: 800; font-size: 1.35em; line-height: 0; color: #13784F; }
+.pl-quote .q:first-child { margin-right: 3px; }
+.pl-quote .q:last-child { margin-left: 2px; }
+.pl-quote figcaption { margin-top: 8px; font-size: 13px; font-weight: 600; color: #2F5F57; }
+.pl-quote .q { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 1.35em; line-height: 1; vertical-align: -0.12em; }

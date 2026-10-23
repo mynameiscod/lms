@@ -401,3 +401,11 @@ button.md-jm:hover { border-color: #9DBBD0; box-shadow: 0 6px 16px rgba(15, 46, 
   .md-steps2 li span { font-size: 10px; letter-spacing: .02em; white-space: nowrap; }
 }
 .md-empty-note { align-self: center; font-size: 14px; font-weight: 600; color: var(--muted); }
+
+/* The quote reads as one sentence with BOTH marks, inline, so it wraps as text on any width
+   (it was a flex row: a lone opening-quote icon beside the text, and no closing mark). */
+.md .md-quote { display: block; text-align: center; margin: 0; padding: 2px 4px 0; font-size: 14px; line-height: 1.5; font-style: italic; color: #42526A; text-wrap: balance; }
+.md .md-quote .q { font-style: normal; font-weight: 800; font-size: 1.25em; line-height: 0; color: #237F91; }
+.md .md-quote .q:first-child { margin-right: 2px; }
+.md .md-quote .q:last-child { margin-left: 2px; }
+.md .md-quote .q { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 1.3em; line-height: 1; vertical-align: -0.12em; }

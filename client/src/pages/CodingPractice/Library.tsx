@@ -204,7 +204,7 @@ export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
               );
             })}
           </div>
-          <div className="pl-card pl-quote"><i className="fa-solid fa-quote-left" style={{ opacity: 0.5 }} /><div style={{ marginTop: 6 }}>Consistency today creates opportunities tomorrow.</div><div style={{ opacity: 0.7, marginTop: 8, fontSize: 13 }}>— CodeBegun</div></div>
+          <figure className="pl-card pl-quote"><blockquote><span className="q" aria-hidden="true">“</span>Consistency today creates opportunities tomorrow.<span className="q" aria-hidden="true">”</span></blockquote><figcaption>— CodeBegun</figcaption></figure>
           <div className="pl-card">
             <div className="pl-help"><span className="ic"><i className="fa-solid fa-robot" /></span><div><b>Need Help?</b><div style={{ color: '#42526A', fontSize: 13 }}>Get hints, explanations and learning resources from AI Mentor.</div></div></div>
             <button className="pl-btn" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }} onClick={() => nav('/careerpilot/mentor')}>Open AI Mentor →</button>

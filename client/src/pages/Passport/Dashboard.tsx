@@ -370,7 +370,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <div><b>{challenge.done ? 'Today’s challenge done' : 'Today’s challenge'}</b><span>{challenge.text}</span>{challenge.reward ? <em>{challenge.done ? 'Earned' : 'Reward'}: +{challenge.reward} bonus XP</em> : null}</div>
             <Bi name="chevron-right" />
           </button>}
-          <p className="md-quote"><Bi name="quote" /> Small progress every day creates big results.</p>
+          <p className="md-quote"><span className="q" aria-hidden="true">“</span>Small progress every day creates big results.<span className="q" aria-hidden="true">”</span></p>
         </div>
         <div className="md-hero-score">
           <div className="md-score-ring" style={{ ['--md-deg' as any]: `${Math.min(1000, score) * 0.36}deg` }}>

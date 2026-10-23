@@ -6,11 +6,11 @@
 .tp-wrap { max-width: 860px; margin: 0 auto; padding: 20px 18px 60px; }
 
 .tp-loading, .tp-error { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px;
-  padding: 30px; text-align: center; color: #42526A; font-size: 14px; }
+  padding: 30px; text-align: center; color: #2F3F56; font-size: 14px; }
 .tp-error button { margin-top: 14px; background: #1d4ed8; color: #fff; border: 0;
   border-radius: 10px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
 
-.tp-back { background: none; border: 0; color: #42526A; font-size: 13px; font-weight: 600;
+.tp-back { background: none; border: 0; color: #2F3F56; font-size: 13px; font-weight: 600;
   cursor: pointer; padding: 4px 0; margin-bottom: 10px; }
 .tp-back:hover { color: #1d4ed8; }
 
@@ -27,7 +27,7 @@
 .tp-state.build  { background: #eff6ff; color: #1d4ed8; }
 .tp-state.active { background: #ecfeff; color: #0e7490; }
 .tp-state.done   { background: #ecfdf5; color: #047857; }
-.tp-state.muted  { background: #f8fafc; color: #42526A; }
+.tp-state.muted  { background: #f8fafc; color: #2F3F56; }
 .tp-state.locked { background: #f5f3ff; color: #6d28d9; }
 .tp-depth { background: #f1f5f9; color: #475569; }
 .tp-optional { background: #fffbeb; color: #b45309; }
@@ -40,7 +40,7 @@
 .tp-locked { background: #f5f3ff; border: 1px solid #ddd6fe; color: #5b21b6; }
 /* Amber, not red. Nothing is broken — the lesson simply is not written yet. */
 .tp-placeholder-note { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
-.tp-missing { background: #f8fafc; border: 1px solid #e2e8f0; color: #42526A; font-size: 12.5px; }
+.tp-missing { background: #f8fafc; border: 1px solid #e2e8f0; color: #2F3F56; font-size: 12.5px; }
 
 /* ── one item ── */
 .tp-item { background: #fff; border: 1.5px solid #eef0f7; border-radius: 14px;
@@ -57,18 +57,18 @@
 .tp-icon { color: #6164EC; font-size: 14px; width: 18px; text-align: center; }
 
 .tp-item-title { flex: 1; font-size: 14px; font-weight: 800; color: #0f172a; min-width: 0; }
-.tp-item-title small { display: block; font-size: 12px; font-weight: 500; color: #5A6A80;
+.tp-item-title small { display: block; font-size: 12px; font-weight: 500; color: #3F4F66;
   margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .tp-tag { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
   background: #fffbeb; color: #b45309; border: 1px solid #fde68a;
   border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
-.tp-mins { font-size: 12px; color: #5A6A80; white-space: nowrap;
+.tp-mins { font-size: 12px; color: #3F4F66; white-space: nowrap;
   font-variant-numeric: tabular-nums; }
 .tp-chev { font-size: 10px; color: #cbd5e1; }
 
 .tp-item-body { padding: 4px 16px 18px; border-top: 1px solid #f1f5f9; }
-.tp-desc { font-size: 13px; color: #42526A; margin: 12px 0; line-height: 1.55; }
+.tp-desc { font-size: 13px; color: #2F3F56; margin: 12px 0; line-height: 1.55; }
 
 /* ── media ── */
 .tp-frame { position: relative; width: 100%; padding-top: 56.25%; border-radius: 12px;
@@ -99,7 +99,7 @@
   font-size: 13px; color: #334155; background: #fcfcfd; }
 
 .tp-empty { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 11px;
-  padding: 16px; font-size: 13px; color: #5A6A80; text-align: center; }
+  padding: 16px; font-size: 13px; color: #3F4F66; text-align: center; }
 .tp-empty.big { padding: 34px; }
 
 @media (max-width: 640px) {

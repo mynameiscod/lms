@@ -103,7 +103,7 @@
 .spc-cta { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 22px; border-radius: 12px; background: #fff; color: #051D64; font-size: 15px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 22px rgba(0, 0, 0, .25); }
 .spc-cta:hover { background: #E8F6F9; }
 
-.spc-note { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; width: min(420px, 100%); padding: 32px 26px; border-radius: 22px; background: #fff; box-shadow: 0 30px 70px rgba(0, 0, 0, .3); color: #42526A; font-size: 14.5px; }
+.spc-note { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; width: min(420px, 100%); padding: 32px 26px; border-radius: 22px; background: #fff; box-shadow: 0 30px 70px rgba(0, 0, 0, .3); color: #2F3F56; font-size: 14.5px; }
 .spc-note .spc-cta { background: #051D64; color: #fff; }
 .spc-note-ic { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; font-size: 26px; color: #fff; background: linear-gradient(135deg, #051D64, #359AAD); }
 .spc-note b { font-size: 18px; color: #051D64; }

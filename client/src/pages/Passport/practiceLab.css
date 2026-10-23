@@ -3,7 +3,7 @@
    The shell forces .gd-main h1/p colours with !important, so text on navy carries !important to stay light. */
 .pl2 {
   --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD;
-  --ink: #102A4F; --text: #33475B; --muted: #42526A; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
+  --ink: #102A4F; --text: #33475B; --muted: #2F3F56; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
   --green: #13784F; --green-bg: #EAF8F1; --amber: #9A5A00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0; --violet: #6246C9; --violet-bg: #F1EDFF;
   width: 100%; max-width: 1760px; margin: 0 auto; padding-bottom: 40px; color: var(--ink); display: flex; flex-direction: column; gap: 18px;
 }
@@ -30,7 +30,7 @@
 .pl2-ring { --pl2-deg: 0deg; flex: none; width: 124px; height: 124px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#6FE0A6 var(--pl2-deg), rgba(255, 255, 255, .16) 0); }
 .pl2-ring > div { width: 98px; height: 98px; border-radius: 50%; background: var(--navy); display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .pl2-ring strong { font-size: 28px; line-height: 1; font-weight: 800; color: #fff; }
-.pl2-ring strong em { font-style: normal; font-size: 15px; color: #5A6A80; }
+.pl2-ring strong em { font-style: normal; font-size: 15px; color: #3F4F66; }
 .pl2-ring span { margin-top: 4px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #9FDCE6; }
 .pl2 .pl2-score-copy small { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6 !important; }
 .pl2 .pl2-score-copy b { display: block; margin-top: 4px; font-size: 24px; color: #FFD166 !important; }
@@ -108,7 +108,7 @@
 }
 #root .gd .pl2 .pl2-hero h1, .pl2 .pl2-hero h1 { color: var(--navy) !important; }
 #root .gd .pl2 .pl2-hero h1 span, .pl2 .pl2-hero h1 span { color: #167E92 !important; }
-#root .gd .pl2 .pl2-hero-copy > p, .pl2 .pl2-hero-copy > p { color: #42526A !important; }
+#root .gd .pl2 .pl2-hero-copy > p, .pl2 .pl2-hero-copy > p { color: #2F3F56 !important; }
 
 /* Chips read as tinted tags rather than glass. */
 #root .gd .pl2 .pl2-hero .pl2-chips span, .pl2 .pl2-hero .pl2-chips span {
@@ -128,11 +128,11 @@
   background: #fff; box-shadow: inset 0 0 0 1px #EDF2F8;
 }
 #root .gd .pl2 .pl2-hero .pl2-ring strong, .pl2 .pl2-hero .pl2-ring strong { color: var(--navy) !important; }
-#root .gd .pl2 .pl2-hero .pl2-ring strong em, .pl2 .pl2-hero .pl2-ring strong em { color: #42526A !important; }
+#root .gd .pl2 .pl2-hero .pl2-ring strong em, .pl2 .pl2-hero .pl2-ring strong em { color: #2F3F56 !important; }
 #root .gd .pl2 .pl2-hero .pl2-ring span, .pl2 .pl2-hero .pl2-ring span { color: #1B7D91 !important; }
 #root .gd .pl2 .pl2-score-copy small, .pl2 .pl2-score-copy small { color: #1B7D91 !important; }
 #root .gd .pl2 .pl2-score-copy b, .pl2 .pl2-score-copy b { color: var(--amber) !important; }
-#root .gd .pl2 .pl2-score-copy span, .pl2 .pl2-score-copy span { color: #42526A !important; }
+#root .gd .pl2 .pl2-score-copy span, .pl2 .pl2-score-copy span { color: #2F3F56 !important; }
 
 /* ────────────────────────────────────────────────────────────────────────────
    YOUR PROGRESS — the middle column of the banner, the same shape as the
@@ -150,7 +150,7 @@
 .pl2-strip .ic { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 21px; background: #fff; color: #17855B; }
 .pl2-strip > div { flex: 1; min-width: 0; }
 .pl2 .pl2-strip b { display: block; font-size: 17px; font-weight: 800; color: var(--navy); }
-.pl2 .pl2-strip > div > span { display: block; margin-top: 2px; font-size: 13.5px; line-height: 1.45; color: #42526A; }
+.pl2 .pl2-strip > div > span { display: block; margin-top: 2px; font-size: 13.5px; line-height: 1.45; color: #2F3F56; }
 .pl2-strip-bar { display: block; margin-top: 9px; height: 7px; border-radius: 999px; background: #D9EDE4; overflow: hidden; }
 .pl2-strip-bar em { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1E9AA8, #2FB27F); transition: width .5s ease; }
 
@@ -158,7 +158,7 @@
 .pl2-steps2::before { content: ""; position: absolute; left: 14px; right: 14px; top: 11px; height: 2px; background: #DFE7F1; }
 .pl2-steps2 li { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .pl2-steps2 li i { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid #DFE7F1; }
-.pl2-steps2 li span { font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #5A6A80; white-space: nowrap; }
+.pl2-steps2 li span { font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #3F4F66; white-space: nowrap; }
 .pl2-steps2 li.done i { background: var(--primary); border-color: var(--primary); box-shadow: inset 0 0 0 3px #fff; }
 .pl2-steps2 li.done span { color: var(--navy); }
 .pl2-steps2 li.current i { background: #2FB27F; border-color: #2FB27F; box-shadow: 0 0 0 4px rgba(47, 178, 127, .18); }
@@ -171,7 +171,7 @@
 .pl2 .pl2-next b { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #1B7D91; }
 .pl2 .pl2-next > div > span { display: block; margin-top: 2px; font-size: 15px; font-weight: 700; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pl2 .pl2-next em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; text-transform: capitalize; color: #17855B; }
-.pl2-next > i.bi-chevron-right { flex: none; color: #5A6A80; }
+.pl2-next > i.bi-chevron-right { flex: none; color: #3F4F66; }
 
 /* The solved ring loses its tile: it is now the banner's third column, not a card inside one. */
 #root .gd .pl2 .pl2-hero .pl2-score, .pl2 .pl2-hero .pl2-score { margin: 0 26px; background: none; border: 0; padding: 0; backdrop-filter: none; }

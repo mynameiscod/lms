@@ -1,5 +1,5 @@
 /* CareerPilot migration layer — shared visual language for remaining member/admin surfaces. */
-:root{--cp-navy:#051d64;--cp-navy-2:#061e66;--cp-teal:#359aad;--cp-teal-soft:#eaf7f8;--cp-bg:#f6f9fc;--cp-card:#fff;--cp-border:#e0e7ef;--cp-text:#10213c;--cp-muted:#42526A;--cp-radius:16px;--cp-shadow:0 8px 24px rgba(12,39,80,.055)}
+:root{--cp-navy:#051d64;--cp-navy-2:#061e66;--cp-teal:#359aad;--cp-teal-soft:#eaf7f8;--cp-bg:#f6f9fc;--cp-card:#fff;--cp-border:#e0e7ef;--cp-text:#10213c;--cp-muted:#2F3F56;--cp-radius:16px;--cp-shadow:0 8px 24px rgba(12,39,80,.055)}
 
 /* ADMIN — applies only to CareerPilot admin routes via Layout route scope. */
 .careerpilot-admin-surface .main-content{background:var(--cp-bg)!important;color:var(--cp-text);padding:28px 30px!important}

@@ -35,7 +35,7 @@
 #root .gd .gd-main .pm-shell{background:transparent!important;min-height:0!important;padding:0!important}
 #root .gd .gd-topbar{background:transparent!important;border:0!important;box-shadow:none!important;margin-bottom:18px!important}
 #root .gd .gd-hello h1{color:#051d64!important}
-#root .gd .gd-hello p{color:#42526A!important}
+#root .gd .gd-hello p{color:#2F3F56!important}
 #root .gd .gd-user-btn{border:1px solid #e0e6ee!important;border-radius:999px!important;background:#fff!important;box-shadow:0 4px 14px rgba(5,29,100,.05)!important}
 #root .gd .gd-pill{border:1px solid #e0e6ee!important;background:#fff!important;border-radius:12px!important;box-shadow:none!important}
 #root .gd .gd-pill.level .hex{background:linear-gradient(135deg,#051d64,#359aad)!important}
@@ -346,7 +346,7 @@
 #root .gd .gd-stat-tx { display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.15; }
 #root .gd .gd-stat-tx b { display: block; font-size: 17px; font-weight: 800; color: #051D64; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 #root .gd .gd-stat-tx b em { font-style: normal; font-size: 13px; font-weight: 700; color: #33475B; }
-#root .gd .gd-stat-tx small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 600; color: #42526A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+#root .gd .gd-stat-tx small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 600; color: #2F3F56; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
 #root .gd .gd-stat-short { display: none; }
 #root .gd .gd-stat-bar { display: block; width: 100px; height: 6px; margin-top: 5px; border-radius: 999px; background: #E2EAF2; overflow: hidden; }
 #root .gd .gd-stat-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #051D64, #359AAD); }
@@ -382,17 +382,17 @@
 }
 #root .gd .gd-user-btn .nm-wrap { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
 #root .gd .gd-user-btn .nm { font-size: 14.5px; font-weight: 800; color: #051D64; max-width: 170px; }
-#root .gd .gd-user-btn .nm-wrap small { font-size: 12px; font-weight: 600; color: #42526A; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
-#root .gd .gd-user-btn .cr { width: 18px; height: 18px; color: #42526A; font-size: 13px; }
+#root .gd .gd-user-btn .nm-wrap small { font-size: 12px; font-weight: 600; color: #2F3F56; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+#root .gd .gd-user-btn .cr { width: 18px; height: 18px; color: #2F3F56; font-size: 13px; }
 /* The account menu (desktop top bar and phone bar share it). */
 #root .gd .gd-user-menu { width: 280px; padding: 6px; border-radius: 16px; border: 1px solid #E2EAF2 !important; }
 #root .gd .gd-user-menu .hd { display: flex; align-items: center; gap: 11px; padding: 10px 10px 12px; }
 #root .gd .gd-user-menu .hd .av { flex: none; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: linear-gradient(135deg, #051D64, #359AAD); color: #fff; font-weight: 800; font-size: 16px; }
 #root .gd .gd-user-menu .hd > div { min-width: 0; }
 #root .gd .gd-user-menu .hd b { color: #051D64; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#root .gd .gd-user-menu .hd span { display: block; color: #42526A; font-size: 12px; }
+#root .gd .gd-user-menu .hd span { display: block; color: #2F3F56; font-size: 12px; }
 #root .gd .gd-user-menu .stats b { color: #051D64; }
-#root .gd .gd-user-menu .stats span { color: #42526A; font-size: 11.5px; }
+#root .gd .gd-user-menu .stats span { color: #2F3F56; font-size: 11.5px; }
 #root .gd .gd-user-menu button { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #33475B; padding: 10px 12px; }
 #root .gd .gd-user-menu button i { width: 18px; font-size: 16px; color: #2B7E8E; text-align: center; }
 #root .gd .gd-user-menu button:hover:not(:disabled) { background: #F4F8FC; color: #051D64; }
@@ -535,4 +535,14 @@
    three columns (foundationMember.css). The 1100px rules above are for the Roadmap banner (.frm). */
 @media (max-width: 980px) {
   #root .gd .fjm-hero { grid-template-columns: minmax(0, 1fr) !important; row-gap: 0; }
+}
+
+/* 981–1280px: the stat labels ("Day streak", "Coins", the level title, "N to level") stay visible.
+   Room comes from the account chip instead, which shows the avatar only in this range (the name is
+   in its menu). Replaces the earlier rule that hid the labels here. */
+@media (max-width: 1280px) and (min-width: 981px) {
+  #root .gd .gd-stat-tx small { display: block; font-size: 11.5px; max-width: 112px; }
+  #root .gd .gd-stat { padding: 4px 10px 4px 6px; gap: 8px; }
+  #root .gd .gd-user-btn .nm-wrap { display: none; }
+  #root .gd .gd-user-btn { padding-right: 8px; }
 }

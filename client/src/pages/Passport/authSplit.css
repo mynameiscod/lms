@@ -11,7 +11,7 @@
   --ink:#0F1E3D;
   --blue:#2563EB;
   --blue-d:#1E40AF;
-  --muted:#42526A;
+  --muted:#2F3F56;
   --line:#E2E8F5;
   --field:#F8FAFF;
 
@@ -182,11 +182,11 @@
   border-color:var(--blue); background:#fff; box-shadow:0 0 0 3px rgba(37,99,235,.11);
 }
 .as-in .lic{ position:absolute; left:14px; top:50%; transform:translateY(-50%);
-  font-size:14px; color:#5A6A80; pointer-events:none; line-height:1 }
+  font-size:14px; color:#3F4F66; pointer-events:none; line-height:1 }
 .as-eye{
   position:absolute; right:8px; top:50%; transform:translateY(-50%);
   border:none; background:transparent; cursor:pointer; padding:7px; line-height:1;
-  font-size:15px; color:#5A6A80; border-radius:7px;
+  font-size:15px; color:#3F4F66; border-radius:7px;
 }
 .as-eye:hover{ color:var(--blue); background:#F1F5FF }
 
@@ -208,7 +208,7 @@
 .as-go:active:not(:disabled){ transform:translateY(1px) }
 .as-go:disabled{ opacity:.55; cursor:not-allowed; box-shadow:none }
 
-.as-or{ display:flex; align-items:center; gap:14px; margin:20px 0; color:#5A6A80; font-size:12.5px }
+.as-or{ display:flex; align-items:center; gap:14px; margin:20px 0; color:#3F4F66; font-size:12.5px }
 .as-or::before, .as-or::after{ content:''; flex:1; height:1px; background:var(--line) }
 
 .as-alt{

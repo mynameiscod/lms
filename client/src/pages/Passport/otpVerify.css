@@ -8,7 +8,7 @@
   --teal-2: #2bb3a3;
   --ink: #0e1b3d;
   --text: #3d4a63;
-  --muted: #42526A;
+  --muted: #2F3F56;
   --line: #e2e8f2;
   /* #root is a full-height flex column (index.css, which also compensates its zoom); filling it is what takes the
      background to the bottom of the screen at any zoom. The same approach as the LMS login page. */
@@ -32,7 +32,7 @@
 .cpv-steps { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 10px; }
 .cpv-steps li { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--muted); }
 .cpv-steps li + li::before { content: ""; width: 34px; height: 2px; border-radius: 2px; background: #d5deea; margin-right: 2px; }
-.cpv-steps span { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; background: #e6ecf5; color: #42526A; }
+.cpv-steps span { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; background: #e6ecf5; color: #2F3F56; }
 .cpv-steps li.done { color: #11776b; }
 .cpv-steps li.done span { background: var(--teal-2); color: #fff; }
 .cpv-steps li.current { color: var(--navy); }

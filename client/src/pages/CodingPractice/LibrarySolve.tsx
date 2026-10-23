@@ -270,7 +270,7 @@ const LibrarySolve: React.FC<{ base: string }> = ({ base }) => {
                     );
                   })}
                   <div className="pl-case" style={{ cursor: 'default' }}>
-                    <i className="fa-solid fa-lock" style={{ color: '#5A6A80' }} />
+                    <i className="fa-solid fa-lock" style={{ color: '#3F4F66' }} />
                     <span className="nm">Hidden Test Cases</span>
                     <span className="pb-faint" style={{ fontSize: 12.5 }}>
                       {subRes && !subRes.result.compileError ? `${subRes.result.cases.filter((c) => !c.isSample && c.passed).length} of ${subRes.result.cases.filter((c) => !c.isSample).length} passed` : 'Submit to run all tests'}

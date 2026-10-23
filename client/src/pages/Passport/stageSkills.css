@@ -3,7 +3,7 @@
    scope, so --cb-* would resolve to nothing. Values mirror the CodeBegun guide. */
 .ss{
   --ss-navy:#051D64; --ss-teal:#359AAD; --ss-ink:#102A4F; --ss-text:#33475B;
-  --ss-muted:#42526A; --ss-line:#E2EAF2; --ss-card:#FFFFFF;
+  --ss-muted:#2F3F56; --ss-line:#E2EAF2; --ss-card:#FFFFFF;
   --ss-green:#13784F; --ss-green-bg:#EAF8F1;
   --ss-amber:#9A5A00; --ss-amber-bg:#FFF7E8;
   --ss-red:#C93737;   --ss-red-bg:#FFF0F0;
@@ -68,10 +68,10 @@
 .ss-table th.c,.ss-table td.c{text-align:center}
 .ss-table tr.off{opacity:.5}
 .ss-table td b{display:block; color:var(--ss-ink); font-weight:700}
-.ss-table td .key{display:block; font-size:10px; color:#5A6A80; margin-top:2px;
+.ss-table td .key{display:block; font-size:10px; color:#3F4F66; margin-top:2px;
   font-family:ui-monospace,Menlo,monospace}
 .ss-table td .warn{display:block; font-size:10.5px; color:var(--ss-red); margin-top:3px; font-weight:700}
-.ss-table td .src{display:block; font-size:10.5px; color:#42526A; margin-top:3px}
+.ss-table td .src{display:block; font-size:10.5px; color:#2F3F56; margin-top:3px}
 .ss-table select{border:1px solid var(--ss-line); border-radius:8px; padding:6px 9px;
   font-size:12px; font-family:inherit; color:var(--ss-ink); background:#fff}
 .ss-table input[type=number]{width:62px; border:1px solid var(--ss-line); border-radius:8px;

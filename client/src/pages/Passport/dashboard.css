@@ -30,7 +30,7 @@
 /* Wraps to two lines at 248px and stops there, instead of running on and stretching the
    header — the burger sits over this corner on mobile and a third line met it. */
 .gd-logo small {
-  font-size: 10px; line-height: 1.35; color: #5A6A80;
+  font-size: 10px; line-height: 1.35; color: #3F4F66;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 
@@ -47,7 +47,7 @@
 .gd-nav-label { font-size: 10px; font-weight: 800; letter-spacing: .9px; text-transform: uppercase; color: #b3b9c6; padding: 14px 12px 5px; }
 .gd-nav-label:first-child { padding-top: 2px; }
 
-.gd-nav-btn { display: flex; align-items: center; gap: 11px; width: 100%; background: none; border: none; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; font-weight: 600; color: #42526A; cursor: pointer; text-align: left; transition: background .13s, color .13s; }
+.gd-nav-btn { display: flex; align-items: center; gap: 11px; width: 100%; background: none; border: none; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; font-weight: 600; color: #2F3F56; cursor: pointer; text-align: left; transition: background .13s, color .13s; }
 .gd-nav-btn:hover { background: #f5f6fb; color: #0f172a; }
 .gd-nav-btn.on { background: linear-gradient(90deg,#051D64,#7f5ce0); color: #fff; font-weight: 800; box-shadow: 0 6px 16px rgba(5, 29, 100,.26); }
 .gd-nav-btn .ic { width: 19px; height: 19px; flex-shrink: 0; display: grid; place-items: center; color: #9aa2b1; }
@@ -68,14 +68,14 @@
 .gd-nav-btn.locked.on .lk { color: rgba(255,255,255,.8); }
 
 .gd-sub { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 4px 22px; padding-left: 12px; border-left: 1.5px solid #eef0f7; }
-.gd-sub button { background: none; border: none; text-align: left; padding: 7px 11px; border-radius: 8px; font-size: 12.5px; color: #42526A; cursor: pointer; font-weight: 600; }
+.gd-sub button { background: none; border: none; text-align: left; padding: 7px 11px; border-radius: 8px; font-size: 12.5px; color: #2F3F56; cursor: pointer; font-weight: 600; }
 .gd-sub button:hover { background: #f5f6fb; color: #0f172a; }
 .gd-sub button.on { color: #051D64; font-weight: 800; background: #f4f2ff; }
 
 .gd-goal { flex-shrink: 0; margin-top: 12px; border: 1px solid #ecedf5; border-radius: 14px; padding: 14px; }
 .gd-goal .hd { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 800; color: #0f172a; }
 .gd-goal .big { font-size: 17px; font-weight: 900; color: #0f172a; margin: 8px 0 6px; }
-.gd-goal .big small { font-size: 12px; color: #5A6A80; font-weight: 700; }
+.gd-goal .big small { font-size: 12px; color: #3F4F66; font-weight: 700; }
 .gd-goal .bar { height: 7px; border-radius: 99px; background: #eef0f7; overflow: hidden; }
 .gd-goal .bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,#7c6cf0,#37d0c0); }
 .gd-goal .note { font-size: 11.5px; color: #8b93a4; line-height: 1.45; margin-top: 8px; }
@@ -86,12 +86,12 @@
 .gd-me-top { display: flex; align-items: center; gap: 11px; }
 .gd-me-top .av { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg,#7c6cf0,#37d0c0); color: #fff; display: grid; place-items: center; font-weight: 900; font-size: 16px; flex-shrink: 0; }
 .gd-me-top b { display: block; font-size: 13.5px; font-weight: 800; color: #0f172a; line-height: 1.2; }
-.gd-me-top span { font-size: 11px; color: #5A6A80; }
+.gd-me-top span { font-size: 11px; color: #3F4F66; }
 .gd-me-tag { display: inline-block; margin-top: 5px; font-size: 10.5px; font-weight: 800; color: #051D64; background: #f1eeff; border-radius: 99px; padding: 2px 9px; }
 .gd-me-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; margin-top: 13px; padding-top: 13px; border-top: 1px solid #f1f2f8; text-align: center; }
 .gd-me-stats b { display: block; font-size: 14px; font-weight: 900; color: #0f172a; }
-.gd-me-stats span { font-size: 10px; color: #5A6A80; }
-.gd-me-btn { width: 100%; margin-top: 11px; background: #fff; border: 1.5px solid #e6e8f0; border-radius: 10px; padding: 9px; font-size: 12.5px; font-weight: 800; color: #42526A; cursor: pointer; }
+.gd-me-stats span { font-size: 10px; color: #3F4F66; }
+.gd-me-btn { width: 100%; margin-top: 11px; background: #fff; border: 1.5px solid #e6e8f0; border-radius: 10px; padding: 9px; font-size: 12.5px; font-weight: 800; color: #2F3F56; cursor: pointer; }
 .gd-me-btn:hover { border-color: #cdd2e0; }
 
 /* ── Shared top row (profile now lives here, not in the rail) ── */
@@ -105,17 +105,17 @@
 .gd-user-btn:hover { border-color: #d9def0; }
 .gd-user-btn .av { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#7c6cf0,#37d0c0); color: #fff; display: grid; place-items: center; font-weight: 900; font-size: 14px; flex-shrink: 0; }
 .gd-user-btn .nm { font-size: 13.5px; font-weight: 800; color: #29313f; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gd-user-btn .cr { width: 12px; height: 12px; display: grid; place-items: center; color: #5A6A80; transition: transform .16s; }
+.gd-user-btn .cr { width: 12px; height: 12px; display: grid; place-items: center; color: #3F4F66; transition: transform .16s; }
 .gd-user-btn .cr.open { transform: rotate(180deg); }
 .gd-user-btn .cr svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
 .gd-user-menu { position: absolute; right: 0; top: calc(100% + 8px); width: 250px; background: #fff; border: 1px solid #ecedf5; border-radius: 14px; box-shadow: 0 18px 46px rgba(15,23,42,.16); padding: 6px; z-index: 45; }
 .gd-user-menu .hd { padding: 11px 12px 10px; border-bottom: 1px solid #f4f5fa; }
 .gd-user-menu .hd b { display: block; font-size: 14px; font-weight: 900; color: #0f172a; }
-.gd-user-menu .hd span { font-size: 11.5px; color: #5A6A80; font-weight: 600; }
+.gd-user-menu .hd span { font-size: 11.5px; color: #3F4F66; font-weight: 600; }
 .gd-user-menu .stats { display: grid; grid-template-columns: repeat(3,1fr); text-align: center; padding: 11px 0; border-bottom: 1px solid #f4f5fa; margin-bottom: 4px; }
 .gd-user-menu .stats b { display: block; font-size: 14px; font-weight: 900; color: #0f172a; }
-.gd-user-menu .stats span { font-size: 10px; color: #5A6A80; font-weight: 700; }
+.gd-user-menu .stats span { font-size: 10px; color: #3F4F66; font-weight: 700; }
 .gd-user-menu button { width: 100%; text-align: left; background: none; border: none; padding: 9px 12px; border-radius: 9px; font-size: 13px; font-weight: 600; color: #475569; cursor: pointer; }
 .gd-user-menu button:hover:not(:disabled) { background: #f5f6fb; color: #0f172a; }
 .gd-user-menu button:disabled { opacity: .45; cursor: default; }
@@ -128,12 +128,12 @@
 .gd-main .pm-shell { background: none; min-height: 0; padding: 0; }
 .gd-top { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-bottom: 20px; }
 .gd-hello h1 { font-size: 30px; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: -.4px; }
-.gd-hello p { font-size: 14px; color: #42526A; margin: 4px 0 0; }
+.gd-hello p { font-size: 14px; color: #2F3F56; margin: 4px 0 0; }
 .gd-top-pills { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .gd-pill { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #ecedf5; border-radius: 14px; padding: 10px 16px; box-shadow: 0 2px 10px rgba(15,23,42,.04); }
 .gd-pill .em { font-size: 19px; }
 .gd-pill b { display: block; font-size: 17px; font-weight: 900; color: #0f172a; line-height: 1.1; }
-.gd-pill span { font-size: 10.5px; color: #5A6A80; font-weight: 600; }
+.gd-pill span { font-size: 10.5px; color: #3F4F66; font-weight: 600; }
 .gd-pill.level { gap: 12px; }
 .gd-pill.level .hex { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg,#051D64,#8b6ef0); display: grid; place-items: center; font-size: 18px; }
 .gd-pill.level .lbar { height: 5px; width: 108px; border-radius: 99px; background: #eef0f7; overflow: hidden; margin-top: 5px; }
@@ -148,9 +148,9 @@
 
 .gd-card { background: #fff; border: 1px solid #ecedf5; border-radius: 18px; padding: 22px; box-shadow: 0 2px 12px rgba(15,23,42,.03); }
 .gd-card-hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
-.gd-card-hd h2 { font-size: 12.5px; font-weight: 900; color: #42526A; letter-spacing: .8px; text-transform: uppercase; margin: 0; display: flex; align-items: center; gap: 7px; }
+.gd-card-hd h2 { font-size: 12.5px; font-weight: 900; color: #2F3F56; letter-spacing: .8px; text-transform: uppercase; margin: 0; display: flex; align-items: center; gap: 7px; }
 .gd-card-hd .lnk { background: none; border: none; font-size: 12.5px; font-weight: 800; color: #051D64; cursor: pointer; }
-.gd-help { width: 16px; height: 16px; border-radius: 50%; background: #f1f2f8; color: #5A6A80; font-size: 10px; display: inline-grid; place-items: center; cursor: help; font-weight: 800; }
+.gd-help { width: 16px; height: 16px; border-radius: 50%; background: #f1f2f8; color: #3F4F66; font-size: 10px; display: inline-grid; place-items: center; cursor: help; font-weight: 800; }
 
 /* Sidebar: logo mark is the real CodeBegun asset, plus a spacer between nav blocks */
 .gd-logo img.mk { width: 38px; height: 38px; object-fit: contain; border-radius: 10px; flex-shrink: 0; }
@@ -163,13 +163,13 @@
 .gd-tile-bar { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .gd-tile-bar .tr { flex: 1; height: 5px; border-radius: 99px; background: #eef0f7; overflow: hidden; }
 .gd-tile-bar .tr i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,#7c6cf0,#37d0c0); }
-.gd-tile-bar em { font-style: normal; font-size: 11px; font-weight: 800; color: #42526A; }
+.gd-tile-bar em { font-style: normal; font-size: 11px; font-weight: 800; color: #2F3F56; }
 
 /* Illustrated empty state (contests) */
 .gd-empty-state { text-align: center; padding: 26px 16px; }
 .gd-empty-state .em { font-size: 38px; display: block; margin-bottom: 10px; }
 .gd-empty-state b { display: block; font-size: 13.5px; font-weight: 800; color: #29313f; }
-.gd-empty-state span { display: block; font-size: 12.5px; color: #5A6A80; margin-top: 3px; }
+.gd-empty-state span { display: block; font-size: 12.5px; color: #3F4F66; margin-top: 3px; }
 .gd-empty-state button { margin-top: 14px; background: #f4f2ff; color: #051D64; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 800; cursor: pointer; }
 .gd-empty-state button:hover { background: #e9e4ff; }
 
@@ -178,9 +178,9 @@
 .gd-statrow { display: flex; align-items: center; gap: 11px; padding: 10px 2px; }
 .gd-statrow + .gd-statrow { border-top: 1px solid #f4f5fa; }
 .gd-statrow .ic { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; font-size: 13px; font-weight: 900; flex-shrink: 0; }
-.gd-statrow .t { flex: 1; font-size: 13px; color: #42526A; font-weight: 600; }
+.gd-statrow .t { flex: 1; font-size: 13px; color: #2F3F56; font-weight: 600; }
 .gd-statrow .v { font-size: 15px; font-weight: 900; color: #0f172a; white-space: nowrap; }
-.gd-statrow .v small { font-size: 11.5px; color: #5A6A80; font-weight: 700; }
+.gd-statrow .v small { font-size: 11.5px; color: #3F4F66; font-weight: 700; }
 
 /* Activity feed */
 .gd-feed { display: grid; gap: 2px; }
@@ -189,26 +189,26 @@
 .gd-feed-row .ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 900; flex-shrink: 0; }
 .gd-feed-row .t { flex: 1; font-size: 13px; color: #29313f; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gd-feed-row .xp { font-size: 12px; font-weight: 900; color: #12863D; white-space: nowrap; }
-.gd-feed-row .ago { font-size: 11px; color: #5A6A80; white-space: nowrap; width: 74px; text-align: right; }
+.gd-feed-row .ago { font-size: 11px; color: #3F4F66; white-space: nowrap; width: 74px; text-align: right; }
 .gd-feed-chart { margin-top: 12px; padding-top: 10px; border-top: 1px solid #f4f5fa; }
 
 /* Coder score */
 .gd-score { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
-.gd-parts-hd { font-size: 10.5px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; color: #5A6A80; margin: 16px 0 8px; }
+.gd-parts-hd { font-size: 10.5px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; color: #3F4F66; margin: 16px 0 8px; }
 .gd-ring { position: relative; flex-shrink: 0; }
 .gd-ring .mid { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
 .gd-ring .mid b { font-size: 40px; font-weight: 900; color: #0f172a; line-height: 1; display: block; }
-.gd-ring .mid span { font-size: 13px; color: #5A6A80; font-weight: 700; }
+.gd-ring .mid span { font-size: 13px; color: #3F4F66; font-weight: 700; }
 .gd-score-side { flex: 1; min-width: 190px; }
 .gd-tag { display: inline-flex; align-items: center; gap: 6px; background: #e7f8ef; color: #15803d; border-radius: 8px; padding: 5px 12px; font-size: 12.5px; font-weight: 800; }
-.gd-score-side p { font-size: 14px; color: #42526A; line-height: 1.6; margin: 12px 0 0; }
+.gd-score-side p { font-size: 14px; color: #2F3F56; line-height: 1.6; margin: 12px 0 0; }
 .gd-score-side p b { color: #0f172a; }
 .gd-parts { margin-top: 14px; display: grid; gap: 7px; }
 .gd-part { display: flex; align-items: center; gap: 9px; font-size: 11.5px; }
-.gd-part .t { flex: 1; color: #42526A; font-weight: 600; }
+.gd-part .t { flex: 1; color: #2F3F56; font-weight: 600; }
 .gd-part .b { flex: 1; min-width: 54px; height: 6px; border-radius: 99px; background: #eef0f7; overflow: hidden; }
 .gd-part .b i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,#7c6cf0,#37d0c0); }
-.gd-part .v { width: 36px; text-align: right; color: #42526A; font-weight: 800; }
+.gd-part .v { width: 36px; text-align: right; color: #2F3F56; font-weight: 800; }
 .gd-part .t { flex: 0 0 138px; }
 .gd-rank { display: inline-flex; align-items: center; gap: 8px; background: #f1eeff; color: #051D64; border-radius: 10px; padding: 7px 13px; font-size: 12.5px; font-weight: 800; margin-top: 14px; }
 
@@ -224,7 +224,7 @@
 @media (max-width: 520px) { .gd-tiles { grid-template-columns: 1fr; } }
 .gd-tile { background: #fff; border: 1px solid #ecedf5; border-radius: 16px; padding: 17px 19px; display: flex; align-items: center; gap: 14px; }
 .gd-tile .ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 20px; flex-shrink: 0; }
-.gd-tile .lbl { font-size: 12px; color: #42526A; font-weight: 700; }
+.gd-tile .lbl { font-size: 12px; color: #2F3F56; font-weight: 700; }
 .gd-tile .val { font-size: 21px; font-weight: 900; color: #0f172a; line-height: 1.15; }
 .gd-tile .sub { font-size: 11px; font-weight: 700; }
 
@@ -234,36 +234,36 @@
 .gd-mission .badge { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; flex-shrink: 0; }
 .gd-mission .txt { flex: 1; min-width: 0; }
 .gd-mission .txt b { display: block; font-size: 13.5px; font-weight: 700; color: #29313f; }
-.gd-mission .txt span { font-size: 12px; color: #42526A; }
-.gd-mission.done .txt b { color: #5A6A80; text-decoration: line-through; }
-.gd-mission .cnt { font-size: 12.5px; font-weight: 800; color: #42526A; }
+.gd-mission .txt span { font-size: 12px; color: #2F3F56; }
+.gd-mission.done .txt b { color: #3F4F66; text-decoration: line-through; }
+.gd-mission .cnt { font-size: 12.5px; font-weight: 800; color: #2F3F56; }
 .gd-check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #dfe3ec; background: #fff; cursor: pointer; display: grid; place-items: center; color: #fff; font-weight: 900; font-size: 12px; flex-shrink: 0; padding: 0; }
 .gd-check.on { background: #16a34a; border-color: #16a34a; cursor: default; }
 .gd-mission-cta { width: 100%; margin-top: 16px; background: linear-gradient(90deg,#051D64,#7f5ce0); color: #fff; border: none; border-radius: 13px; padding: 15px; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 10px 24px rgba(5, 29, 100,.26); }
-.gd-reward { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: #42526A; flex-wrap: wrap; }
+.gd-reward { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: #2F3F56; flex-wrap: wrap; }
 .gd-reward .chip { background: #f1eeff; color: #051D64; border-radius: 99px; padding: 3px 10px; font-weight: 800; }
-.gd-timer { font-size: 11.5px; font-weight: 800; color: #42526A; background: #f4f5fa; border-radius: 8px; padding: 4px 10px; }
+.gd-timer { font-size: 11.5px; font-weight: 800; color: #2F3F56; background: #f4f5fa; border-radius: 8px; padding: 4px 10px; }
 
 /* Streak */
 .gd-streak-num { font-size: 46px; font-weight: 900; color: #0f172a; line-height: 1; }
-.gd-streak-num small { font-size: 14px; color: #42526A; font-weight: 700; margin-left: 8px; }
+.gd-streak-num small { font-size: 14px; color: #2F3F56; font-weight: 700; margin-left: 8px; }
 .gd-week { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; margin: 18px 0 4px; text-align: center; }
 .gd-week .dot { width: 30px; height: 30px; margin: 0 auto; border-radius: 50%; background: #f1f2f8; display: grid; place-items: center; font-size: 15px; }
 .gd-week .dot.on { background: #fff2e0; }
-.gd-week .l { font-size: 11px; color: #5A6A80; font-weight: 700; margin-top: 5px; }
+.gd-week .l { font-size: 11px; color: #3F4F66; font-weight: 700; margin-top: 5px; }
 .gd-week .l.today { color: #051D64; font-weight: 900; }
 .gd-milestone { display: flex; align-items: center; gap: 12px; background: #fafbfe; border: 1px solid #f0f1f7; border-radius: 13px; padding: 13px 15px; margin-top: 14px; }
 .gd-milestone .t { flex: 1; }
-.gd-milestone .t small { font-size: 11px; color: #5A6A80; font-weight: 700; display: block; }
+.gd-milestone .t small { font-size: 11px; color: #3F4F66; font-weight: 700; display: block; }
 /* b and span must be block or they run together ("7-day streak6 days to go") */
 .gd-milestone .t b { display: block; font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px; }
-.gd-milestone .t span { display: block; font-size: 11.5px; color: #42526A; margin-top: 1px; }
+.gd-milestone .t span { display: block; font-size: 11.5px; color: #2F3F56; margin-top: 1px; }
 
 /* Next level */
 .gd-next { display: flex; align-items: center; gap: 16px; }
 .gd-next .info { flex: 1; }
 .gd-next .lv { font-size: 13.5px; font-weight: 800; color: #0f172a; display: flex; justify-content: space-between; gap: 10px; }
-.gd-next .lv span { color: #42526A; font-weight: 700; font-size: 12px; }
+.gd-next .lv span { color: #2F3F56; font-weight: 700; font-size: 12px; }
 .gd-next .bar { height: 8px; border-radius: 99px; background: #eef0f7; overflow: hidden; margin: 9px 0 12px; }
 .gd-next .bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,#7c6cf0,#37d0c0); }
 .gd-next .unlock { font-size: 11.5px; color: #a3aab8; font-weight: 700; }
@@ -273,7 +273,7 @@
 /* Activity chart */
 .gd-chart { width: 100%; }
 .gd-chart text { font-size: 10.5px; fill: #a3aab8; font-weight: 600; }
-.gd-chart-empty { height: 170px; display: grid; place-items: center; color: #5A6A80; font-size: 13px; text-align: center; line-height: 1.6; }
+.gd-chart-empty { height: 170px; display: grid; place-items: center; color: #3F4F66; font-size: 13px; text-align: center; line-height: 1.6; }
 
 /* Badges */
 .gd-badges { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; }
@@ -283,7 +283,7 @@
 .gd-badge.locked .hex { background: #f1f2f8 !important; filter: grayscale(1); }
 .gd-badge.locked b, .gd-badge.locked span { color: #b8bec9; }
 .gd-badge b { display: block; font-size: 11.5px; font-weight: 800; color: #29313f; line-height: 1.3; }
-.gd-badge span { font-size: 10px; color: #5A6A80; }
+.gd-badge span { font-size: 10px; color: #3F4F66; }
 .gd-badge .pbar { height: 4px; border-radius: 99px; background: #eef0f7; overflow: hidden; margin: 5px 6px 0; }
 .gd-badge .pbar i { display: block; height: 100%; background: #c4b5fd; }
 
@@ -292,17 +292,17 @@
 @media (max-width: 760px) { .gd-contest-grid { grid-template-columns: 1fr; } }
 .gd-contest { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 1px solid #f1f2f8; border-radius: 13px; flex-wrap: wrap; }
 .gd-contest .info b .feat { font-style: normal; font-size: 9px; font-weight: 900; letter-spacing: .5px; background: #fef3c7; color: #a16207; border-radius: 4px; padding: 2px 6px; margin-left: 7px; vertical-align: middle; }
-.gd-contest .info .pp { font-size: 10.5px; color: #5A6A80; font-weight: 700; margin-top: 5px; }
+.gd-contest .info .pp { font-size: 10.5px; color: #3F4F66; font-weight: 700; margin-top: 5px; }
 .gd-contest .info .prize { font-size: 14px; font-weight: 900; color: #0f172a; }
 .gd-contest .tr { width: 46px; height: 46px; border-radius: 14px; background: #f1eeff; display: grid; place-items: center; font-size: 21px; flex-shrink: 0; }
 .gd-contest .info { flex: 1; min-width: 0; }
 .gd-contest .info b { display: block; font-size: 13.5px; font-weight: 800; color: #0f172a; }
-.gd-contest .info span { font-size: 11.5px; color: #42526A; display: block; }
+.gd-contest .info span { font-size: 11.5px; color: #2F3F56; display: block; }
 .gd-contest .go { background: #051D64; color: #fff; border: none; border-radius: 9px; padding: 8px 15px; font-size: 12.5px; font-weight: 800; cursor: pointer; white-space: nowrap; }
 
 .gd-lb { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; }
 .gd-lb.me { background: #f1eeff; }
-.gd-lb .rk { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; font-weight: 900; flex-shrink: 0; background: #f1f2f8; color: #42526A; }
+.gd-lb .rk { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; font-weight: 900; flex-shrink: 0; background: #f1f2f8; color: #2F3F56; }
 .gd-lb .rk.g1 { background: #fef3c7; color: #b45309; }
 .gd-lb .rk.g2 { background: #e5e7eb; color: #4b5563; }
 .gd-lb .rk.g3 { background: #fee2e2; color: #b91c1c; }
@@ -313,8 +313,8 @@
    on the left is a visual position; this spells it out, which matters because the
    board is truncated to the podium plus you. */
 .gd-lb .sc { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; }
-.gd-lb .xp { font-size: 13px; font-weight: 800; color: #42526A; }
-.gd-lb .rnk { font-size: 10.5px; font-weight: 700; color: #5A6A80; letter-spacing: .2px; white-space: nowrap; }
+.gd-lb .xp { font-size: 13px; font-weight: 800; color: #2F3F56; }
+.gd-lb .rnk { font-size: 10.5px; font-weight: 700; color: #3F4F66; letter-spacing: .2px; white-space: nowrap; }
 .gd-lb.me .xp { color: #051D64; }
 .gd-lb.me .rnk { color: #7A66C5; }
 /* Separator shown when the rank sequence skips (e.g. 3 → 12). */
@@ -324,16 +324,16 @@
 .gd-path { background: #fff; border: 1px solid #ecedf5; border-radius: 18px; padding: 22px 24px; margin-top: 16px; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
 .gd-path-lead { display: flex; align-items: center; gap: 13px; }
 .gd-path-lead .ic { width: 46px; height: 46px; border-radius: 14px; background: #f1eeff; display: grid; place-items: center; font-size: 20px; }
-.gd-path-lead small { display: block; font-size: 10.5px; font-weight: 900; letter-spacing: .8px; color: #5A6A80; text-transform: uppercase; }
+.gd-path-lead small { display: block; font-size: 10.5px; font-weight: 900; letter-spacing: .8px; color: #3F4F66; text-transform: uppercase; }
 .gd-path-lead b { font-size: 15px; font-weight: 900; color: #0f172a; }
 .gd-steps { flex: 1; display: flex; align-items: flex-start; min-width: 300px; }
 .gd-step { flex: 1; text-align: center; position: relative; }
-.gd-step .dot { width: 30px; height: 30px; border-radius: 50%; margin: 0 auto 8px; display: grid; place-items: center; font-size: 13px; font-weight: 900; background: #eef0f7; color: #5A6A80; position: relative; z-index: 2; }
+.gd-step .dot { width: 30px; height: 30px; border-radius: 50%; margin: 0 auto 8px; display: grid; place-items: center; font-size: 13px; font-weight: 900; background: #eef0f7; color: #3F4F66; position: relative; z-index: 2; }
 .gd-step.done .dot { background: #16a34a; color: #fff; }
 .gd-step.current .dot { background: #051D64; color: #fff; box-shadow: 0 0 0 5px rgba(5, 29, 100,.16); }
-.gd-step .cap { font-size: 11.5px; font-weight: 700; color: #42526A; line-height: 1.35; }
+.gd-step .cap { font-size: 11.5px; font-weight: 700; color: #2F3F56; line-height: 1.35; }
 .gd-step.current .cap { color: #0f172a; font-weight: 900; }
-.gd-step .cap .st { display: block; font-size: 10px; font-weight: 700; margin-top: 2px; color: #5A6A80; }
+.gd-step .cap .st { display: block; font-size: 10px; font-weight: 700; margin-top: 2px; color: #3F4F66; }
 .gd-step.done .cap .st { color: #12863D; }
 .gd-step.current .cap .st { color: #051D64; }
 .gd-step.locked .dot { background: #f1f2f8; font-size: 11px; }
@@ -342,7 +342,7 @@
 .gd-step.done::before, .gd-step.current::before { background: #c4b5fd; }
 .gd-path-end { text-align: center; }
 .gd-path-end .em { font-size: 30px; }
-.gd-path-end small { display: block; font-size: 11px; font-weight: 800; color: #42526A; }
+.gd-path-end small { display: block; font-size: 11px; font-weight: 800; color: #2F3F56; }
 
 /* Mobile: sidebar collapses to a top strip */
 @media (max-width: 980px) {
@@ -360,7 +360,7 @@
   .gd-burger svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
   .gd-scrim { display: block; position: fixed; inset: 0; background: rgba(15,23,42,.34); z-index: 29; }
 
-  .gd-side-close { display: grid; place-items: center; position: absolute; top: 12px; right: 10px; z-index: 2; width: 34px; height: 34px; border-radius: 10px; background: #f5f6fb; border: none; cursor: pointer; color: #42526A; padding: 0; }
+  .gd-side-close { display: grid; place-items: center; position: absolute; top: 12px; right: 10px; z-index: 2; width: 34px; height: 34px; border-radius: 10px; background: #f5f6fb; border: none; cursor: pointer; color: #2F3F56; padding: 0; }
   .gd-side-close svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; }
   /* Keep the wordmark clear of the × above it. */
   .gd-logo { padding-right: 46px; }
@@ -385,15 +385,15 @@
   font: inherit; font-size: 13.5px; line-height: 1.55; color: #29313f;
 }
 .gd-answer textarea:focus { outline: none; border-color: #b9aef5; }
-.gd-answer .hint { margin-top: 6px; font-size: 11.5px; color: #42526A; }
+.gd-answer .hint { margin-top: 6px; font-size: 11.5px; color: #2F3F56; }
 .gd-answer .row { display: flex; align-items: center; gap: 9px; margin-top: 8px; flex-wrap: wrap; }
 .gd-answer .save { background: #051D64; color: #fff; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 800; cursor: pointer; }
 .gd-answer .save:disabled { opacity: .6; cursor: default; }
-.gd-answer .cancel { background: none; border: none; color: #5A6A80; font-size: 12.5px; cursor: pointer; }
+.gd-answer .cancel { background: none; border: none; color: #3F4F66; font-size: 12.5px; cursor: pointer; }
 .gd-answer .msg { font-size: 12.5px; color: #b91c1c; }
 /* Saved state: quieter, and the text wraps rather than stretching the row. */
 .gd-answer.saved { background: #f8fafc; border: 1px solid #eef0f7; border-radius: 11px; padding: 10px 13px; }
-.gd-answer.saved b { display: block; font-size: 11px; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; color: #5A6A80; margin-bottom: 3px; }
+.gd-answer.saved b { display: block; font-size: 11px; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; color: #3F4F66; margin-bottom: 3px; }
 .gd-answer.saved p { margin: 0; font-size: 13px; color: #29313f; line-height: 1.55; white-space: pre-wrap; }
 
 /* Coaching on a written answer. Sits under the saved answer, visually distinct from it —
@@ -415,7 +415,7 @@
 .gd-side-me .av { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#7c6cf0,#37d0c0); color: #fff; display: grid; place-items: center; font-weight: 900; font-size: 14px; flex-shrink: 0; }
 .gd-side-me .t { min-width: 0; }
 .gd-side-me b { display: block; font-size: 13.5px; font-weight: 800; color: #0f172a; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gd-side-me span { display: block; font-size: 11px; color: #5A6A80; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-side-me span { display: block; font-size: 11px; color: #3F4F66; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 980px) {
   .gd-side-account {
     display: block; margin-top: auto; padding-top: 10px; border-top: 1px solid #f1f2f9; flex-shrink: 0;

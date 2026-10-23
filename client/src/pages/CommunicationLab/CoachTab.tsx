@@ -40,7 +40,7 @@ export const CompareCard: React.FC<{ data: any[] | null }> = ({ data }) => {
     <p style={{ margin: '0 0 10px', fontWeight: 700, color: '#0f172a' }}>{c.headline}</p>
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
-        <thead><tr style={{ textAlign: 'left', color: '#42526A', fontSize: 12 }}><th style={{ padding: '6px 8px' }} /><th style={{ padding: '6px 8px' }}>{c.current.label}<div style={{ fontWeight: 400 }}>{c.current.from === c.current.to ? c.current.from : `${c.current.from} → ${c.current.to}`}</div></th><th style={{ padding: '6px 8px' }}>{c.previous.label}<div style={{ fontWeight: 400 }}>{c.previous.from === c.previous.to ? c.previous.from : `${c.previous.from} → ${c.previous.to}`}</div></th><th style={{ padding: '6px 8px' }}>Change</th></tr></thead>
+        <thead><tr style={{ textAlign: 'left', color: '#2F3F56', fontSize: 12 }}><th style={{ padding: '6px 8px' }} /><th style={{ padding: '6px 8px' }}>{c.current.label}<div style={{ fontWeight: 400 }}>{c.current.from === c.current.to ? c.current.from : `${c.current.from} → ${c.current.to}`}</div></th><th style={{ padding: '6px 8px' }}>{c.previous.label}<div style={{ fontWeight: 400 }}>{c.previous.from === c.previous.to ? c.previous.from : `${c.previous.from} → ${c.previous.to}`}</div></th><th style={{ padding: '6px 8px' }}>Change</th></tr></thead>
         <tbody>
           {c.rows.map((r: any) => <tr key={r.metric} style={{ borderTop: '1px solid #f1f5f9' }}>
             <td style={{ padding: '6px 8px' }}>{r.metric}</td><td style={{ padding: '6px 8px', fontWeight: 700 }}>{fmt(r.current)}</td><td style={{ padding: '6px 8px' }}>{fmt(r.previous)}</td>
@@ -49,7 +49,7 @@ export const CompareCard: React.FC<{ data: any[] | null }> = ({ data }) => {
         </tbody>
       </table>
     </div>
-    <p style={{ margin: '8px 0 0', color: '#42526A', fontSize: 12 }}>✓ means better. For hesitation, silences, first word and fillers, lower is better. A week or month "so far" is an average, so it is fair against a full one.</p>
+    <p style={{ margin: '8px 0 0', color: '#2F3F56', fontSize: 12 }}>✓ means better. For hesitation, silences, first word and fillers, lower is better. A week or month "so far" is an average, so it is fair against a full one.</p>
   </section>;
 };
 
@@ -78,7 +78,7 @@ export const CoachResult: React.FC<{ a: any; next: CoachState | null; onClose: (
       <div className="clx-card" style={{ padding: 16 }}><h3 style={{ marginTop: 0 }}>Done well</h3><ul style={{ paddingLeft: 18 }}>{(e.strengths || []).map((t: string, i: number) => <li key={i}>{t}</li>)}</ul></div>
       <div className="clx-card" style={{ padding: 16 }}><h3 style={{ marginTop: 0 }}>Work on</h3><ul style={{ paddingLeft: 18 }}>{(e.areasToImprove || []).map((t: string, i: number) => <li key={i}>{t}</li>)}</ul></div>
     </div>
-    {e.improvedIntroduction && <div className="clx-card" style={{ padding: 16, margin: '12px 0' }}><h3 style={{ marginTop: 0 }}>A good answer to the same question</h3><p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{e.improvedIntroduction}</p><p style={{ color: '#42526A', fontSize: 12.5, marginBottom: 0 }}>Read it once, then say it in your own words. Do not memorise it.</p></div>}
+    {e.improvedIntroduction && <div className="clx-card" style={{ padding: 16, margin: '12px 0' }}><h3 style={{ marginTop: 0 }}>A good answer to the same question</h3><p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{e.improvedIntroduction}</p><p style={{ color: '#2F3F56', fontSize: 12.5, marginBottom: 0 }}>Read it once, then say it in your own words. Do not memorise it.</p></div>}
     <div className="clx-actions">
       {nextStep ? <button className="clx-btn primary" onClick={onClose}><i className="bi bi-arrow-right-circle" /> Next: {nextStep.role}</button>
         : <button className="clx-btn primary" onClick={onClose}><i className="bi bi-check2-circle" /> Back to my session</button>}
@@ -118,14 +118,14 @@ const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: 
       {state.steps.map(s => <section key={s.index} className="clx-card" style={{ padding: 16, opacity: s.done ? 0.65 : 1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
           <b>{baseline ? `${s.index + 1}. ${s.areaLabel}` : `${s.role} · ${s.areaLabel}`}</b>
-          {s.done ? <span style={{ color: '#16835d' }}><i className="bi bi-check-circle-fill" /> Done</span> : <span style={{ color: '#42526A', fontSize: 12.5 }}>about {s.prompt.targetSec}s</span>}
+          {s.done ? <span style={{ color: '#16835d' }}><i className="bi bi-check-circle-fill" /> Done</span> : <span style={{ color: '#2F3F56', fontSize: 12.5 }}>about {s.prompt.targetSec}s</span>}
         </div>
         <p style={{ margin: '8px 0', fontWeight: 600 }}>{s.prompt.ask}</p>
         {!!s.prompt.guide.length && <ol style={{ margin: '0 0 8px', paddingLeft: 18, color: '#475569', fontSize: 13.5 }}>{s.prompt.guide.map((g, i) => <li key={i}>{g}</li>)}</ol>}
         {s.prompt.script && <details style={{ marginBottom: 8 }}><summary style={{ cursor: 'pointer', color: '#1a5490', fontWeight: 600 }}>Read this aloud</summary><p style={{ whiteSpace: 'pre-wrap', fontSize: 13.5, color: '#334155' }}>{s.prompt.script}</p></details>}
         {s.prompt.followUp && <p style={{ margin: '0 0 8px', fontSize: 13.5, color: '#b86b00' }}>Then answer straight away: "{s.prompt.followUp}"</p>}
         {!s.done && !state.tooMany && <button className="clx-btn" onClick={() => onStart(s)}><i className="bi bi-camera-video" /> Record</button>}
-        {s.done && <p style={{ margin: 0, color: '#42526A', fontSize: 12.5 }}>Recorded. Each answer is recorded once.</p>}
+        {s.done && <p style={{ margin: 0, color: '#2F3F56', fontSize: 12.5 }}>Recorded. Each answer is recorded once.</p>}
       </section>)}
     </div>
 
@@ -136,7 +136,7 @@ const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: 
         <h3 style={{ marginTop: 0 }}>Interview readiness</h3>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
           <b style={{ fontSize: 38, color: r.ready ? '#16835d' : tone(r.score, r.threshold, r.threshold - 15) }}>{r.score}</b>
-          <span style={{ color: '#42526A' }}>/ 100 · needs {r.threshold}</span>
+          <span style={{ color: '#2F3F56' }}>/ 100 · needs {r.threshold}</span>
         </div>
         <p style={{ margin: '6px 0', fontWeight: 700, color: r.ready ? '#16835d' : '#b86b00' }}>{r.ready ? 'Ready to face a company.' : 'Not ready yet. Here is what is left:'}</p>
         {!r.ready && <ul style={{ paddingLeft: 18, margin: 0, color: '#475569' }}>{r.reasons.map((x, i) => <li key={i}>{x}</li>)}</ul>}
@@ -148,12 +148,12 @@ const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: 
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
           <b style={{ fontSize: 30, color: hesTone(state.hesitation.latest) }}>{hesLabel(state.hesitation.latest)}</b>
           {state.hesitation.first != null && state.hesitation.latest != null && state.totalRecordings > 1 &&
-            <span style={{ color: '#42526A' }}>{state.hesitation.first} → {state.hesitation.latest} (lower is calmer)</span>}
+            <span style={{ color: '#2F3F56' }}>{state.hesitation.first} → {state.hesitation.latest} (lower is calmer)</span>}
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 54, marginTop: 10 }}>
           {state.hesitation.trend.map((t, i) => <div key={i} title={`${t.date}: ${t.hesitation}`} style={{ flex: 1, minWidth: 6, height: `${Math.max(6, t.hesitation)}%`, background: hesTone(t.hesitation), borderRadius: 3 }} />)}
         </div>
-        {!state.hesitation.trend.length && <p style={{ color: '#42526A', margin: 0 }}>Appears after your first recording.</p>}
+        {!state.hesitation.trend.length && <p style={{ color: '#2F3F56', margin: 0 }}>Appears after your first recording.</p>}
       </section>
 
       <section className="clx-card" style={{ padding: 16 }}>
@@ -165,7 +165,7 @@ const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: 
           </div>
           <div style={{ height: 7, background: '#e2e8f0', borderRadius: 4 }}><div style={{ width: `${k.now}%`, height: '100%', background: tone(k.now), borderRadius: 4 }} /></div>
         </div>)}
-        {!state.totalRecordings && <p style={{ color: '#42526A', margin: 0 }}>Appears after your first recording.</p>}
+        {!state.totalRecordings && <p style={{ color: '#2F3F56', margin: 0 }}>Appears after your first recording.</p>}
       </section>
     </div>
   </div>;

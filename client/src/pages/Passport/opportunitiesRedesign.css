@@ -3,7 +3,7 @@
    Several shell rules colour .opp-head h1/p and card headings with #root-level !important, so the text on navy is
    pinned with #root .gd selectors that outrank them. */
 #root .gd .cb-member-companies .opp-shell.opp2, .opp-shell.opp2 {
-  --primary: #051D64; --primary-hover: #0A2A7A; --ink: #102A4F; --text: #33475B; --muted: #42526A; --line: #E2EAF2; --tint: #EAF3FD;
+  --primary: #051D64; --primary-hover: #0A2A7A; --ink: #102A4F; --text: #33475B; --muted: #2F3F56; --line: #E2EAF2; --tint: #EAF3FD;
   max-width: 1760px !important; width: 100%; background: none; padding: 0 0 40px; display: flex; flex-direction: column; gap: 18px;
 }
 .opp2 > * { margin-top: 0 !important; margin-bottom: 0 !important; }
@@ -100,7 +100,7 @@
 }
 #root .gd .opp2 .opp2-hero h1, .opp2 .opp2-hero h1 { color: #051D64 !important; }
 #root .gd .opp2 .opp2-hero h1 span, .opp2 .opp2-hero h1 span { color: #167E92 !important; }
-#root .gd .opp2 .opp2-hero p, .opp2 .opp2-hero p { color: #42526A !important; }
+#root .gd .opp2 .opp2-hero p, .opp2 .opp2-hero p { color: #2F3F56 !important; }
 
 /* The white hero button becomes the navy primary; the ghost becomes an outline. */
 #root .gd .opp2 .opp2-hero .opp2-btn.light, .opp2 .opp2-hero .opp2-btn.light {

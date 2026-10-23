@@ -53,7 +53,7 @@
 }
 .nws-fig.teal > i { color: var(--teal-ink); }
 #root .gd .nws .nws-fig b, .nws .nws-fig b { font-size: 22px; line-height: 1.15; font-weight: 850; color: var(--navy) !important; }
-#root .gd .nws .nws-fig small, .nws .nws-fig small { font-size: 12px; font-weight: 700; color: #42526A !important; }
+#root .gd .nws .nws-fig small, .nws .nws-fig small { font-size: 12px; font-weight: 700; color: #2F3F56 !important; }
 
 /* ── Day groups ─────────────────────────────────────────────────────────────
    The day is a teal pill with a rule running off it, so a long list still reads
@@ -80,7 +80,7 @@
 /* Shown when a story has no image, or its image fails to load. A collapsed grid column
    left a white gap that looked like a rendering fault, so the slot is always filled. */
 .nws-shot-fb {
-  display: grid; place-items: center; font-size: 30px; color: #5A6A80;
+  display: grid; place-items: center; font-size: 30px; color: #3F4F66;
   background: linear-gradient(135deg, #F5F9FE, #E7F0F9);
 }
 .nws-body { padding: 18px 22px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }

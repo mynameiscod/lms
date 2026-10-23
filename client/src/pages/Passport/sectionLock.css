@@ -5,7 +5,7 @@
    conceptJourney.css so a locked screen belongs to the same product as an open one. */
 .slk{
   --slk-navy:#051D64; --slk-teal:#359AAD; --slk-ink:#102A4F; --slk-text:#33475B;
-  --slk-muted:#42526A; --slk-line:#E2EAF2; --slk-card:#FFFFFF;
+  --slk-muted:#2F3F56; --slk-line:#E2EAF2; --slk-card:#FFFFFF;
   font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   color:var(--slk-text);
 }

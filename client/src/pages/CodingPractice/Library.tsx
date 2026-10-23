@@ -99,12 +99,12 @@ export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
 
           <div className="pl-stats">
             <div className="pl-card pl-stat"><span className="ic" style={{ background: '#d1fae5', color: '#047857' }}><i className="fa-solid fa-chart-simple" /></span>
-              <div><b>{prog?.solved ?? 0} <span style={{ color: '#42526A', fontWeight: 600, fontSize: 15 }}>/ {prog?.total ?? '…'}</span></b><small>Problems Solved</small></div></div>
+              <div><b>{prog?.solved ?? 0} <span style={{ color: '#2F3F56', fontWeight: 600, fontSize: 15 }}>/ {prog?.total ?? '…'}</span></b><small>Problems Solved</small></div></div>
             {(['easy', 'medium', 'hard'] as const).map((d) => {
               const x = prog?.byDifficulty[d];
               return (
                 <div key={d} className="pl-card pl-stat"><span className="ic" style={{ background: d === 'easy' ? '#d1fae5' : d === 'medium' ? '#fef3c7' : '#ffe4e6', color: d === 'easy' ? '#047857' : d === 'medium' ? '#b45309' : '#be123c' }}><i className={`fa-solid ${d === 'easy' ? 'fa-seedling' : d === 'medium' ? 'fa-bolt' : 'fa-fire-flame-curved'}`} /></span>
-                  <div style={{ flex: 1 }}><b>{x?.solved ?? 0} <span style={{ color: '#42526A', fontWeight: 600, fontSize: 15 }}>/ {x?.total ?? '…'}</span></b><small>{cap(d)} solved</small>
+                  <div style={{ flex: 1 }}><b>{x?.solved ?? 0} <span style={{ color: '#2F3F56', fontWeight: 600, fontSize: 15 }}>/ {x?.total ?? '…'}</span></b><small>{cap(d)} solved</small>
                     <div className="bar"><span style={{ width: `${pct(x?.solved, x?.total)}%`, background: DCOL[d] }} /></div></div></div>
               );
             })}
@@ -198,7 +198,7 @@ export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
               const x = prog?.byDifficulty[d];
               return (
                 <div key={d} className="pl-diffrow">
-                  <div className="h"><span>{cap(d)}</span><span style={{ color: '#42526A' }}>{x?.solved ?? 0} / {x?.total ?? 0}</span></div>
+                  <div className="h"><span>{cap(d)}</span><span style={{ color: '#2F3F56' }}>{x?.solved ?? 0} / {x?.total ?? 0}</span></div>
                   <div className="bar"><span style={{ width: `${pct(x?.solved, x?.total)}%`, background: DCOL[d] }} /></div>
                 </div>
               );
@@ -206,7 +206,7 @@ export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
           </div>
           <figure className="pl-card pl-quote"><blockquote><span className="q" aria-hidden="true">“</span>Consistency today creates opportunities tomorrow.<span className="q" aria-hidden="true">”</span></blockquote><figcaption>— CodeBegun</figcaption></figure>
           <div className="pl-card">
-            <div className="pl-help"><span className="ic"><i className="fa-solid fa-robot" /></span><div><b>Need Help?</b><div style={{ color: '#42526A', fontSize: 13 }}>Get hints, explanations and learning resources from AI Mentor.</div></div></div>
+            <div className="pl-help"><span className="ic"><i className="fa-solid fa-robot" /></span><div><b>Need Help?</b><div style={{ color: '#2F3F56', fontSize: 13 }}>Get hints, explanations and learning resources from AI Mentor.</div></div></div>
             <button className="pl-btn" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }} onClick={() => nav('/careerpilot/mentor')}>Open AI Mentor →</button>
           </div>
         </aside>

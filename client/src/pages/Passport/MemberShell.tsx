@@ -456,7 +456,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                   <span className="gd-stat-tx"><b>{st.streak}</b><small>Day streak</small></span>
                   <span className="gd-tip" aria-hidden>Days in a row you have learned. Miss a day and it starts again.</span>
                 </Link>
-                {!!d?.coins?.balance && (
+                {d?.coins && typeof d.coins.balance === 'number' && (
                   <Link to="/careerpilot/coins" className="gd-stat s-coins"
                         aria-label={`${d.coins.balance.toLocaleString('en-IN')} coins. Open your coins`}>
                     <span className="gd-stat-ic" aria-hidden><i className="bi bi-coin" /></span>

@@ -2,7 +2,7 @@
    progress to the redeem threshold, the store, and a side column whose "how to earn" rows open the real pages.
    Shell rules recolour headings and dash any class containing "empty", so text on navy is pinned with #root .gd. */
 .rwd.rwd2 {
-  --navy: #051D64; --primary: #051D64; --teal: #359AAD; --ink: #102A4F; --muted: #42526A; --line: #E2EAF2;
+  --navy: #051D64; --primary: #051D64; --teal: #359AAD; --ink: #102A4F; --muted: #2F3F56; --line: #E2EAF2;
   max-width: 1760px; padding: 0 0 40px; display: flex; flex-direction: column; gap: 18px; color: var(--ink);
 }
 :where(.rwd2) button { font: inherit; }
@@ -79,7 +79,7 @@
 .rwd2-way > div { flex: 1; min-width: 0; }
 .rwd2-way b { display: block; font-size: 14.5px; color: var(--ink); }
 .rwd2-way small { display: block; font-size: 12.5px; color: var(--muted); }
-.rwd2-way .go { color: #5A6A80; }
+.rwd2-way .go { color: #3F4F66; }
 .rwd2-way:hover .go { color: var(--primary); }
 .rwd2-panel .closest { display: flex; gap: 12px; align-items: center; }
 .rwd2-panel .closest > span { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 20px; color: #fff; background: #051D64; }
@@ -129,7 +129,7 @@
 /* Headline, accent words and lead copy. */
 #root .gd .rwd2 .rwd2-hero h1, .rwd2 .rwd2-hero h1 { color: #051D64 !important; }
 #root .gd .rwd2 .rwd2-hero h1 span, .rwd2 .rwd2-hero h1 span { color: #167E92 !important; }
-#root .gd .rwd2 .rwd2-hero-copy p, .rwd2 .rwd2-hero-copy p { color: #42526A !important; }
+#root .gd .rwd2 .rwd2-hero-copy p, .rwd2 .rwd2-hero-copy p { color: #2F3F56 !important; }
 /* Unlock panel: soft tinted panel, navy label, muted figure, teal-to-green bar. */
 .rwd2 .rwd2-hero .rwd2-unlock {
   background: linear-gradient(135deg, #F5F9FE, #EDF4FC);
@@ -148,7 +148,7 @@
 #root .gd .rwd2 .rwd2-coinbig b, .rwd2 .rwd2-coinbig b { color: #051D64 !important; }
 .rwd2 .rwd2-hero .rwd2-pair i { color: #1B7D91; }
 #root .gd .rwd2 .rwd2-pair b, .rwd2 .rwd2-pair b { color: #051D64 !important; }
-#root .gd .rwd2 .rwd2-pair small, .rwd2 .rwd2-pair small { color: #42526A !important; }
+#root .gd .rwd2 .rwd2-pair small, .rwd2 .rwd2-pair small { color: #2F3F56 !important; }
 /* "Every redemption is verified" footnote. */
-#root .gd .rwd2 .rwd2-secure, .rwd2 .rwd2-secure { color: #42526A !important; }
+#root .gd .rwd2 .rwd2-secure, .rwd2 .rwd2-secure { color: #2F3F56 !important; }
 .rwd2 .rwd2-hero .rwd2-secure i { color: #1B7D91; }

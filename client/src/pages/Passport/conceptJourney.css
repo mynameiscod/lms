@@ -6,7 +6,7 @@
    a lesson does not look like stepping into a different product. */
 .cj{
   --cj-navy:#051D64; --cj-teal:#359AAD; --cj-ink:#102A4F; --cj-text:#33475B;
-  --cj-muted:#42526A; --cj-line:#E2EAF2; --cj-card:#FFFFFF; --cj-bg:#F4F8FC;
+  --cj-muted:#2F3F56; --cj-line:#E2EAF2; --cj-card:#FFFFFF; --cj-bg:#F4F8FC;
   --cj-green:#13784F; --cj-green-bg:#EAF8F1;
   --cj-red:#C93737;   --cj-red-bg:#FFF0F0;
   color:var(--cj-text); background:var(--cj-bg); min-height:100%;
@@ -101,7 +101,7 @@
 .cj-next-flag{flex-shrink:0; font-size:10px; font-weight:800; letter-spacing:.07em;
   text-transform:uppercase; color:#fff; background:var(--cj-teal);
   border-radius:99px; padding:4px 10px}
-.cj-go{flex-shrink:0; color:#5A6A80; font-size:16px}
+.cj-go{flex-shrink:0; color:#3F4F66; font-size:16px}
 
 /* ── footer / states ────────────────────────────────── */
 .cj-foot{text-align:center; margin-top:30px; padding-top:22px; border-top:1px solid var(--cj-line)}

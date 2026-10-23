@@ -1,15 +1,15 @@
 /* Assessment coverage — a matrix that has to make an empty cell impossible to miss. */
 
-.ac { --navy:#051d64; --teal:#359aad; --ink:#102a4f; --muted:#42526A; --line:#e2eaf2;
+.ac { --navy:#051d64; --teal:#359aad; --ink:#102a4f; --muted:#2F3F56; --line:#e2eaf2;
       color:#30445a; padding:22px 28px 46px; font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif; }
 .ac * { box-sizing:border-box; }
 
-.ac-load, .ac-err { padding:56px; text-align:center; font-size:14px; color:#42526A; }
+.ac-load, .ac-err { padding:56px; text-align:center; font-size:14px; color:#2F3F56; }
 .ac-err { color:#a83232; }
 
 .ac-head { margin-bottom:20px; }
 .ac-eyebrow { display:block; font-size:11px; letter-spacing:.09em; text-transform:uppercase;
-              font-weight:800; color:#42526A; margin-bottom:6px; }
+              font-weight:800; color:#2F3F56; margin-bottom:6px; }
 .ac-head h1 { font-size:29px; font-weight:850; color:var(--navy); margin:0 0 6px; letter-spacing:-.5px; }
 .ac-head p { font-size:14px; color:var(--muted); margin:0; max-width:70ch; line-height:1.55; }
 
@@ -19,7 +19,7 @@
 .ac-kpi small { display:block; font-size:11.5px; font-weight:750; color:#5d6f85; }
 .ac-kpi b { display:block; font-size:26px; color:var(--navy); line-height:1.15; margin:2px 0;
             font-variant-numeric:tabular-nums; }
-.ac-kpi em { display:block; font-style:normal; font-size:11px; color:#5A6A80; }
+.ac-kpi em { display:block; font-style:normal; font-size:11px; color:#3F4F66; }
 .ac-kpi.own   { border-color:#bfe3d5; background:#f4fbf8; }
 .ac-kpi.own b { color:#12724f; }
 .ac-kpi.borrow{ border-color:#dfe0ee; background:#f8f8fd; }
@@ -35,7 +35,7 @@
 .ac-role.has-gap em { font-style:normal; margin-left:7px; font-size:10px; font-weight:800;
                       background:#fbeaea; color:#a83232; border-radius:99px; padding:1px 6px; }
 .ac-role.on.has-gap em { background:rgba(255,255,255,.22); color:#fff; }
-.ac-toggle { display:flex; align-items:center; gap:7px; font-size:12.5px; color:#42526A;
+.ac-toggle { display:flex; align-items:center; gap:7px; font-size:12.5px; color:#2F3F56;
              margin-left:auto; cursor:pointer; white-space:nowrap; }
 
 .ac-note { background:#fffaf3; border:1px solid #f3d9b5; border-left:3px solid #b06a00;
@@ -53,16 +53,16 @@
 .ac-table th.c, .ac-table td.c { text-align:center; }
 .ac-table tr:last-child td { border-bottom:0; }
 .ac-table td b { display:block; color:var(--ink); font-weight:700; }
-.ac-table td .key { display:block; font-size:10.5px; color:#5A6A80; font-family:ui-monospace,Menlo,monospace; }
+.ac-table td .key { display:block; font-size:10.5px; color:#3F4F66; font-family:ui-monospace,Menlo,monospace; }
 
 .imp { font-size:9.5px; font-weight:800; letter-spacing:.04em; border-radius:99px; padding:3px 8px; }
 .imp.essential  { background:#fdecec; color:#a83232; }
 .imp.important  { background:#fff4e6; color:#9a5b00; }
-.imp.supporting { background:#f1f4f8; color:#42526A; }
+.imp.supporting { background:#f1f4f8; color:#2F3F56; }
 
 .cell { font-variant-numeric:tabular-nums; font-weight:700; }
 .cell .own    { color:#12724f; }
-.cell .borrow { color:#42526A; }
+.cell .borrow { color:#2F3F56; }
 .cell .slash  { color:#c3ccd8; margin:0 2px; }
 .cell.zero { background:#fdf4f4; }
 .cell .none { color:#B85656; font-weight:700; font-size:11.5px; }
@@ -70,7 +70,7 @@
 .cell.zero .none { color:#B85656; }
 .pend { background:#eef0ff; color:#4338ca; font-size:11px; font-weight:800; border-radius:99px; padding:3px 9px; }
 
-.ac-empty { text-align:center; color:#5A6A80; padding:26px; }
+.ac-empty { text-align:center; color:#3F4F66; padding:26px; }
 .ac-legend { font-size:12px; color:var(--muted); line-height:1.6; margin:14px 0 0; max-width:78ch; }
 .ac-legend b { color:var(--ink); }
 

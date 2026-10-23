@@ -11,7 +11,7 @@
   --aim-teal: #359AAD;
   --aim-ink: #102A4F;
   --aim-text: #33475B;
-  --aim-muted: #42526A;
+  --aim-muted: #2F3F56;
   --aim-border: #E2EAF2;
   --aim-border-strong: #C9D8E5;
   --aim-bg: #F4F8FC;
@@ -155,7 +155,7 @@
 }
 .aim-send:hover:not(:disabled) { background: #004B81; }
 .aim-send:disabled { opacity: .4; cursor: default; }
-.aim-hint { flex: none; text-align: center; font-size: 11.5px; color: #5A6A80; margin: -4px 0 0; }
+.aim-hint { flex: none; text-align: center; font-size: 11.5px; color: #3F4F66; margin: -4px 0 0; }
 
 .aim-load { color: var(--aim-muted); font-size: 14px; padding: 8px 4px; }
 
@@ -230,7 +230,7 @@
 .aim2-topic:nth-child(3) .ic { background: #FFF7E8; color: #A96200; }
 .aim2-topic:nth-child(4) .ic { background: #F1EDFF; color: #6246C9; }
 .aim2-topic .tx { flex: 1; font-size: 14.5px; font-weight: 600; line-height: 1.45; }
-.aim2-topic .go { color: #5A6A80; }
+.aim2-topic .go { color: #3F4F66; }
 .aim2-topic:hover .go { color: var(--aim-primary); }
 
 .aim2-dock { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 12px 24px 14px; border-top: 1px solid var(--aim-border); background: #fff; }

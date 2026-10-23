@@ -11,7 +11,7 @@
   --cb-card: #FFFFFF;
   --cb-border: #DCE7F0;
   --cb-text: #16325C;
-  --cb-muted: #42526A;
+  --cb-muted: #2F3F56;
   --cb-soft: #EEF5F8;
   color: var(--cb-text) !important;
   background: var(--cb-bg) !important;
@@ -119,7 +119,7 @@
   margin-bottom: 18px !important;
 }
 .gd-pwd-nudge .txt b { color: var(--cb-navy) !important; font-size: 14px !important; }
-.gd-pwd-nudge .txt span { color: #42526A !important; font-size: 12px !important; }
+.gd-pwd-nudge .txt span { color: #2F3F56 !important; font-size: 12px !important; }
 .gd-pwd-nudge .go, .gd-pwd-nudge .save {
   background: var(--cb-navy) !important;
   color: #FFFFFF !important;

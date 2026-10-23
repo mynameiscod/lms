@@ -14,7 +14,7 @@
   --cb-surface: #ffffff;
   --cb-border: #dfe8f1;
   --cb-text: #10204a;
-  --cb-muted: #42526A;
+  --cb-muted: #2F3F56;
   --cb-soft: #eff5fa;
   background: var(--cb-bg);
   color: var(--cb-text);
@@ -85,7 +85,7 @@
   letter-spacing: -.2px;
 }
 .gd-card-hd .lnk, .gd-card .lnk { color: #137f91 !important; }
-.gd-help { background: #edf4f8; color: #42526A; }
+.gd-help { background: #edf4f8; color: #2F3F56; }
 .gd-tag { color: #087f8e; background: #e8f7f8; border: 1px solid #d4eff2; }
 
 /* Main top analytics */
@@ -156,7 +156,7 @@
 .gd-streak-num small { color: var(--cb-muted); }
 .gd-week .dot { border-color: #c8d6e5; }
 .gd-week .dot.on { background: #e3f6f8; border-color: #71c7d1; color: #117F8D; }
-.gd-week .l { color: #42526A; }
+.gd-week .l { color: #2F3F56; }
 .gd-week .l.today { color: var(--cb-navy); }
 .gd-milestone { background: #f5f9fc; border: 1px solid #e5edf4; }
 .gd-milestone .t b { color: var(--cb-navy); }
@@ -169,7 +169,7 @@
 .gd-feed-row { border-bottom-color: #edf2f6; }
 .gd-feed-row .t { color: #43536e; }
 .gd-feed-row .xp { color: #107F8D; }
-.gd-feed-row .ago { color: #5A6A80; }
+.gd-feed-row .ago { color: #3F4F66; }
 .gd-feed-chart { border-top-color: #edf2f6; }
 .gd-badges { gap: 10px; }
 .gd-badge b { color: var(--cb-navy); }

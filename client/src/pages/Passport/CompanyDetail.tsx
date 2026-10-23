@@ -450,7 +450,7 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
                   setStartingTest(false);
                 }
               }}>{startingTest ? 'Building your paper…' : 'Start Mock Test'}</button>
-              <p style={{ fontSize: 12, color: '#5A6A80', marginTop: 10, marginBottom: 0 }}>
+              <p style={{ fontSize: 12, color: '#3F4F66', marginTop: 10, marginBottom: 0 }}>
                 The paper is assembled fresh each time, so no two attempts are identical.
               </p>
             </div>
@@ -473,7 +473,7 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
           {tab === 'salary' && (
             <div className="pm-card">
               {!c.salaryBands.length ? (
-                <p style={{ margin: 0, fontSize: 13.5, color: '#42526A' }}>No salary guidance published yet.</p>
+                <p style={{ margin: 0, fontSize: 13.5, color: '#2F3F56' }}>No salary guidance published yet.</p>
               ) : (
                 <>
                   <div className="pm-msg info" style={{ marginBottom: 12 }}>

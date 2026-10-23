@@ -6,7 +6,7 @@
   --lst-navy: #051d64;
   --lst-teal: #359aad;
   --lst-line: #e3e9f0;
-  --lst-muted: #42526A;
+  --lst-muted: #2F3F56;
   --lst-bad: #c0392b;
   --lst-warn: #9A5A00;
   --lst-ok: #16835d;
@@ -40,7 +40,7 @@
 
 .lst-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
 .lst-kpi { border: 1px solid var(--lst-line); border-radius: 14px; background: #fff; padding: 14px; }
-.lst-kpi > span { display: block; font-size: 10px; font-weight: 800; color: #5A6A80; letter-spacing: .05em; text-transform: uppercase; }
+.lst-kpi > span { display: block; font-size: 10px; font-weight: 800; color: #3F4F66; letter-spacing: .05em; text-transform: uppercase; }
 .lst-kpi > b { display: block; font-size: 25px; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
 .lst-kpi > small { font-size: 10.5px; color: var(--lst-muted); }
 .lst-kpi.good > b { color: var(--lst-ok); }
@@ -50,14 +50,14 @@
   display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
   border: 1px solid var(--lst-line); border-radius: 14px; background: #fff; padding: 13px; margin-bottom: 16px;
 }
-.lst-filters label { display: flex; flex-direction: column; gap: 5px; font-size: 10.5px; font-weight: 800; color: #42526A; }
+.lst-filters label { display: flex; flex-direction: column; gap: 5px; font-size: 10.5px; font-weight: 800; color: #2F3F56; }
 .lst-filters input, .lst-filters select {
   border: 1px solid var(--lst-line); border-radius: 9px; padding: 8px 10px; font-size: 12.5px; color: var(--lst-navy); background: #fff;
 }
 .lst-grow { flex: 1; min-width: 220px; }
 
 .lst-group { margin-bottom: 18px; }
-.lst-group h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #5A6A80; margin: 0 0 8px; }
+.lst-group h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #3F4F66; margin: 0 0 8px; }
 .lst-rows { border: 1px solid var(--lst-line); border-radius: 14px; background: #fff; overflow: hidden; }
 .lst-row {
   display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 120px 46px 130px;
@@ -68,7 +68,7 @@
 .lst-row:hover { background: #f9fbfd; }
 .lst-name { display: flex; flex-direction: column; min-width: 0; }
 .lst-name b { font-size: 13px; }
-.lst-name small { font-size: 10px; color: #5A6A80; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.lst-name small { font-size: 10px; color: #3F4F66; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .lst-meta { font-size: 11px; color: var(--lst-muted); }
 .lst-bar { display: block; height: 7px; border-radius: 6px; background: #eaeff5; overflow: hidden; }
 .lst-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--lst-teal), #4fb3c4); border-radius: 6px; }
@@ -78,7 +78,7 @@
 .s-published { background: #eaf6f0; color: var(--lst-ok); }
 .s-ready { background: #eef6fb; color: #1b6ea8; }
 .s-incomplete { background: #fdf4e7; color: var(--lst-warn); }
-.s-not_configured { background: #f1f4f8; color: #42526A; }
+.s-not_configured { background: #f1f4f8; color: #2F3F56; }
 .s-archived { background: #f3f0f7; color: #6a5b8a; }
 
 .lst-empty { display: grid; place-items: center; gap: 6px; text-align: center; padding: 44px 24px; color: var(--lst-muted); }
@@ -94,7 +94,7 @@
 .lst-side { display: grid; gap: 14px; }
 .lst-card { border: 1px solid var(--lst-line); border-radius: 14px; background: #fff; padding: 16px; }
 .lst-card h3 { font-size: 13px; margin: 0 0 10px; }
-.lst-card > label { display: flex; flex-direction: column; gap: 5px; font-size: 10.5px; font-weight: 800; color: #42526A; margin-bottom: 10px; }
+.lst-card > label { display: flex; flex-direction: column; gap: 5px; font-size: 10.5px; font-weight: 800; color: #2F3F56; margin-bottom: 10px; }
 .lst-card input, .lst-card textarea, .lst-card select {
   border: 1px solid var(--lst-line); border-radius: 9px; padding: 8px 10px;
   font-size: 12.5px; color: var(--lst-navy); background: #fff; font-family: inherit;
@@ -103,23 +103,23 @@
 
 .lst-outcome { display: flex; gap: 8px; margin-bottom: 7px; }
 .lst-outcome input { flex: 1; }
-.lst-outcome button { border: 1px solid var(--lst-line); background: #fff; border-radius: 8px; width: 32px; color: #5A6A80; cursor: pointer; }
+.lst-outcome button { border: 1px solid var(--lst-line); background: #fff; border-radius: 8px; width: 32px; color: #3F4F66; cursor: pointer; }
 .lst-add { border: 1px dashed #c3d1e0; background: #fbfdff; border-radius: 9px; padding: 9px 12px; font-size: 11.5px; font-weight: 800; color: #46607f; cursor: pointer; width: 100%; }
 .lst-add:hover { border-color: var(--lst-teal); color: var(--lst-navy); }
 
 .lst-step { display: grid; grid-template-columns: 34px minmax(0, 1fr) 34px; gap: 10px; align-items: start; padding: 11px 0; border-top: 1px solid #eef2f6; }
 .lst-step:first-of-type { border-top: 0; }
-.lst-seq { font-size: 12px; font-weight: 900; color: #5A6A80; font-variant-numeric: tabular-nums; padding-top: 8px; }
+.lst-seq { font-size: 12px; font-weight: 900; color: #3F4F66; font-variant-numeric: tabular-nums; padding-top: 8px; }
 .lst-step-body { min-width: 0; }
 .lst-step-row { display: grid; grid-template-columns: 130px minmax(0, 1fr) 84px 96px; gap: 8px; align-items: end; }
-.lst-step-row label { display: flex; flex-direction: column; gap: 4px; font-size: 9.5px; font-weight: 800; color: #5A6A80; }
+.lst-step-row label { display: flex; flex-direction: column; gap: 4px; font-size: 9.5px; font-weight: 800; color: #3F4F66; }
 .lst-check { flex-direction: row !important; align-items: center; gap: 6px !important; padding-bottom: 9px; }
 .lst-step-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 7px; }
 .lst-tag { font-size: 9px; font-weight: 900; background: #eef6fb; color: #1b6ea8; border-radius: 999px; padding: 3px 8px; }
-.lst-hint-inline { font-size: 10.5px; color: #5A6A80; }
+.lst-hint-inline { font-size: 10.5px; color: #3F4F66; }
 .lst-warn { font-size: 10.5px; font-weight: 700; color: var(--lst-warn); }
 .lst-step-actions { display: grid; gap: 4px; }
-.lst-step-actions button { border: 1px solid var(--lst-line); background: #fff; border-radius: 7px; height: 24px; color: #5A6A80; cursor: pointer; font-size: 11px; }
+.lst-step-actions button { border: 1px solid var(--lst-line); background: #fff; border-radius: 7px; height: 24px; color: #3F4F66; cursor: pointer; font-size: 11px; }
 .lst-step-actions button:hover:not(:disabled) { color: var(--lst-navy); border-color: #c5d2e0; }
 .lst-step-actions button:disabled { opacity: .4; cursor: default; }
 

@@ -1,5 +1,5 @@
 /* Practice library: the list and the solve page. Scoped under .pl so nothing leaks into Coding Sets. */
-.pl { --pl-navy: #0b1f66; --pl-blue: #1d6fe0; --pl-ink: #0f172a; --pl-muted: #42526A; --pl-line: #e6e9f2; --pl-card: #fff; --pl-bg: #f4f6fc;
+.pl { --pl-navy: #0b1f66; --pl-blue: #1d6fe0; --pl-ink: #0f172a; --pl-muted: #2F3F56; --pl-line: #e6e9f2; --pl-card: #fff; --pl-bg: #f4f6fc;
   color: var(--pl-ink); padding: 18px 22px 40px; }
 .pl * { box-sizing: border-box; }
 .pl button { font-family: inherit; }
@@ -38,7 +38,7 @@
 .pl-tabs .grow { flex: 1; }
 .pl-filters { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 14px; }
 .pl-search { flex: 1 1 260px; position: relative; }
-.pl-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #5A6A80; }
+.pl-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #3F4F66; }
 .pl-search input { width: 100%; border: 1px solid var(--pl-line); border-radius: 10px; padding: 11px 14px 11px 38px; font-size: 14px; background: #fff; }
 .pl-field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--pl-muted); }
 .pl-field select { border: 1px solid var(--pl-line); border-radius: 10px; padding: 9px 10px; font-size: 14px; background: #fff; min-width: 110px; max-width: 170px; color: var(--pl-ink); }
@@ -104,7 +104,7 @@
 .pl-case { display: flex; align-items: center; gap: 12px; padding: 11px 6px; border-bottom: 1px solid #eef1f8; cursor: pointer; }
 .pl-case .nm { flex: 1; font-weight: 600; }
 .pl-pill { padding: 3px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 700; }
-.pl-pill.pass { background: #d1fae5; color: #047857; } .pl-pill.fail { background: #ffe4e6; color: #be123c; } .pl-pill.none { background: #f1f4fa; color: #42526A; }
+.pl-pill.pass { background: #d1fae5; color: #047857; } .pl-pill.fail { background: #ffe4e6; color: #be123c; } .pl-pill.none { background: #f1f4fa; color: #2F3F56; }
 .pl-detail { background: #f8faff; border-radius: 10px; padding: 10px 12px; margin: 6px 0 10px; }
 .pl-detail pre, .pl-cpane pre { margin: 3px 0 8px; white-space: pre-wrap; font-size: 12.5px; }
 .pl-verdict { padding: 9px 12px; border-radius: 10px; font-weight: 700; margin-bottom: 8px; display: flex; gap: 12px; align-items: center; }

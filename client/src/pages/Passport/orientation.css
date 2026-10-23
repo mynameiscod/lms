@@ -150,7 +150,7 @@
 .ori-item.done > header > .ori-item-ic i { font-size: 22px; margin: 0; }
 .ori-item > header > .ori-item-tx { flex: 1; min-width: 0; }
 .ori-item > header > .ori-item-tx > b { display: block; font-size: 16px; line-height: 1.3; color: #051D64; }
-.ori-item > header > .ori-item-tx > span { display: block; color: #42526A; font-size: 13px; line-height: 1.45; margin-top: 3px; }
+.ori-item > header > .ori-item-tx > span { display: block; color: #2F3F56; font-size: 13px; line-height: 1.45; margin-top: 3px; }
 .ori-item-meta { flex: none; display: flex; align-items: center; gap: 10px; }
 .ori-item-meta small { color: var(--muted); font-size: 12px; }
 .ori-optional {

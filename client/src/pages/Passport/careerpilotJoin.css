@@ -9,7 +9,7 @@
   --blue: #1f6feb;
   --ink: #0e1b3d;
   --text: #3d4a63;
-  --muted: #42526A;
+  --muted: #2F3F56;
   --line: #e2e8f2;
   --soft: #f3f7fd;
   --card: #ffffff;
@@ -222,7 +222,7 @@
 .cpx-input { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border: 1px solid #d4dcea; border-radius: 12px; background: #fff; transition: border-color .15s ease, box-shadow .15s ease; }
 .cpx-input:focus-within { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(53, 152, 173, .16); }
 .cpx-input.bad { border-color: #e04f5f; box-shadow: 0 0 0 3px rgba(224, 79, 95, .1); }
-.cpx-input i { color: #42526A; font-size: 17px; }
+.cpx-input i { color: #2F3F56; font-size: 17px; }
 .cpx-input input, .cpx-input select { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: inherit; font-size: 15.5px; color: var(--ink); }
 .cpx-input select { cursor: pointer; }
 .cpx-input input::placeholder { color: #9aa6ba; }
@@ -347,7 +347,7 @@
 .cpx-faq summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 16px 18px; cursor: pointer; font-size: 15px; font-weight: 700; color: var(--navy); }
 .cpx-faq summary::-webkit-details-marker { display: none; }
 .cpx-faq-caret { color: var(--teal); font-size: 13px; transition: transform .15s ease; }
-.cpx-faq-chev { margin-left: auto; color: #42526A; transition: transform .15s ease; }
+.cpx-faq-chev { margin-left: auto; color: #2F3F56; transition: transform .15s ease; }
 .cpx-faq details[open] .cpx-faq-caret { transform: rotate(90deg); }
 .cpx-faq details[open] .cpx-faq-chev { transform: rotate(180deg); }
 .cpx-faq details p { padding: 0 18px 16px 43px; font-size: 14px; line-height: 1.65; color: var(--text); }
@@ -582,13 +582,13 @@
 
 /* The note reads as one line of text with its icon inline: as two flex items the icon sat
    centred beside a wrapped sentence instead of on its first line. */
-.cpx-secure { display: block; margin: 12px 0 0; text-align: center; font-size: 13.5px; line-height: 1.5; color: #42526A; text-wrap: balance; }
+.cpx-secure { display: block; margin: 12px 0 0; text-align: center; font-size: 13.5px; line-height: 1.5; color: #2F3F56; text-wrap: balance; }
 .cpx-secure i { display: inline-block; margin-right: 6px; font-size: 15px; line-height: 1; vertical-align: -2px; color: #237F91; }
 
 /* ── Product preview: the real member Home in miniature (.cpd) ───────────────────────────────
    Mirrors MemberShell (sidebar, stat bar) and the Home banner (focus | momentum | score) +
    Today's missions. Illustrative only. Tablet: icon rail. Phone: no rail, everything stacks. */
-.cpd { --n: #051D64; --mut: #42526A; --line: #E2EAF2; --soft: #F4F8FC;
+.cpd { --n: #051D64; --mut: #2F3F56; --line: #E2EAF2; --soft: #F4F8FC;
   display: grid; grid-template-columns: 210px minmax(0, 1fr); max-width: 1240px; margin: 0 auto; border-radius: 22px; overflow: hidden;
   background: var(--soft); border: 1px solid var(--line); box-shadow: 0 24px 60px rgba(14, 27, 61, .14); text-align: left; }
 .cpd i, .cpd em { font-style: normal; }

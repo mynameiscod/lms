@@ -3,7 +3,7 @@
    size. The shell forces .gd-main h1/p colours with !important, so text on navy carries !important to stay light. */
 .gd .cb-member-interview .cp-iv-page.iv2, .cp-iv-page.iv2 {
   --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD;
-  --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
+  --ink: #102A4F; --text: #33475B; --muted: #42526A; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
   max-width: 1760px !important; width: 100%; display: flex; flex-direction: column; gap: 18px; padding-bottom: 40px;
 }
 .iv2 > * { margin-top: 0 !important; margin-bottom: 0 !important; }
@@ -33,7 +33,7 @@
 .iv2-ring { --iv2-deg: 0deg; flex: none; width: 136px; height: 136px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#7FD3E0 var(--iv2-deg), rgba(255, 255, 255, .16) 0); }
 .iv2-ring > div { width: 108px; height: 108px; border-radius: 50%; background: var(--navy); display: flex; flex-wrap: wrap; align-content: center; align-items: baseline; justify-content: center; }
 .iv2-ring strong { font-size: 38px; line-height: 1; font-weight: 800; color: #fff; }
-.iv2-ring span { font-size: 14px; font-weight: 700; color: #9FB6D8; margin-left: 2px; }
+.iv2-ring span { font-size: 14px; font-weight: 700; color: #5A6A80; margin-left: 2px; }
 .iv2 .iv2-score-copy small { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6 !important; }
 .iv2 .iv2-score-copy b { display: block; margin-top: 4px; font-size: 21px; color: #fff !important; }
 .iv2 .iv2-score-copy span { display: block; margin-top: 4px; font-size: 13.5px; color: #C4D5EE !important; }
@@ -102,8 +102,8 @@
   background: #EAF1FB; color: #1B3C77 !important;
 }
 #root .gd .iv2 .iv2-hero h1, .iv2 .iv2-hero h1 { color: var(--navy) !important; }
-#root .gd .iv2 .iv2-hero h1 span, .iv2 .iv2-hero h1 span { color: #17869B !important; }
-#root .gd .iv2 .iv2-hero-copy > p, .iv2 .iv2-hero-copy > p { color: #5D6E88 !important; }
+#root .gd .iv2 .iv2-hero h1 span, .iv2 .iv2-hero h1 span { color: #167E92 !important; }
+#root .gd .iv2 .iv2-hero-copy > p, .iv2 .iv2-hero-copy > p { color: #42526A !important; }
 #root .gd .iv2 .iv2-hero .iv2-chips span, .iv2 .iv2-hero .iv2-chips span {
   background: #EEF4FB; border-color: #DFE8F4; color: #1B3C77 !important;
 }
@@ -132,10 +132,10 @@
   background: #fff; box-shadow: inset 0 0 0 1px #EDF2F8;
 }
 #root .gd .iv2 .iv2-hero .iv2-ring strong, .iv2 .iv2-hero .iv2-ring strong { color: var(--navy) !important; }
-#root .gd .iv2 .iv2-hero .iv2-ring span, .iv2 .iv2-hero .iv2-ring span { color: #6B7C96 !important; }
+#root .gd .iv2 .iv2-hero .iv2-ring span, .iv2 .iv2-hero .iv2-ring span { color: #42526A !important; }
 #root .gd .iv2 .iv2-score-copy small, .iv2 .iv2-score-copy small { color: #1B7D91 !important; }
 #root .gd .iv2 .iv2-score-copy b, .iv2 .iv2-score-copy b { color: var(--navy) !important; }
-#root .gd .iv2 .iv2-score-copy span, .iv2 .iv2-score-copy span { color: #6B7C96 !important; }
+#root .gd .iv2 .iv2-score-copy span, .iv2 .iv2-score-copy span { color: #42526A !important; }
 
 /* ────────────────────────────────────────────────────────────────────────────
    YOUR PRACTICE — the middle column of the banner, the same shape as the
@@ -151,10 +151,10 @@
 .iv2-momentum { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 0 26px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
 
 .iv2-strip { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: linear-gradient(120deg, #EAF7F1, #E6F4EE); border: 1px solid #CFE8DD; }
-.iv2-strip .ic { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: #fff; color: #17885D; }
+.iv2-strip .ic { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: #fff; color: #17855B; }
 .iv2-strip > div { flex: 1; min-width: 0; }
 .iv2 .iv2-strip b { display: block; font-size: 17px; font-weight: 800; color: var(--navy); }
-.iv2 .iv2-strip > div > span { display: block; margin-top: 2px; font-size: 13.5px; line-height: 1.45; color: #5D6E88; }
+.iv2 .iv2-strip > div > span { display: block; margin-top: 2px; font-size: 13.5px; line-height: 1.45; color: #42526A; }
 .iv2-strip-bar { display: block; margin-top: 9px; height: 7px; border-radius: 999px; background: #D9EDE4; overflow: hidden; }
 .iv2-strip-bar em { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1E9AA8, #2FB27F); transition: width .5s ease; }
 
@@ -162,11 +162,11 @@
 .iv2-steps2::before { content: ""; position: absolute; left: 14px; right: 14px; top: 11px; height: 2px; background: #DFE7F1; }
 .iv2-steps2 li { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .iv2-steps2 li i { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid #DFE7F1; }
-.iv2-steps2 li span { max-width: 100%; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #8497AE; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iv2-steps2 li span { max-width: 100%; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #5A6A80; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .iv2-steps2 li.done i { background: var(--primary); border-color: var(--primary); box-shadow: inset 0 0 0 3px #fff; }
 .iv2-steps2 li.done span { color: var(--navy); }
 .iv2-steps2 li.current i { background: #2FB27F; border-color: #2FB27F; box-shadow: 0 0 0 4px rgba(47, 178, 127, .18); }
-.iv2-steps2 li.current span { color: #17885D; }
+.iv2-steps2 li.current span { color: #17855B; }
 
 .iv2-next { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; padding: 13px 14px; border-radius: 16px; border: 1px solid var(--line); background: #fff; cursor: pointer; transition: border-color .15s, background .15s; }
 .iv2-next:hover:not(:disabled) { border-color: var(--border-strong); background: #F7FAFE; }
@@ -175,8 +175,8 @@
 .iv2-next > div { flex: 1; min-width: 0; }
 .iv2 .iv2-next b { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #1B7D91; }
 .iv2 .iv2-next > div > span { display: block; margin-top: 2px; font-size: 15px; font-weight: 700; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.iv2 .iv2-next em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; color: #17885D; }
-.iv2-next > i.bi-chevron-right { flex: none; color: #8497AE; }
+.iv2 .iv2-next em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; color: #17855B; }
+.iv2-next > i.bi-chevron-right { flex: none; color: #5A6A80; }
 
 /* The readiness ring loses its tile: it is now the banner's third column, not a card inside one. */
 #root .gd .iv2 .iv2-hero .iv2-score, .iv2 .iv2-hero .iv2-score { margin: 0 26px; background: none; border: 0; padding: 0; backdrop-filter: none; }

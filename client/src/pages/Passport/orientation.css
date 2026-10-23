@@ -143,21 +143,21 @@
 .ori-item > header > .ori-item-ic.k-video { background: #051D64; color: #fff; }
 .ori-item > header > .ori-item-ic.k-video i { font-size: 24px; margin-left: 2px; }
 .ori-item > header > .ori-item-ic.k-notes { background: #E6F4F7; color: #1B7D91; box-shadow: inset 0 0 0 1px #C5E4EA; }
-.ori-item > header > .ori-item-ic.k-image { background: #FFF4E0; color: #B86B00; box-shadow: inset 0 0 0 1px #F6DDB0; }
-.ori-item > header > .ori-item-ic.k-checklist { background: #EAF8F1; color: #17885D; box-shadow: inset 0 0 0 1px #C8EAD9; }
+.ori-item > header > .ori-item-ic.k-image { background: #FFF4E0; color: #A96200; box-shadow: inset 0 0 0 1px #F6DDB0; }
+.ori-item > header > .ori-item-ic.k-checklist { background: #EAF8F1; color: #17855B; box-shadow: inset 0 0 0 1px #C8EAD9; }
 .ori-item > header > .ori-item-ic.k-recording { background: #FFF0F0; color: #C93737; box-shadow: inset 0 0 0 1px #F5CFCF; }
-.ori-item.done > header > .ori-item-ic { background: #17885D; color: #fff; box-shadow: 0 4px 10px rgba(23, 136, 93, .2); }
+.ori-item.done > header > .ori-item-ic { background: #13784F; color: #fff; box-shadow: 0 4px 10px rgba(23, 136, 93, .2); }
 .ori-item.done > header > .ori-item-ic i { font-size: 22px; margin: 0; }
 .ori-item > header > .ori-item-tx { flex: 1; min-width: 0; }
 .ori-item > header > .ori-item-tx > b { display: block; font-size: 16px; line-height: 1.3; color: #051D64; }
-.ori-item > header > .ori-item-tx > span { display: block; color: #5D6E88; font-size: 13px; line-height: 1.45; margin-top: 3px; }
+.ori-item > header > .ori-item-tx > span { display: block; color: #42526A; font-size: 13px; line-height: 1.45; margin-top: 3px; }
 .ori-item-meta { flex: none; display: flex; align-items: center; gap: 10px; }
 .ori-item-meta small { color: var(--muted); font-size: 12px; }
 .ori-optional {
   font-style: normal; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 99px;
   background: #F1F5F9; color: var(--muted);
 }
-.ori-tick { color: #2FB27F; font-size: 18px; }
+.ori-tick { color: #23845E; font-size: 18px; }
 
 .ori-video, .ori-rec-play { width: 100%; max-width: 720px; margin-top: 14px; border-radius: 12px; background: #000; display: block; }
 .ori-image { max-width: 100%; margin-top: 14px; border-radius: 12px; border: 1px solid var(--line); }
@@ -223,7 +223,7 @@
   background: #fff; border: 1px solid var(--line); border-left: 4px solid #2FB27F;
   border-radius: 14px; padding: 18px 22px;
 }
-.ori-complete > i { font-size: 24px; color: #2FB27F; }
+.ori-complete > i { font-size: 24px; color: #23845E; }
 .ori-complete > div { flex: 1; }
 .ori-complete b { display: block; font-size: 16px; }
 .ori-complete span { color: var(--muted); font-size: 13px; }
@@ -258,7 +258,7 @@
   height: 6px; border-radius: 999px; overflow: hidden;
   background: rgba(127, 127, 127, 0.18);
 }
-.ori-watch-bar i { display: block; height: 100%; border-radius: 999px; background: #17885D; transition: width .25s ease; }
+.ori-watch-bar i { display: block; height: 100%; border-radius: 999px; background: #13784F; transition: width .25s ease; }
 .ori-watch small { display: block; margin-top: 6px; font-size: 12.5px; opacity: 0.75; }
 
 /* ── A welcome day rendered as a DAY PAGE ────────────────────────────────────
@@ -269,7 +269,7 @@
 .jdm .jdm-blurb { margin: 6px 0 0; font-size: 15px; line-height: 1.55; color: rgba(255, 255, 255, .82); max-width: 62ch; }
 
 /* The welcome's kinds, coloured on the same system as the learning day's types. */
-.jdm .jd-item-icon.t-image, .jdm .jd-type.t-image { background: #FFF4E5; color: #B26A00; }
+.jdm .jd-item-icon.t-image, .jdm .jd-type.t-image { background: #FFF4E5; color: #A76400; }
 .jdm .jd-item-icon.t-checklist, .jdm .jd-type.t-checklist { background: #EDF3FF; color: #2D5BB9; }
 .jdm .jd-item-icon.t-recording, .jdm .jd-type.t-recording { background: #FFF0F0; color: #C93737; }
 /* Welcome-day rail badges match the item headers (orientation.css .ori-item-ic): a solid glyph
@@ -280,7 +280,7 @@
 .jdm .jd-item .jd-item-icon.t-video i { font-size: 22px; margin-left: 2px; }
 .jdm .jd-item .jd-item-icon.t-notes { background: #E6F4F7; color: #1B7D91; }
 .jdm .jd-type.t-video { background: #EAF1FB; color: #051D64; }
-.jdm .jd-item.done .jd-item-icon { background: #17885D; color: #fff; }
+.jdm .jd-item.done .jd-item-icon { background: #13784F; color: #fff; }
 .jdm .jd-item.done .jd-item-icon i { margin: 0; }
 
 /*

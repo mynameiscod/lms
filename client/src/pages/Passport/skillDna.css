@@ -3,8 +3,8 @@
    Media queries read real pixels; #root renders the app at zoom .75, so wide screens lift the page a little. */
 .sdn {
   --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD; --blue: #1976D2;
-  --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
-  --green: #17885D; --green-bg: #EAF8F1; --amber: #B86B00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0;
+  --ink: #102A4F; --text: #33475B; --muted: #42526A; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
+  --green: #13784F; --green-bg: #EAF8F1; --amber: #9A5A00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0;
   width: 100%; max-width: 1760px; margin: 0 auto; color: var(--ink); display: flex; flex-direction: column; gap: 18px;
 }
 .sdn * { box-sizing: border-box; }
@@ -45,7 +45,7 @@
 .sdn-ring { --sdn-deg: 0deg; width: 132px; height: 132px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#7FD3E0 var(--sdn-deg), rgba(255, 255, 255, .16) 0); flex: none; }
 .sdn-ring > div { width: 104px; height: 104px; border-radius: 50%; background: var(--navy); display: flex; flex-wrap: wrap; align-content: center; align-items: baseline; justify-content: center; }
 .sdn-ring strong { font-size: 40px; line-height: 1; font-weight: 800; color: #fff; }
-.sdn-ring span { font-size: 14px; font-weight: 700; color: #9FB6D8; margin-left: 2px; }
+.sdn-ring span { font-size: 14px; font-weight: 700; color: #5A6A80; margin-left: 2px; }
 .sdn-hero-score-copy b { display: block; font-size: 17px; color: #fff; }
 .sdn-hero-score-copy span { display: block; margin-top: 4px; font-size: 14px; color: #C4D5EE; }
 
@@ -103,7 +103,7 @@
 .sdn-bar { height: 8px; border-radius: 999px; background: #EDF2F7; margin-top: 8px; overflow: hidden; }
 .sdn-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), var(--teal)); }
 .sdn-bar.low i { background: linear-gradient(90deg, #E26B6B, #C93737); }
-.sdn-bar.mid i { background: linear-gradient(90deg, #E7A43A, #B86B00); }
+.sdn-bar.mid i { background: linear-gradient(90deg, #E7A43A, #9A5A00); }
 .sdn-list-meta { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
 .sdn-list-meta em { font-style: normal; font-size: 12.5px; color: var(--muted); }
 .sdn-conf { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--soft); color: var(--muted); border: 1px solid var(--line); }
@@ -177,8 +177,8 @@
 }
 /* Headline, accent word and lead copy. */
 #root .gd .sdn .sdn-hero h1, .sdn .sdn-hero h1 { color: #051D64 !important; }
-#root .gd .sdn .sdn-hero h1 span, .sdn .sdn-hero h1 span { color: #17869B !important; }
-#root .gd .sdn .sdn-hero p, .sdn .sdn-hero p { color: #5D6E88 !important; }
+#root .gd .sdn .sdn-hero h1 span, .sdn .sdn-hero h1 span { color: #167E92 !important; }
+#root .gd .sdn .sdn-hero p, .sdn .sdn-hero p { color: #42526A !important; }
 /* Chips: the glass pills become soft tinted pills. */
 #root .gd .sdn .sdn-hero-chips span, .sdn .sdn-hero-chips span {
   background: linear-gradient(135deg, #F5F9FE, #EDF4FC);
@@ -193,9 +193,9 @@
 .sdn .sdn-hero .sdn-ring { background: conic-gradient(#1E9AA8 var(--sdn-deg), #E0E8F2 0); }
 .sdn .sdn-hero .sdn-ring > div { background: #fff; box-shadow: inset 0 0 0 1px #EDF2F8; }
 #root .gd .sdn .sdn-ring strong, .sdn .sdn-ring strong { color: #051D64 !important; }
-#root .gd .sdn .sdn-ring span, .sdn .sdn-ring span { color: #7C8DA5 !important; }
+#root .gd .sdn .sdn-ring span, .sdn .sdn-ring span { color: #5A6A80 !important; }
 #root .gd .sdn .sdn-hero-score-copy b, .sdn .sdn-hero-score-copy b { color: #051D64 !important; }
-#root .gd .sdn .sdn-hero-score-copy span, .sdn .sdn-hero-score-copy span { color: #6B7C96 !important; }
+#root .gd .sdn .sdn-hero-score-copy span, .sdn .sdn-hero-score-copy span { color: #42526A !important; }
 
 /* Compact radar (phones, see Radar in SkillDna.tsx): drawn narrower, so its labels are set
    larger in drawing units to land at a readable size once scaled to the card. */

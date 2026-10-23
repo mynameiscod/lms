@@ -3,8 +3,8 @@
    .jdm. The shell forces .gd-main h1/p colours with !important, so text on navy carries !important to stay light. */
 .jd-page.jdm {
   --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD;
-  --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
-  --green: #17885D; --green-bg: #EAF8F1; --amber: #B86B00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0; --violet: #6246C9; --violet-bg: #F1EDFF;
+  --ink: #102A4F; --text: #33475B; --muted: #42526A; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
+  --green: #13784F; --green-bg: #EAF8F1; --amber: #9A5A00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0; --violet: #6246C9; --violet-bg: #F1EDFF;
   max-width: 1760px; width: 100%; margin: 0 auto; padding: 0 0 40px; color: var(--ink); display: flex; flex-direction: column; gap: 18px;
 }
 .jdm * { box-sizing: border-box; }
@@ -139,7 +139,7 @@
 .jdm-tasks .ic { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 21px; background: #D6F0E4; color: var(--green); }
 .jdm-tasks > div { flex: 1; min-width: 0; }
 .jdm-hero .jdm-tasks b { display: block; font-size: 17px; font-weight: 800; color: var(--navy); }
-.jdm-hero .jdm-tasks > div span { display: block; margin-top: 2px; font-size: 13.5px; color: #5D6E88; }
+.jdm-hero .jdm-tasks > div span { display: block; margin-top: 2px; font-size: 13.5px; color: #42526A; }
 .jdm-tasks-art { display: flex; align-items: flex-end; gap: 3px; height: 30px; }
 .jdm-tasks-art em { width: 7px; border-radius: 3px 3px 0 0; background: #8FD5BC; }
 .jdm-tasks-art em:nth-child(1) { height: 40%; }
@@ -151,20 +151,20 @@
 .jdm-steps2::before { content: ""; position: absolute; left: 14px; right: 14px; top: 11px; height: 2px; background: #DFE7F1; }
 .jdm-steps2 li { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
 .jdm-steps2 li i { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid #DFE7F1; }
-.jdm-steps2 li span { font-size: 11.5px; font-weight: 800; letter-spacing: .06em; color: #8497AE; }
+.jdm-steps2 li span { font-size: 11.5px; font-weight: 800; letter-spacing: .06em; color: #5A6A80; }
 .jdm-steps2 li.done i { background: var(--primary); border-color: var(--primary); box-shadow: inset 0 0 0 3px #fff; }
 .jdm-steps2 li.done span { color: var(--navy); }
 .jdm-steps2 li.current i { background: #2FB27F; border-color: #2FB27F; box-shadow: 0 0 0 4px rgba(47, 178, 127, .18); }
-.jdm-steps2 li.current span { color: #17885D; }
+.jdm-steps2 li.current span { color: #17855B; }
 
 .jdm-challenge { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; padding: 13px 14px; border-radius: 16px; border: 1px solid var(--line); background: #fff; cursor: pointer; transition: border-color .15s, background .15s; }
 .jdm-challenge:hover { border-color: var(--border-strong); background: #F7FAFE; }
 .jdm-challenge .ic { flex: none; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; font-size: 19px; background: var(--tint); color: var(--primary); }
 .jdm-challenge > div { flex: 1; min-width: 0; }
 .jdm-hero .jdm-challenge b { display: block; font-size: 15px; color: var(--navy); }
-.jdm-hero .jdm-challenge > div span { display: block; margin-top: 2px; font-size: 13.5px; color: #5D6E88; }
-.jdm-hero .jdm-challenge em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; color: #17885D; }
-.jdm-challenge > .bi { flex: none; color: #8497AE; }
+.jdm-hero .jdm-challenge > div span { display: block; margin-top: 2px; font-size: 13.5px; color: #42526A; }
+.jdm-hero .jdm-challenge em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; color: #17855B; }
+.jdm-challenge > .bi { flex: none; color: #5A6A80; }
 
 .jdm-hero .jdm-daynav { padding: 0 26px; }
 @media (max-width: 1280px) {
@@ -182,4 +182,4 @@
 /* The "← My Plan" link sits on its own line above the day label; inline, the two ran together. */
 .jdm-hero .jdm-crumb, .jdm-crumb { display: flex; width: fit-content; margin-bottom: 12px; }
 /* The welcome day's description: grey on the white banner (it was white, left from the navy hero). */
-#root .gd .jdm .jdm-hero .jdm-blurb, .jdm .jdm-hero .jdm-blurb { color: #5D6E88 !important; }
+#root .gd .jdm .jdm-hero .jdm-blurb, .jdm .jdm-hero .jdm-blurb { color: #42526A !important; }

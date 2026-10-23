@@ -4,9 +4,9 @@
    CodeBegun style guide. */
 .qb{
   --qb-navy:#051D64; --qb-teal:#359AAD; --qb-ink:#102A4F; --qb-text:#33475B;
-  --qb-muted:#64748B; --qb-line:#E2EAF2; --qb-card:#FFFFFF; --qb-bg:#F4F8FC;
-  --qb-green:#17885D; --qb-green-bg:#EAF8F1;
-  --qb-amber:#B86B00; --qb-amber-bg:#FFF7E8;
+  --qb-muted:#42526A; --qb-line:#E2EAF2; --qb-card:#FFFFFF; --qb-bg:#F4F8FC;
+  --qb-green:#13784F; --qb-green-bg:#EAF8F1;
+  --qb-amber:#9A5A00; --qb-amber-bg:#FFF7E8;
   --qb-red:#C93737;   --qb-red-bg:#FFF0F0;
   color:var(--qb-text); padding:22px 26px 60px;
   font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif;
@@ -90,8 +90,8 @@
 .chip.d-easy{background:var(--qb-green-bg); color:var(--qb-green)}
 .chip.d-medium{background:var(--qb-amber-bg); color:var(--qb-amber)}
 .chip.d-hard{background:var(--qb-red-bg); color:var(--qb-red)}
-.chip.borrowed{background:#F1F4F8; color:#5b6b7f}
-.chip.retired{background:#F1F4F8; color:#7a879a}
+.chip.borrowed{background:#F1F4F8; color:#42526A}
+.chip.retired{background:#F1F4F8; color:#42526A}
 .chip.answered{background:#FFF7E8; color:var(--qb-amber)}
 .chip.aud{display:block; margin-top:8px; font-size:11.5px; font-weight:600; color:var(--qb-muted);
   background:#F6F9FC; border-radius:8px; padding:6px 10px; width:fit-content; max-width:100%}

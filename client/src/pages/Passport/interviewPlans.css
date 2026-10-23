@@ -4,7 +4,7 @@
 
 .ivp-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .ivp-hd h2 { font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
-.ivp-hd p { font-size: 13px; color: #64748b; margin: 0; max-width: 620px; line-height: 1.55; }
+.ivp-hd p { font-size: 13px; color: #42526A; margin: 0; max-width: 620px; line-height: 1.55; }
 
 .ivp-btn {
   border: 1.5px solid #e2e8f0; background: #fff; color: #334155;
@@ -25,8 +25,8 @@
   padding: 11px 15px; min-width: 148px; box-shadow: 0 1px 3px rgba(16, 24, 40, .04);
 }
 .ivp-stat b { display: block; font-size: 19px; font-weight: 800; color: #0f172a; line-height: 1.25; }
-.ivp-stat span { display: block; font-size: 11.5px; color: #7c8aa0; font-weight: 600; margin-top: 2px; }
-.ivp-stat small { display: block; font-size: 10.5px; color: #a3b0c2; margin-top: 3px; }
+.ivp-stat span { display: block; font-size: 11.5px; color: #42526A; font-weight: 600; margin-top: 2px; }
+.ivp-stat small { display: block; font-size: 10.5px; color: #5A6A80; margin-top: 3px; }
 
 /* ── Warnings ──────────────────────────────────────────────────────────── */
 .ivp-notes { display: flex; flex-direction: column; gap: 6px; }
@@ -35,7 +35,7 @@
   border: 1px solid transparent;
 }
 .ivp-note.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
-.ivp-note.info { background: #f8fafc; border-color: #e8edf4; color: #64748b; }
+.ivp-note.info { background: #f8fafc; border-color: #e8edf4; color: #42526A; }
 
 /* ── Plan cards ────────────────────────────────────────────────────────── */
 .ivp-list { display: flex; flex-direction: column; gap: 10px; }
@@ -52,7 +52,7 @@
 
 .ivp-move { display: flex; flex-direction: column; gap: 3px; padding-top: 2px; }
 .ivp-move button {
-  border: 1px solid #eef1f6; background: #fff; color: #94a3b8; cursor: pointer;
+  border: 1px solid #eef1f6; background: #fff; color: #5A6A80; cursor: pointer;
   width: 22px; height: 19px; border-radius: 5px; font-size: 9px; line-height: 1; padding: 0;
 }
 .ivp-move button:hover:not(:disabled) { color: #4f46e5; border-color: #c7d2fe; }
@@ -70,7 +70,7 @@
 .ivp-tag.off { background: #f1f5f9; color: #94a3b8; }
 .ivp-tag.everyone { background: #ecfdf5; color: #047857; }
 
-.ivp-aud { font-size: 12.5px; color: #64748b; margin-top: 5px; line-height: 1.5; }
+.ivp-aud { font-size: 12.5px; color: #42526A; margin-top: 5px; line-height: 1.5; }
 .ivp-aud b { color: #334155; font-weight: 700; }
 
 .ivp-rounds { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
@@ -86,7 +86,7 @@
 
 .ivp-meta {
   display: flex; gap: 14px; flex-wrap: wrap; margin-top: 9px;
-  font-size: 12px; color: #7c8aa0;
+  font-size: 12px; color: #42526A;
 }
 .ivp-meta b { color: #334155; font-weight: 700; }
 
@@ -97,15 +97,15 @@
 .ivp-sec { margin-bottom: 18px; }
 .ivp-sec:last-of-type { margin-bottom: 12px; }
 .ivp-sec > h4 {
-  font-size: 11.5px; font-weight: 800; color: #64748b; text-transform: uppercase;
+  font-size: 11.5px; font-weight: 800; color: #42526A; text-transform: uppercase;
   letter-spacing: .04em; margin: 0 0 3px;
 }
-.ivp-sec > p { font-size: 12px; color: #94a3b8; margin: 0 0 10px; line-height: 1.5; }
+.ivp-sec > p { font-size: 12px; color: #5A6A80; margin: 0 0 10px; line-height: 1.5; }
 
 .ivp-fields { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
 .ivp-field { display: flex; flex-direction: column; gap: 4px; }
-.ivp-field > span { font-size: 11.5px; font-weight: 700; color: #64748b; }
-.ivp-field > small { font-size: 10.5px; color: #a3b0c2; max-width: 210px; line-height: 1.45; }
+.ivp-field > span { font-size: 11.5px; font-weight: 700; color: #42526A; }
+.ivp-field > small { font-size: 10.5px; color: #5A6A80; max-width: 210px; line-height: 1.45; }
 .ivp-field input[type="text"], .ivp-field input[type="number"], .ivp-field select, .ivp-edit textarea {
   border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 7px 10px;
   font-size: 13px; font-family: inherit; background: #fff; color: #0f172a;
@@ -123,26 +123,26 @@
   display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
   padding: 9px; border: 1px solid #eef1f6; border-radius: 10px; background: #fff; margin-bottom: 7px;
 }
-.ivp-total { font-size: 12.5px; color: #64748b; margin-top: 8px; }
+.ivp-total { font-size: 12.5px; color: #42526A; margin-top: 8px; }
 .ivp-total b { color: #0f172a; font-weight: 800; }
 .ivp-total.over { color: #b45309; }
 
 .ivp-edit textarea { width: 100%; resize: vertical; line-height: 1.55; }
 .ivp-save { display: flex; gap: 8px; align-items: center; padding-top: 4px; }
 .ivp-err { font-size: 12.5px; color: #dc2626; }
-.ivp-ok { font-size: 12.5px; color: #16a34a; font-weight: 600; }
+.ivp-ok { font-size: 12.5px; color: #12863D; font-weight: 600; }
 
 /* ── Preview ───────────────────────────────────────────────────────────── */
 .ivp-prev { background: #fff; border: 1px solid #eef1f6; border-radius: 13px; padding: 15px; box-shadow: 0 1px 3px rgba(16, 24, 40, .04); }
 .ivp-prev h3 { font-size: 14px; font-weight: 800; color: #0f172a; margin: 0 0 3px; }
-.ivp-prev > p { font-size: 12.5px; color: #94a3b8; margin: 0 0 12px; line-height: 1.5; }
+.ivp-prev > p { font-size: 12.5px; color: #5A6A80; margin: 0 0 12px; line-height: 1.5; }
 .ivp-prev select { min-width: 260px; }
 
 .ivp-verdict { margin-top: 14px; border-top: 1px solid #f1f5f9; padding-top: 13px; }
 .ivp-verdict-hd { font-size: 13.5px; color: #334155; margin-bottom: 9px; }
 .ivp-verdict-hd b { color: #0f172a; font-weight: 800; }
 .ivp-facts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 11px; }
-.ivp-fact { font-size: 11.5px; color: #64748b; background: #f8fafc; border: 1px solid #eef1f6; border-radius: 7px; padding: 3px 9px; }
+.ivp-fact { font-size: 11.5px; color: #42526A; background: #f8fafc; border: 1px solid #eef1f6; border-radius: 7px; padding: 3px 9px; }
 .ivp-fact b { color: #334155; font-weight: 700; }
 
 .ivp-trace { display: flex; flex-direction: column; gap: 4px; }
@@ -154,7 +154,7 @@
 .ivp-tr-mark { width: 14px; flex-shrink: 0; font-size: 11px; }
 .ivp-tr-name { font-weight: 700; color: #334155; }
 .ivp-tr.win .ivp-tr-name { color: #15803d; }
-.ivp-tr-why { color: #94a3b8; }
+.ivp-tr-why { color: #5A6A80; }
 
 @media (max-width: 720px) {
   .ivp-row { flex-wrap: wrap; }

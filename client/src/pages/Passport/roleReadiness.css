@@ -3,8 +3,8 @@
    Media queries read real pixels; #root renders the app at zoom .75, so wide screens lift the page a little. */
 .rr {
   --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD;
-  --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
-  --green: #17885D; --green-bg: #EAF8F1; --amber: #B86B00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0;
+  --ink: #102A4F; --text: #33475B; --muted: #42526A; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
+  --green: #13784F; --green-bg: #EAF8F1; --amber: #9A5A00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0;
   width: 100%; max-width: 1760px; margin: 0 auto; color: var(--ink); display: flex; flex-direction: column; gap: 18px;
 }
 .rr * { box-sizing: border-box; }
@@ -46,7 +46,7 @@
 .rr-gauge { --rr-deg: 0deg; width: 136px; height: 136px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#7FD3E0 var(--rr-deg), rgba(255, 255, 255, .16) 0); flex: none; }
 .rr-gauge > div { width: 108px; height: 108px; border-radius: 50%; background: var(--navy); display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .rr-gauge strong { font-size: 38px; line-height: 1; font-weight: 800; color: #fff; }
-.rr-gauge strong em { font-style: normal; font-size: 18px; color: #9FB6D8; margin-left: 1px; }
+.rr-gauge strong em { font-style: normal; font-size: 18px; color: #5A6A80; margin-left: 1px; }
 .rr-gauge span { margin-top: 4px; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #9FDCE6; }
 .rr .rr-hero-score-copy small { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6 !important; }
 .rr-hero-score-copy b { display: block; margin-top: 4px; font-size: 22px; color: #fff; }
@@ -93,8 +93,8 @@
 .rr-track { position: relative; height: 10px; border-radius: 999px; background: #EDF2F7; margin-top: 9px; }
 .rr-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), var(--teal)); }
 .rr-track.danger i { background: linear-gradient(90deg, #E26B6B, #C93737); }
-.rr-track.warn i { background: linear-gradient(90deg, #E7A43A, #B86B00); }
-.rr-track.good i { background: linear-gradient(90deg, #2FB27F, #17885D); }
+.rr-track.warn i { background: linear-gradient(90deg, #E7A43A, #9A5A00); }
+.rr-track.good i { background: linear-gradient(90deg, #2FB27F, #13784F); }
 .rr-track > b { position: absolute; top: -4px; width: 3px; height: 18px; margin-left: -1.5px; border-radius: 2px; background: var(--navy); }
 
 .rr-pill { font-style: normal; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; background: var(--soft); color: var(--muted); border: 1px solid var(--line); }
@@ -184,8 +184,8 @@
 }
 /* Headline, accent role name and lead copy. */
 #root .gd .rr .rr-hero h1, .rr .rr-hero h1 { color: #051D64 !important; }
-#root .gd .rr .rr-hero h1 span, .rr .rr-hero h1 span { color: #17869B !important; }
-#root .gd .rr .rr-hero p, .rr .rr-hero p { color: #5D6E88 !important; }
+#root .gd .rr .rr-hero h1 span, .rr .rr-hero h1 span { color: #167E92 !important; }
+#root .gd .rr .rr-hero p, .rr .rr-hero p { color: #42526A !important; }
 /* Chips: the glass pills become soft tinted pills. */
 #root .gd .rr .rr-hero-chips span, .rr .rr-hero-chips span {
   background: linear-gradient(135deg, #F5F9FE, #EDF4FC);
@@ -205,11 +205,11 @@
 .rr .rr-hero .rr-gauge { background: conic-gradient(#1E9AA8 var(--rr-deg), #E0E8F2 0); }
 .rr .rr-hero .rr-gauge > div { background: #fff; box-shadow: inset 0 0 0 1px #EDF2F8; }
 #root .gd .rr .rr-gauge strong, .rr .rr-gauge strong { color: #051D64 !important; }
-#root .gd .rr .rr-gauge strong em, .rr .rr-gauge strong em { color: #7C8DA5 !important; }
+#root .gd .rr .rr-gauge strong em, .rr .rr-gauge strong em { color: #5A6A80 !important; }
 #root .gd .rr .rr-gauge span, .rr .rr-gauge span { color: #1B7D91 !important; }
 #root .gd .rr .rr-hero-score-copy small, .rr .rr-hero-score-copy small { color: #1B7D91 !important; }
 #root .gd .rr .rr-hero-score-copy b, .rr .rr-hero-score-copy b { color: #051D64 !important; }
-#root .gd .rr .rr-hero-score-copy span, .rr .rr-hero-score-copy span { color: #6B7C96 !important; }
+#root .gd .rr .rr-hero-score-copy span, .rr .rr-hero-score-copy span { color: #42526A !important; }
 
 /* ────────────────────────────────────────────────────────────────────────────
    WHAT TO IMPROVE NEXT — the banner's middle column, built like the dashboard's
@@ -234,11 +234,11 @@
 .rr-split { padding: 14px 16px; border-radius: 16px; background: linear-gradient(120deg, #EAF7F1, #E6F4EE); border: 1px solid #CFE8DD; }
 .rr-split-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .rr .rr-split-top b { font-size: 17px; font-weight: 800; color: var(--navy) !important; display: inline-flex; align-items: center; gap: 7px; }
-.rr .rr-split-top b i { font-size: 15px; color: #17885D; }
-.rr .rr-split-top > span { font-size: 13.5px; font-weight: 700; color: #B86B00 !important; }
+.rr .rr-split-top b i { font-size: 15px; color: #17855B; }
+.rr .rr-split-top > span { font-size: 13.5px; font-weight: 700; color: #A96200 !important; }
 .rr-split-bar { margin-top: 10px; height: 10px; border-radius: 999px; background: #DCE9E3; overflow: hidden; }
 .rr-split-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1E9AA8, #2FB27F); }
-.rr .rr-split-foot { display: block; margin-top: 9px; font-size: 13px; line-height: 1.45; color: #5D6E88 !important; }
+.rr .rr-split-foot { display: block; margin-top: 9px; font-size: 13px; line-height: 1.45; color: #42526A !important; }
 
 /* The one row that leaves this page: the widest gap opens that skill's learning page. */
 .rr-focus { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; padding: 13px 14px; border-radius: 16px; border: 1px solid var(--line); background: #fff; cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
@@ -246,9 +246,9 @@
 .rr-focus .ic { flex: none; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; font-size: 19px; background: var(--tint); color: var(--primary); }
 .rr-focus > div { flex: 1; min-width: 0; }
 .rr .rr-focus b { display: block; font-size: 15px; font-weight: 800; color: var(--navy) !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rr .rr-focus > div span { display: block; margin-top: 2px; font-size: 13.5px; color: #5D6E88 !important; }
-.rr .rr-focus em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; color: #B86B00 !important; }
-.rr-focus > i { color: #A9B7C8; }
+.rr .rr-focus > div span { display: block; margin-top: 2px; font-size: 13.5px; color: #42526A !important; }
+.rr .rr-focus em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; color: #A96200 !important; }
+.rr-focus > i { color: #5A6A80; }
 .rr-focus:hover > i { color: var(--primary); }
 /* Nothing left to close: a statement, not a button, so it cannot be clicked into nowhere. */
 .rr-allclear { display: flex; align-items: center; gap: 9px; padding: 13px 14px; border-radius: 16px; background: var(--green-bg); border: 1px solid #CCE9DC; font-size: 13.5px; line-height: 1.45; color: #136B4A; }
@@ -268,8 +268,8 @@
 .rr-kpis > div:hover { border-color: #CFE0EF; }
 .rr-track { background: #E9EFF4; }
 .rr-track i { background: linear-gradient(90deg, #1E9AA8, #2FB27F); }
-.rr-track.good i { background: linear-gradient(90deg, #17885D, #4ECB99); }
-.rr-track.warn i { background: linear-gradient(90deg, #E7A43A, #B86B00); }
+.rr-track.good i { background: linear-gradient(90deg, #13784F, #4ECB99); }
+.rr-track.warn i { background: linear-gradient(90deg, #E7A43A, #9A5A00); }
 .rr-track.danger i { background: linear-gradient(90deg, #E26B6B, #C93737); }
 /* The skill rows get room to breathe and a hover tint, so a long list stays scannable. */
 .rr-skills > li { padding: 10px 12px; margin: 0 -12px; border-radius: 14px; }
@@ -285,7 +285,7 @@
 .rr .rr-summary > div.good b { color: #136B4A !important; }
 .rr .rr-summary > div.warn b { color: #8A5100 !important; }
 .rr .rr-summary > div.danger b { color: var(--red) !important; }
-.rr .rr-summary span { color: #5D6E88 !important; }
+.rr .rr-summary span { color: #42526A !important; }
 .rr-next { border-radius: 20px; }
 .rr-disclaimer { padding: 2px 6px 6px; }
 
@@ -315,7 +315,7 @@
    stretch to the column width, and the summary tiles keep their coloured top edge over the new tints. */
 .rr .rr-momentum .rr-eyebrow.light { align-self: flex-start; }
 .rr .rr-summary > div.good { border-top-color: var(--green); }
-.rr .rr-summary > div.warn { border-top-color: #B86B00; }
+.rr .rr-summary > div.warn { border-top-color: #9A5A00; }
 .rr .rr-summary > div.danger { border-top-color: var(--red); }
 .rr .rr-summary > div.muted { border-top-color: var(--border-strong); }
 /* "0 need work" in warning amber would read as a problem; with nothing below target the figure turns green. */

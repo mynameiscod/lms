@@ -31,7 +31,7 @@ const THEMES: Record<Variant, Theme> = {
   careerpilot: {
     primary: '#051D64', primarySoft: '#EEF3FB', primaryBorder: '#C9D8E5',
     accent: '#1F7A8C', accentSoft: '#EAF6F8', accentBorder: '#B9E3EA', accentInk: '#15596A',
-    run: '#1F7A8C', ink: '#102A4F', sub: '#5B6B7F', faint: '#64748B', border: '#E2EAF2', line: '#E2EAF2', field: '#C9D8E5', surface: '#F4F8FC',
+    run: '#1F7A8C', ink: '#102A4F', sub: '#42526A', faint: '#5A6A80', border: '#E2EAF2', line: '#E2EAF2', field: '#C9D8E5', surface: '#F4F8FC',
     success: '#17885D', successSoft: '#EAF8F1', successBorder: '#BFE6D3', warn: '#B86B00', warnSoft: '#FFF7E8', warnBorder: '#F3D9A6', warnInk: '#8A5000',
     danger: '#C93737', dangerSoft: '#FFF0F0', banner: 'linear-gradient(120deg,#051D64,#0B2D72)',
     heat: ['#E2EAF2', '#BFE6EC', '#7FD3E0', '#359AAD', '#051D64'],

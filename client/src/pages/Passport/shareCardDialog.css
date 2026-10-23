@@ -33,7 +33,7 @@
 .shc-btn:hover { background: #F4F8FD; border-color: #C9D8E5; }
 .shc-btn:disabled { opacity: .6; cursor: default; }
 .shc-btn i { font-size: 18px; }
-.shc-btn.wa { background: #17885D; border-color: #17885D; color: #fff; }
+.shc-btn.wa { background: #13784F; border-color: #13784F; color: #fff; }
 .shc-btn.wa:hover { background: #12704C; border-color: #12704C; }
 .shc-btn.li { background: #051D64; border-color: #051D64; color: #fff; }
 .shc-btn.li:hover { background: #0A2A7A; border-color: #0A2A7A; }

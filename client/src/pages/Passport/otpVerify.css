@@ -8,7 +8,7 @@
   --teal-2: #2bb3a3;
   --ink: #0e1b3d;
   --text: #3d4a63;
-  --muted: #6b7890;
+  --muted: #42526A;
   --line: #e2e8f2;
   /* #root is a full-height flex column (index.css, which also compensates its zoom); filling it is what takes the
      background to the bottom of the screen at any zoom. The same approach as the LMS login page. */
@@ -32,7 +32,7 @@
 .cpv-steps { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 10px; }
 .cpv-steps li { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--muted); }
 .cpv-steps li + li::before { content: ""; width: 34px; height: 2px; border-radius: 2px; background: #d5deea; margin-right: 2px; }
-.cpv-steps span { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; background: #e6ecf5; color: #7c8aa2; }
+.cpv-steps span { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; background: #e6ecf5; color: #42526A; }
 .cpv-steps li.done { color: #11776b; }
 .cpv-steps li.done span { background: var(--teal-2); color: #fff; }
 .cpv-steps li.current { color: var(--navy); }
@@ -66,7 +66,7 @@
 /* ── Code card ───────────────────────────────────────────────────── */
 .cpv-card { position: relative; z-index: 1; background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 30px 30px 24px; box-shadow: 0 24px 60px rgba(14, 27, 61, .14); }
 .cpv-card-head { display: flex; align-items: center; gap: 14px; }
-.cpv-card-mark { flex: none; width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: #e7f8ef; color: #16a061; font-size: 25px; }
+.cpv-card-mark { flex: none; width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: #e7f8ef; color: #128350; font-size: 25px; }
 .cpv-card-eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--teal); }
 .cpv-card h2 { margin-top: 3px; font-size: 25px; font-weight: 800; letter-spacing: -.015em; color: var(--navy); }
 .cpv-number { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; padding: 12px 14px; border-radius: 12px; background: #f3f8fd; border: 1px solid #dce7f4; }

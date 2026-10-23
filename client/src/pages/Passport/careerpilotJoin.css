@@ -9,7 +9,7 @@
   --blue: #1f6feb;
   --ink: #0e1b3d;
   --text: #3d4a63;
-  --muted: #6b7890;
+  --muted: #42526A;
   --line: #e2e8f2;
   --soft: #f3f7fd;
   --card: #ffffff;
@@ -218,11 +218,11 @@
 .cpx-field { margin-top: 11px; min-width: 0; }
 .cpx-field.full { grid-column: 1 / -1; }
 .cpx-field label { display: block; font-size: 14px; font-weight: 700; color: #2b3852; margin-bottom: 7px; }
-.cpx-field label em { color: #e04f5f; font-style: normal; }
+.cpx-field label em { color: #CA4755; font-style: normal; }
 .cpx-input { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border: 1px solid #d4dcea; border-radius: 12px; background: #fff; transition: border-color .15s ease, box-shadow .15s ease; }
 .cpx-input:focus-within { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(53, 152, 173, .16); }
 .cpx-input.bad { border-color: #e04f5f; box-shadow: 0 0 0 3px rgba(224, 79, 95, .1); }
-.cpx-input i { color: #8391a8; font-size: 17px; }
+.cpx-input i { color: #42526A; font-size: 17px; }
 .cpx-input input, .cpx-input select { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: inherit; font-size: 15.5px; color: var(--ink); }
 .cpx-input select { cursor: pointer; }
 .cpx-input input::placeholder { color: #9aa6ba; }
@@ -290,7 +290,7 @@
 .cpx-road-step.current .cpx-road-n { background: var(--blue); }
 .cpx-road-step b { display: block; font-size: 13px; color: var(--navy); }
 .cpx-road-step small { display: block; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cpx-road-arrow { color: #9aabc4; flex: none; }
+.cpx-road-arrow { color: #5A6A80; flex: none; }
 
 /* ── Growth ──────────────────────────────────────────────────────── */
 .cpx-growth-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 48px; align-items: center; }
@@ -302,7 +302,7 @@
 .cpx-tile small { display: block; margin-top: 4px; font-size: 13.5px; color: var(--muted); }
 .cpx-tile-ic { flex: none; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 24px; }
 .cpx-tile-ic.blue { background: #e7f0ff; color: var(--blue); }
-.cpx-tile-ic.orange { background: #ffeee5; color: #f0642a; }
+.cpx-tile-ic.orange { background: #ffeee5; color: #C05022; }
 .cpx-tile-ic.teal { background: #e3f5f2; color: var(--teal); }
 .cpx-tile-ic.gold { background: #fff5da; color: #f5a524; }
 
@@ -348,7 +348,7 @@
 .cpx-faq summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 16px 18px; cursor: pointer; font-size: 15px; font-weight: 700; color: var(--navy); }
 .cpx-faq summary::-webkit-details-marker { display: none; }
 .cpx-faq-caret { color: var(--teal); font-size: 13px; transition: transform .15s ease; }
-.cpx-faq-chev { margin-left: auto; color: #8391a8; transition: transform .15s ease; }
+.cpx-faq-chev { margin-left: auto; color: #42526A; transition: transform .15s ease; }
 .cpx-faq details[open] .cpx-faq-caret { transform: rotate(90deg); }
 .cpx-faq details[open] .cpx-faq-chev { transform: rotate(180deg); }
 .cpx-faq details p { padding: 0 18px 16px 43px; font-size: 14px; line-height: 1.65; color: var(--text); }

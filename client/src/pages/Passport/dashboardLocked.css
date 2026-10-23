@@ -4,8 +4,8 @@
    Media queries read real pixels; #root renders the app at zoom .75, so wide screens lift the page a little. */
 .dl2 {
   --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD;
-  --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
-  --green: #17885D; --green-bg: #EAF8F1; --amber: #B86B00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0;
+  --ink: #102A4F; --text: #33475B; --muted: #42526A; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
+  --green: #13784F; --green-bg: #EAF8F1; --amber: #9A5A00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0;
   width: 100%; max-width: 1760px; margin: 0 auto; color: var(--ink); display: flex; flex-direction: column; gap: 18px;
 }
 .dl2 * { box-sizing: border-box; }
@@ -39,7 +39,7 @@
 .dl2-ring { --dl2-deg: 0deg; width: 132px; height: 132px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#7FD3E0 var(--dl2-deg), rgba(255, 255, 255, .16) 0); flex: none; }
 .dl2-ring > div { width: 104px; height: 104px; border-radius: 50%; background: var(--navy); display: flex; flex-wrap: wrap; align-content: center; align-items: baseline; justify-content: center; }
 .dl2-ring strong { font-size: 38px; line-height: 1; font-weight: 800; color: #fff; }
-.dl2-ring em { font-style: normal; font-size: 15px; font-weight: 700; color: #9FB6D8; margin-left: 2px; }
+.dl2-ring em { font-style: normal; font-size: 15px; font-weight: 700; color: #5A6A80; margin-left: 2px; }
 .dl2 .dl2-hero-score-copy small { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6 !important; }
 .dl2 .dl2-hero-score-copy b { display: block; margin-top: 4px; font-size: 21px; color: #fff !important; }
 .dl2-hero-score-copy button { margin-top: 10px; border: 1px solid rgba(255, 255, 255, .35); background: rgba(255, 255, 255, .10); color: #fff; border-radius: 999px; padding: 6px 14px; font-size: 13.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
@@ -61,7 +61,7 @@
 .dl2-skills .nm { font-size: 14.5px; font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dl2-skills .br { height: 9px; border-radius: 999px; background: #EDF2F7; overflow: hidden; }
 .dl2-skills .br i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), var(--teal)); }
-.dl2-skills .br.mid i { background: linear-gradient(90deg, #E7A43A, #B86B00); }
+.dl2-skills .br.mid i { background: linear-gradient(90deg, #E7A43A, #9A5A00); }
 .dl2-skills .br.low i { background: linear-gradient(90deg, #E26B6B, #C93737); }
 .dl2-skills .vl { text-align: right; font-size: 16px; font-weight: 800; color: var(--green); }
 .dl2-skills .vl.mid { color: var(--amber); }
@@ -84,7 +84,7 @@
 
 .dl2-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .dl2-steps li { display: flex; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--soft); }
-.dl2-steps li > span { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: #fff; color: #7B8DA1; border: 1px solid var(--line); }
+.dl2-steps li > span { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: #fff; color: #5A6A80; border: 1px solid var(--line); }
 .dl2-steps li.now > span { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 0 0 5px rgba(5, 29, 100, .12); }
 .dl2-steps b { display: block; margin-top: 6px; font-size: 15px; color: var(--navy); }
 .dl2-steps small { display: block; margin-top: 3px; font-size: 13.5px; color: var(--muted); line-height: 1.45; }
@@ -99,7 +99,7 @@
 .dl2-preview { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 18px; border-radius: 16px; border: 1px solid var(--line); background: linear-gradient(160deg, #fff 0%, #F4F8FC 100%); }
 .dl2-preview-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
 .dl2-preview .ic { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: var(--tint); color: var(--primary); font-size: 20px; }
-.dl2-preview .lk { color: #9AAEC2; font-size: 15px; }
+.dl2-preview .lk { color: #5A6A80; font-size: 15px; }
 .dl2-preview > b { font-size: 16px; color: var(--navy); }
 .dl2-preview > span { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
 .dl2-preview > em { margin-top: auto; padding-top: 8px; font-style: normal; font-size: 13px; font-weight: 700; color: #287F91; }
@@ -158,21 +158,21 @@
 .dl2-hero { background: #fff !important; color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07); }
 .dl2 .dl2-hero .dl2-eyebrow { display: inline-block; padding: 6px 12px; border-radius: 999px; background: #EAF1FB; color: #1B3C77 !important; }
 .dl2 .dl2-hero h1 { color: var(--navy) !important; }
-.dl2 .dl2-hero h1 span { color: #17869B !important; }
-.dl2 .dl2-hero p { color: #5D6E88 !important; }
+.dl2 .dl2-hero h1 span { color: #167E92 !important; }
+.dl2 .dl2-hero p { color: #42526A !important; }
 .dl2 .dl2-hero .dl2-chips span { background: #EEF4FB; border-color: #DFE8F4; color: #1B3C77; }
 .dl2 .dl2-hero .dl2-hero-score { background: linear-gradient(135deg, #F5F9FE, #EDF4FC); border-color: #DFE8F4; backdrop-filter: none; }
 .dl2 .dl2-hero .dl2-ring { background: conic-gradient(#1E9AA8 var(--dl2-deg), #E4EBF4 0); }
 .dl2 .dl2-hero .dl2-ring > div { background: #fff; box-shadow: inset 0 0 0 1px #EDF2F8; }
 .dl2 .dl2-hero .dl2-ring strong { color: var(--navy); }
-.dl2 .dl2-hero .dl2-ring em { color: #6B7C96; }
+.dl2 .dl2-hero .dl2-ring em { color: #42526A; }
 .dl2 .dl2-hero .dl2-hero-score-copy small { color: #1B7D91 !important; }
 .dl2 .dl2-hero .dl2-hero-score-copy b { color: var(--navy) !important; }
 .dl2 .dl2-hero .dl2-hero-score-copy button { background: #fff; border-color: var(--border-strong); color: var(--navy); }
 .dl2 .dl2-hero .dl2-hero-score-copy button:hover { background: #F4F8FD; border-color: var(--primary); }
 .dl2 .dl2-hero .dl2-hero-start { background: linear-gradient(135deg, #F5F9FE, #EDF4FC); border: 1px solid #DFE8F4; box-shadow: none; color: var(--ink); }
 .dl2 .dl2-hero .dl2-hero-start b { color: var(--navy) !important; }
-.dl2 .dl2-hero .dl2-hero-start span { color: #5D6E88 !important; }
+.dl2 .dl2-hero .dl2-hero-start span { color: #42526A !important; }
 /* The hero's own CTA is .dl2-btn.primary (already navy-filled) and it still reads
    on the tinted start panel. .dl2-btn.light only appears inside .dl2-buy, which
    stays navy, so it is deliberately not re-coloured here. */

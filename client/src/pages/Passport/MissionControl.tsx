@@ -194,7 +194,7 @@ const MissionControl: React.FC = () => {
     </div>
   );
 
-  if (loading) return <div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Loading your CareerPilot…</div>;
+  if (loading) return <div style={{ padding: 60, textAlign: 'center', color: '#42526A' }}>Loading your CareerPilot…</div>;
 
   const active = !!status?.active;
   const hasScore = !!result || status?.assessed === true;

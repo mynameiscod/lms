@@ -11,7 +11,7 @@
   --ink:#0F1E3D;
   --blue:#2563EB;
   --blue-d:#1E40AF;
-  --muted:#64748B;
+  --muted:#42526A;
   --line:#E2E8F5;
   --field:#F8FAFF;
 
@@ -106,7 +106,7 @@
   object-fit:contain; object-position:bottom center; z-index:2;
   filter:drop-shadow(0 18px 34px rgba(11,42,91,.26));
 }
-.as-spark{ position:absolute; color:#60A5FA; font-size:13px; z-index:2 }
+.as-spark{ position:absolute; color:#4577B4; font-size:13px; z-index:2 }
 
 /* floating stat cards */
 .as-floats{ position:absolute; right:22px; top:86px; z-index:4;
@@ -182,11 +182,11 @@
   border-color:var(--blue); background:#fff; box-shadow:0 0 0 3px rgba(37,99,235,.11);
 }
 .as-in .lic{ position:absolute; left:14px; top:50%; transform:translateY(-50%);
-  font-size:14px; color:#94A3C4; pointer-events:none; line-height:1 }
+  font-size:14px; color:#5A6A80; pointer-events:none; line-height:1 }
 .as-eye{
   position:absolute; right:8px; top:50%; transform:translateY(-50%);
   border:none; background:transparent; cursor:pointer; padding:7px; line-height:1;
-  font-size:15px; color:#94A3C4; border-radius:7px;
+  font-size:15px; color:#5A6A80; border-radius:7px;
 }
 .as-eye:hover{ color:var(--blue); background:#F1F5FF }
 
@@ -208,7 +208,7 @@
 .as-go:active:not(:disabled){ transform:translateY(1px) }
 .as-go:disabled{ opacity:.55; cursor:not-allowed; box-shadow:none }
 
-.as-or{ display:flex; align-items:center; gap:14px; margin:20px 0; color:#9AA7BF; font-size:12.5px }
+.as-or{ display:flex; align-items:center; gap:14px; margin:20px 0; color:#5A6A80; font-size:12.5px }
 .as-or::before, .as-or::after{ content:''; flex:1; height:1px; background:var(--line) }
 
 .as-alt{
@@ -308,7 +308,7 @@
 
 .as-page .t-blue { background: linear-gradient(135deg,#E7EFFF,#DCE8FF); color: #1D4ED8; }
 .as-page .t-violet { background: linear-gradient(135deg,#F1EAFF,#E8DEFF); color: #6D28D9; }
-.as-page .t-teal { background: linear-gradient(135deg,#E0FAF4,#CFF5EC); color: #0E9384; }
+.as-page .t-teal { background: linear-gradient(135deg,#E0FAF4,#CFF5EC); color: #0C8174; }
 .as-page .t-amber { background: linear-gradient(135deg,#FFF3DF,#FFEBCB); color: #B45309; }
 .as-page .t-green { background: linear-gradient(135deg,#E6F9ED,#D6F5E1); color: #15803D; }
 .as-page .t-rose { background: linear-gradient(135deg,#FFE9EE,#FFDCE4); color: #BE123C; }

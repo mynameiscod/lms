@@ -29,7 +29,7 @@
   color: #fff; display: grid; place-items: center; font-size: 17px;
 }
 .mf-brand b { display: block; font-size: 15px; font-weight: 900; color: #0f172a; letter-spacing: -.01em; }
-.mf-brand small { display: block; font-size: 11.5px; color: #94a3b8; margin-top: 1px; }
+.mf-brand small { display: block; font-size: 11.5px; color: #5A6A80; margin-top: 1px; }
 
 /* ── links ── */
 .mf-links { display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: center; }
@@ -42,8 +42,8 @@
 
 /* ── meta ── */
 .mf-meta { display: grid; gap: 4px; justify-items: end; text-align: right; }
-.mf-meta span { font-size: 11.5px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
-.mf-meta i { color: #16a34a; font-size: 12px; }
+.mf-meta span { font-size: 11.5px; color: #5A6A80; display: flex; align-items: center; gap: 6px; }
+.mf-meta i { color: #12863D; font-size: 12px; }
 .mf-copy { font-variant-numeric: tabular-nums; }
 
 @media (max-width: 900px) {

@@ -48,6 +48,8 @@ RUN ls -la dist/ && \
 # Final production image
 FROM node:18-alpine
 WORKDIR /app
+# ffmpeg makes the 360p-1080p versions of uploaded videos (services/videoRenditionService.ts).
+RUN apk add --no-cache ffmpeg
 
 # Copy package.json
 COPY server/package*.json ./

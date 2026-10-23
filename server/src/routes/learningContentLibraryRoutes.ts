@@ -108,6 +108,8 @@ router.get('/:id/stream', (req, res) => {
 router.use(authMiddleware);
 router.use(tenantMiddleware);
 
+router.get('/:id/qualities', ctrl.videoQualities);
+
 // The library is staff authoring: rows carry hidden grader tests and drafts, so students neither read nor write it here.
 // Learners receive content only through their day plans, which strip grading material. Recording an interview answer
 // (a student flow) still needs a Bunny upload slot, so that route stays open to any authenticated member.

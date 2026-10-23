@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import passportApi, { OrientationDay, OrientationItem, OrientationView } from '../../api/passportApi';
 import './orientation.css';
-import { mediaUrl } from '../../utils/mediaUrl';
-import { SeekControls, useSeekKeys, savedSpeed } from '../MyLearningPlan/VideoPlayer';
+import { mediaUrl, MEDIA_PATH } from '../../utils/mediaUrl';
+import { SeekControls, useSeekKeys, savedSpeed, savedQuality, pickQuality, switchSource, QualityPref } from '../MyLearningPlan/VideoPlayer';
 
 /**
  * The welcome, before Day 1.
@@ -200,6 +200,22 @@ const VideoItem: React.FC<{
   const togglePlay = useCallback(() => { const v = ref.current; if (!v) return; if (v.paused) v.play().catch(() => {}); else v.pause(); }, []);
   const onKeyDown = useSeekKeys(skip, togglePlay);
 
+  /* Quality versions exist only for files uploaded to CareerPilot (not for outside links). */
+  const baseSrc = mediaUrl(item.url);
+  const ours = String(item.url || '').includes(MEDIA_PATH);
+  const [heights, setHeights] = useState<number[]>([]);
+  const [quality, setQuality] = useState<QualityPref>(savedQuality);
+  useEffect(() => {
+    if (!ours || !baseSrc) return undefined;
+    let live = true;
+    fetch(`${baseSrc}/qualities`).then(r => (r.ok ? r.json() : null)).then(q => { if (live && q) setHeights(q.heights || []); }).catch(() => {});
+    return () => { live = false; };
+  }, [ours, baseSrc]);
+  const playingHeight = ours ? pickQuality(heights, quality) : 0;
+  const src = playingHeight ? `${baseSrc}/q/${playingHeight}` : baseSrc;
+  const mountSrc = useRef(src);
+  useEffect(() => { switchSource(ref.current, src, () => { lastTime.current = ref.current?.currentTime ?? 0; }); }, [src]);
+
   const save = async () => {
     const r = await passportApi.completeOrientationItem(day, item.key).catch(() => null);
     if (r?.orientation) onSaved(r.orientation);
@@ -239,7 +255,7 @@ const VideoItem: React.FC<{
         controls
         preload="metadata"
         playsInline
-        src={mediaUrl(item.url)}
+        src={mountSrc.current}
         onTimeUpdate={onTimeUpdate}
         onSeeked={resync}
         onPlay={resync}
@@ -252,6 +268,9 @@ const VideoItem: React.FC<{
         speed={speed}
         onSpeedChange={s => { setSpeed(s); if (ref.current) ref.current.playbackRate = s; }}
         videoRef={ref}
+        qualities={heights}
+        quality={quality}
+        onQualityChange={setQuality}
         note="Tip: the left and right arrow keys skip 10s, K plays and pauses. Skipping ahead does not count as watched."
       />
       {!item.done && (

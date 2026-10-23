@@ -10,6 +10,7 @@ import CareerSkillResource, {
 import StudentSkillProfile from '../models/StudentSkillProfile';
 import jwt from 'jsonwebtoken';
 import * as bunny from '../services/bunnyStorageService';
+import { enqueueRenditions, isVideoFile, renditionPath, qualitiesFor, LADDER } from '../services/videoRenditionService';
 import { jwtSecret } from '../config/secrets';
 import CareerSkill from '../models/CareerSkill';
 import User from '../models/User';
@@ -300,6 +301,8 @@ export const uploadAttachment = async (req: Request, res: Response) => {
           rd.pipe(wr);
         });
       }
+      // A video gets its quality versions (360p–1080p) made in the background.
+      if (isVideoFile(dest)) enqueueRenditions(dest);
     }
 
     res.status(201).json({
@@ -823,4 +826,49 @@ export const getMemberMaterial = async (req: Request, res: Response) => {
     console.error('[skill-resource] member material:', e?.message || e);
     res.status(500).json({ message: 'Could not load that material.' });
   }
+};
+
+
+/**
+ * GET /passport/skill-resources/media/:folder/:name/q/:height — one quality version of an
+ * uploaded video (see videoRenditionService). Public like the original, ranges supported.
+ */
+export const streamMediaQuality = async (req: Request, res: Response) => {
+  try {
+    const key = `${String(req.params.folder || '')}/${String(req.params.name || '')}`;
+    const height = Number(req.params.height);
+    if (!KEY_RE.test(key) || !(LADDER as readonly number[]).includes(height)) return res.status(400).json({ message: 'Bad file reference.' });
+    const file = renditionPath(path.join(LOCAL_DIR, key), height);
+    if (!fs.existsSync(file)) return res.status(404).json({ message: 'Not found.' });
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    const size = fs.statSync(file).size;
+    const range = req.headers.range;
+    if (range) {
+      const [rawStart, rawEnd] = range.replace(/bytes=/, '').split('-');
+      const start = Number(rawStart) || 0;
+      const end = rawEnd ? Math.min(Number(rawEnd), size - 1) : size - 1;
+      if (start >= size || start > end) { res.setHeader('Content-Range', `bytes */${size}`); return res.status(416).end(); }
+      res.writeHead(206, { 'Content-Range': `bytes ${start}-${end}/${size}`, 'Accept-Ranges': 'bytes', 'Content-Length': String(end - start + 1), 'Content-Type': 'video/mp4' });
+      fs.createReadStream(file, { start, end }).pipe(res);
+      return;
+    }
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Length', String(size));
+    fs.createReadStream(file).pipe(res);
+  } catch (e: any) {
+    if (!res.headersSent) res.status(500).json({ message: 'Could not serve that file.' });
+  }
+};
+
+/** GET /passport/skill-resources/media/:folder/:name/qualities — which quality versions exist. */
+export const mediaQualities = async (req: Request, res: Response) => {
+  const key = `${String(req.params.folder || '')}/${String(req.params.name || '')}`;
+  if (!KEY_RE.test(key)) return res.status(400).json({ message: 'Bad file reference.' });
+  const file = path.join(LOCAL_DIR, key);
+  if (!fs.existsSync(file)) return res.json({ status: 'none', sourceHeight: null, heights: [] });
+  res.setHeader('Cache-Control', 'no-cache');
+  res.json(qualitiesFor(file));
 };

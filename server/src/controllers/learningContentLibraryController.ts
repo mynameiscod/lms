@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { refreshLessonsInBackground } from '../services/roadmapLessonRefreshService';
 import fs from 'fs';
+import { enqueueRenditions, renditionPath, qualitiesFor, LADDER } from '../services/videoRenditionService';
 import path from 'path';
 import LearningContentLibrary from '../models/LearningContentLibrary';
 import CareerSkill from '../models/CareerSkill';
@@ -306,6 +307,7 @@ export const createContent = async (req: Request, res: Response) => {
     if (badVideo) return res.status(400).json({ message: badVideo });
 
     await item.save();
+    enqueueRenditions((item as any).videoFilePath);
     res.status(201).json(item);
     // A lesson attached to a unit reaches the roadmaps that already have that unit.
     if (item.isPublished) refreshLessonsInBackground(String(tenantId), [(item as any).unitCode]);
@@ -371,6 +373,7 @@ export const updateContent = async (req: Request, res: Response) => {
         fs.unlink(item.videoFilePath, () => {});
       }
       item.videoFilePath = (req as any).videoFilePath;
+      enqueueRenditions(item.videoFilePath);
     }
     if ((req as any).notesFilePath) {
       if (item.notesFilePath && fs.existsSync(item.notesFilePath)) {
@@ -449,7 +452,10 @@ export const streamVideo = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Video not found' });
     }
 
-    const filePath = item.videoFilePath;
+    /* ?q=720 serves that quality version when it exists (videoRenditionService); else the original. */
+    const q = Number(req.query.q);
+    const asked = (LADDER as readonly number[]).includes(q) ? renditionPath(item.videoFilePath, q) : null;
+    const filePath = asked && fs.existsSync(asked) ? asked : item.videoFilePath;
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ message: 'Video file not found on disk' });
     }
@@ -552,6 +558,19 @@ export const getSkillOptions = async (_req: Request, res: Response) => {
       depths: DEPTHS,
       directions: CAREER_DIRECTIONS.map(d => ({ key: d.key, name: d.name })),
     });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/** GET /learning-content/:id/qualities — the quality versions of an uploaded video. */
+export const videoQualities = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).user?.tenantId || (req as any).tenantId;
+    const item: any = await LearningContentLibrary.findOne({ _id: req.params.id, tenantId }).select('videoFilePath').lean();
+    if (!item?.videoFilePath || !fs.existsSync(item.videoFilePath)) return res.json({ status: 'none', sourceHeight: null, heights: [] });
+    res.setHeader('Cache-Control', 'no-cache');
+    res.json(qualitiesFor(item.videoFilePath));
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }

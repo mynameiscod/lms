@@ -24,6 +24,43 @@ const SPEED_KEY = 'cp.video.speed';
 export const savedSpeed = (): number => { try { const n = Number(localStorage.getItem(SPEED_KEY)); return SPEEDS.includes(n) ? n : 1; } catch { return 1; } };
 export const rememberSpeed = (s: number) => { try { localStorage.setItem(SPEED_KEY, String(s)); } catch { /* private mode */ } };
 
+/*
+ * QUALITY. An uploaded video gets 360p–1080p versions after upload (server videoRenditionService).
+ * 0 means the original file. "Auto" (the default) starts at 720p when it exists — the original is
+ * often a heavy 1080p recording that is slow to start — else the best version at or below 720p.
+ */
+const QUALITY_KEY = 'cp.video.quality';
+export type QualityPref = 'auto' | number;
+export const savedQuality = (): QualityPref => { try { const v = localStorage.getItem(QUALITY_KEY); return !v || v === 'auto' ? 'auto' : Number(v) || 'auto'; } catch { return 'auto'; } };
+export const rememberQuality = (q: QualityPref) => { try { localStorage.setItem(QUALITY_KEY, String(q)); } catch { /* private mode */ } };
+/** The height to play for a preference: 0 = the original file. */
+export const pickQuality = (heights: number[], pref: QualityPref): number => {
+  if (pref === 'auto') return heights.find(h => h <= 720) ?? 0;
+  if (pref === 0) return 0;
+  return heights.includes(pref) ? pref : (heights.find(h => h <= pref) ?? 0);
+};
+
+/**
+ * Change the file a <video> plays without losing the student's place: same second, same speed,
+ * still playing if it was. `onReady` lets a watch tracker resync after the jump.
+ */
+export const switchSource = (v: HTMLVideoElement | null, src: string, onReady?: () => void) => {
+  if (!v) return;
+  const abs = new URL(src, window.location.href).href;
+  if (v.currentSrc === abs || v.src === abs) return;
+  const t = v.currentTime, playing = !v.paused, rate = v.playbackRate;
+  const restore = () => {
+    v.removeEventListener('loadedmetadata', restore);
+    try { v.currentTime = t; } catch { /* not seekable yet */ }
+    v.playbackRate = rate;
+    onReady?.();
+    if (playing) v.play().catch(() => {});
+  };
+  v.addEventListener('loadedmetadata', restore);
+  v.src = abs;
+  v.load();
+};
+
 function formatTime(secs: number): string {
   if (!secs || !isFinite(secs) || secs < 0) return '0:00';
   const total = Math.floor(secs);
@@ -69,7 +106,7 @@ const btnStyle: React.CSSProperties = {
 };
 
 export function SeekControls({
-  onSkip, currentTime, duration, speed, onSpeedChange, note, videoRef,
+  onSkip, currentTime, duration, speed, onSpeedChange, note, videoRef, qualities, quality, onQualityChange,
 }: {
   onSkip: (delta: number) => void;
   currentTime: number;
@@ -79,6 +116,10 @@ export function SeekControls({
   note?: string;
   /** When given, a picture-in-picture button floats the video while the student reads on. */
   videoRef?: React.RefObject<HTMLVideoElement>;
+  /** Quality versions on offer (heights, highest first); the menu shows only when there are some. */
+  qualities?: number[];
+  quality?: QualityPref;
+  onQualityChange?: (q: QualityPref) => void;
 }) {
   const pipOk = !!videoRef && typeof document !== 'undefined' && (document as any).pictureInPictureEnabled;
   const togglePip = async () => {
@@ -118,8 +159,24 @@ export function SeekControls({
         </button>
       )}
 
-      {onSpeedChange && (
+      {onQualityChange && !!qualities?.length && (
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginLeft: 'auto', fontSize: 12.5, color: '#2F3F56', fontWeight: 600 }}>
+          Quality
+          <select
+            value={String(quality ?? 'auto')}
+            onChange={e => { const v: QualityPref = e.target.value === 'auto' ? 'auto' : Number(e.target.value); rememberQuality(v); onQualityChange(v); }}
+            aria-label="Video quality"
+            style={{ border: '1px solid #e2e8f0', borderRadius: 7, padding: '4px 6px', fontSize: 12, color: '#334155', background: '#fff', cursor: 'pointer' }}
+          >
+            <option value="auto">Auto ({pickQuality(qualities, 'auto') ? `${pickQuality(qualities, 'auto')}p` : 'original'})</option>
+            <option value="0">Original</option>
+            {qualities.map(h => <option key={h} value={h}>{h}p</option>)}
+          </select>
+        </label>
+      )}
+
+      {onSpeedChange && (
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginLeft: onQualityChange && qualities?.length ? 0 : 'auto', fontSize: 12.5, color: '#2F3F56', fontWeight: 600 }}>
           Speed
           <select
             value={speed}
@@ -278,7 +335,20 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
   const [unseekable, setUnseekable] = useState(false);
   const { pct, report } = useWatchProgress(threshold, onWatchEnough);
 
-  const streamUrl = learningContentLibraryApi.getStreamUrl(content._id);
+  const baseUrl = learningContentLibraryApi.getStreamUrl(content._id);
+  const [heights, setHeights] = useState<number[]>([]);
+  const [quality, setQuality] = useState<QualityPref>(savedQuality);
+  useEffect(() => {
+    let live = true;
+    learningContentLibraryApi.getQualities(content._id).then(q => { if (live) setHeights(q.heights || []); }).catch(() => {});
+    return () => { live = false; };
+  }, [content._id]);
+  const playing = pickQuality(heights, quality);
+  const streamUrl = playing ? `${baseUrl}&q=${playing}` : baseUrl;
+  /* The element keeps the address it mounted with; every later change (the qualities arriving,
+     the student picking one) goes through switchSource, which keeps their place. */
+  const mountSrc = useRef(streamUrl);
+  useEffect(() => { switchSource(videoRef.current, streamUrl); }, [streamUrl]);
 
   const skip = useCallback((delta: number) => {
     const v = videoRef.current;
@@ -325,7 +395,7 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
     <div onKeyDown={onKeyDown} tabIndex={0} style={{ outline: 'none' }}>
       <video
         ref={videoRef}
-        src={streamUrl}
+        src={mountSrc.current}
         poster={content.videoThumbnail || undefined}
         controls
         preload="metadata"
@@ -340,6 +410,9 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
         speed={speed}
         onSpeedChange={changeSpeed}
         videoRef={videoRef}
+        qualities={heights}
+        quality={quality}
+        onQualityChange={setQuality}
         note="Tip: the left and right arrow keys skip 10s (hold Shift for 30s), K plays and pauses."
       />
       {unseekable && (

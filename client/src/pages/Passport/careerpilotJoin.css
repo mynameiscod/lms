@@ -580,3 +580,8 @@
 /* Fallback for a plain #anchor (e.g. a shared link to /careerpilot/login#faqs): keep the section
    heading clear of the sticky top bar. The click handler measures the bar exactly. */
 .cpx-section[id], [id="career-tools"], [id="opportunities"] { scroll-margin-top: 96px; }
+
+/* The note reads as one line of text with its icon inline: as two flex items the icon sat
+   centred beside a wrapped sentence instead of on its first line. */
+.cpx-secure { display: block; margin: 12px 0 0; text-align: center; font-size: 13.5px; line-height: 1.5; color: #42526A; text-wrap: balance; }
+.cpx-secure i { display: inline-block; margin-right: 6px; font-size: 15px; line-height: 1; vertical-align: -2px; color: #237F91; }

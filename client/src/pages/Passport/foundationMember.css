@@ -342,3 +342,10 @@
   .fjm-hero > .fjm-momentum { margin: 0; padding: 0 20px; border-top: 0; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
   .fjm-hero > .fjm-ring { margin: 0 20px; align-self: center; }
 }
+
+/* Above 1280px: three balanced columns. The copy column took all the slack and the ring hugged
+   the edge, so the first gap looked far wider than the other two. */
+@media (min-width: 1281px) {
+  .fjm-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(220px, .5fr); }
+  .fjm-hero > .fjm-ring { justify-self: center; }
+}

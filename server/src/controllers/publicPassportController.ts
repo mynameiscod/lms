@@ -420,16 +420,26 @@ export const loginPassword = async (req: Request, res: Response) => {
     if (!identifier || !password) return res.status(400).json({ success: false, message: 'Enter your email/mobile and password.' });
 
     const id = String(identifier).trim();
+    /*
+     * A MOBILE CAN BELONG TO MORE THAN ONE ACCOUNT.
+     *
+     * Sign-up now refuses a number that is already taken, but accounts made before that share
+     * one. findOne() picked whichever came first, so the right password for the other account
+     * read as "Incorrect password" — the same person logged in fine with their email. Every
+     * CareerPilot account on the number is tried, and the one the password opens is the login.
+     */
     const query: any = id.includes('@')
-      ? { tenantId, email: id.toLowerCase() }
-      : { tenantId, phone: { $in: phoneVariants(id) } };
-    const user: any = await User.findOne(query);
-    if (!user || !user.passport) return res.status(404).json({ success: false, message: 'No CareerPilot found for that email/mobile.' });
-    if (!user.passport.passwordSet) return res.status(400).json({ success: false, message: 'You haven’t set a password yet — log in with WhatsApp OTP.', code: 'NO_PASSWORD' });
+      ? { tenantId, email: id.toLowerCase(), passport: { $exists: true } }
+      : { tenantId, phone: { $in: phoneVariants(id) }, passport: { $exists: true } };
+    const users: any[] = await User.find(query).limit(5);
+    if (!users.length) return res.status(404).json({ success: false, message: 'No CareerPilot found for that email/mobile.' });
+    const withPassword = users.filter(u => u.passport?.passwordSet);
+    if (!withPassword.length) return res.status(400).json({ success: false, message: 'You haven’t set a password yet — log in with WhatsApp OTP.', code: 'NO_PASSWORD' });
 
-    const ok = await user.comparePassword(String(password));
-    if (!ok) return res.status(401).json({ success: false, message: 'Incorrect password.' });
-    return issueLogin(res, user);
+    for (const user of withPassword) {
+      if (await user.comparePassword(String(password))) return issueLogin(res, user);
+    }
+    return res.status(401).json({ success: false, message: 'Incorrect password.' });
   } catch (e: any) {
     res.status(500).json({ success: false, message: e.message || 'Login failed' });
   }

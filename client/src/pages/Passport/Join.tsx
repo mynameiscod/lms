@@ -505,7 +505,7 @@ const PassportJoin: React.FC = () => {
                   </button>
                   <div className="cpx-or"><span>Already on CareerPilot?</span></div>
                   <button className="cpx-btn cpx-btn-soft cpx-login" type="button" onClick={goLogin}>Log In to Your Account</button>
-                  <div className="cpx-secure"><i className="bi bi-shield-check" /> We verify your account with a one-time WhatsApp code.</div>
+                  <p className="cpx-secure"><i className="bi bi-shield-check" aria-hidden="true" />We verify your account with a one-time WhatsApp code.</p>
                 </>
               )}
               </>

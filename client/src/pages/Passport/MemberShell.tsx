@@ -40,6 +40,10 @@ const ICONS: Record<string, string> = {
   brain: 'lightbulb',
   handshake: 'people-fill',
   support: 'life-preserver',
+  /* One icon per sidebar item: these three used to repeat Practice's, Mock Interview's and Resume's. */
+  codeSets: 'collection',
+  experiences: 'chat-quote',
+  books: 'journal-bookmark',
 };
 
 export const Icon: React.FC<{ name: string }> = ({ name }) => (
@@ -375,14 +379,14 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap', 'plan')}
           {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap', 'roadmap')}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice', 'practice')}
-          {navBtn('Coding Sets', 'code', '/careerpilot/coding', 'coding', 'coding')}
+          {navBtn('Coding Sets', 'codeSets', '/careerpilot/coding', 'coding', 'coding')}
           {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
           {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'thinkingLab', 'thinkingLab')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication', 'communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview', 'interview')}
-          {navBtn('Interview Experiences', 'interview', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
-          {navBtn('Question Books', 'resume', '/careerpilot/question-books', 'questionBooks', 'questionBooks')}
+          {navBtn('Interview Experiences', 'experiences', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
+          {navBtn('Question Books', 'books', '/careerpilot/question-books', 'questionBooks', 'questionBooks')}
           {navBtn('AI Mentor', 'robot', '/careerpilot/mentor', 'mentor', 'mentor')}
           {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies', 'companies')}
           {/* Sits with Opportunities because it answers the same question — what is happening in

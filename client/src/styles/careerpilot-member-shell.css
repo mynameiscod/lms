@@ -632,3 +632,27 @@
     display: flex !important; justify-content: center !important; align-items: center; width: 100%; text-align: center !important;
   }
 }
+
+@media (max-width: 640px) {
+  /* Stat cards two to a row (Home, Role readiness, Skill DNA, My Progress, Communication Lab):
+     icon, label, number and note centred in the card, as on the score rings above them. */
+  #root .gd .md-kpis > div, #root .gd .rr-kpis > div, #root .gd .sdn-kpis > div,
+  #root .gd .gam-metric, #root .gd .clx-kpi {
+    display: flex !important; flex-direction: column !important; align-items: center !important;
+    justify-content: flex-start !important; text-align: center !important;
+  }
+  #root .gd .md-kpis > div > div, #root .gd .rr-kpis > div > div, #root .gd .sdn-kpis > div > div, #root .gd .clx-kpi > div {
+    display: flex !important; flex-direction: column !important; align-items: center !important; text-align: center !important; width: 100%; min-width: 0;
+  }
+  #root .gd .md-kpis > div > .ic, #root .gd .rr-kpis > div > .ic, #root .gd .sdn-kpis > div > .ic,
+  #root .gd .gam-metric > .gam-mi, #root .gd .clx-kpi > i { margin-left: auto !important; margin-right: auto !important; }
+  #root .gd .md-kpis > div > div > *, #root .gd .rr-kpis > div > div > *, #root .gd .sdn-kpis > div > div > *,
+  #root .gd .gam-metric > *, #root .gd .clx-kpi > div > * { text-align: center !important; }
+  /* The level bar spans the card under the centred text. */
+  #root .gd .md-kpis > div > div > [class*="bar"], #root .gd .md-kpis [class*="md-mini"] { width: 100% !important; align-self: stretch !important; }
+}
+@media (max-width: 640px) {
+  /* An odd last card (My Progress: Global rank) spans the row instead of sitting half-width alone. */
+  #root .gd .gam-metric:last-child:nth-child(odd), #root .gd .md-kpis > div:last-child:nth-child(odd),
+  #root .gd .rr-kpis > div:last-child:nth-child(odd), #root .gd .sdn-kpis > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}

@@ -22,6 +22,7 @@ import { foundationReadiness } from '../services/foundationReadinessService';
 import { passwordProblem } from '../utils/passwordPolicy';
 import { validateProgramDays, programDaysFor } from '../services/foundationProgramLengthService';
 import { UNIT_ENGINE_STAGES } from '../data/curriculumEnginePolicy';
+import { liveStreak } from '../services/passportXpService';
 import { resizeToProgramDays } from '../services/roadmapRebuildService';
 import { resolveRoadmapV2, validateRoadmapV2Patch } from '../data/roadmapV2Policy';
 import { membershipPriceFor, validatePriceInr } from '../services/membershipPricingService';
@@ -321,13 +322,13 @@ export const getMyStatus = async (req: Request, res: Response) => {
      */
     const progress = await PassportProgress
       .findOne({ tenantId, studentId: String(user?._id || userIdOf(req)) })
-      .select('xp streak longestStreak').lean() as any;
+      .select('xp streak longestStreak lastCompletedDate').lean() as any;
 
     res.json({
       assessed: assessedState.assessed,
       progress: {
         xp: progress?.xp ?? 0,
-        streak: progress?.streak ?? 0,
+        streak: progress ? liveStreak(progress) : 0,
         longestStreak: progress?.longestStreak ?? 0,
       },
       assessedVia: assessedState.source,

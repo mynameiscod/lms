@@ -328,3 +328,8 @@
   .ska-paused { padding: 28px 18px; }
   .ska-paused-actions .ska-btn { width: 100%; }
 }
+
+/* Every question needs an answer: the line under the buttons saying what is still needed. */
+.ska-required { margin: 10px 0 0; font-size: 13.5px; font-weight: 600; color: #8A5000; }
+.ska-link { border: 0; background: none; padding: 0; font: inherit; font-weight: 800; color: #051D64; text-decoration: underline; cursor: pointer; }
+.ska-nav .ska-btn:disabled { opacity: .5; cursor: not-allowed; }

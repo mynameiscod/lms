@@ -349,3 +349,6 @@
   .rr .rr-split-top > span { font-size: 12.5px; white-space: nowrap; }
   .rr .rr-split-foot { font-size: 12px; }
 }
+
+/* Left column: skill bars then the summary, stacked like the side cards (one grid, no gap rows). */
+.rr-main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }

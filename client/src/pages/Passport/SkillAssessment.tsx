@@ -417,6 +417,19 @@ const SkillAssessment: React.FC = () => {
     () => paper ? paper.items.filter(i => answers[keyOf(i)] !== undefined && answers[keyOf(i)] !== '').length : 0,
     [paper, answers],
   );
+  /**
+   * EVERY QUESTION NEEDS AN ANSWER: one of its options, or "I don't know".
+   * "Save & next" waits for the question on screen, and submitting waits for all of them — the
+   * server refuses a paper with an untouched question too.
+   */
+  const isSettled = (i: SkillAssessmentItem) => {
+    const r = answers[keyOf(i)];
+    const has = r !== undefined && r !== null && r !== '' && !(Array.isArray(r) && r.length === 0);
+    return has || dontKnow.has(keyOf(i));
+  };
+  const settledCount = paper ? paper.items.filter(isSettled).length : 0;
+  const firstOpen = paper ? paper.items.findIndex(i => !isSettled(i)) : -1;
+  const allSettled = !!paper && settledCount === paper.items.length;
 
   const submit = async () => {
     if (!paper) return;
@@ -427,6 +440,7 @@ const SkillAssessment: React.FC = () => {
         sourceType: i.sourceType,
         sourceId: i.sourceId,
         response: answers[keyOf(i)],
+        ...(dontKnow.has(keyOf(i)) ? { dontKnow: true } : {}),
       }));
       /*
        * Everything still in the outbox goes first. Submitting with unsent answers is how a
@@ -843,11 +857,20 @@ const SkillAssessment: React.FC = () => {
               <i className="bi bi-question-circle" /> I don&apos;t know the answer
             </button>
             {at < paper.items.length - 1 ? (
-              <button className="ska-btn primary" onClick={() => setAt(n => n + 1)}>Save & next <i className="bi bi-arrow-right" /></button>
+              <button className="ska-btn primary" disabled={!paper.items[at] || !isSettled(paper.items[at])} onClick={() => setAt(n => n + 1)}>Save & next <i className="bi bi-arrow-right" /></button>
             ) : (
-              <button className="ska-btn primary" onClick={() => setConfirming(true)}>Review & submit <i className="bi bi-arrow-right" /></button>
+              <button className="ska-btn primary" disabled={!allSettled} onClick={() => setConfirming(true)}>Review & submit <i className="bi bi-arrow-right" /></button>
             )}
           </div>
+          {paper.items[at] && !isSettled(paper.items[at]) && (
+            <p className="ska-required">Choose an answer, or “I don’t know the answer”, to continue.</p>
+          )}
+          {at === paper.items.length - 1 && isSettled(paper.items[at]) && !allSettled && firstOpen >= 0 && (
+            <p className="ska-required">
+              {paper.items.length - settledCount} {paper.items.length - settledCount === 1 ? 'question still needs' : 'questions still need'} an answer before you can submit.{' '}
+              <button type="button" className="ska-link" onClick={() => setAt(firstOpen)}>Go to question {firstOpen + 1}</button>
+            </p>
+          )}
 
           <div className="ska-question-palette">
             {paper.items.map((q, i) => {
@@ -872,7 +895,7 @@ const SkillAssessment: React.FC = () => {
           <div className="bx">
             <span className="ska-modal-icon"><i className="bi bi-send-check" /></span>
             <b>{placing ? 'Submit your check?' : 'Submit your assessment?'}</b>
-            <p>{answeredCount} of {paper.items.length} answered{answeredCount < paper.items.length && ` · ${paper.items.length - answeredCount} left blank`}. You cannot change your answers afterwards.</p>
+            <p>{answeredCount} of {paper.items.length} answered{answeredCount < paper.items.length && ` · ${paper.items.length - answeredCount} marked “I don’t know”`}. You cannot change your answers afterwards.</p>
             <div className="ska-actions">
               <button className="ska-btn ghost" onClick={() => setConfirming(false)}>Keep working</button>
               <button className="ska-btn primary" disabled={submitting} onClick={submit}>{submitting ? (placing ? 'Rebuilding your plan…' : 'Submitting…') : (placing ? 'Submit check' : 'Submit assessment')}</button>

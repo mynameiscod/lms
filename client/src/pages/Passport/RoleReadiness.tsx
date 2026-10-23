@@ -177,46 +177,62 @@ const RoleReadiness: React.FC = () => {
           ? <div className="rr-note"><i className="bi bi-info-circle" /><span>Your readiness is based on <b>{summary.assessedSkills} of {summary.requiredSkills}</b> required skills. More evidence will make it more representative.</span></div>
           : null}
 
+      {/* One two-column layout: the skill bars and the summary on the left, the side cards
+          stacked on the right — two separate rows left a tall empty gap beside the short cards. */}
       <section className="rr-grid">
-        <article className="rr-card">
-          <header className="rr-card-head">
-            <div><h2>Readiness by skill</h2><p>{measuredRows.length} of {summary.requiredSkills} required skills measured, what needs attention first. The marker is the target.</p></div>
-            <div className="rr-legend"><span><i className="you" /> You</span><span><i className="tgt" /> Target</span></div>
-          </header>
-          {measuredRows.length ? (
-            <ul className="rr-skills">
-              {measuredRows.map(s => {
-                const current = s.studentScore ?? 0;
-                const target = Math.min(100, s.targetScore || 100);
-                const tone = STATUS_COPY[s.status]?.tone || 'muted';
-                return (
-                  <li key={s.skillKey}>
-                    <div className="rr-skill-top">
-                      <b>{s.skillName}</b>
-                      <span className="rr-skill-nums">{current}<em> / {target}</em></span>
-                      <em className={`rr-pill ${tone}`}>{STATUS_COPY[s.status]?.label || s.status}</em>
-                    </div>
-                    <div className={`rr-track ${tone}`}>
-                      <i style={{ width: `${Math.max(2, Math.min(100, current))}%` }} />
-                      <b style={{ left: `${target}%` }} aria-hidden="true" />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : <div className="rr-placeholder">No skills for this role are measured yet.</div>}
-          {unmeasured.length > 0 && (
-            <div className="rr-unmeasured">
-              <b>{unmeasured.length} skill{unmeasured.length === 1 ? '' : 's'} not measured yet</b>
-              <span>Not counted as failures. They are measured as you learn and practise.</span>
-              <div className="rr-chips">
-                {unmeasured.slice(0, 10).map(s => <span key={s.skillKey}>{s.skillName}</span>)}
-                {unmeasured.length > 10 && <span className="more">+{unmeasured.length - 10} more</span>}
+        <div className="rr-main">
+          <article className="rr-card">
+            <header className="rr-card-head">
+              <div><h2>Readiness by skill</h2><p>{measuredRows.length} of {summary.requiredSkills} required skills measured, what needs attention first. The marker is the target.</p></div>
+              <div className="rr-legend"><span><i className="you" /> You</span><span><i className="tgt" /> Target</span></div>
+            </header>
+            {measuredRows.length ? (
+              <ul className="rr-skills">
+                {measuredRows.map(s => {
+                  const current = s.studentScore ?? 0;
+                  const target = Math.min(100, s.targetScore || 100);
+                  const tone = STATUS_COPY[s.status]?.tone || 'muted';
+                  return (
+                    <li key={s.skillKey}>
+                      <div className="rr-skill-top">
+                        <b>{s.skillName}</b>
+                        <span className="rr-skill-nums">{current}<em> / {target}</em></span>
+                        <em className={`rr-pill ${tone}`}>{STATUS_COPY[s.status]?.label || s.status}</em>
+                      </div>
+                      <div className={`rr-track ${tone}`}>
+                        <i style={{ width: `${Math.max(2, Math.min(100, current))}%` }} />
+                        <b style={{ left: `${target}%` }} aria-hidden="true" />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : <div className="rr-placeholder">No skills for this role are measured yet.</div>}
+            {unmeasured.length > 0 && (
+              <div className="rr-unmeasured">
+                <b>{unmeasured.length} skill{unmeasured.length === 1 ? '' : 's'} not measured yet</b>
+                <span>Not counted as failures. They are measured as you learn and practise.</span>
+                <div className="rr-chips">
+                  {unmeasured.slice(0, 10).map(s => <span key={s.skillKey}>{s.skillName}</span>)}
+                  {unmeasured.length > 10 && <span className="more">+{unmeasured.length - 10} more</span>}
+                </div>
               </div>
+            )}
+            <button className="rr-link" onClick={() => nav('/careerpilot/skills')}>See your full Skill DNA <i className="bi bi-arrow-right" /></button>
+          </article>
+
+          <article className="rr-card">
+            <header className="rr-card-head"><div><h2>Readiness summary</h2><p>What the evidence says, across all {summary.requiredSkills} required skills.</p></div></header>
+            <div className="rr-summary">
+              <div className="good"><b>{summary.onTrack + summary.strong}</b><span>On track</span></div>
+              <div className="warn"><b>{summary.needsWork}</b><span>Need work</span></div>
+              <div className="danger"><b>{summary.priorityGaps}</b><span>Priority gaps</span></div>
+              <div className="muted"><b>{summary.notAssessed + summary.limitedEvidence}</b><span>Need measuring</span></div>
             </div>
-          )}
-          <button className="rr-link" onClick={() => nav('/careerpilot/skills')}>See your full Skill DNA <i className="bi bi-arrow-right" /></button>
-        </article>
+            <p className="rr-explain"><i className="bi bi-lightbulb" /><span><b>What this means:</b> focus first on essential gaps with strong evidence. Unmeasured skills are not counted as failures.</span></p>
+          </article>
+
+        </div>
 
         <div className="rr-side">
           <article className="rr-card">
@@ -246,34 +262,20 @@ const RoleReadiness: React.FC = () => {
               </ul>
             ) : <div className="rr-placeholder">No priority gaps are currently identified.</div>}
           </article>
+          {/**
+            * ONE WAY ON, AND IT IS THE DASHBOARD.
+            *
+            * A readiness page's job is to say where you stand. Where to go next belongs to the dashboard, which is the one
+            * place that knows whether a plan exists yet. (An earlier "Build My Roadmap" here opened the wrong journey, and a
+            * second "Go to Dashboard" banner repeated this card; both are gone.)
+            */}
+          <article className="rr-card rr-next">
+            <span className="rr-next-ic"><i className="bi bi-compass" /></span>
+            <h2>What’s next?</h2>
+            <p>Your dashboard builds your 90-day plan from the curriculum you are being taught, adjusted to what this assessment measured.</p>
+            <button className="rr-btn primary" onClick={() => nav('/careerpilot')}>Go to my dashboard <i className="bi bi-arrow-right" /></button>
+          </article>
         </div>
-      </section>
-
-      <section className="rr-grid lower">
-        <article className="rr-card">
-          <header className="rr-card-head"><div><h2>Readiness summary</h2><p>What the evidence says, across all {summary.requiredSkills} required skills.</p></div></header>
-          <div className="rr-summary">
-            <div className="good"><b>{summary.onTrack + summary.strong}</b><span>On track</span></div>
-            <div className="warn"><b>{summary.needsWork}</b><span>Need work</span></div>
-            <div className="danger"><b>{summary.priorityGaps}</b><span>Priority gaps</span></div>
-            <div className="muted"><b>{summary.notAssessed + summary.limitedEvidence}</b><span>Need measuring</span></div>
-          </div>
-          <p className="rr-explain"><i className="bi bi-lightbulb" /><span><b>What this means:</b> focus first on essential gaps with strong evidence. Unmeasured skills are not counted as failures.</span></p>
-        </article>
-
-        {/**
-          * ONE WAY ON, AND IT IS THE DASHBOARD.
-          *
-          * A readiness page's job is to say where you stand. Where to go next belongs to the dashboard, which is the one
-          * place that knows whether a plan exists yet. (An earlier "Build My Roadmap" here opened the wrong journey, and a
-          * second "Go to Dashboard" banner repeated this card; both are gone.)
-          */}
-        <article className="rr-card rr-next">
-          <span className="rr-next-ic"><i className="bi bi-compass" /></span>
-          <h2>What’s next?</h2>
-          <p>Your dashboard builds your 90-day plan from the curriculum you are being taught, adjusted to what this assessment measured.</p>
-          <button className="rr-btn primary" onClick={() => nav('/careerpilot')}>Go to my dashboard <i className="bi bi-arrow-right" /></button>
-        </article>
       </section>
 
       <p className="rr-disclaimer"><b>Readiness</b> compares your demonstrated skills with configured role requirements. <b>Coverage</b> shows how much of that role has enough evidence to judge. This is capability alignment, not a prediction of hiring outcome.</p>

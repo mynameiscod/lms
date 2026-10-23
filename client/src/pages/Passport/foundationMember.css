@@ -349,3 +349,10 @@
   .fjm-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(220px, .5fr); }
   .fjm-hero > .fjm-ring { justify-self: center; }
 }
+
+/* Phones and tablets: the middle section loses BOTH side borders (its right border stayed and
+   drew a stray vertical line down the card); the "Start here" title wraps instead of "Say he…". */
+@media (max-width: 980px) {
+  .fjm-hero > .fjm-momentum, .fjm-momentum { border-left: 0; border-right: 0; }
+  .fjm-challenge span, .fjm-challenge em { white-space: normal; overflow: visible; text-overflow: clip; }
+}

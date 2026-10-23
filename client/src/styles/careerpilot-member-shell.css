@@ -546,3 +546,10 @@
   #root .gd .gd-user-btn .nm-wrap { display: none; }
   #root .gd .gd-user-btn { padding-right: 8px; }
 }
+
+/* Phone/tablet menu above everything on the page: a sticky bar further down the page (the resume
+   actions, a day's Finish button) shared its layer and was painted on top of the open drawer. */
+@media (max-width: 980px) {
+  #root .gd .gd-side { z-index: 1200 !important; }
+  #root .gd .gd-side-backdrop, #root .gd .gd-scrim, #root .gd .gd-overlay { z-index: 1190 !important; }
+}

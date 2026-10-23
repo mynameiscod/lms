@@ -269,7 +269,7 @@
    the flow: there the four buttons stack and a pinned bar would cover the form. */
 #root .gd .rc-page.rc2, .rc-page.rc2 { padding-bottom: 0 !important; }
 #root .gd .gd-main:has(.rc-sticky-actions) { padding-bottom: 0 !important; }
-#root .gd .rc2 .rc-sticky-actions, .rc2 .rc-sticky-actions { position: sticky; bottom: 12px; margin-bottom: 12px; z-index: 30; }
+#root .gd .rc2 .rc-sticky-actions, .rc2 .rc-sticky-actions { position: sticky; bottom: 12px; margin-bottom: 12px; z-index: 20; }
 @media (max-width: 760px) {
   #root .gd .rc2 .rc-sticky-actions, .rc2 .rc-sticky-actions { position: static; margin-bottom: 16px; }
 }

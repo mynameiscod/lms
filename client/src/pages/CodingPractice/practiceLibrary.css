@@ -146,3 +146,17 @@
 .pl-quote .q:last-child { margin-left: 2px; }
 .pl-quote figcaption { margin-top: 8px; font-size: 13px; font-weight: 600; color: #2F5F57; }
 .pl-quote .q { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 1.35em; line-height: 1; vertical-align: -0.12em; }
+
+/* Phones and tablets. Passport/practice.css also defines .pl-grid (another page), and its plain
+   `1fr` could not shrink below the hero's widest word, so the page ran past the screen and was
+   clipped on the right. Scoped to .pl here, with columns that can shrink. */
+.pl .pl-grid > * { min-width: 0; }
+@media (max-width: 1180px) { .pl .pl-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) {
+  .pl { padding-left: 0; padding-right: 0; }
+  .pl .pl-hero { padding: 22px 18px; border-radius: 16px; }
+  .pl .pl-hero h1 { font-size: 30px; line-height: 1.12; overflow-wrap: anywhere; }
+  .pl .pl-stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+  .pl .pl-stat { padding: 14px 12px; gap: 10px; min-width: 0; }
+  .pl .pl-stat .ic { width: 38px; height: 38px; flex: none; }
+}

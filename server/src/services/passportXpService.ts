@@ -76,3 +76,14 @@ export function completeMissionOnce(
   addXp(progress, xp || DEFAULT_MISSION_XP, true, now, 'mission');
   return true;
 }
+
+/**
+ * The streak as it stands TODAY. The stored count only moves when XP is earned, so a member who
+ * stopped three days ago still had "3" saved — and saw a 3-day streak beside an empty week of
+ * dots. It is live only if their last active day is today or yesterday; otherwise it is 0.
+ */
+export function liveStreak(progress: Pick<IPassportProgress, 'streak' | 'lastCompletedDate'>, now = new Date()): number {
+  const today = ymd(now);
+  const yesterday = ymd(new Date(now.getTime() - 86400000));
+  return progress.lastCompletedDate === today || progress.lastCompletedDate === yesterday ? (progress.streak || 0) : 0;
+}

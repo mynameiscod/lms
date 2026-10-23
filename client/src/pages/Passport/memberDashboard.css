@@ -409,3 +409,14 @@ button.md-jm:hover { border-color: #9DBBD0; box-shadow: 0 6px 16px rgba(15, 46, 
 .md .md-quote .q:first-child { margin-right: 2px; }
 .md .md-quote .q:last-child { margin-left: 2px; }
 .md .md-quote .q { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 1.3em; line-height: 1; vertical-align: -0.12em; }
+
+/* Phone: the tick stays on the right, centred on the row; the XP sits under the title.
+   (The row used to wrap, dropping XP and the tick onto a line of their own at the left.) */
+@media (max-width: 560px) {
+  .md .md-mission { display: grid; grid-template-columns: 40px minmax(0, 1fr) 30px; grid-template-areas: "ic txt ck" "ic xp ck"; column-gap: 12px; row-gap: 6px; align-items: center; flex-wrap: nowrap; }
+  .md .md-mission .md-mission-ic { grid-area: ic; align-self: center; }
+  .md .md-mission .txt { grid-area: txt; flex-basis: auto; }
+  .md .md-mission .xp, .md .md-mission .lnk { grid-area: xp; justify-self: start; }
+  .md .md-mission .md-check { grid-area: ck; justify-self: end; align-self: center; }
+  .md .md-mission:not(:has(.xp)):not(:has(.lnk)) { grid-template-areas: "ic txt ck"; }
+}

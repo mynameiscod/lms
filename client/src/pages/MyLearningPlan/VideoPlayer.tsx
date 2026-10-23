@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import { youtubeIdOf, vimeoIdOf } from '../../components/content/videoUrl';
+import './videoControls.css';
 
 /**
  * Lesson video playback for students.
@@ -127,7 +128,8 @@ export function SeekControls({
     try { if ((document as any).pictureInPictureElement) await (document as any).exitPictureInPicture(); else await (v as any).requestPictureInPicture(); } catch { /* not allowed here */ }
   };
   return (
-    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+    <div className="vpc">
+      <div className="vpc-row">
       <button
         type="button"
         style={btnStyle}
@@ -148,7 +150,7 @@ export function SeekControls({
       </button>
 
       {duration > 0 && (
-        <span style={{ fontSize: 12, color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>
+        <span className="vpc-time">
           {formatTime(currentTime)} / {formatTime(duration)}
         </span>
       )}
@@ -158,15 +160,17 @@ export function SeekControls({
           <i className="bi bi-pip" /> Float
         </button>
       )}
+      </div>
+
+      <div className="vpc-sel">
 
       {onQualityChange && !!qualities?.length && (
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginLeft: 'auto', fontSize: 12.5, color: '#2F3F56', fontWeight: 600 }}>
+        <label className="vpc-pick">
           Quality
           <select
             value={String(quality ?? 'auto')}
             onChange={e => { const v: QualityPref = e.target.value === 'auto' ? 'auto' : Number(e.target.value); rememberQuality(v); onQualityChange(v); }}
             aria-label="Video quality"
-            style={{ border: '1px solid #e2e8f0', borderRadius: 7, padding: '4px 6px', fontSize: 12, color: '#334155', background: '#fff', cursor: 'pointer' }}
           >
             <option value="auto">Auto ({pickQuality(qualities, 'auto') ? `${pickQuality(qualities, 'auto')}p` : 'original'})</option>
             <option value="0">Original</option>
@@ -176,20 +180,21 @@ export function SeekControls({
       )}
 
       {onSpeedChange && (
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginLeft: onQualityChange && qualities?.length ? 0 : 'auto', fontSize: 12.5, color: '#2F3F56', fontWeight: 600 }}>
+        <label className="vpc-pick">
           Speed
           <select
             value={speed}
             onChange={e => { const v = Number(e.target.value); rememberSpeed(v); onSpeedChange(v); }}
             aria-label="Playback speed"
-            style={{ border: '1px solid #e2e8f0', borderRadius: 7, padding: '4px 6px', fontSize: 12, color: '#334155', background: '#fff', cursor: 'pointer' }}
           >
             {SPEEDS.map(s => <option key={s} value={s}>{s === 1 ? 'Normal' : `${s}x`}</option>)}
           </select>
         </label>
       )}
 
-      {note && <span style={{ fontSize: 11, color: '#94a3b8', width: '100%' }}>{note}</span>}
+      </div>
+
+      {note && <span className="vpc-note">{note}</span>}
     </div>
   );
 }

@@ -479,11 +479,9 @@ export const streamPublicMedia = async (req: Request, res: Response) => {
     }
 
     if (bunny.isBunnyStorageConfigured()) {
-      /* Bunny serves its own ranges and CDN caching; proxying the bytes through this process
-         would give up both and put a gigabyte of video through the API for every viewer. */
-      const { stream, size } = await bunny.getFileStream(remotePathOf(key));
-      if (size) res.setHeader('Content-Length', String(size));
-      stream.pipe(res);
+      /* Byte ranges passed through to Bunny, so a video on Bunny can be seeked (it could not:
+         the whole file came back with no range support, and every seek control did nothing). */
+      await bunny.sendFileWithRanges(req, res, remotePathOf(key), ALLOWED_EXT[ext] || undefined);
       return;
     }
     return res.status(404).json({ message: 'Not found.' });

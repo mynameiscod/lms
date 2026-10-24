@@ -164,8 +164,8 @@ const PassportAdminConfig: React.FC = () => {
     setSaving(false);
   };
 
-  if (loading) return <div className="cpc">Loading…</div>;
-  if (!cfg) return <div className="cpc" style={{ color: '#dc2626' }}>{msg?.text || 'No config'}</div>;
+  if (loading) return <div className="cpcfg">Loading…</div>;
+  if (!cfg) return <div className="cpcfg" style={{ color: '#dc2626' }}>{msg?.text || 'No config'}</div>;
 
   const set = (patch: Partial<PassportConfig>) => setCfg({ ...cfg, ...patch });
   const setEnt = (key: string, tier: 'free' | 'paid') =>
@@ -218,15 +218,15 @@ const PassportAdminConfig: React.FC = () => {
   const enterCloses = (e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); setEditing(null); } };
 
   return (
-    <div className="cpc">
-      <div className="cpc-crumb">CareerPilot <span style={{ color: '#cbd5e1' }}>›</span> <b>Configuration</b></div>
-      <div className="cpc-head">
+    <div className="cpcfg">
+      <header className="cpx-head">
         <div>
-          <h1>CareerPilot — Configuration</h1>
-          <p>Set up CareerPilot for your institution: product settings, registration and the sign-up form. Changes apply without a deploy.</p>
+          <span className="cpx-eyebrow">CareerPilot</span>
+          <h1>Configuration</h1>
+          <p>Product settings, registration, programme length and price per year, what is free, and the sign-up form. Changes apply without a deploy.</p>
         </div>
-        <a className="cpc-view" href="/careerpilot/join" target="_blank" rel="noreferrer">View CareerPilot <i className="bi bi-box-arrow-up-right" /></a>
-      </div>
+        <a className="cpx-btn" href="/careerpilot/join" target="_blank" rel="noreferrer"><i className="bi bi-box-arrow-up-right" /> View CareerPilot</a>
+      </header>
 
       {!platformEnabled && (
         <div className="cpc-warn">
@@ -559,7 +559,7 @@ const PassportAdminConfig: React.FC = () => {
             </div>
           </section>
 
-          <div className="cpc-bar">
+          <div className="cpc-savebar">
             <button className="cpc-save" onClick={save} disabled={saving}><i className="bi bi-floppy" /> {saving ? 'Saving…' : 'Save Changes'}</button>
             <button className="cpc-reset" onClick={() => { if (!dirty || window.confirm('Discard your unsaved changes?')) load(); }} disabled={saving}><i className="bi bi-arrow-counterclockwise" /> Reset</button>
             {dirty && !msg && <span className="cpc-dirty">Unsaved changes</span>}

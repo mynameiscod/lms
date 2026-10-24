@@ -169,9 +169,8 @@ export const streamRecording = async (req: Request, res: Response) => {
     const key = await recordingKeyFor(tenantId, studentId, Number(req.params.day), String(req.params.itemKey));
     if (!key) return res.status(404).json({ message: 'No recording yet.' });
 
-    const { stream } = await bunny.getFileStream(key);
-    res.setHeader('Content-Type', 'video/webm');
-    stream.pipe(res);
+    // With byte ranges, so the member can seek in their own recording.
+    await bunny.sendFileWithRanges(req, res, key, 'video/webm');
   } catch (e: any) {
     console.error('[orientation] playback:', e?.message || e);
     res.status(500).json({ message: 'Could not play that recording just now.' });

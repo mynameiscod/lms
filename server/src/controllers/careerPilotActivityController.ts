@@ -66,7 +66,7 @@ export const ingest = async (req: Request, res: Response) => {
         visitorId,
         sessionId: body.sessionId,
         userId: user?.id,
-        personName: [user?.firstName, user?.lastName].filter(Boolean).join(' ') || undefined,
+        personName: [user?.firstName, user?.lastName].filter(v => v && String(v).trim() !== '-').join(' ') || undefined,
         personEmail: user?.email,
         kind: e?.kind,
         name: e?.name,

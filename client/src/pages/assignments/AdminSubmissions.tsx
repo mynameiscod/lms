@@ -55,14 +55,15 @@ const AdminSubmissions: React.FC = () => {
 
   const openGrading = (submission: Submission) => {
     setSelectedSubmission(submission);
-    setGradingScore(submission.score || 0);
-    setGradingFeedback(submission.feedback || '');
+    // The record keeps the mark as manualScore/finalScore and the feedback as overallFeedback.
+    setGradingScore((submission as any).manualScore ?? submission.score ?? (submission as any).finalScore ?? 0);
+    setGradingFeedback(submission.feedback || (submission as any).overallFeedback || '');
     
     // Initialize rubric scores
     if (submission.rubricScores) {
       const scores: Record<string, number> = {};
       submission.rubricScores.forEach(rs => {
-        scores[rs.criterion] = rs.score;
+        scores[rs.criterion] = rs.score ?? (rs as any).pointsAwarded ?? 0;
       });
       setRubricScores(scores);
     } else {
@@ -398,9 +399,29 @@ const AdminSubmissions: React.FC = () => {
                 </div>
               )}
 
-              {assignment?.type === AssignmentType.THEORY && selectedSubmission.theoryAnswer && (
+              {/* Files the student handed in (FILE_UPLOAD), each downloadable. */}
+              {!!selectedSubmission.uploadedFiles?.length && (
                 <div className="form-group">
-                  <label className="form-label">Submitted Answer</label>
+                  <label className="form-label">Files handed in</label>
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {selectedSubmission.uploadedFiles.map(f => (
+                      <button key={f.filename} type="button" className="btn btn-secondary"
+                        style={{ justifyContent: 'space-between', display: 'flex', gap: 12 }}
+                        onClick={() => submissionApi.downloadFile(selectedSubmission._id, f).catch(() => alert('That file could not be downloaded.'))}>
+                        <span>📎 {f.originalName}</span>
+                        <span style={{ fontSize: 12.5, opacity: .8 }}>{(f.size / 1024 / 1024).toFixed(2)} MB · Download</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* The written answer — a THEORY answer, a PROJECT write-up (where the work is and what was
+                  built), or the note sent with uploaded files. It used to show only for THEORY, so a
+                  reviewer could not read a project submission at all. */}
+              {!!selectedSubmission.theoryAnswer && (
+                <div className="form-group">
+                  <label className="form-label">{assignment?.type === AssignmentType.THEORY ? 'Submitted Answer' : 'What the student wrote'}</label>
                   <div style={{
                     background: '#f9fafb',
                     padding: '16px',

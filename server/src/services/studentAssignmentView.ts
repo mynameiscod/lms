@@ -77,6 +77,16 @@ export function toStudentSubmission(doc: any): any {
   const s = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };
   // How the grade was produced is grading provenance for Skill DNA, not something the student acts on.
   delete s.autoGradeTrusted;
+  // Notes the instructor kept for staff only.
+  delete s.privateFeedback;
+  /* The student pages read `testResults`, `feedback` and a rubric row's `score`; the record stores
+     `testCaseResults`, `overallFeedback` and `pointsAwarded`. Without these names the test results,
+     the instructor's feedback and the rubric marks never appeared to the student. */
+  if (s.testResults === undefined && Array.isArray(s.testCaseResults)) s.testResults = s.testCaseResults;
+  if (s.feedback === undefined && s.overallFeedback) s.feedback = s.overallFeedback;
+  if (Array.isArray(s.rubricScores)) {
+    s.rubricScores = s.rubricScores.map((r: any) => ({ ...r, score: r.score ?? r.pointsAwarded }));
+  }
   const assignment = s.assignment;
   if (assignment && typeof assignment === 'object' && !(assignment._bsontype === 'ObjectId' || assignment._bsontype === 'ObjectID')
     && ('testCases' in assignment || 'mcqQuestions' in assignment || 'starterCode' in assignment || 'title' in assignment)) {

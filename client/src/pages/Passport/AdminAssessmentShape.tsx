@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import passportApi, { EditablePolicy, PolicyBounds } from '../../api/passportApi';
 import './adminAssessmentShape.css';
+// Several shared classes (pm-btn, pm-msg and this page's own) live in the member stylesheet; import
+// it here so the page is styled the same on a fresh load as after visiting a member page.
+import './member.css';
 
 /**
  * The shape of a personalised assessment, per stage.

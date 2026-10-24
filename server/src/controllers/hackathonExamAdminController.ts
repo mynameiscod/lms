@@ -18,6 +18,7 @@ import {
   startBulkSend, getBulkSend, runningBulkSend, SendAlreadyRunning,
 } from '../services/bulkSendJobs';
 import { readChunk, purgeAttemptRecording } from '../services/proctorStorageService';
+import { globalPracticeClause } from '../services/contentGrantService';
 
 /**
  * Running the hackathon exam: configure it, prove it can be drawn, invite the teams, watch it
@@ -580,7 +581,7 @@ export const getSectionPool = async (req: AuthenticatedRequest, res: Response) =
     if (!section) return res.status(404).json({ success: false, message: 'Section not found.' });
 
     const items = section.source === 'problem_bank'
-      ? (await CodingProblem.find(problemBankFilter(String(exam.tenantId), section))
+      ? (await CodingProblem.find(problemBankFilter(String(exam.tenantId), section, await globalPracticeClause(String(exam.tenantId))))
         .select('_id kind difficulty languages.language marks tags topics title')
         .sort({ difficulty: 1, _id: 1 }).limit(500).lean() as any[])
         .map((p) => ({

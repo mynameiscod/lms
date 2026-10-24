@@ -22,6 +22,10 @@ export const homePathFor = (user?: WhoLike | null): string => (isMember(user) ? 
 const MEMBER_OK = [
   '/careerpilot', '/passport', '/live', '/battles', '/hackathon-exam', '/hackathons', '/verify', '/certificate',
   '/reset-password', '/forgot-password', '/setup-password', '/assessment', '/candidate',
+  // Shared pages a member's own CareerPilot screens send them to: a roadmap checkpoint quiz
+  // (/quiz/:id/take, returning to the day), a mock interview, and their job applications.
+  // Not '/quizzes' — the LMS quiz list still goes to CareerPilot.
+  '/quiz', '/student/interviews/take', '/student/my-applications',
 ];
 
 /**

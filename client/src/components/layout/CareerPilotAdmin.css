@@ -71,3 +71,66 @@
 @media(max-width:768px){.careerpilot-admin-surface{padding:16px 14px 32px!important}.careerpilot-admin-surface :where(.page-header,.content-header,.toolbar,.action-bar,.filters-row){flex-wrap:wrap}.careerpilot-admin-surface :where(.stats-grid,.metrics-grid,.summary-grid,.form-grid){grid-template-columns:1fr!important}.careerpilot-admin-surface table{min-width:680px}.careerpilot-admin-surface :where(.modal-dialog){margin:10px}}
 @media(max-width:480px){.careerpilot-admin-surface h1{font-size:21px}.careerpilot-admin-surface :where(.btn,button){max-width:100%}}
 @media(prefers-reduced-motion:reduce){.careerpilot-admin-surface *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
+/* ── Shared pieces for CareerPilot admin pages ─────────────────────────────────────────────────
+   One page heading, one button set and one save bar, so pages that grew their own (or none) look
+   like the rest. Student-side classes some pages borrowed (pm-btn, pm-msg) are given the same
+   look here, because their stylesheet is not loaded on admin pages. */
+.careerpilot-admin-surface .cpx-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 0 0 18px; }
+.careerpilot-admin-surface .cpx-head .cpx-eyebrow { display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #1B7D91; margin-bottom: 4px; }
+.careerpilot-admin-surface .cpx-head h1 { margin: 0; font-size: clamp(22px, 2vw, 28px); font-weight: 800; color: var(--cp-navy) !important; }
+.careerpilot-admin-surface .cpx-head p { margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #2F3F56; max-width: 760px; }
+.careerpilot-admin-surface :is(.cpx-btn, .pm-btn) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--cp-border); background: #fff; color: var(--cp-navy); font: 700 14px/1 Inter, system-ui, sans-serif; cursor: pointer; white-space: nowrap; transition: background .15s, border-color .15s; }
+.careerpilot-admin-surface :is(.cpx-btn, .pm-btn):hover:not(:disabled) { border-color: var(--cp-navy); }
+.careerpilot-admin-surface :is(.cpx-btn.primary, .pm-btn.primary) { background: var(--cp-navy); border-color: var(--cp-navy); color: #fff; box-shadow: 0 8px 18px rgba(5, 29, 100, .18); }
+.careerpilot-admin-surface :is(.cpx-btn.primary, .pm-btn.primary):hover:not(:disabled) { background: #0A2A85; }
+.careerpilot-admin-surface :is(.cpx-btn, .pm-btn):disabled { opacity: .6; cursor: default; }
+.careerpilot-admin-surface .cpx-savebar { position: sticky; bottom: 0; z-index: 20; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 18px; margin: 16px 0 0; background: #fff; border: 1px solid var(--cp-border); border-radius: 14px; box-shadow: 0 -10px 28px rgba(15, 46, 77, .10); }
+.careerpilot-admin-surface .cpx-savebar .cpx-grow { flex: 1; }
+.careerpilot-admin-surface :is(.pm-msg) { padding: 10px 14px; border-radius: 10px; font-size: 13.5px; font-weight: 600; margin: 12px 0; border: 1px solid var(--cp-border); background: #F5F9FE; color: var(--cp-ink); }
+.careerpilot-admin-surface :is(.pm-msg.ok) { background: var(--cp-green-bg); border-color: #BFE5D2; color: var(--cp-green); }
+.careerpilot-admin-surface :is(.pm-msg.err) { background: var(--cp-red-bg); border-color: #F3C6C6; color: var(--cp-red); }
+@media (max-width: 640px) {
+  .careerpilot-admin-surface .cpx-head > :where(button, a, .cpx-btn) { width: 100%; }
+  .careerpilot-admin-surface .cpx-savebar :is(.cpx-btn, .pm-btn) { flex: 1 1 100%; }
+}
+
+/* ── Readable on desktop ─────────────────────────────────────────────────────────────────────
+   index.css draws the whole app at 75% from 1025px up, and these pages were written in 11–12px
+   type — so admins read 8–9px text. Like the other pages that compensate, the CareerPilot admin
+   content is drawn larger here (75% × 1.15 ≈ 86%); the sidebar and top bar are unchanged. Below
+   1025px the app is not zoomed, so neither is this. */
+@media (min-width: 1025px) {
+  .careerpilot-admin-surface { zoom: 1.15; }
+}
+
+/* Inline greys too light to read on white (#94a3b8, #a3acc0, #cbd5e1, #9ca3af, #b6c0cf) — used
+   for codes, hints, dates and counts across these pages — darkened to a readable slate. */
+.careerpilot-admin-surface [style*="color: rgb(148, 163, 184)"],
+.careerpilot-admin-surface [style*="color: rgb(163, 172, 192)"],
+.careerpilot-admin-surface [style*="color: rgb(203, 213, 225)"],
+.careerpilot-admin-surface [style*="color: rgb(156, 163, 175)"],
+.careerpilot-admin-surface [style*="color: rgb(182, 192, 207)"] { color: #4B5B72 !important; }
+.careerpilot-admin-surface { --cp-muted: #475569; }
+
+/* Small teal labels above page titles: #359AAD is 3.1:1 on the page background — the darker teal reads. */
+.careerpilot-admin-surface :where(.mgc-kicker, .ss-eyebrow, .qb-eyebrow, .aori-eyebrow, .cpx-eyebrow, [class$="-eyebrow"], [class$="-kicker"]) { color: #176A7B !important; }
+/* Table headings and hints written inline in mid greys (#6b7c90, #64748b) — just under readable. */
+.careerpilot-admin-surface [style*="color: rgb(107, 124, 144)"],
+.careerpilot-admin-surface [style*="color: rgb(100, 116, 139)"],
+.careerpilot-admin-surface [style*="color: rgb(107, 116, 136)"] { color: #3F4F66 !important; }
+
+/* Primary buttons written inline in assorted blues and indigos (#2563eb, #4f46e5, #3b82f6, #6366f1)
+   take the CodeBegun navy, so every page's main action looks the same. */
+.careerpilot-admin-surface button[style*="background: rgb(37, 99, 235)"],
+.careerpilot-admin-surface button[style*="background: rgb(79, 70, 229)"],
+.careerpilot-admin-surface button[style*="background: rgb(59, 130, 246)"],
+.careerpilot-admin-surface button[style*="background: rgb(99, 102, 241)"],
+.careerpilot-admin-surface button[style*="background-color: rgb(37, 99, 235)"],
+.careerpilot-admin-surface button[style*="background-color: rgb(79, 70, 229)"] { background: #051D64 !important; border-color: #051D64 !important; color: #fff !important; }
+/* A link styled as a button is not underlined. */
+.careerpilot-admin-surface a.cpx-btn { text-decoration: none !important; }
+/* Phone: keep the save bar's button clear of the floating report-a-problem button in the corner. */
+@media (max-width: 760px) {
+  .careerpilot-admin-surface .cpx-savebar, .careerpilot-admin-surface .cpc-savebar { margin-right: 60px; }
+}

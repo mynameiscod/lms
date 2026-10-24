@@ -180,8 +180,9 @@ const AdminActivity: React.FC = () => {
                   <i className={`bi ${deviceIcon(s.device?.deviceType)}`} />
                 </span>
                 <span className="cpa-who">
-                  <b>{s.personName || 'Anonymous visitor'}</b>
-                  <small>{s.personEmail || `${s.device?.browser || 'unknown browser'} · ${s.device?.os || 'unknown OS'}`}</small>
+                  {/* A signed-in visitor with no name on file is named by their email, not called anonymous. */}
+                  <b>{s.personName || s.personEmail || 'Anonymous visitor'}</b>
+                  <small>{s.personName && s.personEmail ? s.personEmail : `${s.device?.browser || 'unknown browser'} · ${s.device?.os || 'unknown OS'}`}</small>
                   <small className="cpa-last">{s.lastName || s.lastRoute || '—'}</small>
                 </span>
                 <span className="cpa-nums">

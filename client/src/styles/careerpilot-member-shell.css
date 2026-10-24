@@ -656,3 +656,32 @@
   #root .gd .gam-metric:last-child:nth-child(odd), #root .gd .md-kpis > div:last-child:nth-child(odd),
   #root .gd .rr-kpis > div:last-child:nth-child(odd), #root .gd .sdn-kpis > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
+
+/* Colours and sizes that depended on which page's styles loaded first (right only after a refresh),
+   pinned at a priority the shared heading/text rules cannot beat. */
+#root .gd .cp-iv-page .good-title { color: #178268 !important; }
+#root .gd .cp-iv-page .warn-title { color: #B45D20 !important; }
+#root .gd .clx .clx-card.clx-empty, #root .gd .clx .clx-empty { font-size: 15px !important; }
+#root .gd .pl .pl-help b { font-size: 15px !important; }
+
+@media (max-width: 420px) {
+  /* Skill DNA "How sure is this picture?": three narrow cards broke their labels mid-word
+     ("evidenc / e"). On small phones each is a row — number left, label beside it. */
+  #root .gd .sdn-evidence { grid-template-columns: 1fr !important; gap: 8px !important; }
+  #root .gd .sdn-evidence > div { display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; gap: 12px !important; text-align: left !important; padding: 10px 14px !important; }
+  #root .gd .sdn-evidence > div b { min-width: 34px; text-align: left !important; }
+  #root .gd .sdn-evidence > div span { text-align: left !important; margin: 0 !important; }
+
+  /* Mock Interview: the start button's label wrapped and left the play icon stranded at the edge. */
+  #root .gd .iv2 .iv2-hero .iv2-btn { justify-content: center !important; gap: 8px !important; font-size: 14.5px !important; padding-left: 14px !important; padding-right: 14px !important; text-align: center; }
+
+  /* Profile checklist chips: a two-line label stays left-aligned like the one-line ones. */
+  #root .gd .cb-member-profile .score-check { text-align: left !important; justify-content: flex-start !important; }
+
+}
+@media (max-width: 400px) {
+  /* Daily momentum: "START YOUR STREAK" wrapped one word per line beside the icon and the bars. */
+  #root .gd .md .md-streak { gap: 12px !important; padding: 12px 14px !important; }
+  #root .gd .md .md-streak-art { display: none !important; }
+  #root .gd .md .md-streak b { font-size: 15px !important; }
+}

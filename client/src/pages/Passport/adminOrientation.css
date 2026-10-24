@@ -1,143 +1,180 @@
-/* The orientation editor. One page, edited in place, in the CareerPilot admin's card language. */
+/* CareerPilot admin → Orientation. Shared pieces (cpx-head, cpx-btn, cpx-savebar) come from
+   components/layout/CareerPilotAdmin.css; this file is the page's own layout.
+
+   The page was every field drawn as the same white box, on white day cards, inside white item
+   cards — nothing told one day from another or a day from its items. Now: the days are cards
+   along the top, the chosen day is one panel with labelled fields, and its items are compact rows
+   that open into their editor. */
 
 .aori {
   --navy: #051D64;
-  --navy-hover: #0A2A7A;
-  --teal-deep: #1B7D91;
-  --muted: #5D6E88;
-  --line: #E2EAF2;
-  width: 100%;
-  padding: 24px 28px 56px;
-  background: #F4F8FC;
-  min-height: 100vh;
-  color: var(--navy);
+  --teal: #1B7D91;
+  --ink: #102A4F;
+  --text: #2F3F56;
+  --line: #E1E9F2;
+  --soft: #F5F8FC;
+  max-width: 1280px;
+  color: var(--ink);
 }
 .aori * { box-sizing: border-box; }
-.aori-state { padding: 22px; background: #fff; border: 1px solid var(--line); border-radius: 14px; color: var(--muted); }
+.aori-state { padding: 22px; background: #fff; border: 1px solid var(--line); border-radius: 14px; color: var(--text); }
 
-.aori-hd {
-  display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;
-  background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px; margin-bottom: 16px;
-}
-.aori-eyebrow {
-  display: inline-block; padding: 4px 10px; border-radius: 99px; background: #E8F5F8;
-  color: var(--teal-deep); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
-}
-.aori-hd h1 { margin: 10px 0 6px; font-size: 26px; }
-.aori-hd p { margin: 0; color: var(--muted); font-size: 13.5px; max-width: 620px; }
-.aori-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.aori-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-.aori-toggle input { width: 17px; height: 17px; accent-color: var(--navy); }
+/* Header actions: the on/off switch and Reset. */
+.aori-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.aori-switch { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: var(--ink); cursor: pointer; }
+.aori-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.aori-switch .track { width: 44px; height: 26px; border-radius: 999px; background: #C9D4E2; position: relative; transition: background .15s; flex: none; }
+.aori-switch .track span { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .2); transition: left .15s; }
+.aori-switch.on .track { background: #1B8A6B; }
+.aori-switch.on .track span { left: 21px; }
+.aori-switch input:focus-visible + .track { outline: 2px solid var(--teal); outline-offset: 2px; }
 
-.aori-btn {
-  border: 1px solid #C9D6E6; border-radius: 9px; padding: 9px 16px; background: #fff;
-  color: var(--navy); font-size: 13.5px; font-weight: 700; cursor: pointer;
-}
-.aori-btn:hover:not(:disabled) { border-color: var(--navy); }
-.aori-btn:disabled { opacity: .55; cursor: default; }
-.aori-btn.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
-.aori-btn.primary:hover:not(:disabled) { background: var(--navy-hover); }
+/* Totals for the whole welcome. */
+.aori-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.aori-summary > div { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); }
+.aori-summary b { font-size: 24px; font-weight: 800; color: var(--navy); }
+.aori-summary span { font-size: 13.5px; color: var(--text); }
+.aori-summary .warn b { color: #B45309; }
+.aori-summary .ok b { color: #1B8A6B; }
 
-.aori-warn, .aori-err, .aori-ok {
-  margin: 0 0 14px; padding: 12px 16px; border-radius: 11px; font-size: 13.5px;
-  display: flex; align-items: center; gap: 8px;
-}
-.aori-warn { background: #FFF8E8; color: #8B6500; }
-.aori-err { background: #FEF3F2; color: #B42318; }
-.aori-ok { background: #ECFDF3; color: #027A48; }
+.aori-warn, .aori-err, .aori-ok { margin: 0 0 14px; padding: 12px 16px; border-radius: 12px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.aori-warn { background: #FFF8E8; color: #7A5600; border: 1px solid #F3DFA8; }
+.aori-err { background: #FEF3F2; color: #B42318; border: 1px solid #F8CFCB; }
+.aori-ok { background: #ECFDF3; color: #05603A; border: 1px solid #B9E8CF; }
 
-/* ── A day ── */
-.aori-day { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 14px; }
-.aori-day > header { display: flex; align-items: center; gap: 12px; }
-.aori-day-n {
-  flex: none; padding: 5px 11px; border-radius: 99px; background: #E7EDF8;
-  color: var(--navy); font-size: 12px; font-weight: 800;
-}
-.aori-title {
-  flex: 1; border: 0; border-bottom: 1px solid transparent; padding: 6px 2px;
-  font-size: 18px; font-weight: 800; color: var(--navy); background: none;
-}
-.aori-title:focus, .aori-blurb:focus, .aori-item-title:focus, .aori-url:focus, .aori-body:focus {
-  outline: none; border-bottom-color: var(--navy);
-}
-.aori-blurb {
-  width: 100%; border: 0; border-bottom: 1px solid transparent; padding: 6px 2px; margin-top: 4px;
-  font-size: 13.5px; color: var(--muted); background: none;
-}
+/* ── The days, as cards ── */
+.aori-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.aori-daycard { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 14px 16px 14px 18px; border-radius: 14px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); transition: border-color .15s, box-shadow .15s, transform .15s; min-height: 104px; }
+.aori-daycard::before { content: ''; position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; background: #D5DFEB; }
+.aori-daycard:hover { border-color: #B9C9DD; transform: translateY(-1px); }
+.aori-daycard.on { border-color: var(--navy); box-shadow: 0 10px 24px rgba(5, 29, 100, .14); background: linear-gradient(180deg, #F2F6FD, #fff 70%); }
+.aori-daycard.on::before { background: var(--navy); }
+.aori-daycard-n { font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
+.aori-daycard b { font-size: 15px; font-weight: 800; line-height: 1.3; color: var(--navy); overflow-wrap: anywhere; }
+.aori-daycard small { font-size: 13px; color: var(--text); }
+.aori-daycard em { font-style: normal; font-size: 12px; font-weight: 700; color: #B45309; display: inline-flex; gap: 5px; align-items: center; }
+.aori-daycard.add { align-items: center; justify-content: center; flex-direction: row; gap: 8px; border: 1.5px dashed #B9C9DD; background: var(--soft); box-shadow: none; font-size: 14.5px; font-weight: 800; color: var(--navy); }
+.aori-daycard.add::before { display: none; }
+.aori-daycard.add:hover { border-color: var(--navy); background: #fff; }
 
-/* ── An item ── */
-.aori-item { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 12px; background: #FBFDFF; }
-.aori-item-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.aori-item-top select {
-  border: 1px solid #C9D6E6; border-radius: 8px; padding: 7px 10px; font-size: 13px;
-  color: var(--navy); background: #fff;
-}
-.aori-item-title {
-  flex: 1; min-width: 200px; border: 0; border-bottom: 1px solid transparent;
-  padding: 6px 2px; font-size: 15px; font-weight: 700; color: var(--navy); background: none;
-}
-.aori-mins, .aori-req { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
-.aori-mins input { width: 64px; border: 1px solid #C9D6E6; border-radius: 8px; padding: 6px 8px; font-size: 13px; }
-.aori-mins.wide { margin-top: 10px; }
-.aori-req input { width: 16px; height: 16px; accent-color: var(--navy); }
+/* ── The chosen day ── */
+.aori-day { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); }
+.aori-day-head { display: flex; align-items: flex-start; gap: 16px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.aori-day-n { flex: none; display: grid; place-items: center; min-width: 72px; height: 72px; padding: 0 10px; border-radius: 16px; background: var(--navy); color: #fff; font-size: 17px; font-weight: 800; text-align: center; line-height: 1.15; }
+.aori-day-fields { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 12px 14px; }
+.aori label > span, .aori .aori-field > span { display: block; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--text); margin-bottom: 6px; }
+.aori input:not([type=checkbox]), .aori select, .aori textarea { width: 100%; min-height: 42px; border: 1px solid #CCD7E5; border-radius: 10px; padding: 9px 12px; font-size: 14px; color: var(--ink); background: #fff; font-family: inherit; }
+.aori input:focus, .aori select:focus, .aori textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(27, 125, 145, .14); }
+.aori .aori-title { font-size: 15.5px; font-weight: 700; }
+.aori-del { color: #B42318 !important; flex: none; }
+.aori-del:hover:not(:disabled) { border-color: #B42318 !important; background: #FEF3F2 !important; }
 
-.aori-url, .aori-body {
-  width: 100%; margin-top: 10px; border: 1px solid #C9D6E6; border-radius: 9px;
-  padding: 9px 11px; font-size: 13.5px; color: var(--navy); background: #fff; font-family: inherit;
-}
-.aori-url.empty { border-style: dashed; background: #FFFCF5; }
-.aori-body { line-height: 1.55; resize: vertical; }
+.aori-items-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 18px 0 10px; }
+.aori-items-hd h2 { margin: 0; font-size: 16px; font-weight: 800; color: var(--navy); }
+.aori-items-hd span { font-size: 13px; color: var(--text); }
 
-.aori-list { margin-top: 10px; }
-.aori-line { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.aori-line input {
-  flex: 1; border: 1px solid #E2EAF2; border-radius: 8px; padding: 8px 10px; font-size: 13.5px; color: var(--navy);
-}
+/* ── An item: a row that opens into its editor ── */
+.aori-item { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; background: #fff; overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+.aori-item:hover { border-color: #C3D2E4; }
+.aori-item.open { border-color: #9DB2CE; box-shadow: 0 8px 22px rgba(15, 46, 77, .08); }
+.aori-item-row { width: 100%; display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 0; background: transparent; text-align: left; cursor: pointer; color: inherit; }
+.aori-item.open .aori-item-row { background: var(--soft); border-bottom: 1px solid var(--line); }
+.aori-kind { flex: none; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; font-size: 17px; }
+.aori-kind.k-video { background: #EAF1FF; color: #1D4ED8; }
+.aori-kind.k-recording { background: #FDECEC; color: #C2362B; }
+.aori-kind.k-notes { background: #EAF7F1; color: #17885D; }
+.aori-kind.k-checklist { background: #FFF4E0; color: #A85F00; }
+.aori-kind.k-image { background: #F1ECFF; color: #6D3FC6; }
+.aori-item-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.aori-item-name b { font-size: 15px; font-weight: 700; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aori-item-name small { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aori-pill { flex: none; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.aori-pill.req { background: #E3F6EC; color: #126B47; }
+.aori-pill.opt { background: #EEF2F7; color: #2F3F56; }
+.aori-pill.warn { background: #FFF4E0; color: #8A5300; }
+.aori-chev { flex: none; color: var(--text); font-size: 14px; }
 
-.aori-key { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-.aori-key > span { font-size: 12px; font-weight: 700; color: var(--muted); }
-.aori-key input {
-  width: 180px; border: 1px solid #E2EAF2; border-radius: 8px; padding: 6px 9px;
-  font-size: 12.5px; font-family: ui-monospace, monospace; color: var(--muted);
-}
-.aori-key small { color: #94A3B8; font-size: 11.5px; }
+.aori-item-body { padding: 16px; display: grid; gap: 14px; }
+.aori-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 14px; }
+.aori-grid .span2 { grid-column: span 2; }
+.aori-grid .span4 { grid-column: 1 / -1; }
+.aori-field { display: block; }
+.aori-url.empty { border-style: dashed !important; background: #FFFCF5 !important; }
+.aori textarea.aori-body { line-height: 1.55; resize: vertical; }
+.aori-inline { display: flex !important; align-items: center; gap: 10px; flex-wrap: wrap; }
+.aori-inline > span { margin: 0 !important; }
+.aori-inline input { width: 100px !important; }
 
-.aori-x {
-  flex: none; border: 0; background: none; color: #94A3B8; cursor: pointer; font-size: 14px; padding: 6px;
-}
+.aori-list { display: grid; gap: 8px; }
+.aori-line { display: flex; align-items: center; gap: 10px; }
+.aori-line > i { color: var(--teal); font-size: 16px; }
+.aori-line input { flex: 1; }
+
+.aori-item-foot { display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; padding-top: 12px; border-top: 1px dashed var(--line); }
+.aori-check { display: inline-flex !important; align-items: center; gap: 8px; cursor: pointer; }
+.aori-check input { width: 18px; height: 18px; accent-color: var(--navy); }
+.aori-check > span { margin: 0 !important; text-transform: none !important; letter-spacing: 0 !important; font-size: 14px !important; font-weight: 700 !important; color: var(--ink) !important; }
+.aori-key { flex: 1; display: flex !important; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 260px; }
+.aori-key > span { margin: 0 !important; }
+.aori-key input { width: 180px !important; font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important; font-size: 13px !important; }
+.aori-key small { font-size: 12.5px; color: var(--text); }
+
+.aori-x { flex: none; border: 0; background: none; color: var(--text); cursor: pointer; font-size: 14px; padding: 6px; }
 .aori-x:hover { color: #B42318; }
 
-.aori-add {
-  margin-top: 12px; border: 1px dashed #C9D6E6; border-radius: 9px; padding: 9px 16px;
-  background: #fff; color: var(--navy); font-size: 13.5px; font-weight: 700; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 8px;
-}
-.aori-add:hover { border-color: var(--navy); }
-.aori-add.big { width: 100%; justify-content: center; padding: 14px; }
+.aori-add { margin-top: 4px; border: 1.5px dashed #B9C9DD; border-radius: 10px; padding: 11px 16px; background: var(--soft); color: var(--navy); font-size: 14px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.aori-add:hover { border-color: var(--navy); background: #fff; }
 
-.aori-foot {
-  display: flex; justify-content: space-between; align-items: center; gap: 16px;
-  margin-top: 18px; padding: 16px 20px; background: #fff; border: 1px solid var(--line); border-radius: 14px;
-}
-.aori-foot span { color: var(--muted); font-size: 13px; }
+.aori-state-note { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #1B8A6B; }
+.aori-state-note.dirty { color: #B45309; }
 
-@media (max-width: 720px) {
-  .aori { padding: 16px 16px 40px; }
-  .aori-hd { flex-direction: column; }
-  .aori-item-top { gap: 8px; }
-}
-
-/* ── Link or upload, on one row ───────────────────────────────────────────────────────────
-   The URL box keeps its width and the button sits beside it, so the field still reads as the
-   one place the media lives — an upload fills it rather than replacing it. */
+/* Link or upload, on one row. The URL box keeps its width and the button sits beside it, so the
+   field still reads as the one place the media lives — an upload fills it rather than replacing it. */
 .aori-media { display: flex; align-items: stretch; gap: 8px; }
 .aori-media .aori-url { flex: 1; min-width: 0; }
-.aori-upload { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; border: 1px solid #C9D6E6; border-radius: 10px; background: #fff; color: #051D64; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
-.aori-upload:hover:not(.busy) { border-color: #051D64; background: #F7FAFC; }
+.aori-upload { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 0 16px; border: 1px solid #CCD7E5; border-radius: 10px; background: #fff; color: var(--navy); font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.aori-upload:hover:not(.busy) { border-color: var(--navy); background: #F7FAFC; }
 .aori-upload.busy { opacity: .7; cursor: default; }
 
+@media (max-width: 1100px) {
+  .aori-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .aori-day-fields { grid-template-columns: 1fr; }
+}
 @media (max-width: 760px) {
-  /* A 14px button and a URL field cannot share 360px; the button goes full width underneath. */
+  .aori-day { padding: 16px; }
+  .aori-day-head { flex-wrap: wrap; }
+  .aori-day-n { min-width: 56px; height: 56px; font-size: 15px; }
+  .aori-day-fields { flex: 1 1 calc(100% - 72px); }
+  .aori-day-head .aori-del { width: 100%; }
+  .aori-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .aori-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .aori-grid .span2 { grid-column: 1 / -1; }
+  .aori-item-row { gap: 10px; padding: 12px; flex-wrap: wrap; }
+  .aori-item-name { flex: 1 1 calc(100% - 80px); }
+  .aori-item-row .aori-pill { margin-left: 50px; }
+  .aori-item-row .aori-pill + .aori-pill { margin-left: 0; }
   .aori-media { flex-direction: column; }
-  .aori-upload { justify-content: center; padding: 10px 14px; }
+  .aori-upload { justify-content: center; padding: 11px 14px; }
+  .aori-key { min-width: 0; }
+}
+@media (max-width: 420px) {
+  .aori-days { grid-template-columns: 1fr; }
+  .aori-summary { grid-template-columns: 1fr 1fr; }
+}
+
+/* All the day cards and "Add a day" on one row on a desktop. */
+.aori-days { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.aori-daycard.add { min-height: 104px; }
+/* The switch text is a sentence, not a field label. */
+.aori .aori-switch > span:last-child { text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 700; color: var(--ink); margin: 0; }
+
+/* Phone: the days are a strip you swipe, so the chosen day's editor is right below them; the
+   save bar is one line. */
+@media (max-width: 760px) {
+  .aori-days { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+  .aori-daycard { flex: 0 0 72%; scroll-snap-align: start; min-height: 96px; }
+  .aori-daycard.add { flex: 0 0 44%; min-height: 96px; }
+  .aori .cpx-savebar { padding: 10px 12px; gap: 10px; flex-wrap: nowrap; }
+  .aori .cpx-savebar .aori-state-note { font-size: 13px; }
+  .aori .cpx-savebar .cpx-btn { flex: none !important; }
 }

@@ -4,6 +4,7 @@ import AssessmentItem from '../models/AssessmentItem';
 import CodingProblem from '../models/CodingProblem';
 import { IExamSection, IHackathonExam } from '../models/HackathonExam';
 import { IDrawnItem } from '../models/HackathonExamAttempt';
+import { globalPracticeClause } from './contentGrantService';
 
 /**
  * Compose one candidate's paper from the bank.
@@ -94,9 +95,13 @@ export function sectionFilter(tenantId: string, s: IExamSection): Record<string,
  * The Problem Bank query a 'problem_bank' section describes: published, runnable problems the
  * institute can use — its own plus CodeBegun's global library.
  */
-export function problemBankFilter(tenantId: string, s: IExamSection): Record<string, any> {
+export function problemBankFilter(
+  tenantId: string, s: IExamSection,
+  /** The shared problems this institute was granted (contentGrantService); null = none. */
+  shared: Record<string, any> | null = { scope: 'global' },
+): Record<string, any> {
   const f: Record<string, any> = {
-    $or: [{ scope: 'tenant', tenantId }, { scope: 'global' }],
+    $or: [{ scope: 'tenant', tenantId }, ...(shared ? [shared] : [])],
     status: 'published',
     testCount: { $gt: 0 },
   };
@@ -123,7 +128,7 @@ async function loadPool(tenantId: string, examId: string, s: IExamSection) {
 
   const fromProblemBank = s.source === 'problem_bank';
   const items = fromProblemBank
-    ? (await CodingProblem.find(problemBankFilter(tenantId, s)).select('_id kind marks').lean() as any[])
+    ? (await CodingProblem.find(problemBankFilter(tenantId, s, await globalPracticeClause(tenantId))).select('_id kind marks').lean() as any[])
       .map(p => ({ _id: p._id, type: p.kind === 'sql' ? 'sql' : 'live_code', points: p.marks }))
     : await AssessmentItem
       .find(sectionFilter(tenantId, s))

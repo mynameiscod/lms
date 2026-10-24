@@ -1,0 +1,94 @@
+/* CareerPilot admin → Members. Shared pieces (cpx-head, cpx-btn, pm-msg) live in
+   components/layout/CareerPilotAdmin.css; this file is the page's own layout. */
+.cpm { max-width: 1280px; }
+.cpm-head-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.cpm-panel { display: flex; flex-direction: column; gap: 6px; background: #fff; border: 1px solid #E3EAF1; border-radius: 16px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); }
+.cpm-panel > b { font-size: 15px; color: #051D64; }
+.cpm-panel-note { font-size: 13.5px; color: #2F3F56; }
+.cpm-panel-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.cpm-panel-row.end { justify-content: flex-end; }
+.cpm-panel-row input { flex: 1 1 260px; }
+.cpm-add-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 6px; }
+.cpm input { min-height: 42px; border: 1px solid #D6E0EC; border-radius: 10px; padding: 0 12px; font-size: 14px; color: #102A4F; background: #fff; min-width: 0; }
+.cpm input:focus { outline: none; border-color: #359AAD; box-shadow: 0 0 0 3px rgba(53, 154, 173, .14); }
+
+.cpm-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.cpm-search { position: relative; flex: 1 1 280px; max-width: 420px; }
+.cpm-search i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: #5B6B82; font-size: 14px; }
+.cpm-search input { width: 100%; padding-left: 36px; }
+.cpm-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.cpm-filters button { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 13px; border-radius: 999px; border: 1px solid #D6E0EC; background: #fff; color: #24364F; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.cpm-filters button em { font-style: normal; font-size: 12px; font-weight: 800; color: #2F3F56; background: #EEF3F9; border-radius: 999px; padding: 2px 8px; }
+.cpm-filters button.on { background: #051D64; border-color: #051D64; color: #fff; }
+.cpm-filters button.on em { background: rgba(255, 255, 255, .18); color: #fff; }
+
+.cpm-table-card { background: #fff; border: 1px solid #E3EAF1; border-radius: 16px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); overflow: visible; }
+.cpm-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.cpm-table thead th { text-align: left; padding: 12px 16px; font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #2F3F56; background: #F6F9FC; border-bottom: 1px solid #E3EAF1; }
+.cpm-table thead th:first-child { border-top-left-radius: 16px; }
+.cpm-table thead th:last-child { border-top-right-radius: 16px; }
+.cpm-table tbody td { padding: 12px 16px; border-top: 1px solid #EEF2F7; vertical-align: middle; color: #102A4F; }
+.cpm-table tbody tr:first-child td { border-top: 0; }
+.cpm-table tbody tr:hover > td { background: #FAFCFE; }
+.cpm-table tbody tr.off > td { opacity: .6; }
+.cpm-empty { text-align: center; color: #2F3F56; padding: 34px 16px !important; }
+
+.cpm-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cpm-avatar { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: #EAF1FB; color: #051D64; font-size: 13.5px; font-weight: 800; }
+.cpm-names { display: flex; flex-direction: column; min-width: 0; }
+.cpm-names b { font-size: 14.5px; font-weight: 700; color: #051D64; overflow-wrap: anywhere; }
+.cpm-names small { font-size: 13px; color: #2F3F56; overflow-wrap: anywhere; }
+.cpm-edit { flex: 1; }
+.cpm-date { white-space: nowrap; color: #24364F !important; }
+
+.cpm-pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; margin: 2px 6px 2px 0; white-space: nowrap; }
+.cpm-pill.paid { background: #E3F6EC; color: #126B47; }
+.cpm-pill.free { background: #EEF2F7; color: #2F3F56; }
+.cpm-pill.comp { background: #F1EBFF; color: #5B2DB8; cursor: help; }
+.cpm-pill.off { background: #FDECEC; color: #B42318; }
+
+.cpm-actions { white-space: nowrap; text-align: right; }
+.cpm-actions .cpx-btn { min-height: 36px; padding: 0 12px; font-size: 13.5px; margin-left: 6px; }
+.cpm-menu-wrap { position: relative; display: inline-block; }
+.cpm-more { width: 38px; padding: 0 !important; }
+.cpm-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 210px; display: flex; flex-direction: column; padding: 6px; background: #fff; border: 1px solid #E3EAF1; border-radius: 12px; box-shadow: 0 16px 36px rgba(15, 46, 77, .16); text-align: left; }
+.cpm-menu button { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; padding: 9px 10px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #102A4F; cursor: pointer; text-align: left; }
+.cpm-menu button:hover { background: #F2F6FB; }
+.cpm-menu button i { width: 16px; color: #2F3F56; }
+.cpm-menu button.danger, .cpm-menu button.danger i { color: #B42318; }
+.cpm-menu button.danger:hover { background: #FDECEC; }
+
+.cpm-detail { padding: 4px 16px 18px !important; background: #FAFCFE; }
+
+.cpm-pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 14px; font-size: 13.5px; color: #2F3F56; }
+
+/* Tablet: the dates fold under the status so the row keeps its actions in view. */
+@media (max-width: 1100px) {
+  .cpm-add-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Phone: each member is a card. */
+@media (max-width: 760px) {
+  .cpm-table thead { display: none; }
+  .cpm-table, .cpm-table tbody, .cpm-table tr, .cpm-table td { display: block; width: 100%; }
+  .cpm-table tbody tr { padding: 14px 14px 10px; border-top: 1px solid #EEF2F7; }
+  .cpm-table tbody tr:first-child { border-top: 0; }
+  .cpm-table tbody td { border: 0; padding: 4px 0; }
+  .cpm-table tbody td[data-label="Activated"], .cpm-table tbody td[data-label="Expires"] { display: inline-block; width: auto; margin-right: 16px; font-size: 13px; }
+  .cpm-table tbody td[data-label="Activated"]::before, .cpm-table tbody td[data-label="Expires"]::before { content: attr(data-label) ": "; font-weight: 700; color: #2F3F56; }
+  .cpm-actions { text-align: left; display: flex !important; gap: 8px; padding-top: 8px !important; }
+  .cpm-actions .cpx-btn { margin-left: 0; }
+  .cpm-actions > .cpx-btn:first-child { flex: 1; }
+  .cpm-menu { right: 0; }
+  .cpm-detail { padding: 4px 0 14px !important; }
+  .cpm-add-grid { grid-template-columns: 1fr; }
+  .cpm-search { max-width: none; }
+}
+
+/* Held over the shared admin rules: the selected filter is solid navy, and on a phone the table
+   (which the shared rules give a 680px minimum for sideways scrolling) is cards that fit. */
+.careerpilot-admin-surface .cpm .cpm-filters button.on { background: #051D64 !important; border-color: #051D64 !important; color: #fff !important; }
+@media (max-width: 760px) {
+  .careerpilot-admin-surface .cpm .cpm-table { min-width: 0 !important; }
+  .careerpilot-admin-surface .cpm .cpm-table-card { overflow: hidden; }
+}

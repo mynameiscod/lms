@@ -10,7 +10,7 @@ import type { AssignmentType } from '../../api/assignmentApi';
  *
  * Compared by value (the AssignmentType strings), so this stays free of the API module and its HTTP client.
  */
-export type SubmissionKind = 'code' | 'mcq' | 'written' | 'none';
+export type SubmissionKind = 'code' | 'mcq' | 'written' | 'files' | 'none';
 
 export function submissionKindFor(type: AssignmentType | string | undefined): SubmissionKind {
   switch (type) {
@@ -23,6 +23,9 @@ export function submissionKindFor(type: AssignmentType | string | undefined): Su
     case 'theory':
     case 'project':
       return 'written';
+    // Handed in with the files uploaded to the attempt (and an optional note).
+    case 'file_upload':
+      return 'files';
     default:
       return 'none';
   }

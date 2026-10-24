@@ -571,7 +571,7 @@ const PassportJoin: React.FC = () => {
                     <p>75 XP to today’s goal. Finish your missions to get there.</p>
                     <div className="cpd-goalrow"><b>Today’s goal</b><span>40 / 115 XP</span></div>
                     <i className="cpd-bar"><s style={{ width: '35%' }} /></i>
-                    <div className="cpd-btns"><span className="cpd-btn primary">Start today’s work <i className="bi bi-arrow-right" /></span><span className="cpd-btn"><i className="bi bi-map" /> My roadmap</span></div>
+                    <div className="cpd-btns"><span className="cpd-btn primary">Start Day 1 <i className="bi bi-arrow-right" /></span><span className="cpd-btn"><i className="bi bi-map" /> My roadmap</span></div>
                   </div>
                   <div className="cpd-momentum">
                     <span className="cpd-eyebrow">Daily momentum</span>

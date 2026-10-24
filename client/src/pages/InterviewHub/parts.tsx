@@ -309,26 +309,38 @@ export const Recorder: React.FC<{ kind: 'audio' | 'video'; onDone: (r: { recordi
     <div className="ih-recorder">
       {kind === 'video' && !preview && <video ref={videoRef} playsInline />}
       {preview && (kind === 'video' ? <video src={preview} controls playsInline /> : <audio src={preview} controls style={{ width: '100%' }} />)}
-      <div className="pb-row" style={{ marginTop: 12, flexWrap: 'wrap' }}>
-        {recording ? <>
-          <span className="rec">{mm}</span>
-          <span className="pb-grow" />
-          <button className="pb-btn pb-btn-danger" onClick={stop}><i className="fa-solid fa-stop" /> Stop</button>
-        </> : <>
-          <span style={{ color: '#cbd5e1' }}>{preview ? `Recorded ${mm}. Listen back, or record again.` : `Speak for 3–10 minutes. We turn it into rounds and questions for you.`}</span>
-          <span className="pb-grow" />
-          <button className="pb-btn pb-btn-primary" onClick={() => { if (preview) { URL.revokeObjectURL(preview); onDone(null); } start(); }}>
-            <i className={`fa-solid ${kind === 'video' ? 'fa-video' : 'fa-microphone'}`} /> {preview ? 'Record again' : 'Start recording'}
-          </button>
-        </>}
+      <div className="ih-rec-head">
+        <span className={`ih-rec-badge${recording ? ' live' : ''}`} aria-hidden="true">
+          <i className={`fa-solid ${kind === 'video' ? 'fa-video' : 'fa-microphone'}`} />
+        </span>
+        <div className="ih-rec-copy">
+          {recording ? <>
+            <b><span className="rec">Recording {mm}</span></b>
+            <span>Talk it through. Press Stop when you are done.</span>
+          </> : preview ? <>
+            <b>Recorded {mm}</b>
+            <span>Listen back, or record again.</span>
+          </> : <>
+            <b>Speak for 3–10 minutes</b>
+            <span>We turn it into rounds and questions for you.</span>
+          </>}
+        </div>
+        {recording
+          ? <button className="pb-btn pb-btn-danger ih-rec-btn" onClick={stop}><i className="fa-solid fa-stop" /> Stop</button>
+          : <button className="pb-btn pb-btn-primary ih-rec-btn" onClick={() => { if (preview) { URL.revokeObjectURL(preview); onDone(null); } start(); }}>
+              <i className={`fa-solid ${kind === 'video' ? 'fa-video' : 'fa-microphone'}`} /> {preview ? 'Record again' : 'Start recording'}
+            </button>}
       </div>
       {!preview && (
-        <ul className="ih-prompts">
-          <li>How many rounds were there, and what was each one?</li>
-          <li>What exactly did they ask in each round — every question you remember.</li>
-          <li>Where did people get eliminated, and why?</li>
-          <li>What would you tell the next person to prepare?</li>
-        </ul>
+        <div className="ih-prompts-box">
+          <small>Cover these points</small>
+          <ul className="ih-prompts">
+            <li>How many rounds were there, and what was each one?</li>
+            <li>What exactly did they ask in each round — every question you remember.</li>
+            <li>Where did people get eliminated, and why?</li>
+            <li>What would you tell the next person to prepare?</li>
+          </ul>
+        </div>
       )}
       {err && <div className="pb-alert pb-alert-bad" style={{ marginTop: 10 }}>{err}</div>}
     </div>

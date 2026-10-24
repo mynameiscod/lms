@@ -160,3 +160,28 @@
   .pl .pl-stat { padding: 14px 12px; gap: 10px; min-width: 0; }
   .pl .pl-stat .ic { width: 38px; height: 38px; flex: none; }
 }
+
+/* Problem rows on smaller screens. Five cells stay visible (status, number, title, difficulty,
+   Solve) but the grid had four columns, so "Solve →" wrapped into the 24px status column and was
+   squeezed to a sliver. Tablet: one column each. Phone: title on the first line, difficulty and
+   the button on the second. */
+@media (max-width: 980px) {
+  .pl .pl-row { grid-template-columns: 24px 36px minmax(0, 1fr) auto auto; }
+  .pl .pl-row .pl-solve { white-space: nowrap; }
+  /* Fixed-width columns gave these their width on desktop; here the column fits the content, so
+     they carry their own side padding (the badge read as a circle, the button had none). */
+  .pl .pl-row .pl-diff { padding: 4px 12px; white-space: nowrap; }
+  .pl .pl-row .pl-solve { padding: 8px 16px; min-width: 84px; border-radius: 10px; }
+}
+@media (max-width: 560px) {
+  .pl .pl-row {
+    grid-template-columns: 22px 34px minmax(0, 1fr) auto;
+    grid-template-areas: "st num t t" ". . d s";
+    row-gap: 8px; column-gap: 8px; padding: 12px 4px;
+  }
+  .pl .pl-row > span:first-child { grid-area: st; }
+  .pl .pl-row > .num { grid-area: num; }
+  .pl .pl-row > .t { grid-area: t; min-width: 0; overflow-wrap: anywhere; }
+  .pl .pl-row > .pl-diff { grid-area: d; justify-self: start; }
+  .pl .pl-row > .pl-solve { grid-area: s; justify-self: end; min-width: 92px; }
+}

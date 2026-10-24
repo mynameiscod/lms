@@ -338,9 +338,9 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
           </div>
           <div className="md-hero-actions">
             {welcomeDay
-              ? <button className="md-btn light" onClick={() => nav(welcomeHref)} disabled={!!welcomeDay.locked}>{welcomeDay.locked ? 'Next welcome day opens tomorrow' : wDone ? 'Continue today’s welcome' : 'Start today’s welcome'} {!welcomeDay.locked && <Bi name="arrow-right" />}</button>
+              ? <button className="md-btn light" onClick={() => nav(welcomeHref)} disabled={!!welcomeDay.locked}>{welcomeDay.locked ? 'Next welcome day opens tomorrow' : `${wDone ? 'Continue' : 'Start'} Day ${welcomeDay.day}`} {!welcomeDay.locked && <Bi name="arrow-right" />}</button>
               : journeyMode && journey?.available && journey.enrollmentId
-              ? <button className="md-btn light" onClick={() => nav(dayHref)}>{jDone ? 'Continue today’s work' : 'Start today’s work'} <Bi name="arrow-right" /></button>
+              ? <button className="md-btn light" onClick={() => nav(dayHref)}>{`${jDone ? 'Continue' : 'Start'} Day ${journey?.currentDay ?? 1}`} <Bi name="arrow-right" /></button>
               : <button className="md-btn light" onClick={startNext}>
                   {nextMission ? (nextMission.link ? 'Start next mission' : 'Write your answer') : 'Practice anyway'} <Bi name="arrow-right" />
                 </button>}
@@ -427,7 +427,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
               <div className="md-jm-actions">
                 {welcomeDay.locked
                   ? <span className="md-empty-note">Today’s welcome is done — Day {welcomeDay.day} opens tomorrow.</span>
-                  : <button className="md-btn primary" onClick={() => nav(welcomeHref)}>{wDone ? 'Continue today’s welcome' : 'Start today’s welcome'} <Bi name="arrow-right" /></button>}
+                  : <button className="md-btn primary" onClick={() => nav(welcomeHref)}>{`${wDone ? 'Continue' : 'Start'} Day ${welcomeDay.day}`} <Bi name="arrow-right" /></button>}
                 <button className="md-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {journey?.totalDays ?? d.programDays ?? 90} days</button>
               </div>
             </> : !journey?.available ? (
@@ -457,7 +457,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
                 )}
               </div>
               <div className="md-jm-actions">
-                {journey.enrollmentId && <button className="md-btn primary" onClick={() => nav(dayHref)}>{jDone ? 'Continue today’s work' : 'Start today’s work'} <Bi name="arrow-right" /></button>}
+                {journey.enrollmentId && <button className="md-btn primary" onClick={() => nav(dayHref)}>{`${jDone ? 'Continue' : 'Start'} Day ${journey?.currentDay ?? 1}`} <Bi name="arrow-right" /></button>}
                 <button className="md-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {journey.totalDays ?? d.programDays ?? 90} days</button>
               </div>
             </>}

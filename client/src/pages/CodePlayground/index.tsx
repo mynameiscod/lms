@@ -513,7 +513,6 @@ const CodePlayground: React.FC = () => {
             <span>Write, run and debug code in {LANGS.length} languages and {FRAMEWORKS.length} frameworks — and save what you build.</span>
           </div>
           <div className="cpg-head-tags">
-            <span><i className="bi bi-lightning-charge-fill" aria-hidden /> Runs in the cloud</span>
             <span><i className="bi bi-folder2-open" aria-hidden /> {programs.length} saved</span>
           </div>
         </div>

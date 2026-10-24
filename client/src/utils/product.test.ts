@@ -23,6 +23,13 @@ describe('the two products stay apart', () => {
     expect(productRedirect(member, '/login')).toBe('/careerpilot');
   });
 
+  it('lets a member open the shared pages CareerPilot sends them to (checkpoint quiz, mock interview, applications)', () => {
+    expect(productRedirect(member, '/quiz/abc/take')).toBeNull();
+    expect(productRedirect(member, '/student/interviews/take/tpl1')).toBeNull();
+    expect(productRedirect(member, '/student/my-applications')).toBeNull();
+    expect(productRedirect(member, '/quizzes')).toBe('/careerpilot');
+  });
+
   it('takes a member to their own version of an LMS page a link pointed at', () => {
     expect(productRedirect(member, '/ai-communication-lab')).toBe('/careerpilot/communication');
     expect(productRedirect(member, '/thinking-lab')).toBe('/careerpilot/thinking-lab');

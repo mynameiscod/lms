@@ -3,7 +3,7 @@
    Inputs and selects inherit the admin surface's own styling (AdminCore.css); only layout,
    switches and rows are defined here. Prefix: cpc-. */
 
-.cpc { --cpc-ink: #0f172a; --cpc-sub: #475569; --cpc-line: #e8edf4; --cpc-teal: #0d9488; --cpc-indigo: #051D64;
+.cpcfg { --cpc-ink: #0f172a; --cpc-sub: #475569; --cpc-line: #e8edf4; --cpc-teal: #0d9488; --cpc-indigo: #051D64;
   padding: 20px 26px 96px; max-width: 1240px; }
 
 .cpc-crumb { font-size: 12.5px; color: #4B5B72; margin-bottom: 6px; }
@@ -110,7 +110,7 @@
 .cpc-dirty { font-size: 12.5px; color: #b45309; font-weight: 600; }
 
 @media (max-width: 760px) {
-  .cpc { padding: 16px 16px 96px; }
+  .cpcfg { padding: 16px 16px 96px; }
   .cpc-head { flex-direction: column; }
   .cpc-row { grid-template-columns: 22px 1fr auto; }
   .cpc-row .cpc-type, .cpc-row .ph { display: none; }
@@ -171,3 +171,7 @@
   .cpc-row > .name { grid-area: name; white-space: normal; overflow: visible; }
   .cpc-row > .cpc-acts { grid-area: acts; flex-wrap: wrap; gap: 10px 14px; }
 }
+
+/* Inputs and selects: text was flush against the left border. */
+.cpcfg input:not([type=checkbox]):not([type=radio]), .cpcfg select { padding-left: 12px !important; padding-right: 12px !important; }
+.cpcfg select { padding-right: 32px !important; }

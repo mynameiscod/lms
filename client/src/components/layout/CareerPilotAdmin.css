@@ -128,3 +128,9 @@
 .careerpilot-admin-surface button[style*="background: rgb(99, 102, 241)"],
 .careerpilot-admin-surface button[style*="background-color: rgb(37, 99, 235)"],
 .careerpilot-admin-surface button[style*="background-color: rgb(79, 70, 229)"] { background: #051D64 !important; border-color: #051D64 !important; color: #fff !important; }
+/* A link styled as a button is not underlined. */
+.careerpilot-admin-surface a.cpx-btn { text-decoration: none !important; }
+/* Phone: keep the save bar's button clear of the floating report-a-problem button in the corner. */
+@media (max-width: 760px) {
+  .careerpilot-admin-surface .cpx-savebar, .careerpilot-admin-surface .cpc-savebar { margin-right: 60px; }
+}

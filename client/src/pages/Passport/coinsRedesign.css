@@ -24,3 +24,13 @@
 .cpw-balance-copy span { font-size: 14px; color: #fff; }
 .cpw-balance-copy em { font-size: 17px; }
 .cpw-balance-copy p { color: #D5E2F5; max-width: 300px; }
+
+/* The balance card is dark blue, so its text is light — at a priority no other page's grey-text
+   rule can beat. Without it the note turned dark grey (invisible) after arriving from another page
+   and was only right after a refresh, depending on which page's styles had loaded first. */
+#root .gd .cpw .cpw-balance-copy span { color: #fff !important; }
+#root .gd .cpw .cpw-balance-copy strong, #root .gd .cpw .cpw-balance-copy em { color: #fff !important; }
+#root .gd .cpw .cpw-balance-copy p { color: #D5E2F5 !important; }
+/* The wallet and coin glyphs were shrunk by the shared icon size rule; held at their designed size. */
+#root .gd .cpw .cpw-wallet-art > i { font-size: 56px !important; color: #7dd4dc !important; }
+#root .gd .cpw .cpw-wallet-art span i { font-size: 22px !important; color: #fff !important; }

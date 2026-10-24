@@ -66,7 +66,7 @@ const Coins: React.FC = () => {
             <div className="cpw-stat"><span className="green"><i className="bi bi-arrow-up-right" /></span><small>Coins earned</small><b>{data.lifetimeEarned.toLocaleString('en-IN')}</b><em>Lifetime earned</em></div>
             <div className="cpw-stat"><span className="red"><i className="bi bi-arrow-down-left" /></span><small>Coins spent</small><b>{data.lifetimeSpent.toLocaleString('en-IN')}</b><em>Lifetime spent</em></div>
             <div className="cpw-stat"><span className="blue"><i className="bi bi-gift" /></span><small>Spend status</small><b>{spendable ? 'Ready' : 'Locked'}</b><em>{spendable ? 'Rewards can be redeemed' : 'Membership needed to spend'}</em></div>
-            <div className="cpw-stat"><span className="orange"><i className="bi bi-speedometer2" /></span><small>Monthly earn cap</small><b>{data.monthlyEarnCap > 0 ? data.monthlyEarnCap.toLocaleString('en-IN') : '—'}</b><em>{data.monthlyEarnCap > 0 ? 'Daily activity cap' : 'No cap configured'}</em></div>
+            <div className="cpw-stat"><span className="orange"><i className="bi bi-speedometer2" /></span><small>Monthly earn cap</small><b>{data.monthlyEarnCap > 0 ? data.monthlyEarnCap.toLocaleString('en-IN') : '—'}</b><em>{data.monthlyEarnCap > 0 ? 'Most you can earn a month from daily activity' : 'No cap configured'}</em></div>
           </section>
         </div>
 

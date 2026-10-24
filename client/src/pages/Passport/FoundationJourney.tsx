@@ -979,7 +979,7 @@ const FoundationJourneyPage: React.FC = () => {
                       className={`fj-start${finished ? ' ghost' : ''}`}
                       onClick={() => nav(`/careerpilot/journey/welcome/${wd.dayNumber}`)}
                     >
-                      {finished ? 'Review this day' : isToday ? "Start today's welcome" : 'Open this day'}
+                      {finished ? 'Review this day' : isToday ? `Start Day ${wd.day}` : 'Open this day'}
                     </button>
                   )}
                 </div>
@@ -1057,7 +1057,7 @@ const FoundationJourneyPage: React.FC = () => {
                     className={`fj-start${day.status === 'CURRENT' ? '' : ' ghost'}`}
                     onClick={() => nav(`/careerpilot/journey/day/${day.day}`)}
                   >
-                    {day.status === 'CURRENT' ? "Start today's work"
+                    {day.status === 'CURRENT' ? `Start Day ${day.day}`
                       : day.status === 'COMPLETED' ? 'Review this day' : 'Open this day'}
                   </button>
                 )}

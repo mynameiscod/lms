@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import passportApi, { EvidenceItem, MappableSkill, SkillCoverageRow } from '../../api/passportApi';
 import './adminSkillEvidence.css';
+// Several shared classes (pm-btn, pm-msg and this page's own) live in the member stylesheet; import
+// it here so the page is styled the same on a fresh load as after visiting a member page.
+import './member.css';
 
 /**
  * Mapping assessment content to the canonical skills it measures.

@@ -158,3 +158,13 @@
   .asc-mod-meta .warn { color: #fbbf24; }
   .asc-add-mod:hover { border-color: #60a5fa; color: #60a5fa; }
 }
+
+/* Phone: the module header put the name, code, measurable count, "+ topic" and "delete" on one
+   line, drawn over each other. Name and code on top; the count and actions on their own line. */
+@media (max-width: 760px) {
+  .asc-mod-hd { flex-wrap: wrap; align-items: flex-start; }
+  .asc-mod-id { flex: 1 1 100%; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .asc-mod-name { width: 100%; min-width: 0; }
+  .asc-mod-id code { word-break: break-all; }
+  .asc-mod-meta { flex-wrap: wrap; white-space: normal; gap: 10px 14px; }
+}

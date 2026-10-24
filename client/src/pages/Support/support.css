@@ -212,3 +212,20 @@ fieldset.sp-card{margin:0;min-width:0}
 
 /* Readable teal: links and teal buttons use the darker shade (white on #359AAD was 3.3:1). */
 .sp{--sp-teal:#237F91}
+
+/* Admin desk on phones and tablets: the section tabs scroll sideways instead of running off the
+   screen, the filters sit two to a row at equal width, and the ticket table scrolls inside its
+   card rather than being clipped at the Status column. */
+@media (max-width: 760px) {
+  .sp-admin .sp-tabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .sp-admin .sp-tabs::-webkit-scrollbar { display: none; }
+  .sp-admin .sp-tabs > * { flex: 0 0 auto; white-space: nowrap; }
+  .sp-admin .sp-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sp-admin .sp-filters > * { min-width: 0; width: 100%; }
+  .sp-admin .sp-filters > .sp-input, .sp-admin .sp-filters > input { grid-column: 1 / -1; }
+  .sp-admin .sp-card:has(> .sp-table), .sp-admin .sp-card:has(.sp-table) { overflow-x: auto; }
+  .sp-admin .sp-table { min-width: 620px; }
+}
+/* The screen-reader-only label sat at its natural place in the line, past the edge of a phone,
+   and widened the page. Pinned to the corner it is still read out and takes no room. */
+.sp-sr { left: 0; top: 0; margin: -1px; padding: 0; border: 0; }

@@ -1,6 +1,18 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi from '../../api/passportApi';
+import './adminStudents.css';
+import { personName } from '../../utils/personName';
+// Several shared classes (pm-btn, pm-msg and this page's own) live in the member stylesheet; import
+// it here so the page is styled the same on a fresh load as after visiting a member page.
+import './member.css';
+
+type Filter = 'all' | 'member' | 'free' | 'comp' | 'off';
+const PAGE = 25;
+/** A member's display name: no stray "-" placeholder, and the email when there is no name at all. */
+const nameOf = (r: any) => personName(r, 'Unnamed member');
+const initialsOf = (n: string) => n.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase()).join('') || '?';
+const fmt = (d?: string) => (d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 
 const PassportAdminStudents: React.FC = () => {
   const nav = useNavigate();
@@ -12,6 +24,18 @@ const PassportAdminStudents: React.FC = () => {
   const [editVal, setEditVal] = useState('');
   const [adding, setAdding] = useState(false);
   const [nw, setNw] = useState({ firstName: '', lastName: '', email: '', phone: '' });
+  const [filter, setFilter] = useState<Filter>('all');
+  const [page, setPage] = useState(1);
+  const [menuFor, setMenuFor] = useState('');
+  const [showActivate, setShowActivate] = useState(false);
+
+  // The row menu closes on any click outside it.
+  useEffect(() => {
+    if (!menuFor) return;
+    const close = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest('.cpm-menu-wrap')) setMenuFor(''); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [menuFor]);
 
   // Written mission answers for one member, loaded on demand. Not folded into the list
   // query: it replays the mission generator per answered day, which is wasted work for
@@ -133,84 +157,138 @@ const PassportAdminStudents: React.FC = () => {
     catch (e: any) { setMsg(e?.response?.data?.message || 'Could not delete'); }
   };
 
+  const counts = useMemo(() => ({
+    all: rows.length,
+    member: rows.filter(r => r.passport?.active && !r.passport?.grant?.at).length,
+    free: rows.filter(r => !r.passport?.active).length,
+    comp: rows.filter(r => r.passport?.grant?.at).length,
+    off: rows.filter(r => r.isActive === false).length,
+  }), [rows]);
+  const shown = useMemo(() => rows.filter(r =>
+    filter === 'all' ? true
+      : filter === 'member' ? r.passport?.active && !r.passport?.grant?.at
+      : filter === 'free' ? !r.passport?.active
+      : filter === 'comp' ? !!r.passport?.grant?.at
+      : r.isActive === false), [rows, filter]);
+  const pages = Math.max(1, Math.ceil(shown.length / PAGE));
+  const pageRows = shown.slice((Math.min(page, pages) - 1) * PAGE, Math.min(page, pages) * PAGE);
+  useEffect(() => { setPage(1); }, [filter, search]);
+  const ok = msg.startsWith('✅');
+
   return (
-    <div style={{ padding: '22px 26px', maxWidth: 980 }}>
-      <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>CareerPilot <span style={{ color: '#cbd5e1' }}>›</span> <b style={{ color: '#334155' }}>Students</b></div>
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>CareerPilot Students</h1>
+    <div className="cpm">
+      <header className="cpx-head">
+        <div>
+          <span className="cpx-eyebrow">CareerPilot</span>
+          <h1>Members</h1>
+          <p>Everyone who has signed up for CareerPilot: their membership, their roadmap, what they wrote and their mock interviews.</p>
+        </div>
+        <div className="cpm-head-actions">
+          <button className="cpx-btn" onClick={() => setShowActivate(v => !v)}><i className="bi bi-patch-check" /> Activate by ID</button>
+          <button className="cpx-btn primary" onClick={() => setAdding(true)}><i className="bi bi-person-plus" /> Add member</button>
+        </div>
+      </header>
 
-      <div style={{ background: '#f8fafc', border: '1px solid #eef1f6', borderRadius: 12, padding: 14, marginBottom: 16, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>Manually activate a student:</span>
-        <input placeholder="student id" value={convertId} onChange={e => setConvertId(e.target.value)} style={{ padding: '8px 10px', border: '1.5px solid #e2e8f0', borderRadius: 9, fontSize: 13, minWidth: 240 }} />
-        <button onClick={convert} style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Activate</button>
-        {msg && <span style={{ fontSize: 13, color: msg.startsWith('✅') ? '#16a34a' : '#dc2626' }}>{msg}</span>}
-      </div>
+      {msg && <div className={`pm-msg ${ok ? 'ok' : 'err'}`}>{msg.replace(/^✅\s*/, '')}</div>}
 
-      <input placeholder="Search name / email…" value={search} onChange={e => setSearch(e.target.value)} style={{ padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 13.5, width: 300, marginBottom: 12 }} />
-
-      {!adding ? (
-        <button style={{ ...mini, marginBottom: 12, padding: '9px 15px' }} onClick={() => setAdding(true)}>+ Add member</button>
-      ) : (
-        <div style={{ background: '#fff', border: '1px solid #eef1f6', borderRadius: 12, padding: 14, marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <input placeholder="First name" value={nw.firstName} onChange={e => setNw({ ...nw, firstName: e.target.value })} style={inp} />
-          <input placeholder="Last name" value={nw.lastName} onChange={e => setNw({ ...nw, lastName: e.target.value })} style={inp} />
-          <input placeholder="Email" value={nw.email} onChange={e => setNw({ ...nw, email: e.target.value })} style={inp} />
-          <input placeholder="Phone" value={nw.phone} onChange={e => setNw({ ...nw, phone: e.target.value })} style={inp} />
-          <button style={mini} onClick={addMember} disabled={!nw.firstName.trim() || !nw.email.trim()}>Add</button>
-          <button style={mini} onClick={() => setAdding(false)}>Cancel</button>
+      {showActivate && (
+        <div className="cpm-panel">
+          <b>Activate a membership manually</b>
+          <span className="cpm-panel-note">Paste the student's ID. Use this when a payment was taken outside CareerPilot.</span>
+          <div className="cpm-panel-row">
+            <input aria-label="Student ID" placeholder="Student ID" value={convertId} onChange={e => setConvertId(e.target.value)} />
+            <button className="cpx-btn primary" onClick={convert} disabled={!convertId.trim()}>Activate</button>
+          </div>
         </div>
       )}
 
-      <div style={{ background: '#fff', border: '1px solid #eef1f6', borderRadius: 14, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead><tr style={{ background: '#f8fafc' }}>
-            {['Student', 'Email', 'Status', 'Activated', 'Expires', ''].map(h => <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{h}</th>)}
-          </tr></thead>
+      {adding && (
+        <div className="cpm-panel">
+          <b>Add a member</b>
+          <span className="cpm-panel-note">They start on the free tier. Activate them afterwards to grant membership.</span>
+          <div className="cpm-add-grid">
+            <input aria-label="First name" placeholder="First name" value={nw.firstName} onChange={e => setNw({ ...nw, firstName: e.target.value })} />
+            <input aria-label="Last name" placeholder="Last name" value={nw.lastName} onChange={e => setNw({ ...nw, lastName: e.target.value })} />
+            <input aria-label="Email" placeholder="Email" value={nw.email} onChange={e => setNw({ ...nw, email: e.target.value })} />
+            <input aria-label="Phone" placeholder="Phone" value={nw.phone} onChange={e => setNw({ ...nw, phone: e.target.value })} />
+          </div>
+          <div className="cpm-panel-row end">
+            <button className="cpx-btn" onClick={() => setAdding(false)}>Cancel</button>
+            <button className="cpx-btn primary" onClick={addMember} disabled={!nw.firstName.trim() || !nw.email.trim()}>Add member</button>
+          </div>
+        </div>
+      )}
+
+      <div className="cpm-toolbar">
+        <div className="cpm-search">
+          <i className="bi bi-search" aria-hidden="true" />
+          <input placeholder="Search by name or email" value={search} onChange={e => setSearch(e.target.value)} aria-label="Search members" />
+        </div>
+        <div className="cpm-filters" role="tablist" aria-label="Filter members">
+          {([['all', 'All'], ['member', 'Members'], ['free', 'Free'], ['comp', 'Complimentary'], ['off', 'Deactivated']] as [Filter, string][]).map(([k, label]) => (
+            <button key={k} role="tab" aria-selected={filter === k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>
+              {label} <em>{counts[k]}</em>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="cpm-table-card">
+        <table className="cpm-table">
+          <thead><tr><th>Member</th><th>Status</th><th>Activated</th><th>Expires</th><th aria-label="Actions" /></tr></thead>
           <tbody>
-            {rows.length === 0 ? <tr><td colSpan={6} style={{ padding: 30, textAlign: 'center', color: '#94a3b8' }}>No CareerPilot students yet.</td></tr> :
-              rows.map(r => (
+            {pageRows.length === 0 ? <tr><td colSpan={5} className="cpm-empty">{rows.length ? 'No members match this filter.' : 'No CareerPilot members yet.'}</td></tr> :
+              pageRows.map(r => (
                 <React.Fragment key={r._id}>
-                <tr style={{ borderTop: '1px solid #f5f7fa', opacity: r.isActive === false ? .55 : 1 }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 600 }}>
+                <tr className={r.isActive === false ? 'off' : ''}>
+                  <td className="cpm-who" data-label="Member">
+                    <span className="cpm-avatar" aria-hidden="true">{initialsOf(nameOf(r))}</span>
                     {editId === r._id
-                      ? <input defaultValue={`${r.firstName || ''} ${r.lastName || ''}`.trim()}
-                          onChange={e => setEditVal(e.target.value)} style={inp} autoFocus />
-                      : <>{r.firstName} {r.lastName}</>}
+                      ? <input className="cpm-edit" aria-label="Full name" defaultValue={nameOf(r) === r.email ? '' : nameOf(r)} placeholder="Full name"
+                          onChange={e => setEditVal(e.target.value)} autoFocus />
+                      : <span className="cpm-names"><b>{nameOf(r)}</b>{nameOf(r) !== r.email && <small>{r.email}</small>}</span>}
                   </td>
-                  <td style={{ padding: '10px 14px', color: '#64748b' }}>{r.email}</td>
-                  <td style={{ padding: '10px 14px' }}>
+                  <td data-label="Status">
                     {/* Paid and active are different facts: someone can be a member whose
                         account has been deactivated, and staff need to see both. */}
-                    <span style={r.passport?.active ? pillPaid : pillFree}>{r.passport?.active ? 'Member' : 'Free'}</span>
+                    <span className={`cpm-pill ${r.passport?.active ? 'paid' : 'free'}`}>{r.passport?.active ? 'Member' : 'Free'}</span>
                     {/* A complimentary member is a member — but staff must be able to tell
                         them apart from a customer at a glance, and see why. */}
                     {r.passport?.grant?.at && (
-                      <span
-                        style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#7c3aed', background: '#f3ecff', borderRadius: 99, padding: '2px 8px' }}
+                      <span className="cpm-pill comp"
                         title={`${r.passport.grant.reason || 'granted'} — by ${r.passport.grant.byName || 'admin'} on ${new Date(r.passport.grant.at).toLocaleDateString('en-IN')}`}>
-                        Comp
+                        Complimentary
                       </span>
                     )}
-                    {r.isActive === false && <span style={pillOff}>Deactivated</span>}
+                    {r.isActive === false && <span className="cpm-pill off">Deactivated</span>}
                   </td>
-                  <td style={{ padding: '10px 14px', color: '#64748b' }}>{r.passport?.activatedAt ? new Date(r.passport.activatedAt).toLocaleDateString('en-IN') : '—'}</td>
-                  <td style={{ padding: '10px 14px', color: '#64748b' }}>{r.passport?.expiresAt ? new Date(r.passport.expiresAt).toLocaleDateString('en-IN') : '—'}</td>
-                  <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                  <td data-label="Activated" className="cpm-date">{fmt(r.passport?.activatedAt)}</td>
+                  <td data-label="Expires" className="cpm-date">{fmt(r.passport?.expiresAt)}</td>
+                  <td className="cpm-actions">
                     {editId === r._id ? (
                       <>
-                        <button style={mini} onClick={() => saveName(r)}>Save</button>
-                        <button style={mini} onClick={() => setEditId('')}>Cancel</button>
+                        <button className="cpx-btn" onClick={() => setEditId('')}>Cancel</button>
+                        <button className="cpx-btn primary" onClick={() => saveName(r)}>Save</button>
                       </>
                     ) : (
                       <>
-                        <button style={mini} onClick={() => nav(`/admin/passport/students/${r._id}/roadmap`)}>Roadmap</button>
-                        <button style={mini} onClick={() => openAnswers(r._id)}>{answersFor === r._id ? 'Hide answers' : 'Answers'}</button>
-                        <button style={mini} onClick={() => openInterviews(r._id)}>{ivFor === r._id ? 'Hide interviews' : 'Interviews'}</button>
-                        <button style={mini} onClick={() => { setEditId(r._id); setEditVal(`${r.firstName || ''} ${r.lastName || ''}`.trim()); }}>Edit</button>
-                        {r.passport?.grant?.at
-                          ? <button style={mini} onClick={() => revokeAccess(r)}>Revoke access</button>
-                          : <button style={mini} onClick={() => grantAccess(r)}>Grant access</button>}
-                        <button style={mini} onClick={() => toggleActive(r)}>{r.isActive === false ? 'Restore' : 'Deactivate'}</button>
-                        <button style={{ ...mini, color: '#b91c1c' }} onClick={() => removeMember(r)}>Delete</button>
+                        <button className="cpx-btn" onClick={() => nav(`/admin/passport/students/${r._id}/roadmap`)}><i className="bi bi-map" /> Roadmap</button>
+                        <span className="cpm-menu-wrap">
+                          <button className="cpx-btn cpm-more" aria-haspopup="menu" aria-expanded={menuFor === r._id} aria-label={`More actions for ${nameOf(r)}`}
+                            onClick={() => setMenuFor(menuFor === r._id ? '' : r._id)}><i className="bi bi-three-dots" /></button>
+                          {menuFor === r._id && (
+                            <span className="cpm-menu" role="menu">
+                              <button role="menuitem" onClick={() => { setMenuFor(''); openAnswers(r._id); }}><i className="bi bi-chat-left-text" /> {answersFor === r._id ? 'Hide answers' : 'Mission answers'}</button>
+                              <button role="menuitem" onClick={() => { setMenuFor(''); openInterviews(r._id); }}><i className="bi bi-mic" /> {ivFor === r._id ? 'Hide interviews' : 'Mock interviews'}</button>
+                              <button role="menuitem" onClick={() => { setMenuFor(''); setEditId(r._id); setEditVal(nameOf(r) === r.email ? '' : nameOf(r)); }}><i className="bi bi-pencil" /> Edit name</button>
+                              {r.passport?.grant?.at
+                                ? <button role="menuitem" onClick={() => { setMenuFor(''); revokeAccess(r); }}><i className="bi bi-x-octagon" /> Revoke access</button>
+                                : <button role="menuitem" onClick={() => { setMenuFor(''); grantAccess(r); }}><i className="bi bi-gift" /> Grant access</button>}
+                              <button role="menuitem" onClick={() => { setMenuFor(''); toggleActive(r); }}><i className={`bi ${r.isActive === false ? 'bi-arrow-counterclockwise' : 'bi-pause-circle'}`} /> {r.isActive === false ? 'Restore' : 'Deactivate'}</button>
+                              <button role="menuitem" className="danger" onClick={() => { setMenuFor(''); removeMember(r); }}><i className="bi bi-trash" /> Delete</button>
+                            </span>
+                          )}
+                        </span>
                       </>
                     )}
                   </td>
@@ -218,7 +296,7 @@ const PassportAdminStudents: React.FC = () => {
 
                 {answersFor === r._id && (
                   <tr>
-                    <td colSpan={6} style={{ padding: '0 14px 16px', background: '#fbfcfe' }}>
+                    <td colSpan={5} className="cpm-detail">
                       {answersBusy ? (
                         <div style={{ padding: 14, color: '#94a3b8', fontSize: 13 }}>Loading answers…</div>
                       ) : !answers?.length ? (
@@ -267,7 +345,7 @@ const PassportAdminStudents: React.FC = () => {
 
                 {ivFor === r._id && (
                   <tr>
-                    <td colSpan={6} style={{ padding: '0 14px 16px', background: '#fbfcfe' }}>
+                    <td colSpan={5} className="cpm-detail">
                       {ivBusy ? (
                         <div style={{ padding: 14, color: '#94a3b8', fontSize: 13 }}>Loading interviews…</div>
                       ) : !ivs?.length ? (
@@ -327,15 +405,17 @@ const PassportAdminStudents: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {pages > 1 && (
+        <nav className="cpm-pager" aria-label="Pages">
+          <button className="cpx-btn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><i className="bi bi-chevron-left" /> Previous</button>
+          <span>Page {Math.min(page, pages)} of {pages} · {shown.length} members</span>
+          <button className="cpx-btn" disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Next <i className="bi bi-chevron-right" /></button>
+        </nav>
+      )}
     </div>
   );
 };
 
-const inp: React.CSSProperties = { border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 11px', fontSize: 13, color: '#0f172a', minWidth: 150 };
-const mini: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 7, padding: '6px 11px', fontSize: 12.5, fontWeight: 600, color: '#475569', cursor: 'pointer', marginRight: 6 };
-const pillBase: React.CSSProperties = { display: 'inline-block', padding: '2px 9px', borderRadius: 999, fontSize: 10.5, fontWeight: 700, marginRight: 5 };
-const pillPaid: React.CSSProperties = { ...pillBase, background: '#dcfce7', color: '#166534' };
-const pillFree: React.CSSProperties = { ...pillBase, background: '#eef2f7', color: '#64748b' };
-const pillOff: React.CSSProperties = { ...pillBase, background: '#fee2e2', color: '#b91c1c' };
 
 export default PassportAdminStudents;

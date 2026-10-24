@@ -5,7 +5,7 @@
   --cpa-navy: #0b2447;
   --cpa-teal: #14798b;
   --cpa-line: #e3e9f0;
-  --cpa-muted: #6a7688;
+  --cpa-muted: #475569;
   --cpa-bad: #c0392b;
   --cpa-ok: #17795e;
   padding: 22px clamp(14px, 3vw, 34px) 40px;
@@ -27,7 +27,7 @@
   display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
   border: 1px solid var(--cpa-line); border-radius: 14px; background: #fff; padding: 14px; margin-bottom: 16px;
 }
-.cpa-filters label { display: flex; flex-direction: column; gap: 5px; font-size: 10.5px; font-weight: 800; color: #78859a; }
+.cpa-filters label { display: flex; flex-direction: column; gap: 5px; font-size: 10.5px; font-weight: 800; color: #3F4F66; }
 .cpa-filters input[type="text"], .cpa-filters input[type="date"], .cpa-filters select {
   border: 1px solid var(--cpa-line); border-radius: 9px; padding: 8px 10px; font-size: 12.5px; color: var(--cpa-navy); background: #fff;
 }
@@ -39,7 +39,7 @@
 
 .cpa-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
 .cpa-kpi { border: 1px solid var(--cpa-line); border-radius: 14px; background: #fff; padding: 14px; }
-.cpa-kpi > span { display: block; font-size: 10px; font-weight: 800; color: #8290a5; letter-spacing: .05em; text-transform: uppercase; }
+.cpa-kpi > span { display: block; font-size: 10px; font-weight: 800; color: #3F4F66; letter-spacing: .05em; text-transform: uppercase; }
 .cpa-kpi > b { display: block; font-size: 25px; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
 .cpa-kpi > small { font-size: 10.5px; color: var(--cpa-muted); }
 .cpa-kpi.bad > b { color: var(--cpa-bad); }
@@ -47,7 +47,7 @@
 .cpa-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
 .cpa-chip { font-style: normal; font-size: 10.5px; background: #eff4f8; color: #435268; border-radius: 999px; padding: 4px 9px; }
 .cpa-chip b { font-weight: 900; }
-.cpa-chip.muted { color: #9aa6b6; }
+.cpa-chip.muted { color: #4B5B72; }
 
 .cpa-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 14px; align-items: start; }
 
@@ -61,8 +61,8 @@
 .cpa-list-head h2, .cpa-trail-head h2 { font-size: 13.5px; margin: 0; }
 .cpa-list-head span { font-size: 10.5px; color: var(--cpa-muted); }
 .cpa-trail-head p { margin: 4px 0 0; font-size: 11px; color: var(--cpa-muted); line-height: 1.5; }
-.cpa-trail-head .cpa-sub { font-size: 10.5px; color: #93a0b1; }
-.cpa-vid { font-size: 10px; color: #93a0b1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+.cpa-trail-head .cpa-sub { font-size: 10.5px; color: #4B5B72; }
+.cpa-vid { font-size: 10px; color: #4B5B72; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
 
 .cpa-list { max-height: 620px; overflow-y: auto; }
 .cpa-row {
@@ -80,17 +80,17 @@
 .cpa-who { display: flex; flex-direction: column; min-width: 0; }
 .cpa-who b { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cpa-who small { font-size: 10.5px; color: var(--cpa-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cpa-who .cpa-last { color: #9aa6b6; font-style: italic; }
+.cpa-who .cpa-last { color: #4B5B72; font-style: italic; }
 .cpa-nums, .cpa-when { display: flex; flex-direction: column; align-items: flex-end; }
 .cpa-nums b, .cpa-when b { font-size: 13px; font-variant-numeric: tabular-nums; }
-.cpa-nums small, .cpa-when small { font-size: 9.5px; color: #93a0b1; white-space: nowrap; }
+.cpa-nums small, .cpa-when small { font-size: 9.5px; color: #4B5B72; white-space: nowrap; }
 .cpa-fail { font-style: normal; font-size: 9.5px; font-weight: 800; color: var(--cpa-bad); margin-top: 2px; }
 
 .cpa-trail { min-height: 320px; }
 .cpa-events { list-style: none; margin: 0; padding: 6px 0; max-height: 560px; overflow-y: auto; }
 .cpa-event { display: grid; grid-template-columns: 62px 26px minmax(0, 1fr); gap: 9px; align-items: start; padding: 8px 16px; }
 .cpa-event + .cpa-event { border-top: 1px solid #f2f5f8; }
-.cpa-ev-time { font-size: 10px; color: #93a0b1; font-variant-numeric: tabular-nums; padding-top: 4px; }
+.cpa-ev-time { font-size: 10px; color: #4B5B72; font-variant-numeric: tabular-nums; padding-top: 4px; }
 .cpa-ev-dot { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: #eef4f8; color: #4b5c73; font-size: 10px; }
 .cpa-ev-dot.page { background: #eef4fb; color: #2b6cb0; }
 .cpa-ev-dot.action { background: #eaf6ee; color: #1c7a4f; }
@@ -132,3 +132,8 @@
   .cpa-row { grid-template-columns: 34px minmax(0, 1fr) auto; }
   .cpa-when { display: none; }
 }
+
+/* Each line of the visitor's name block stays in its column (a long "GET /curriculum-units/…"
+   ran into the event count beside it). */
+.cpa-who { min-width: 0; }
+.cpa-who > * { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

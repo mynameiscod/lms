@@ -3,6 +3,9 @@ import passportApi, {
   StageCurriculumView, StageModuleNode, StageTopicNode, StageSkillNode, StageTopicInput,
 } from '../../api/passportApi';
 import './adminStageCurriculum.css';
+// Several shared classes (pm-btn, pm-msg and this page's own) live in the member stylesheet; import
+// it here so the page is styled the same on a fresh load as after visiting a member page.
+import './member.css';
 
 /**
  * One stage, whole: what it teaches and what it can actually measure.

@@ -100,10 +100,10 @@
   width: 180px; border: 1px solid #E2EAF2; border-radius: 8px; padding: 6px 9px;
   font-size: 12.5px; font-family: ui-monospace, monospace; color: var(--muted);
 }
-.aori-key small { color: #94A3B8; font-size: 11.5px; }
+.aori-key small { color: #4B5B72; font-size: 11.5px; }
 
 .aori-x {
-  flex: none; border: 0; background: none; color: #94A3B8; cursor: pointer; font-size: 14px; padding: 6px;
+  flex: none; border: 0; background: none; color: #4B5B72; cursor: pointer; font-size: 14px; padding: 6px;
 }
 .aori-x:hover { color: #B42318; }
 
@@ -140,4 +140,12 @@
   /* A 14px button and a URL field cannot share 360px; the button goes full width underneath. */
   .aori-media { flex-direction: column; }
   .aori-upload { justify-content: center; padding: 10px 14px; }
+}
+
+/* Phone: the day title input kept a desktop minimum width and pushed the delete button off the
+   screen edge. The title takes what is left beside "Day N" and the bin stays in view. */
+@media (max-width: 760px) {
+  .aori-day > header { gap: 8px; }
+  .aori-day > header .aori-title { flex: 1 1 auto; min-width: 0; width: auto; font-size: 16px; }
+  .aori-day > header .aori-x { flex: none; }
 }

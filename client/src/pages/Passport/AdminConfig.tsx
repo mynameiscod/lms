@@ -559,7 +559,7 @@ const PassportAdminConfig: React.FC = () => {
             </div>
           </section>
 
-          <div className="cpc-bar">
+          <div className="cpc-savebar">
             <button className="cpc-save" onClick={save} disabled={saving}><i className="bi bi-floppy" /> {saving ? 'Saving…' : 'Save Changes'}</button>
             <button className="cpc-reset" onClick={() => { if (!dirty || window.confirm('Discard your unsaved changes?')) load(); }} disabled={saving}><i className="bi bi-arrow-counterclockwise" /> Reset</button>
             {dirty && !msg && <span className="cpc-dirty">Unsaved changes</span>}

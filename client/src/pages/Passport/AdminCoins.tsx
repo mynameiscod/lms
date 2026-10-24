@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import passportApi, { CoinAdminResponse, CoinConfig, CoinRule } from '../../api/passportApi';
+// Several shared classes (pm-btn, pm-msg and this page's own) live in the member stylesheet; import
+// it here so the page is styled the same on a fresh load as after visiting a member page.
+import './member.css';
 
 /**
  * Admin control of the coin economy.
@@ -80,6 +83,13 @@ const AdminCoins: React.FC = () => {
 
   return (
     <div>
+      <header className="cpx-head">
+        <div>
+          <span className="cpx-eyebrow">CareerPilot</span>
+          <h1>Coins</h1>
+          <p>What members earn coins for, how much, and the limits that keep the reward budget safe.</p>
+        </div>
+      </header>
       <div style={{ ...box, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 14 }}>
         {[
           ['Coins issued', s.totalIssued.toLocaleString('en-IN')],
@@ -168,12 +178,14 @@ const AdminCoins: React.FC = () => {
         </div>
       </div>
 
-      {msg && <div className="pm-msg ok">{msg}</div>}
-      {err && <div className="pm-msg err">{err}</div>}
-
-      <button className="pm-btn primary" disabled={busy} onClick={saveAll}>
-        {busy ? 'Saving…' : 'Save coin settings'}
-      </button>
+      <div className="cpx-savebar">
+        {msg && <div className="pm-msg ok" style={{ margin: 0 }}>{msg}</div>}
+        {err && <div className="pm-msg err" style={{ margin: 0 }}>{err}</div>}
+        <span className="cpx-grow" />
+        <button className="cpx-btn primary" disabled={busy} onClick={saveAll}>
+          <i className="bi bi-floppy" /> {busy ? 'Saving…' : 'Save coin settings'}
+        </button>
+      </div>
     </div>
   );
 };

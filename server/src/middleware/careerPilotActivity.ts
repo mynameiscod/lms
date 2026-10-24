@@ -89,7 +89,7 @@ export function careerPilotActivity(req: Request, res: Response, next: NextFunct
         visitorId,
         sessionId: String(req.headers['x-cp-session'] || '') || undefined,
         userId: user?.id,
-        personName: [user?.firstName, user?.lastName].filter(Boolean).join(' ') || undefined,
+        personName: [user?.firstName, user?.lastName].filter(v => v && String(v).trim() !== '-').join(' ') || undefined,
         personEmail: user?.email,
         kind: status >= 400 ? 'error' : 'api',
         name: labelFor(req.method, route),

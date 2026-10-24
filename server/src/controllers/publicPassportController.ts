@@ -16,6 +16,7 @@ import { registrationWindowState, validateSignupAnswers } from '../data/onboardi
 import { sanitiseAttribution, mergeAttribution } from '../models/careerPilotAttribution';
 import { buildShareCard } from '../services/passportShareCardService';
 import { canUseCareerPilot, WRONG_DOOR_CAREERPILOT } from '../services/accountProduct';
+import { sendRegistrationEmail } from '../services/careerPilotEmailService';
 
 // Public CareerPilot funnel: signup (Name/Mobile/Email + admin-configured onboarding
 // fields) → OTP → account created (STUDENT + passport, not yet active/paid) → auto-login.
@@ -389,6 +390,8 @@ export const verify = async (req: Request, res: Response) => {
     if (pending) {
       const user = await materialiseSignup(pending);
       await PendingPassportSignup.deleteOne({ token });
+      // The welcome email, after the account exists and without making the member wait for it.
+      void sendRegistrationEmail(user);
       return issueLogin(res, user);
     }
 

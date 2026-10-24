@@ -3,6 +3,7 @@ import CodingProblem, { CodingProblemTestCase } from '../models/CodingProblem';
 import ProblemSubmission from '../models/ProblemSubmission';
 import { PbError } from './problemBankService';
 import { Learner, runSamples, gradeAndRecord } from './problemDeliveryService';
+import { globalPracticeClause, onGrantChange } from './contentGrantService';
 
 /**
  * The practice library: every published Problem Bank problem a CareerPilot member may choose to
@@ -14,7 +15,13 @@ import { Learner, runSamples, gradeAndRecord } from './problemDeliveryService';
  * solutions and the code wrappers are never sent to the browser.
  */
 
-const visible = (tenantId: string) => ({ status: 'published', $or: [{ scope: 'global' }, { scope: 'tenant', tenantId }] });
+/** Published problems this tenant may open: its own, plus the shared ones the super admin granted it. */
+const visible = async (tenantId: string) => {
+  const shared = await globalPracticeClause(tenantId);
+  return { status: 'published', $or: [...(shared ? [shared] : []), { scope: 'tenant', tenantId }] };
+};
+// Totals and filter choices are cached per tenant; a grant change must show at once.
+onGrantChange(() => cache.clear());
 
 export function assertMayUseLibrary(l: Learner) {
   if (!l.isCareerPilot && !l.isStaff) throw new PbError('The problem library is for CareerPilot members.', 403);
@@ -51,7 +58,7 @@ async function cached<T>(key: string, build: () => Promise<T>): Promise<T> {
 
 export async function libraryTotals(tenantId: string): Promise<{ total: number; byDifficulty: Record<string, number> }> {
   return cached(`totals:${tenantId}`, async () => {
-    const rows: any[] = await CodingProblem.aggregate([{ $match: visible(tenantId) }, { $group: { _id: '$difficulty', n: { $sum: 1 } } }]);
+    const rows: any[] = await CodingProblem.aggregate([{ $match: (await visible(tenantId)) }, { $group: { _id: '$difficulty', n: { $sum: 1 } } }]);
     const byDifficulty: Record<string, number> = { easy: 0, medium: 0, hard: 0 };
     for (const r of rows) byDifficulty[r._id] = r.n;
     return { total: rows.reduce((s, r) => s + r.n, 0), byDifficulty };
@@ -62,7 +69,7 @@ export async function libraryTotals(tenantId: string): Promise<{ total: number; 
 export async function libraryFacets(l: Learner) {
   assertMayUseLibrary(l);
   return cached(`facets:${l.tenantId}`, async () => {
-    const m = { $match: visible(l.tenantId) };
+    const m = { $match: (await visible(l.tenantId)) };
     const top = (field: string, limit: number) => CodingProblem.aggregate([m, { $unwind: `$${field}` }, { $group: { _id: `$${field}`, n: { $sum: 1 } } }, { $sort: { n: -1, _id: 1 } }, { $limit: limit }]);
     const [totals, topics, tags, companies, langs] = await Promise.all([
       libraryTotals(l.tenantId),
@@ -87,7 +94,7 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
   const page = Math.max(1, Math.round(Number(q.page)) || 1);
   const mine = await myResults(l.userId);
 
-  const and: any[] = [visible(l.tenantId)];
+  const and: any[] = [(await visible(l.tenantId))];
   const diffs = csv(q.difficulty).filter((d) => (DIFFS as readonly string[]).includes(d));
   if (diffs.length) and.push({ difficulty: { $in: diffs } });
   if (csv(q.topic).length) and.push({ topics: { $in: csv(q.topic) } });
@@ -131,7 +138,7 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
   // Progress is measured against the whole library, whatever the filters on the page.
   const solvedByDiff: Record<string, number> = { easy: 0, medium: 0, hard: 0 };
   if (mine.solved.length) {
-    const rowsSolved: any[] = await CodingProblem.aggregate([{ $match: { $and: [visible(l.tenantId), { _id: { $in: mine.solved } }] } }, { $group: { _id: '$difficulty', n: { $sum: 1 } } }]);
+    const rowsSolved: any[] = await CodingProblem.aggregate([{ $match: { $and: [(await visible(l.tenantId)), { _id: { $in: mine.solved } }] } }, { $group: { _id: '$difficulty', n: { $sum: 1 } } }]);
     for (const r of rowsSolved) solvedByDiff[r._id] = r.n;
   }
   const solvedTotal = solvedByDiff.easy + solvedByDiff.medium + solvedByDiff.hard;
@@ -139,7 +146,7 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
   // "Next up": the easiest problem not solved yet.
   let next: any = null;
   for (const d of DIFFS) {
-    next = await CodingProblem.findOne({ $and: [visible(l.tenantId), { difficulty: d }, { _id: { $nin: mine.solved } }] }).sort({ number: 1, _id: 1 }).select('number title difficulty').lean();
+    next = await CodingProblem.findOne({ $and: [(await visible(l.tenantId)), { difficulty: d }, { _id: { $nin: mine.solved } }] }).sort({ number: 1, _id: 1 }).select('number title difficulty').lean();
     if (next) break;
   }
 
@@ -165,7 +172,7 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
 
 async function loadProblem(l: Learner, id: string) {
   if (!mongoose.isValidObjectId(id)) throw new PbError('Problem not found', 404);
-  const p = await CodingProblem.findOne({ _id: id, ...visible(l.tenantId) });
+  const p = await CodingProblem.findOne({ _id: id, ...(await visible(l.tenantId)) });
   if (!p) throw new PbError('This problem is not available.', 404);
   return p;
 }
@@ -178,8 +185,8 @@ export async function libraryProblem(l: Learner, id: string) {
     CodingProblemTestCase.find({ problemId: p._id, isSample: true }).sort({ order: 1 }).select('input expectedOutput explanation').lean(),
     ProblemSubmission.find({ userId: l.userId, problemId: p._id }).sort({ createdAt: -1 }).limit(30)
       .select('language code verdict passed total score maxScore timeMs late createdAt compileError').lean(),
-    CodingProblem.findOne({ $and: [visible(l.tenantId), { $or: [{ number: { $lt: p.number } }, { number: p.number, _id: { $lt: p._id } }] }] }).sort({ number: -1, _id: -1 }).select('_id').lean(),
-    CodingProblem.findOne({ $and: [visible(l.tenantId), { $or: [{ number: { $gt: p.number } }, { number: p.number, _id: { $gt: p._id } }] }] }).sort({ number: 1, _id: 1 }).select('_id').lean(),
+    CodingProblem.findOne({ $and: [(await visible(l.tenantId)), { $or: [{ number: { $lt: p.number } }, { number: p.number, _id: { $lt: p._id } }] }] }).sort({ number: -1, _id: -1 }).select('_id').lean(),
+    CodingProblem.findOne({ $and: [(await visible(l.tenantId)), { $or: [{ number: { $gt: p.number } }, { number: p.number, _id: { $gt: p._id } }] }] }).sort({ number: 1, _id: 1 }).select('_id').lean(),
     libraryTotals(l.tenantId),
   ]);
   return {
@@ -213,7 +220,7 @@ export async function submitLibrary(l: Learner, id: string, body: { language: st
 export async function memberLibraryStats(tenantId: string, userId: string) {
   const [totals, mine] = await Promise.all([libraryTotals(tenantId), myResults(userId)]);
   const solved = mine.solved.length
-    ? await CodingProblem.countDocuments({ $and: [visible(tenantId), { _id: { $in: mine.solved } }] })
+    ? await CodingProblem.countDocuments({ $and: [(await visible(tenantId)), { _id: { $in: mine.solved } }] })
     : 0;
   return { solved, total: totals.total };
 }

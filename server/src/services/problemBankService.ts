@@ -4,6 +4,7 @@ import {
   PB_DEFAULT_MARKS, PB_LANGUAGE_KEYS, PB_TOPIC_KEYS, normalizeDifficulty, normalizeLanguage, normalizeTopic,
 } from '../config/problemBankTaxonomy';
 import { judge, JudgeProblem, generateExpectedOutputs } from './problemJudgeService';
+import { globalPracticeClause } from './contentGrantService';
 
 /**
  * Problem Bank — authoring, visibility and verification.
@@ -156,15 +157,21 @@ export function normalizeInput(raw: ProblemInput) {
 
 /* ── Access ───────────────────────────────────────────────────────────────────────────────── */
 
-export function visibilityFilter(a: Actor): any {
+/**
+ * What this person may see: their institute's own problems, plus the shared (global) library — all
+ * of it for a super admin, and for everyone else only the published problems the super admin has
+ * granted their institute (see contentGrantService; no grant = the whole library).
+ */
+export async function visibilityFilter(a: Actor): Promise<any> {
   const own = { scope: 'tenant', tenantId: a.tenantId };
-  const global = isSuperAdmin(a) ? { scope: 'global' } : { scope: 'global', status: 'published' };
-  return { $or: [own, global] };
+  if (isSuperAdmin(a)) return { $or: [own, { scope: 'global' }] };
+  const shared = await globalPracticeClause(a.tenantId);
+  return { $or: [own, ...(shared ? [{ ...shared, status: 'published' }] : [])] };
 }
 
 export async function loadVisible(a: Actor, id: string) {
   if (!mongoose.isValidObjectId(id)) throw new PbError('Problem not found', 404);
-  const p = await CodingProblem.findOne({ _id: id, ...visibilityFilter(a) });
+  const p = await CodingProblem.findOne({ _id: id, ...(await visibilityFilter(a)) });
   if (!p) throw new PbError('Problem not found', 404);
   return p;
 }
@@ -194,7 +201,7 @@ export interface ListQuery {
 const LIST_FIELDS = 'scope tenantId number slug title kind difficulty rating marks topics tags companies status testCount sampleCount verification.status verification.checkedAt source updatedAt createdAt languages.language stats';
 
 export async function listProblems(a: Actor, q: ListQuery) {
-  const and: any[] = [visibilityFilter(a)];
+  const and: any[] = [await visibilityFilter(a)];
   if (q.scope === 'global') and.push({ scope: 'global' });
   if (q.scope === 'tenant') and.push({ scope: 'tenant', tenantId: a.tenantId });
   if (q.difficulty) and.push({ difficulty: { $in: String(q.difficulty).split(',') } });
@@ -236,7 +243,7 @@ export async function listProblems(a: Actor, q: ListQuery) {
 
 export async function bankStats(a: Actor) {
   const rows = await CodingProblem.aggregate([
-    { $match: { ...visibilityFilter(a), status: { $ne: 'archived' } } },
+    { $match: { ...(await visibilityFilter(a)), status: { $ne: 'archived' } } },
     { $group: {
       _id: null,
       total: { $sum: 1 },
@@ -249,7 +256,7 @@ export async function bankStats(a: Actor) {
       verified: { $sum: { $cond: [{ $eq: ['$verification.status', 'verified'] }, 1, 0] } },
     } },
   ]);
-  const companies = await CodingProblem.distinct('companies', visibilityFilter(a));
+  const companies = await CodingProblem.distinct('companies', await visibilityFilter(a));
   return { ...(rows[0] || { total: 0, easy: 0, medium: 0, hard: 0, global: 0, mine: 0, published: 0, verified: 0 }), companies: companies.filter(Boolean).sort() };
 }
 
@@ -372,7 +379,7 @@ export async function bulkSetStatus(a: Actor, ids: unknown, status: unknown) {
       changed.push({ id, title: p.title });
     } catch (e: any) {
       // Only name problems this person can see; an id from elsewhere stays an id.
-      const p: any = await CodingProblem.findOne({ _id: id, ...visibilityFilter(a) }).select('title').lean().catch(() => null);
+      const p: any = await CodingProblem.findOne({ _id: id, ...(await visibilityFilter(a)) }).select('title').lean().catch(() => null);
       failed.push({ id, title: p?.title || id, reason: e?.message || 'Could not change this problem.' });
     }
   }

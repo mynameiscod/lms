@@ -5,6 +5,7 @@ import OnboardingChecklist from '../../components/OnboardingChecklist';
 import { tenantApi } from '../../api';
 import './TenantManagement.css';
 import { MODULE_DEFS, TenantModules, effectiveModules, allModules, ModuleKey } from '../../config/tenantModules';
+import TenantContentAccess from '../../components/TenantContentAccess';
 
 interface TenantRow {
   _id: string;
@@ -529,6 +530,8 @@ const TenantManagementPage: React.FC = () => {
             <OnboardingChecklist key={selected._id} tenantId={selected._id} mode="admin" />
             <TenantLimitsEditor key={`limits-${selected._id}`} tenantId={selected._id} />
             <TenantDomainEditor key={`domain-${selected._id}`} tenantId={selected._id} />
+            {/* Super admin only (the section hides itself for anyone else): which shared content this institute may use. */}
+            <TenantContentAccess key={`content-${selected._id}`} tenantId={selected._id} />
             <p className="tm-panel-hint">
               Toggle modules on/off. <strong>A disabled module is hidden and blocked</strong> for every user in
               this institute — admins, instructors and students alike (menu, pages and API).

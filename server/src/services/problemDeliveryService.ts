@@ -331,7 +331,7 @@ async function resolveAudience(tenantId: string, raw: SetInput['audience']) {
 async function validateItems(tenantId: string, role: string, userId: string, items: SetInput['items']) {
   const ids = Array.from(new Set((items || []).map((i) => String(i.problemId)).filter((id) => mongoose.isValidObjectId(id))));
   const found = await CodingProblem.find({
-    _id: { $in: ids }, ...visibilityFilter({ tenantId, role, userId }), status: 'published',
+    _id: { $in: ids }, ...(await visibilityFilter({ tenantId, role, userId })), status: 'published',
   }).select('_id').lean();
   const ok = new Set(found.map((f: any) => String(f._id)));
   const missing = ids.filter((id) => !ok.has(id));

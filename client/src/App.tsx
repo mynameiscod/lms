@@ -1,3 +1,4 @@
+import { homePathFor, productRedirect } from './utils/product';
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -351,15 +352,6 @@ const STUDENT_PAGE_FEATURES: [string, keyof StudentFeatures][] = [
 const featureForStudentPath = (pathname: string) =>
   STUDENT_PAGE_FEATURES.find(([p]) => pathname === p || pathname.startsWith(`${p}/`))?.[1];
 
-/**
- * CareerPilot and the LMS are separate products. A member who joined through CareerPilot (and is not
- * an LMS student) is kept inside CareerPilot: an LMS page — the student dashboard, courses, the LMS
- * assignments list — sends them to /careerpilot. These are the shared pages a CareerPilot member is
- * sent to on purpose (a checkpoint quiz, a mock interview, their job applications, a contest).
- */
-const CAREERPILOT_MEMBER_PATHS = ['/careerpilot', '/quiz/', '/student/interviews/take/', '/student/my-applications', '/battles', '/share/', '/verify', '/certificate'];
-const memberMayOpen = (pathname: string) => CAREERPILOT_MEMBER_PATHS.some(p => pathname === p || pathname.startsWith(p.endsWith('/') ? p : `${p}/`) || pathname === p.replace(/\/$/, ''));
-
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRoles,
@@ -379,13 +371,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={loginPathFor(pathname)} replace />;
   }
 
-  if (user?.role === 'STUDENT' && user.careerPilotOnly && !memberMayOpen(pathname)) {
-    return <Navigate to="/careerpilot" replace />;
-  }
-
   if (user?.role === 'STUDENT') {
     const feature = featureForStudentPath(pathname);
-    if (feature && !studentFeatureOn(feature)) return <Navigate to="/dashboard" replace />;
+    if (feature && !studentFeatureOn(feature)) return <Navigate to={homePathFor(user)} replace />;
   }
 
   // A page that names its own permissions opens for anyone holding one of them — the same keys
@@ -404,7 +392,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return <>{children}</>;
       }
     }
-    return <Navigate to="/dashboard" />;
+    return <Navigate to={homePathFor(user)} />;
   }
 
   return <>{children}</>;
@@ -422,7 +410,7 @@ const FeatureRoute: React.FC<{ feature: keyof StudentFeatures; children: React.R
   const { user } = useAuth();
   
   if (user?.role === 'STUDENT' && !isFeatureEnabled(feature)) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to={homePathFor(user)} />;
   }
   return <>{children}</>;
 };
@@ -525,7 +513,17 @@ const RouteFallback: React.FC = () => (
 );
 
 /** Each route fetches only what it needs, behind this one Suspense boundary. */
+/** "/" goes to the product the person is in: a member to CareerPilot, everyone else to the dashboard. */
+const HomeRedirect: React.FC = () => {
+  const { user } = useAuth();
+  return <Navigate to={homePathFor(user)} replace />;
+};
+
 const AppRoutes: React.FC = () => {
+  const { user: boundaryUser, loading: boundaryLoading } = useAuth();
+  const { pathname: boundaryPath } = useLocation();
+  // The two products stay apart wherever a link, a bookmark or a button would have crossed them.
+  const crossing = boundaryLoading ? null : productRedirect(boundaryUser, boundaryPath);
   /**
    * A second capture, for a tagged URL reached WITHOUT a page load.
    *
@@ -537,6 +535,8 @@ const AppRoutes: React.FC = () => {
    */
   const { search } = useLocation();
   useEffect(() => { captureCareerPilotAttribution(search); }, [search]);
+
+  if (crossing) return <Navigate to={crossing} replace />;
 
   return (
     <Suspense fallback={<RouteFallback />}>
@@ -2006,7 +2006,7 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route path="/" element={<HomeRedirect />} />
 
       {/* ── Resume Builder (Student) ─── */}
       <Route

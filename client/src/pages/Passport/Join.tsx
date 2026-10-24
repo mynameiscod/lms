@@ -309,6 +309,7 @@ const PassportJoin: React.FC = () => {
           firstName: r.user.firstName,
           lastName: r.user.lastName,
           role: r.user.role,
+          product: 'careerpilot',
         }));
       }
       window.location.href = r.onboardingCompleted ? '/careerpilot' : '/careerpilot/setup';

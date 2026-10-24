@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import {
   assignmentApi,
@@ -14,6 +14,7 @@ import {
 import ShareOnLinkedIn from '../../components/common/ShareOnLinkedIn';
 import { submissionKindFor, projectSubmissionProblem } from './submissionKind';
 import { briefHtml } from './briefHtml';
+import { careerpilotReturn, withReturn, returnLabel } from '../../utils/careerpilotReturn';
 import './assignments.css';
 
 /** The server sends a student only the count of hidden tests, never the tests; an author's full document still carries them. */
@@ -22,8 +23,23 @@ const hiddenTestCount = (a: Assignment): number =>
 
 const AssignmentWorkspace: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { assignmentId } = useParams<{ assignmentId: string }>();
   const editorRef = useRef<any>(null);
+
+  /*
+   * WHERE EVERY EXIT GOES. These pages are shared with the LMS, whose exits lead to /assignments —
+   * a list that leaves out CareerPilot unit assignments, inside the LMS portal. A CareerPilot member
+   * opened this from their roadmap day (?returnTo=) under /careerpilot/, so every exit takes them
+   * back there, and the result page is the CareerPilot one.
+   */
+  const cpMode = location.pathname.startsWith('/careerpilot/');
+  const returnTo = careerpilotReturn(location.search);
+  const exitTo = returnTo || (cpMode ? '/careerpilot' : '/assignments');
+  const exitLabel = returnTo ? returnLabel(returnTo) : (cpMode ? 'Back to CareerPilot' : 'Back to Assignments');
+  const resultPath = withReturn(cpMode ? `/careerpilot/assignments/${assignmentId}/result` : `/assignments/${assignmentId}/result`, returnTo);
+  const [retrying, setRetrying] = useState(false);
+  const [uploading, setUploading] = useState(false);
   
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [submission, setSubmission] = useState<Submission | null>(null);
@@ -384,6 +400,10 @@ const AssignmentWorkspace: React.FC = () => {
       const problem = projectSubmissionProblem(theoryAnswer);
       if (problem) { setError(problem); return; }
     }
+    if (kind === 'files' && !submission.uploadedFiles?.length) {
+      setError('Add at least one file before you submit.');
+      return;
+    }
     
     if (!window.confirm('Are you sure you want to submit? You may not be able to modify your answer after submission.')) {
       return;
@@ -403,16 +423,52 @@ const AssignmentWorkspace: React.FC = () => {
           selectedOption: si
         }));
         await submissionApi.submitMCQ(submission._id, answers);
-      } else if (kind === 'written') {
+      } else if (kind === 'written' || kind === 'files') {
+        // Files are already on the attempt; the note beside them is optional.
         await submissionApi.submitTheory(submission._id, theoryAnswer);
       }
-      
-      navigate(`/assignments/${assignmentId}/result`);
+
+      navigate(resultPath);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to submit');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleUpload = async (list: FileList | null) => {
+    if (!submission || !list || !list.length) return;
+    setUploading(true); setError(null);
+    try {
+      const res = await submissionApi.uploadFiles(submission._id, Array.from(list));
+      setSubmission(res.data.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'That file could not be uploaded.');
+    } finally { setUploading(false); }
+  };
+
+  const handleRemoveFile = async (filename: string) => {
+    if (!submission) return;
+    try {
+      const res = await submissionApi.removeFile(submission._id, filename);
+      setSubmission(res.data.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'That file could not be removed.');
+    }
+  };
+
+  /** Another attempt after handing one in, within the assignment's attempt limit. */
+  const handleRetry = async () => {
+    if (!assignment || !assignmentId) return;
+    setRetrying(true); setError(null);
+    try {
+      const res = await submissionApi.retry(assignmentId);
+      initWorkspaceFromSubmission(res.data.data, assignment);
+      setTestResults([]); setOutput(''); setConsoleOutput(null); setRuntimeError(null);
+      setShowInstructionsPage(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Could not start another attempt.');
+    } finally { setRetrying(false); }
   };
 
   const handleLanguageChange = (lang: ProgrammingLanguage) => {
@@ -465,27 +521,42 @@ const AssignmentWorkspace: React.FC = () => {
   }
 
   if (!assignment) {
+    // The server's reason (a day not open yet, membership needed), not a generic "not found".
     return (
       <div className="assignment-page">
-        <div className="alert alert-error">Assignment not found</div>
+        <div className="empty-state">
+          <div className="empty-state-icon">🔒</div>
+          <h3>{error ? 'This assignment is not open' : 'Assignment not found'}</h3>
+          <p>{error || 'It may have been removed, or the link is wrong.'}</p>
+          <button className="btn btn-primary" onClick={() => navigate(exitTo)}>← {exitLabel}</button>
+        </div>
       </div>
     );
   }
 
   // Already submitted
-  if (submission && (submission.status === SubmissionStatus.SUBMITTED || submission.status === SubmissionStatus.GRADED)) {
+  if (submission && (submission.status === SubmissionStatus.SUBMITTED || submission.status === SubmissionStatus.GRADED || (submission.status as string) === 'late')) {
+    const limit = assignment.settings?.maxAttempts || assignment.maxAttempts || 0;
+    const canRetry = limit === 0 || (submission.attemptNumber || 1) < limit;
     return (
       <div className="assignment-page">
         <div className="empty-state">
           <div className="empty-state-icon">✅</div>
-          <h3>Already Submitted</h3>
-          <p>You have already submitted this assignment.</p>
-          <button 
-            className="btn btn-primary"
-            onClick={() => navigate(`/assignments/${assignmentId}/result`)}
-          >
-            View Results
-          </button>
+          <h3>Submitted</h3>
+          <p>
+            You handed in attempt {submission.attemptNumber || 1}
+            {limit > 0 ? ` of ${limit}` : ''}.{canRetry ? ' You can see your result, or try again.' : ''}
+          </p>
+          {error && <div className="alert alert-error" style={{ margin: '0 auto 12px', maxWidth: 520 }}>{error}</div>}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button className="btn btn-primary" onClick={() => navigate(resultPath)}>View result</button>
+            {canRetry && (
+              <button className="btn btn-secondary" onClick={handleRetry} disabled={retrying}>
+                {retrying ? 'Starting…' : 'Try again'}
+              </button>
+            )}
+            <button className="btn btn-secondary" onClick={() => navigate(exitTo)}>← {exitLabel}</button>
+          </div>
           {submission.shareToken && assignment && (
             <div style={{ marginTop: '16px' }}>
               <ShareOnLinkedIn
@@ -519,7 +590,17 @@ const AssignmentWorkspace: React.FC = () => {
       ? assignment.topics.slice(0, 2).join(' • ')
       : (assignment.type ? assignment.type.toUpperCase() : 'General');
     const maxAttempts = assignment.settings?.maxAttempts || assignment.maxAttempts || 0;
-    const submissionsLabel = maxAttempts > 0 ? `0 / ${maxAttempts} Allowed` : '0 / ∞ Allowed';
+    const submissionsLabel = maxAttempts > 0 ? `${maxAttempts} attempt${maxAttempts === 1 ? '' : 's'} allowed` : 'Unlimited attempts';
+    const startKind = submissionKindFor(assignment.type);
+    const startLabel = startKind === 'code' ? 'Start coding →' : startKind === 'written' ? 'Start writing →' : startKind === 'files' ? 'Start →' : 'Start →';
+    const hasSamples = (assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL || assignment.type === AssignmentType.WEB)
+      && (assignment.testCases || []).some(tc => !tc.isHidden);
+    const typeIcon = startKind === 'code' ? '💻' : startKind === 'written' ? '📝' : startKind === 'files' ? '📎' : '🧩';
+    const tips: string[] = startKind === 'code'
+      ? ['Read the problem twice before you write any code', 'Run your code on the examples first', 'Think about edge cases: empty input, zero, very large values', 'Keep names clear, so your code explains itself']
+      : startKind === 'written'
+        ? ['Answer every part of the brief', 'Put the link to your work first', 'Say what you built, and what you could not finish']
+        : ['Check the brief for what to include', 'Name your files clearly', 'Add a short note if anything needs explaining'];
     const typeLabel = (assignment.type || 'task').charAt(0).toUpperCase() + (assignment.type || 'task').slice(1) + ' Task';
 
     return (
@@ -527,8 +608,8 @@ const AssignmentWorkspace: React.FC = () => {
         {/* Hero */}
         <div className="asgn-hero">
           <div className="asgn-hero-inner">
-            <button className="asgn-back" onClick={() => navigate('/assignments')}>
-              ← Back to Assignments
+            <button className="asgn-back" onClick={() => navigate(exitTo)}>
+              ← {exitLabel}
             </button>
             <h1 className="asgn-hero-title">{assignment.title}</h1>
             {assignment.topics?.length > 0 && (
@@ -537,7 +618,7 @@ const AssignmentWorkspace: React.FC = () => {
             <div className="asgn-hero-badges">
               <span className="asgn-hero-badge">🏆 {assignment.totalPoints} Points</span>
               <span className="asgn-hero-badge">📊 {assignment.difficulty} Level</span>
-              <span className="asgn-hero-badge">💻 {typeLabel}</span>
+              <span className="asgn-hero-badge">{typeIcon} {typeLabel}</span>
             </div>
           </div>
         </div>
@@ -579,7 +660,7 @@ const AssignmentWorkspace: React.FC = () => {
           <div className="asgn-main">
             <div className="asgn-card">
               <div className="asgn-title-banner">
-                🛒 {assignment.title}
+                {typeIcon} {assignment.title}
               </div>
 
               <div className="asgn-section" id="asgn-description">
@@ -641,25 +722,21 @@ const AssignmentWorkspace: React.FC = () => {
               <div className="asgn-side-title">🔗 Quick Links</div>
               <a className="asgn-quick" href="#asgn-description">Problem Statement <span>›</span></a>
               {assignment.instructions && <a className="asgn-quick" href="#asgn-instructions">Instructions <span>›</span></a>}
-              <a className="asgn-quick" href="#asgn-samples">Sample Input / Output <span>›</span></a>
+              {hasSamples && <a className="asgn-quick" href="#asgn-samples">Sample Input / Output <span>›</span></a>}
               <a className="asgn-quick" href="#asgn-guidelines">Guidelines <span>›</span></a>
             </div>
 
             <div className="asgn-side-card asgn-tips">
-              <div className="asgn-side-title">💡 Pro Tips</div>
+              <div className="asgn-side-title">💡 Tips</div>
               <ul className="asgn-tips-list">
-                <li>Use meaningful class and method names</li>
-                <li>Handle edge cases properly</li>
-                <li>Write clean and modular code</li>
-                <li>Follow proper OOP principles</li>
-                <li>Test your code before final submission</li>
+                {tips.map(t => <li key={t}>{t}</li>)}
               </ul>
             </div>
 
             <div className="asgn-side-card asgn-help">
               <div className="asgn-side-title">❓ Need Help?</div>
               <p className="asgn-help-text">Stuck somewhere? Get help from your instructor or peers.</p>
-              <button className="asgn-help-btn" onClick={() => navigate('/assignments')}>Ask a Question</button>
+              <button className="asgn-help-btn" onClick={() => navigate(cpMode ? '/careerpilot/support' : '/assignments')}>Ask a Question</button>
             </div>
           </aside>
         </div>
@@ -668,14 +745,15 @@ const AssignmentWorkspace: React.FC = () => {
         <div className="asgn-footer">
           <div className="asgn-footer-inner">
             <div className="asgn-progress">
-              <span className="asgn-progress-label">Assignment Progress</span>
-              <div className="asgn-progress-bar"><div className="asgn-progress-fill" style={{ width: '0%' }} /></div>
-              <span className="asgn-progress-pct">0%</span>
+              {/* A failed start used to do nothing visible: the reason is shown here. */}
+              {error
+                ? <span className="asgn-progress-label" style={{ color: '#B42318', fontWeight: 700 }}>{error}</span>
+                : <span className="asgn-progress-label">{submissionsLabel} · {estimatedTime}</span>}
             </div>
             <div className="asgn-footer-actions">
-              <button className="asgn-btn-ghost" onClick={() => navigate('/assignments')}>← Previous</button>
+              <button className="asgn-btn-ghost" onClick={() => navigate(exitTo)}>← {exitLabel}</button>
               <button className="asgn-btn-primary" onClick={handleStartAssignment} disabled={starting}>
-                {starting ? '⏳ Starting…' : 'Start Coding →'}
+                {starting ? '⏳ Starting…' : startLabel}
               </button>
             </div>
           </div>
@@ -689,12 +767,12 @@ const AssignmentWorkspace: React.FC = () => {
       {/* Header */}
       <div className="workspace-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button 
+          <button
             className="btn btn-secondary btn-sm"
-            onClick={() => navigate('/assignments')}
+            onClick={() => navigate(exitTo)}
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#e5e7eb' }}
           >
-            ← Back
+            ← {exitLabel}
           </button>
           <div>
             <h2 style={{ margin: 0, fontSize: '18px', color: 'white' }}>{assignment.title}</h2>
@@ -1571,10 +1649,32 @@ const AssignmentWorkspace: React.FC = () => {
                   multiple
                   style={{ display: 'none' }}
                   id="file-upload"
+                  disabled={uploading}
+                  onChange={(e) => { const f = e.target.files; handleUpload(f); e.target.value = ''; }}
                 />
-                <label htmlFor="file-upload" className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '15px' }}>
-                  📎 Choose Files
+                <label htmlFor="file-upload" className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '15px', opacity: uploading ? .7 : 1 }}>
+                  {uploading ? '⏳ Uploading…' : '📎 Choose Files'}
                 </label>
+                <p style={{ color: '#6b7280', fontSize: 12.5, marginTop: 10 }}>Documents, images, zip files or source code · up to 25 MB each · 10 files</p>
+                {!!submission?.uploadedFiles?.length && (
+                  <ul style={{ listStyle: 'none', padding: 0, margin: '18px 0 0', textAlign: 'left', display: 'grid', gap: 8 }}>
+                    {submission.uploadedFiles.map(f => (
+                      <li key={f.filename} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '10px 12px' }}>
+                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1a1a2e', fontWeight: 600 }}>📄 {f.originalName}</span>
+                        <span style={{ color: '#6b7280', fontSize: 12.5 }}>{(f.size / 1024 / 1024).toFixed(2)} MB</span>
+                        <button type="button" onClick={() => handleRemoveFile(f.filename)} style={{ border: 0, background: 'none', color: '#b42318', cursor: 'pointer', fontWeight: 700 }} aria-label={`Remove ${f.originalName}`}>Remove</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <textarea
+                  value={theoryAnswer}
+                  onChange={(e) => setTheoryAnswer(e.target.value)}
+                  placeholder="A note for your reviewer (optional)"
+                  rows={3}
+                  style={{ width: '100%', marginTop: 16, border: '1px solid #e5e7eb', borderRadius: 10, padding: 10, fontFamily: 'inherit', fontSize: 14 }}
+                />
+                {error && <div className="alert alert-error" style={{ marginTop: 12 }}>{error}</div>}
               </div>
             </div>
           )}

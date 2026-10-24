@@ -22,6 +22,8 @@ export interface User {
   github?: string;
   profileComplete?: boolean;
   completeness?: number;   // student profile completeness % (admin Users list)
+  /** Joined through CareerPilot and not an LMS student: kept inside CareerPilot. */
+  careerPilotOnly?: boolean;
 }
 
 export interface TenantBranding {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   assignmentApi,
   submissionApi,
@@ -10,10 +10,20 @@ import {
 } from '../../api/assignmentApi';
 import ShareOnLinkedIn from '../../components/common/ShareOnLinkedIn';
 import './AssignmentResultRedesign.css';
+import { careerpilotReturn, withReturn, returnLabel } from '../../utils/careerpilotReturn';
 
 const AssignmentResultRedesign: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { assignmentId } = useParams<{ assignmentId: string }>();
+  /* A CareerPilot member came here from their roadmap day: every exit goes back there, never to
+     the LMS /assignments list (which does not even list CareerPilot assignments). */
+  const cpMode = location.pathname.startsWith('/careerpilot/');
+  const returnTo = careerpilotReturn(location.search);
+  const exitTo = returnTo || (cpMode ? '/careerpilot' : '/assignments');
+  const exitLabel = returnTo ? returnLabel(returnTo) : (cpMode ? 'Back to CareerPilot' : 'Back to Assignments');
+  const workspacePath = withReturn(cpMode ? `/careerpilot/assignments/${assignmentId}/workspace` : `/assignments/${assignmentId}/workspace`, returnTo);
+  const [retrying, setRetrying] = useState(false);
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +61,21 @@ const AssignmentResultRedesign: React.FC = () => {
     ? Math.round((displayScore / Math.max(assignment.totalPoints, 1)) * 100)
     : null;
   const passingPoints = assignment ? (assignment.passingPoints || assignment.totalPoints * 0.5) : 0;
-  const isGraded = submission?.status === SubmissionStatus.GRADED;
+  const instructorGraded = submission?.status === SubmissionStatus.GRADED;
+  /* Code is marked by its test cases the moment it is handed in. That mark used to be hidden behind
+     "Pending review" until an instructor graded it by hand; it is shown now, as the automatic mark. */
+  const autoGraded = !instructorGraded
+    && (assignment?.type === AssignmentType.CODING || assignment?.type === AssignmentType.SQL || assignment?.type === AssignmentType.WEB)
+    && !!submission?.testResults?.length;
+  const isGraded = instructorGraded || autoGraded;
+  const attemptLimit = assignment ? (assignment.settings?.maxAttempts || assignment.maxAttempts || 0) : 0;
+  const canRetry = !!submission && (attemptLimit === 0 || (submission.attemptNumber || 1) < attemptLimit);
+  const retry = async () => {
+    if (!assignmentId) return;
+    setRetrying(true);
+    try { await submissionApi.retry(assignmentId); navigate(workspacePath); }
+    catch (err: any) { setError(err.response?.data?.message || 'Could not start another attempt.'); setRetrying(false); }
+  };
   const isPassing = displayScore !== undefined ? displayScore >= passingPoints : false;
   const testsPassed = submission?.testResults?.filter(t => t.passed).length || 0;
   const testsTotal = submission?.testResults?.length || 0;
@@ -76,7 +100,7 @@ const AssignmentResultRedesign: React.FC = () => {
           <i className="bi bi-exclamation-triangle" />
           <h3>Unable to load result</h3>
           <p>{error || 'Assignment not found'}</p>
-          <button className="cb-ar-btn cb-ar-btn-primary" onClick={() => navigate('/assignments')}>Back to Assignments</button>
+          <button className="cb-ar-btn cb-ar-btn-primary" onClick={() => navigate(exitTo)}>{exitLabel}</button>
         </div>
       </div>
     );
@@ -89,7 +113,7 @@ const AssignmentResultRedesign: React.FC = () => {
           <i className="bi bi-journal-code" />
           <h3>Not submitted yet</h3>
           <p>Complete this assignment first to view your evaluation.</p>
-          <button className="cb-ar-btn cb-ar-btn-primary" onClick={() => navigate(`/assignments/${assignmentId}/workspace`)}>Start Assignment</button>
+          <button className="cb-ar-btn cb-ar-btn-primary" onClick={() => navigate(workspacePath)}>Start Assignment</button>
         </div>
       </div>
     );
@@ -99,14 +123,14 @@ const AssignmentResultRedesign: React.FC = () => {
     <div className="cb-ar-page">
       <div className="cb-ar-header">
         <div>
-          <button className="cb-ar-back" onClick={() => navigate('/assignments')}><i className="bi bi-arrow-left" /> Back to Assignments</button>
-          <div className="cb-ar-eyebrow">MY WORK / ASSIGNMENTS / RESULT</div>
+          <button className="cb-ar-back" onClick={() => navigate(exitTo)}><i className="bi bi-arrow-left" /> {exitLabel}</button>
+          <div className="cb-ar-eyebrow">{cpMode ? 'CAREERPILOT / ASSIGNMENT RESULT' : 'MY WORK / ASSIGNMENTS / RESULT'}</div>
           <h1>Assignment Result</h1>
           <p>{assignment.title}</p>
         </div>
         <div className={`cb-ar-status ${isGraded ? (isPassing ? 'passed' : 'failed') : 'pending'}`}>
           <i className={`bi ${isGraded ? (isPassing ? 'bi-patch-check-fill' : 'bi-x-circle-fill') : 'bi-hourglass-split'}`} />
-          <div><span>{isGraded ? (isPassing ? 'Passed' : 'Needs Improvement') : 'Pending Review'}</span><small>{isGraded ? 'Evaluation completed' : 'Instructor evaluation in progress'}</small></div>
+          <div><span>{isGraded ? (isPassing ? 'Passed' : 'Needs Improvement') : 'Pending Review'}</span><small>{instructorGraded ? 'Evaluation completed' : autoGraded ? 'Checked by the test cases · your trainer may review it' : 'Instructor evaluation in progress'}</small></div>
         </div>
       </div>
 
@@ -206,10 +230,26 @@ const AssignmentResultRedesign: React.FC = () => {
             </section>
           )}
 
-          {assignment.type === AssignmentType.THEORY && submission.theoryAnswer && (
+          {!!submission.theoryAnswer && (
             <section className="cb-ar-card">
-              <div className="cb-ar-section-head"><div><span className="cb-ar-icon teal"><i className="bi bi-file-text" /></span><div><h3>Your Answer</h3><p>Submitted written response</p></div></div></div>
-              <div className="cb-ar-theory">{submission.theoryAnswer}</div>
+              <div className="cb-ar-section-head"><div><span className="cb-ar-icon teal"><i className="bi bi-file-text" /></span><div><h3>{assignment.type === AssignmentType.PROJECT ? 'Your write-up' : assignment.type === AssignmentType.FILE_UPLOAD ? 'Your note' : 'Your Answer'}</h3><p>What you handed in</p></div></div></div>
+              <div className="cb-ar-theory" style={{ whiteSpace: 'pre-wrap' }}>{submission.theoryAnswer}</div>
+            </section>
+          )}
+
+          {!!submission.uploadedFiles?.length && (
+            <section className="cb-ar-card">
+              <div className="cb-ar-section-head"><div><span className="cb-ar-icon teal"><i className="bi bi-paperclip" /></span><div><h3>Your files</h3><p>{submission.uploadedFiles.length} file{submission.uploadedFiles.length === 1 ? '' : 's'} handed in</p></div></div></div>
+              <div className="cb-ar-tests">
+                {submission.uploadedFiles.map(f => (
+                  <div key={f.filename} className="cb-ar-test pass" style={{ cursor: 'pointer' }} role="button" tabIndex={0}
+                    onClick={() => submissionApi.downloadFile(submission._id, f).catch(() => undefined)}>
+                    <i className="bi bi-file-earmark-arrow-down" />
+                    <div><strong>{f.originalName}</strong><small>{(f.size / 1024 / 1024).toFixed(2)} MB · click to download</small></div>
+                    <span />
+                  </div>
+                ))}
+              </div>
             </section>
           )}
         </main>
@@ -235,7 +275,12 @@ const AssignmentResultRedesign: React.FC = () => {
           )}
 
           <section className="cb-ar-card cb-ar-actions">
-            <button className="cb-ar-btn cb-ar-btn-primary" onClick={() => navigate('/assignments')}><i className="bi bi-arrow-left" /> Back to Assignments</button>
+            <button className="cb-ar-btn cb-ar-btn-primary" onClick={() => navigate(exitTo)}><i className="bi bi-arrow-left" /> {exitLabel}</button>
+            {canRetry && (
+              <button className="cb-ar-btn" onClick={retry} disabled={retrying}>
+                <i className="bi bi-arrow-repeat" /> {retrying ? 'Starting…' : `Try again${attemptLimit ? ` (${attemptLimit - (submission.attemptNumber || 1)} left)` : ''}`}
+              </button>
+            )}
             {submission.shareToken && <ShareOnLinkedIn shareToken={submission.shareToken} title={assignment.title} type="assignment" percentage={submission.percentage} />}
           </section>
         </aside>

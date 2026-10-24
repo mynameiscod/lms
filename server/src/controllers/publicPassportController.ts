@@ -15,6 +15,7 @@ import PendingPassportSignup from '../models/PendingPassportSignup';
 import { registrationWindowState, validateSignupAnswers } from '../data/onboardingFieldPolicy';
 import { sanitiseAttribution, mergeAttribution } from '../models/careerPilotAttribution';
 import { buildShareCard } from '../services/passportShareCardService';
+import { isCareerPilotOnly } from '../utils/careerPilotOnly';
 
 // Public CareerPilot funnel: signup (Name/Mobile/Email + admin-configured onboarding
 // fields) → OTP → account created (STUDENT + passport, not yet active/paid) → auto-login.
@@ -279,7 +280,7 @@ function issueLogin(res: Response, user: any) {
     success: true,
     token: jwtToken,
     tenantId: String(user.tenantId),
-    user: { id: String(user._id), email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role },
+    user: { id: String(user._id), email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, careerPilotOnly: isCareerPilotOnly(user) },
     // Where to land. A member who has finished onboarding goes to their dashboard; one who
     // has not is sent to setup rather than a dashboard whose panels have nothing to show.
     // Server-stated so the client never infers it from a partial view of the record.

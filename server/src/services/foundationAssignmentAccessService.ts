@@ -78,5 +78,8 @@ export const refusalBody = (access: Extract<FoundationAssignmentAccess, { allowe
   day: access.day,
   message: access.reason === 'MEMBERSHIP_REQUIRED'
     ? `Take membership to open day ${access.day} of your roadmap.`
-    : `This assignment opens on day ${access.day} of your journey. Finish day ${access.day - 1} first.`,
+    : (access.reason as string) === 'NOT_TODAY_YET'
+      // Not work left to do: the day simply has not come yet (one day per calendar day).
+      ? `This assignment is on day ${access.day} of your roadmap, which opens tomorrow.`
+      : `This assignment opens on day ${access.day} of your journey. Finish day ${access.day - 1} first.`,
 });

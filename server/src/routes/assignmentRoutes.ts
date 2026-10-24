@@ -4,6 +4,8 @@ import submissionController from '../controllers/submissionController';
 import { authMiddleware } from '../middleware/auth';
 import { roleGuard } from '../middleware/roleGuard';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
+import multer from 'multer';
+import { MAX_FILE_BYTES, MAX_FILES } from '../services/submissionFileService';
 
 const router = express.Router();
 
@@ -59,6 +61,7 @@ router.post('/submissions/:submissionId/allow-reattempt', roleGuard(['grade_subm
 
 // Submission workflow
 router.post('/:assignmentId/start', submissionController.start);
+router.post('/:assignmentId/retry', submissionController.retry);
 router.get('/:assignmentId/my-submission', submissionController.getMySubmission);
 router.post('/submissions/:submissionId/save-code', submissionController.saveCode);
 router.post('/submissions/:submissionId/run', submissionController.runCode);
@@ -67,6 +70,11 @@ router.post('/submissions/:submissionId/concept-hint', submissionController.getC
 router.post('/submissions/:submissionId/submit-coding', submissionController.submitCoding);
 router.post('/submissions/:submissionId/submit-mcq', submissionController.submitMCQ);
 router.post('/submissions/:submissionId/submit-theory', submissionController.submitTheory);
+// Files for FILE_UPLOAD assignments: kept in memory only long enough to store them.
+const submissionUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_FILE_BYTES, files: MAX_FILES } });
+router.post('/submissions/:submissionId/files', submissionUpload.array('files', MAX_FILES), submissionController.uploadFiles);
+router.delete('/submissions/:submissionId/files/:filename', submissionController.removeFile);
+router.get('/submissions/:submissionId/files/:filename', submissionController.downloadFile);
 router.get('/submissions/:submissionId', submissionController.getSubmission);
 
 export default router;

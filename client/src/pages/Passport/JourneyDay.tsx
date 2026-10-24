@@ -520,7 +520,12 @@ const JourneyDay: React.FC = () => {
 
                 <div className="jd-body">
                   {/* A checkpoint comes back to this day when it is done, instead of the LMS quiz list. */}
-                  <ItemBody item={selected} onLaunch={(p) => nav(selected?.kind === 'quiz' ? withReturn(p, `/careerpilot/journey/day/${dayNumber}?task=${selIdx}`) : p)} />
+                  <ItemBody item={selected} onLaunch={(p) => {
+                    const back = `/careerpilot/journey/day/${dayNumber}?task=${selIdx}`;
+                    // An assignment opens in the CareerPilot workspace and comes back to this day.
+                    if (p.startsWith('/assignments/')) return nav(withReturn(`/careerpilot${p}`, back));
+                    nav(selected?.kind === 'quiz' ? withReturn(p, back) : p);
+                  }} />
                 </div>
 
                 <div className="jd-actions">

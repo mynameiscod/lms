@@ -351,6 +351,15 @@ const STUDENT_PAGE_FEATURES: [string, keyof StudentFeatures][] = [
 const featureForStudentPath = (pathname: string) =>
   STUDENT_PAGE_FEATURES.find(([p]) => pathname === p || pathname.startsWith(`${p}/`))?.[1];
 
+/**
+ * CareerPilot and the LMS are separate products. A member who joined through CareerPilot (and is not
+ * an LMS student) is kept inside CareerPilot: an LMS page — the student dashboard, courses, the LMS
+ * assignments list — sends them to /careerpilot. These are the shared pages a CareerPilot member is
+ * sent to on purpose (a checkpoint quiz, a mock interview, their job applications, a contest).
+ */
+const CAREERPILOT_MEMBER_PATHS = ['/careerpilot', '/quiz/', '/student/interviews/take/', '/student/my-applications', '/battles', '/share/', '/verify', '/certificate'];
+const memberMayOpen = (pathname: string) => CAREERPILOT_MEMBER_PATHS.some(p => pathname === p || pathname.startsWith(p.endsWith('/') ? p : `${p}/`) || pathname === p.replace(/\/$/, ''));
+
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRoles,
@@ -368,6 +377,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // re-runs) and a session expiring mid-visit. `replace` so the back button does not
     // return to a page they are no longer allowed to see.
     return <Navigate to={loginPathFor(pathname)} replace />;
+  }
+
+  if (user?.role === 'STUDENT' && user.careerPilotOnly && !memberMayOpen(pathname)) {
+    return <Navigate to="/careerpilot" replace />;
   }
 
   if (user?.role === 'STUDENT') {
@@ -779,6 +792,9 @@ const AppRoutes: React.FC = () => {
         {/* A checkpoint's results, shown in the CareerPilot shell so a member finishing a quiz from
             their day is not dropped into the LMS. The same page as /quiz/:quizId/results/:attemptId. */}
         <Route path="/careerpilot/quiz/:quizId/results/:attemptId" element={<QuizResultsPage />} />
+        {/* An assignment's result, in the CareerPilot shell: a member finishing a project from their
+            roadmap day is not dropped into the LMS portal. The same page as /assignments/:id/result. */}
+        <Route path="/careerpilot/assignments/:assignmentId/result" element={<AssignmentResult />} />
         {/* Interview Experiences — the same pages as the LMS, inside the member shell. */}
         <Route path="/careerpilot/question-books" element={<QuestionBooksLibrary />} />
         <Route path="/careerpilot/question-books/cheat-sheet" element={<QuestionBookCheatSheet />} />
@@ -1959,6 +1975,13 @@ const AppRoutes: React.FC = () => {
             </FeatureRoute>
           </ProtectedRoute>
         }
+      />
+      {/* The workspace, opened from a CareerPilot roadmap day. Full screen like the LMS one, but not
+          behind the LMS "assignments" student feature (which would send a member to the LMS
+          dashboard), and its exits lead back to the day. */}
+      <Route
+        path="/careerpilot/assignments/:assignmentId/workspace"
+        element={<ProtectedRoute><AssignmentWorkspace /></ProtectedRoute>}
       />
       <Route
         path="/assignments/:assignmentId/workspace"

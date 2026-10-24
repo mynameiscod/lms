@@ -19,6 +19,7 @@ import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
 import csvParser from 'csv-parser';
 import * as XLSX from 'xlsx';
 import { LMS_USERS_FILTER } from '../services/learnerAudience';
+import { isCareerPilotOnly } from '../utils/careerPilotOnly';
 
 const userService = new UserService();
 const emailService = new EmailService();
@@ -437,7 +438,8 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
     // (funnel candidate, or an existing student who joined via the assessment).
     // Drives the focused, career-only experience on the client (no batch LMS clutter).
     const isCareerPilot = !!(await AssessmentSubmission.exists({ candidateUserId: userId }));
-    const data = { ...stripSecrets(user), isCareerPilot };
+    // Joined through CareerPilot and not an LMS student: kept inside CareerPilot on the client.
+    const data = { ...stripSecrets(user), isCareerPilot, careerPilotOnly: isCareerPilotOnly(user) };
 
     res.json({
       success: true,

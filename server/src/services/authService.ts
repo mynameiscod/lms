@@ -8,6 +8,7 @@ import Tenant from '../models/Tenant';
 import Role from '../models/Role';
 import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
 import { jwtSecret } from '../config/secrets';
+import { isCareerPilotOnly } from '../utils/careerPilotOnly';
 
 export class AuthService {
   async registerOrganizationFull(
@@ -207,6 +208,8 @@ export class AuthService {
         // Student screens (attendance, batch work) key off this. Without it a student who
         // logged in and went straight to My Attendance saw 0 classes until a page reload.
         batchId: (user as any).batchId || null,
+        // A CareerPilot member is kept inside CareerPilot (the LMS student portal is not theirs).
+        careerPilotOnly: isCareerPilotOnly(user),
         permissions
       },
       tenant 

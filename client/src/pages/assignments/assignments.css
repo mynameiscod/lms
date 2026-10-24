@@ -2521,3 +2521,9 @@
   .lib-sidebar { flex-direction: row; flex-wrap: wrap; }
   .lib-side-card { flex: 1; min-width: 240px; }
 }
+
+/* Readable on the brief: the title banner is white text on its blue band (it had dark text on it),
+   and example output blocks are light text on a dark panel (they were light grey on light grey). */
+.asgn-detail .asgn-title-banner, .asgn-detail .asgn-title-banner * { color: #fff !important; }
+.asgn-detail .asgn-rich pre { background: #0F172A !important; color: #E2E8F0 !important; border-radius: 10px; padding: 14px 16px; overflow-x: auto; }
+.asgn-detail .asgn-rich pre code { color: inherit !important; background: transparent !important; }

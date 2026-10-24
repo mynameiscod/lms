@@ -10,6 +10,8 @@ import { createPortal } from 'react-dom';
 import { toMobile } from './Join';
 import './careerpilot.css';
 import './careerpilotLogin.css';
+import { startActivityBeacon, trackPage, trackFailure, trackNow } from './activityBeacon';
+import { JOURNEY } from './journeyTrack';
 
 /**
  * Shows the verification step AS THE PAGE while the login form that started it stays mounted.
@@ -77,6 +79,8 @@ const PassportLogin: React.FC<{
   const [msg, setMsg] = useState('');
   const [resendIn, setResendIn] = useState(25);
 
+  useEffect(() => { startActivityBeacon(); trackPage(JOURNEY.loginView, '/careerpilot/login'); }, []);
+
   useEffect(() => {
     const stored = localStorage.getItem('loginMessage');
     if (stored) { setMsg(stored); localStorage.removeItem('loginMessage'); }
@@ -116,6 +120,7 @@ const PassportLogin: React.FC<{
   };
 
   const goHome = (onboardingCompleted?: boolean) => {
+    trackNow(JOURNEY.loginOk, undefined, 'success');
     window.location.href = onboardingCompleted ? '/careerpilot' : '/careerpilot/setup';
   };
 
@@ -146,6 +151,7 @@ const PassportLogin: React.FC<{
     try { land(await passportPublicApi.loginPassword(tenant, identifier, password)); }
     catch (e: any) {
       const m = e?.response?.data;
+      trackFailure(JOURNEY.loginFailed, failureText(e, 'sign-in failed').slice(0, 140), { mode: 'password' });
       setMsg(failureText(e, 'Something went wrong signing you in. Please try again.'));
       if (m?.code === 'NO_PASSWORD') {
         setMode('otp');
@@ -161,7 +167,7 @@ const PassportLogin: React.FC<{
       const r = await passportPublicApi.loginOtp(tenant, mobile);
       setToken(r.token); setDevCode(r.otp?.devCode || ''); setOtpStep(true);
       setMsg(otpSendMessage(r.otp));
-    } catch (e: any) { setMsg(failureText(e, 'Could not send the code. Please try again.')); }
+    } catch (e: any) { trackFailure(JOURNEY.loginFailed, failureText(e, 'could not send the code').slice(0, 140), { mode: 'otp-send' }); setMsg(failureText(e, 'Could not send the code. Please try again.')); }
     setBusy(false);
   };
 
@@ -187,7 +193,7 @@ const PassportLogin: React.FC<{
         land(r);
       }
     }
-    catch (e: any) { setMsg(failureText(e, 'That code could not be verified. Please try again.')); }
+    catch (e: any) { trackFailure(JOURNEY.loginFailed, failureText(e, 'code not verified').slice(0, 140), { mode: 'otp-verify' }); setMsg(failureText(e, 'That code could not be verified. Please try again.')); }
     setBusy(false);
   };
 

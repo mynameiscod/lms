@@ -226,6 +226,10 @@ router.get('/me/concept-journey/:skillKey',               MEMBER, learningUnits.
 router.get('/admin/activity/sessions',            MANAGE_FOR.cpMembers, activity.sessions);
 router.get('/admin/activity/summary',             MANAGE_FOR.cpMembers, activity.summary);
 router.get('/admin/activity/timeline/:visitorId', MANAGE_FOR.cpMembers, activity.timeline);
+// The journey funnel: where people drop, step by step. The lists carry names and phone numbers, so they take the
+// same permission as the drop-off funnel's contact lists.
+router.get('/admin/journey',                      MANAGE_FOR.cpMembers, activity.journey);
+router.get('/admin/journey/dropped',              FUNNEL, activity.journeyDropped);
 // The beacon again, for members who ARE signed in: same handler, but this router has already
 // resolved the user, so the row is attributed rather than anonymous.
 router.post('/activity', activity.ingest);

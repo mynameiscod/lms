@@ -17,6 +17,7 @@ import PassportConfig from '../models/PassportConfig';
 import {
   recordActivity, listSessions, getTimeline, getSummary,
 } from '../services/careerPilotActivityService';
+import * as journeySvc from '../services/careerPilotJourneyService';
 
 const tenantOf = (req: Request): string =>
   String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -153,3 +154,25 @@ export const timeline = async (req: Request, res: Response) => {
 
 /** Exported for the route file, which asserts the ids it is given are real. */
 export const isObjectId = (v: any) => mongoose.isValidObjectId(v);
+
+/** GET /passport/admin/journey — the whole journey, step by step, for a date range. */
+export const journey = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    if (!tenantId) return res.status(400).json({ message: 'No tenant on this request.' });
+    res.json(await journeySvc.journey(tenantId, journeySvc.parseRange(req.query as any)));
+  } catch (e: any) {
+    res.status(500).json({ message: e.message || 'Could not load the journey.' });
+  }
+};
+
+/** GET /passport/admin/journey/dropped?step= — who did not reach a step, and where they were last seen. */
+export const journeyDropped = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    if (!tenantId) return res.status(400).json({ message: 'No tenant on this request.' });
+    res.json(await journeySvc.dropped(tenantId, journeySvc.parseRange(req.query as any), String(req.query.step || '')));
+  } catch (e: any) {
+    res.status(500).json({ message: e.message || 'Could not load that list.' });
+  }
+};

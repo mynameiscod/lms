@@ -138,6 +138,7 @@ const PassportMaterialViewer = lazy(() => import('./pages/Passport/MaterialViewe
 const PassportMemberLayout = lazy(() => import('./pages/Passport/MemberLayout'));
 const PassportCareerSetup = lazy(() => import('./pages/Passport/CareerSetup'));
 const PassportAdminActivity = lazy(() => import('./pages/Passport/AdminActivity'));
+const PassportAdminJourney = lazy(() => import('./pages/Passport/AdminJourney'));
 const PassportLearningStudio = lazy(() => import('./pages/Passport/AdminLearningStudio'));
 const PassportLearningUnit = lazy(() => import('./pages/Passport/AdminLearningUnit'));
 const PassportRoadmap = lazy(() => import('./pages/Passport/Roadmap'));
@@ -718,6 +719,9 @@ const AppRoutes: React.FC = () => {
       {/* What people actually did, in order, including the visits that never became an
           account. Separate from /admin/logs, which answers "what went wrong for this
           student" and needs a student to answer it at all. */}
+      <Route path="/admin/passport/journey" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_funnel']}><Layout><PassportAdminJourney /></Layout></ProtectedRoute>
+      } />
       <Route path="/admin/passport/activity" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_members']}><Layout><PassportAdminActivity /></Layout></ProtectedRoute>
       } />

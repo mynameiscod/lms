@@ -154,8 +154,17 @@ function push(e: QueuedEvent) {
 }
 
 /** A screen was opened. `name` is what an admin should read, not a URL. */
-export const trackPage = (name: string, route?: string) =>
-  push({ kind: 'page', name, route: route || (typeof window !== 'undefined' ? window.location.pathname : undefined), outcome: 'info' });
+export const trackPage = (name: string, route?: string, meta?: any) =>
+  push({ kind: 'page', name, route: route || (typeof window !== 'undefined' ? window.location.pathname : undefined), outcome: 'info', meta });
+
+/**
+ * Queue an event and send it THIS instant, by sendBeacon. For the moment a page is going away: the event that says
+ * where somebody gave up is the one a timer would never get to send.
+ */
+export const trackNow = (name: string, meta?: any, outcome: Outcome = 'info') => {
+  push({ kind: 'action', name, outcome, meta });
+  flush(true);
+};
 
 /** The person did something deliberate. */
 export const trackAction = (name: string, opts?: { outcome?: Outcome; route?: string; durationMs?: number; meta?: any }) =>

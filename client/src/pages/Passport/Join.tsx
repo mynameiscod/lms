@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { hostTenantSlug } from '../../config/hostTenant';
 import PassportLogin from './Login';
 import { useSearchParams } from 'react-router-dom';
@@ -6,6 +6,8 @@ import { passportPublicApi } from '../../api/passportApi';
 import type { OnboardingField, RegistrationWindow } from '../../api/passportApi';
 import OtpVerify, { isOtpInfo, otpSendMessage } from './OtpVerify';
 import './careerpilotJoin.css';
+import { startActivityBeacon, trackPage, trackAction, trackFailure, trackNow } from './activityBeacon';
+import { JOURNEY, sourceMeta } from './journeyTrack';
 import { copyrightLine } from '../../config/brand';
 
 const LOGO = '/assets/careerpilot/careerpilot-logo.png';
@@ -173,6 +175,23 @@ const PassportJoin: React.FC = () => {
   const [resendIn, setResendIn] = useState(25);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // ── Where do people give up? The page tells us: it was opened, started, submitted, and where it was left.
+  const startedRef = useRef(false);
+  const verifiedRef = useRef(false);
+  const lastFieldRef = useRef('');
+  const stepRef = useRef<'form' | 'otp'>('form');
+  const filledRef = useRef<string[]>([]);
+  stepRef.current = step;
+  filledRef.current = Object.keys(form).filter((k) => form[k]);
+  useEffect(() => {
+    startActivityBeacon();
+    trackPage(JOURNEY.view, '/careerpilot/join', sourceMeta());
+    const leave = () => { if (!verifiedRef.current) trackNow(JOURNEY.left, { step: stepRef.current, lastField: lastFieldRef.current || '(nothing typed)', filled: filledRef.current }); };
+    window.addEventListener('pagehide', leave);
+    return () => window.removeEventListener('pagehide', leave);
+  }, []);
+  useEffect(() => { if (step === 'otp') trackPage(JOURNEY.otpScreen, '/careerpilot/join'); }, [step]);
+
   const extra = useMemo(() => fieldsDef.filter(f => !['name', 'mobile', 'email'].includes(f.key)), [fieldsDef]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [tried, setTried] = useState(false);
@@ -225,7 +244,11 @@ const PassportJoin: React.FC = () => {
     return () => clearInterval(t);
   }, [step, token]);
 
-  const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
+  const set = (k: string, v: any) => {
+    lastFieldRef.current = k;
+    if (!startedRef.current) { startedRef.current = true; trackAction(JOURNEY.started, { meta: { field: k, ...sourceMeta() } }); }
+    setForm(p => ({ ...p, [k]: v }));
+  };
   /**
    * ── ONE PAGE, TWO FORMS ────────────────────────────────────────────────────────────
    *
@@ -272,7 +295,8 @@ const PassportJoin: React.FC = () => {
     /* Belt and braces: the form is not rendered before the fields arrive, and not sent either. */
     if (!loaded) return;
     setTried(true);
-    if (Object.keys(errors).length) { setMsg(''); return; }
+    trackAction(JOURNEY.pressed, { meta: { errorFields: Object.keys(errors) } });
+    if (Object.keys(errors).length) { trackFailure(JOURNEY.errors, 'form has errors', { fields: Object.keys(errors) }); setMsg(''); return; }
 
     setBusy(true);
     setMsg('');
@@ -285,10 +309,12 @@ const PassportJoin: React.FC = () => {
         fields: extra.reduce((o, f) => ({ ...o, [f.key]: form[f.key] }), {}),
       });
       setToken(r.token);
+      trackAction(JOURNEY.sent);
       setDevCode(r.otp?.devCode || '');
       setStep('otp');
       setMsg(otpSendMessage(r.otp));
     } catch (e: any) {
+      trackFailure(JOURNEY.rejected, String(e?.response?.data?.message || 'Signup failed').slice(0, 140));
       setMsg(e?.response?.data?.message || 'Signup failed');
     }
     setBusy(false);
@@ -312,8 +338,11 @@ const PassportJoin: React.FC = () => {
           product: 'careerpilot',
         }));
       }
+      verifiedRef.current = true;
+      trackNow(JOURNEY.verified, undefined, 'success');
       window.location.href = r.onboardingCompleted ? '/careerpilot' : '/careerpilot/setup';
     } catch (e: any) {
+      trackFailure(JOURNEY.wrongOtp, String(e?.response?.data?.message || 'Verification failed').slice(0, 140));
       setMsg(e?.response?.data?.message || 'Verification failed');
     }
     setBusy(false);
@@ -321,6 +350,7 @@ const PassportJoin: React.FC = () => {
 
   const resend = async () => {
     setResendIn(25);
+    trackAction(JOURNEY.resent);
     try {
       const r = await passportPublicApi.resend(token);
       setDevCode(r.otp?.devCode || '');

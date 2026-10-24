@@ -14,6 +14,7 @@ export interface User {
   createdAt?: string;
   permissions?: string[];
   isCareerPilot?: boolean;   // true → focused CareerPilot experience (no batch LMS nav)
+  product?: 'lms' | 'careerpilot';   // which product this session is in (set by the server at login)
   // Profile fields
   phone?: string;
   bio?: string;

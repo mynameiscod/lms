@@ -1,3 +1,4 @@
+import { isPureMember, canUseCareerPilot } from '../services/accountProduct';
 import { Response, Request } from 'express';
 import { assertSeats, LimitError } from '../services/tenantLimits';
 import mongoose from 'mongoose';
@@ -437,7 +438,11 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
     // (funnel candidate, or an existing student who joined via the assessment).
     // Drives the focused, career-only experience on the client (no batch LMS clutter).
     const isCareerPilot = !!(await AssessmentSubmission.exists({ candidateUserId: userId }));
-    const data = { ...stripSecrets(user), isCareerPilot };
+    // Which product this session is. A pure member is CareerPilot whatever the token says; an account that is both
+    // follows the door it came in by (the token), and falls back to the LMS.
+    const tokenProduct = self ? (req.user as any)?.product : undefined;
+    const product = isPureMember(user) ? 'careerpilot' : (tokenProduct === 'careerpilot' && canUseCareerPilot(user) ? 'careerpilot' : 'lms');
+    const data = { ...stripSecrets(user), isCareerPilot, product };
 
     res.json({
       success: true,

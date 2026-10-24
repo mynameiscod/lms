@@ -257,7 +257,8 @@ export const refreshToken = async (
     }
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
     const newToken = jwt.sign(
-      { id: user._id, email: user.email, role: user.role, tenantId: user.tenantId },
+      // Keep which product's door this session came through: a refresh must not turn a member's session into an LMS one.
+      { id: user._id, email: user.email, role: user.role, tenantId: user.tenantId, ...(decoded.product ? { product: decoded.product } : {}) },
       secret as string,
       { expiresIn } as any
     );

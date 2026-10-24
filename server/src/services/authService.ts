@@ -1,3 +1,4 @@
+import { canUseLms, WRONG_DOOR_LMS } from './accountProduct';
 import jwt from 'jsonwebtoken';
 import { ALL_MODULES } from '../config/tenantModules';
 import { assertSeats } from './tenantLimits';
@@ -159,6 +160,9 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
+    // CareerPilot members live in CareerPilot only. Letting one in here put the LMS in front of a member.
+    if (!canUseLms(user)) throw new Error(WRONG_DOOR_LMS);
+
     const tenant = await Tenant.findById(user.tenantId);
     // A deactivated institute is locked out entirely (the platform administrator is not).
     if (user.role !== 'SUPER_ADMIN' && tenant && (tenant as any).isActive === false) {
@@ -174,7 +178,8 @@ export class AuthService {
         id: user._id, 
         email: user.email, 
         role: user.role, 
-        tenantId: user.tenantId 
+        tenantId: user.tenantId,
+        product: 'lms'
       },
       secret as string,
       { expiresIn } as any
@@ -207,6 +212,7 @@ export class AuthService {
         // Student screens (attendance, batch work) key off this. Without it a student who
         // logged in and went straight to My Attendance saw 0 classes until a page reload.
         batchId: (user as any).batchId || null,
+        product: 'lms',
         permissions
       },
       tenant 

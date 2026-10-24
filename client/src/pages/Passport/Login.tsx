@@ -110,7 +110,7 @@ const PassportLogin: React.FC<{
     if (r.user) {
       localStorage.setItem('user', JSON.stringify({
         _id: r.user.id, tenantId: r.tenantId,
-        email: r.user.email, firstName: r.user.firstName, lastName: r.user.lastName, role: r.user.role,
+        email: r.user.email, firstName: r.user.firstName, lastName: r.user.lastName, role: r.user.role, product: 'careerpilot',
       }));
     }
   };

@@ -246,7 +246,11 @@ const PassportAdminStudents: React.FC = () => {
                     {editId === r._id
                       ? <input className="cpm-edit" aria-label="Full name" defaultValue={nameOf(r) === r.email ? '' : nameOf(r)} placeholder="Full name"
                           onChange={e => setEditVal(e.target.value)} autoFocus />
-                      : <span className="cpm-names"><b>{nameOf(r)}</b>{nameOf(r) !== r.email && <small>{r.email}</small>}</span>}
+                      : <span className="cpm-names">
+                          {/* The name opens the member's full profile. */}
+                          <button type="button" className="cpm-name-link" onClick={() => nav(`/admin/passport/students/${r._id}`)}>{nameOf(r)}</button>
+                          {nameOf(r) !== r.email && <small>{r.email}</small>}
+                        </span>}
                   </td>
                   <td data-label="Status">
                     {/* Paid and active are different facts: someone can be a member whose
@@ -278,6 +282,7 @@ const PassportAdminStudents: React.FC = () => {
                             onClick={() => setMenuFor(menuFor === r._id ? '' : r._id)}><i className="bi bi-three-dots" /></button>
                           {menuFor === r._id && (
                             <span className="cpm-menu" role="menu">
+                              <button role="menuitem" onClick={() => { setMenuFor(''); nav(`/admin/passport/students/${r._id}`); }}><i className="bi bi-person-vcard" /> Full profile</button>
                               <button role="menuitem" onClick={() => { setMenuFor(''); openAnswers(r._id); }}><i className="bi bi-chat-left-text" /> {answersFor === r._id ? 'Hide answers' : 'Mission answers'}</button>
                               <button role="menuitem" onClick={() => { setMenuFor(''); openInterviews(r._id); }}><i className="bi bi-mic" /> {ivFor === r._id ? 'Hide interviews' : 'Mock interviews'}</button>
                               <button role="menuitem" onClick={() => { setMenuFor(''); setEditId(r._id); setEditVal(nameOf(r) === r.email ? '' : nameOf(r)); }}><i className="bi bi-pencil" /> Edit name</button>

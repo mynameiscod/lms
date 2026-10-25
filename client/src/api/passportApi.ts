@@ -730,6 +730,11 @@ export const passportApi = {
     const { data } = await axios.post(`${BASE}/me/assessment/personalized/submit`, { answers }, { headers: auth() });
     return data;
   },
+  /** Admin: one member's full picture — account, CareerPilot setup, membership, payments, progress. */
+  getMemberProfile: async (studentId: string): Promise<any> => {
+    const { data } = await axios.get(`${BASE}/admin/students/${encodeURIComponent(studentId)}/profile`, { headers: auth() });
+    return data.data;
+  },
   /** Admin: one member's Skill DNA. */
   getStudentSkillDna: async (studentId: string): Promise<{ skills: SkillDnaRow[]; assessed: boolean }> => {
     const { data } = await axios.get(`${BASE}/students/${studentId}/skills`, { headers: auth() });

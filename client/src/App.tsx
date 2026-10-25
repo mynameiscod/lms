@@ -135,6 +135,7 @@ const PassportAdminPathways = lazy(() => import('./pages/Passport/AdminPathways'
 const PassportAdminMissions = lazy(() => import('./pages/Passport/AdminMissions'));
 const PassportHome = lazy(() => import('./pages/Passport/PassportHome'));
 const PassportMaterialViewer = lazy(() => import('./pages/Passport/MaterialViewer'));
+const PassportAdminMemberProfile = lazy(() => import('./pages/Passport/AdminMemberProfile'));
 const PassportMemberLayout = lazy(() => import('./pages/Passport/MemberLayout'));
 const PassportCareerSetup = lazy(() => import('./pages/Passport/CareerSetup'));
 const PassportAdminActivity = lazy(() => import('./pages/Passport/AdminActivity'));
@@ -666,6 +667,10 @@ const AppRoutes: React.FC = () => {
       } />
       {/* Why THIS member got THESE missions. The endpoint existed with no screen calling
           it, so the only way to answer that question was a database query. */}
+      {/* One member's full picture: setup, membership, payments, Skill DNA, readiness, roadmap, activity. */}
+      <Route path="/admin/passport/students/:studentId" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminMemberProfile /></Layout></ProtectedRoute>
+      } />
       <Route path="/admin/passport/students/:studentId/roadmap" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudentRoadmap /></Layout></ProtectedRoute>
       } />

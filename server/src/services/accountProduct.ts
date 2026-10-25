@@ -39,4 +39,6 @@ export const canUseCareerPilot = (user: any): boolean => !!user && user.role ===
 export const defaultProduct = (user: any): Product => (isPureMember(user) ? 'careerpilot' : 'lms');
 
 export const WRONG_DOOR_LMS = 'This is a CareerPilot account. Please sign in on the CareerPilot page: /careerpilot/login';
-export const WRONG_DOOR_CAREERPILOT = 'No CareerPilot account was found for this login. If you are a college student, please use the LMS login.';
+export const WRONG_DOOR_CAREERPILOT = 'No CareerPilot account was found for this email or mobile number. New here? Create your free account below. (A college student? Use the LMS login instead.)';
+/** Lets the page offer "Create your account" instead of a dead end. */
+export const NO_ACCOUNT_CODE = 'NO_CAREERPILOT_ACCOUNT';

@@ -336,6 +336,9 @@ const PassportLogin: React.FC<{
           </div>
 
           {msg && <div className={`cpl-msg ${sent ? 'ok' : 'err'}`}>{msg}</div>}
+          {/No CareerPilot account was found/.test(msg) && (
+            <a className="cpl-link" style={{ display: 'inline-block', margin: '6px 0 2px', fontWeight: 700 }} href={`/careerpilot/join${tenant ? `?tenant=${encodeURIComponent(tenant)}` : ''}`}>Create your free account →</a>
+          )}
 
           {mode === 'password' ? (
             <>

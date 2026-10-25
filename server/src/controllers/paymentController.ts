@@ -9,6 +9,7 @@ import * as settings from '../services/settingsService';
 import { applyFeePayment, reverseFeePayment } from '../services/feePaymentService';
 import { unlockCandidatePlans } from '../services/assessmentEnrollmentService';
 import { activateMembership } from '../services/passportActivationService';
+import { sendPaymentEmail } from '../services/careerPilotEmailService';
 import HackathonRegistration from '../models/HackathonRegistration';
 import PlacementCandidate from '../models/PlacementCandidate';
 import { settleFee } from '../services/placementPortalService';
@@ -610,6 +611,8 @@ export async function settlePayment(
     }
     if (claimed.purpose === 'passport_membership') {
       const { expiresAt } = await activateMembership(String(claimed.tenantId), String(claimed.studentId));
+      // The receipt. Fire and forget: the member is already paid up and active, whatever the mail server does.
+      void User.findById(claimed.studentId).select('firstName email tenantId').lean().then((u: any) => sendPaymentEmail(u, claimed, expiresAt)).catch(() => undefined);
       return { membershipActivated: true, expiresAt };
     }
     return {};

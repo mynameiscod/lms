@@ -1,0 +1,104 @@
+/* CareerPilot admin → one member's profile. Shared admin pieces (cpx-btn) come from
+   components/layout/CareerPilotAdmin.css. Prefix: amp-. */
+.amp { max-width: 1280px; color: #102A4F; }
+.amp-loading { padding: 24px; background: #fff; border: 1px solid #E3EAF1; border-radius: 14px; color: #475569; }
+.amp-back { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; color: #051D64; text-decoration: none; margin-bottom: 12px; }
+.amp-back:hover { text-decoration: underline; }
+.amp-error { display: flex; gap: 8px; align-items: center; color: #B42318; background: #FEF3F2; border: 1px solid #F8CFCB; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; margin: 0; }
+.amp-error.amp-big { margin-top: 14px; }
+.amp-muted { color: #475569; font-size: 13.5px; margin: 6px 0 0; }
+
+/* Who */
+.amp-hero { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; background: #fff; border: 1px solid #E3EAF1; border-radius: 16px; padding: 18px 20px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); }
+.amp-avatar { flex: none; width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; background: #EAF1FB; color: #051D64; font-size: 24px; font-weight: 800; overflow: hidden; }
+.amp-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.amp-who { flex: 1 1 320px; min-width: 0; }
+.amp-who h1 { margin: 0; font-size: 24px; font-weight: 800; color: #051D64; }
+.amp-who p { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 6px 0 0; font-size: 13.5px; color: #2F3F56; }
+.amp-who p span { display: inline-flex; gap: 6px; align-items: center; overflow-wrap: anywhere; }
+.amp-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.amp-pill { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
+.amp-pill.paid { background: #E3F6EC; color: #126B47; }
+.amp-pill.free { background: #EEF2F7; color: #2F3F56; }
+.amp-pill.comp { background: #F1EBFF; color: #5B2DB8; }
+.amp-pill.off { background: #FDECEC; color: #B42318; }
+.amp-pill.lms { background: #FFF4E0; color: #8A5300; }
+.amp-pill.stage { background: #EAF1FB; color: #051D64; }
+.amp-hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* The numbers */
+.amp-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+.amp-stats > div { background: #fff; border: 1px solid #E3EAF1; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; box-shadow: 0 3px 14px rgba(15, 46, 77, .04); }
+.amp-stats span { font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #2F3F56; }
+.amp-stats b { font-size: 22px; font-weight: 800; color: #051D64; }
+.amp-stats b em { font-style: normal; font-size: 13px; font-weight: 700; color: #475569; margin-left: 2px; }
+.amp-stats small { font-size: 12.5px; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Cards */
+.amp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.amp-card { background: #fff; border: 1px solid #E3EAF1; border-radius: 16px; padding: 16px 18px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); min-width: 0; }
+.amp-card.wide { grid-column: 1 / -1; }
+.amp-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.amp-card-head h2 { margin: 0; font-size: 15.5px; font-weight: 800; color: #051D64; display: flex; gap: 8px; align-items: center; }
+.amp-card-head h2 i { color: #1B7D91; }
+.amp-link { font-size: 13px; font-weight: 700; color: #051D64; }
+.amp-sub { font-size: 12.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #2F3F56; margin: 14px 0 8px; }
+
+.amp-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin: 0; }
+.amp-fields.compact { grid-template-columns: 1fr; gap: 6px; flex: 1; }
+.amp-field { min-width: 0; }
+.amp-field dt { font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #475569; }
+.amp-field dd { margin: 2px 0 0; font-size: 14px; color: #102A4F; font-weight: 600; overflow-wrap: anywhere; }
+
+.amp-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 12px; }
+.amp-table th { text-align: left; font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #2F3F56; padding: 8px 10px; background: #F6F9FC; border-bottom: 1px solid #E3EAF1; }
+.amp-table td { padding: 8px 10px; border-top: 1px solid #EEF2F7; color: #102A4F; }
+.amp-tag { display: inline-block; font-size: 11.5px; font-weight: 800; border-radius: 999px; padding: 2px 9px; background: #EEF2F7; color: #2F3F56; text-transform: capitalize; }
+.amp-tag.paid { background: #E3F6EC; color: #126B47; }
+.amp-tag.failed { background: #FDECEC; color: #B42318; }
+.amp-tag.created { background: #FFF4E0; color: #8A5300; }
+
+.amp-readiness { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.amp-ring { --p: 0%; flex: none; width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#1B8A6B var(--p), #E3EAF1 0); position: relative; }
+.amp-ring::after { content: ''; position: absolute; inset: 9px; border-radius: 50%; background: #fff; }
+.amp-ring b { position: relative; z-index: 1; font-size: 20px; font-weight: 800; color: #051D64; }
+.amp-gaps { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.amp-gaps li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; font-size: 13.5px; padding: 7px 10px; border: 1px solid #EEF2F7; border-radius: 10px; }
+.amp-gaps li b { color: #102A4F; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.amp-gaps li span { color: #475569; white-space: nowrap; }
+.amp-gaps li em { font-style: normal; font-size: 11.5px; font-weight: 800; border-radius: 999px; padding: 2px 9px; background: #FFF4E0; color: #8A5300; }
+.amp-gaps li em.hot { background: #FDECEC; color: #B42318; }
+
+.amp-skills { list-style: none; padding: 0; margin: 0; display: grid; gap: 7px; }
+.amp-skills li { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 34px 64px; gap: 10px; align-items: center; font-size: 13.5px; }
+.amp-skill-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #102A4F; font-weight: 600; }
+.amp-bar { height: 8px; border-radius: 999px; background: #EEF2F7; overflow: hidden; }
+.amp-bar i { display: block; height: 100%; border-radius: 999px; }
+.amp-bar i.good { background: #1B8A6B; } .amp-bar i.mid { background: #D9921A; } .amp-bar i.low { background: #C2362B; }
+.amp-skills b { text-align: right; color: #051D64; }
+.amp-skills small { font-size: 12px; color: #475569; }
+
+.amp-progress { height: 10px; border-radius: 999px; background: #EEF2F7; overflow: hidden; margin-bottom: 14px; }
+.amp-progress span { display: block; height: 100%; background: linear-gradient(90deg, #1B7D91, #1B8A6B); border-radius: 999px; min-width: 2px; }
+
+.amp-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.amp-answers article { border: 1px solid #EEF2F7; border-radius: 12px; padding: 10px 12px; background: #FAFCFE; min-width: 0; }
+.amp-answers header { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-bottom: 4px; }
+.amp-answers header b { font-size: 13.5px; color: #102A4F; }
+.amp-answers header small { margin-left: auto; font-size: 12px; color: #475569; }
+.amp-answers p { margin: 0; font-size: 13.5px; color: #24364F; line-height: 1.55; white-space: pre-wrap; max-height: 9.5em; overflow: hidden; }
+
+@media (max-width: 1100px) {
+  .amp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .amp-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .amp-hero { padding: 16px; }
+  .amp-hero-actions { width: 100%; }
+  .amp-hero-actions .cpx-btn { flex: 1; }
+  .amp-fields { grid-template-columns: 1fr; }
+  .amp-answers { grid-template-columns: 1fr; }
+  .amp-skills li { grid-template-columns: minmax(0, 1fr) 70px 30px; }
+  .amp-skills small { display: none; }
+  .amp-table { display: block; overflow-x: auto; white-space: nowrap; }
+}

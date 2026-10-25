@@ -70,6 +70,7 @@ const orientationUpload = multer({
   limits: { fileSize: 60 * 1024 * 1024 },
 });
 import * as cpanalytics from '../controllers/careerPilotAnalyticsController';
+import { getMemberProfile } from '../controllers/memberProfileController';
 
 const router = express.Router();
 
@@ -321,6 +322,8 @@ router.get('/me/readiness',                     MEMBER, readiness.getMyRoleReadi
 router.get('/me/foundation-journey',            MEMBER, foundationJourney.getMyJourney);
 router.get('/me/foundation-journey/day/:dayNumber', MEMBER, foundationJourney.getMyJourneyDay);
 router.get('/students/:studentId/readiness',    MANAGE_FOR.cpMembers, readiness.getStudentRoleReadiness);
+// One member's full picture for staff: account, CareerPilot setup, membership, payments, progress.
+router.get('/admin/students/:studentId/profile', MANAGE_FOR.cpMembers, getMemberProfile);
 
 // ── 90-day roadmap (Module 9). The PLANNING layer: what to achieve over the window, in
 //    canonical skills. Distinct from `/roadmap` below, which is the mission journey — that

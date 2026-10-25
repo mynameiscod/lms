@@ -15,7 +15,7 @@ import PendingPassportSignup from '../models/PendingPassportSignup';
 import { registrationWindowState, validateSignupAnswers } from '../data/onboardingFieldPolicy';
 import { sanitiseAttribution, mergeAttribution } from '../models/careerPilotAttribution';
 import { buildShareCard } from '../services/passportShareCardService';
-import { canUseCareerPilot, WRONG_DOOR_CAREERPILOT } from '../services/accountProduct';
+import { canUseCareerPilot, WRONG_DOOR_CAREERPILOT, NO_ACCOUNT_CODE } from '../services/accountProduct';
 import { sendRegistrationEmail } from '../services/careerPilotEmailService';
 
 // Public CareerPilot funnel: signup (Name/Mobile/Email + admin-configured onboarding
@@ -240,7 +240,8 @@ export const signup = async (req: Request, res: Response) => {
       attribution: sanitiseAttribution(b.attribution),
       // Longer than the OTP's ten minutes, so an expired code can be resent against the
       // same pending row instead of sending the member back to a form they have filled in.
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      // Two hours, not thirty minutes: somebody who steps away for a call must still be able to come back to their OTP.
+      expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
     });
 
     const otp = await sendOtp(tenantId, token, mobile);
@@ -254,7 +255,7 @@ export const signup = async (req: Request, res: Response) => {
 /** Issue the standard Passport login payload (JWT + user) for a resolved user. */
 function issueLogin(res: Response, user: any) {
   // The last line of defence: whatever path got here, only an enrolled member leaves with a CareerPilot session.
-  if (!canUseCareerPilot(user)) return res.status(403).json({ success: false, message: WRONG_DOOR_CAREERPILOT });
+  if (!canUseCareerPilot(user)) return res.status(403).json({ success: false, code: NO_ACCOUNT_CODE, message: WRONG_DOOR_CAREERPILOT });
   // Refuse deactivated accounts HERE, so every login path (OTP verify, password,
   // OTP re-login) is covered by one check.
   //
@@ -375,7 +376,13 @@ export const verify = async (req: Request, res: Response) => {
     const { token, code } = req.body || {};
     const result = await verifyOtp(String(token), String(code));
     if (result !== 'ok') {
-      const msg: any = { invalid: 'Incorrect code', expired: 'Code expired — resend', too_many_attempts: 'Too many attempts — resend', not_found: 'Start over' };
+      // The code's own record is deleted a few minutes after it is sent, so an old code reads as "not found" even
+      // though the sign-up (or the account) is still there and Resend works. Say that, instead of "Start over".
+      if (result === 'not_found' || result === 'expired') {
+        const alive = !!(await PendingPassportSignup.exists({ token })) || (mongoose.isValidObjectId(token) && !!(await User.exists({ _id: token })));
+        if (alive) return res.status(400).json({ success: false, code: 'OTP_EXPIRED', message: 'That code has expired. Tap "Resend code" and we will send you a new one.' });
+      }
+      const msg: any = { invalid: 'Incorrect code', expired: 'Code expired — resend', too_many_attempts: 'Too many attempts — resend', not_found: 'Your sign-up timed out. Please start again.' };
       return res.status(400).json({ success: false, message: msg[result] || 'Verification failed' });
     }
     /**
@@ -406,7 +413,7 @@ export const verify = async (req: Request, res: Response) => {
       });
     }
     // Never turn an LMS account into a member by signing in: this used to stamp verifiedAt on whoever came through here.
-    if (!canUseCareerPilot(user)) return res.status(403).json({ success: false, message: WRONG_DOOR_CAREERPILOT });
+    if (!canUseCareerPilot(user)) return res.status(403).json({ success: false, code: NO_ACCOUNT_CODE, message: WRONG_DOOR_CAREERPILOT });
     // The moment they proved they own the number. Only stamped once — it marks when
     // they crossed out of "signed up but unverified", not the most recent OTP.
     if (user.passport && !user.passport.verifiedAt) {
@@ -442,7 +449,7 @@ export const loginPassword = async (req: Request, res: Response) => {
     // `passport: { $exists: true }` matched EVERY user (the nested defaults create it on all of them), so any
     // LMS account could sign in here. Only an enrolled CareerPilot member may.
     const users: any[] = (await User.find(query).limit(5)).filter(canUseCareerPilot);
-    if (!users.length) return res.status(404).json({ success: false, message: WRONG_DOOR_CAREERPILOT });
+    if (!users.length) return res.status(404).json({ success: false, code: NO_ACCOUNT_CODE, message: WRONG_DOOR_CAREERPILOT });
     const withPassword = users.filter(u => u.passport?.passwordSet);
     if (!withPassword.length) return res.status(400).json({ success: false, message: 'You haven’t set a password yet — log in with WhatsApp OTP.', code: 'NO_PASSWORD' });
 
@@ -466,7 +473,7 @@ export const loginOtpStart = async (req: Request, res: Response) => {
 
     // A mobile can belong to more than one account; the member is the one that was enrolled in CareerPilot.
     const user: any = (await User.find({ tenantId, phone: { $in: phoneVariants(mobile) } }).limit(5)).find(canUseCareerPilot);
-    if (!user) return res.status(404).json({ success: false, message: WRONG_DOOR_CAREERPILOT });
+    if (!user) return res.status(404).json({ success: false, code: NO_ACCOUNT_CODE, message: WRONG_DOOR_CAREERPILOT });
 
     // Canonicalise the stored value on the way past, so a row written before this fix
     // stops needing the variant match on every future login.

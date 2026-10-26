@@ -111,3 +111,63 @@ export const TRACK_CY_SOC: Record<string, TopicSeed> = {
     ...ending('Threat Intelligence and Hunting', 'THREAT_HUNTING', { minutes: [40, 50, 35, 40] }),
   ] },
 };
+
+/** Batch CY3: vulnerability management, cloud security, governance and compliance, and the SOC capstone. */
+export const TRACK_CY_DEFEND: Record<string, TopicSeed> = {
+  /* ── Vulnerability management ── */
+  CY_VULN_MGMT: { category: 'UNIVERSAL', units: [
+    u('VULN_LIFECYCLE', 'The Vulnerability Management Lifecycle', 'Asset inventory, discovery, assessment, prioritisation, remediation and verification — and why an unknown asset is the biggest risk.',
+      ['Run the vulnerability management cycle for an organisation\'s assets'], 40),
+    u('SCANNING', 'Vulnerability Scanning, Done Properly', 'Authenticated versus unauthenticated scans, scanners such as OpenVAS in outline, scanning only what you own and are allowed to, and reading a scan report.',
+      ['Plan authorised scans and read a scan report without drowning in it'], 40, { after: ['VULN_LIFECYCLE'] }),
+    u('PRIORITISATION', 'Prioritising with CVSS, EPSS and Known-Exploited Lists', 'What a CVSS score does and does not tell you, exploit likelihood, known-exploited vulnerability catalogues, and asset importance.',
+      ['Prioritise vulnerabilities by real risk rather than by score alone'], 45, { after: ['SCANNING'] }),
+    u('REMEDIATION', 'Patching, Compensating Controls and Verification', 'Patch windows and SLAs, when a patch cannot be applied, compensating controls, exceptions with an end date, and re-scanning to verify.',
+      ['Drive remediation to closure and verify it, including when patching is not possible'], 40, { after: ['PRIORITISATION'] }),
+    u('SOFTWARE_SUPPLY_CHAIN', 'Dependencies, SBOMs and Container Images', 'Vulnerable libraries, software bills of materials, scanning container images, and keeping dependencies current.',
+      ['Find and manage vulnerable dependencies with SBOMs and image scanning'], 35, { after: ['REMEDIATION'] }),
+    ...ending('Vulnerability Management', 'SOFTWARE_SUPPLY_CHAIN', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── Cloud security ── */
+  CY_CLOUD_SECURITY: { category: 'UNIVERSAL', units: [
+    u('SHARED_RESPONSIBILITY', 'The Shared Responsibility Model', 'What the cloud provider secures and what you must, across IaaS, PaaS and SaaS, and where breaches really come from.',
+      ['Say who is responsible for each control in a cloud deployment'], 35),
+    u('CLOUD_IAM', 'Cloud Identity and Access', 'Users, roles and policies, least privilege, access keys versus roles, and reviewing who can do what.',
+      ['Write and review least-privilege cloud access policies'], 45, { after: ['SHARED_RESPONSIBILITY'] }),
+    u('CLOUD_NETWORK_STORAGE', 'Securing Cloud Networks and Storage', 'Virtual networks and security groups, private endpoints, public buckets and how they leak, and encryption at rest.',
+      ['Lock down cloud networks and storage and find exposed resources'], 40, { after: ['CLOUD_IAM'] }),
+    u('CLOUD_LOGGING', 'Cloud Logging and Detection', 'Audit logs (such as AWS CloudTrail), flow logs, sending them to the SIEM, and the cloud events worth an alert.',
+      ['Collect cloud audit logs and detect risky cloud activity'], 40, { after: ['CLOUD_NETWORK_STORAGE'] }),
+    u('POSTURE_CONTAINERS', 'Cloud Posture and Container Security', 'Misconfiguration scanning (CSPM) and benchmarks, and the basics of securing containers and Kubernetes clusters.',
+      ['Assess a cloud account\'s posture and the basic security of its containers'], 40, { after: ['CLOUD_LOGGING'] }),
+    ...ending('Cloud Security', 'POSTURE_CONTAINERS', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── Governance, risk and compliance ── */
+  CY_GRC: { category: 'UNIVERSAL', units: [
+    u('FRAMEWORKS', 'Security Frameworks: ISO 27001, NIST CSF and CIS Controls', 'What each framework is for, how they relate, and how an analyst\'s daily work maps to them.',
+      ['Map an organisation\'s security work to the main frameworks'], 40),
+    u('RISK_ASSESSMENT', 'Risk Assessment and the Risk Register', 'Assets, threats, likelihood and impact, treating risk, and keeping a register leaders actually use.',
+      ['Assess and record security risks so leaders can decide on them'], 40, { after: ['FRAMEWORKS'] }),
+    u('INDIA_COMPLIANCE', 'Security Obligations in India', 'CERT-In directions, the DPDP Act, and sector expectations such as RBI\'s for banks — in outline, and how to find the current text.',
+      ['Know which Indian security and data-protection obligations apply and where to check them'], 40, { after: ['RISK_ASSESSMENT'] }),
+    u('AUDITS_POLICIES', 'Policies, Audits and Evidence', 'Writing usable policies, preparing evidence for an audit, and security awareness that changes behaviour.',
+      ['Prepare policies and audit evidence that show controls really work'], 35, { after: ['INDIA_COMPLIANCE'] }),
+    ...ending('Governance, Risk and Compliance', 'AUDITS_POLICIES', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── The Cybersecurity Analyst capstone ── */
+  CY_CAPSTONE: { category: 'UNIVERSAL', units: [
+    u('BRIEF', 'The Capstone: A SOC for a Real Organisation', 'Monitoring and response for a hospital, a cooperative bank or an e-commerce company: assets, risks, log sources, detection goals and a plan.',
+      ['Scope a SOC for an organisation — what to monitor, detect and respond to — and plan its delivery'], 45),
+    u('BUILD_MONITORING', 'Capstone Build — Monitoring and Detection', 'A home lab with an open-source SIEM, log sources onboarded, detections mapped to ATT&CK and tested, tuning, and the SOC dashboard.',
+      ['Build the monitoring and detection side of the SOC and prove the detections work'], 300, { unitType: 'PROJECT', after: ['BRIEF'], skillKeys: ['SIEM_MONITORING', 'NETWORK_SECURITY'] }),
+    u('BUILD_RESPONSE', 'Capstone Build — Response, Vulnerabilities and Reporting', 'An incident simulated on your own lab and handled end to end, a vulnerability programme for the assets, and the reports for leaders.',
+      ['Run an incident and a vulnerability programme on the lab and report both to leaders'], 240, { unitType: 'PROJECT', after: ['BUILD_MONITORING'], skillKeys: ['INCIDENT_RESPONSE', 'VULNERABILITY_MANAGEMENT'] }),
+    u('DEFENCE', 'Demo Day: Presenting and Defending the Capstone', 'A live walk through an alert to resolution, the dashboards and reports, and the questions a SOC hiring panel asks.',
+      ['Demo the SOC and defend its design and decisions under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_RESPONSE'] }),
+    u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
+      ['Show SOC-analyst judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};

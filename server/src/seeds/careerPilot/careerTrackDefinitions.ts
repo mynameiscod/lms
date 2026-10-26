@@ -397,6 +397,13 @@ export const PACKS: PackDefinition[] = [
   { key: 'CY_SECURITY_OPERATIONS', title: 'Security Operations', kind: 'SKILL',
     description: 'Logs and an open-source SIEM, detection engineering with Sigma, triage and SOC metrics; incident response; threat intelligence and hunting with MITRE ATT&CK.',
     topics: [['CY_SIEM_DETECTION', 'CORE'], ['CY_INCIDENT_RESPONSE', 'CORE'], ['CY_THREAT_INTEL', 'MUST']] },
+  /* ── Cybersecurity Analyst, batch CY3: vulnerabilities, cloud, governance, and the capstone ── */
+  { key: 'CY_DEFENSIVE_PROGRAMME', title: 'Vulnerabilities, Cloud Security and Governance', kind: 'SKILL',
+    description: 'Vulnerability management from scan to verified fix, cloud security for analysts, and governance, risk and compliance in India.',
+    topics: [['CY_VULN_MGMT', 'CORE'], ['CY_CLOUD_SECURITY', 'MUST'], ['CY_GRC', 'MUST']] },
+  { key: 'CAPSTONE_CY', title: 'Capstone: A SOC for a Real Organisation', kind: 'SKILL',
+    description: 'One SOC that proves the track: monitoring and tested detections, an incident handled end to end, a vulnerability programme, and reports for leaders.',
+    topics: [['CY_CAPSTONE', 'MUST']] },
 ];
 
 /** A track's placement: the shared packs, the AI interviews it needs, system design, and the AI candidate (HR and mocks last). */
@@ -464,6 +471,6 @@ export const TRACKS: TrackDefinition[] = [
      and bank (CY5) are appended as they land. */
   { key: 'CYBERSECURITY', name: 'Cybersecurity Analyst', language: 'Python and Linux', order: 110,
     description: 'Networks, Linux and Windows for defenders; cryptography and identity; monitoring and detection in a SOC with open-source tools; incident response, threat intelligence and hunting; vulnerability management, cloud security and governance.',
-    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SEC_SYSTEMS_BASICS', 'SEC_FOUNDATIONS_CY', 'WEB_APPSEC_CY', 'CY_DEFENDER_FOUNDATIONS', 'CY_SECURITY_OPERATIONS'],
+    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SEC_SYSTEMS_BASICS', 'SEC_FOUNDATIONS_CY', 'WEB_APPSEC_CY', 'CY_DEFENDER_FOUNDATIONS', 'CY_SECURITY_OPERATIONS', 'CY_DEFENSIVE_PROGRAMME', 'CAPSTONE_CY'],
     placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

@@ -123,6 +123,10 @@ import { TRACK_CY_CRYPTO_PKI_BUNDLES } from './trackContentCyCrypto';
 import { TRACK_CY_SIEM_DETECTION_BUNDLES } from './trackContentCySiem';
 import { TRACK_CY_INCIDENT_RESPONSE_BUNDLES } from './trackContentCyIncident';
 import { TRACK_CY_THREAT_INTEL_BUNDLES } from './trackContentCyThreatIntel';
+import { TRACK_CY_VULN_MGMT_BUNDLES } from './trackContentCyVuln';
+import { TRACK_CY_CLOUD_SECURITY_BUNDLES } from './trackContentCyCloud';
+import { TRACK_CY_GRC_BUNDLES } from './trackContentCyGrc';
+import { TRACK_CY_CAPSTONE_BUNDLES } from './trackContentCyCapstone';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -264,4 +268,8 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_CY_SIEM_DETECTION_BUNDLES,
   ...TRACK_CY_INCIDENT_RESPONSE_BUNDLES,
   ...TRACK_CY_THREAT_INTEL_BUNDLES,
+  ...TRACK_CY_VULN_MGMT_BUNDLES,
+  ...TRACK_CY_CLOUD_SECURITY_BUNDLES,
+  ...TRACK_CY_GRC_BUNDLES,
+  ...TRACK_CY_CAPSTONE_BUNDLES,
 ].map(balanced);

@@ -712,6 +712,24 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Use threat intelligence and MITRE ATT&CK to find coverage gaps and run hypothesis-driven hunts that become detections.']),
     ],
   },
+
+  /* ══════════════ CYBERSECURITY ANALYST: VULNERABILITIES, CLOUD, GOVERNANCE, CAPSTONE (batch CY3) ══════════════ */
+  {
+    moduleCode: 'CY_DEFEND',
+    moduleName: 'Vulnerabilities, Cloud Security and Governance',
+    displayOrder: 520,
+    blurb: 'Vulnerability management, cloud security, and governance, risk and compliance in India — and the Cybersecurity Analyst capstone.',
+    topics: [
+      t('CY_VULN_MGMT', 'Vulnerability Management', ['VULNERABILITY_MANAGEMENT'],
+        ['Run the vulnerability cycle: authorised scanning, risk-based prioritisation, remediation and verification, and dependency and image scanning.']),
+      t('CY_CLOUD_SECURITY', 'Cloud Security for Analysts', ['IAM_FUNDAMENTALS', 'CLOUD_NETWORKING', 'CLOUD_STORAGE'],
+        ['Apply the shared responsibility model, least-privilege cloud access, secure networks and storage, cloud logging and posture checks.']),
+      t('CY_GRC', 'Governance, Risk and Compliance', ['SECURITY_FUNDAMENTALS'],
+        ['Map work to security frameworks, assess and record risk, meet Indian obligations, and prepare policies and audit evidence.']),
+      t('CY_CAPSTONE', 'Capstone: A SOC for a Real Organisation', ['SIEM_MONITORING', 'NETWORK_SECURITY', 'INCIDENT_RESPONSE', 'VULNERABILITY_MANAGEMENT'],
+        ['Plan, build, run, present and defend monitoring, detection, incident response and vulnerability management for an organisation.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

@@ -295,3 +295,74 @@ export const TRACK_AI_MLOPS: Record<string, TopicSeed> = {
       ['Show MLOps judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
   ] },
 };
+
+/**
+ * Batch AI5: the AI Security Engineer's specialism. The track already has the years' security
+ * foundations (SECURITY_FOR_AI: threats, threat modelling, web security and the OWASP Top 10,
+ * authentication and authorisation, AppSec), building with LLMs and agents, and the AI core's
+ * evaluation, prompt-injection and guardrail lessons. These go deeper on attacking and defending
+ * AI systems — always as authorised, defensive work.
+ */
+export const TRACK_AI_SECURITY: Record<string, TopicSeed> = {
+  /* ── Threats to LLM applications ── */
+  AISEC_LLM_THREATS: { category: 'UNIVERSAL', units: [
+    u('OWASP_LLM_TOP10', 'The OWASP Top 10 for LLM Applications', 'The risk categories an LLM application faces, what each looks like in a real product, and how they differ from the classic web Top 10.',
+      ['Map an LLM application\'s design to the OWASP LLM risk categories and rank its exposure'], 40),
+    u('THREAT_MODEL_AI', 'Threat Modelling an AI System', 'Data flows, trust boundaries around the model, retrieval and tools, STRIDE applied to an LLM app, and the attacker\'s goals.',
+      ['Threat-model an LLM application with retrieval and tools, and prioritise what to fix'], 45, { after: ['OWASP_LLM_TOP10'] }),
+    u('DATA_LEAKAGE', 'Sensitive Data Leakage', 'System prompt leaks, personal data in context and logs, cross-user leaks through caches and memory, and training-data extraction in outline.',
+      ['Find and close the paths by which an AI feature can leak sensitive data'], 40, { after: ['THREAT_MODEL_AI'] }),
+    u('RAG_AGENT_ATTACKS', 'Attacks Through Retrieval and Tools', 'Poisoned documents, indirect injection through web pages and emails, tool misuse, and excessive agency — why agents widen the attack surface.',
+      ['Explain and test how retrieved content and tool results can turn an assistant against its user'], 45, { after: ['DATA_LEAKAGE'] }),
+    u('ACCESS_CONTROL_AI', 'Access Control for RAG and Agents', 'Document-level permissions in retrieval, filtering before the model sees anything, tenant isolation, and acting with the user\'s rights only.',
+      ['Enforce permissions in retrieval and tools so an assistant never shows or does more than its user may'], 40, { after: ['RAG_AGENT_ATTACKS'] }),
+    u('SUPPLY_CHAIN', 'The AI Supply Chain', 'Unsafe model files (pickle), scanning and safe formats (safetensors), poisoned datasets, untrusted MCP servers and dependency pinning.',
+      ['Assess and secure the models, datasets, servers and packages an AI system depends on'], 40, { after: ['ACCESS_CONTROL_AI'] }),
+    ...ending('LLM Security', 'SUPPLY_CHAIN', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── Red teaming AI systems ── */
+  AISEC_RED_TEAMING: { category: 'UNIVERSAL', units: [
+    u('RED_TEAM_METHOD', 'Red Teaming an AI System, Properly', 'Authorisation and scope, rules of engagement, a harm taxonomy, test environments, and evidence that holds up.',
+      ['Plan an authorised red-team exercise on an AI system with scope, rules and a harm taxonomy'], 40),
+    u('INJECTION_TESTING', 'Systematic Prompt-Injection Testing', 'Building a test suite of direct and indirect injection cases, canary secrets, measuring attack success rate, and regression-testing fixes.',
+      ['Measure an application\'s resistance to prompt injection with a repeatable test suite'], 45, { after: ['RED_TEAM_METHOD'] }),
+    u('JAILBREAK_CLASSES', 'Jailbreak Classes and Refusal Robustness', 'The families of jailbreak — role-play, obfuscation, multi-turn escalation — at the level needed to test for them, and measuring over- and under-refusal.',
+      ['Test a model\'s refusal behaviour across jailbreak classes and report both failure directions'], 40, { after: ['INJECTION_TESTING'] }),
+    u('AUTOMATED_RED_TEAMING', 'Automated Red Teaming', 'Scanners and frameworks (garak, PyRIT, promptfoo) in outline, generating attack variants, scoring with judges, and their blind spots.',
+      ['Run an automated red-team scan, read its results critically and add the human testing it misses'], 45, { after: ['JAILBREAK_CLASSES'] }),
+    u('FINDINGS_REPORTING', 'Reporting Findings and Retesting', 'Severity for AI findings, reproducible evidence when outputs vary, writing for engineers and leaders, and retesting a fix.',
+      ['Write AI security findings that can be reproduced, prioritised and verified as fixed'], 35, { after: ['AUTOMATED_RED_TEAMING'] }),
+    ...ending('AI Red Teaming', 'FINDINGS_REPORTING', { project: ['MINI_PROJECT', 'Mini Project — Red-Teaming a Bank\'s Support Assistant',
+      'An authorised assessment of a deliberately vulnerable banking support assistant with RAG and tools: scope, an injection and data-leakage test suite, an automated scan, a findings report with severities, and a retest after the fixes.'] }),
+  ] },
+
+  /* ── Defending AI systems ── */
+  AISEC_DEFENCES: { category: 'UNIVERSAL', units: [
+    u('DEFENCE_IN_DEPTH', 'Defence in Depth for LLM Applications', 'Least privilege, separating trusted and untrusted text, the quarantined-model pattern, confirmations, and why no single filter is enough.',
+      ['Design an LLM application whose worst case stays acceptable even when the model is fooled'], 45),
+    u('GUARDRAIL_ENGINEERING', 'Engineering Guardrails', 'Safety classifiers and guard models, rule engines, where each check sits in the flow, latency and false-positive costs, and testing the guards themselves.',
+      ['Build and measure a layered guardrail pipeline with acceptable latency and false positives'], 45, { after: ['DEFENCE_IN_DEPTH'] }),
+    u('OUTPUT_HANDLING', 'Handling Model Output Safely', 'Model output as untrusted input: HTML and markdown injection, generated SQL and shell commands, links and images that exfiltrate data.',
+      ['Treat model output as untrusted and stop it from becoming an injection into the rest of the system'], 40, { after: ['GUARDRAIL_ENGINEERING'] }),
+    u('ABUSE_MONITORING', 'Detecting Abuse and Responding to AI Incidents', 'Signals of attack and misuse, rate limits and quotas, logging without hoarding personal data, and an AI incident runbook.',
+      ['Detect attacks and abuse against an AI feature and respond with a tested runbook'], 40, { after: ['OUTPUT_HANDLING'] }),
+    u('AI_GOVERNANCE', 'AI Risk Management and Governance', 'Risk frameworks (NIST AI RMF, ISO/IEC 42001) in outline, model and system cards, policies, India\'s data-protection duties, and audits.',
+      ['Run an AI risk assessment and produce the documentation an auditor or regulator will ask for'], 40, { after: ['ABUSE_MONITORING'] }),
+    ...ending('AI Defences', 'AI_GOVERNANCE', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── The AI Security Engineer capstone ── */
+  AI_CAPSTONE_AISEC: { category: 'UNIVERSAL', units: [
+    u('BRIEF', 'The Capstone: Securing an AI Product', 'A real AI product to assess and harden — an insurer\'s claims assistant, an HR copilot with tools, or an edtech tutor: scope, threat model, success measures and a plan.',
+      ['Scope a security engagement on an AI product, its threat model and its success measures'], 45),
+    u('BUILD_ASSESSMENT', 'Capstone Build — The Assessment', 'Threat model, an injection and data-leakage test suite, automated and manual red teaming, and a findings report with severities.',
+      ['Assess the AI product and report reproducible, prioritised findings'], 300, { unitType: 'PROJECT', after: ['BRIEF'], skillKeys: ['MODEL_RED_TEAMING', 'PROMPT_INJECTION'] }),
+    u('BUILD_HARDENING', 'Capstone Build — Hardening and Proof', 'Fixes in depth — access control, guardrails, output handling, monitoring — a retest showing the attack success rate fall, and governance documents.',
+      ['Harden the product and prove with a retest that the risk went down'], 240, { unitType: 'PROJECT', after: ['BUILD_ASSESSMENT'], skillKeys: ['AI_GUARDRAILS', 'LLM_SECURITY'] }),
+    u('DEFENCE', 'Demo Day: Presenting and Defending the Capstone', 'A live attack before and after, the findings and fixes, and the questions a panel asks about residual risk and trade-offs.',
+      ['Present the assessment and hardening and defend every judgement under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_HARDENING'] }),
+    u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
+      ['Show AI-security judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};

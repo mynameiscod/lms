@@ -638,6 +638,24 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Plan, build, release, operate, present and defend an ML platform that keeps a real model working.']),
     ],
   },
+
+  /* ══════════════ AI SECURITY (the AI tracks, batch AI5) ══════════════ */
+  {
+    moduleCode: 'AI_SEC',
+    moduleName: 'AI Security',
+    displayOrder: 440,
+    blurb: 'Attacking and defending AI systems as authorised, defensive work: LLM threats and access control, red teaming, defences and governance — and the AI Security Engineer capstone.',
+    topics: [
+      t('AISEC_LLM_THREATS', 'LLM Application Security', ['LLM_SECURITY', 'THREAT_MODELLING', 'AUTHENTICATION_AUTHZ'],
+        ['Threat-model AI systems against the OWASP LLM risks, and close leaks, retrieval and tool attacks, access-control gaps and supply-chain risks.']),
+      t('AISEC_RED_TEAMING', 'Red Teaming AI Systems', ['MODEL_RED_TEAMING', 'PROMPT_INJECTION'],
+        ['Plan and run authorised red-team exercises on AI systems — systematic injection and jailbreak testing, automated scans — and report findings that get fixed.']),
+      t('AISEC_DEFENCES', 'Defending AI Systems', ['AI_GUARDRAILS', 'LLM_SECURITY', 'AI_RESPONSIBLE'],
+        ['Defend AI systems in depth with engineered guardrails, safe output handling, abuse monitoring and incident response, and govern their risk.']),
+      t('AI_CAPSTONE_AISEC', 'Capstone: Securing an AI Product', ['MODEL_RED_TEAMING', 'PROMPT_INJECTION', 'AI_GUARDRAILS', 'LLM_SECURITY'],
+        ['Assess, harden, retest, present and defend the security of a real AI product.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

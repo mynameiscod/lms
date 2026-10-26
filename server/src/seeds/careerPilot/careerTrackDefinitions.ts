@@ -347,6 +347,13 @@ export const PACKS: PackDefinition[] = [
   { key: 'CAPSTONE_MLOPS', title: 'Capstone: An ML Platform', kind: 'SKILL',
     description: 'One ML platform that proves the track: a reproducible pipeline, gated releases on Kubernetes, monitoring and retraining.',
     topics: [['AI_CAPSTONE_MLOPS', 'MUST']] },
+  /* ── The AI tracks, batch AI5: AI security and its capstone ── */
+  { key: 'AI_SECURITY_SPECIALISM', title: 'AI Security: Threats, Red Teaming and Defences', kind: 'SKILL',
+    description: 'The OWASP LLM risks and threat modelling, access control and the AI supply chain, authorised red teaming, layered defences and AI governance.',
+    topics: [['AISEC_LLM_THREATS', 'CORE'], ['AISEC_RED_TEAMING', 'CORE'], ['AISEC_DEFENCES', 'CORE']] },
+  { key: 'CAPSTONE_AISEC', title: 'Capstone: Securing an AI Product', kind: 'SKILL',
+    description: 'One engagement that proves the track: an AI product assessed, hardened in depth and retested.',
+    topics: [['AI_CAPSTONE_AISEC', 'MUST']] },
 ];
 
 /** Placement packs every AI track shares; each track adds its own specialist interviews as they land. */
@@ -403,6 +410,6 @@ export const TRACKS: TrackDefinition[] = [
     placementPacks: AI_PLACEMENT },
   { key: 'AI_SECURITY', name: 'AI Security Engineer', language: 'Python', order: 100,
     description: 'Python; security foundations, threat modelling and the OWASP Top 10; building with LLMs and agents; the OWASP LLM Top 10, prompt injection, red teaming and guardrail engineering.',
-    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SECURITY_FOR_AI', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY'],
+    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SECURITY_FOR_AI', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY', 'AI_SECURITY_SPECIALISM', 'CAPSTONE_AISEC'],
     placementPacks: AI_PLACEMENT },
 ];

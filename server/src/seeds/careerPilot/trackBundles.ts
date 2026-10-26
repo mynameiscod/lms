@@ -109,6 +109,10 @@ import { TRACK_MLOPS_PIPELINES_BUNDLES } from './trackContentMlopsPipelines';
 import { TRACK_MLOPS_CICD_INFRA_BUNDLES } from './trackContentMlopsCicdInfra';
 import { TRACK_MLOPS_MONITORING_BUNDLES } from './trackContentMlopsMonitoring';
 import { TRACK_AI_CAPSTONE_MLOPS_BUNDLES } from './trackContentAiCapstoneMlops';
+import { TRACK_AISEC_LLM_THREATS_BUNDLES } from './trackContentAiSecThreats';
+import { TRACK_AISEC_RED_TEAMING_BUNDLES } from './trackContentAiSecRedTeaming';
+import { TRACK_AISEC_DEFENCES_BUNDLES } from './trackContentAiSecDefences';
+import { TRACK_AI_CAPSTONE_AISEC_BUNDLES } from './trackContentAiCapstoneAiSec';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -236,4 +240,8 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_MLOPS_CICD_INFRA_BUNDLES,
   ...TRACK_MLOPS_MONITORING_BUNDLES,
   ...TRACK_AI_CAPSTONE_MLOPS_BUNDLES,
+  ...TRACK_AISEC_LLM_THREATS_BUNDLES,
+  ...TRACK_AISEC_RED_TEAMING_BUNDLES,
+  ...TRACK_AISEC_DEFENCES_BUNDLES,
+  ...TRACK_AI_CAPSTONE_AISEC_BUNDLES,
 ].map(balanced);

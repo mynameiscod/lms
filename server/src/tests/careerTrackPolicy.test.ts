@@ -111,6 +111,10 @@ describe('the track follows setup (role + main language)', () => {
     expect(deriveTrackKey('MLOPS_ENGINEER', ['C#'])).toBe('MLOPS');
     expect(deriveTrackKey('AI_SECURITY_ENGINEER', ['Not Sure'])).toBe('AI_SECURITY');
   });
+  it('maps the cybersecurity analyst role whatever the language', () => {
+    expect(deriveTrackKey('CYBERSECURITY_ANALYST', ['Java'])).toBe('CYBERSECURITY');
+    expect(deriveTrackKey('CYBERSECURITY_ANALYST', [])).toBe('CYBERSECURITY');
+  });
   it('gives no track when the member is not sure or has no main language', () => {
     expect(deriveTrackKey('NOT_SURE', ['Java'])).toBeNull();
     expect(deriveTrackKey('FULLSTACK_ENGINEER', ['Not Sure'])).toBeNull();

@@ -376,6 +376,19 @@ export const PACKS: PackDefinition[] = [
   { key: 'PL_AI_CANDIDATE', title: 'The AI Candidate', kind: 'PLACEMENT',
     description: 'An AI resume and portfolio, the capstone defended, and a full AI interview loop.',
     topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['AI_PLACE_CANDIDATE', 'MUST']] },
+
+  /* ── Cybersecurity Analyst, setup: what it reuses from the years ── */
+  { key: 'SEC_SYSTEMS_BASICS', title: 'Networks, Operating Systems and Linux', kind: 'SKILL',
+    description: 'The networking, operating-system, Linux and shell lessons the years teach — the ground every defender stands on.',
+    topics: [['T_NETWORKING', 'MUST'], ['T_LINUX', 'MUST'], ['T_SHELL_PIPELINES', 'MUST'], ['T_PROCESSES', 'SHOULD'], ['T_OS_MEMORY', 'SHOULD'],
+      ['T2_LINUX', 'MUST'], ['T3_LINUX', 'MUST']] },
+  { key: 'SEC_FOUNDATIONS_CY', title: 'Security Foundations', kind: 'SKILL',
+    description: 'Security fundamentals, threats and threat modelling, network security basics and the security lifecycle, from the years.',
+    topics: [['T2_SECURITY', 'MUST'], ['T2_TRACK_SECURITY', 'MUST'], ['T3_SEC_THREATS', 'MUST'], ['T3_THREAT_MODELING', 'MUST'],
+      ['T3_SEC_NETWORK', 'MUST'], ['T3_SEC_LIFECYCLE', 'MUST']] },
+  { key: 'WEB_APPSEC_CY', title: 'Web Security and Authentication', kind: 'SKILL',
+    description: 'Web security and the OWASP Top 10, authentication and authorisation, and application security, from the years.',
+    topics: [['T3_WEB_SECURITY', 'MUST'], ['T3_AUTH', 'MUST'], ['T3_SEC_APPSEC', 'MUST'], ['T3_SEC_TESTING', 'SHOULD'], ['T3_SECURE_CODING', 'SHOULD']] },
 ];
 
 /** A track's placement: the shared packs, the AI interviews it needs, system design, and the AI candidate (HR and mocks last). */
@@ -437,4 +450,12 @@ export const TRACKS: TrackDefinition[] = [
     description: 'Python; security foundations, threat modelling and the OWASP Top 10; building with LLMs and agents; the OWASP LLM risks, testing and assuring AI defences, and guardrail engineering.',
     specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SECURITY_FOR_AI', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY', 'AI_SECURITY_SPECIALISM', 'CAPSTONE_AISEC'],
     placementPacks: aiPlacement('PL_AI_LLM_IV', 'PL_AI_AISEC_IV') },
+
+  /* Cybersecurity Analyst — a defensive, SOC-analyst track on open-source tools (Wazuh/Elastic, Sigma,
+     Suricata/Zeek, Wireshark, Python). Setup holds what it reuses; its own topics (CY1–CY3), placement (CY4)
+     and bank (CY5) are appended as they land. */
+  { key: 'CYBERSECURITY', name: 'Cybersecurity Analyst', language: 'Python and Linux', order: 110,
+    description: 'Networks, Linux and Windows for defenders; cryptography and identity; monitoring and detection in a SOC with open-source tools; incident response, threat intelligence and hunting; vulnerability management, cloud security and governance.',
+    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SEC_SYSTEMS_BASICS', 'SEC_FOUNDATIONS_CY', 'WEB_APPSEC_CY'],
+    placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

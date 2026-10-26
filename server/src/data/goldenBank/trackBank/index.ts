@@ -81,6 +81,24 @@ import { VECTOR_EMBEDDINGS } from './vectorEmbeddings';
 import { MODEL_DEPLOYMENT } from './modelDeployment';
 import { EXPERIMENT_TRACKING } from './experimentTracking';
 import { MODEL_MONITORING } from './modelMonitoring';
+import { LLM_FUNDAMENTALS } from './llmFundamentals';
+import { RAG_FUNDAMENTALS } from './ragFundamentals';
+import { VECTOR_DATABASES } from './vectorDatabases';
+import { LLM_EVALUATION } from './llmEvaluation';
+import { AI_GUARDRAILS } from './aiGuardrails';
+import { PROMPT_INJECTION } from './promptInjection';
+import { AI_RESPONSIBLE } from './aiResponsible';
+import { GENAI_APP_PATTERNS } from './genaiAppPatterns';
+import { LLM_FINE_TUNING } from './llmFineTuning';
+import { AGENT_FUNDAMENTALS } from './agentFundamentals';
+import { TOOL_CALLING } from './toolCalling';
+import { AGENT_ORCHESTRATION } from './agentOrchestration';
+import { AGENT_MEMORY } from './agentMemory';
+import { AGENT_EVALUATION } from './agentEvaluation';
+import { ML_PIPELINES } from './mlPipelines';
+import { MODEL_VERSIONING } from './modelVersioning';
+import { LLM_SECURITY } from './llmSecurity';
+import { MODEL_RED_TEAMING } from './modelRedTeaming';
 
 export const TRACK_BANK: GoldenItem[] = [
   ...JAVA_BASICS,
@@ -152,4 +170,22 @@ export const TRACK_BANK: GoldenItem[] = [
   ...MODEL_DEPLOYMENT,
   ...EXPERIMENT_TRACKING,
   ...MODEL_MONITORING,
+  ...LLM_FUNDAMENTALS,
+  ...RAG_FUNDAMENTALS,
+  ...VECTOR_DATABASES,
+  ...LLM_EVALUATION,
+  ...AI_GUARDRAILS,
+  ...PROMPT_INJECTION,
+  ...AI_RESPONSIBLE,
+  ...GENAI_APP_PATTERNS,
+  ...LLM_FINE_TUNING,
+  ...AGENT_FUNDAMENTALS,
+  ...TOOL_CALLING,
+  ...AGENT_ORCHESTRATION,
+  ...AGENT_MEMORY,
+  ...AGENT_EVALUATION,
+  ...ML_PIPELINES,
+  ...MODEL_VERSIONING,
+  ...LLM_SECURITY,
+  ...MODEL_RED_TEAMING,
 ];

@@ -192,6 +192,8 @@ const DIMENSION: Record<string, AssessmentDimension> = {
   DATA_VISUALISATION: 'core_stack', STATISTICS_BASICS: 'aptitude', PROBABILITY_BASICS: 'aptitude', HYPOTHESIS_TESTING: 'aptitude', DASHBOARDING: 'core_stack', BUSINESS_METRICS: 'problem_solving',
   ML_CONCEPTS: 'core_stack', ML_SUPERVISED: 'core_stack', ML_UNSUPERVISED: 'core_stack', ML_EVALUATION: 'core_stack', ML_FEATURE_ENGINEERING: 'core_stack', ML_OVERFITTING: 'core_stack', NEURAL_NETWORKS: 'core_stack',
   DL_TRAINING: 'core_stack', DL_TRANSFORMERS: 'core_stack', VECTOR_EMBEDDINGS: 'core_stack', MODEL_DEPLOYMENT: 'core_stack', EXPERIMENT_TRACKING: 'core_stack', MODEL_MONITORING: 'core_stack',
+  // Cybersecurity Analyst (batch CY5).
+  AUTHENTICATION_AUTHZ: 'core_stack', CLOUD_NETWORKING: 'core_stack', CLOUD_STORAGE: 'core_stack', CRYPTOGRAPHY_BASICS: 'core_stack', IAM_FUNDAMENTALS: 'core_stack', INCIDENT_RESPONSE: 'core_stack', LINUX_ADMIN: 'core_stack', NETWORK_SECURITY: 'core_stack', OWASP_TOP_TEN: 'core_stack', SIEM_MONITORING: 'core_stack', THREAT_MODELLING: 'core_stack', VULNERABILITY_MANAGEMENT: 'core_stack',
   // The AI tracks (batch AI7).
   LLM_FUNDAMENTALS: 'core_stack', RAG_FUNDAMENTALS: 'core_stack', VECTOR_DATABASES: 'core_stack', LLM_EVALUATION: 'core_stack', AI_GUARDRAILS: 'core_stack', PROMPT_INJECTION: 'core_stack', AI_RESPONSIBLE: 'core_stack', GENAI_APP_PATTERNS: 'core_stack', LLM_FINE_TUNING: 'core_stack', AGENT_FUNDAMENTALS: 'core_stack', TOOL_CALLING: 'core_stack', AGENT_ORCHESTRATION: 'core_stack', AGENT_MEMORY: 'core_stack', AGENT_EVALUATION: 'core_stack', ML_PIPELINES: 'core_stack', MODEL_VERSIONING: 'core_stack', LLM_SECURITY: 'core_stack', MODEL_RED_TEAMING: 'core_stack',
   APTITUDE_DATA_INTERPRETATION: 'aptitude',

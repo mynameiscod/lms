@@ -99,6 +99,18 @@ import { ML_PIPELINES } from './mlPipelines';
 import { MODEL_VERSIONING } from './modelVersioning';
 import { LLM_SECURITY } from './llmSecurity';
 import { MODEL_RED_TEAMING } from './modelRedTeaming';
+import { AUTHENTICATION_AUTHZ } from './authenticationAuthz';
+import { CLOUD_NETWORKING } from './cloudNetworking';
+import { CLOUD_STORAGE } from './cloudStorage';
+import { CRYPTOGRAPHY_BASICS } from './cryptographyBasics';
+import { IAM_FUNDAMENTALS } from './iamFundamentals';
+import { INCIDENT_RESPONSE } from './incidentResponse';
+import { LINUX_ADMIN } from './linuxAdmin';
+import { NETWORK_SECURITY } from './networkSecurity';
+import { OWASP_TOP_TEN } from './owaspTopTen';
+import { SIEM_MONITORING } from './siemMonitoring';
+import { THREAT_MODELLING } from './threatModelling';
+import { VULNERABILITY_MANAGEMENT } from './vulnerabilityManagement';
 
 export const TRACK_BANK: GoldenItem[] = [
   ...JAVA_BASICS,
@@ -188,4 +200,16 @@ export const TRACK_BANK: GoldenItem[] = [
   ...MODEL_VERSIONING,
   ...LLM_SECURITY,
   ...MODEL_RED_TEAMING,
+  ...AUTHENTICATION_AUTHZ,
+  ...CLOUD_NETWORKING,
+  ...CLOUD_STORAGE,
+  ...CRYPTOGRAPHY_BASICS,
+  ...IAM_FUNDAMENTALS,
+  ...INCIDENT_RESPONSE,
+  ...LINUX_ADMIN,
+  ...NETWORK_SECURITY,
+  ...OWASP_TOP_TEN,
+  ...SIEM_MONITORING,
+  ...THREAT_MODELLING,
+  ...VULNERABILITY_MANAGEMENT,
 ];

@@ -304,7 +304,22 @@ export const PACKS: PackDefinition[] = [
   { key: 'PL_DS_CANDIDATE', title: 'The Data Science Candidate', kind: 'PLACEMENT',
     description: 'A data-science resume and portfolio, the capstone defended, and a full data-science interview loop.',
     topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['DS_PLACE_FS', 'MUST']] },
+
+  /* ── The AI tracks (AI Engineer, Generative AI, Agentic AI, MLOps, AI Security), setup: what they reuse ── */
+  { key: 'AI_PY_BUILD', title: 'Building AI Applications in Python', kind: 'SKILL',
+    description: 'How generative AI works (Year 1), building with LLMs — prompts, cost, embeddings, RAG and failure — then FastAPI and an AI service in Python.',
+    topics: [['T_GENAI', 'MUST'], ['JT_AI_CONCEPTS', 'CORE'], ['JT_FASTAPI', 'MUST'], ['JT_AI_PY', 'CORE'], ['T3_AI_ASSISTED', 'SHOULD']] },
+  { key: 'DEVOPS_FOR_ML', title: 'Linux, Containers and CI/CD', kind: 'SKILL',
+    description: 'The Linux, Docker and CI/CD the years teach, and the cloud basics an ML platform runs on.',
+    topics: [['T2_LINUX', 'MUST'], ['T3_CONTAINERS', 'MUST'], ['T3_CICD_MONITORING', 'MUST'], ['T3_CLOUD_INFRA', 'SHOULD'], ['T3_CLOUD_CONFIG', 'SHOULD']] },
+  { key: 'SECURITY_FOR_AI', title: 'Security Foundations', kind: 'SKILL',
+    description: 'The security the years teach — threats and threat modelling, web security and the OWASP Top 10, authentication and authorisation — before securing AI systems.',
+    topics: [['T2_SECURITY', 'MUST'], ['T3_SEC_THREATS', 'MUST'], ['T3_THREAT_MODELING', 'MUST'], ['T3_WEB_SECURITY', 'MUST'], ['T3_AUTH', 'MUST'],
+      ['T3_SEC_APPSEC', 'MUST'], ['T3_SECURE_CODING', 'SHOULD'], ['T3_SEC_TESTING', 'SHOULD']] },
 ];
+
+/** Placement packs every AI track shares; each track adds its own specialist interviews as they land. */
+const AI_PLACEMENT = ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_AI_INTERVIEW', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_HR_PORTFOLIO', 'PL_MOCKS'];
 
 export const TRACKS: TrackDefinition[] = [
   { key: 'JAVA_FULLSTACK_AI', name: 'Java Full Stack + AI', language: 'Java', order: 10,
@@ -336,4 +351,27 @@ export const TRACKS: TrackDefinition[] = [
     /* Batches: S1 ML foundations, regression and classification (SQL, pandas and statistics are Data Analytics' packs); later ML, deep learning, deployment and placement packs are appended as they land. */
     specializePacks: ['SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'ML_FOUNDATIONS', 'SUPERVISED_ML', 'APPLIED_ML', 'UNSUPERVISED_ML', 'FORECASTING', 'DEEP_LEARNING_DS', 'NLP_GENAI_DS', 'ML_DEPLOYMENT', 'CAPSTONE_DS_AI'],
     placementPacks: ['PL_APTITUDE', 'PL_DS_ML', 'PL_DS_ANALYTICS_IV', 'PL_DS_CASES', 'PL_DS_CODING', 'PL_AI_INTERVIEW', 'PL_DS_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
+
+  /* The AI tracks — Python, one shared AI core, a specialism each. Setup holds what they reuse; the shared
+     core (AI1), each specialism (AI2–AI5), placement (AI6) and the bank (AI7) are appended as they land. */
+  { key: 'AI_ENGINEERING', name: 'AI Engineer', language: 'Python', order: 60,
+    description: 'Python and DSA; machine learning foundations; building with LLMs — RAG, vector databases, evaluation and guardrails; agents; and shipping an AI application to production.',
+    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'ML_FOUNDATIONS', 'AI_PY_BUILD', 'AGENTIC_AI_PY', 'ML_DEPLOYMENT'],
+    placementPacks: AI_PLACEMENT },
+  { key: 'GENAI_ENGINEERING', name: 'Generative AI Engineer', language: 'Python', order: 70,
+    description: 'Python; how LLMs and transformers work; prompting, RAG and evaluation in depth; fine-tuning open models; multimodal AI; and a production GenAI application.',
+    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'AI_PY_BUILD', 'NLP_GENAI_DS', 'AGENTIC_AI_PY'],
+    placementPacks: AI_PLACEMENT },
+  { key: 'AGENTIC_AI', name: 'Agentic AI Engineer', language: 'Python', order: 80,
+    description: 'Python; building with LLMs; tools and function calling; agents with LangGraph; memory, MCP and multi-agent orchestration; evaluating agents and running them safely in production.',
+    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'AI_PY_BUILD', 'AGENTIC_AI_PY'],
+    placementPacks: AI_PLACEMENT },
+  { key: 'MLOPS', name: 'MLOps Engineer', language: 'Python', order: 90,
+    description: 'Python; machine learning foundations; Linux, Docker and CI/CD; ML pipelines, versioning and experiment tracking; deploying and monitoring models and LLM applications.',
+    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'ML_FOUNDATIONS', 'SUPERVISED_ML', 'DEVOPS_FOR_ML', 'ML_DEPLOYMENT'],
+    placementPacks: AI_PLACEMENT },
+  { key: 'AI_SECURITY', name: 'AI Security Engineer', language: 'Python', order: 100,
+    description: 'Python; security foundations, threat modelling and the OWASP Top 10; building with LLMs and agents; the OWASP LLM Top 10, prompt injection, red teaming and guardrail engineering.',
+    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SECURITY_FOR_AI', 'AI_PY_BUILD', 'AGENTIC_AI_PY'],
+    placementPacks: AI_PLACEMENT },
 ];

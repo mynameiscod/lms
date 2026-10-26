@@ -201,12 +201,25 @@ export function validatePackInput(input: any): { ok: true; value: PackDef } | { 
  *                                                       + C#     → .NET Full Stack + AI
  *   Data Analyst (any language)                                   → Data Analytics + AI
  *   Data Scientist / Machine Learning Engineer                    → Data Science + AI
+ *   AI Engineer, Generative AI, Agentic AI, MLOps, AI Security    → that role's own AI track (Python)
  * Anything else (Not sure, no main language, other roles) has no track and keeps the regular
  * Year 3/4 roadmap. Once a roadmap is built from a track the track is fixed; only an admin changes it.
  */
 export const FULL_STACK_TRACK_ROLES = ['SOFTWARE_ENGINEER', 'SDE', 'FULLSTACK_ENGINEER', 'BACKEND_ENGINEER', 'FRONTEND_ENGINEER'];
 export const DATA_ANALYTICS_TRACK_ROLES = ['DATA_ANALYST', 'BUSINESS_ANALYST', 'BI_ANALYST'];
 export const DATA_SCIENCE_TRACK_ROLES = ['DATA_SCIENTIST', 'MACHINE_LEARNING_ENGINEER', 'ML_ENGINEER'];
+/**
+ * The AI roles each have their own track, taught in Python whatever the member's main language:
+ * Python is the language AI work is done in, and Java and .NET members already get AI inside
+ * their full-stack tracks. The five share one Python and AI core and differ in their specialism.
+ */
+export const AI_TRACK_BY_ROLE: Record<string, string> = {
+  AI_ENGINEER: 'AI_ENGINEERING',
+  GENERATIVE_AI_ENGINEER: 'GENAI_ENGINEERING',
+  AGENTIC_AI_ENGINEER: 'AGENTIC_AI',
+  MLOPS_ENGINEER: 'MLOPS',
+  AI_SECURITY_ENGINEER: 'AI_SECURITY',
+};
 export const FULL_STACK_TRACK_BY_LANGUAGE: Record<string, string> = {
   java: 'JAVA_FULLSTACK_AI', python: 'PY_FULLSTACK_AI', 'c#': 'DOTNET_FULLSTACK_AI',
 };
@@ -215,6 +228,7 @@ export function deriveTrackKey(primaryRole: string | null | undefined, languages
   const role = String(primaryRole || '').toUpperCase();
   if (DATA_ANALYTICS_TRACK_ROLES.includes(role)) return 'DATA_ANALYTICS_AI';
   if (DATA_SCIENCE_TRACK_ROLES.includes(role)) return 'DATA_SCIENCE_AI';
+  if (AI_TRACK_BY_ROLE[role]) return AI_TRACK_BY_ROLE[role];
   if (!FULL_STACK_TRACK_ROLES.includes(role)) return null;
   for (const l of languages || []) {
     const key = FULL_STACK_TRACK_BY_LANGUAGE[String(l).trim().toLowerCase()];

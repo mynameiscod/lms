@@ -104,6 +104,13 @@ describe('the track follows setup (role + main language)', () => {
     expect(deriveTrackKey('DATA_ANALYST', [])).toBe('DATA_ANALYTICS_AI');
     expect(deriveTrackKey('DATA_SCIENTIST', ['Python'])).toBe('DATA_SCIENCE_AI');
   });
+  it('maps each AI role to its own track whatever the language', () => {
+    expect(deriveTrackKey('AI_ENGINEER', ['Java'])).toBe('AI_ENGINEERING');
+    expect(deriveTrackKey('GENERATIVE_AI_ENGINEER', [])).toBe('GENAI_ENGINEERING');
+    expect(deriveTrackKey('AGENTIC_AI_ENGINEER', ['Python'])).toBe('AGENTIC_AI');
+    expect(deriveTrackKey('MLOPS_ENGINEER', ['C#'])).toBe('MLOPS');
+    expect(deriveTrackKey('AI_SECURITY_ENGINEER', ['Not Sure'])).toBe('AI_SECURITY');
+  });
   it('gives no track when the member is not sure or has no main language', () => {
     expect(deriveTrackKey('NOT_SURE', ['Java'])).toBeNull();
     expect(deriveTrackKey('FULLSTACK_ENGINEER', ['Not Sure'])).toBeNull();

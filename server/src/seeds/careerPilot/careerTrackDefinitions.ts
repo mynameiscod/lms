@@ -320,6 +320,19 @@ export const PACKS: PackDefinition[] = [
   { key: 'AI_CORE_ENGINEERING', title: 'The AI Engineering Core', kind: 'SKILL',
     description: 'How LLMs really behave, RAG on a real vector database, evaluation and guardrails, and running AI applications in production.',
     topics: [['AI_LLM_INTERNALS', 'MUST'], ['AI_RAG_DEEP', 'CORE'], ['AI_EVAL_SAFETY', 'CORE'], ['AI_PRODUCTION', 'MUST']] },
+  /* ── The AI tracks, batch AI2: the Generative AI specialism and the AI Engineer / GenAI capstones ── */
+  { key: 'FINE_TUNING', title: 'Fine-Tuning Open Models', kind: 'SKILL',
+    description: 'When fine-tuning is worth it, datasets, LoRA and QLoRA, a training run, evaluating it honestly, and serving the result.',
+    topics: [['AI_FINE_TUNING', 'MUST']] },
+  { key: 'MULTIMODAL_AI', title: 'Multimodal AI', kind: 'SKILL',
+    description: 'Vision-language models, document AI, speech in and out, image generation done responsibly, and multimodal RAG.',
+    topics: [['AI_MULTIMODAL', 'MUST']] },
+  { key: 'CAPSTONE_AI_ENG', title: 'Capstone: An AI Product, End to End', kind: 'SKILL',
+    description: 'One AI product that proves the track: retrieval, generation and an agent action, evaluated, guarded and deployed.',
+    topics: [['AI_CAPSTONE_ENG', 'MUST']] },
+  { key: 'CAPSTONE_GENAI', title: 'Capstone: A Generative AI Product', kind: 'SKILL',
+    description: 'One generative AI product that proves the track: prompting, RAG and a fine-tune, each earning its place, shipped.',
+    topics: [['AI_CAPSTONE_GENAI', 'MUST']] },
 ];
 
 /** Placement packs every AI track shares; each track adds its own specialist interviews as they land. */
@@ -360,11 +373,11 @@ export const TRACKS: TrackDefinition[] = [
      core (AI1), each specialism (AI2–AI5), placement (AI6) and the bank (AI7) are appended as they land. */
   { key: 'AI_ENGINEERING', name: 'AI Engineer', language: 'Python', order: 60,
     description: 'Python and DSA; machine learning foundations; building with LLMs — RAG, vector databases, evaluation and guardrails; agents; and shipping an AI application to production.',
-    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'ML_FOUNDATIONS', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY', 'ML_DEPLOYMENT'],
+    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'ML_FOUNDATIONS', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY', 'ML_DEPLOYMENT', 'CAPSTONE_AI_ENG'],
     placementPacks: AI_PLACEMENT },
   { key: 'GENAI_ENGINEERING', name: 'Generative AI Engineer', language: 'Python', order: 70,
     description: 'Python; how LLMs and transformers work; prompting, RAG and evaluation in depth; fine-tuning open models; multimodal AI; and a production GenAI application.',
-    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'NLP_GENAI_DS', 'AGENTIC_AI_PY'],
+    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'NLP_GENAI_DS', 'FINE_TUNING', 'MULTIMODAL_AI', 'AGENTIC_AI_PY', 'CAPSTONE_GENAI'],
     placementPacks: AI_PLACEMENT },
   { key: 'AGENTIC_AI', name: 'Agentic AI Engineer', language: 'Python', order: 80,
     description: 'Python; building with LLMs; tools and function calling; agents with LangGraph; memory, MCP and multi-agent orchestration; evaluating agents and running them safely in production.',

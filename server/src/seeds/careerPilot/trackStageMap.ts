@@ -584,6 +584,24 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Choose the right GenAI pattern and run it in production within budget: routing, caching, tracing, background jobs and safe deployment.']),
     ],
   },
+
+  /* ══════════════ GENERATIVE AI SPECIALISM AND THE AI CAPSTONES (the AI tracks, batch AI2) ══════════════ */
+  {
+    moduleCode: 'AI_GENAI',
+    moduleName: 'Fine-Tuning, Multimodal AI and the AI Capstones',
+    displayOrder: 410,
+    blurb: 'The Generative AI Engineer’s specialism — fine-tuning open models and multimodal AI — and the capstones of the AI Engineer and Generative AI Engineer tracks.',
+    topics: [
+      t('AI_FINE_TUNING', 'Fine-Tuning Open Models', ['LLM_FINE_TUNING', 'DL_TRANSFORMERS'],
+        ['Decide when fine-tuning is worth it, build the dataset, run and evaluate a LoRA fine-tune, and serve the result.']),
+      t('AI_MULTIMODAL', 'Multimodal AI', ['GENAI_APP_PATTERNS', 'LLM_FUNDAMENTALS'],
+        ['Build features that read images and documents, hear and speak, generate images responsibly, and retrieve across text and figures.']),
+      t('AI_CAPSTONE_ENG', 'Capstone: An AI Product, End to End', ['GENAI_APP_PATTERNS', 'RAG_FUNDAMENTALS', 'LLM_EVALUATION', 'MODEL_DEPLOYMENT'],
+        ['Plan, build, evaluate, deploy, present and defend an AI product with retrieval, an agent action and guardrails.']),
+      t('AI_CAPSTONE_GENAI', 'Capstone: A Generative AI Product', ['GENAI_APP_PATTERNS', 'LLM_FINE_TUNING', 'RAG_FUNDAMENTALS', 'LLM_EVALUATION'],
+        ['Plan, build, evaluate, deploy, present and defend a generative AI product that combines prompting, RAG and a fine-tune.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

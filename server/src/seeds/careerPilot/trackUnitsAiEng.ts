@@ -86,3 +86,70 @@ export const TRACK_AI_CORE: Record<string, TopicSeed> = {
       'Take the policy-document RAG service to production: Docker, configuration from the environment, caching and a model fallback, tracing, a cost report per request, and an evaluation run that gates the release.'] }),
   ] },
 };
+
+/**
+ * Batch AI2: the AI Engineer's and the Generative AI Engineer's own topics. Fine-tuning and multimodal
+ * AI are the Generative AI Engineer's specialism; each of the two tracks closes on its own capstone.
+ */
+export const TRACK_AI_GENAI: Record<string, TopicSeed> = {
+  /* ── Fine-tuning open models ── */
+  AI_FINE_TUNING: { category: 'UNIVERSAL', units: [
+    u('WHEN_TO_FINE_TUNE', 'Prompt, RAG or Fine-Tune?', 'What fine-tuning changes (behaviour, format, tone, a narrow skill) and what it does not (fresh facts), and the cost of each route.',
+      ['Decide between prompting, RAG and fine-tuning for a requirement and justify the choice'], 35),
+    u('DATASETS', 'Building a Fine-Tuning Dataset', 'Instruction and chat formats, chat templates, how many examples, cleaning and de-duplicating, splitting, and synthetic data with its risks.',
+      ['Build and validate a clean instruction dataset in the format a trainer expects'], 45, { after: ['WHEN_TO_FINE_TUNE'] }),
+    u('LORA_PEFT', 'LoRA, QLoRA and Parameter-Efficient Fine-Tuning', 'Why full fine-tuning is rarely needed, low-rank adapters, rank and alpha, target modules, and 4-bit quantised training.',
+      ['Explain LoRA and QLoRA and choose adapter settings for a model and a GPU budget'], 45, { after: ['DATASETS'] }),
+    u('TRAINING_RUN', 'A Supervised Fine-Tuning Run', 'Hugging Face TRL\'s SFT trainer with a PEFT config, learning rate and epochs, loss curves, overfitting, and running it on a free GPU notebook.',
+      ['Run a LoRA supervised fine-tune and read its loss curves to judge it'], 50, { after: ['LORA_PEFT'] }),
+    u('EVALUATE_FINE_TUNE', 'Did the Fine-Tune Help?', 'Comparing base, prompted and fine-tuned models on a held-out set, catastrophic forgetting, and regressions on general ability.',
+      ['Show with a held-out evaluation whether a fine-tune beat a well-prompted base model'], 40, { after: ['TRAINING_RUN'] }),
+    u('SERVING_ADAPTERS', 'Merging, Quantising and Serving a Fine-Tuned Model', 'Merging adapters or loading them at run time, quantising for serving, and serving behind an OpenAI-compatible endpoint (vLLM or Ollama).',
+      ['Package and serve a fine-tuned model behind an OpenAI-compatible endpoint'], 40, { after: ['EVALUATE_FINE_TUNE'] }),
+    ...ending('Fine-Tuning', 'SERVING_ADAPTERS', { project: ['MINI_PROJECT', 'Mini Project — A Fine-Tuned Support-Reply Model',
+      'Fine-tune a small open model with LoRA to draft replies in a telecom company\'s support tone and JSON format, compare it with a prompted base model on a held-out set, and serve the winner.'] }),
+  ] },
+
+  /* ── Multimodal AI ── */
+  AI_MULTIMODAL: { category: 'UNIVERSAL', units: [
+    u('VISION_INPUTS', 'Images as Input: Vision-Language Models', 'Sending images to a model, what it reads well and badly, resolution and cost, and asking for structured output about an image.',
+      ['Extract structured information from images with a vision-language model and check its accuracy'], 40),
+    u('DOCUMENT_AI', 'Document AI: Invoices, Forms and Scans', 'OCR versus a vision model, extracting fields from invoices and forms, validating totals and GST numbers in code, and human review.',
+      ['Build a document-extraction pipeline that validates what the model read'], 45, { after: ['VISION_INPUTS'] }),
+    u('SPEECH', 'Speech: Transcription and Text-to-Speech', 'Whisper-style speech-to-text, Indian accents and code-mixed speech, timestamps and speaker labels in outline, and text-to-speech for replies.',
+      ['Transcribe and voice a conversation, and measure transcription quality with word error rate'], 40, { after: ['DOCUMENT_AI'] }),
+    u('IMAGE_GENERATION', 'Generating Images Responsibly', 'Diffusion models in outline, prompting for images, editing, and the rules on likeness, copyright and labelling generated content.',
+      ['Generate and edit images for a product feature within legal and ethical limits'], 35, { after: ['SPEECH'] }),
+    u('MULTIMODAL_RAG', 'Multimodal RAG', 'Indexing slides, charts and scanned pages, image and text embeddings in one store, and answering with the figure that supports the answer.',
+      ['Answer questions over documents that mix text, tables and images, citing the page'], 45, { after: ['IMAGE_GENERATION'] }),
+    ...ending('Multimodal AI', 'MULTIMODAL_RAG', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── The AI Engineer capstone ── */
+  AI_CAPSTONE_ENG: { category: 'UNIVERSAL', units: [
+    u('BRIEF', 'The Capstone: An AI Product, Scoped', 'A knowledge assistant for a real domain — a college, a hospital, a bank\'s policies or a SaaS help centre: users, data, success metrics, architecture and a plan.',
+      ['Scope an AI product, its evaluation metrics and its architecture, and plan its delivery'], 45),
+    u('BUILD_CORE', 'Capstone Build — Retrieval, Generation and an Agent', 'Ingestion, a vector database with hybrid search, grounded and cited answers, and one tool-using agent action with approval.',
+      ['Build the retrieval, generation and agent core of the product to a measured standard'], 300, { unitType: 'PROJECT', after: ['BRIEF'], skillKeys: ['RAG_FUNDAMENTALS', 'GENAI_APP_PATTERNS'] }),
+    u('BUILD_PRODUCTION', 'Capstone Build — Evaluation, Guardrails and Deployment', 'An evaluation set gating releases, guardrails, tracing and cost per request, and the service deployed with Docker.',
+      ['Evaluate, guard and deploy the product, with the numbers to show it works'], 240, { unitType: 'PROJECT', after: ['BUILD_CORE'], skillKeys: ['LLM_EVALUATION', 'MODEL_DEPLOYMENT'] }),
+    u('DEFENCE', 'Demo Day: Presenting and Defending the Capstone', 'A ten-minute demo, the architecture and evaluation results, and the questions a panel asks about failure, cost and safety.',
+      ['Present the AI product and defend every design decision under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_PRODUCTION'] }),
+    u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
+      ['Show AI-engineering judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+
+  /* ── The Generative AI Engineer capstone ── */
+  AI_CAPSTONE_GENAI: { category: 'UNIVERSAL', units: [
+    u('BRIEF', 'The Capstone: A Generative AI Product, Scoped', 'A product that needs more than a prompt — a domain assistant with its own tone, a document-processing service, or a multimodal helper: users, data, metrics and a plan.',
+      ['Scope a generative AI product, choose prompt, RAG or fine-tuning for each part, and plan it'], 45),
+    u('BUILD_MODEL', 'Capstone Build — The Model Layer', 'The chosen mix of prompting, RAG and a LoRA fine-tune, each compared against the simpler option on a held-out set.',
+      ['Build the model layer and prove each added piece beats the simpler alternative'], 300, { unitType: 'PROJECT', after: ['BRIEF'], skillKeys: ['LLM_FINE_TUNING', 'RAG_FUNDAMENTALS'] }),
+    u('BUILD_PRODUCT', 'Capstone Build — The Product', 'A FastAPI service and a simple UI, a multimodal input where it earns its place, guardrails, evaluation in CI and deployment.',
+      ['Ship the product with guardrails, an evaluation gate and a deployment'], 240, { unitType: 'PROJECT', after: ['BUILD_MODEL'], skillKeys: ['GENAI_APP_PATTERNS', 'LLM_EVALUATION'] }),
+    u('DEFENCE', 'Demo Day: Presenting and Defending the Capstone', 'A ten-minute demo, the evaluation results, and the questions a panel asks about data, fine-tuning, cost and safety.',
+      ['Present the product and defend every modelling decision under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_PRODUCT'] }),
+    u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
+      ['Show generative-AI engineering judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};

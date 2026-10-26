@@ -107,6 +107,15 @@ describe('only measurable skills may be mapped', () => {
     expect(r.message).toMatch(/not a measurable skill/i);
   });
 
+  it('accepts a skill from the role catalogue domains (AI and ML, Data, Security, Cloud)', () => {
+    for (const domainKey of ['AI_ML', 'DATA', 'SECURITY', 'CLOUD_INFRA']) {
+      const r = validateEvidenceMapping({
+        sourceType: T, evidence: [EV('CATALOGUE_SKILL')],
+        skills: [SKILL('CATALOGUE_SKILL', { domainKey, name: 'Catalogue skill' })],
+      });
+      expect(r.ok).toBe(true);
+    }
+  });
   it('rejects a skill from another career domain', () => {
     const r = validateEvidenceMapping({
       sourceType: T, evidence: [EV('FOREIGN')],

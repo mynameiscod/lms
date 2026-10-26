@@ -31,7 +31,7 @@ import Quiz from '../../models/Quiz';
 import Question from '../../models/Question';
 import SkillEvidence from '../../models/SkillEvidence';
 import CareerSkill from '../../models/CareerSkill';
-import { DEFAULT_DOMAIN } from '../../services/careerDomainService';
+import { EVIDENCE_DOMAINS } from '../../services/skillEvidenceService';
 import Assignment, { AssignmentType } from '../../models/Assignment';
 import User from '../../models/User';
 import { PILOT_TOPICS } from './pilotUnitContent';
@@ -157,7 +157,7 @@ const readingMinutes = (text: string): number =>
    * CareerSkill is GLOBAL and carries no tenantId, so it is queried with no tenant filter.
    */
   const mappableSkills = new Set<string>(
-    ((await CareerSkill.find({ domainKey: DEFAULT_DOMAIN, nodeType: 'SKILL', active: true })
+    ((await CareerSkill.find({ domainKey: { $in: EVIDENCE_DOMAINS }, nodeType: 'SKILL', active: true })
       .select('key assessable').lean()) as any[])
       .filter(s => s.assessable !== false)
       .map(s => String(s.key).toUpperCase()),

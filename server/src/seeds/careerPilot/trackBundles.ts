@@ -110,7 +110,7 @@ import { TRACK_MLOPS_CICD_INFRA_BUNDLES } from './trackContentMlopsCicdInfra';
 import { TRACK_MLOPS_MONITORING_BUNDLES } from './trackContentMlopsMonitoring';
 import { TRACK_AI_CAPSTONE_MLOPS_BUNDLES } from './trackContentAiCapstoneMlops';
 import { TRACK_AISEC_LLM_THREATS_BUNDLES } from './trackContentAiSecThreats';
-import { TRACK_AISEC_RED_TEAMING_BUNDLES } from './trackContentAiSecRedTeaming';
+import { TRACK_AISEC_ASSURANCE_BUNDLES } from './trackContentAiSecAssurance';
 import { TRACK_AISEC_DEFENCES_BUNDLES } from './trackContentAiSecDefences';
 import { TRACK_AI_CAPSTONE_AISEC_BUNDLES } from './trackContentAiCapstoneAiSec';
 import { TRACK_AI_IV_LLM_SYSTEM_DESIGN_BUNDLES } from './trackContentAiIvLlmSystemDesign';
@@ -245,7 +245,7 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_MLOPS_MONITORING_BUNDLES,
   ...TRACK_AI_CAPSTONE_MLOPS_BUNDLES,
   ...TRACK_AISEC_LLM_THREATS_BUNDLES,
-  ...TRACK_AISEC_RED_TEAMING_BUNDLES,
+  ...TRACK_AISEC_ASSURANCE_BUNDLES,
   ...TRACK_AISEC_DEFENCES_BUNDLES,
   ...TRACK_AI_CAPSTONE_AISEC_BUNDLES,
   ...TRACK_AI_IV_LLM_SYSTEM_DESIGN_BUNDLES,

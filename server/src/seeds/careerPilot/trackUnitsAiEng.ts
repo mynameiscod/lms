@@ -301,8 +301,8 @@ export const TRACK_AI_MLOPS: Record<string, TopicSeed> = {
  * Batch AI5: the AI Security Engineer's specialism. The track already has the years' security
  * foundations (SECURITY_FOR_AI: threats, threat modelling, web security and the OWASP Top 10,
  * authentication and authorisation, AppSec), building with LLMs and agents, and the AI core's
- * evaluation, prompt-injection and guardrail lessons. These go deeper on attacking and defending
- * AI systems — always as authorised, defensive work.
+ * evaluation, prompt-injection and guardrail lessons. These go deeper on the threats AI systems face and
+ * on defending them — designing controls in, testing your own defences and proving they work.
  */
 export const TRACK_AI_SECURITY: Record<string, TopicSeed> = {
   /* ── Threats to LLM applications ── */
@@ -322,20 +322,20 @@ export const TRACK_AI_SECURITY: Record<string, TopicSeed> = {
     ...ending('LLM Security', 'SUPPLY_CHAIN', { minutes: [40, 50, 35, 40] }),
   ] },
 
-  /* ── Red teaming AI systems ── */
-  AISEC_RED_TEAMING: { category: 'UNIVERSAL', units: [
-    u('RED_TEAM_METHOD', 'Red Teaming an AI System, Properly', 'Authorisation and scope, rules of engagement, a harm taxonomy, test environments, and evidence that holds up.',
-      ['Plan an authorised red-team exercise on an AI system with scope, rules and a harm taxonomy'], 40),
-    u('INJECTION_TESTING', 'Systematic Prompt-Injection Testing', 'Building a test suite of direct and indirect injection cases, canary secrets, measuring attack success rate, and regression-testing fixes.',
-      ['Measure an application\'s resistance to prompt injection with a repeatable test suite'], 45, { after: ['RED_TEAM_METHOD'] }),
-    u('JAILBREAK_CLASSES', 'Jailbreak Classes and Refusal Robustness', 'The families of jailbreak — role-play, obfuscation, multi-turn escalation — at the level needed to test for them, and measuring over- and under-refusal.',
-      ['Test a model\'s refusal behaviour across jailbreak classes and report both failure directions'], 40, { after: ['INJECTION_TESTING'] }),
-    u('AUTOMATED_RED_TEAMING', 'Automated Red Teaming', 'Scanners and frameworks (garak, PyRIT, promptfoo) in outline, generating attack variants, scoring with judges, and their blind spots.',
-      ['Run an automated red-team scan, read its results critically and add the human testing it misses'], 45, { after: ['JAILBREAK_CLASSES'] }),
-    u('FINDINGS_REPORTING', 'Reporting Findings and Retesting', 'Severity for AI findings, reproducible evidence when outputs vary, writing for engineers and leaders, and retesting a fix.',
-      ['Write AI security findings that can be reproduced, prioritised and verified as fixed'], 35, { after: ['AUTOMATED_RED_TEAMING'] }),
-    ...ending('AI Red Teaming', 'FINDINGS_REPORTING', { project: ['MINI_PROJECT', 'Mini Project — Red-Teaming a Bank\'s Support Assistant',
-      'An authorised assessment of a deliberately vulnerable banking support assistant with RAG and tools: scope, an injection and data-leakage test suite, an automated scan, a findings report with severities, and a retest after the fixes.'] }),
+  /* ── Testing and assuring your own AI defences ── */
+  AISEC_ASSURANCE: { category: 'UNIVERSAL', units: [
+    u('SECURITY_TEST_PLAN', 'Planning Security Tests for Your Own AI System', 'What to test and why, a separate test environment, the controls under test, pass and fail criteria, and who signs off.',
+      ['Write a security test plan for your own AI system that names each control and how it will be verified'], 40),
+    u('DEFENCE_REGRESSION', 'A Regression Suite for Your Defences', 'Turning every known weakness into a test, harmless canary markers instead of real secrets, running the suite in CI, and failing the build when a defence regresses.',
+      ['Build a defence regression suite that runs in CI and fails when a control stops working'], 45, { after: ['SECURITY_TEST_PLAN'] }),
+    u('MEASURING_ROBUSTNESS', 'Measuring Robustness Honestly', 'Block rates and their confidence intervals, how many trials a claim needs, varying outputs, and measuring over-blocking on a benign set at the same time.',
+      ['Report how well a defence works with numbers, intervals and its false-positive cost'], 40, { after: ['DEFENCE_REGRESSION'] }),
+    u('TOOLS_IN_PIPELINE', 'Evaluation and Scanning Tools in the Pipeline', 'What evaluation and scanning tools (promptfoo, garak and similar) check, wiring them into CI, reading their results critically, and what they cannot see.',
+      ['Add security evaluation tools to a pipeline and know what they do and do not prove'], 40, { after: ['MEASURING_ROBUSTNESS'] }),
+    u('FINDINGS_AND_FIXES', 'Triaging Findings and Verifying Fixes', 'Severity for AI weaknesses, reproducible evidence when outputs vary, a fix in depth rather than a patch, and proving the fix with a retest.',
+      ['Triage AI security findings, fix them in depth and verify each fix with evidence'], 35, { after: ['TOOLS_IN_PIPELINE'] }),
+    ...ending('AI Security Assurance', 'FINDINGS_AND_FIXES', { project: ['MINI_PROJECT', 'Mini Project — A Defence Test Suite for a Bank\'s Support Assistant',
+      'For a banking support assistant you build with RAG and tools: a test plan, permission-filtered retrieval, a tool gateway and output handling, a defence regression suite in CI with canary markers, block rates with intervals and over-blocking measured, and a short assurance report.'] }),
   ] },
 
   /* ── Defending AI systems ── */
@@ -355,14 +355,14 @@ export const TRACK_AI_SECURITY: Record<string, TopicSeed> = {
 
   /* ── The AI Security Engineer capstone ── */
   AI_CAPSTONE_AISEC: { category: 'UNIVERSAL', units: [
-    u('BRIEF', 'The Capstone: Securing an AI Product', 'A real AI product to assess and harden — an insurer\'s claims assistant, an HR copilot with tools, or an edtech tutor: scope, threat model, success measures and a plan.',
-      ['Scope a security engagement on an AI product, its threat model and its success measures'], 45),
-    u('BUILD_ASSESSMENT', 'Capstone Build — The Assessment', 'Threat model, an injection and data-leakage test suite, automated and manual red teaming, and a findings report with severities.',
-      ['Assess the AI product and report reproducible, prioritised findings'], 300, { unitType: 'PROJECT', after: ['BRIEF'], skillKeys: ['MODEL_RED_TEAMING', 'PROMPT_INJECTION'] }),
-    u('BUILD_HARDENING', 'Capstone Build — Hardening and Proof', 'Fixes in depth — access control, guardrails, output handling, monitoring — a retest showing the attack success rate fall, and governance documents.',
-      ['Harden the product and prove with a retest that the risk went down'], 240, { unitType: 'PROJECT', after: ['BUILD_ASSESSMENT'], skillKeys: ['AI_GUARDRAILS', 'LLM_SECURITY'] }),
-    u('DEFENCE', 'Demo Day: Presenting and Defending the Capstone', 'A live attack before and after, the findings and fixes, and the questions a panel asks about residual risk and trade-offs.',
-      ['Present the assessment and hardening and defend every judgement under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_HARDENING'] }),
+    u('BRIEF', 'The Capstone: An AI Product, Secure by Design', 'An AI product to build securely — an insurer\'s claims assistant, an HR copilot with tools, or an edtech tutor: the threat model, the controls it needs, success measures and a plan.',
+      ['Threat-model an AI product, choose its controls and success measures, and plan its delivery'], 45),
+    u('BUILD_SECURE', 'Capstone Build — Secure Architecture and Controls', 'The product built with its controls in place: permission-filtered retrieval, a least-privilege tool gateway, layered guardrails, safe output handling and abuse monitoring.',
+      ['Build the AI product with defence in depth designed in from the start'], 300, { unitType: 'PROJECT', after: ['BRIEF'], skillKeys: ['AI_GUARDRAILS', 'LLM_SECURITY'] }),
+    u('BUILD_ASSURANCE', 'Capstone Build — Assurance and Evidence', 'A defence regression suite in CI, robustness and over-blocking measured with intervals, a findings-and-fixes log, and the governance documents.',
+      ['Prove with tests, numbers and documents that the product\'s controls work'], 240, { unitType: 'PROJECT', after: ['BUILD_SECURE'], skillKeys: ['MODEL_RED_TEAMING', 'PROMPT_INJECTION'] }),
+    u('DEFENCE', 'Demo Day: Presenting and Defending the Capstone', 'The architecture and its controls, the assurance results, and the questions a panel asks about residual risk and trade-offs.',
+      ['Present the product\'s security design and evidence and defend every judgement under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_ASSURANCE'] }),
     u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
       ['Show AI-security judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
   ] },
@@ -408,7 +408,7 @@ export const TRACK_AI_PLACE: Record<string, TopicSeed> = {
   /* ── The AI Security specialism at interview depth ── */
   AI_IV_AISEC: { category: 'UNIVERSAL', units: interview('AI Security Interview', [
     ['IV_LLM_THREATS', 'LLM Threats and Threat Modelling Questions', 'The OWASP LLM risks, data leakage, attacks through retrieval and tools, access control and the AI supply chain.', ['LLM_SECURITY']],
-    ['IV_RED_TEAMING', 'AI Red Teaming Questions', 'Scoping an authorised exercise, systematic injection testing, measuring refusal robustness, automated scanners and reporting.', ['MODEL_RED_TEAMING']],
+    ['IV_RED_TEAMING', 'Security Testing and Assurance Questions', 'Planning security tests for your own system, defence regression suites, measuring robustness honestly, evaluation tools and verifying fixes.', ['MODEL_RED_TEAMING']],
     ['IV_DEFENCES', 'AI Defences and Governance Questions', 'Defence in depth, guardrail engineering and its costs, safe output handling, abuse monitoring and AI risk governance.', ['AI_GUARDRAILS']],
   ]) },
 

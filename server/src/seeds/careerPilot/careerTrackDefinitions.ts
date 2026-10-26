@@ -389,6 +389,10 @@ export const PACKS: PackDefinition[] = [
   { key: 'WEB_APPSEC_CY', title: 'Web Security and Authentication', kind: 'SKILL',
     description: 'Web security and the OWASP Top 10, authentication and authorisation, and application security, from the years.',
     topics: [['T3_WEB_SECURITY', 'MUST'], ['T3_AUTH', 'MUST'], ['T3_SEC_APPSEC', 'MUST'], ['T3_SEC_TESTING', 'SHOULD'], ['T3_SECURE_CODING', 'SHOULD']] },
+  /* ── Cybersecurity Analyst, batch CY1: networks, endpoints and identity, cryptography ── */
+  { key: 'CY_DEFENDER_FOUNDATIONS', title: 'Networks, Endpoints, Identity and Cryptography', kind: 'SKILL',
+    description: 'Packet analysis, firewalls and network detection; Windows, Active Directory and Linux logs, identity and endpoint protection; and cryptography and PKI.',
+    topics: [['CY_NETWORK_SECURITY', 'CORE'], ['CY_ENDPOINT_IDENTITY', 'CORE'], ['CY_CRYPTO_PKI', 'MUST']] },
 ];
 
 /** A track's placement: the shared packs, the AI interviews it needs, system design, and the AI candidate (HR and mocks last). */
@@ -456,6 +460,6 @@ export const TRACKS: TrackDefinition[] = [
      and bank (CY5) are appended as they land. */
   { key: 'CYBERSECURITY', name: 'Cybersecurity Analyst', language: 'Python and Linux', order: 110,
     description: 'Networks, Linux and Windows for defenders; cryptography and identity; monitoring and detection in a SOC with open-source tools; incident response, threat intelligence and hunting; vulnerability management, cloud security and governance.',
-    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SEC_SYSTEMS_BASICS', 'SEC_FOUNDATIONS_CY', 'WEB_APPSEC_CY'],
+    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SEC_SYSTEMS_BASICS', 'SEC_FOUNDATIONS_CY', 'WEB_APPSEC_CY', 'CY_DEFENDER_FOUNDATIONS'],
     placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

@@ -117,6 +117,9 @@ import { TRACK_AI_IV_LLM_SYSTEM_DESIGN_BUNDLES } from './trackContentAiIvLlmSyst
 import { TRACK_AI_IV_GENAI_AGENTS_BUNDLES } from './trackContentAiIvGenaiAgents';
 import { TRACK_AI_IV_MLOPS_AISEC_BUNDLES } from './trackContentAiIvMlopsAisec';
 import { TRACK_AI_PLACE_CANDIDATE_BUNDLES } from './trackContentAiPlaceCandidate';
+import { TRACK_CY_NETWORK_SECURITY_BUNDLES } from './trackContentCyNetwork';
+import { TRACK_CY_ENDPOINT_IDENTITY_BUNDLES } from './trackContentCyEndpointIdentity';
+import { TRACK_CY_CRYPTO_PKI_BUNDLES } from './trackContentCyCrypto';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -252,4 +255,7 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_AI_IV_GENAI_AGENTS_BUNDLES,
   ...TRACK_AI_IV_MLOPS_AISEC_BUNDLES,
   ...TRACK_AI_PLACE_CANDIDATE_BUNDLES,
+  ...TRACK_CY_NETWORK_SECURITY_BUNDLES,
+  ...TRACK_CY_ENDPOINT_IDENTITY_BUNDLES,
+  ...TRACK_CY_CRYPTO_PKI_BUNDLES,
 ].map(balanced);

@@ -680,6 +680,22 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Present an AI resume and capstone and get through a full AI interview loop.']),
     ],
   },
+
+  /* ══════════════ CYBERSECURITY ANALYST: NETWORKS, ENDPOINTS, IDENTITY, CRYPTOGRAPHY (batch CY1) ══════════════ */
+  {
+    moduleCode: 'CY_FOUNDATIONS',
+    moduleName: 'Networks, Endpoints, Identity and Cryptography for Defenders',
+    displayOrder: 500,
+    blurb: 'The years teach networking, operating systems and security fundamentals; this is how a defender reads traffic, endpoints and identities, and the cryptography they meet in every configuration.',
+    topics: [
+      t('CY_NETWORK_SECURITY', 'Network Security for Analysts', ['NETWORK_SECURITY', 'COMPUTER_NETWORKS'],
+        ['Read packet captures and network logs, design firewall rules and segmentation, and use Suricata and Zeek to detect what matters.']),
+      t('CY_ENDPOINT_IDENTITY', 'Endpoint and Identity Security', ['IAM_FUNDAMENTALS', 'OPERATING_SYSTEMS', 'LINUX_ADMIN'],
+        ['Read Windows and Linux logs, understand Active Directory, harden servers, and run identity and endpoint protection well.']),
+      t('CY_CRYPTO_PKI', 'Cryptography and PKI for Defenders', ['CRYPTOGRAPHY_BASICS'],
+        ['Choose and assess cryptography, password storage, TLS and certificates, and keys and secrets, and spot the common mistakes.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

@@ -566,6 +566,24 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Present a Java full-stack resume and capstone and get through a full interview loop.']),
     ],
   },
+
+  /* ══════════════ THE AI ENGINEERING CORE (the AI tracks, batch AI1) ══════════════ */
+  {
+    moduleCode: 'AI_CORE',
+    moduleName: 'The AI Engineering Core',
+    displayOrder: 400,
+    blurb: 'What every AI track shares beyond building with LLMs: how models behave, RAG on a real vector database, evaluation and guardrails, and running AI in production.',
+    topics: [
+      t('AI_LLM_INTERNALS', 'How LLMs Work, for Engineers', ['LLM_FUNDAMENTALS', 'DL_TRANSFORMERS'],
+        ['Explain tokenisation, attention, training stages and decoding well enough to predict how a model will behave, and choose and run a model.']),
+      t('AI_RAG_DEEP', 'RAG in Depth and Vector Databases', ['RAG_FUNDAMENTALS', 'VECTOR_DATABASES', 'VECTOR_EMBEDDINGS'],
+        ['Build retrieval that finds the right passages — parsing, chunking, embeddings, a vector database, hybrid search and re-ranking — and measure it.']),
+      t('AI_EVAL_SAFETY', 'Evaluating and Guarding LLM Applications', ['LLM_EVALUATION', 'AI_GUARDRAILS', 'PROMPT_INJECTION', 'AI_RESPONSIBLE'],
+        ['Evaluate an LLM feature with numbers, gate releases on them, and defend it against injection, unsafe output and privacy risk.']),
+      t('AI_PRODUCTION', 'Running AI Applications in Production', ['GENAI_APP_PATTERNS', 'MODEL_DEPLOYMENT', 'API_FUNDAMENTALS'],
+        ['Choose the right GenAI pattern and run it in production within budget: routing, caching, tracing, background jobs and safe deployment.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

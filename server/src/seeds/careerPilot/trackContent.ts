@@ -9,6 +9,7 @@ import { TRACK_PYTHON, TRACK_DJANGO, TRACK_PY_STACK_AI } from './trackUnitsPytho
 import { TRACK_DOTNET, TRACK_DOTNET_DATA, TRACK_DOTNET_WEB, TRACK_DOTNET_AI } from './trackUnitsDotnet';
 import { TRACK_DATA_A1, TRACK_DATA_A2, TRACK_DATA_A3, TRACK_DATA_A4, TRACK_DATA_A5 } from './trackUnitsData';
 import { TRACK_DS_S1, TRACK_DS_S2, TRACK_DS_S3, TRACK_DS_S4, TRACK_DS_S5 } from './trackUnitsDataScience';
+import { TRACK_AI_CORE } from './trackUnitsAiEng';
 
 /**
  * Every career-track topic and its units (stage `track`), in one dataset. See trackStageMap for
@@ -40,4 +41,5 @@ export const TRACK_CONTENT: Record<string, TopicSeed> = {
   ...TRACK_DS_S3,
   ...TRACK_DS_S4,
   ...TRACK_DS_S5,
+  ...TRACK_AI_CORE,
 };

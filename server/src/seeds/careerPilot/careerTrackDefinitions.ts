@@ -316,6 +316,10 @@ export const PACKS: PackDefinition[] = [
     description: 'The security the years teach — threats and threat modelling, web security and the OWASP Top 10, authentication and authorisation — before securing AI systems.',
     topics: [['T2_SECURITY', 'MUST'], ['T3_SEC_THREATS', 'MUST'], ['T3_THREAT_MODELING', 'MUST'], ['T3_WEB_SECURITY', 'MUST'], ['T3_AUTH', 'MUST'],
       ['T3_SEC_APPSEC', 'MUST'], ['T3_SECURE_CODING', 'SHOULD'], ['T3_SEC_TESTING', 'SHOULD']] },
+  /* ── The AI tracks, batch AI1: the shared AI engineering core ── */
+  { key: 'AI_CORE_ENGINEERING', title: 'The AI Engineering Core', kind: 'SKILL',
+    description: 'How LLMs really behave, RAG on a real vector database, evaluation and guardrails, and running AI applications in production.',
+    topics: [['AI_LLM_INTERNALS', 'MUST'], ['AI_RAG_DEEP', 'CORE'], ['AI_EVAL_SAFETY', 'CORE'], ['AI_PRODUCTION', 'MUST']] },
 ];
 
 /** Placement packs every AI track shares; each track adds its own specialist interviews as they land. */
@@ -356,15 +360,15 @@ export const TRACKS: TrackDefinition[] = [
      core (AI1), each specialism (AI2–AI5), placement (AI6) and the bank (AI7) are appended as they land. */
   { key: 'AI_ENGINEERING', name: 'AI Engineer', language: 'Python', order: 60,
     description: 'Python and DSA; machine learning foundations; building with LLMs — RAG, vector databases, evaluation and guardrails; agents; and shipping an AI application to production.',
-    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'ML_FOUNDATIONS', 'AI_PY_BUILD', 'AGENTIC_AI_PY', 'ML_DEPLOYMENT'],
+    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'ML_FOUNDATIONS', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY', 'ML_DEPLOYMENT'],
     placementPacks: AI_PLACEMENT },
   { key: 'GENAI_ENGINEERING', name: 'Generative AI Engineer', language: 'Python', order: 70,
     description: 'Python; how LLMs and transformers work; prompting, RAG and evaluation in depth; fine-tuning open models; multimodal AI; and a production GenAI application.',
-    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'AI_PY_BUILD', 'NLP_GENAI_DS', 'AGENTIC_AI_PY'],
+    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'NLP_GENAI_DS', 'AGENTIC_AI_PY'],
     placementPacks: AI_PLACEMENT },
   { key: 'AGENTIC_AI', name: 'Agentic AI Engineer', language: 'Python', order: 80,
     description: 'Python; building with LLMs; tools and function calling; agents with LangGraph; memory, MCP and multi-agent orchestration; evaluating agents and running them safely in production.',
-    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'AI_PY_BUILD', 'AGENTIC_AI_PY'],
+    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY'],
     placementPacks: AI_PLACEMENT },
   { key: 'MLOPS', name: 'MLOps Engineer', language: 'Python', order: 90,
     description: 'Python; machine learning foundations; Linux, Docker and CI/CD; ML pipelines, versioning and experiment tracking; deploying and monitoring models and LLM applications.',
@@ -372,6 +376,6 @@ export const TRACKS: TrackDefinition[] = [
     placementPacks: AI_PLACEMENT },
   { key: 'AI_SECURITY', name: 'AI Security Engineer', language: 'Python', order: 100,
     description: 'Python; security foundations, threat modelling and the OWASP Top 10; building with LLMs and agents; the OWASP LLM Top 10, prompt injection, red teaming and guardrail engineering.',
-    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SECURITY_FOR_AI', 'AI_PY_BUILD', 'AGENTIC_AI_PY'],
+    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SECURITY_FOR_AI', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY'],
     placementPacks: AI_PLACEMENT },
 ];

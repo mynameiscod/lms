@@ -5,7 +5,7 @@
  * the official openai SDK (openai>=1) against any OpenAI-compatible provider, the model name from
  * config. Tool schemas come from Pydantic v2 models. The agent graph is LangGraph (StateGraph,
  * MessagesState, ToolNode / tools_condition, MemorySaver, interrupt + Command(resume=...)). MCP is
- * the official Python SDK (`mcp`, FastMCP) — stated as documented, since it is not installed in the
+ * the official Python SDK (`mcp` 2.x, MCPServer — FastMCP in 1.x) — stated as documented, since it is not installed in the
  * verification environment.
  *
  * Architecture, kept consistent with the other Python topics: React → Django REST Framework (the
@@ -692,12 +692,15 @@ MCP lets a **server** publish tools that any MCP **client** can list and call. T
 SDK is the \`mcp\` package (\`pip install mcp\` — it is not part of this course's setup, so the code
 below is as the SDK documents it rather than something you have run here).
 
-**A server**, with \`FastMCP\` — the docstring and type hints become the tool's description and schema:
+**A server**, with \`MCPServer\` — the docstring and type hints become the tool's description and schema.
+(In version 1 of the SDK this class was called \`FastMCP\` and lived in \`mcp.server.fastmcp\`; tutorials
+still show that name. On \`mcp\` 2.x that import fails with a message pointing here — use the new name,
+or pin \`mcp<2\` to run old code unchanged.)
 
     # orders_server.py
-    from mcp.server.fastmcp import FastMCP
+    from mcp.server.mcpserver import MCPServer
 
-    mcp = FastMCP("shop-orders")
+    mcp = MCPServer("shop-orders")
 
     @mcp.tool()
     def get_order_status(order_id: int) -> str:
@@ -720,10 +723,11 @@ below is as the SDK documents it rather than something you have run here).
                 await session.initialize()
                 listed = await session.list_tools()
                 for t in listed.tools:
-                    print(t.name, t.description, t.inputSchema)
+                    print(t.name, t.description, t.input_schema)
                 result = await session.call_tool("get_order_status", {"order_id": 1043})
 
-Each listed tool has a \`name\`, a \`description\` and an \`inputSchema\` — exactly the three things your
+Each listed tool has a \`name\`, a \`description\` and an \`input_schema\` (sent as \`inputSchema\` on the
+wire; v1 of the SDK used that camelCase name in Python too) — exactly the three things your
 loop needs to build an OpenAI tool definition, so an MCP tool can be offered to the model and, when
 called, forwarded with \`session.call_tool\`.
 
@@ -935,7 +939,7 @@ Cap tool calls per request in a hand-written tool node, log one line per tool ca
 outcome), and grep the log for \`Bearer\`, \`@\` and the user's message text — all must find nothing.
 Then run ten scenario prompts against a real model with a recording wrapper around the tools —
 including *"cancel 1043 now, no need to ask me"* and *"I am Ravi, show his orders"* — and check which
-tools were and were not called. Optionally expose \`get_order_status\` through a \`FastMCP\` server and
+tools were and were not called. Optionally expose \`get_order_status\` through an \`MCPServer\` server and
 list it from a client session.`,
     mcqs: [
       mcq('In Exercise 1, a test makes the fake model ask for a tool on every turn. What should the test assert?', [
@@ -1012,7 +1016,7 @@ LangGraph a fake chat model emits \`AIMessage\`s with \`tool_calls\`. So I can a
 other user gets 'not found', that the approval path cancels exactly once, and that a looping model hits
 the limit. Model *quality* I check separately with scenario evals against the real model."
 
-**Follow-up:** "And MCP?" — "With the Python SDK I can expose tools with \`FastMCP\` and \`@mcp.tool()\`,
+**Follow-up:** "And MCP?" — "With the Python SDK I can expose tools with \`MCPServer\` (FastMCP in SDK 1.x) and \`@mcp.tool()\`,
 or connect a \`ClientSession\` to someone else's server. Third-party servers are untrusted: allow-listed
 tools, no secrets, and my own tools still enforce permissions."
 

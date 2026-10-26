@@ -656,6 +656,30 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Assess, harden, retest, present and defend the security of a real AI product.']),
     ],
   },
+
+  /* ══════════════ AI PLACEMENT (the AI tracks, batch AI6) ══════════════ */
+  {
+    moduleCode: 'AI_PLACE',
+    moduleName: 'AI Placement',
+    displayOrder: 450,
+    blurb: 'Year 4 teaches aptitude, coding patterns, core CS, HR and mocks for everyone; this adds the LLM engineering interview, an interview for each AI specialism, AI system design rounds and the AI candidate.',
+    topics: [
+      t('AI_IV_LLM', 'LLM Engineering Interview Questions', ['LLM_FUNDAMENTALS', 'RAG_FUNDAMENTALS', 'LLM_EVALUATION', 'GENAI_APP_PATTERNS'],
+        ['Answer LLM engineering interview questions — models, RAG, evaluation and safety, production — with the follow-up.']),
+      t('AI_IV_GENAI', 'Generative AI Interview Questions', ['LLM_FINE_TUNING', 'DL_TRANSFORMERS', 'GENAI_APP_PATTERNS'],
+        ['Answer fine-tuning, transformer and multimodal interview questions at the depth a GenAI round expects.']),
+      t('AI_IV_AGENTS', 'Agentic AI Interview Questions', ['AGENT_ORCHESTRATION', 'TOOL_CALLING', 'AGENT_EVALUATION'],
+        ['Answer agent design, tools and memory, evaluation and security interview questions with the follow-up.']),
+      t('AI_IV_MLOPS', 'MLOps Interview Questions', ['ML_PIPELINES', 'CI_CD', 'MODEL_DEPLOYMENT', 'MODEL_MONITORING'],
+        ['Answer pipeline, delivery, serving and monitoring interview questions at the depth an MLOps round expects.']),
+      t('AI_IV_AISEC', 'AI Security Interview Questions', ['LLM_SECURITY', 'MODEL_RED_TEAMING', 'AI_GUARDRAILS'],
+        ['Answer LLM threat, red-teaming and defence interview questions at the depth an AI security round expects.']),
+      t('AI_SYSTEM_DESIGN', 'AI System Design Interviews', ['GENAI_APP_PATTERNS', 'RAG_FUNDAMENTALS', 'AGENT_ORCHESTRATION', 'MODEL_DEPLOYMENT'],
+        ['Design knowledge assistants, agents and ML platforms aloud with clear structure and trade-offs, and pass the take-home.']),
+      t('AI_PLACE_CANDIDATE', 'The AI Candidate', ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE', 'TECHNICAL_EXPLANATION', 'INTERVIEW_PERFORMANCE'],
+        ['Present an AI resume and capstone and get through a full AI interview loop.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

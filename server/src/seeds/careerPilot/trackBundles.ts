@@ -113,6 +113,10 @@ import { TRACK_AISEC_LLM_THREATS_BUNDLES } from './trackContentAiSecThreats';
 import { TRACK_AISEC_RED_TEAMING_BUNDLES } from './trackContentAiSecRedTeaming';
 import { TRACK_AISEC_DEFENCES_BUNDLES } from './trackContentAiSecDefences';
 import { TRACK_AI_CAPSTONE_AISEC_BUNDLES } from './trackContentAiCapstoneAiSec';
+import { TRACK_AI_IV_LLM_SYSTEM_DESIGN_BUNDLES } from './trackContentAiIvLlmSystemDesign';
+import { TRACK_AI_IV_GENAI_AGENTS_BUNDLES } from './trackContentAiIvGenaiAgents';
+import { TRACK_AI_IV_MLOPS_AISEC_BUNDLES } from './trackContentAiIvMlopsAisec';
+import { TRACK_AI_PLACE_CANDIDATE_BUNDLES } from './trackContentAiPlaceCandidate';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -244,4 +248,8 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_AISEC_RED_TEAMING_BUNDLES,
   ...TRACK_AISEC_DEFENCES_BUNDLES,
   ...TRACK_AI_CAPSTONE_AISEC_BUNDLES,
+  ...TRACK_AI_IV_LLM_SYSTEM_DESIGN_BUNDLES,
+  ...TRACK_AI_IV_GENAI_AGENTS_BUNDLES,
+  ...TRACK_AI_IV_MLOPS_AISEC_BUNDLES,
+  ...TRACK_AI_PLACE_CANDIDATE_BUNDLES,
 ].map(balanced);

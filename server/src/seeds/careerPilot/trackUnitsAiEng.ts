@@ -1,6 +1,7 @@
 import { TopicSeed } from './year1MegaCurriculum';
 import { u } from './year4UnitKit';
 import { ending } from './trackUnitsWeb';
+import { interview } from './trackUnitsPlacement';
 
 /**
  * Career-track content for the AI tracks — AI Engineer, Generative AI Engineer, Agentic AI Engineer,
@@ -364,5 +365,80 @@ export const TRACK_AI_SECURITY: Record<string, TopicSeed> = {
       ['Present the assessment and hardening and defend every judgement under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_HARDENING'] }),
     u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
       ['Show AI-security judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};
+
+/**
+ * Batch AI6: Year-4 placement for the AI tracks. Aptitude, coding rounds in Python, core CS, HR and
+ * mocks are the shared placement packs; JT_IV_AI (AI engineering interview basics) is already in every
+ * "+ AI" track. These add the LLM engineering interview at depth, one interview topic per specialism,
+ * AI system design rounds, and the AI candidate.
+ */
+export const TRACK_AI_PLACE: Record<string, TopicSeed> = {
+  /* ── LLM engineering at interview depth (every AI track) ── */
+  AI_IV_LLM: { category: 'UNIVERSAL', units: interview('LLM Engineering Interview', [
+    ['IV_LLM_BASICS', 'How LLMs Work — Interview Questions', 'Tokens, attention, training stages, decoding and model choice, as interviewers probe them and the follow-ups that catch bluffing.', ['LLM_FUNDAMENTALS']],
+    ['IV_RAG', 'RAG and Vector Search Questions', 'Chunking, embeddings, vector indexes, hybrid search and re-ranking, and measuring retrieval — with the "why did it answer wrongly" follow-up.', ['RAG_FUNDAMENTALS']],
+    ['IV_EVAL_SAFETY', 'Evaluation, Guardrails and Injection Questions', 'Evaluation sets, LLM-as-judge, release gates, prompt injection and guardrails, asked as scenarios.', ['LLM_EVALUATION']],
+    ['IV_PRODUCTION', 'LLM Applications in Production Questions', 'Routing, caching, cost and latency budgets, tracing, background jobs and safe rollouts of prompts and models.', ['GENAI_APP_PATTERNS']],
+  ]) },
+
+  /* ── The Generative AI specialism at interview depth ── */
+  AI_IV_GENAI: { category: 'UNIVERSAL', units: interview('Generative AI Interview', [
+    ['IV_FINE_TUNING', 'Fine-Tuning Questions', 'Prompt, RAG or fine-tune; datasets and chat templates; LoRA and QLoRA; reading loss curves; forgetting; serving adapters.', ['LLM_FINE_TUNING']],
+    ['IV_TRANSFORMERS', 'Transformer Architecture Questions', 'Attention and its cost, positional information, encoder vs decoder models, KV cache and why long context is expensive.', ['DL_TRANSFORMERS']],
+    ['IV_MULTIMODAL', 'Multimodal AI Questions', 'Vision-language models, document AI and validation, speech and word error rate, multimodal retrieval and responsible image generation.', ['GENAI_APP_PATTERNS']],
+  ]) },
+
+  /* ── The Agentic AI specialism at interview depth ── */
+  AI_IV_AGENTS: { category: 'UNIVERSAL', units: interview('Agentic AI Interview', [
+    ['IV_ORCHESTRATION', 'Agent Design and Orchestration Questions', 'Workflow or agent, the patterns and their cost, multi-agent design, parallel work, human approval and durable execution.', ['AGENT_ORCHESTRATION']],
+    ['IV_TOOLS_MEMORY', 'Tools, MCP and Memory Questions', 'Tool design, MCP servers, sandboxing code and web tools, long-term memory and context engineering.', ['TOOL_CALLING']],
+    ['IV_AGENT_EVAL_SECURITY', 'Evaluating and Securing Agents Questions', 'Trajectory evaluation, scenario suites, excessive agency, tool injection, budgets and serving agents.', ['AGENT_EVALUATION']],
+  ]) },
+
+  /* ── The MLOps specialism at interview depth ── */
+  AI_IV_MLOPS: { category: 'UNIVERSAL', units: interview('MLOps Interview', [
+    ['IV_PIPELINES', 'Pipelines, Versioning and Registry Questions', 'Reproducibility, data and model versioning, data validation, training-serving skew and promotion rules.', ['ML_PIPELINES']],
+    ['IV_DELIVERY', 'CI/CD for ML Questions', 'What to test in ML code, evaluation gates, shadow and canary releases, rollback, and infrastructure as code.', ['CI_CD']],
+    ['IV_SERVING', 'Model Serving and Kubernetes Questions', 'Online vs batch serving, model servers, Kubernetes deployments, probes and autoscaling, GPUs and cost.', ['MODEL_DEPLOYMENT']],
+    ['IV_MONITORING', 'Monitoring, Retraining and LLMOps Questions', 'Service metrics, model quality with late labels, drift, retraining loops, LLMOps and model incidents.', ['MODEL_MONITORING']],
+  ]) },
+
+  /* ── The AI Security specialism at interview depth ── */
+  AI_IV_AISEC: { category: 'UNIVERSAL', units: interview('AI Security Interview', [
+    ['IV_LLM_THREATS', 'LLM Threats and Threat Modelling Questions', 'The OWASP LLM risks, data leakage, attacks through retrieval and tools, access control and the AI supply chain.', ['LLM_SECURITY']],
+    ['IV_RED_TEAMING', 'AI Red Teaming Questions', 'Scoping an authorised exercise, systematic injection testing, measuring refusal robustness, automated scanners and reporting.', ['MODEL_RED_TEAMING']],
+    ['IV_DEFENCES', 'AI Defences and Governance Questions', 'Defence in depth, guardrail engineering and its costs, safe output handling, abuse monitoring and AI risk governance.', ['AI_GUARDRAILS']],
+  ]) },
+
+  /* ── AI system design rounds ── */
+  AI_SYSTEM_DESIGN: { category: 'UNIVERSAL', units: [
+    u('DESIGN_METHOD', 'How an AI System Design Round Runs', 'Requirements and constraints first, a baseline, the data and model path, evaluation, cost and latency, safety and operations — in forty-five minutes.',
+      ['Run an AI system design answer with a clear structure and time plan'], 40),
+    u('DESIGN_RAG_ASSISTANT', 'Design: A Knowledge Assistant at Scale', 'A cited assistant over millions of documents for thousands of users: ingestion, retrieval, permissions, evaluation, cost and freshness.',
+      ['Design a production knowledge assistant and defend its trade-offs'], 45, { after: ['DESIGN_METHOD'] }),
+    u('DESIGN_AGENT', 'Design: An Agent That Acts for Users', 'A booking, support or operations agent: tools, approvals, memory, failure handling, evaluation and security.',
+      ['Design an agent system whose failures stay safe and whose behaviour can be measured'], 45, { after: ['DESIGN_RAG_ASSISTANT'] }),
+    u('DESIGN_ML_PLATFORM', 'Design: Serving and Monitoring Models at Scale', 'A fraud or recommendation model at high traffic: features, online serving, releases, monitoring and retraining.',
+      ['Design an ML serving and monitoring platform at scale'], 45, { after: ['DESIGN_AGENT'] }),
+    u('TAKE_HOME', 'The AI Engineering Take-Home', 'Scoping the assignment, a working baseline, an evaluation with numbers, and a short write-up that wins the next round.',
+      ['Complete an AI engineering take-home to the standard that gets a call-back'], 45, { after: ['DESIGN_ML_PLATFORM'] }),
+    u('TIMED_DESIGNS', 'Timed AI Design Set', 'Two AI system design questions under time, with model answers and how each is scored.',
+      ['Answer timed AI design questions with structure and clear trade-offs'], 50, { unitType: 'PRACTICE', after: ['TAKE_HOME'] }),
+    u('CHECKPOINT', 'AI System Design — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Show structured AI system design thinking at interview standard'], 40, { unitType: 'CHECKPOINT', after: ['TIMED_DESIGNS'] }),
+  ] },
+
+  /* ── The AI candidate ── */
+  AI_PLACE_CANDIDATE: { category: 'UNIVERSAL', units: [
+    u('RESUME', 'An AI Engineer\'s Resume and Portfolio', 'The skills line recruiters filter on, project bullets with evaluation numbers and cost, a GitHub with runnable projects, a deployed demo and a short write-up.',
+      ['Write an AI resume and portfolio whose every claim can be checked'], 45, { skillKeys: ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE'] }),
+    u('DEFEND_CAPSTONE', 'Defending Your AI Capstone', 'The problem, architecture, evaluation results, failures, cost and safety of your track\'s capstone — and the follow-ups a panel asks about each.',
+      ['Defend the capstone end to end under follow-up questions'], 45, { after: ['RESUME'], skillKeys: ['TECHNICAL_EXPLANATION'] }),
+    u('MOCK_LOOP', 'The AI Interview Loop — Mock', 'Online test (aptitude and Python), a coding round, an LLM or ML round, an AI system design round, a hiring-manager round and HR — as one mock day.',
+      ['Go through a complete AI interview loop and act on its debrief'], 60, { unitType: 'PRACTICE', after: ['DEFEND_CAPSTONE'], skillKeys: ['INTERVIEW_PERFORMANCE'] }),
+    u('CHECKPOINT', 'AI Placement — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Show the judgement an AI hiring panel looks for'], 40, { unitType: 'CHECKPOINT', after: ['MOCK_LOOP'] }),
   ] },
 };

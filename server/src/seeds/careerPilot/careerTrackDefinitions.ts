@@ -354,10 +354,35 @@ export const PACKS: PackDefinition[] = [
   { key: 'CAPSTONE_AISEC', title: 'Capstone: Securing an AI Product', kind: 'SKILL',
     description: 'One engagement that proves the track: an AI product assessed, hardened in depth and retested.',
     topics: [['AI_CAPSTONE_AISEC', 'MUST']] },
+  /* ── The AI tracks, batch AI6: Year-4 placement ── */
+  { key: 'PL_AI_LLM_IV', title: 'LLM Engineering Interviews', kind: 'PLACEMENT',
+    description: 'Models, RAG, evaluation and safety, and LLM applications in production at interview depth.',
+    topics: [['AI_IV_LLM', 'MUST']] },
+  { key: 'PL_AI_SYSTEM_DESIGN', title: 'AI System Design Rounds', kind: 'PLACEMENT',
+    description: 'Knowledge assistants, agents and ML platforms designed aloud, and the AI take-home.',
+    topics: [['AI_SYSTEM_DESIGN', 'MUST']] },
+  { key: 'PL_AI_GENAI_IV', title: 'Generative AI Interviews', kind: 'PLACEMENT',
+    description: 'Fine-tuning, transformers and multimodal AI at interview depth.',
+    topics: [['AI_IV_GENAI', 'MUST']] },
+  { key: 'PL_AI_AGENTS_IV', title: 'Agentic AI Interviews', kind: 'PLACEMENT',
+    description: 'Agent design, tools and memory, and evaluating and securing agents at interview depth.',
+    topics: [['AI_IV_AGENTS', 'MUST']] },
+  { key: 'PL_AI_MLOPS_IV', title: 'MLOps Interviews', kind: 'PLACEMENT',
+    description: 'Pipelines, CI/CD, serving and monitoring at interview depth, with the ML interview questions MLOps rounds also ask.',
+    topics: [['AI_IV_MLOPS', 'MUST'], ['DS_IV_ML', 'SHOULD']] },
+  { key: 'PL_AI_AISEC_IV', title: 'AI Security Interviews', kind: 'PLACEMENT',
+    description: 'LLM threats, AI red teaming and AI defences at interview depth.',
+    topics: [['AI_IV_AISEC', 'MUST']] },
+  { key: 'PL_AI_CANDIDATE', title: 'The AI Candidate', kind: 'PLACEMENT',
+    description: 'An AI resume and portfolio, the capstone defended, and a full AI interview loop.',
+    topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['AI_PLACE_CANDIDATE', 'MUST']] },
 ];
 
-/** Placement packs every AI track shares; each track adds its own specialist interviews as they land. */
-const AI_PLACEMENT = ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_AI_INTERVIEW', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_HR_PORTFOLIO', 'PL_MOCKS'];
+/** A track's placement: the shared packs, the AI interviews it needs, system design, and the AI candidate (HR and mocks last). */
+const aiPlacement = (...specialist: string[]): string[] => [
+  'PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_AI_INTERVIEW', ...specialist, 'PL_AI_SYSTEM_DESIGN', 'PL_CORE_CS', 'PL_PROJECT_DESIGN',
+  'PL_AI_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS',
+];
 
 export const TRACKS: TrackDefinition[] = [
   { key: 'JAVA_FULLSTACK_AI', name: 'Java Full Stack + AI', language: 'Java', order: 10,
@@ -395,21 +420,21 @@ export const TRACKS: TrackDefinition[] = [
   { key: 'AI_ENGINEERING', name: 'AI Engineer', language: 'Python', order: 60,
     description: 'Python and DSA; machine learning foundations; building with LLMs — RAG, vector databases, evaluation and guardrails; agents; and shipping an AI application to production.',
     specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'ML_FOUNDATIONS', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY', 'ML_DEPLOYMENT', 'CAPSTONE_AI_ENG'],
-    placementPacks: AI_PLACEMENT },
+    placementPacks: aiPlacement('PL_AI_LLM_IV') },
   { key: 'GENAI_ENGINEERING', name: 'Generative AI Engineer', language: 'Python', order: 70,
     description: 'Python; how LLMs and transformers work; prompting, RAG and evaluation in depth; fine-tuning open models; multimodal AI; and a production GenAI application.',
     specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'NLP_GENAI_DS', 'FINE_TUNING', 'MULTIMODAL_AI', 'AGENTIC_AI_PY', 'CAPSTONE_GENAI'],
-    placementPacks: AI_PLACEMENT },
+    placementPacks: aiPlacement('PL_AI_LLM_IV', 'PL_AI_GENAI_IV') },
   { key: 'AGENTIC_AI', name: 'Agentic AI Engineer', language: 'Python', order: 80,
     description: 'Python; building with LLMs; tools and function calling; agents with LangGraph; memory, MCP and multi-agent orchestration; evaluating agents and running them safely in production.',
     specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY', 'AGENTIC_SYSTEMS', 'CAPSTONE_AGENTIC'],
-    placementPacks: AI_PLACEMENT },
+    placementPacks: aiPlacement('PL_AI_LLM_IV', 'PL_AI_AGENTS_IV') },
   { key: 'MLOPS', name: 'MLOps Engineer', language: 'Python', order: 90,
     description: 'Python; machine learning foundations; Linux, Docker and CI/CD; ML pipelines, versioning and experiment tracking; deploying and monitoring models and LLM applications.',
     specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'ML_FOUNDATIONS', 'SUPERVISED_ML', 'DEVOPS_FOR_ML', 'ML_DEPLOYMENT', 'MLOPS_PLATFORM', 'CAPSTONE_MLOPS'],
-    placementPacks: AI_PLACEMENT },
+    placementPacks: aiPlacement('PL_AI_MLOPS_IV') },
   { key: 'AI_SECURITY', name: 'AI Security Engineer', language: 'Python', order: 100,
     description: 'Python; security foundations, threat modelling and the OWASP Top 10; building with LLMs and agents; the OWASP LLM Top 10, prompt injection, red teaming and guardrail engineering.',
     specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SECURITY_FOR_AI', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY', 'AI_SECURITY_SPECIALISM', 'CAPSTONE_AISEC'],
-    placementPacks: AI_PLACEMENT },
+    placementPacks: aiPlacement('PL_AI_LLM_IV', 'PL_AI_AISEC_IV') },
 ];

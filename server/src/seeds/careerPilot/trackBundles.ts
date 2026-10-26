@@ -101,6 +101,10 @@ import { TRACK_AI_PRODUCTION_BUNDLES } from './trackContentAiProduction';
 import { TRACK_AI_FINE_TUNING_BUNDLES } from './trackContentAiFineTuning';
 import { TRACK_AI_MULTIMODAL_BUNDLES } from './trackContentAiMultimodal';
 import { TRACK_AI_CAPSTONES_BUNDLES } from './trackContentAiCapstones';
+import { TRACK_AI_AGENT_ORCHESTRATION_BUNDLES } from './trackContentAiAgentOrchestration';
+import { TRACK_AI_AGENT_TOOLS_MEMORY_BUNDLES } from './trackContentAiAgentToolsMemory';
+import { TRACK_AI_AGENT_EVAL_OPS_BUNDLES } from './trackContentAiAgentEvalOps';
+import { TRACK_AI_CAPSTONE_AGENTIC_BUNDLES } from './trackContentAiCapstoneAgentic';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -220,4 +224,8 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_AI_FINE_TUNING_BUNDLES,
   ...TRACK_AI_MULTIMODAL_BUNDLES,
   ...TRACK_AI_CAPSTONES_BUNDLES,
+  ...TRACK_AI_AGENT_ORCHESTRATION_BUNDLES,
+  ...TRACK_AI_AGENT_TOOLS_MEMORY_BUNDLES,
+  ...TRACK_AI_AGENT_EVAL_OPS_BUNDLES,
+  ...TRACK_AI_CAPSTONE_AGENTIC_BUNDLES,
 ].map(balanced);

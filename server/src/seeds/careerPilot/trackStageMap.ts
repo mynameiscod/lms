@@ -602,6 +602,24 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Plan, build, evaluate, deploy, present and defend a generative AI product that combines prompting, RAG and a fine-tune.']),
     ],
   },
+
+  /* ══════════════ AGENTIC AI (the AI tracks, batch AI3) ══════════════ */
+  {
+    moduleCode: 'AI_AGENTIC',
+    moduleName: 'Agentic AI Systems',
+    displayOrder: 420,
+    blurb: 'From one bounded agent to agent systems: orchestration and multi-agent design, tools, MCP and memory, evaluation, security and operations — and the Agentic AI Engineer capstone.',
+    topics: [
+      t('AI_AGENT_ORCHESTRATION', 'Agent Orchestration and Multi-Agent Systems', ['AGENT_ORCHESTRATION', 'AGENT_FUNDAMENTALS'],
+        ['Design agents as state graphs, choose the right pattern, coordinate several agents and parallel work, and keep humans in control of long-running runs.']),
+      t('AI_AGENT_TOOLS_MEMORY', 'Agent Tools, MCP and Memory', ['TOOL_CALLING', 'AGENT_MEMORY'],
+        ['Design tools and MCP servers a model uses well, contain code and web tools, and engineer memory and context for long tasks.']),
+      t('AI_AGENT_EVAL_OPS', 'Evaluating, Securing and Running Agents', ['AGENT_EVALUATION', 'AI_GUARDRAILS'],
+        ['Evaluate agents on outcomes and trajectories, secure them against excessive agency and tool injection, and run them as a product.']),
+      t('AI_CAPSTONE_AGENTIC', 'Capstone: An Agentic Product', ['AGENT_ORCHESTRATION', 'TOOL_CALLING', 'AGENT_MEMORY', 'AGENT_EVALUATION'],
+        ['Plan, build, evaluate, secure, deploy, present and defend an agent system that does real work for a business.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

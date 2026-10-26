@@ -333,6 +333,13 @@ export const PACKS: PackDefinition[] = [
   { key: 'CAPSTONE_GENAI', title: 'Capstone: A Generative AI Product', kind: 'SKILL',
     description: 'One generative AI product that proves the track: prompting, RAG and a fine-tune, each earning its place, shipped.',
     topics: [['AI_CAPSTONE_GENAI', 'MUST']] },
+  /* ── The AI tracks, batch AI3: the Agentic AI specialism and its capstone ── */
+  { key: 'AGENTIC_SYSTEMS', title: 'Agentic AI Systems', kind: 'SKILL',
+    description: 'Orchestration and multi-agent design, tools, MCP servers and memory, and evaluating, securing and running agents in production.',
+    topics: [['AI_AGENT_ORCHESTRATION', 'CORE'], ['AI_AGENT_TOOLS_MEMORY', 'CORE'], ['AI_AGENT_EVAL_OPS', 'MUST']] },
+  { key: 'CAPSTONE_AGENTIC', title: 'Capstone: An Agentic Product', kind: 'SKILL',
+    description: 'One agent system that proves the track: orchestrated, tooled, remembering, evaluated, secured and deployed.',
+    topics: [['AI_CAPSTONE_AGENTIC', 'MUST']] },
 ];
 
 /** Placement packs every AI track shares; each track adds its own specialist interviews as they land. */
@@ -381,7 +388,7 @@ export const TRACKS: TrackDefinition[] = [
     placementPacks: AI_PLACEMENT },
   { key: 'AGENTIC_AI', name: 'Agentic AI Engineer', language: 'Python', order: 80,
     description: 'Python; building with LLMs; tools and function calling; agents with LangGraph; memory, MCP and multi-agent orchestration; evaluating agents and running them safely in production.',
-    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY'],
+    specializePacks: ['CORE_PYTHON', 'DSA_PYTHON', 'GIT_TOOLS', 'AI_PY_BUILD', 'AI_CORE_ENGINEERING', 'AGENTIC_AI_PY', 'AGENTIC_SYSTEMS', 'CAPSTONE_AGENTIC'],
     placementPacks: AI_PLACEMENT },
   { key: 'MLOPS', name: 'MLOps Engineer', language: 'Python', order: 90,
     description: 'Python; machine learning foundations; Linux, Docker and CI/CD; ML pipelines, versioning and experiment tracking; deploying and monitoring models and LLM applications.',

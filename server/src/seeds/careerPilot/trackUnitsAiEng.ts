@@ -153,3 +153,73 @@ export const TRACK_AI_GENAI: Record<string, TopicSeed> = {
       ['Show generative-AI engineering judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
   ] },
 };
+
+/**
+ * Batch AI3: the Agentic AI Engineer's specialism. JT_AI_AGENTS (what an agent is, tools, workflows,
+ * memory, MCP, guardrails) and JT_AI_AGENTS_PY (tool calling, a first LangGraph agent, memory and MCP in
+ * Python) come first; these go from one bounded agent to agent systems that are designed, evaluated,
+ * secured and run in production.
+ */
+export const TRACK_AI_AGENTIC: Record<string, TopicSeed> = {
+  /* ── Orchestration and multi-agent systems ── */
+  AI_AGENT_ORCHESTRATION: { category: 'UNIVERSAL', units: [
+    u('STATE_GRAPHS', 'Agents as State Graphs', 'Typed state, nodes, conditional edges, reducers and checkpointers in LangGraph — and drawing the graph before writing it.',
+      ['Model an agent as a typed state graph with conditional routing and a checkpointer'], 45),
+    u('AGENT_PATTERNS', 'The Agent Patterns: ReAct, Plan-and-Execute, Reflection and Routing', 'What each pattern is good and bad at, how many model calls each costs, and choosing the simplest one that works.',
+      ['Choose and implement the agent pattern a task needs, and justify its cost'], 45, { after: ['STATE_GRAPHS'] }),
+    u('MULTI_AGENT', 'Multi-Agent Systems: Supervisors and Hand-offs', 'A supervisor with specialist agents, hand-offs between agents, shared versus private state, and when several agents are worse than one.',
+      ['Design a supervisor-and-specialists system and explain when one agent would do better'], 45, { after: ['AGENT_PATTERNS'] }),
+    u('PARALLEL_WORK', 'Parallel Sub-Tasks: Fan-Out and Fan-In', 'Splitting work into parallel branches, map-reduce over documents, joining results, and handling one branch failing.',
+      ['Run independent agent sub-tasks in parallel and combine their results safely'], 40, { after: ['MULTI_AGENT'] }),
+    u('HUMAN_IN_THE_LOOP', 'Human in the Loop: Interrupts, Approvals and Edits', 'Pausing a graph for approval, letting a person edit the plan or a tool call, and resuming from the saved state.',
+      ['Pause an agent for human approval or correction and resume it from where it stopped'], 40, { after: ['PARALLEL_WORK'] }),
+    u('DURABLE_EXECUTION', 'Long-Running and Durable Agents', 'Persisting checkpoints in a database, resuming after a crash, retries without repeating side effects, and time-outs.',
+      ['Make a long-running agent survive restarts without repeating actions it already took'], 40, { after: ['HUMAN_IN_THE_LOOP'] }),
+    ...ending('Agent Orchestration', 'DURABLE_EXECUTION', { project: ['MINI_PROJECT', 'Mini Project — A Research-and-Report Agent Team',
+      'A supervisor that sends a research question to a search agent and a data agent in parallel, has a writer agent draft a cited report, pauses for an editor\'s approval, and resumes safely after a restart.'] }),
+  ] },
+
+  /* ── Tools, MCP, memory and context ── */
+  AI_AGENT_TOOLS_MEMORY: { category: 'UNIVERSAL', units: [
+    u('TOOL_DESIGN', 'Designing Tools a Model Uses Well', 'Names, descriptions and argument schemas, returning errors the model can act on, idempotent tools, and how many tools is too many.',
+      ['Design a tool set whose calls a model gets right, and whose failures it can recover from'], 40),
+    u('MCP_SERVERS', 'Building MCP Servers in Python', 'Tools, resources and prompts in an MCP server with the Python SDK, stdio and HTTP transports, and authorising the client.',
+      ['Build and secure an MCP server that exposes a service\'s tools and data to any agent'], 45, { after: ['TOOL_DESIGN'] }),
+    u('CODE_AND_WEB_TOOLS', 'Code Execution and Web Tools', 'Letting an agent run code in a sandbox, browse or search the web, and the risks each adds — and the limits that contain them.',
+      ['Give an agent sandboxed code execution and web access with limits that contain the risk'], 40, { after: ['MCP_SERVERS'] }),
+    u('MEMORY_STORES', 'Long-Term Memory Done Properly', 'What to remember (facts, preferences, past episodes), writing and updating memories, retrieving them, keeping users apart, and forgetting on request.',
+      ['Build long-term memory that stays accurate, separated between users and deletable'], 45, { after: ['CODE_AND_WEB_TOOLS'] }),
+    u('CONTEXT_ENGINEERING', 'Context Engineering', 'Deciding what goes into the context window each step: instructions, tool results, retrieved memory, summaries and trimming, and the cost of a bloated context.',
+      ['Manage what an agent sees each step so it stays accurate, fast and affordable over long tasks'], 40, { after: ['MEMORY_STORES'] }),
+    ...ending('Agent Tools and Memory', 'CONTEXT_ENGINEERING', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── Evaluating, securing and running agents ── */
+  AI_AGENT_EVAL_OPS: { category: 'UNIVERSAL', units: [
+    u('TRAJECTORY_EVAL', 'Evaluating Agents: Outcomes and Trajectories', 'Task success, tool-call accuracy, step counts and the path taken, comparing a run against a reference trajectory, and judging with a rubric.',
+      ['Evaluate an agent on whether it succeeded and on how it got there'], 45),
+    u('SCENARIO_TESTS', 'Scenario Tests and Simulated Users', 'Scripted scenarios, a simulated user model, fake tools with recorded responses, and running the suite on every change.',
+      ['Build a repeatable scenario suite with simulated users and fake tools for an agent'], 40, { after: ['TRAJECTORY_EVAL'] }),
+    u('AGENT_SECURITY', 'Securing Agents: Excessive Agency and Tool Injection', 'Least-privilege tools, injection through tool results and documents, confirming risky actions, sandboxing, and audit logs.',
+      ['Limit what an agent can do, and defend it against instructions smuggled in through its tools'], 45, { after: ['SCENARIO_TESTS'] }),
+    u('OBSERVABILITY_BUDGETS', 'Tracing Agent Runs and Enforcing Budgets', 'Tracing every step and tool call, catching loops, step and token budgets per run, and alerts on cost and failure rates.',
+      ['Trace agent runs and stop runaway loops and costs before users notice'], 40, { after: ['AGENT_SECURITY'] }),
+    u('SERVING_AGENTS', 'Serving Agents as a Product', 'An agent behind an API, streaming its steps to the UI, background runs with progress, threads per user, and versioning agent behaviour.',
+      ['Serve an agent to users with streamed progress, per-user threads and safe releases'], 45, { after: ['OBSERVABILITY_BUDGETS'] }),
+    ...ending('Agent Evaluation and Operations', 'SERVING_AGENTS', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── The Agentic AI Engineer capstone ── */
+  AI_CAPSTONE_AGENTIC: { category: 'UNIVERSAL', units: [
+    u('BRIEF', 'The Capstone: An Agentic Product, Scoped', 'An agent that does real work for a business — operations, recruitment, finance back-office or customer support: the tasks, tools, risks, metrics and a plan.',
+      ['Scope an agentic product, its tools, its risks and its evaluation, and plan its delivery'], 45),
+    u('BUILD_AGENT', 'Capstone Build — The Agent System', 'The graph, the tools and an MCP server, memory, parallel work and the human approval steps.',
+      ['Build the agent system with its tools, memory and approvals'], 300, { unitType: 'PROJECT', after: ['BRIEF'], skillKeys: ['AGENT_ORCHESTRATION', 'TOOL_CALLING'] }),
+    u('BUILD_PRODUCTION', 'Capstone Build — Evaluation, Security and Deployment', 'A scenario suite with trajectory scores, security tests, tracing and budgets, and the agent deployed as a service.',
+      ['Evaluate, secure and deploy the agent, with the numbers to show it is safe to use'], 240, { unitType: 'PROJECT', after: ['BUILD_AGENT'], skillKeys: ['AGENT_EVALUATION', 'AGENT_MEMORY'] }),
+    u('DEFENCE', 'Demo Day: Presenting and Defending the Capstone', 'A live run of the agent, its evaluation results, and the questions a panel asks about autonomy, failure, cost and security.',
+      ['Demo the agent and defend its design, its limits and its safeguards under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_PRODUCTION'] }),
+    u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
+      ['Show agentic-AI engineering judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};

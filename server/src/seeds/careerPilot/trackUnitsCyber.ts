@@ -61,3 +61,53 @@ export const TRACK_CY_FOUNDATIONS: Record<string, TopicSeed> = {
     ...ending('Cryptography', 'CRYPTO_MISTAKES', { minutes: [40, 50, 35, 40] }),
   ] },
 };
+
+/** Batch CY2: security operations — monitoring and detection, incident response, threat intelligence and hunting. */
+export const TRACK_CY_SOC: Record<string, TopicSeed> = {
+  /* ── SIEM and detection engineering ── */
+  CY_SIEM_DETECTION: { category: 'UNIVERSAL', units: [
+    u('LOG_PIPELINE', 'Logs: Sources, Collection and Normalisation', 'Which logs matter (endpoint, identity, network, cloud, application), shipping them, parsing, a common schema, time zones and retention.',
+      ['Plan which logs a SOC collects and normalise them so they can be searched together'], 40),
+    u('SIEM_PLATFORM', 'A SIEM with Wazuh and Elastic', 'How a SIEM is built, Wazuh agents and rules, searching in Elastic (KQL), and the same searches in Splunk\'s SPL for comparison.',
+      ['Search and correlate events in an open-source SIEM and translate the searches to SPL'], 45, { after: ['LOG_PIPELINE'] }),
+    u('DETECTION_ENGINEERING', 'Detection Engineering with Sigma', 'Writing detections as Sigma rules, mapping them to MITRE ATT&CK, testing them against sample logs, and keeping them in Git.',
+      ['Write, test and version a detection rule mapped to an ATT&CK technique'], 45, { after: ['SIEM_PLATFORM'] }),
+    u('TUNING', 'Tuning Detections and Fighting Alert Fatigue', 'True and false positives, baselining normal, allow-lists done safely, and measuring a rule\'s precision before and after tuning.',
+      ['Tune a noisy detection and prove with numbers that it got better without going blind'], 40, { after: ['DETECTION_ENGINEERING'] }),
+    u('ALERT_TRIAGE', 'Alert Triage: the SOC L1 Workflow', 'Reading an alert, enrichment (IP, user, asset, reputation), deciding true or false positive, escalating with a clear note, and SLAs.',
+      ['Triage an alert end to end and escalate it with a note an L2 analyst can act on'], 40, { after: ['TUNING'] }),
+    u('SOC_METRICS', 'SOC Dashboards and Metrics', 'MTTD and MTTR, alert volumes and dispositions, detection coverage against ATT&CK, and dashboards that drive decisions.',
+      ['Build SOC dashboards and metrics that show where detection and response are weak'], 35, { after: ['ALERT_TRIAGE'] }),
+    ...ending('SIEM and Detection', 'SOC_METRICS', { project: ['MINI_PROJECT', 'Mini Project — Detections for a Small Bank\'s SOC',
+      'Over a provided week of endpoint, identity and network logs from a small cooperative bank: normalise them, write and test five Sigma detections mapped to ATT&CK, tune them, triage what they find and build the SOC dashboard.'] }),
+  ] },
+
+  /* ── Incident response ── */
+  CY_INCIDENT_RESPONSE: { category: 'UNIVERSAL', units: [
+    u('IR_LIFECYCLE', 'The Incident Response Lifecycle', 'Preparation, detection and analysis, containment, eradication and recovery, and lessons learned — roles, severity levels and the IR plan.',
+      ['Explain the incident response lifecycle and an analyst\'s part in each phase'], 40),
+    u('TRIAGE_SCOPING', 'Triage and Scoping an Incident', 'Confirming an incident, building a timeline, finding every affected user, host and account, and deciding severity.',
+      ['Scope an incident from the first alert to a timeline of every affected asset'], 45, { after: ['IR_LIFECYCLE'] }),
+    u('EVIDENCE_FORENSICS', 'Evidence and Forensics Basics', 'Order of volatility, collecting evidence without destroying it, chain of custody, hashing evidence, and building a forensic timeline.',
+      ['Collect and preserve evidence correctly and build a timeline from it'], 45, { after: ['TRIAGE_SCOPING'] }),
+    u('CONTAINMENT_RECOVERY', 'Containment, Eradication and Recovery', 'Isolating hosts and accounts, resetting credentials, removing persistence, restoring from backups, and watching for a return.',
+      ['Contain and recover from an incident without tipping off the attacker or losing evidence'], 40, { after: ['EVIDENCE_FORENSICS'] }),
+    u('PLAYBOOKS', 'Playbooks: Phishing, Ransomware and Account Takeover', 'Step-by-step response playbooks for the incidents an Indian SOC sees most, and automating the repeatable steps.',
+      ['Follow and improve response playbooks for common incident types'], 45, { after: ['CONTAINMENT_RECOVERY'] }),
+    u('REPORTING_REVIEW', 'Reporting Incidents and Learning from Them', 'Writing the incident report, CERT-In reporting duties and data-breach duties under the DPDP Act in outline, and a blameless post-incident review.',
+      ['Write an incident report and a post-incident review, and know the reporting duties that apply in India'], 40, { after: ['PLAYBOOKS'] }),
+    ...ending('Incident Response', 'REPORTING_REVIEW', { project: ['MINI_PROJECT', 'Mini Project — A Tabletop Exercise and Incident Report',
+      'Run a tabletop exercise on a provided phishing-to-account-takeover scenario for a fintech company: triage, scope with the logs given, decide containment, collect evidence, and write the incident report and the post-incident review.'] }),
+  ] },
+
+  /* ── Threat intelligence and hunting ── */
+  CY_THREAT_INTEL: { category: 'UNIVERSAL', units: [
+    u('CTI_BASICS', 'Threat Intelligence for Analysts', 'Indicators versus behaviours, the pyramid of pain, intelligence sources and feeds, and turning intelligence into a detection or a block.',
+      ['Use threat intelligence to improve detections rather than only to block indicators'], 40),
+    u('ATTACK_FRAMEWORK', 'MITRE ATT&CK in Daily SOC Work', 'Tactics, techniques and sub-techniques, mapping alerts and detections to ATT&CK, and finding gaps in coverage.',
+      ['Map alerts and detections to ATT&CK and identify the gaps in a SOC\'s coverage'], 40, { after: ['CTI_BASICS'] }),
+    u('THREAT_HUNTING', 'Hypothesis-Driven Threat Hunting', 'Forming a hunting hypothesis from intelligence, searching the logs for it, recording what you found or did not, and turning a hunt into a detection.',
+      ['Run a hypothesis-driven hunt over logs and turn what it finds into a detection'], 45, { after: ['ATTACK_FRAMEWORK'] }),
+    ...ending('Threat Intelligence and Hunting', 'THREAT_HUNTING', { minutes: [40, 50, 35, 40] }),
+  ] },
+};

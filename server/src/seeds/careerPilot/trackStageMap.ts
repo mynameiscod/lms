@@ -696,6 +696,22 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Choose and assess cryptography, password storage, TLS and certificates, and keys and secrets, and spot the common mistakes.']),
     ],
   },
+
+  /* ══════════════ CYBERSECURITY ANALYST: SECURITY OPERATIONS (batch CY2) ══════════════ */
+  {
+    moduleCode: 'CY_SOC',
+    moduleName: 'Security Operations',
+    displayOrder: 510,
+    blurb: 'The SOC analyst\'s day job on open-source tools: logs and a SIEM, detection engineering and triage, incident response, and threat intelligence and hunting.',
+    topics: [
+      t('CY_SIEM_DETECTION', 'SIEM, Detection and Triage', ['SIEM_MONITORING', 'THREAT_MODELLING'],
+        ['Collect and search logs in an open-source SIEM, write and tune Sigma detections, triage alerts and measure the SOC.']),
+      t('CY_INCIDENT_RESPONSE', 'Incident Response', ['INCIDENT_RESPONSE'],
+        ['Run an incident from first alert to report: scope, preserve evidence, contain, recover, follow playbooks and meet reporting duties.']),
+      t('CY_THREAT_INTEL', 'Threat Intelligence and Hunting', ['THREAT_MODELLING', 'SIEM_MONITORING'],
+        ['Use threat intelligence and MITRE ATT&CK to find coverage gaps and run hypothesis-driven hunts that become detections.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

@@ -404,6 +404,16 @@ export const PACKS: PackDefinition[] = [
   { key: 'CAPSTONE_CY', title: 'Capstone: A SOC for a Real Organisation', kind: 'SKILL',
     description: 'One SOC that proves the track: monitoring and tested detections, an incident handled end to end, a vulnerability programme, and reports for leaders.',
     topics: [['CY_CAPSTONE', 'MUST']] },
+  /* ── Cybersecurity Analyst, batch CY4: Year-4 placement ── */
+  { key: 'PL_CY_SOC_IV', title: 'SOC Analyst Interviews', kind: 'PLACEMENT',
+    description: 'Security fundamentals, networks, systems and identity, SIEM and incident response at interview depth.',
+    topics: [['CY_IV_SOC', 'MUST']] },
+  { key: 'PL_CY_SCENARIOS', title: 'SOC Scenario Rounds', kind: 'PLACEMENT',
+    description: 'Alert walkthroughs, log-analysis take-homes, incident tabletops and vulnerability-risk rounds.',
+    topics: [['CY_SCENARIO_ROUNDS', 'MUST']] },
+  { key: 'PL_CY_CANDIDATE', title: 'The Security Candidate', kind: 'PLACEMENT',
+    description: 'A security resume and home-lab portfolio, certifications and the career path, and a full SOC interview loop.',
+    topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['CY_PLACE_CANDIDATE', 'MUST']] },
 ];
 
 /** A track's placement: the shared packs, the AI interviews it needs, system design, and the AI candidate (HR and mocks last). */
@@ -472,5 +482,5 @@ export const TRACKS: TrackDefinition[] = [
   { key: 'CYBERSECURITY', name: 'Cybersecurity Analyst', language: 'Python and Linux', order: 110,
     description: 'Networks, Linux and Windows for defenders; cryptography and identity; monitoring and detection in a SOC with open-source tools; incident response, threat intelligence and hunting; vulnerability management, cloud security and governance.',
     specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SEC_SYSTEMS_BASICS', 'SEC_FOUNDATIONS_CY', 'WEB_APPSEC_CY', 'CY_DEFENDER_FOUNDATIONS', 'CY_SECURITY_OPERATIONS', 'CY_DEFENSIVE_PROGRAMME', 'CAPSTONE_CY'],
-    placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
+    placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_CY_SOC_IV', 'PL_CY_SCENARIOS', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_CY_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

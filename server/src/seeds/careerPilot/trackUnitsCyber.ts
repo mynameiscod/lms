@@ -1,6 +1,7 @@
 import { TopicSeed } from './year1MegaCurriculum';
 import { u } from './year4UnitKit';
 import { ending } from './trackUnitsWeb';
+import { interview } from './trackUnitsPlacement';
 
 /**
  * Career-track content for Cybersecurity Analyst — a DEFENSIVE track for SOC and blue-team roles, taught
@@ -169,5 +170,48 @@ export const TRACK_CY_DEFEND: Record<string, TopicSeed> = {
       ['Demo the SOC and defend its design and decisions under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_RESPONSE'] }),
     u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
       ['Show SOC-analyst judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};
+
+/**
+ * Batch CY4: Year-4 placement for Cybersecurity Analyst. Aptitude, coding rounds, core CS, HR and mocks are
+ * the shared placement packs; these add the SOC analyst interview, scenario rounds and the candidate.
+ */
+export const TRACK_CY_PLACE: Record<string, TopicSeed> = {
+  /* ── The SOC analyst interview ── */
+  CY_IV_SOC: { category: 'UNIVERSAL', units: interview('SOC Analyst Interview', [
+    ['IV_FUNDAMENTALS', 'Security Fundamentals Questions', 'CIA, defence in depth, least privilege, common attack categories named and defended, and the OWASP Top 10 as interviewers ask them.', ['SECURITY_FUNDAMENTALS']],
+    ['IV_NETWORK', 'Network Security Questions', 'Ports and protocols, the TCP handshake, DNS and TLS, firewalls, IDS and what a packet capture shows.', ['NETWORK_SECURITY']],
+    ['IV_SYSTEMS_IDENTITY', 'Windows, Linux and Identity Questions', 'Event IDs and logs, Active Directory and Kerberos at interview depth, Linux logs and hardening, IAM and MFA.', ['IAM_FUNDAMENTALS']],
+    ['IV_SIEM', 'SIEM and Detection Questions', 'Logs and normalisation, writing and tuning a detection, false positives, MITRE ATT&CK and alert triage.', ['SIEM_MONITORING']],
+    ['IV_INCIDENT', 'Incident Response Questions', 'The IR lifecycle, scoping, evidence and chain of custody, containment choices, playbooks and reporting.', ['INCIDENT_RESPONSE']],
+  ]) },
+
+  /* ── Scenario rounds ── */
+  CY_SCENARIO_ROUNDS: { category: 'UNIVERSAL', units: [
+    u('ALERT_WALKTHROUGH', 'The Alert Walkthrough Round', 'Talking an interviewer through an alert from first look to disposition: what you check, in what order, and why.',
+      ['Walk through an alert aloud with a clear method and a defensible decision'], 40),
+    u('LOG_ANALYSIS_TAKEHOME', 'The Log-Analysis Take-Home', 'A typical take-home: a log bundle, questions about what happened, and a short report — scoped, evidenced and on time.',
+      ['Complete a log-analysis take-home to the standard that gets a call-back'], 45, { after: ['ALERT_WALKTHROUGH'] }),
+    u('TABLETOP_ROUND', 'The Incident Tabletop Round', 'An interviewer plays an incident step by step; you decide, justify and communicate at each inject.',
+      ['Handle an interview tabletop with sound decisions and clear communication'], 40, { after: ['LOG_ANALYSIS_TAKEHOME'] }),
+    u('VULN_RISK_ROUND', 'The Vulnerability and Risk Round', 'Prioritising a list of findings, explaining risk to a manager, and choosing between patching and compensating controls.',
+      ['Prioritise vulnerabilities and explain the risk in business terms in an interview'], 40, { after: ['TABLETOP_ROUND'] }),
+    u('TIMED_SCENARIOS', 'Timed Scenario Set', 'Three scenario questions under time, with model answers and how each is scored.',
+      ['Answer timed SOC scenario questions with structure and evidence'], 50, { unitType: 'PRACTICE', after: ['VULN_RISK_ROUND'] }),
+    u('CHECKPOINT', 'SOC Scenario Rounds — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Show structured SOC scenario thinking at interview standard'], 40, { unitType: 'CHECKPOINT', after: ['TIMED_SCENARIOS'] }),
+  ] },
+
+  /* ── The security candidate ── */
+  CY_PLACE_CANDIDATE: { category: 'UNIVERSAL', units: [
+    u('RESUME', 'A SOC Analyst\'s Resume and Home-Lab Portfolio', 'The skills line recruiters filter on, lab and capstone bullets with evidence, a home-lab write-up on GitHub, and what never to publish.',
+      ['Write a security resume and portfolio whose every claim can be checked'], 45, { skillKeys: ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE'] }),
+    u('CERTIFICATIONS', 'Certifications and the Security Career Path', 'Which entry certifications employers in India ask for and what each proves, how SOC careers progress, and choosing a first role.',
+      ['Plan certifications and a first security role that fit your goals'], 35, { after: ['RESUME'], skillKeys: ['PLACEMENT_READINESS'] }),
+    u('MOCK_LOOP', 'The SOC Analyst Interview Loop — Mock', 'Online test, a technical round, a scenario round, a hiring-manager round and HR — as one mock day, with the debrief.',
+      ['Go through a complete SOC analyst interview loop and act on its debrief'], 60, { unitType: 'PRACTICE', after: ['CERTIFICATIONS'], skillKeys: ['INTERVIEW_PERFORMANCE'] }),
+    u('CHECKPOINT', 'Security Placement — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Show the judgement a SOC hiring panel looks for'], 40, { unitType: 'CHECKPOINT', after: ['MOCK_LOOP'] }),
   ] },
 };

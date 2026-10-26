@@ -127,6 +127,9 @@ import { TRACK_CY_VULN_MGMT_BUNDLES } from './trackContentCyVuln';
 import { TRACK_CY_CLOUD_SECURITY_BUNDLES } from './trackContentCyCloud';
 import { TRACK_CY_GRC_BUNDLES } from './trackContentCyGrc';
 import { TRACK_CY_CAPSTONE_BUNDLES } from './trackContentCyCapstone';
+import { TRACK_CY_IV_SOC_BUNDLES } from './trackContentCyIvSoc';
+import { TRACK_CY_SCENARIO_ROUNDS_BUNDLES } from './trackContentCyScenarios';
+import { TRACK_CY_PLACE_CANDIDATE_BUNDLES } from './trackContentCyPlaceCandidate';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -272,4 +275,7 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_CY_CLOUD_SECURITY_BUNDLES,
   ...TRACK_CY_GRC_BUNDLES,
   ...TRACK_CY_CAPSTONE_BUNDLES,
+  ...TRACK_CY_IV_SOC_BUNDLES,
+  ...TRACK_CY_SCENARIO_ROUNDS_BUNDLES,
+  ...TRACK_CY_PLACE_CANDIDATE_BUNDLES,
 ].map(balanced);

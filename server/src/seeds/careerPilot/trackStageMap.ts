@@ -730,6 +730,22 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Plan, build, run, present and defend monitoring, detection, incident response and vulnerability management for an organisation.']),
     ],
   },
+
+  /* ══════════════ CYBERSECURITY ANALYST: PLACEMENT (batch CY4) ══════════════ */
+  {
+    moduleCode: 'CY_PLACE',
+    moduleName: 'Cybersecurity Placement',
+    displayOrder: 530,
+    blurb: 'Year 4 teaches aptitude, coding, core CS, HR and mocks for everyone; this adds the SOC analyst interview, scenario rounds and the security candidate.',
+    topics: [
+      t('CY_IV_SOC', 'SOC Analyst Interview Questions', ['SECURITY_FUNDAMENTALS', 'NETWORK_SECURITY', 'IAM_FUNDAMENTALS', 'SIEM_MONITORING', 'INCIDENT_RESPONSE'],
+        ['Answer SOC analyst interview questions — fundamentals, networks, systems and identity, SIEM and incident response — with the follow-up.']),
+      t('CY_SCENARIO_ROUNDS', 'SOC Scenario Rounds', ['SIEM_MONITORING', 'INCIDENT_RESPONSE', 'VULNERABILITY_MANAGEMENT'],
+        ['Handle alert walkthroughs, log-analysis take-homes, tabletops and vulnerability-risk rounds with structure and evidence.']),
+      t('CY_PLACE_CANDIDATE', 'The Security Candidate', ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE', 'INTERVIEW_PERFORMANCE'],
+        ['Present a security resume, home lab and capstone, plan certifications, and get through a full SOC interview loop.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

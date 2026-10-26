@@ -620,6 +620,24 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Plan, build, evaluate, secure, deploy, present and defend an agent system that does real work for a business.']),
     ],
   },
+
+  /* ══════════════ MLOPS (the AI tracks, batch AI4) ══════════════ */
+  {
+    moduleCode: 'AI_MLOPS',
+    moduleName: 'MLOps',
+    displayOrder: 430,
+    blurb: 'From one deployed model to a platform that trains, ships, watches and retrains models repeatably — pipelines and versioning, CI/CD and infrastructure, monitoring and LLMOps, and the MLOps Engineer capstone.',
+    topics: [
+      t('MLOPS_PIPELINES', 'ML Pipelines, Versioning and Reproducibility', ['ML_PIPELINES', 'MODEL_VERSIONING', 'EXPERIMENT_TRACKING'],
+        ['Version data and models, build validated and reproducible pipelines, and promote models through a registry by rule.']),
+      t('MLOPS_CICD_INFRA', 'CI/CD and Infrastructure for ML', ['CI_CD', 'KUBERNETES', 'INFRA_AS_CODE', 'CLOUD_COMPUTE', 'CONFIG_MANAGEMENT'],
+        ['Test and release models through CI/CD with gates and canaries, serve them on Kubernetes, and manage the infrastructure as code.']),
+      t('MLOPS_MONITORING', 'Model Monitoring, Retraining and LLMOps', ['MODEL_MONITORING', 'OBSERVABILITY', 'ML_EVALUATION'],
+        ['Monitor service health and model quality, retrain safely, operate LLM applications, and handle model incidents.']),
+      t('AI_CAPSTONE_MLOPS', 'Capstone: An ML Platform', ['ML_PIPELINES', 'CI_CD', 'MODEL_DEPLOYMENT', 'MODEL_MONITORING'],
+        ['Plan, build, release, operate, present and defend an ML platform that keeps a real model working.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

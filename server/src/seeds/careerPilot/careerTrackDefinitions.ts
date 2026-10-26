@@ -340,6 +340,13 @@ export const PACKS: PackDefinition[] = [
   { key: 'CAPSTONE_AGENTIC', title: 'Capstone: An Agentic Product', kind: 'SKILL',
     description: 'One agent system that proves the track: orchestrated, tooled, remembering, evaluated, secured and deployed.',
     topics: [['AI_CAPSTONE_AGENTIC', 'MUST']] },
+  /* ── The AI tracks, batch AI4: MLOps and its capstone ── */
+  { key: 'MLOPS_PLATFORM', title: 'MLOps: Pipelines, Delivery and Monitoring', kind: 'SKILL',
+    description: 'Versioned, validated and reproducible pipelines; CI/CD, Kubernetes and infrastructure as code for ML; monitoring, retraining and LLMOps.',
+    topics: [['MLOPS_PIPELINES', 'CORE'], ['MLOPS_CICD_INFRA', 'CORE'], ['MLOPS_MONITORING', 'MUST']] },
+  { key: 'CAPSTONE_MLOPS', title: 'Capstone: An ML Platform', kind: 'SKILL',
+    description: 'One ML platform that proves the track: a reproducible pipeline, gated releases on Kubernetes, monitoring and retraining.',
+    topics: [['AI_CAPSTONE_MLOPS', 'MUST']] },
 ];
 
 /** Placement packs every AI track shares; each track adds its own specialist interviews as they land. */
@@ -392,7 +399,7 @@ export const TRACKS: TrackDefinition[] = [
     placementPacks: AI_PLACEMENT },
   { key: 'MLOPS', name: 'MLOps Engineer', language: 'Python', order: 90,
     description: 'Python; machine learning foundations; Linux, Docker and CI/CD; ML pipelines, versioning and experiment tracking; deploying and monitoring models and LLM applications.',
-    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'ML_FOUNDATIONS', 'SUPERVISED_ML', 'DEVOPS_FOR_ML', 'ML_DEPLOYMENT'],
+    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'ML_FOUNDATIONS', 'SUPERVISED_ML', 'DEVOPS_FOR_ML', 'ML_DEPLOYMENT', 'MLOPS_PLATFORM', 'CAPSTONE_MLOPS'],
     placementPacks: AI_PLACEMENT },
   { key: 'AI_SECURITY', name: 'AI Security Engineer', language: 'Python', order: 100,
     description: 'Python; security foundations, threat modelling and the OWASP Top 10; building with LLMs and agents; the OWASP LLM Top 10, prompt injection, red teaming and guardrail engineering.',

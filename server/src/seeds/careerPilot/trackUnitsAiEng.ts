@@ -223,3 +223,75 @@ export const TRACK_AI_AGENTIC: Record<string, TopicSeed> = {
       ['Show agentic-AI engineering judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
   ] },
 };
+
+/**
+ * Batch AI4: the MLOps Engineer's specialism. The track already has machine-learning foundations and
+ * supervised learning, the years' Linux, Docker, CI/CD and cloud basics (DEVOPS_FOR_ML), and Data
+ * Science's DS_DEPLOYMENT (saving, serving with FastAPI, MLflow tracking, drift, Docker). These take
+ * one deployed model to a platform that trains, ships, watches and retrains models repeatably.
+ */
+export const TRACK_AI_MLOPS: Record<string, TopicSeed> = {
+  /* ── Pipelines, versioning and reproducibility ── */
+  MLOPS_PIPELINES: { category: 'UNIVERSAL', units: [
+    u('DATA_VERSIONING', 'Versioning Data and Models with DVC', 'Why Git alone cannot version data, DVC tracking and remotes, and tying a model to the exact data and code that made it.',
+      ['Version datasets and models so any past model can be rebuilt from its data and code'], 45),
+    u('PIPELINE_DESIGN', 'ML Pipelines as Code', 'Stages and their inputs and outputs, a DAG, caching unchanged steps, and orchestrators (DVC pipelines, Prefect, Airflow) and when each fits.',
+      ['Turn a notebook into a staged, cached pipeline and choose an orchestrator for it'], 45, { after: ['DATA_VERSIONING'] }),
+    u('REPRODUCIBLE_TRAINING', 'Reproducible Training', 'Pinned environments, seeds and their limits, configuration files instead of edited code, and recording everything a run depended on.',
+      ['Make a training run reproducible and prove it by re-running it'], 40, { after: ['PIPELINE_DESIGN'] }),
+    u('MODEL_REGISTRY', 'The Model Registry and Promotion', 'Registering models with lineage, versions and aliases (champion and challenger), promotion rules, and who may promote.',
+      ['Register, compare and promote models with lineage and a clear promotion rule'], 40, { after: ['REPRODUCIBLE_TRAINING'] }),
+    u('DATA_VALIDATION', 'Validating Data Before It Reaches a Model', 'Schema and range checks, distribution checks against a reference, failing a pipeline on bad data, and tools such as pandera and Great Expectations.',
+      ['Stop a pipeline when incoming data breaks the model\'s assumptions'], 40, { after: ['MODEL_REGISTRY'] }),
+    u('FEATURE_STORES', 'Features: Training-Serving Skew and Feature Stores', 'Computing a feature the same way in training and serving, point-in-time correctness, and what a feature store (Feast) does and costs.',
+      ['Prevent training-serving skew and decide whether a feature store is worth it'], 40, { after: ['DATA_VALIDATION'] }),
+    ...ending('ML Pipelines', 'FEATURE_STORES', { project: ['MINI_PROJECT', 'Mini Project — A Reproducible Credit-Risk Training Pipeline',
+      'A versioned, validated, cached training pipeline for a lender\'s credit-risk model: DVC for data, MLflow for runs and the registry, a data-validation gate, and a promotion rule — rebuilt from scratch on a second machine.'] }),
+  ] },
+
+  /* ── CI/CD and infrastructure for ML ── */
+  MLOPS_CICD_INFRA: { category: 'UNIVERSAL', units: [
+    u('CI_FOR_ML', 'Continuous Integration for ML Code', 'Unit tests for features and pipelines, data and model checks, a training smoke test, and a GitHub Actions workflow that runs them.',
+      ['Build a CI workflow that tests ML code, data contracts and a small training run'], 45),
+    u('CD_FOR_MODELS', 'Continuous Delivery for Models', 'Evaluation gates before release, shadow and canary releases, A/B tests, and rolling back a model in minutes.',
+      ['Release a new model safely with an evaluation gate, a canary and a rollback'], 45, { after: ['CI_FOR_ML'] }),
+    u('KUBERNETES_FOR_ML', 'Kubernetes for Model Serving', 'Pods, Deployments, Services and ConfigMaps, resource requests and limits, probes, and autoscaling a model server.',
+      ['Deploy and autoscale a model server on Kubernetes with health probes and resource limits'], 50, { after: ['CD_FOR_MODELS'] }),
+    u('SERVING_PATTERNS', 'Serving Patterns: Online, Batch and Streaming', 'Choosing online, batch or streaming inference, model servers (BentoML, KServe, Triton) in outline, batching, GPUs and cost.',
+      ['Choose the serving pattern and platform a model needs on latency, volume and cost'], 40, { after: ['KUBERNETES_FOR_ML'] }),
+    u('INFRA_AS_CODE', 'Infrastructure as Code for ML', 'Terraform basics — providers, resources, state and plans — for buckets, a container registry and a cluster, reviewed like code.',
+      ['Describe ML infrastructure in Terraform and change it through reviewed plans'], 45, { after: ['SERVING_PATTERNS'] }),
+    u('CONFIG_SECRETS', 'Configuration and Secrets Across Environments', 'Dev, staging and production configuration, secrets managers instead of files, and configuration drift.',
+      ['Run the same ML service in several environments without leaking or drifting configuration'], 35, { after: ['INFRA_AS_CODE'] }),
+    ...ending('CI/CD and Infrastructure for ML', 'CONFIG_SECRETS', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── Monitoring, retraining and LLMOps ── */
+  MLOPS_MONITORING: { category: 'UNIVERSAL', units: [
+    u('SERVICE_METRICS', 'Service Metrics: Prometheus and Grafana', 'Latency percentiles, throughput and errors for a model service, exposing metrics, dashboards, and alerts that page for the right things.',
+      ['Instrument a model service and alert on its latency and errors'], 45),
+    u('MODEL_QUALITY', 'Monitoring Model Quality', 'Performance when labels arrive late, proxy metrics, slices that hide failures, and drift results read with care.',
+      ['Monitor a model\'s real-world quality, by slice, even when labels arrive late'], 45, { after: ['SERVICE_METRICS'] }),
+    u('RETRAINING', 'Retraining: When and How', 'Scheduled versus triggered retraining, continuous training pipelines, guarding against training on bad data, and comparing with the champion.',
+      ['Design a retraining loop that improves the model without shipping a worse one'], 40, { after: ['MODEL_QUALITY'] }),
+    u('LLMOPS', 'LLMOps: Running LLM Applications', 'Versioning prompts and models, evaluation runs in production, monitoring quality, cost and latency, and what changes from classic MLOps.',
+      ['Operate an LLM application with versioned prompts, live evaluation and cost monitoring'], 45, { after: ['RETRAINING'] }),
+    u('ML_INCIDENTS', 'When a Model Breaks in Production', 'Runbooks, rolling back a model or a feature, kill switches and fallbacks, and a blameless post-incident review.',
+      ['Handle a model incident end to end and write the review that prevents the next one'], 40, { after: ['LLMOPS'] }),
+    ...ending('Model Monitoring and LLMOps', 'ML_INCIDENTS', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── The MLOps Engineer capstone ── */
+  AI_CAPSTONE_MLOPS: { category: 'UNIVERSAL', units: [
+    u('BRIEF', 'The Capstone: An ML Platform, Scoped', 'A model that has to keep working — demand forecasting for a grocery chain, fraud scoring for a payments app, or churn for a telecom: the SLAs, risks, metrics and a plan.',
+      ['Scope an ML platform for a real model, its service levels and its risks, and plan its delivery'], 45),
+    u('BUILD_PIPELINE', 'Capstone Build — Pipeline, Registry and CI', 'Versioned data, a validated and reproducible training pipeline, experiment tracking and a registry, and CI that tests all of it.',
+      ['Build the training side of the platform so any model can be rebuilt and promoted by rule'], 300, { unitType: 'PROJECT', after: ['BRIEF'], skillKeys: ['ML_PIPELINES', 'CI_CD'] }),
+    u('BUILD_SERVING', 'Capstone Build — Serving, Monitoring and Retraining', 'The model served on Kubernetes through a gated, canaried release, with service and quality monitoring, alerts and a retraining loop.',
+      ['Ship and operate the model with monitoring, alerts, safe releases and retraining'], 240, { unitType: 'PROJECT', after: ['BUILD_PIPELINE'], skillKeys: ['MODEL_DEPLOYMENT', 'MODEL_MONITORING'] }),
+    u('DEFENCE', 'Demo Day: Presenting and Defending the Capstone', 'A live release and rollback, the dashboards, and the questions a panel asks about reproducibility, failure and cost.',
+      ['Demo the platform and defend its design under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_SERVING'] }),
+    u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
+      ['Show MLOps judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};

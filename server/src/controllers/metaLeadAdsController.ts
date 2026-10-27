@@ -1,3 +1,4 @@
+import { recordReEnquiry } from '../services/leadReEnquiryService';
 import { waitsForOutpero } from '../services/outperoPolicyService';
 import { recoverMetaLeads, MetaSyncBusy, withMetaImportLock } from '../services/metaRecoveryService';
 import MetaSyncState from '../models/MetaSyncState';
@@ -612,17 +613,23 @@ async function importMetaSubmission(
       return 'skipped';
     }
     await reviveIfArchived(existing._id, 'new Meta lead form');
-    await Lead.updateOne(
+    const marked = await Lead.updateOne(
       { _id: existing._id, metaSubmissionIds: { $ne: String(leadData.id) } },
       {
         $addToSet: { metaSubmissionIds: String(leadData.id) },
-        $push: { activities: { type: 'note', description: 'New Meta form submission (' + formId + ')', createdBy: existing.createdBy, createdAt: new Date(), metadata: { metaSubmissionId: String(leadData.id) } } },
         $set: {
           'sourceDetails.formId': formId,
           'sourceDetails.campaignName': leadData.campaign_name || existing.get('sourceDetails.campaignName'),
         },
       }
     );
+    // Only the call that actually recorded this submission reports it, so a re-delivery cannot notify twice.
+    if (marked.modifiedCount) {
+      await recordReEnquiry(tenantId, existing._id, {
+        channel: 'meta_form', formId, adId: leadData.ad_id, adName: leadData.ad_name, campaignName: leadData.campaign_name,
+        at: leadData.created_time ? new Date(leadData.created_time) : undefined,
+      });
+    }
     return 'updated';
   }
 

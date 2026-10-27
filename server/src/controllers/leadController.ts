@@ -56,9 +56,29 @@ const emitLeadEvent = (req: AuthenticatedRequest, event: string, data: any) => {
   }
 };
 
+/**
+ * The "which ad" and "enquired again" filters, shared by the list and its counts so both agree.
+ * A lead belongs to an ad if it first came from it OR came back through it (a repeat enquiry).
+ * adId and the flag are plain strings from the query, matched exactly: never interpreted as operators.
+ */
+export const adAndReEnquiryMatch = (q: any): Record<string, any> => {
+  const out: Record<string, any> = {};
+  const adId = typeof q?.adId === 'string' ? q.adId.trim() : '';
+  if (adId) out.$and = [{ $or: [{ 'sourceDetails.adId': adId }, { 'reEnquiries.adId': adId }] }];
+  if (q?.reEnquiry === 'true') out.reEnquiryUnseen = true;
+  return out;
+};
+
+/** Adds extra conditions to a filter WITHOUT replacing an $and the scope filter may already carry. */
+const mergeMatch = (target: Record<string, any>, extra: Record<string, any>) => {
+  const { $and, ...rest } = extra;
+  Object.assign(target, rest);
+  if ($and) target.$and = [...(target.$and || []), ...$and];
+};
+
 // Build common filter from query params, merged with scope filter
 const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<string, any> = {}) => {
-  const { stageId, source, assignedTo, search, dateFrom, dateTo, priority, hasPendingApproval } = query;
+  const { stageId, source, assignedTo, search, dateFrom, dateTo, priority, hasPendingApproval, adId, reEnquiry } = query;
   // Archived leads are out of the working lists; Leads → Archive shows them.
   const filter: any = { tenantId, ...scopeFilter, archivedAt: null };
   if (stageId) filter.stageId = stageId;
@@ -70,6 +90,7 @@ const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<strin
   if (hasPendingApproval === 'true') {
     filter['pendingApproval.stageId'] = { $exists: true };
   }
+  mergeMatch(filter, adAndReEnquiryMatch(query));
   if (search) {
     const searchRegex = new RegExp(String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     filter.$or = [
@@ -570,6 +591,8 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
         ...(source && { source }),
         ...(stageId && { stageId }),
         ...(assignedTo !== undefined && { assignedTo: assignedTo || null }),
+        // keep the assignment record in step, so a reassign is never undone by a stale 'assignment.assignedTo'
+        ...(assignedTo !== undefined && String(assignedTo || '') !== String(oldAssignedToId || '') && { 'assignment.assignedTo': assignedTo || null, 'assignment.assignedBy': req.user!.id, 'assignment.assignedAt': new Date() }),
         ...(nextFollowUp !== undefined && { nextFollowUp: nextFollowUp || null }),
         ...(notes !== undefined && { notes }),
         ...(interestConcerns !== undefined && { interestConcerns }),
@@ -877,7 +900,8 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
       { _id: leadId, tenantId: req.tenantId, ...scopeFilter },
       {
         $push: { activities: activityData },
-        $set: metricsUpdate,
+        // Working the lead after a repeat enquiry clears the "Enquired again" flag.
+        $set: { ...metricsUpdate, ...(['call', 'note', 'whatsapp', 'email'].includes(type) ? { reEnquiryUnseen: false } : {}) },
         $inc: { 'telecallerMetrics.totalActions': 1 },
       },
       { new: true }
@@ -932,6 +956,7 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
       { phone: { $regex: search, $options: 'i' } },
       { email: { $regex: search, $options: 'i' } }
     ];
+    mergeMatch(baseMatch, adAndReEnquiryMatch(req.query));
     if (dateFrom || dateTo) {
       baseMatch.createdAt = {};
       if (dateFrom) baseMatch.createdAt.$gte = new Date(dateFrom);
@@ -1671,6 +1696,28 @@ export const getLeadSources = async (req: AuthenticatedRequest, res: Response<Ap
     res.json({ success: true, message: 'Lead sources fetched', data: (sources || []).filter(Boolean).sort() });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to fetch lead sources', error: error.message });
+  }
+};
+
+/**
+ * GET /leads/ads — the ads leads came from, for the "which ad" filter: id, name, campaign and how many
+ * leads. Counted over the same leads the person is allowed to see, so the numbers match the list.
+ */
+export const getLeadAds = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const rows = await Lead.aggregate([
+      { $match: { tenantId: new mongoose.Types.ObjectId(String(req.tenantId)), ...scopeFilter, archivedAt: null, 'sourceDetails.adId': { $nin: [null, ''] } } },
+      { $group: { _id: '$sourceDetails.adId', adName: { $last: '$sourceDetails.adName' }, campaignName: { $last: '$sourceDetails.campaignName' }, adSetName: { $last: '$sourceDetails.adSetName' }, leads: { $sum: 1 }, latest: { $max: '$createdAt' } } },
+      { $sort: { latest: -1 } },
+      { $limit: 300 },
+    ]);
+    res.json({
+      success: true, message: 'Ads fetched',
+      data: rows.map((r: any) => ({ adId: r._id, adName: r.adName || '', campaignName: r.campaignName || '', adSetName: r.adSetName || '', leads: r.leads })),
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch ads', error: error.message });
   }
 };
 

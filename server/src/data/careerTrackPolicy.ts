@@ -204,6 +204,7 @@ export function validatePackInput(input: any): { ok: true; value: PackDef } | { 
  *   AI Engineer, Generative AI, Agentic AI, MLOps, AI Security    → that role's own AI track (Python)
  *   Cybersecurity Analyst (any language)                          → Cybersecurity Analyst (defensive, SOC)
  *   Cloud / DevOps, DevOps, Site Reliability, Cloud Engineer      → Cloud & DevOps Engineer (AWS + Azure)
+ *   Data Engineer, Analytics Engineer, ETL / Big Data Engineer     → Data Engineer
  * Anything else (Not sure, no main language, other roles) has no track and keeps the regular
  * Year 3/4 roadmap. Once a roadmap is built from a track the track is fixed; only an admin changes it.
  */
@@ -224,6 +225,7 @@ export const AI_TRACK_BY_ROLE: Record<string, string> = {
 };
 export const CYBERSECURITY_TRACK_ROLES = ['CYBERSECURITY_ANALYST'];
 export const CLOUD_TRACK_ROLES = ['CLOUD_DEVOPS', 'DEVOPS_ENGINEER', 'SITE_RELIABILITY_ENGINEER', 'CLOUD_ENGINEER', 'SRE'];
+export const DATA_ENGINEERING_TRACK_ROLES = ['DATA_ENGINEER', 'ANALYTICS_ENGINEER', 'ETL_DEVELOPER', 'BIG_DATA_ENGINEER'];
 export const FULL_STACK_TRACK_BY_LANGUAGE: Record<string, string> = {
   java: 'JAVA_FULLSTACK_AI', python: 'PY_FULLSTACK_AI', 'c#': 'DOTNET_FULLSTACK_AI',
 };
@@ -235,6 +237,7 @@ export function deriveTrackKey(primaryRole: string | null | undefined, languages
   if (AI_TRACK_BY_ROLE[role]) return AI_TRACK_BY_ROLE[role];
   if (CYBERSECURITY_TRACK_ROLES.includes(role)) return 'CYBERSECURITY';
   if (CLOUD_TRACK_ROLES.includes(role)) return 'CLOUD_DEVOPS';
+  if (DATA_ENGINEERING_TRACK_ROLES.includes(role)) return 'DATA_ENGINEERING';
   if (!FULL_STACK_TRACK_ROLES.includes(role)) return null;
   for (const l of languages || []) {
     const key = FULL_STACK_TRACK_BY_LANGUAGE[String(l).trim().toLowerCase()];

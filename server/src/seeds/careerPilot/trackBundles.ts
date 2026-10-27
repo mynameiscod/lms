@@ -146,6 +146,20 @@ import { TRACK_CL_IV_CLOUD_BUNDLES } from './trackContentClIvCloud';
 import { TRACK_CL_IV_DEVOPS_BUNDLES } from './trackContentClIvDevops';
 import { TRACK_CL_SCENARIO_ROUNDS_BUNDLES } from './trackContentClScenarios';
 import { TRACK_CL_PLACE_CANDIDATE_BUNDLES } from './trackContentClPlaceCandidate';
+import { TRACK_DE_DATA_MODELLING_BUNDLES } from './trackContentDeModelling';
+import { TRACK_DE_PYTHON_INGESTION_BUNDLES } from './trackContentDeIngestion';
+import { TRACK_DE_SQL_ENGINEERING_BUNDLES } from './trackContentDeSql';
+import { TRACK_DE_SPARK_BUNDLES } from './trackContentDeSpark';
+import { TRACK_DE_WAREHOUSE_LAKEHOUSE_BUNDLES } from './trackContentDeLakehouse';
+import { TRACK_DE_DBT_BUNDLES } from './trackContentDeDbt';
+import { TRACK_DE_ORCHESTRATION_BUNDLES } from './trackContentDeOrchestration';
+import { TRACK_DE_STREAMING_BUNDLES } from './trackContentDeStreaming';
+import { TRACK_DE_QUALITY_GOVERNANCE_BUNDLES } from './trackContentDeQuality';
+import { TRACK_DE_CLOUD_DATA_BUNDLES } from './trackContentDeCloud';
+import { TRACK_DE_CAPSTONE_BUNDLES } from './trackContentDeCapstone';
+import { TRACK_DE_IV_BUNDLES } from './trackContentDeIv';
+import { TRACK_DE_SCENARIO_ROUNDS_BUNDLES } from './trackContentDeScenarios';
+import { TRACK_DE_PLACE_CANDIDATE_BUNDLES } from './trackContentDePlaceCandidate';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -310,4 +324,18 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_CL_IV_DEVOPS_BUNDLES,
   ...TRACK_CL_SCENARIO_ROUNDS_BUNDLES,
   ...TRACK_CL_PLACE_CANDIDATE_BUNDLES,
+  ...TRACK_DE_DATA_MODELLING_BUNDLES,
+  ...TRACK_DE_PYTHON_INGESTION_BUNDLES,
+  ...TRACK_DE_SQL_ENGINEERING_BUNDLES,
+  ...TRACK_DE_SPARK_BUNDLES,
+  ...TRACK_DE_WAREHOUSE_LAKEHOUSE_BUNDLES,
+  ...TRACK_DE_DBT_BUNDLES,
+  ...TRACK_DE_ORCHESTRATION_BUNDLES,
+  ...TRACK_DE_STREAMING_BUNDLES,
+  ...TRACK_DE_QUALITY_GOVERNANCE_BUNDLES,
+  ...TRACK_DE_CLOUD_DATA_BUNDLES,
+  ...TRACK_DE_CAPSTONE_BUNDLES,
+  ...TRACK_DE_IV_BUNDLES,
+  ...TRACK_DE_SCENARIO_ROUNDS_BUNDLES,
+  ...TRACK_DE_PLACE_CANDIDATE_BUNDLES,
 ].map(balanced);

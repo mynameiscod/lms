@@ -119,6 +119,11 @@ import { OBSERVABILITY } from './observability';
 import { SLI_SLO } from './sliSlo';
 import { RELIABILITY_PATTERNS } from './reliabilityPatterns';
 import { INCIDENT_MANAGEMENT } from './incidentManagement';
+import { ETL_FUNDAMENTALS } from './etlFundamentals';
+import { DATA_PIPELINES } from './dataPipelines';
+import { DATA_MODELLING } from './dataModelling';
+import { DATA_WAREHOUSING } from './dataWarehousing';
+import { BATCH_STREAM_PROCESSING } from './batchStreamProcessing';
 
 export const TRACK_BANK: GoldenItem[] = [
   ...JAVA_BASICS,
@@ -228,4 +233,9 @@ export const TRACK_BANK: GoldenItem[] = [
   ...SLI_SLO,
   ...RELIABILITY_PATTERNS,
   ...INCIDENT_MANAGEMENT,
+  ...ETL_FUNDAMENTALS,
+  ...DATA_PIPELINES,
+  ...DATA_MODELLING,
+  ...DATA_WAREHOUSING,
+  ...BATCH_STREAM_PROCESSING,
 ];

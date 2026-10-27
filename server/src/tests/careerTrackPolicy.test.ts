@@ -117,6 +117,8 @@ describe('the track follows setup (role + main language)', () => {
     expect(deriveTrackKey('CLOUD_DEVOPS', ['Python'])).toBe('CLOUD_DEVOPS');
     expect(deriveTrackKey('DEVOPS_ENGINEER', [])).toBe('CLOUD_DEVOPS');
     expect(deriveTrackKey('SITE_RELIABILITY_ENGINEER', ['Go'])).toBe('CLOUD_DEVOPS');
+    expect(deriveTrackKey('DATA_ENGINEER', ['Python'])).toBe('DATA_ENGINEERING');
+    expect(deriveTrackKey('DATA_ENGINEER', [])).toBe('DATA_ENGINEERING');
   });
   it('gives no track when the member is not sure or has no main language', () => {
     expect(deriveTrackKey('NOT_SURE', ['Java'])).toBeNull();

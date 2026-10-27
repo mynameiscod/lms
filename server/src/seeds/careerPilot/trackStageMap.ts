@@ -817,6 +817,73 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Present a cloud resume and portfolio, plan AWS and Azure certifications, and get through a full cloud and DevOps interview loop.']),
     ],
   },
+  /* ══════════════ DATA ENGINEER: MODELLING, INGESTION, SQL (batch DE1) ══════════════ */
+  {
+    moduleCode: 'DE_FOUNDATIONS',
+    moduleName: 'Data Modelling, Ingestion and SQL for Engineers',
+    displayOrder: 580,
+    blurb: 'The years teach SQL and databases and the Data Analytics track teaches pandas; this is how an engineer models analytical data, ingests it reliably and writes SQL as a pipeline.',
+    topics: [
+      t('DE_DATA_MODELLING', 'Data Modelling', ['DATA_MODELLING'],
+        ['Model analytical data: facts, dimensions and grain, slowly changing dimensions, and modern approaches such as medallion layers.']),
+      t('DE_PYTHON_INGESTION', 'Python for Ingestion', ['ETL_FUNDAMENTALS', 'DATA_PIPELINES'],
+        ['Ingest from files, APIs and databases incrementally, with idempotent loads and pipeline code that is configured, logged and tested.']),
+      t('DE_SQL_ENGINEERING', 'SQL for Data Engineers', ['SQL_AGGREGATION', 'DATA_WAREHOUSING'],
+        ['Write SQL as a pipeline, upsert with MERGE, partition and cluster large tables, and read query plans to fix slow SQL.']),
+    ],
+  },
+
+  /* ══════════════ DATA ENGINEER: SPARK, LAKEHOUSE, DBT (batch DE2) ══════════════ */
+  {
+    moduleCode: 'DE_PROCESSING',
+    moduleName: 'Spark, the Lakehouse and dbt',
+    displayOrder: 590,
+    blurb: 'Transforming data at scale: Apache Spark, cloud warehouses and lakehouses with open table formats, and ELT with dbt.',
+    topics: [
+      t('DE_SPARK', 'Apache Spark', ['BATCH_STREAM_PROCESSING', 'DATA_PIPELINES'],
+        ['Transform data at scale with PySpark, understand partitions and shuffles, fix skew and tune jobs, and ship them to production.']),
+      t('DE_WAREHOUSE_LAKEHOUSE', 'Warehouses and Lakehouses', ['DATA_WAREHOUSING'],
+        ['Use cloud warehouses and lakes, open table formats such as Delta and Iceberg, medallion layers, and control cost.']),
+      t('DE_DBT', 'dbt and ELT', ['ETL_FUNDAMENTALS', 'DATA_MODELLING'],
+        ['Build tested, documented dbt projects with incremental models and snapshots, structured for a team and run in CI.']),
+    ],
+  },
+
+  /* ══════════════ DATA ENGINEER: ORCHESTRATION, STREAMING, QUALITY, CLOUD, CAPSTONE (batch DE3) ══════════════ */
+  {
+    moduleCode: 'DE_OPERATE',
+    moduleName: 'Orchestration, Streaming, Quality and the Cloud',
+    displayOrder: 600,
+    blurb: 'Running data in production: orchestrated and streaming pipelines, quality and governance, the AWS and Azure data stacks, and the Data Engineer capstone.',
+    topics: [
+      t('DE_ORCHESTRATION', 'Orchestration', ['DATA_PIPELINES'],
+        ['Orchestrate pipelines with Airflow, with retries, backfills and data-aware schedules, and compare Prefect and Dagster.']),
+      t('DE_STREAMING', 'Streaming', ['BATCH_STREAM_PROCESSING'],
+        ['Design Kafka topics and consumers, get delivery guarantees right, process streams with windows and watermarks, and use managed services.']),
+      t('DE_QUALITY_GOVERNANCE', 'Data Quality and Governance', ['DATA_QUALITY'],
+        ['Check data automatically, monitor freshness and lineage, and govern access and personal data.']),
+      t('DE_CLOUD_DATA', 'The Cloud Data Stack', ['DATA_WAREHOUSING', 'CLOUD_STORAGE'],
+        ['Map a data platform onto AWS and Azure services, query the lake with Athena, and run data infrastructure as code.']),
+      t('DE_CAPSTONE', 'Capstone: A Data Platform', ['DATA_PIPELINES', 'DATA_MODELLING', 'ETL_FUNDAMENTALS', 'BATCH_STREAM_PROCESSING'],
+        ['Plan, build, run, present and defend a data platform with ingestion, a lakehouse, Spark and dbt, orchestration, a stream and quality checks.']),
+    ],
+  },
+
+  /* ══════════════ DATA ENGINEER: PLACEMENT (batch DE4) ══════════════ */
+  {
+    moduleCode: 'DE_PLACE',
+    moduleName: 'Data Engineering Placement',
+    displayOrder: 610,
+    blurb: 'Year 4 teaches aptitude, coding, SQL rounds, core CS, HR and mocks for everyone; this adds the data engineer interview, scenario rounds and the candidate.',
+    topics: [
+      t('DE_IV', 'Data Engineer Interview Questions', ['DATA_MODELLING', 'ETL_FUNDAMENTALS', 'BATCH_STREAM_PROCESSING', 'DATA_WAREHOUSING', 'DATA_PIPELINES'],
+        ['Answer data modelling, pipeline, Spark, warehouse, orchestration and streaming interview questions with the follow-up.']),
+      t('DE_SCENARIO_ROUNDS', 'Data Engineering Scenario Rounds', ['DATA_PIPELINES', 'BATCH_STREAM_PROCESSING', 'DATA_MODELLING'],
+        ['Handle pipeline design, broken-pipeline, SQL-and-modelling take-home and Spark optimisation rounds with structure and evidence.']),
+      t('DE_PLACE_CANDIDATE', 'The Data Engineering Candidate', ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE', 'INTERVIEW_PERFORMANCE'],
+        ['Present a data-engineering resume and portfolio, plan certifications, and get through a full interview loop.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

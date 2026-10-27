@@ -446,6 +446,35 @@ export const PACKS: PackDefinition[] = [
   { key: 'PL_CL_CANDIDATE', title: 'The Cloud Candidate', kind: 'PLACEMENT',
     description: 'A cloud resume and portfolio, AWS and Azure certifications and the career path, and a full cloud interview loop.',
     topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['CL_PLACE_CANDIDATE', 'MUST']] },
+
+  /* ── Data Engineer, setup: what it reuses from the years and the Data Analytics track ── */
+  { key: 'DE_YEAR_BASICS', title: 'Databases, pandas, Linux and Docker', kind: 'SKILL',
+    description: 'Database design, transactions and query performance from the years, pandas and data cleaning from Data Analytics, and the Linux and Docker every pipeline runs on.',
+    topics: [['T2_DB_DESIGN', 'MUST'], ['T3_TRANSACTIONS_INTEGRITY', 'MUST'], ['T3_QUERY_PERF', 'MUST'], ['DT_PANDAS', 'MUST'], ['DT_DATA_CLEANING', 'MUST'],
+      ['T2_LINUX', 'SHOULD'], ['T3_CONTAINERS', 'SHOULD'], ['T3_CACHING_NOSQL', 'OPTIONAL']] },
+  /* ── Data Engineer, batches DE1–DE3 ── */
+  { key: 'DE_FOUNDATIONS', title: 'Data Modelling, Ingestion and SQL for Engineers', kind: 'SKILL',
+    description: 'Dimensional modelling and slowly changing dimensions, reliable incremental ingestion from files, APIs and databases, and SQL as a pipeline.',
+    topics: [['DE_DATA_MODELLING', 'CORE'], ['DE_PYTHON_INGESTION', 'CORE'], ['DE_SQL_ENGINEERING', 'MUST']] },
+  { key: 'DE_PROCESSING', title: 'Spark, the Lakehouse and dbt', kind: 'SKILL',
+    description: 'PySpark at scale, warehouses and lakehouses with Delta and Iceberg, and ELT with dbt.',
+    topics: [['DE_SPARK', 'CORE'], ['DE_WAREHOUSE_LAKEHOUSE', 'CORE'], ['DE_DBT', 'CORE']] },
+  { key: 'DE_OPERATE', title: 'Orchestration, Streaming, Quality and the Cloud', kind: 'SKILL',
+    description: 'Airflow and friends, Kafka and stream processing, data quality and governance, and the AWS and Azure data stacks.',
+    topics: [['DE_ORCHESTRATION', 'CORE'], ['DE_STREAMING', 'MUST'], ['DE_QUALITY_GOVERNANCE', 'MUST'], ['DE_CLOUD_DATA', 'MUST']] },
+  { key: 'CAPSTONE_DE', title: 'Capstone: A Data Platform', kind: 'SKILL',
+    description: 'One platform that proves the track: incremental ingestion, a lakehouse, Spark and dbt, orchestration and a stream, quality checks, and the cloud.',
+    topics: [['DE_CAPSTONE', 'MUST']] },
+  /* ── Data Engineer, batch DE4: Year-4 placement ── */
+  { key: 'PL_DE_IV', title: 'Data Engineer Interviews', kind: 'PLACEMENT',
+    description: 'Data modelling, pipelines, Spark, warehouses, orchestration and streaming at interview depth.',
+    topics: [['DE_IV', 'MUST']] },
+  { key: 'PL_DE_SCENARIOS', title: 'Data Engineering Scenario Rounds', kind: 'PLACEMENT',
+    description: 'Pipeline design, broken pipelines, the SQL-and-modelling take-home and Spark optimisation.',
+    topics: [['DE_SCENARIO_ROUNDS', 'MUST']] },
+  { key: 'PL_DE_CANDIDATE', title: 'The Data Engineering Candidate', kind: 'PLACEMENT',
+    description: 'A data-engineering resume and portfolio, certifications and the career path, and a full interview loop.',
+    topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['DE_PLACE_CANDIDATE', 'MUST']] },
 ];
 
 /** A track's placement: the shared packs, the AI interviews it needs, system design, and the AI candidate (HR and mocks last). */
@@ -523,4 +552,12 @@ export const TRACKS: TrackDefinition[] = [
     description: 'AWS accounts, IAM, networking, compute, storage and databases; serverless, containers and Kubernetes on EKS; Terraform and CI/CD with GitOps; observability and SRE, security and cost; and Azure as the second cloud.',
     specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SEC_SYSTEMS_BASICS', 'CLOUD_YEAR_BASICS', 'CL_AWS_CORE', 'CL_DELIVERY', 'CL_OPERATE', 'CAPSTONE_CL'],
     placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_CL_CLOUD_IV', 'PL_CL_DEVOPS_IV', 'PL_CL_SCENARIOS', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_CL_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
+
+  /* Data Engineer — modelling, ingestion, Spark, the lakehouse and dbt, orchestration and streaming,
+     quality and governance, on AWS with Azure equivalents. Setup holds what it reuses; its own topics
+     (DE1–DE3), placement (DE4) and bank (DE5) land with their batches. */
+  { key: 'DATA_ENGINEERING', name: 'Data Engineer', language: 'SQL and Python', order: 130,
+    description: 'Data modelling and SQL for engineers; reliable ingestion; Spark, warehouses and lakehouses, and dbt; Airflow and Kafka; data quality and governance; and the AWS and Azure data stacks.',
+    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SQL_ANALYTICS', 'DE_YEAR_BASICS', 'DE_FOUNDATIONS', 'DE_PROCESSING', 'DE_OPERATE', 'CAPSTONE_DE'],
+    placementPacks: ['PL_APTITUDE', 'PL_DA_SQL', 'PL_CODING_PYTHON', 'PL_DE_IV', 'PL_DE_SCENARIOS', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_DE_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

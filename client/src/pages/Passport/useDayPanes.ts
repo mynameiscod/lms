@@ -42,10 +42,28 @@ export function useDayPanes(ref: RefObject<HTMLElement>, deps: any[]) {
     };
     let lastPane = -99, lastMin = -99;
     const schedule = () => { if (!raf) raf = requestAnimationFrame(fit); };
+    /**
+     * The mouse wheel over the task card moves the task list and nothing else.
+     *
+     * `overscroll-behavior: contain` only holds while the list can still scroll; a short list, or
+     * one already at its end, handed the wheel to the page, and the lesson beside it slid away -
+     * the member then scrolled back up to find what they were reading. Side by side, the card
+     * takes every wheel turn itself.
+     */
+    const rail = el.querySelector<HTMLElement>('.jdm-rail-card');
+    const list = rail?.querySelector<HTMLElement>('.jd-rail');
+    const onWheel = (e: WheelEvent) => {
+      if (!list || e.ctrlKey || !window.matchMedia('(min-width: 1100px)').matches) return;
+      e.preventDefault();
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? list.clientHeight : 1;
+      list.scrollTop += e.deltaY * unit;
+    };
+    rail?.addEventListener('wheel', onWheel, { passive: false });
     fit();
     window.addEventListener('resize', schedule);
     document.addEventListener('scroll', schedule, true);
     return () => {
+      rail?.removeEventListener('wheel', onWheel);
       window.removeEventListener('resize', schedule);
       document.removeEventListener('scroll', schedule, true);
       if (raf) cancelAnimationFrame(raf);

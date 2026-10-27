@@ -1,8 +1,11 @@
 /* WhatsApp Inbox. Prefix: wai-. Two panes on desktop, one at a time on a phone. */
-.wai { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 16px; padding: 20px 22px 28px; height: calc(100vh - 90px); box-sizing: border-box; }
+.wai { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 16px; padding: 20px 22px 28px; height: calc(100vh / var(--app-zoom, .75) - 96px); box-sizing: border-box; }
 .wai-left, .wai-right { background: #fff; border: 1px solid #e8edf4; border-radius: 14px; min-height: 0; display: flex; flex-direction: column; }
 .wai-left { padding: 16px 12px 10px; }
-.wai-right { padding: 14px 16px; overflow-y: auto; }
+.wai-right { padding: 14px 16px; overflow: hidden; }
+/* The conversation fills the whole right pane: the message list takes all the spare height, the composer stays at the bottom. */
+.wai-right > .wac { flex: 1; min-height: 0; }
+.wai-right .wac-list { flex: 1; height: auto; min-height: 0; }
 
 .wai-head { padding: 0 4px; }
 .wai-head h1 { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 2px; display: flex; gap: 8px; align-items: center; }
@@ -49,10 +52,12 @@
 .wai-back { display: none; border: 0; background: #f1f5f9; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; }
 
 @media (max-width: 900px) {
-  .wai { grid-template-columns: 1fr; height: auto; min-height: calc(100vh - 90px); padding: 12px 16px 20px; }
+  .wai { grid-template-columns: 1fr; height: auto; min-height: calc(100vh / var(--app-zoom, 1) - 90px); padding: 12px 16px 20px; }
   .wai.has-chat .wai-left { display: none; }
   .wai:not(.has-chat) .wai-right { display: none; }
   .wai-left { max-height: none; }
   .wai-list { max-height: none; }
+  .wai-right { overflow: visible; }
+  .wai-right .wac-list { flex: none; height: 58vh; }
   .wai-back { display: inline-flex; align-items: center; justify-content: center; }
 }

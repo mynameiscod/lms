@@ -2,7 +2,9 @@
    page-turn keyframes from ../QuestionBooks/book.css; prefix nb-. The notes flow into columns the
    size of a page: column width = half the book less both margins, column gap = two margins, so each
    column lands centred on its sheet and one spread is exactly one book width further on. */
-.nb { --page-pad: clamp(22px, 2.2vw, 44px); --fs: 18px; --lh: 1.75; --pno-h: 30px;
+/* Margins and handwriting grow with the book (cqi = 1% of its width), so a line stays a
+   comfortable length from a small laptop to a 1920 screen. */
+.nb { --page-pad: clamp(20px, 3.4cqi, 60px); --fs: clamp(17px, 1.1cqi + 8px, 23px); --lh: 1.75; --pno-h: 30px;
   container-type: inline-size; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 
 .nb-book { position: relative; height: clamp(440px, calc(72vh / var(--app-zoom, 1)), 900px); border-radius: 12px; outline: none;
@@ -71,7 +73,8 @@
 .nb-mode { border-style: dashed; color: #33475B; font-weight: 600; }
 .nb-nav .nb-mode { margin-left: auto; }
 .nb-plainbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
-@media (max-width: 560px) {
+/* A narrow lesson card (phone, or a small laptop) - by the book's own width, not the screen's. */
+@container (max-width: 560px) {
   .nb-nav .nb-mode { margin-left: 0; flex-basis: 100%; justify-content: center; }
   .nb-count { order: -1; width: 100%; }
   .nb-btn { flex: 1; justify-content: center; white-space: nowrap; padding: 0 10px; }

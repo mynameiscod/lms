@@ -40,7 +40,7 @@ import './journeyDay.css';
 import './journeyDayMember.css';
 import { useProgramDays } from './useProgramDays';
 import NotesBook, { opensAsBook } from './NotesBook';
-import { keepTaskInView, useDayPanes } from './useDayPanes';
+import { keepTaskInView, showLessonIfStacked, useDayPanes } from './useDayPanes';
 
 /** Content types, in words a first-year recognises. Mirrors the roadmap screen. */
 export const TYPE_LABEL: Record<string, string> = {
@@ -486,7 +486,7 @@ const JourneyDay: React.FC = () => {
                   <button
                     type="button"
                     className={`jd-item${i === selIdx ? ' sel' : ''}${it.isCompleted ? ' done' : ''}`}
-                    onClick={() => setSelIdx(i)}
+                    onClick={() => { setSelIdx(i); showLessonIfStacked(gridRef.current); }}
                     aria-current={i === selIdx ? 'true' : undefined}
                   >
                     <span className={`jd-item-icon t-${typeOf(it)}`} aria-hidden>

@@ -43,7 +43,8 @@
 
 /* Layout */
 .jdm .jd-grid { grid-template-columns: 1fr; gap: 18px; }
-@media (min-width: 900px) { .jdm .jd-grid { grid-template-columns: 340px minmax(0, 1fr); align-items: start; } }
+/* Side by side from 1100px; below that a 340px list leaves the lesson too narrow (see TWO PANES). */
+@media (min-width: 1100px) { .jdm .jd-grid { grid-template-columns: 340px minmax(0, 1fr); align-items: start; } }
 
 /* Task rail */
 .jdm-rail-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 16px 14px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); position: sticky; top: 104px; }
@@ -185,13 +186,13 @@
 #root .gd .jdm .jdm-hero .jdm-blurb, .jdm .jdm-hero .jdm-blurb { color: #2F3F56 !important; }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   TWO PANES (900px and up): today's tasks and the lesson each scroll on their
+   TWO PANES (1100px and up): today's tasks and the lesson each scroll on their
    own. Scrolling the task list moves only the list; scrolling a lesson moves
    only the lesson inside its card - the card, its title and its buttons stay
    put. useDayPanes.ts sets --jd-pane-h to the height actually visible.
    ──────────────────────────────────────────────────────────────────────────── */
 .jdm .jd-grid { --jd-top: 104px; }
-@media (min-width: 900px) {
+@media (min-width: 1100px) {
   .jdm-rail-card { top: var(--jd-top); max-height: var(--jd-pane-h, none); display: flex; flex-direction: column; }
   .jdm-rail-card .jd-rail { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; margin-right: -6px; padding-right: 6px; }
   .jdm .jd-stage { position: sticky; top: var(--jd-top); max-height: var(--jd-pane-h, none); display: flex; flex-direction: column; min-width: 0; }
@@ -203,4 +204,12 @@
   .jdm .jd-stage.fill .nb { flex: 1 1 auto; }
   .jdm .jd-stage.fill .nb-book { flex: 1 1 auto; height: auto; min-height: 160px; }
   .jdm .jd-stage.fill .nb-nav { flex: none; }
+}
+/* Stacked (phones, tablets, small laptops): the task list is a short box with its own scroll,
+   so a long day does not push the lesson a whole screen down; picking a task brings the lesson
+   into view (JourneyDay), clear of the fixed top bar. */
+@media (max-width: 1099.98px) {
+  .jdm-rail-card { position: static; }
+  .jdm-rail-card .jd-rail { max-height: min(340px, 46vh); overflow-y: auto; scrollbar-width: thin; margin-right: -6px; padding-right: 6px; }
+  .jdm .jd-stage { scroll-margin-top: 84px; }
 }

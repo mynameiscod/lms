@@ -5,7 +5,7 @@ import './journeyDay.css';
 import './journeyDayMember.css';
 import './studentDayPreview.css';
 import { opensAsBook } from './NotesBook';
-import { keepTaskInView, useDayPanes } from './useDayPanes';
+import { keepTaskInView, showLessonIfStacked, useDayPanes } from './useDayPanes';
 
 /**
  * Content Builder → "Preview as a student".
@@ -64,7 +64,7 @@ const StudentDayPreview: React.FC<{ preview: UnitStudentPreview; onClose: () => 
               <ol className="jd-rail" aria-label="Today's activities">
                 {items.map((it: any, i: number) => (
                   <li key={it.contentId || it.sourceId || i}>
-                    <button type="button" className={`jd-item${i === sel ? ' sel' : ''}`} onClick={() => setSel(i)} aria-current={i === sel ? 'true' : undefined}>
+                    <button type="button" className={`jd-item${i === sel ? ' sel' : ''}`} onClick={() => { setSel(i); showLessonIfStacked(gridRef.current); }} aria-current={i === sel ? 'true' : undefined}>
                       <span className={`jd-item-icon t-${typeOf(it)}`} aria-hidden><i className={`bi ${ICON[typeOf(it)] || 'bi-journal-text'}`} /></span>
                       <span className="jd-item-body">
                         <b>{titleOf(it)}</b>

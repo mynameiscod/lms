@@ -7,7 +7,7 @@ import { RefObject, useLayoutEffect } from 'react';
  * with the banner on screen they are shorter, and they grow as the page scrolls it away.
  *
  * Sets --jd-pane-h on the grid, in the grid's own CSS pixels (the app zooms #root, so screen
- * pixels are divided by the measured zoom). Below 900px the panes stack and scroll with the page.
+ * pixels are divided by the measured zoom). Below 1100px the panes stack and scroll with the page.
  */
 export function useDayPanes(ref: RefObject<HTMLElement>, deps: any[]) {
   useLayoutEffect(() => {
@@ -16,7 +16,7 @@ export function useDayPanes(ref: RefObject<HTMLElement>, deps: any[]) {
     let raf = 0;
     const fit = () => {
       raf = 0;
-      if (!window.matchMedia('(min-width: 900px)').matches) { el.style.removeProperty('--jd-pane-h'); el.style.minHeight = ''; return; }
+      if (!window.matchMedia('(min-width: 1100px)').matches) { el.style.removeProperty('--jd-pane-h'); el.style.minHeight = ''; lastPane = lastMin = -99; return; }
       const r = el.getBoundingClientRect();
       const zoom = el.offsetWidth ? r.width / el.offsetWidth : 1;
       const scroller = el.closest<HTMLElement>('.sdp-scroll');
@@ -31,10 +31,15 @@ export function useDayPanes(ref: RefObject<HTMLElement>, deps: any[]) {
       const below = Math.max(12, top0 + (se.scrollHeight - se.scrollTop) * sz - r.bottom);
       const stick = (parseFloat(getComputedStyle(el).getPropertyValue('--jd-top')) || 0) * zoom;
       const top = Math.max(r.top, top0 + stick);
-      el.style.setProperty('--jd-pane-h', `${Math.max(380, Math.floor((bottom - top - below) / zoom))}px`);
+      const pane = Math.max(380, Math.floor((bottom - top - below) / zoom));
       // Room for the panes at full height, so one scroll of the page takes the banner away.
-      el.style.minHeight = `${Math.max(380, Math.floor((bottom - top0 - stick - below) / zoom))}px`;
+      const min = Math.max(380, Math.floor((bottom - top0 - stick - below) / zoom));
+      // Sub-pixel rounding moves the page by a pixel, which re-measures a pixel off: ignore
+      // changes that small, or the panes twitch forever.
+      if (Math.abs(pane - lastPane) > 2) { lastPane = pane; el.style.setProperty('--jd-pane-h', `${pane}px`); }
+      if (Math.abs(min - lastMin) > 2) { lastMin = min; el.style.minHeight = `${min}px`; }
     };
+    let lastPane = -99, lastMin = -99;
     const schedule = () => { if (!raf) raf = requestAnimationFrame(fit); };
     fit();
     window.addEventListener('resize', schedule);
@@ -56,4 +61,10 @@ export function keepTaskInView(grid: HTMLElement | null) {
   const top = sel.offsetTop - list.offsetTop;
   if (top < list.scrollTop) list.scrollTop = top - 6;
   else if (top + sel.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = top + sel.offsetHeight - list.clientHeight + 6;
+}
+
+/** Stacked layout: after a task is picked from the list, bring the lesson card into view. */
+export function showLessonIfStacked(grid: HTMLElement | null) {
+  if (window.matchMedia('(min-width: 1100px)').matches) return;
+  requestAnimationFrame(() => grid?.querySelector<HTMLElement>('.jd-stage')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }

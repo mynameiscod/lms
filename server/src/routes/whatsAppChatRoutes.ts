@@ -96,6 +96,7 @@ router.post('/threads/:phone/media', (req, res, next) => upload.single('file')(r
   const file = (req as any).file;
   if (!file) throw new svc.ChatError('Choose a file to send');
   await svc.sendMedia(tId(req), uId(req), req.params.phone, file, req.body?.caption);
+  await inbox.logLeadWhatsApp(tId(req), uId(req), req.params.phone, `WhatsApp file sent: ${file.originalname || 'file'}${req.body?.caption ? ` — "${String(req.body.caption).slice(0, 120)}"` : ''}`);
   res.status(201).json({ success: true });
 }));
 
@@ -127,8 +128,10 @@ router.post('/threads/:phone/messages', wrap(async (req, res) => {
   const { text, templateId, values, buttonParam } = req.body || {};
   if (templateId) {
     await svc.sendTemplate(tId(req), uId(req), req.params.phone, String(templateId), Array.isArray(values) ? values.map(String) : [], buttonParam ? String(buttonParam) : undefined);
+    await inbox.logLeadWhatsApp(tId(req), uId(req), req.params.phone, 'WhatsApp template message sent');
   } else {
     await svc.sendText(tId(req), uId(req), req.params.phone, String(text || ''));
+    await inbox.logLeadWhatsApp(tId(req), uId(req), req.params.phone, `WhatsApp message sent: "${String(text || '').slice(0, 160)}"`);
   }
   res.status(201).json({ success: true });
 }));

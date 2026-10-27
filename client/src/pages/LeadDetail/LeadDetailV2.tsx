@@ -4,6 +4,9 @@ import { leadApi, leadStageApi, qualificationApi, followUpApi } from '../../api'
 import SalesCallRecordingCard from '../../components/leads/SalesCallRecordingCard';
 import LeadAiCalls from './LeadAiCalls';
 import { leadArchiveApi, archiveError } from '../../api/leadArchiveApi';
+import ChatPanel from '../../components/WhatsAppChat/ChatPanel';
+import { canChat } from '../../api/whatsAppChatApi';
+import { useAuth } from '../../contexts/AuthContext';
 import './LeadDetailV2.css';
 
 interface Lead {
@@ -81,6 +84,9 @@ const LeadDetailV2: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'timeline' | 'details' | 'checklist'>('timeline');
+  const { user: currentUser } = useAuth();
+  const chatAllowed = canChat(currentUser as any);
+  const [showChat, setShowChat] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   const [noteText, setNoteText] = useState('');
@@ -148,19 +154,28 @@ const LeadDetailV2: React.FC = () => {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
+  // Nothing is written to the timeline just because a button was pressed: the dialler opens, then the
+  // person records how the call went (or skips it). A click is not a call.
   const handleCall = () => {
     if (lead?.phone) {
       window.location.href = `tel:${lead.phone}`;
-      handleAddActivity('call', `Called ${lead.name}`);
+      setNoteType('call');
+      setNoteText('');
+      setCallOutcome('');
+      setShowNoteModal(true);
     }
   };
 
+  // The real chat opens in a side drawer. Only a message that is actually sent from it is logged (by the server).
   const handleWhatsApp = () => {
-    if (lead?.phone) {
-      const phone = lead.phone.replace(/\D/g, '');
-      window.open(`https://wa.me/${phone}`, '_blank');
-      handleAddActivity('whatsapp', `WhatsApp sent to ${lead.name}`);
-    }
+    if (!lead?.phone) return;
+    if (chatAllowed) { setShowChat(true); return; }
+    // Without chat permission the only option is the phone's own WhatsApp; nothing is logged for that.
+    window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}`, '_blank');
+  };
+
+  const openInWhatsAppApp = () => {
+    if (lead?.phone) window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}`, '_blank');
   };
 
   const handleAddActivity = async (type: string, description: string) => {
@@ -843,6 +858,30 @@ const LeadDetailV2: React.FC = () => {
         </button>
       </div>
 
+      {/* WhatsApp chat drawer */}
+      {showChat && lead.phone && (
+        <>
+          <div className="ld2-drawer-backdrop" onClick={() => setShowChat(false)} />
+          <aside className="ld2-drawer" role="dialog" aria-label={`WhatsApp chat with ${lead.name}`}>
+            <div className="ld2-drawer-head">
+              <div>
+                <h3><i className="bi bi-whatsapp"></i> {lead.name}</h3>
+                <small>{lead.phone}</small>
+              </div>
+              <div className="ld2-drawer-tools">
+                <button type="button" className="ld2-drawer-link" onClick={openInWhatsAppApp} title="Opens WhatsApp on your own phone or WhatsApp Web. Not recorded in this chat.">
+                  Open in WhatsApp app
+                </button>
+                <button type="button" className="ld2-drawer-close" onClick={() => { setShowChat(false); fetchData(); }} aria-label="Close"><i className="bi bi-x-lg"></i></button>
+              </div>
+            </div>
+            <div className="ld2-drawer-body">
+              <ChatPanel phone={lead.phone} name={lead.name} />
+            </div>
+          </aside>
+        </>
+      )}
+
       {/* Note Modal */}
       {showNoteModal && (
         <div className="ld2-modal-overlay" onClick={() => setShowNoteModal(false)}>
@@ -923,7 +962,7 @@ const LeadDetailV2: React.FC = () => {
               </div>
             </div>
             <div className="ld2-modal-footer">
-              <button className="ld2-btn-cancel" onClick={() => { setShowNoteModal(false); setRecordingFile(null); setCallOutcome(''); }}>Cancel</button>
+              <button className="ld2-btn-cancel" onClick={() => { setShowNoteModal(false); setRecordingFile(null); setCallOutcome(''); setNoteType('note'); }}>Cancel</button>
               <button className="ld2-btn-primary" onClick={handleSaveNote}>Save Activity</button>
             </div>
           </div>

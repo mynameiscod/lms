@@ -10,7 +10,7 @@ import {
   updateLead,
   changeLeadStage,
   approveStageChange,
-  addLeadActivity,
+  addLeadActivity, logCallClick,
   deleteLead,
   getLeadAnalytics,
   convertToStudent,
@@ -96,6 +96,7 @@ router.post('/:leadId/approve-stage', authMiddleware, tenantResolver, roleGuard(
 
 // Activities (anyone who can view or edit can add activities)
 router.post('/:leadId/activities', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'view_leads', 'manage_leads']), uploadRecording.single('recording'), addLeadActivity);
+router.post('/:leadId/call-click', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'view_leads', 'manage_leads']), logCallClick);
 
 // Convert to student (need convert_leads or manage_leads)
 router.post('/:leadId/convert', authMiddleware, tenantResolver, roleGuard(['convert_leads', 'manage_leads']), convertToStudent);

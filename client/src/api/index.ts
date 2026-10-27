@@ -1949,6 +1949,8 @@ export const leadApi = {
       body: JSON.stringify({ stageId, notInterestedReason })
     });
   },
+  /** The Call button was pressed: counts as one call in Team Activity (a repeat within two minutes is ignored). */
+  logCallClick: async (leadId: string) => authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/call-click`, { method: 'POST' }),
   addActivity: async (leadId: string, data: { type: string; description: string; callOutcome?: string; disposition?: string }, recordingFile?: File) => {
     if (recordingFile) {
       // Use FormData so the audio file can be sent as multipart

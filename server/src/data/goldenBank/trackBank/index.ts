@@ -111,6 +111,14 @@ import { OWASP_TOP_TEN } from './owaspTopTen';
 import { SIEM_MONITORING } from './siemMonitoring';
 import { THREAT_MODELLING } from './threatModelling';
 import { VULNERABILITY_MANAGEMENT } from './vulnerabilityManagement';
+import { CLOUD_COMPUTE } from './cloudCompute';
+import { KUBERNETES } from './kubernetes';
+import { INFRA_AS_CODE } from './infraAsCode';
+import { CONFIG_MANAGEMENT } from './configManagement';
+import { OBSERVABILITY } from './observability';
+import { SLI_SLO } from './sliSlo';
+import { RELIABILITY_PATTERNS } from './reliabilityPatterns';
+import { INCIDENT_MANAGEMENT } from './incidentManagement';
 
 export const TRACK_BANK: GoldenItem[] = [
   ...JAVA_BASICS,
@@ -212,4 +220,12 @@ export const TRACK_BANK: GoldenItem[] = [
   ...SIEM_MONITORING,
   ...THREAT_MODELLING,
   ...VULNERABILITY_MANAGEMENT,
+  ...CLOUD_COMPUTE,
+  ...KUBERNETES,
+  ...INFRA_AS_CODE,
+  ...CONFIG_MANAGEMENT,
+  ...OBSERVABILITY,
+  ...SLI_SLO,
+  ...RELIABILITY_PATTERNS,
+  ...INCIDENT_MANAGEMENT,
 ];

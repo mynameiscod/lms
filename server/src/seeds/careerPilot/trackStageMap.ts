@@ -746,6 +746,77 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Present a security resume, home lab and capstone, plan certifications, and get through a full SOC interview loop.']),
     ],
   },
+  /* ══════════════ CLOUD & DEVOPS ENGINEER: AWS FOR ENGINEERS (batch CL1) ══════════════ */
+  {
+    moduleCode: 'CL_AWS',
+    moduleName: 'AWS for Engineers',
+    displayOrder: 540,
+    blurb: 'The years teach Linux, networking and cloud basics; this is how an engineer runs AWS: safe accounts and IAM, VPC networking, compute and storage, and managed databases.',
+    topics: [
+      t('CL_AWS_FOUNDATIONS', 'AWS Foundations: Accounts, IAM and the CLI', ['CLOUD_FUNDAMENTALS', 'IAM_FUNDAMENTALS'],
+        ['Set up AWS accounts safely, write and read IAM policies, use roles instead of keys, and automate AWS from the CLI and Python.']),
+      t('CL_AWS_NETWORKING', 'AWS Networking', ['CLOUD_NETWORKING'],
+        ['Design VPCs with public and private subnets, route and secure traffic, connect privately, and run DNS, load balancers and a CDN.']),
+      t('CL_AWS_COMPUTE_STORAGE', 'AWS Compute and Storage', ['CLOUD_COMPUTE', 'CLOUD_STORAGE'],
+        ['Run EC2 fleets that heal and scale, choose EBS, EFS and S3 well, keep data with lifecycle and backups, and pay less for compute.']),
+      t('CL_AWS_DATABASES', 'AWS Databases', ['CLOUD_STORAGE', 'DB_FUNDAMENTALS'],
+        ['Run RDS and Aurora, rehearse backups and recovery, model DynamoDB tables from access patterns, and cache with ElastiCache.']),
+    ],
+  },
+
+  /* ══════════════ CLOUD & DEVOPS ENGINEER: DELIVERY (batch CL2) ══════════════ */
+  {
+    moduleCode: 'CL_DELIVERY',
+    moduleName: 'Serverless, Kubernetes, Terraform and Pipelines',
+    displayOrder: 550,
+    blurb: 'How software reaches the cloud: serverless and events, containers and Kubernetes on EKS, infrastructure as code with Terraform, and pipelines and GitOps.',
+    topics: [
+      t('CL_SERVERLESS', 'Serverless on AWS', ['CLOUD_COMPUTE'],
+        ['Build Lambda functions and APIs, decouple with queues, topics and events, orchestrate with Step Functions, and deploy serverless apps.']),
+      t('CL_KUBERNETES', 'Containers and Kubernetes', ['KUBERNETES', 'CONTAINERS_DOCKER'],
+        ['Run containers on ECS and Kubernetes, expose and configure workloads, make them self-healing and scalable, package with Helm, run on EKS.']),
+      t('CL_TERRAFORM', 'Infrastructure as Code with Terraform', ['INFRA_AS_CODE', 'CONFIG_MANAGEMENT'],
+        ['Build AWS with Terraform, keep state safe, structure modules and environments, run changes through CI and read CloudFormation and Bicep.']),
+      t('CL_CICD_GITOPS', 'CI/CD and GitOps', ['CI_CD'],
+        ['Design trustworthy pipelines, deploy to AWS with OIDC, secure the supply chain, release progressively and run GitOps with Argo CD.']),
+    ],
+  },
+
+  /* ══════════════ CLOUD & DEVOPS ENGINEER: OPERATE, AZURE, CAPSTONE (batch CL3) ══════════════ */
+  {
+    moduleCode: 'CL_OPERATE',
+    moduleName: 'Operating the Cloud, and Azure',
+    displayOrder: 560,
+    blurb: 'Running what you ship: observability and SRE, security and cost, Azure as the second cloud, and the Cloud & DevOps capstone.',
+    topics: [
+      t('CL_OBSERVABILITY_SRE', 'Observability and SRE', ['OBSERVABILITY', 'SLI_SLO', 'INCIDENT_MANAGEMENT', 'RELIABILITY_PATTERNS', 'CAPACITY_PLANNING'],
+        ['Instrument services, monitor with CloudWatch, Prometheus and Grafana, set SLOs and error budgets, run incidents and design for failure.']),
+      t('CL_SECURITY_COST', 'Cloud Security and Cost', ['IAM_FUNDAMENTALS', 'CLOUD_FUNDAMENTALS'],
+        ['Review against Well-Architected, encrypt and manage secrets, turn on the AWS security services, and explain and cut the bill.']),
+      t('CL_AZURE', 'Azure for AWS Engineers', ['CLOUD_FUNDAMENTALS', 'CLOUD_COMPUTE', 'CLOUD_NETWORKING'],
+        ['Map Azure to AWS, grant access with Entra ID and RBAC, build networks, compute, storage and AKS, and monitor and govern with Terraform.']),
+      t('CL_CAPSTONE', 'Capstone: A Production Platform', ['INFRA_AS_CODE', 'KUBERNETES', 'CI_CD', 'OBSERVABILITY', 'SLI_SLO'],
+        ['Plan, build, operate, present and defend a production cloud platform with infrastructure as code, delivery, SLOs and a second-cloud recovery.']),
+    ],
+  },
+
+  /* ══════════════ CLOUD & DEVOPS ENGINEER: PLACEMENT (batch CL4) ══════════════ */
+  {
+    moduleCode: 'CL_PLACE',
+    moduleName: 'Cloud & DevOps Placement',
+    displayOrder: 570,
+    blurb: 'Year 4 teaches aptitude, coding, core CS, HR and mocks for everyone; this adds the cloud and DevOps interviews, scenario rounds and the cloud candidate.',
+    topics: [
+      t('CL_IV_CLOUD', 'Cloud Engineer Interview Questions', ['CLOUD_FUNDAMENTALS', 'CLOUD_NETWORKING', 'CLOUD_STORAGE', 'CLOUD_COMPUTE'],
+        ['Answer AWS and Azure interview questions — core services, networking, storage and databases, and architecture — with the follow-up.']),
+      t('CL_IV_DEVOPS', 'DevOps Engineer Interview Questions', ['LINUX_ADMIN', 'KUBERNETES', 'INFRA_AS_CODE', 'CI_CD', 'OBSERVABILITY'],
+        ['Answer Linux, Docker and Kubernetes, Terraform, CI/CD and SRE interview questions with the follow-up.']),
+      t('CL_SCENARIO_ROUNDS', 'Cloud Scenario Rounds', ['KUBERNETES', 'CLOUD_COMPUTE', 'INFRA_AS_CODE', 'INCIDENT_MANAGEMENT'],
+        ['Handle live troubleshooting, design rounds, infrastructure take-homes and incident rounds with structure and evidence.']),
+      t('CL_PLACE_CANDIDATE', 'The Cloud Candidate', ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE', 'INTERVIEW_PERFORMANCE'],
+        ['Present a cloud resume and portfolio, plan AWS and Azure certifications, and get through a full cloud and DevOps interview loop.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

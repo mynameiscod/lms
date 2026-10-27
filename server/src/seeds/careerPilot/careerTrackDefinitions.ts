@@ -414,6 +414,38 @@ export const PACKS: PackDefinition[] = [
   { key: 'PL_CY_CANDIDATE', title: 'The Security Candidate', kind: 'PLACEMENT',
     description: 'A security resume and home-lab portfolio, certifications and the career path, and a full SOC interview loop.',
     topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['CY_PLACE_CANDIDATE', 'MUST']] },
+
+  /* ── Cloud & DevOps Engineer, setup: what it reuses from the years ── */
+  { key: 'CLOUD_YEAR_BASICS', title: 'Cloud, Containers and Delivery Basics', kind: 'SKILL',
+    description: 'The cloud, Docker, deployment, CI/CD, reliability and system design lessons the years teach.',
+    topics: [['T2_TRACK_CLOUD', 'MUST'], ['T3_CLOUD_INFRA', 'MUST'], ['T3_CONTAINERS', 'MUST'], ['T3_CLOUD_CONTAINERS', 'MUST'], ['T3_DEPLOYMENT', 'MUST'],
+      ['T3_CICD_MONITORING', 'MUST'], ['T3_CLOUD_CONFIG', 'SHOULD'], ['T3_CLOUD_SECURITY', 'SHOULD'], ['T3_RELIABILITY', 'SHOULD'], ['T3_SYSTEM_DESIGN', 'SHOULD'], ['T3_BACKEND_SCALE', 'OPTIONAL']] },
+  /* ── Cloud & DevOps Engineer, batches CL1–CL3 ── */
+  { key: 'CL_AWS_CORE', title: 'AWS for Engineers', kind: 'SKILL',
+    description: 'Safe accounts and IAM, VPC networking, EC2, storage and backups, and managed databases on AWS.',
+    topics: [['CL_AWS_FOUNDATIONS', 'CORE'], ['CL_AWS_NETWORKING', 'CORE'], ['CL_AWS_COMPUTE_STORAGE', 'CORE'], ['CL_AWS_DATABASES', 'MUST']] },
+  { key: 'CL_DELIVERY', title: 'Serverless, Kubernetes, Terraform and Pipelines', kind: 'SKILL',
+    description: 'Lambda and events, containers and Kubernetes on EKS, Terraform, and CI/CD with OIDC and GitOps.',
+    topics: [['CL_KUBERNETES', 'CORE'], ['CL_TERRAFORM', 'CORE'], ['CL_CICD_GITOPS', 'CORE'], ['CL_SERVERLESS', 'MUST']] },
+  { key: 'CL_OPERATE', title: 'Operating the Cloud, and Azure', kind: 'SKILL',
+    description: 'Observability and SRE, security and cost, and Azure as the second cloud.',
+    topics: [['CL_OBSERVABILITY_SRE', 'CORE'], ['CL_AZURE', 'CORE'], ['CL_SECURITY_COST', 'MUST']] },
+  { key: 'CAPSTONE_CL', title: 'Capstone: A Production Platform', kind: 'SKILL',
+    description: 'One platform that proves the track: infrastructure as code, a trustworthy pipeline, SLOs and alerts, a game day, a cost report and recovery on Azure.',
+    topics: [['CL_CAPSTONE', 'MUST']] },
+  /* ── Cloud & DevOps Engineer, batch CL4: Year-4 placement ── */
+  { key: 'PL_CL_CLOUD_IV', title: 'Cloud Engineer Interviews', kind: 'PLACEMENT',
+    description: 'AWS and Azure core services, networking, storage and databases, and architecture at interview depth.',
+    topics: [['CL_IV_CLOUD', 'MUST']] },
+  { key: 'PL_CL_DEVOPS_IV', title: 'DevOps Engineer Interviews', kind: 'PLACEMENT',
+    description: 'Linux, Docker and Kubernetes, Terraform, CI/CD and SRE at interview depth.',
+    topics: [['CL_IV_DEVOPS', 'MUST']] },
+  { key: 'PL_CL_SCENARIOS', title: 'Cloud Scenario Rounds', kind: 'PLACEMENT',
+    description: 'Live troubleshooting, cloud design, infrastructure take-homes and incident rounds.',
+    topics: [['CL_SCENARIO_ROUNDS', 'MUST']] },
+  { key: 'PL_CL_CANDIDATE', title: 'The Cloud Candidate', kind: 'PLACEMENT',
+    description: 'A cloud resume and portfolio, AWS and Azure certifications and the career path, and a full cloud interview loop.',
+    topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['CL_PLACE_CANDIDATE', 'MUST']] },
 ];
 
 /** A track's placement: the shared packs, the AI interviews it needs, system design, and the AI candidate (HR and mocks last). */
@@ -483,4 +515,12 @@ export const TRACKS: TrackDefinition[] = [
     description: 'Networks, Linux and Windows for defenders; cryptography and identity; monitoring and detection in a SOC with open-source tools; incident response, threat intelligence and hunting; vulnerability management, cloud security and governance.',
     specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SEC_SYSTEMS_BASICS', 'SEC_FOUNDATIONS_CY', 'WEB_APPSEC_CY', 'CY_DEFENDER_FOUNDATIONS', 'CY_SECURITY_OPERATIONS', 'CY_DEFENSIVE_PROGRAMME', 'CAPSTONE_CY'],
     placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_CY_SOC_IV', 'PL_CY_SCENARIOS', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_CY_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
+
+  /* Cloud & DevOps Engineer — AWS as the main cloud, Azure as the second; Linux, Docker, Kubernetes,
+     Terraform, CI/CD and SRE. Setup holds what it reuses; its own topics (CL1–CL3), placement (CL4) and
+     bank (CL5) land with their batches. */
+  { key: 'CLOUD_DEVOPS', name: 'Cloud & DevOps Engineer (AWS + Azure)', language: 'Python, Linux and Terraform', order: 120,
+    description: 'AWS accounts, IAM, networking, compute, storage and databases; serverless, containers and Kubernetes on EKS; Terraform and CI/CD with GitOps; observability and SRE, security and cost; and Azure as the second cloud.',
+    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SEC_SYSTEMS_BASICS', 'CLOUD_YEAR_BASICS', 'CL_AWS_CORE', 'CL_DELIVERY', 'CL_OPERATE', 'CAPSTONE_CL'],
+    placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_CL_CLOUD_IV', 'PL_CL_DEVOPS_IV', 'PL_CL_SCENARIOS', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_CL_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

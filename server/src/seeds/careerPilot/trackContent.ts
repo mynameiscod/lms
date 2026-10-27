@@ -11,6 +11,7 @@ import { TRACK_DATA_A1, TRACK_DATA_A2, TRACK_DATA_A3, TRACK_DATA_A4, TRACK_DATA_
 import { TRACK_DS_S1, TRACK_DS_S2, TRACK_DS_S3, TRACK_DS_S4, TRACK_DS_S5 } from './trackUnitsDataScience';
 import { TRACK_AI_CORE, TRACK_AI_GENAI, TRACK_AI_AGENTIC, TRACK_AI_MLOPS, TRACK_AI_SECURITY, TRACK_AI_PLACE } from './trackUnitsAiEng';
 import { TRACK_CY_FOUNDATIONS, TRACK_CY_SOC, TRACK_CY_DEFEND, TRACK_CY_PLACE } from './trackUnitsCyber';
+import { TRACK_CL_AWS, TRACK_CL_DELIVERY, TRACK_CL_OPERATE, TRACK_CL_PLACE } from './trackUnitsCloud';
 
 /**
  * Every career-track topic and its units (stage `track`), in one dataset. See trackStageMap for
@@ -52,4 +53,8 @@ export const TRACK_CONTENT: Record<string, TopicSeed> = {
   ...TRACK_CY_SOC,
   ...TRACK_CY_DEFEND,
   ...TRACK_CY_PLACE,
+  ...TRACK_CL_AWS,
+  ...TRACK_CL_DELIVERY,
+  ...TRACK_CL_OPERATE,
+  ...TRACK_CL_PLACE,
 };

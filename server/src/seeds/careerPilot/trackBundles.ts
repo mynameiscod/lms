@@ -130,6 +130,22 @@ import { TRACK_CY_CAPSTONE_BUNDLES } from './trackContentCyCapstone';
 import { TRACK_CY_IV_SOC_BUNDLES } from './trackContentCyIvSoc';
 import { TRACK_CY_SCENARIO_ROUNDS_BUNDLES } from './trackContentCyScenarios';
 import { TRACK_CY_PLACE_CANDIDATE_BUNDLES } from './trackContentCyPlaceCandidate';
+import { TRACK_CL_AWS_FOUNDATIONS_BUNDLES } from './trackContentClAwsFoundations';
+import { TRACK_CL_AWS_NETWORKING_BUNDLES } from './trackContentClAwsNetworking';
+import { TRACK_CL_AWS_COMPUTE_STORAGE_BUNDLES } from './trackContentClAwsCompute';
+import { TRACK_CL_AWS_DATABASES_BUNDLES } from './trackContentClAwsDatabases';
+import { TRACK_CL_SERVERLESS_BUNDLES } from './trackContentClServerless';
+import { TRACK_CL_KUBERNETES_BUNDLES } from './trackContentClKubernetes';
+import { TRACK_CL_TERRAFORM_BUNDLES } from './trackContentClTerraform';
+import { TRACK_CL_CICD_GITOPS_BUNDLES } from './trackContentClCicd';
+import { TRACK_CL_OBSERVABILITY_SRE_BUNDLES } from './trackContentClObservability';
+import { TRACK_CL_SECURITY_COST_BUNDLES } from './trackContentClSecurityCost';
+import { TRACK_CL_AZURE_BUNDLES } from './trackContentClAzure';
+import { TRACK_CL_CAPSTONE_BUNDLES } from './trackContentClCapstone';
+import { TRACK_CL_IV_CLOUD_BUNDLES } from './trackContentClIvCloud';
+import { TRACK_CL_IV_DEVOPS_BUNDLES } from './trackContentClIvDevops';
+import { TRACK_CL_SCENARIO_ROUNDS_BUNDLES } from './trackContentClScenarios';
+import { TRACK_CL_PLACE_CANDIDATE_BUNDLES } from './trackContentClPlaceCandidate';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -278,4 +294,20 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_CY_IV_SOC_BUNDLES,
   ...TRACK_CY_SCENARIO_ROUNDS_BUNDLES,
   ...TRACK_CY_PLACE_CANDIDATE_BUNDLES,
+  ...TRACK_CL_AWS_FOUNDATIONS_BUNDLES,
+  ...TRACK_CL_AWS_NETWORKING_BUNDLES,
+  ...TRACK_CL_AWS_COMPUTE_STORAGE_BUNDLES,
+  ...TRACK_CL_AWS_DATABASES_BUNDLES,
+  ...TRACK_CL_SERVERLESS_BUNDLES,
+  ...TRACK_CL_KUBERNETES_BUNDLES,
+  ...TRACK_CL_TERRAFORM_BUNDLES,
+  ...TRACK_CL_CICD_GITOPS_BUNDLES,
+  ...TRACK_CL_OBSERVABILITY_SRE_BUNDLES,
+  ...TRACK_CL_SECURITY_COST_BUNDLES,
+  ...TRACK_CL_AZURE_BUNDLES,
+  ...TRACK_CL_CAPSTONE_BUNDLES,
+  ...TRACK_CL_IV_CLOUD_BUNDLES,
+  ...TRACK_CL_IV_DEVOPS_BUNDLES,
+  ...TRACK_CL_SCENARIO_ROUNDS_BUNDLES,
+  ...TRACK_CL_PLACE_CANDIDATE_BUNDLES,
 ].map(balanced);

@@ -25,6 +25,23 @@ export class InboxError extends Error {
 
 // ── Which records share this number ─────────────────────────────────────────
 
+/**
+ * Puts a message that REALLY went out on the lead's timeline, under the person who sent it.
+ * Called only after Meta accepted the send, so the timeline never claims a WhatsApp that did not happen.
+ * Never throws: a logging problem must not make a delivered message look failed.
+ */
+export async function logLeadWhatsApp(tenantId: string, userId: string, phone: string, description: string) {
+  try {
+    const ten = last10(phone);
+    if (ten.length < 10) return;
+    const lead: any = await Lead.findOne({ tenantId: oid(tenantId), phone: new RegExp(`${ten}$`) }).sort({ createdAt: -1 }).select('_id').lean();
+    if (!lead) return;
+    await Lead.updateOne({ _id: lead._id }, { $push: { activities: { type: 'whatsapp', description: description.slice(0, 500), createdBy: userId ? oid(userId) : undefined, createdAt: new Date() } } });
+  } catch (e: any) {
+    console.warn('[wa-chat] could not log the message on the lead:', e?.message);
+  }
+}
+
 /** Placement candidate, lead and student with this number, stored on the thread for filtering. */
 export async function linkThread(tenantId: string, phone: string) {
   const ten = last10(phone);

@@ -1900,8 +1900,10 @@ export const leadStageApi = {
 
 // Lead API
 export const leadApi = {
-  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string }) => {
+  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string; adId?: string; reEnquiry?: boolean }) => {
     const params = new URLSearchParams();
+    if (filters?.adId) params.append('adId', filters.adId);
+    if (filters?.reEnquiry) params.append('reEnquiry', 'true');
     if (filters?.stageId) params.append('stageId', filters.stageId);
     if (filters?.source) params.append('source', filters.source);
     if (filters?.assignedTo) params.append('assignedTo', filters.assignedTo);
@@ -1919,6 +1921,10 @@ export const leadApi = {
   },
   getSources: async () => {
     return authenticatedFetch(`${API_BASE_URL}/leads/sources`);
+  },
+  /** The ads leads came from, for the "which ad" filter. */
+  getAds: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/ads`);
   },
   createLead: async (data: any) => {
     return authenticatedFetch(`${API_BASE_URL}/leads`, {
@@ -1988,8 +1994,10 @@ export const leadApi = {
   getManagerBoard: async () => {
     return authenticatedFetch(`${API_BASE_URL}/leads/manager-board`);
   },
-  exportLeads: (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; dateFrom?: string; dateTo?: string }) => {
+  exportLeads: (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; dateFrom?: string; dateTo?: string; adId?: string; reEnquiry?: boolean }) => {
     const params = new URLSearchParams();
+    if (filters?.adId) params.append('adId', filters.adId);
+    if (filters?.reEnquiry) params.append('reEnquiry', 'true');
     if (filters?.stageId) params.append('stageId', filters.stageId);
     if (filters?.source) params.append('source', filters.source);
     if (filters?.assignedTo) params.append('assignedTo', filters.assignedTo);

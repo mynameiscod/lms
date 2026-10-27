@@ -371,6 +371,7 @@ const LeakList: React.FC<{ title: string; rows: { what: string; visitors: number
 const Table: React.FC<{ title: string; rows: Row[]; cols: [keyof Row, string][] }> = ({ title, rows, cols }) => (
   <div className="cj-card">
     <b style={{ fontSize: 14 }}>{title}</b>
+    <div className="cj-table-wrap">
     <table className="cj-table" style={{ marginTop: 8 }}>
       <thead><tr><th>{title.startsWith('New') ? 'Campaign Source' : title.includes('device') ? 'Device' : 'Source'}</th>{cols.map(([, l]) => <th key={l}>{l}</th>)}</tr></thead>
       <tbody>
@@ -378,6 +379,7 @@ const Table: React.FC<{ title: string; rows: Row[]; cols: [keyof Row, string][] 
         {!rows.length && <tr><td style={{ color: '#9ca3af' }} colSpan={cols.length + 1}>No data in this period yet.</td></tr>}
       </tbody>
     </table>
+    </div>
   </div>
 );
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { leadApi, leadStageApi, qualificationApi, followUpApi } from '../../api';
+import { leadApi, leadStageApi, qualificationApi, followUpApi, userApi } from '../../api';
 import SalesCallRecordingCard from '../../components/leads/SalesCallRecordingCard';
 import LeadAiCalls from './LeadAiCalls';
 import { leadArchiveApi, archiveError } from '../../api/leadArchiveApi';
@@ -27,6 +27,10 @@ interface Lead {
   activities?: Activity[];
   qualificationAnswers?: Record<string, string>;
   customFields?: Record<string, any>;
+  reEnquiryCount?: number;
+  lastReEnquiryAt?: string;
+  reEnquiryUnseen?: boolean;
+  reEnquiries?: { at: string; channel: string; adName?: string; campaignName?: string; note?: string }[];
 }
 
 /**
@@ -87,6 +91,11 @@ const LeadDetailV2: React.FC = () => {
   const { user: currentUser } = useAuth();
   const chatAllowed = canChat(currentUser as any);
   const [showChat, setShowChat] = useState(false);
+  const [showAssign, setShowAssign] = useState(false);
+  const [staff, setStaff] = useState<any[]>([]);
+  const [assignTo, setAssignTo] = useState('');
+  const [assigning, setAssigning] = useState(false);
+  const canReassign = !!currentUser && (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'TENANT_ADMIN' || ((currentUser as any).permissions || []).some((p: string) => ['manage_leads', 'edit_leads'].includes(p)));
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   const [noteText, setNoteText] = useState('');
@@ -172,6 +181,30 @@ const LeadDetailV2: React.FC = () => {
     if (chatAllowed) { setShowChat(true); return; }
     // Without chat permission the only option is the phone's own WhatsApp; nothing is logged for that.
     window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}`, '_blank');
+  };
+
+  const openReassign = async () => {
+    setAssignTo((lead?.assignedTo as any)?._id || '');
+    setShowAssign(true);
+    if (!staff.length) {
+      try {
+        const res = await userApi.getUsers();
+        setStaff((res.data || []).filter((u: any) => ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(u.role) || u.customRoleId));
+      } catch { showToast('Could not load the team list', 'error'); }
+    }
+  };
+
+  const saveReassign = async () => {
+    if (!lead) return;
+    setAssigning(true);
+    try {
+      await leadApi.updateLead(leadId!, { assignedTo: assignTo || null });
+      setShowAssign(false);
+      showToast(assignTo ? 'Lead reassigned' : 'Lead unassigned');
+      fetchData();
+    } catch (e: any) {
+      showToast(e?.message || 'Could not reassign this lead', 'error');
+    } finally { setAssigning(false); }
   };
 
   const openInWhatsAppApp = () => {
@@ -532,6 +565,7 @@ const LeadDetailV2: React.FC = () => {
                     {lead.assignedTo
                       ? (lead.assignedTo.name || `${lead.assignedTo.firstName || ''} ${lead.assignedTo.lastName || ''}`.trim() || 'Unassigned')
                       : 'Unassigned'}
+                    {canReassign && <button type="button" className="ld2-reassign-btn" onClick={openReassign}>Reassign</button>}
                   </span>
                 </div>
               </div>
@@ -553,6 +587,18 @@ const LeadDetailV2: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Repeat enquiry: the person came back. Stays until somebody works the lead. */}
+          {lead.reEnquiryUnseen && (
+            <div className="ld2-reenq-banner">
+              <strong>🔁 Enquired again{lead.reEnquiryCount && lead.reEnquiryCount > 1 ? ` (${lead.reEnquiryCount} times)` : ''}</strong>
+              <span>
+                {lead.lastReEnquiryAt ? new Date(lead.lastReEnquiryAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''}
+                {(() => { const r = lead.reEnquiries?.[lead.reEnquiries.length - 1]; const ad = r ? [r.campaignName, r.adName].filter(Boolean).join(' › ') : ''; return ad ? ` · ${ad}` : ''; })()}
+                . Call or add a note to clear this.
+              </span>
+            </div>
+          )}
 
           {/* Stage Pipeline */}
           <div className="ld2-stage-pipeline">
@@ -964,6 +1010,32 @@ const LeadDetailV2: React.FC = () => {
             <div className="ld2-modal-footer">
               <button className="ld2-btn-cancel" onClick={() => { setShowNoteModal(false); setRecordingFile(null); setCallOutcome(''); setNoteType('note'); }}>Cancel</button>
               <button className="ld2-btn-primary" onClick={handleSaveNote}>Save Activity</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reassign modal */}
+      {showAssign && (
+        <div className="ld2-modal-overlay" onClick={() => setShowAssign(false)}>
+          <div className="ld2-modal" onClick={e => e.stopPropagation()}>
+            <div className="ld2-modal-header">
+              <h3>Reassign lead</h3>
+              <button onClick={() => setShowAssign(false)}><i className="bi bi-x-lg"></i></button>
+            </div>
+            <div className="ld2-modal-body">
+              <div className="ld2-form-group">
+                <label>Assign {lead.name} to</label>
+                <select className="ld2-select" value={assignTo} onChange={e => setAssignTo(e.target.value)}>
+                  <option value="">Unassigned</option>
+                  {staff.map((u: any) => <option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>)}
+                </select>
+              </div>
+              <small style={{ color: '#64748b' }}>The change is recorded on the timeline with your name.</small>
+            </div>
+            <div className="ld2-modal-footer">
+              <button className="ld2-btn-cancel" onClick={() => setShowAssign(false)}>Cancel</button>
+              <button className="ld2-btn-primary" disabled={assigning} onClick={saveReassign}>{assigning ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>

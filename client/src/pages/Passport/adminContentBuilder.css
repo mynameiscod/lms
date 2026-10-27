@@ -222,3 +222,45 @@
 }
 .acb-track-pick select { width: 100%; border: 1.5px solid #D5E0EC; border-radius: 11px; padding: 10px 12px; font: inherit; font-size: 14px; color: var(--ink); background: #fff; outline: none; }
 .acb-track-pick select:focus { border-color: #359AAD; }
+
+/* Practice questions from a CSV (PracticeCsvImport.tsx). */
+.pci { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; border: 1px dashed #9DBBD0; background: #F6FAFD; }
+.pci-hd { display: flex; gap: 11px; align-items: flex-start; }
+.pci-ic { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: #E3F1EC; color: #13784F; font-size: 18px; }
+.pci-hd b { display: block; font-size: 14.5px; color: var(--navy, #051D64); }
+.pci-hd small { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.45; color: #4A5D75; }
+.pci-act { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pci-pick { position: relative; cursor: pointer; }
+.pci-pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.pci-pick:focus-within { box-shadow: 0 0 0 3px rgba(53, 154, 173, .3); }
+.pci-file { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: #33475B; min-width: 0; overflow-wrap: anywhere; }
+.pci-out { display: flex; flex-direction: column; gap: 9px; }
+.pci-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 11px; border-radius: 10px; background: #EAF8F1; color: #155E43; font-size: 13.5px; }
+.pci-sum.none { background: #FFF4E0; color: #8A5300; }
+.pci-errs { border: 1px solid #F5DDB5; background: #FFF9EE; border-radius: 10px; padding: 8px 11px; font-size: 13px; color: #6B4300; }
+.pci-errs summary { cursor: pointer; font-weight: 700; }
+.pci-errs ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; max-height: 180px; overflow-y: auto; }
+.pci-errs li b { margin-right: 6px; }
+.pci-list, .pci-added ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; max-height: 260px; overflow-y: auto; }
+.pci-list li, .pci-added li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 8px; padding: 7px 10px; border-radius: 9px; background: #fff; border: 1px solid var(--line, #E2EAF2); font-size: 13px; color: #1F2D44; min-width: 0; }
+.pci-q { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+.pci-opts { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 10px; padding-left: 52px; font-size: 12px; color: #4A5D75; }
+.pci-opts em { font-style: normal; }
+.pci-opts em.ok { color: #13784F; font-weight: 700; }
+.pci-opts em.ok::after { content: ' ✓'; }
+.pci-type { flex: none; min-width: 46px; text-align: center; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: .03em; }
+.pci-type.t-mcq { background: #F1EDFF; color: #5B3FBF; }
+.pci-type.t-theory { background: #FFF4E0; color: #8A5300; }
+.pci-more { justify-content: center; color: #4A5D75; background: transparent !important; border-style: dashed !important; }
+.pci-mode { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: #1F2D44; }
+.pci-mode label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.pci-foot { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.pci-added { display: flex; flex-direction: column; gap: 6px; }
+.pci-added-hd { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13.5px; color: var(--navy, #051D64); }
+.pci-x { flex: none; border: 0; background: none; color: #7A8CA3; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+.pci-x:hover { color: #C93737; background: #FFF0F0; }
+.pci-link { border: 0; background: none; padding: 0; color: #1d4ed8; text-decoration: underline; cursor: pointer; font: inherit; }
+@media (max-width: 560px) {
+  .pci-act .acb-btn, .pci-foot .acb-btn { flex: 1 1 auto; justify-content: center; }
+  .pci-opts { padding-left: 0; }
+}

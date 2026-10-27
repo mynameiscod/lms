@@ -97,8 +97,21 @@ export function QAViewer({ content }: { content: any }) {
 
 // ─── Practice Viewer ─────────────────────────────────────────────────────────
 
+/**
+ * A question's title is a short label and its description the full text, but a question written
+ * in the Content Builder or imported from a CSV stores the same words in both (the title being the
+ * first 120 characters). Shown as heading AND body, every such question read twice. The body is
+ * shown only when it adds something.
+ */
+const repeatsTitle = (title: string, description: string) => {
+  const t = String(title || '').trim().replace(/…$/, '');
+  const d = String(description || '').trim();
+  return !!t && (d === t || d.startsWith(t));
+};
+
 export function PracticeViewer({ content }: { content: any }) {
-  const [answers, setAnswers] = useState<Record<number, number | null>>({});
+  /** One chosen option per question; a question with several right answers takes several. */
+  const [answers, setAnswers] = useState<Record<number, number[]>>({});
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const questions = content.practiceQuestions || [];
 
@@ -110,7 +123,7 @@ export function PracticeViewer({ content }: { content: any }) {
         <div key={qi} style={{ border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '8px' }}>
             <div style={{ fontWeight: 700, fontSize: '14px', color: '#0f172a', flex: 1 }}>
-              Q{qi + 1}. <InlineNotes text={q.title} />
+              Q{qi + 1}. <InlineNotes text={repeatsTitle(q.title, q.description) && String(q.description).length <= 240 ? q.description : q.title} />
             </div>
             <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
               <span style={{
@@ -126,17 +139,25 @@ export function PracticeViewer({ content }: { content: any }) {
             </div>
           </div>
 
-          {q.description && (
+          {q.description && !(repeatsTitle(q.title, q.description) && String(q.description).length <= 240) && (
             <div style={{ marginBottom: '12px' }}>
               <NotesContent text={q.description} compact />
             </div>
           )}
 
           {/* MCQ options */}
-          {q.type === 'mcq' && q.options && (
+          {q.type === 'mcq' && q.options && (() => {
+            const multi = q.options.filter((o: any) => o.isCorrect).length > 1;
+            const picked = answers[qi] || [];
+            const pick = (oi: number) => setAnswers(prev => {
+              const cur = prev[qi] || [];
+              return { ...prev, [qi]: multi ? (cur.includes(oi) ? cur.filter(x => x !== oi) : [...cur, oi]) : [oi] };
+            });
+            return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {multi && <div style={{ fontSize: '12px', color: '#475569', marginBottom: '2px' }}>Choose every answer that applies.</div>}
               {q.options.map((opt: any, oi: number) => {
-                const selected = answers[qi] === oi;
+                const selected = picked.includes(oi);
                 const isCorrect = opt.isCorrect;
                 const showResult = revealed[qi];
                 let bg = '#f8fafc', border = '#e2e8f0', color = '#374151';
@@ -147,7 +168,7 @@ export function PracticeViewer({ content }: { content: any }) {
                 return (
                   <div
                     key={oi}
-                    onClick={() => !revealed[qi] && setAnswers(prev => ({ ...prev, [qi]: oi }))}
+                    onClick={() => !revealed[qi] && pick(oi)}
                     style={{
                       padding: '10px 14px', borderRadius: '8px', cursor: revealed[qi] ? 'default' : 'pointer',
                       background: bg, border: `1.5px solid ${border}`, color, fontSize: '14px',
@@ -161,7 +182,7 @@ export function PracticeViewer({ content }: { content: any }) {
                   </div>
                 );
               })}
-              {answers[qi] !== null && answers[qi] !== undefined && !revealed[qi] && (
+              {picked.length > 0 && !revealed[qi] && (
                 <button
                   onClick={() => setRevealed(prev => ({ ...prev, [qi]: true }))}
                   style={{ alignSelf: 'flex-start', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginTop: '4px' }}
@@ -169,13 +190,21 @@ export function PracticeViewer({ content }: { content: any }) {
                   Check Answer
                 </button>
               )}
+              {revealed[qi] && multi && (() => {
+                const right = q.options.map((o: any, k: number) => (o.isCorrect ? k : -1)).filter((k: number) => k >= 0);
+                const allRight = right.length === picked.length && right.every((k: number) => picked.includes(k));
+                return <div style={{ fontSize: '13px', fontWeight: 600, color: allRight ? '#15803d' : '#b45309', marginTop: '2px' }}>
+                  {allRight ? 'All correct.' : `The right answers are ${right.map((k: number) => String.fromCharCode(65 + k)).join(' and ')}.`}
+                </div>;
+              })()}
               {revealed[qi] && q.explanation && (
                 <div style={{ background: '#f0fdf4', borderRadius: '7px', padding: '10px 12px', fontSize: '13px', color: '#15803d', marginTop: '4px' }}>
                   💡 <InlineNotes text={q.explanation} />
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* Theory / Coding */}
           {(q.type === 'theory' || q.type === 'coding') && (

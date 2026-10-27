@@ -7,6 +7,8 @@ import { mediaUrl, mediaPathFor } from '../../utils/mediaUrl';
 import VideoScriptPanel from './VideoScriptPanel';
 import AssignmentDrawer from './AssignmentDrawer';
 import StudentDayPreview from './StudentDayPreview';
+import PracticeCsvImport from './PracticeCsvImport';
+import { PracticeQuestionInput } from './practiceCsv';
 
 /**
  * Content Builder — one screen for "what does a learner do on this day, and let me change it".
@@ -48,7 +50,7 @@ const KIND_META: Record<Exclude<DrawerKind, null>, { label: string; icon: string
   video: { label: 'Video', icon: 'bi-play-circle-fill', blurb: 'A YouTube or Vimeo link the learner watches.' },
   notes: { label: 'Notes', icon: 'bi-file-text-fill', blurb: 'Written notes the learner reads.' },
   tech_qa: { label: 'Q&A', icon: 'bi-patch-question-fill', blurb: 'Questions with model answers.' },
-  practice_theory: { label: 'Practice', icon: 'bi-pencil-square', blurb: 'Short questions the learner answers in their own words.' },
+  practice_theory: { label: 'Practice', icon: 'bi-pencil-square', blurb: 'Questions the learner answers - multiple choice, or in their own words.' },
 };
 
 const ICON_FOR: Record<string, string> = {
@@ -684,6 +686,8 @@ const ContentDrawer: React.FC<{
   const [url, setUrl] = useState('');
   const [body, setBody] = useState('');
   const [pairs, setPairs] = useState([{ question: '', answer: '' }]);
+  /** Questions read from a CSV (multiple choice and theory), shown above the ones typed in. */
+  const [imported, setImported] = useState<PracticeQuestionInput[]>([]);
   const [problem, setProblem] = useState('');
   /**
    * A video is a LINK or a FILE, never both.
@@ -728,9 +732,10 @@ const ContentDrawer: React.FC<{
       base.qaItems = items;
     }
     if (kind === 'practice_theory') {
-      const qs = pairs.filter(p => p.question.trim())
+      const typed = pairs.filter(p => p.question.trim())
         .map(p => ({ type: 'theory', title: p.question.trim().slice(0, 120), description: p.question.trim(), explanation: p.answer.trim(), marks: 1, gradingMode: 'self' }));
-      if (!qs.length) { setProblem('Add at least one question.'); return; }
+      const qs = [...imported, ...typed];
+      if (!qs.length) { setProblem('Add at least one question, or import them from a CSV.'); return; }
       base.practiceQuestions = qs;
     }
     setProblem('');
@@ -788,6 +793,25 @@ const ContentDrawer: React.FC<{
         {kind === 'notes' && <NotesField
           value={body} onChange={setBody} onError={setProblem}
           placeholder="Write the notes. Markdown and simple HTML both render." />}
+
+        {kind === 'practice_theory' && <>
+          <PracticeCsvImport existingCount={imported.length + pairs.filter(p => p.question.trim()).length}
+            onUse={(qs, mode) => {
+              if (mode === 'replace') { setImported(qs); setPairs([{ question: '', answer: '' }]); }
+              else setImported(prev => [...prev, ...qs]);
+              setProblem('');
+            }} />
+          {imported.length > 0 && <div className="pci-added">
+            <div className="pci-added-hd"><b>{imported.length} imported question{imported.length === 1 ? '' : 's'}</b>
+              <button type="button" className="acb-pair-x" onClick={() => setImported([])}><i className="bi bi-trash" /> Remove all</button></div>
+            <ol>{imported.map((q, i) => <li key={i}>
+              <span className={`pci-type t-${q.type}`}>{q.type === 'mcq' ? 'MCQ' : 'Theory'}</span>
+              <span className="pci-q">{q.title}</span>
+              <button type="button" className="pci-x" aria-label={`Remove imported question ${i + 1}`} onClick={() => setImported(prev => prev.filter((_, j) => j !== i))}><i className="bi bi-x-lg" /></button>
+            </li>)}</ol>
+            <small className="acb-hint">Type more questions below, or leave the boxes empty.</small>
+          </div>}
+        </>}
 
         {usesPairs && <div className="acb-pairs">
           {pairs.map((p, i) => <div className="acb-pair" key={i}>
@@ -959,6 +983,8 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
      invitation to replace it with a link. */
   const [videoMode, setVideoMode] = useState<'link' | 'upload'>('link');
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  /** The set's questions after a CSV import, saved with the rest of the edit; null = unchanged. */
+  const [practiceQs, setPracticeQs] = useState<any[] | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -989,6 +1015,9 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
   const isVideo = type === 'video';
   const isVideoLink = isVideo && ['youtube', 'vimeo'].includes(String(row?.videoSource || ''));
   const isRichNotes = ['notes', 'worked_example'].includes(type) && String(row?.notesSource || '') !== 'upload';
+  /** Question sets a CSV can feed: theory and multiple choice (coding questions need test cases). */
+  const isPracticeSet = ['practice_theory', 'aptitude'].includes(type);
+  const currentQs: any[] = practiceQs || row?.practiceQuestions || [];
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1006,6 +1035,7 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
       }
     }
     if (isRichNotes) { patch.notesSource = 'richtext'; patch.notesContent = body; }
+    if (isPracticeSet && practiceQs) patch.practiceQuestions = practiceQs;
     setProblem('');
     onSave(patch, isVideo && videoMode === 'upload' ? videoFile : null);
   };
@@ -1051,12 +1081,18 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
           )}
         </>}
         {isRichNotes && <NotesField value={body} onChange={setBody} onError={setProblem} />}
+        {isPracticeSet && row && <>
+          <p className="acb-drawer-to"><i className="bi bi-list-check" /> This set has <b>{currentQs.length} question{currentQs.length === 1 ? '' : 's'}</b>
+            {practiceQs && <> - changed by the import; <b>Save</b> to keep it, or <button type="button" className="pci-link" onClick={() => setPracticeQs(null)}>undo</button></>}.</p>
+          <PracticeCsvImport existingCount={currentQs.length}
+            onUse={(qs, mode) => setPracticeQs(mode === 'replace' ? qs : [...currentQs, ...qs])} />
+        </>}
         <label className="acb-field short"><span>Minutes</span>
           <input type="number" min={0} max={180} value={minutes} onChange={e => setMinutes(Number(e.target.value))} />
         </label>
         {row && !isVideoLink && !isRichNotes && <p className="acb-drawer-to">
           <i className="bi bi-box-arrow-up-right" />
-          <a href={`/learning-library/edit/${item.contentId}`}>Open the full editor</a> for this item&rsquo;s questions or file.
+          <a href={`/learning-library/edit/${item.contentId}`}>Open the full editor</a> to edit {isPracticeSet ? 'one question at a time' : 'this item\u2019s questions or file'}.
         </p>}
         {problem && <div className="acb-err"><i className="bi bi-exclamation-circle" /> {problem}</div>}
       </div>

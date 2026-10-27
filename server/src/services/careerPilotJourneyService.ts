@@ -133,7 +133,21 @@ async function memberFacts(cohort: any[]): Promise<Fact[]> {
   return [setup, home, orientation, assessStart, assessDone, practice, checkout, paid, back, week2];
 }
 
-export async function journey(tenantId: string, range: Range) {
+/** The period right before this one, the same length: what the "vs previous" figures compare against. */
+export function previousRange(r: Range): Range {
+  const len = r.to.getTime() - r.from.getTime();
+  return { from: new Date(r.from.getTime() - len), to: new Date(r.from.getTime() - 1) };
+}
+
+/** Shown as "↑125%": change from the previous period. From nothing to something is 100%; nothing to nothing is 0%. */
+export const changePct = (cur: number, prev: number): number => (prev ? Math.round(((cur - prev) / prev) * 100) : cur ? 100 : 0);
+
+/** "All time" has no period before it to compare with. */
+const isAllTime = (r: Range) => r.to.getTime() - r.from.getTime() > 1000 * 86400000;
+
+const KPI_KEYS: [string, string][] = [['signups', 'v1'], ['accounts', 'account'], ['orientation', 'orientation'], ['assessStarted', 'assessStart'], ['week2', 'week2']];
+
+export async function journey(tenantId: string, range: Range, opts: { lite?: boolean } = {}): Promise<any> {
   const T = oid(tenantId);
   const inRange = { tenantId: T, createdAt: { $gte: range.from, $lte: range.to } };
 
@@ -164,6 +178,16 @@ export async function journey(tenantId: string, range: Range) {
       return { key: f.key, group: 'member', label: f.label, count: f.ids.size, pctOfAccounts: pct(f.ids.size, accounts), medianMinutes: median(mins) };
     }),
   ];
+
+  // The headline cards: this period against the one before it.
+  const countOf = (list: any[], key: string) => list.find((x: any) => x.key === key)?.count ?? 0;
+  if (opts.lite) return { steps };
+  const prev = isAllTime(range) ? null : (await journey(tenantId, previousRange(range), { lite: true })).steps;
+  const kpis = Object.fromEntries(KPI_KEYS.map(([name, key]) => {
+    const value = countOf(steps, key);
+    const before = prev ? countOf(prev, key) : null;
+    return [name, { value, previous: before, change: before === null ? null : changePct(value, before) }];
+  }));
 
   // ── how much of the sign-ups the page tracking actually saw (older sign-ups predate it)
   const tracking = { accounts, verifiedSeen: v5, coverage: accounts ? Math.min(100, Math.round((v5 / accounts) * 100)) : null };
@@ -203,7 +227,7 @@ export async function journey(tenantId: string, range: Range) {
   });
 
   return {
-    range, steps, tracking, formLeaks,
+    range, steps, kpis, tracking, formLeaks,
     bySource: group('source'), byDevice: group('device'),
     accountsBySource: [...accountsBySource.entries()].map(([name, r]) => ({ name, ...r, pctPaid: pct(r.paid, r.accounts) })).sort((a, b) => b.accounts - a.accounts).slice(0, 10),
   };

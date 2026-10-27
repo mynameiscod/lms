@@ -36,6 +36,25 @@ const IGNORED = [
 function labelFor(method: string, route: string): string {
   const p = route.replace(/^\/+/, '');
   const known: Array<[RegExp, string]> = [
+    // Routes CareerPilot members share with the LMS (recorded with their mount prefix).
+    [/^enrollment-plans\/[^/]+\/day\//,        'Opened a roadmap day'],
+    [/^enrollment-plans\/[^/]+\/complete-item/, 'Completed a lesson item'],
+    [/^enrollment-plans/,                       'Roadmap'],
+    [/^assignments\/[^/]+\/start/,              'Started an assignment'],
+    [/^assignments\/submissions\/[^/]+\/submit/, 'Submitted an assignment'],
+    [/^assignments\/submissions\/[^/]+\/save/,   'Saved assignment work'],
+    [/^assignments\/submissions\/[^/]+\/run/,    'Ran assignment code'],
+    [/^assignments/,                            'Assignment'],
+    [/^quizzes\/.*(submit|attempt)/,            'Submitted a quiz'],
+    [/^quizzes/,                                'Quiz'],
+    [/^coding-practice\/.*\/submit/,             'Submitted a practice problem'],
+    [/^coding-practice\/.*\/run/,                'Ran practice code'],
+    [/^coding-practice/,                        'Coding practice'],
+    [/^learning-library/,                       'Lesson content'],
+    [/^me\/foundation-journey\/day/, 'Opened a roadmap day'],
+    [/^me\/foundation-journey/,      'Viewed the roadmap'],
+    [/^me\/orientation/,             'Orientation'],
+    [/^me\/coins|^coins/,            'Coins'],
     [/^me\/plan\/complete/,        'Completed a mission'],
     [/^me\/plan/,                  'Opened the daily plan'],
     [/^me\/readiness/,             'Viewed role readiness'],
@@ -67,16 +86,32 @@ const normaliseRoute = (route: string): string =>
     .replace(/\/\d+(?=\/|$)/g, '/:n')
     .slice(0, 200);
 
+/**
+ * The same recorder, for routes CareerPilot members SHARE with the LMS (their day plan, assignments,
+ * quizzes, coding practice, lesson videos). Only a request signed with a CareerPilot login token
+ * (product 'careerpilot') is recorded, so an LMS student's traffic never lands in this trail.
+ */
+export function careerPilotMemberActivity(req: Request, res: Response, next: NextFunction) {
+  (req as any).__cpMembersOnly = true;
+  return careerPilotActivity(req, res, next);
+}
+
 export function careerPilotActivity(req: Request, res: Response, next: NextFunction) {
   const startedAt = Date.now();
   // Captured now: by the time 'finish' fires the router has restored the original url.
-  const route = normaliseRoute(String(req.path || ''));
+  // On a shared (members-only) mount the path alone is ambiguous — "/:id/day/:n" — so the mount is kept.
+  const base = (req as any).__cpMembersOnly ? String(req.baseUrl || '').replace(/^\/api\/v\d+/, '') : '';
+  const route = normaliseRoute(base + String(req.path || ''));
 
   if (IGNORED.some(p => route.startsWith(p))) return next();
+  // A video plays as dozens of Range requests; one row each would bury everything else. Viewing is
+  // recorded by the player instead (play, milestones, seconds watched).
+  if (/\/(stream|qualities)(\/|$)/.test(route)) return next();
 
   res.on('finish', () => {
     try {
       const user: any = (req as any).user;
+      if ((req as any).__cpMembersOnly && user?.product !== 'careerpilot') return;
       const tenantId = user?.tenantId || (req as any).tenantId;
       // A visitor id is what ties the row to a trail. The browser sends one on every request;
       // without it there is nothing to group by, so the row would be an orphan.

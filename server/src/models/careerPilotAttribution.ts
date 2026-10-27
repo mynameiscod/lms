@@ -42,6 +42,10 @@ export const ATTRIBUTION_FIELDS = [
   'fbclid',
   'landing_page',
   'entry_path',
+  // Captured by the app itself (not query params): the outside site that sent the visitor, and the
+  // first page they opened. They answer "where did this member come from" when the link was untagged.
+  'referrer',
+  'landing_url',
 ] as const;
 
 export type AttributionField = typeof ATTRIBUTION_FIELDS[number];
@@ -56,6 +60,8 @@ export interface IAttributionTouch {
   fbclid?: string;
   landing_page?: string;
   entry_path?: string;
+  referrer?: string;
+  landing_url?: string;
   captured_at?: Date;
 }
 
@@ -77,6 +83,8 @@ const AttributionTouchSchema = new Schema<IAttributionTouch>(
     fbclid:       { type: String, trim: true },
     landing_page: { type: String, trim: true },
     entry_path:   { type: String, trim: true },
+    referrer:     { type: String, trim: true },
+    landing_url:  { type: String, trim: true },
     captured_at:  { type: Date },
   },
   { _id: false },

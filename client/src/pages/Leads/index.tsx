@@ -135,6 +135,9 @@ const LeadsPage: React.FC = () => {
   const [filterStage, setFilterStage] = useState(() => getSavedFilter('filterStage'));
   const [filterSource, setFilterSource] = useState(() => getSavedFilter('filterSource'));
   const [filterAssignee, setFilterAssignee] = useState(() => getSavedFilter('filterAssignee'));
+  const [filterAd, setFilterAd] = useState(() => getSavedFilter('filterAd'));
+  const [filterReEnq, setFilterReEnq] = useState(() => getSavedFilter('filterReEnq') === '1');
+  const [ads, setAds] = useState<{ adId: string; adName: string; campaignName: string; adSetName: string; leads: number }[]>([]);
   const [filterPriority, setFilterPriority] = useState<LeadPriority | ''>(() => getSavedFilter('filterPriority') as LeadPriority | '');
   const [dateRange, setDateRange] = useState<'all'|'today'|'week'|'month'|'custom'>(() => getSavedFilter('dateRange', 'all') as 'all'|'today'|'week'|'month'|'custom');
   const [dateFrom, setDateFrom] = useState(() => getSavedFilter('dateFrom'));
@@ -194,10 +197,10 @@ const LeadsPage: React.FC = () => {
   // Persist filters to sessionStorage so they survive navigation away and back
   useEffect(() => {
     sessionStorage.setItem(FILTER_KEY, JSON.stringify({
-      searchInput, filterStage, filterSource, filterAssignee, filterPriority,
+      searchInput, filterStage, filterSource, filterAssignee, filterPriority, filterAd, filterReEnq: filterReEnq ? '1' : '',
       dateRange, dateFrom, dateTo, activeStageFilter
     }));
-  }, [searchInput, filterStage, filterSource, filterAssignee, filterPriority, dateRange, dateFrom, dateTo, activeStageFilter]);
+  }, [searchInput, filterStage, filterSource, filterAssignee, filterPriority, filterAd, filterReEnq, dateRange, dateFrom, dateTo, activeStageFilter]);
 
   // Debounce search input — only fire API call 400ms after user stops typing
   useEffect(() => {
@@ -243,6 +246,8 @@ const LeadsPage: React.FC = () => {
         assignedTo: filterAssignee || undefined,
         priority: filterPriority || undefined,
         search: search || undefined,
+        adId: filterAd || undefined,
+        reEnquiry: filterReEnq ? 'true' : undefined,
         ...dateFilt
       };
 
@@ -257,7 +262,7 @@ const LeadsPage: React.FC = () => {
       // All critical fetches in one Promise.all so failures surface instead of silently zeroing stats
       const [stagesRes, leadsRes, stageAnalytics, filteredAnalytics] = await Promise.all([
         leadStageApi.getStages(),
-        leadApi.getLeads({ search, stageId: stageFilter, source: filterSource, assignedTo: filterAssignee, priority: filterPriority || undefined, page, limit: 100, ...dateFilt }),
+        leadApi.getLeads({ search, stageId: stageFilter, source: filterSource, assignedTo: filterAssignee, priority: filterPriority || undefined, adId: filterAd || undefined, reEnquiry: filterReEnq, page, limit: 100, ...dateFilt }),
         stageAnalyticsP,
         filteredAnalyticsP,
       ]);
@@ -305,12 +310,13 @@ const LeadsPage: React.FC = () => {
 
       // ── Config / users (non-critical, load independently) ───────────────────
       try {
-        const [configRes, statsRes, columnsRes, usersRes, sourcesRes] = await Promise.all([
+        const [configRes, statsRes, columnsRes, usersRes, sourcesRes, adsRes] = await Promise.all([
           leadFormConfigApi.getConfig(),
           leadFormConfigApi.getStatsCardsConfig(),
           leadFormConfigApi.getTableColumnsConfig(),
           userApi.getUsers(),
           leadApi.getSources(),
+          leadApi.getAds().catch(() => null),
         ]);
         if (configRes.data) {
           const enabled = (configRes.data.fields || []).filter((f: FormField) => f.enabled).sort((a: FormField, b: FormField) => a.order - b.order);
@@ -328,6 +334,7 @@ const LeadsPage: React.FC = () => {
         setConfigSources(Array.from(new Set([...baseSources, ...distinctSources])));
         if (statsRes.data?.length > 0) setStatsCardsConfig(statsRes.data.filter((c: StatsCard) => c.enabled).sort((a: StatsCard, b: StatsCard) => a.order - b.order));
         if (columnsRes.data?.length > 0) setTableColumnsConfig(columnsRes.data.filter((c: TableColumn) => c.enabled).sort((a: TableColumn, b: TableColumn) => a.order - b.order));
+        setAds((adsRes?.data || []) as any);
         const users = usersRes.data || [];
         setStaff(users.filter((u: any) => ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(u.role) || u.customRoleId));
       } catch { /* config/users failure is non-fatal */ }
@@ -339,7 +346,7 @@ const LeadsPage: React.FC = () => {
       isFirstLoad.current = false;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, filterStage, filterSource, filterAssignee, filterPriority, activeStageFilter, page, getDateFilters]);
+  }, [search, filterStage, filterSource, filterAssignee, filterPriority, filterAd, filterReEnq, activeStageFilter, page, getDateFilters]);
 
   useEffect(()=>{loadData();},[loadData]);
 
@@ -461,7 +468,7 @@ const LeadsPage: React.FC = () => {
   const handleExport = async () => {
     try{
       const dateFilt=getDateFilters();
-      const url=leadApi.exportLeads({stageId:filterStage,source:filterSource,assignedTo:filterAssignee,search,...dateFilt});
+      const url=leadApi.exportLeads({stageId:filterStage,source:filterSource,assignedTo:filterAssignee,search,adId:filterAd||undefined,reEnquiry:filterReEnq,...dateFilt});
       const token=localStorage.getItem('token');const tenantId=localStorage.getItem('tenantId');
       const resp=await fetch(url,{headers:{...(token&&{'Authorization':`Bearer ${token}`}),...(tenantId&&{'X-Tenant-Id':tenantId})}});
       if(!resp.ok)throw new Error('Export failed');
@@ -560,6 +567,8 @@ const LeadsPage: React.FC = () => {
   if(filterStage){const s=stages.find(x=>x._id===filterStage);if(s)activeFilters.push({label:`Stage: ${s.name}`,onRemove:()=>setFilterStage('')});}
   if(filterSource)activeFilters.push({label:`Source: ${SOURCE_LABELS[filterSource]||filterSource}`,onRemove:()=>setFilterSource('')});
   if(filterAssignee){const u=staff.find(x=>x._id===filterAssignee);if(u)activeFilters.push({label:`Assigned: ${u.firstName} ${u.lastName}`,onRemove:()=>setFilterAssignee('')});}
+  if(filterAd){const a=ads.find(x=>x.adId===filterAd);activeFilters.push({label:`Ad: ${a?(a.adName||a.campaignName||a.adId):filterAd}`,onRemove:()=>setFilterAd('')});}
+  if(filterReEnq)activeFilters.push({label:'Enquired again',onRemove:()=>setFilterReEnq(false)});
   if(filterPriority)activeFilters.push({label:`Priority: ${PRIORITY_COLORS[filterPriority].label}`,onRemove:()=>setFilterPriority('')});
   if(dateRange!=='all')activeFilters.push({label:`Date: ${dateRange}`,onRemove:()=>{setDateRange('all');setDateFrom('');setDateTo('');}});
 
@@ -766,6 +775,13 @@ const LeadsPage: React.FC = () => {
             <option value="warm">☀️ Warm</option>
             <option value="cold">❄️ Cold</option>
           </select>
+          {ads.length>0&&(
+            <select className="crm-filter-select" value={filterAd} onChange={e=>setFilterAd(e.target.value)} title="Show only the leads that came from one ad">
+              <option value="">All Ads</option>
+              {ads.map(a=><option key={a.adId} value={a.adId}>{[a.campaignName,a.adName||a.adSetName||a.adId].filter(Boolean).join(' › ')} ({a.leads})</option>)}
+            </select>
+          )}
+          <button type="button" className={`crm-date-preset${filterReEnq?' active':''}`} onClick={()=>setFilterReEnq(v=>!v)} title="Leads that enquired again and have not been worked since">🔁 Enquired again</button>
         </div>
         <div className="crm-toolbar-row">
           <span className="crm-date-label">Date:</span>
@@ -800,7 +816,7 @@ const LeadsPage: React.FC = () => {
               </span>
             ))}
             <button className="crm-clear-filters"
-              onClick={()=>{setFilterStage('');setFilterSource('');setFilterAssignee('');setFilterPriority('');setActiveStageFilter('');setDateRange('all');setDateFrom('');setDateTo('');}}>
+              onClick={()=>{setFilterStage('');setFilterSource('');setFilterAssignee('');setFilterPriority('');setFilterAd('');setFilterReEnq(false);setActiveStageFilter('');setDateRange('all');setDateFrom('');setDateTo('');}}>
               Clear all
             </button>
           </div>
@@ -810,7 +826,7 @@ const LeadsPage: React.FC = () => {
             {loading ? '⌛ Loading...' : (
               <>
                 <strong>{filteredTotal}</strong> lead{filteredTotal !== 1 ? 's' : ''}
-                {(filterStage || filterSource || filterAssignee || filterPriority || dateRange !== 'all' || search) ? ' matching current filters' : ' total'}
+                {(filterStage || filterSource || filterAssignee || filterPriority || filterAd || filterReEnq || dateRange !== 'all' || search) ? ' matching current filters' : ' total'}
               </>
             )}
           </div>
@@ -1015,7 +1031,7 @@ const LeadsPage: React.FC = () => {
                                 <div className="crm-lead-cell">
                                   <div className="crm-lead-avatar">{initials(lead.name)}</div>
                                   <div>
-                                    <div className="crm-lead-info-name">{lead.name}</div>
+                                    <div className="crm-lead-info-name">{lead.name}{(lead as any).reEnquiryUnseen&&<span className="crm-reenq-badge" title={`Enquired again${(lead as any).lastReEnquiryAt?' on '+formatShort((lead as any).lastReEnquiryAt):''}. Not worked since.`}>🔁 Enquired again</span>}</div>
                                     <div className="crm-lead-info-phone">{lead.phone}</div>
                                     <div className="crm-lead-info-date">{formatShort(lead.createdAt)}</div>
                                     {lead.email&&<div className="crm-lead-info-email">{lead.email}</div>}

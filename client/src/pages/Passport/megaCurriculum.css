@@ -130,7 +130,8 @@
   position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100vw);
   background: #fff; border-left: 1px solid var(--mgc-line);
   box-shadow: -14px 0 40px rgba(5, 29, 100, .1);
-  display: flex; flex-direction: column; z-index: 60;
+  /* Above the admin navbar (it is fixed and sat over the drawer's header); same layer as the Content Builder drawers. */
+  display: flex; flex-direction: column; z-index: 2500;
 }
 .mgc-drawerhead {
   display: flex; justify-content: space-between; align-items: flex-start;

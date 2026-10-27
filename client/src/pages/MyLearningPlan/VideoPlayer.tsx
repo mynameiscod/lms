@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { trackAction, trackNow } from '../Passport/activityBeacon';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import { youtubeIdOf, vimeoIdOf } from '../../components/content/videoUrl';
 import './videoControls.css';
@@ -78,21 +79,79 @@ function formatTime(secs: number): string {
  * Threshold 0 means "complete on open" (see LearningContentLibrary.completionThreshold),
  * so firing on the first progress report is deliberate, not an off-by-one.
  */
-function useWatchProgress(threshold: number, onWatchEnough: () => void) {
+/**
+ * What a CareerPilot member watched, for the super admin's activity trail: "Started watching", the
+ * 25/50/75/100% milestones, and how many seconds of the video were actually played when they left.
+ * Only on CareerPilot pages — this player is shared with the LMS, whose students have their own log.
+ */
+const onCareerPilot = () => typeof window !== 'undefined' && window.location.pathname.startsWith('/careerpilot');
+const videoMeta = (content: any) => ({ contentId: content?._id ? String(content._id) : undefined, title: content?.title || undefined, source: content?.videoSource || undefined });
+
+function useVideoActivity(content: any) {
+  const started = useRef(false);
+  const milestones = useRef(new Set<number>());
+  const lastTime = useRef<number | null>(null);
+  const playedSeconds = useRef(0);
+  const duration = useRef(0);
+  const meta = useRef(videoMeta(content));
+  meta.current = videoMeta(content);
+
+  useEffect(() => {
+    if (!onCareerPilot()) return undefined;
+    trackAction('Opened a video', { meta: meta.current });
+    return () => {
+      if (!started.current) return;
+      trackNow('Stopped watching a video', {
+        ...meta.current,
+        watchedSeconds: Math.round(playedSeconds.current),
+        durationSeconds: Math.round(duration.current) || undefined,
+        maxPct: Math.max(0, ...Array.from(milestones.current)),
+      });
+    };
+    // Mount/unmount of one video only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return useCallback((time: number, dur: number) => {
+    if (!onCareerPilot() || !dur || !isFinite(dur)) return;
+    duration.current = dur;
+    // Count only time actually played: a jump of more than 3s is a seek, not watching.
+    if (lastTime.current !== null) {
+      const delta = time - lastTime.current;
+      if (delta > 0 && delta <= 3) playedSeconds.current += delta;
+    }
+    lastTime.current = time;
+    if (!started.current && time > 0) {
+      started.current = true;
+      trackAction('Started watching a video', { meta: meta.current });
+    }
+    const pct = (time / dur) * 100;
+    for (const m of [25, 50, 75, 100]) {
+      if (pct >= (m === 100 ? 97 : m) && !milestones.current.has(m)) {
+        milestones.current.add(m);
+        trackAction(`Watched ${m}% of a video`, { meta: { ...meta.current, pct: m, watchedSeconds: Math.round(playedSeconds.current) } });
+      }
+    }
+  }, []);
+}
+
+function useWatchProgress(threshold: number, onWatchEnough: () => void, content?: any) {
   const [pct, setPct] = useState(0);
   const notified = useRef(false);
   const notify = useRef(onWatchEnough);
   notify.current = onWatchEnough;
+  const activity = useVideoActivity(content);
 
   const report = useCallback((time: number, duration: number) => {
     if (!duration || !isFinite(duration) || duration <= 0) return;
+    activity(time, duration);
     const watched = Math.round((time / duration) * 100);
     setPct(watched);
     if (!notified.current && watched >= threshold) {
       notified.current = true;
       notify.current();
     }
-  }, [threshold]);
+  }, [threshold, activity]);
 
   return { pct, report };
 }
@@ -302,7 +361,7 @@ function useBunnyPlayer(
 
 function BunnyPlayer({ content, threshold, onWatchEnough }: { content: any; threshold: number; onWatchEnough: () => void }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { pct, report } = useWatchProgress(threshold, onWatchEnough);
+  const { pct, report } = useWatchProgress(threshold, onWatchEnough, content);
   const { skip, time, duration } = useBunnyPlayer(iframeRef, report);
   const onKeyDown = useSeekKeys(skip);
 
@@ -338,7 +397,7 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [unseekable, setUnseekable] = useState(false);
-  const { pct, report } = useWatchProgress(threshold, onWatchEnough);
+  const { pct, report } = useWatchProgress(threshold, onWatchEnough, content);
 
   const baseUrl = learningContentLibraryApi.getStreamUrl(content._id);
   const [heights, setHeights] = useState<number[]>([]);
@@ -441,13 +500,19 @@ const UnplayableLink: React.FC = () => (
   </div>
 );
 
+/** YouTube and Vimeo embeds expose no playback events here, so only the opening is recorded. */
+function OpenedOnly({ content, children }: { content: any; children: React.ReactNode }) {
+  useEffect(() => { if (onCareerPilot()) trackAction('Opened a video', { meta: videoMeta(content) }); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  return <>{children}</>;
+}
+
 export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchEnough: () => void }) {
   const threshold = content.completionThreshold || 0;
 
   if (content.videoSource === 'youtube' && content.videoUrl) {
     const ytId = youtubeIdOf(content.videoUrl);
     if (!ytId) return <UnplayableLink />;
-    return (
+    return (<OpenedOnly content={content}>
       <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '10px', overflow: 'hidden' }}>
         <iframe
           src={`https://www.youtube.com/embed/${ytId}`}
@@ -456,7 +521,7 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
           title={content.title}
         />
       </div>
-    );
+    </OpenedOnly>);
   }
 
   if (content.videoSource === 'bunny' && content.bunnyVideoId && content.bunnyLibraryId) {
@@ -505,7 +570,7 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
   if (content.videoSource === 'vimeo' && content.videoUrl) {
     const vimeoId = vimeoIdOf(content.videoUrl);
     if (!vimeoId) return <UnplayableLink />;
-    return (
+    return (<OpenedOnly content={content}>
       <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '10px', overflow: 'hidden' }}>
         <iframe
           src={`https://player.vimeo.com/video/${vimeoId}`}
@@ -514,7 +579,7 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
           title={content.title}
         />
       </div>
-    );
+    </OpenedOnly>);
   }
 
   // Uploaded video (streaming)

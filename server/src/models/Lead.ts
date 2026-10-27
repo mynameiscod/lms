@@ -252,6 +252,12 @@ export interface ILead extends Document {
   archivedBy?: mongoose.Types.ObjectId;
   archiveReason?: string;
   archiveRunId?: mongoose.Types.ObjectId;
+  /** The same person enquired again (new ad form, website, enquiry form). See services/leadReEnquiryService. */
+  reEnquiryCount?: number;
+  lastReEnquiryAt?: Date;
+  /** True until somebody works the lead after the repeat enquiry: drives the "Enquired again" badge and filter. */
+  reEnquiryUnseen?: boolean;
+  reEnquiries?: Array<{ at: Date; channel: string; adId?: string; adName?: string; campaignName?: string; formId?: string; note?: string }>;
   aiFeedback?: { callId?: string; outcome?: string; receivedAt?: Date; callAt?: Date; state?: string; doNotContact?: boolean };
   outpero?: {
     status?: 'pending' | 'sent' | 'failed';
@@ -639,6 +645,24 @@ const LeadSchema: Schema = new Schema(
     archiveReason: { type: String, trim: true, maxlength: 300 },
     archiveRunId: { type: mongoose.Types.ObjectId, ref: 'LeadArchiveRun' },
 
+    // Repeat enquiries: the same person came back (another ad form, the website, an enquiry form).
+    reEnquiryCount: { type: Number, default: 0 },
+    lastReEnquiryAt: { type: Date },
+    reEnquiryUnseen: { type: Boolean, default: false },
+    reEnquiries: {
+      type: [{
+        _id: false,
+        at: { type: Date, default: Date.now },
+        channel: { type: String, trim: true },
+        adId: { type: String, trim: true },
+        adName: { type: String, trim: true },
+        campaignName: { type: String, trim: true },
+        formId: { type: String, trim: true },
+        note: { type: String, trim: true, maxlength: 300 },
+      }],
+      default: undefined,
+    },
+
     aiFeedbackLock: { token: String, until: Date },
     aiFeedback: { callId: String, outcome: String, receivedAt: Date, callAt: Date, state: String, doNotContact: Boolean },
     outpero: {
@@ -678,6 +702,7 @@ LeadSchema.index({ tenantId: 1, nextFollowUp: 1 });
 LeadSchema.index({ tenantId: 1, source: 1 });
 LeadSchema.index({ tenantId: 1, createdAt: -1 });
 LeadSchema.index({ tenantId: 1, campaignId: 1 });
+LeadSchema.index({ tenantId: 1, 'sourceDetails.adId': 1 });
 LeadSchema.index({ 'utmParams.source': 1, 'utmParams.campaign': 1 });
 // NEW: Additional indexes for performance
 LeadSchema.index({ tenantId: 1, priority: 1 });

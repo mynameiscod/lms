@@ -359,6 +359,18 @@ export const passportApi = {
     const r = await axios.get(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/student-preview`, { headers: auth() });
     return r.data;
   },
+  /** The day's video shooting script (admin-only). null when none has been written. */
+  getVideoScript: async (unitCode: string): Promise<VideoScript | null> => {
+    const r = await axios.get(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/script`, { headers: auth() });
+    return r.data?.data || null;
+  },
+  saveVideoScript: async (unitCode: string, body: VideoScriptInput): Promise<VideoScript> => {
+    const r = await axios.put(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/script`, body, { headers: auth() });
+    return r.data.data;
+  },
+  deleteVideoScript: async (unitCode: string): Promise<void> => {
+    await axios.delete(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/script`, { headers: auth() });
+  },
   attachUnitContent: async (unitCode: string, contentId: string): Promise<{ attached: boolean }> => {
     const r = await axios.post(
       `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/content/${encodeURIComponent(contentId)}`,
@@ -2327,6 +2339,16 @@ export interface UnitBundle {
   hasPractice: boolean;
   types: string[];
   resolvedMinutes: number;
+}
+
+export interface VideoScriptScene { heading: string; visual: string; narration: string; notes: string }
+export type VideoScriptStatus = 'DRAFT' | 'READY' | 'SHOT';
+export interface VideoScriptInput {
+  title: string; objective: string; targetMinutes: number; presenter: string;
+  scenes: VideoScriptScene[]; status: VideoScriptStatus;
+}
+export interface VideoScript extends VideoScriptInput {
+  _id: string; unitCode: string; updatedAt: string; updatedBy?: string; createdBy?: string;
 }
 
 export interface UnitStudentPreview {

@@ -4,6 +4,7 @@ import passportApi, { CurriculumLearningUnit, DirectionCoverageReport, MegaCurri
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import './adminContentBuilder.css';
 import { mediaUrl, mediaPathFor } from '../../utils/mediaUrl';
+import VideoScriptPanel from './VideoScriptPanel';
 
 /**
  * Content Builder — one screen for "what does a learner do on this day, and let me change it".
@@ -72,6 +73,8 @@ const AdminContentBuilder: React.FC = () => {
   const [editItem, setEditItem] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
+  /** Bumped by the "Add script" button; the script panel opens its editor when it changes. */
+  const [scriptSignal, setScriptSignal] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -407,10 +410,16 @@ const AdminContentBuilder: React.FC = () => {
               </button>
             ))}
             <button type="button" className="acb-add-btn" onClick={addCheckpoint} disabled={saving}><i className="bi bi-question-circle-fill" /> Add checkpoint</button>
+            <button type="button" className="acb-add-btn" onClick={() => setScriptSignal(n => n + 1)} title="Admins only — the shooting script for this day's video">
+              <i className="bi bi-camera-reels-fill" /> Add script
+            </button>
             <a className="acb-add-btn" href={`/learning-library/create?unitCode=${encodeURIComponent(unit.unitCode)}&topicCode=${encodeURIComponent(unit.topicCode)}&returnTo=${encodeURIComponent(`/admin/passport/content-builder?stage=${stage}&unit=${unit.unitCode}`)}`}>
               <i className="bi bi-upload" /> Upload a file
             </a>
           </div>
+
+          <VideoScriptPanel key={unit.unitCode} unitCode={unit.unitCode} dayTitle={unit.title}
+            openEditorSignal={scriptSignal} onToast={m => { setToast(m); window.setTimeout(() => setToast(''), 2600); }} />
 
           <section className="acb-day">
             <div className="acb-day-hd"><b>The member's day</b><span>Same order the day player uses</span></div>

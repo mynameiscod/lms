@@ -44,6 +44,7 @@ import * as readiness from '../controllers/roleReadinessController';
 import * as careerRoadmap from '../controllers/careerRoadmapController';
 import * as spine from '../controllers/spineController';
 import * as learningUnits2 from '../controllers/curriculumLearningUnitController';
+import * as videoScripts from '../controllers/videoScriptController';
 import * as foundationJourney from '../controllers/foundationJourneyController';
 import * as dailyPlan from '../controllers/careerDailyPlanController';
 import * as skillResources from '../controllers/careerSkillResourceController';
@@ -517,6 +518,10 @@ router.get('/curriculum-units/:unitCode/student-preview', MANAGE_FOR.cpContent, 
 router.post('/curriculum-units/:unitCode/content/reorder', MANAGE_FOR.cpContent, express.json(), learningUnits2.reorderUnitContent);
 router.post('/curriculum-units/:unitCode/content/:contentId',   MANAGE_FOR.cpContent, learningUnits2.attachContent);
 router.delete('/curriculum-units/:unitCode/content/:contentId', MANAGE_FOR.cpContent, learningUnits2.detachContent);
+// The day's video shooting script — admin-only; nothing a student can reach reads VideoScript.
+router.get('/curriculum-units/:unitCode/script',    MANAGE_FOR.cpContent, videoScripts.getScript);
+router.put('/curriculum-units/:unitCode/script',    MANAGE_FOR.cpContent, express.json({ limit: '1mb' }), videoScripts.saveScript);
+router.delete('/curriculum-units/:unitCode/script', MANAGE_FOR.cpContent, videoScripts.deleteScript);
 
 /**
  * ── What a unit MEASURES with ──

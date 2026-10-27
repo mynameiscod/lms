@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import passportApi, { VideoScript, VideoScriptInput, VideoScriptScene, VideoScriptStatus } from '../../api/passportApi';
 import './videoScript.css';
+import { parseVideoScript } from './videoScriptParse';
 
 /**
  * The day's video shooting script, in the Content Builder.
@@ -73,12 +74,84 @@ const ScriptSheet: React.FC<{ script: VideoScriptInput; dayTitle: string; unitCo
   </article>;
 };
 
+const MAX_SCENES = 60;
+const PASTE_EXAMPLE = `Scene 1: Hook — why folders exist
+On screen: Presenter to camera.
+Say: Every file on your laptop lives somewhere…
+Notes: Slow down here.
+
+Scene 2: The root
+On screen: Terminal — run ls /
+Say: This single slash is the root…`;
+const sceneHasText = (x: VideoScriptScene) => !!(x.heading.trim() || x.visual.trim() || x.narration.trim() || x.notes.trim());
+
+/**
+ * Paste the whole script at once; it is split into scenes (videoScriptParse.ts) and shown before
+ * anything changes, so the admin can see it was read the way they meant.
+ */
+const PasteScript: React.FC<{ hasScenes: boolean; onCancel: () => void; onUse: (r: ReturnType<typeof parseVideoScript>, mode: 'replace' | 'append') => void }> = ({ hasScenes, onCancel, onUse }) => {
+  const [text, setText] = useState('');
+  const [mode, setMode] = useState<'replace' | 'append'>('replace');
+  const parsed = useMemo(() => parseVideoScript(text), [text]);
+  const n = parsed.scenes.length;
+  const spoken = parsed.scenes.reduce((k, x) => k + words(x.narration), 0);
+  const tooMany = n > MAX_SCENES;
+  return <section className="vs-paste">
+    <div className="vs-paste-hd">
+      <b><i className="bi bi-clipboard-check" /> Paste the whole script</b>
+      <small>From Google Docs, Word, ChatGPT or plain text. It is split into scenes for you — check them below before using.</small>
+    </div>
+    <textarea className="vs-paste-box" rows={14} autoFocus value={text} onChange={e => setText(e.target.value)} spellCheck={false}
+      placeholder={PASTE_EXAMPLE} />
+    <details className="vs-paste-help">
+      <summary>What it understands</summary>
+      <ul>
+        <li><b>New scene:</b> “Scene 1: heading”, “SCENE 2 – heading”, “Shot 3”, or a <code>## heading</code>. With none of these, each paragraph is a scene.</li>
+        <li><b>On screen:</b> lines starting “On screen:”, “Visual:”, “Screen:”, “B-roll:”, or a whole line in [brackets].</li>
+        <li><b>Say:</b> “Say:”, “Narration:”, “VO:”, “Voice-over:”. Text with no label is what is said.</li>
+        <li><b>Notes:</b> “Notes:”, “Director:”, “Tip:”.</li>
+        <li><b>A table</b> copied from Docs/Word or Markdown — one row per scene, columns On screen | Say (a Scene and a Notes column are fine too).</li>
+        <li><b>Before the first scene:</b> “Title:”, “Presenter:”, “Objective:”, “Duration: 8 min” fill the details above.</li>
+      </ul>
+    </details>
+    {text.trim() && <div className="vs-paste-out">
+      <div className={`vs-paste-sum${n ? '' : ' none'}`}>
+        {n ? <><i className="bi bi-check2-circle" /> Found <b>{n} scene{n === 1 ? '' : 's'}</b> · {spoken} words · about {fmtMin(minutesFor(spoken))} spoken
+          {parsed.title && <> · title “{parsed.title}”</>}</>
+          : <><i className="bi bi-exclamation-circle" /> No scenes found yet.</>}
+      </div>
+      {tooMany && <div className="acb-err"><i className="bi bi-exclamation-circle" /> A script holds at most {MAX_SCENES} scenes — this has {n}. Split it, or merge some scenes.</div>}
+      {n > 0 && <ol className="vs-paste-list">
+        {parsed.scenes.map((x, i) => <li key={i}>
+          <b>Scene {i + 1}{x.heading ? ` — ${x.heading}` : ''}</b>
+          {x.visual && <span><i className="bi bi-display" /> {x.visual.slice(0, 110)}{x.visual.length > 110 ? '…' : ''}</span>}
+          {x.narration && <span><i className="bi bi-mic" /> {x.narration.slice(0, 140)}{x.narration.length > 140 ? '…' : ''}</span>}
+          {x.notes && <span className="nt"><i className="bi bi-lightbulb" /> {x.notes.slice(0, 90)}{x.notes.length > 90 ? '…' : ''}</span>}
+        </li>)}
+      </ol>}
+    </div>}
+    {hasScenes && n > 0 && <div className="vs-paste-mode" role="radiogroup" aria-label="What to do with the scenes already written">
+      <label><input type="radio" name="vs-mode" checked={mode === 'replace'} onChange={() => setMode('replace')} /> Replace the scenes already written</label>
+      <label><input type="radio" name="vs-mode" checked={mode === 'append'} onChange={() => setMode('append')} /> Add after them</label>
+    </div>}
+    <div className="vs-paste-act">
+      <button type="button" className="acb-btn" onClick={onCancel}>Cancel</button>
+      <button type="button" className="acb-btn primary" disabled={!n || tooMany} onClick={() => onUse(parsed, hasScenes ? mode : 'replace')}>
+        <i className="bi bi-check2" /> Use {n ? `these ${n} scene${n === 1 ? '' : 's'}` : 'the scenes'}
+      </button>
+    </div>
+  </section>;
+};
+
 const ScriptEditor: React.FC<{
   initial: VideoScriptInput; dayTitle: string; unitCode: string; exists: boolean; saving: boolean;
   onClose: () => void; onSave: (s: VideoScriptInput) => void; onDelete: () => void;
 }> = ({ initial, dayTitle, unitCode, exists, saving, onClose, onSave, onDelete }) => {
   const [s, setS] = useState<VideoScriptInput>(initial);
   const [problem, setProblem] = useState('');
+  const written = initial.scenes.some(sceneHasText);
+  // A new script opens on the paste box: most scripts are written elsewhere first.
+  const [pasting, setPasting] = useState(!written);
   const set = (patch: Partial<VideoScriptInput>) => setS(prev => ({ ...prev, ...patch }));
   const setScene = (i: number, patch: Partial<VideoScriptScene>) =>
     setS(prev => ({ ...prev, scenes: prev.scenes.map((sc, j) => (j === i ? { ...sc, ...patch } : sc)) }));
@@ -90,6 +163,23 @@ const ScriptEditor: React.FC<{
   });
   const total = s.scenes.reduce((n, x) => n + words(x.narration), 0);
 
+  const applyPasted = (r: ReturnType<typeof parseVideoScript>, mode: 'replace' | 'append') => {
+    setS(prev => {
+      const kept = prev.scenes.filter(sceneHasText);
+      const scenes = mode === 'append' ? [...kept, ...r.scenes] : r.scenes;
+      return {
+        ...prev,
+        scenes: scenes.slice(0, MAX_SCENES),
+        // The details only fill what is still empty; nothing typed above is overwritten.
+        title: prev.title || r.title || '',
+        presenter: prev.presenter || r.presenter || '',
+        objective: prev.objective || r.objective || '',
+        targetMinutes: r.targetMinutes && (!prev.targetMinutes || prev.targetMinutes === 10) ? r.targetMinutes : prev.targetMinutes,
+      };
+    });
+    setProblem(''); setPasting(false);
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !saving) onClose(); };
     window.addEventListener('keydown', onKey);
@@ -98,6 +188,7 @@ const ScriptEditor: React.FC<{
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (pasting) { setProblem('Press "Use these scenes" under the pasted script first, or Cancel it.'); return; }
     const scenes = s.scenes.filter(x => x.heading.trim() || x.visual.trim() || x.narration.trim() || x.notes.trim());
     if (!scenes.length) { setProblem('Write at least one scene — what is on screen and what to say.'); return; }
     onSave({ ...s, scenes });
@@ -138,6 +229,11 @@ const ScriptEditor: React.FC<{
           {s.targetMinutes ? <> of a {s.targetMinutes}-minute target</> : null} <span>(at {WPM} words a minute)</span>
         </div>
 
+        {pasting ? <PasteScript hasScenes={s.scenes.some(sceneHasText)} onCancel={() => setPasting(false)} onUse={applyPasted} /> : <>
+        <div className="vs-paste-cta">
+          <span><i className="bi bi-clipboard" /> Have the whole script already? Paste it in one go — it is split into scenes for you.</span>
+          <button type="button" className="acb-btn sm" onClick={() => setPasting(true)}><i className="bi bi-clipboard-plus" /> Paste the whole script</button>
+        </div>
         {s.scenes.map((sc, i) => (
           <fieldset key={i} className="vs-ed-scene">
             <legend>
@@ -168,6 +264,7 @@ const ScriptEditor: React.FC<{
         <button type="button" className="acb-btn vs-add-scene" onClick={() => set({ scenes: [...s.scenes, blankScene()] })}>
           <i className="bi bi-plus-lg" /> Add a scene
         </button>
+        </>}
         {problem && <div className="acb-err"><i className="bi bi-exclamation-circle" /> {problem}</div>}
       </div>
       <footer>

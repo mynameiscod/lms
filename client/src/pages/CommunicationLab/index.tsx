@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { communicationApi, CommProfile, CommAttempt, CommProgress } from '../../api/communicationApi';
 import CoachTab, { CoachResult, CoachState, CoachStep } from './CoachTab';
+import { isCounted } from './LabHome';
 import './communicationLab.css';
 
 const todayStr = () => {
@@ -29,10 +30,6 @@ const TABS = [
 ] as const;
 
 type Tab = typeof TABS[number][0];
-
-const Metric: React.FC<{ icon: string; value: React.ReactNode; label: string; tone?: string }> = ({ icon, value, label, tone = '' }) => (
-  <div className={`clx-kpi ${tone}`}><i className={`bi ${icon}`} /><div><b>{value}</b><span>{label}</span></div></div>
-);
 
 const ScoreCard: React.FC<{ label: string; value: number | null | undefined }> = ({ label, value }) => (
   <div className="clx-card clx-score-card"><b style={{ color: scoreColor(value) }}>{value ?? '—'}</b><span>{label}</span></div>
@@ -231,27 +228,25 @@ const CommunicationLab: React.FC = () => {
 
   const onDone = (a: CommAttempt) => { setRecording(false); setResult(a); loadToday(); loadOverview(); };
   const streak = today?.currentStreak ?? progress?.currentStreak ?? 0;
-  const totalSessions = progress?.totalPracticeDays ?? history.length;
-  const bestScore = progress?.best ?? today?.lastScore ?? 0;
+  const counted = history.filter(isCounted);
+  const practised = counted.length;
+  const avgScore = counted.length ? Math.round(counted.reduce((n, a) => n + (a.evaluation!.overallScore as number), 0) / counted.length) : null;
   const completed = today?.status === 'completed';
   const recent = history.slice(0, 2);
   const daysDone = Math.min(7, streak || 0);
   const weekdays = ['M','T','W','T','F','S','S'];
 
   return <div className="clx">
-    {/* A logo-navy hero, as on every redesigned CareerPilot page: what this lab is, and the three numbers that matter. */}
-    <header className="clx-head clx-hero2">
-      <div className="clx-hero2-copy">
-        <span className="clx-eyebrow">Speak with confidence</span>
+    <header className="clx-top">
+      <div className="clx-top-copy">
         <h1>AI Communication <span>Lab</span></h1>
-        <p>Practise your communication every day. Record a short answer, get AI feedback on clarity, fluency and confidence, and build a streak.</p>
-        <div className="clx-hero2-chips">
-          <span><i className="bi bi-mic" /> Video or audio</span>
-          <span><i className="bi bi-stars" /> Instant AI feedback</span>
-          <span><i className="bi bi-calendar-check" /> One challenge a day</span>
-        </div>
+        <p>Daily AI-powered practice to improve your communication, confidence and clarity.</p>
       </div>
-      <div className="clx-kpis"><Metric icon="bi-fire" value={streak} label="Day streak"/><Metric icon="bi-graph-up-arrow" value={totalSessions} label="Sessions" tone="teal"/><Metric icon="bi-star" value={bestScore || '—'} label="Best score" tone="amber"/></div>
+      <div className="clx-top-stats">
+        <div className="clx-stat"><span className="ic fire"><i className="bi bi-fire" /></span><div><b>{streak}</b><span>Day streak</span></div></div>
+        <div className="clx-stat"><span className="ic blue"><i className="bi bi-bar-chart-fill" /></span><div><b>{practised}</b><span>Questions practised</span></div></div>
+        <div className="clx-stat"><span className="ic gold"><i className="bi bi-star-fill" /></span><div><b>{avgScore == null ? '—' : `${avgScore}%`}</b><span>Average score</span></div></div>
+      </div>
     </header>
     <nav className="clx-tabs">{TABS.map(([k,l]) => <button key={k} className={`clx-tab ${tab===k?'on':''}`} onClick={()=>{setTab(k);setResult(null);}}>{l}</button>)}</nav>
 
@@ -262,7 +257,7 @@ const CommunicationLab: React.FC = () => {
 
     {tab === 'coach' && (coachResult
       ? <CoachResult a={coachResult.a} next={coachResult.next} onClose={() => setCoachResult(null)} />
-      : <CoachTab state={coach} loading={coachLoading} onStart={setCoachStep} />)}
+      : <CoachTab state={coach} loading={coachLoading} onStart={setCoachStep} history={history} today={todayStr()} onOpenAttempt={(a) => { setTab('history'); setResult(a); }} onViewAll={() => { setTab('history'); setResult(null); }} />)}
 
     {tab === 'profile' && <ProfileForm />}
     {tab === 'history' && <div className="clx-card clx-panel"><h2 style={{ marginTop:0,color:'#051d64' }}>Practice History</h2><div className="clx-list">{history.length ? history.map(a=><div className="clx-history-row" key={a._id}>{(() => { const none = a.kind === 'coach' && ((a.recordingDuration || 0) < 5 || ((a.recordingDuration || 0) >= 15 && (a.wordCount ?? 0) <= 5)); return <><div className="clx-score" style={{color: none ? '#94a3b8' : scoreColor(a.evaluation?.overallScore)}}>{none ? '—' : (a.evaluation?.overallScore ?? '—')}</div><div><b>{a.challengeTitle}</b><p>{a.practiceDate} · {a.recordingType} · {a.recordingDuration}s{none ? ' · no voice was heard (not counted)' : ` · ${a.wordsPerMinute || 0} wpm`}</p></div><button className="clx-btn" disabled={!a.evaluation || none} onClick={()=>setResult(a)}>View</button></>; })()}</div>) : <div className="clx-empty"><i className="bi bi-clock-history"/><h3>No practice history yet</h3><p>Complete your first daily challenge and it will appear here.</p></div>}</div>{result && <div style={{marginTop:18}}>{(result as any).kind === 'coach' ? <CoachResult a={result} next={null} onClose={()=>setResult(null)}/> : <ResultView a={result} onClose={()=>setResult(null)}/>}</div>}</div>}

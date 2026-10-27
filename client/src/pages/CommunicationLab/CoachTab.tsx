@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { communicationApi } from '../../api/communicationApi';
+import { communicationApi, CommAttempt } from '../../api/communicationApi';
+import LabHome from './LabHome';
 
 /**
  * The Communication Coach page: where the student stands and what to do today.
@@ -86,48 +87,15 @@ export const CoachResult: React.FC<{ a: any; next: CoachState | null; onClose: (
   </div>;
 };
 
-const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: (s: CoachStep) => void }> = ({ state, loading, onStart }) => {
+const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: (s: CoachStep) => void; history: CommAttempt[]; today: string; onOpenAttempt: (a: CommAttempt) => void; onViewAll: () => void }> = ({ state, loading, onStart, history, today, onOpenAttempt, onViewAll }) => {
   const [compare, setCompare] = useState<any[] | null>(null);
   const recordings = state?.totalRecordings;
   useEffect(() => { communicationApi.coachCompare().then(setCompare).catch(() => setCompare([])); }, [recordings]);
-  if (loading && !state) return <div className="clx-card clx-empty">Loading your coach…</div>;
-  if (!state) return <div className="clx-card clx-empty">The coach is not available right now. Please try again in a moment.</div>;
+  const home = <LabHome state={state} loading={loading} history={history} today={today} onStart={onStart} onOpenAttempt={onOpenAttempt} onViewAll={onViewAll} />;
+  if (!state) return home;
   const r = state.readiness;
-  const next = state.steps.find(s => !s.done);
-  const baseline = state.mode === 'baseline';
   return <div>
-    <section className="clx-card" style={{ padding: 20, marginBottom: 14 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ maxWidth: 640 }}>
-          <span className="clx-eyebrow">{baseline ? 'Step 1 · Find your starting point' : `Today's session · Level ${state.level}: ${state.levelName}`}</span>
-          <h2 style={{ margin: '6px 0' }}>{baseline ? 'Four short answers, so we can see where you really are' : `${state.stepsDone} of ${state.totalSteps} done today`}</h2>
-          <p style={{ margin: 0, color: '#475569' }}>
-            {baseline
-              ? 'Answer each question as you would in a real interview. Do not worry about the result: this is only to measure where you start, so your progress can be shown. It takes about 10 minutes.'
-              : `About 10 minutes. Short answers, chosen from where you are weakest right now (${state.weakestArea}). Doing even one recording keeps your streak.`}
-          </p>
-        </div>
-        {next && !state.tooMany && <button className="clx-btn primary" onClick={() => onStart(next)}><i className="bi bi-mic-fill" /> {state.stepsDone ? 'Continue' : 'Start'}: {next.role === 'baseline' ? next.areaLabel : next.role}</button>}
-        {!next && !baseline && <span style={{ color: '#16835d', fontWeight: 700 }}><i className="bi bi-check-circle-fill" /> Today's session is complete. Well done.</span>}
-        {state.tooMany && <span style={{ color: '#b86b00', fontWeight: 700 }}>Daily limit reached. Come back tomorrow.</span>}
-      </div>
-    </section>
-
-    {/* An even grid: four in a row on wide screens, 2×2 on laptops — never three and a lone fourth. */}
-    <div className="clx-steps-grid" style={{ ['--n' as any]: Math.min(4, state.steps.length || 1) }} data-n={state.steps.length}>
-      {state.steps.map(s => <section key={s.index} className="clx-card" style={{ padding: 16, opacity: s.done ? 0.65 : 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-          <b>{baseline ? `${s.index + 1}. ${s.areaLabel}` : `${s.role} · ${s.areaLabel}`}</b>
-          {s.done ? <span style={{ color: '#16835d' }}><i className="bi bi-check-circle-fill" /> Done</span> : <span style={{ color: '#2F3F56', fontSize: 12.5 }}>about {s.prompt.targetSec}s</span>}
-        </div>
-        <p style={{ margin: '8px 0', fontWeight: 600 }}>{s.prompt.ask}</p>
-        {!!s.prompt.guide.length && <ol style={{ margin: '0 0 8px', paddingLeft: 18, color: '#475569', fontSize: 13.5 }}>{s.prompt.guide.map((g, i) => <li key={i}>{g}</li>)}</ol>}
-        {s.prompt.script && <details style={{ marginBottom: 8 }}><summary style={{ cursor: 'pointer', color: '#1a5490', fontWeight: 600 }}>Read this aloud</summary><p style={{ whiteSpace: 'pre-wrap', fontSize: 13.5, color: '#334155' }}>{s.prompt.script}</p></details>}
-        {s.prompt.followUp && <p style={{ margin: '0 0 8px', fontSize: 13.5, color: '#b86b00' }}>Then answer straight away: "{s.prompt.followUp}"</p>}
-        {!s.done && !state.tooMany && <button className="clx-btn" onClick={() => onStart(s)}><i className="bi bi-camera-video" /> Record</button>}
-        {s.done && <p style={{ margin: 0, color: '#2F3F56', fontSize: 12.5 }}>Recorded. Each answer is recorded once.</p>}
-      </section>)}
-    </div>
+    {home}
 
     {!!state.totalRecordings && <div style={{ marginTop: 14 }}><h3 style={{ margin: '0 0 8px' }}>How you are improving</h3><CompareCard data={compare} /></div>}
 

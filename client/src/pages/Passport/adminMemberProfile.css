@@ -102,3 +102,39 @@
   .amp-skills small { display: none; }
   .amp-table { display: block; overflow-x: auto; white-space: nowrap; }
 }
+
+/* How they joined + the super admin's activity trail */
+.amp-super { padding: 2px 9px; border-radius: 999px; background: #FFF4E0; color: #8A5300; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.amp-act-sum { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+.amp-act-sum > div { padding: 10px 12px; border: 1px solid #EEF2F7; border-radius: 12px; background: #FAFCFE; min-width: 0; }
+.amp-act-sum span { display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #475569; }
+.amp-act-sum b { display: block; margin-top: 3px; font-size: 14px; color: #051D64; overflow-wrap: anywhere; }
+.amp-act-sum b.bad { color: #B42318; }
+.amp-act-devices { margin: 0 0 12px; font-size: 13px; color: #475569; overflow-wrap: anywhere; }
+.amp-act-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.amp-act-filters button { padding: 6px 13px; border-radius: 999px; border: 1px solid #DCE5EF; background: #fff; color: #34475F; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.amp-act-filters button.on { background: #051D64; border-color: #051D64; color: #fff; }
+.amp-act-day h3 { position: sticky; top: 0; z-index: 1; margin: 14px 0 6px; padding: 6px 0; font-size: 12.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #2F3F56; background: #fff; }
+.amp-act-day ol { list-style: none; margin: 0; padding: 0; border-left: 2px solid #E3EAF1; }
+.amp-act-day li { display: grid; grid-template-columns: 96px 28px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 7px 0 7px 12px; border-bottom: 1px solid #F2F5F9; font-size: 13.5px; }
+.amp-act-t { color: #475569; font-variant-numeric: tabular-nums; font-size: 12.5px; white-space: nowrap; }
+.amp-act-ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: #EEF2F7; color: #34475F; font-size: 13px; }
+.k-page .amp-act-ic { background: #EAF1FB; color: #051D64; }
+.k-action .amp-act-ic { background: #E3F6EC; color: #126B47; }
+.k-error .amp-act-ic, li.fail .amp-act-ic { background: #FDECEC; color: #B42318; }
+.amp-act-txt { min-width: 0; }
+.amp-act-txt b { display: block; color: #102A4F; font-weight: 700; overflow-wrap: anywhere; }
+.amp-act-txt small { display: block; margin-top: 2px; color: #475569; font-size: 12.5px; overflow-wrap: anywhere; }
+.amp-act-txt code { font-size: 11.5px; color: #5B6E8A; background: #F4F8FC; padding: 1px 5px; border-radius: 5px; }
+.amp-act-anon { padding: 2px 8px; border-radius: 999px; background: #F1EBFF; color: #5B2DB8; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.amp-act-st { font-size: 12px; font-weight: 800; color: #126B47; font-variant-numeric: tabular-nums; }
+.amp-act-st.bad { color: #B42318; }
+.amp-act-more { margin-top: 12px; padding: 8px 16px; border-radius: 10px; border: 1px solid #C9D8E5; background: #fff; color: #051D64; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+@media (max-width: 1100px) { .amp-act-sum { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .amp-act-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .amp-act-day li { grid-template-columns: 84px minmax(0, 1fr) auto; }
+  .amp-act-ic, .amp-act-anon { display: none; }
+}
+.amp-act-t small { display: block; font-size: 11px; color: #64748B; }
+.amp-act-x { margin-left: 4px; padding: 1px 7px; border-radius: 999px; background: #EEF2F7; color: #34475F; font-size: 11.5px; font-weight: 800; }

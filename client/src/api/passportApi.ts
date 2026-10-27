@@ -747,6 +747,11 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/admin/students/${encodeURIComponent(studentId)}/profile`, { headers: auth() });
     return data.data;
   },
+  /** Super admin: everything one member has done, newest first. `before` pages back in time. */
+  getMemberActivity: async (studentId: string, q: { before?: string; kinds?: string } = {}): Promise<MemberActivity> => {
+    const { data } = await axios.get(`${BASE}/admin/students/${encodeURIComponent(studentId)}/activity`, { headers: auth(), params: q });
+    return data.data;
+  },
   /** Admin: one member's Skill DNA. */
   getStudentSkillDna: async (studentId: string): Promise<{ skills: SkillDnaRow[]; assessed: boolean }> => {
     const { data } = await axios.get(`${BASE}/students/${studentId}/skills`, { headers: auth() });
@@ -2339,6 +2344,19 @@ export interface UnitBundle {
   hasPractice: boolean;
   types: string[];
   resolvedMinutes: number;
+}
+
+export interface MemberActivityRow {
+  _id: string; kind: 'page' | 'action' | 'api' | 'error'; name: string; route?: string; method?: string; status?: number;
+  outcome?: string; errorMessage?: string; durationMs?: number; meta?: any; ip?: string; referrer?: string;
+  sessionId?: string; visitorId: string; userId?: string; createdAt: string;
+  device?: { browser?: string; os?: string; deviceType?: string; screen?: string };
+}
+export interface MemberActivity {
+  summary: { events: number; firstSeen: string; lastSeen: string; sessions: number; pages: number; actions: number; failures: number; browsers: number } | null;
+  devices: { deviceType: string | null; browser: string | null; os: string | null; events: number; lastSeen: string }[];
+  rows: MemberActivityRow[];
+  nextBefore: string | null;
 }
 
 export interface VideoScriptScene { heading: string; visual: string; narration: string; notes: string }

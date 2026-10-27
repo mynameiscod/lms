@@ -12,6 +12,20 @@ import { levelFromXp } from '../services/passportGamificationService';
 import { liveStreak } from '../services/passportXpService';
 import { spendableBalance } from '../services/coinSpendService';
 import { computeProfileCompleteness } from '../utils/profileCompleteness';
+import { getUserTimeline } from '../services/careerPilotActivityService';
+
+/**
+ * A plain-words answer to "how did this member find us", from the stored first/last touch. Paid ad
+ * click ids win, then UTM tags, then the referring site, else Direct.
+ */
+function sourceLabel(t: any): string {
+  if (!t) return 'Unknown';
+  if (t.gclid) return 'Google Ads click';
+  if (t.fbclid) return 'Meta (Facebook/Instagram) ad click';
+  if (t.utm_source) return [t.utm_source, t.utm_medium].filter(Boolean).join(' / ');
+  if (t.referrer) return `Referred by ${String(t.referrer).split('/')[0]}`;
+  return 'Direct (typed the link, a bookmark or an untagged share)';
+}
 
 /**
  * GET /passport/admin/students/:studentId/profile — one CareerPilot member, for staff.
@@ -74,6 +88,14 @@ export async function getMemberProfile(req: Request, res: Response) {
           tenant: { id: tenantId, name: tenant?.name || '', slug: tenant?.slug || '' },
           alsoLmsStudent: !!user.batchId,
         },
+        joined: {
+          /** Where every CareerPilot account is created: the join form, then an OTP on WhatsApp. */
+          via: 'CareerPilot join form (/careerpilot/join) — OTP verified',
+          source: sourceLabel(p.attribution?.first_touch || p.attribution?.last_touch),
+          firstTouch: p.attribution?.first_touch || null,
+          lastTouch: p.attribution?.last_touch || null,
+          verifiedAt: p.verifiedAt || null,
+        },
         setup: {
           stage: p.stage || null,
           program: p.program || p.degree || null,
@@ -121,5 +143,28 @@ export async function getMemberProfile(req: Request, res: Response) {
   } catch (e: any) {
     console.error('[member-profile]', e?.message || e);
     res.status(500).json({ success: false, message: 'Could not load this member.' });
+  }
+}
+
+/**
+ * GET /passport/admin/students/:studentId/activity — everything one member has done, newest first.
+ * SUPER_ADMIN only (route guard). Read from the member's own tenant, so a super admin can open any.
+ */
+export async function getMemberActivity(req: Request, res: Response) {
+  try {
+    const { studentId } = req.params;
+    if (!mongoose.isValidObjectId(studentId)) return res.status(400).json({ success: false, message: 'That is not a member id.' });
+    const user: any = await User.findById(studentId).select('tenantId').lean();
+    if (!user) return res.status(404).json({ success: false, message: 'Member not found.' });
+    const kinds = String(req.query.kinds || '').split(',').map(k => k.trim()).filter(k => ['page', 'action', 'api', 'error'].includes(k));
+    const data = await getUserTimeline(String(user.tenantId), studentId, {
+      before: req.query.before ? String(req.query.before) : undefined,
+      limit: Number(req.query.limit) || 150,
+      kinds,
+    });
+    res.json({ success: true, data });
+  } catch (e: any) {
+    console.error('[member-activity]', e?.message || e);
+    res.status(500).json({ success: false, message: "Could not load this member's activity." });
   }
 }

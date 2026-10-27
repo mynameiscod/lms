@@ -52,9 +52,14 @@ export const ATTRIBUTION_FIELDS = [
   'fbclid',
   'landing_page',
   'entry_path',
+  'referrer',
+  'landing_url',
 ] as const;
 
 export type AttributionField = typeof ATTRIBUTION_FIELDS[number];
+
+/** Fields that arrive as query params on a marketing link. referrer and landing_url are captured by the app. */
+const QUERY_FIELDS = ATTRIBUTION_FIELDS.filter(f => f !== 'referrer' && f !== 'landing_url');
 
 export type AttributionTouch = Partial<Record<AttributionField, string>> & {
   captured_at?: string;
@@ -90,10 +95,30 @@ export function readAttributionFromSearch(search: string): AttributionTouch {
   } catch {
     return out;
   }
-  for (const field of ATTRIBUTION_FIELDS) {
+  for (const field of QUERY_FIELDS) {
     const value = cleanValue(params.get(field));
     if (value) out[field] = value;
   }
+  return out;
+}
+
+/**
+ * Where this page load came from: the outside site that linked here (document.referrer, only when it
+ * is another host) and the first page opened. Read ONCE per page load — the SPA calls capture again on
+ * every in-app navigation, and document.referrer does not change on those, so re-reading it would turn
+ * one Google visit into a fresh "referral" on every click.
+ */
+let pageLoadRead = false;
+let lastSearchSeen: string | null = null;
+function pageLoadContext(): AttributionTouch {
+  if (pageLoadRead || typeof window === 'undefined') return {};
+  pageLoadRead = true;
+  const out: AttributionTouch = {};
+  try {
+    const ref = document.referrer ? new URL(document.referrer) : null;
+    if (ref && ref.host && ref.host !== window.location.host) out.referrer = cleanValue(`${ref.host}${ref.pathname === '/' ? '' : ref.pathname}`);
+  } catch { /* unparseable referrer */ }
+  out.landing_url = cleanValue(`${window.location.pathname}${window.location.search}`);
   return out;
 }
 
@@ -136,13 +161,28 @@ function writeStore(value: CareerPilotAttribution): void {
 export function captureCareerPilotAttribution(
   search: string = typeof window !== 'undefined' ? window.location.search : '',
 ): CareerPilotAttribution {
+  // The app calls this before render AND on every in-app navigation; the same query string seen twice
+  // in one page load is one visit, and re-recording it would overwrite the touch the first call wrote
+  // (with its referrer and landing page) by a poorer copy.
+  if (search === lastSearchSeen) return readStore();
+  lastSearchSeen = search;
   const incoming = readAttributionFromSearch(search);
   const stored = readStore();
+  const ctx = pageLoadContext();
 
-  // An untagged visit is the absence of attribution, not new attribution. Leave everything.
-  if (!hasAnyValue(incoming)) return stored;
+  // A tagged link, or a visit sent by another site, is a touch. Anything else is not new attribution —
+  // except that the very first visit ever still records the page it landed on, so even a "direct"
+  // member shows where they started.
+  if (!hasAnyValue(incoming) && !ctx.referrer) {
+    if (ctx.landing_url && !(stored.first_touch && hasAnyValue(stored.first_touch))) {
+      const first: AttributionTouch = { landing_url: ctx.landing_url, captured_at: new Date().toISOString() };
+      writeStore({ ...stored, first_touch: first });
+      return readStore();
+    }
+    return stored;
+  }
 
-  const touch: AttributionTouch = { ...incoming, captured_at: new Date().toISOString() };
+  const touch: AttributionTouch = { ...incoming, ...ctx, captured_at: new Date().toISOString() };
 
   const next: CareerPilotAttribution = {
     // Written once. A later campaign, however recent, does not get to claim the introduction.

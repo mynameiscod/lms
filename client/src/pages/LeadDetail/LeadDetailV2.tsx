@@ -90,6 +90,7 @@ const LeadDetailV2: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'timeline' | 'details' | 'checklist'>('timeline');
   const { user: currentUser } = useAuth();
   const chatAllowed = canChat(currentUser as any);
+  const visitedRef = React.useRef<Set<string>>(new Set());
   const [showChat, setShowChat] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
@@ -609,12 +610,19 @@ const LeadDetailV2: React.FC = () => {
                 // must still show where it is, and must not turn the six shown into "done".
                 const currentIdx = stages.findIndex(s => s.name === lead.stage);
                 const hidden = currentIdx >= 6;
+                // Green means "the lead really was in this stage", read from its stage-change history, not guessed from position.
+                const visited = new Set<string>();
+                (lead.activities || []).forEach(a => {
+                  const m = /^Stage changed from "(.*)" to "(.*)"/.exec(a.description || '');
+                  if (m) { visited.add(m[1]); visited.add(m[2]); }
+                });
+                visitedRef.current = visited;
                 return hidden ? [...stages.slice(0, 5), stages[currentIdx]] : stages.slice(0, 6);
               })().map((stage, index, shown) => (
                 <button
                   key={stage._id}
                   className={`ld2-stage-btn ${lead.stage === stage.name ? 'active' : ''} ${
-                    stages.findIndex(s => s.name === lead.stage) < 6 && shown.findIndex(s => s.name === lead.stage) > index ? 'completed' : ''
+                    lead.stage !== stage.name && visitedRef.current.has(stage.name) ? 'completed' : ''
                   }`}
                   onClick={() => handleStageChange(stage.name)}
                   style={{ 

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import passportApi from '../../api/passportApi';
 import './adminMemberProfile.css';
+import MemberActivityCard from './MemberActivity';
 
 /**
  * CareerPilot admin → Members → one member's full profile.
@@ -26,6 +27,22 @@ const MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep
 
 type Load<T> = { data: T | null; error: string | null };
 const ok = <T,>(data: T): Load<T> => ({ data, error: null });
+/** The member's activity trail is shown to the platform super admin only. */
+const isSuperAdmin = (): boolean => {
+  try { return JSON.parse(localStorage.getItem('user') || '{}')?.role === 'SUPER_ADMIN'; } catch { return false; }
+};
+/** One marketing touch, in words: the campaign tags, the site that sent them, the page they landed on. */
+const TouchFields: React.FC<{ t: any }> = ({ t }) => (
+  <dl className="amp-fields">
+    <Field label="Source / medium" value={[t.utm_source, t.utm_medium].filter(Boolean).join(' / ') || null} />
+    <Field label="Campaign" value={[t.utm_campaign, t.utm_content, t.utm_term].filter(Boolean).join(' · ') || null} />
+    <Field label="Ad click" value={t.gclid ? 'Google Ads (gclid)' : t.fbclid ? 'Meta ads (fbclid)' : null} />
+    <Field label="Referred by" value={t.referrer || null} />
+    <Field label="Landed on" value={t.landing_url || t.landing_page || t.entry_path || null} />
+    <Field label="When" value={t.captured_at ? new Date(t.captured_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null} />
+  </dl>
+);
+
 const failed = (e: any): Load<any> => ({ data: null, error: e?.response?.data?.message || 'Could not load this section.' });
 
 const Field: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -89,7 +106,7 @@ const AdminMemberProfile: React.FC = () => {
     );
   }
 
-  const { account, setup, membership, payments, progress, resume, lmsProfile } = profile.data;
+  const { account, setup, membership, payments, progress, resume, lmsProfile, joined } = profile.data;
   const track = setup.careerTrack && typeof setup.careerTrack === 'object' ? setup.careerTrack.key : setup.careerTrack;
   const grad = setup.graduationYear ? `${setup.graduationMonth ? MONTHS[setup.graduationMonth] + ' ' : ''}${setup.graduationYear}` : null;
   const paidTotal = (payments as any[]).filter((p) => p.status === 'paid').reduce((t, p) => t + (p.amountInr || 0), 0);
@@ -247,6 +264,25 @@ const AdminMemberProfile: React.FC = () => {
             <Field label="LMS profile" value={lmsProfile ? `${lmsProfile.completeness}% complete` : 'Not filled in (normal for CareerPilot members)'} />
           </dl>
         </Card>
+
+        <Card title="How they joined" icon="bi-signpost-split">
+          <dl className="amp-fields">
+            <Field label="Found us through" value={joined?.source} />
+            <Field label="Signed up via" value={joined?.via} />
+            <Field label="Verified" value={fmtDateTime(joined?.verifiedAt)} />
+          </dl>
+          {joined?.firstTouch ? <>
+            {joined.reconstructed && <p className="amp-muted"><i className="bi bi-info-circle" /> They joined before sources were captured live — this was pieced together from {joined.reconstructed === 'payment' ? 'their payment record' : 'their first recorded visits'}.</p>}
+            <h3 className="amp-sub">First visit</h3>
+            <TouchFields t={joined.firstTouch} />
+            {joined.lastTouch && joined.lastTouch.captured_at !== joined.firstTouch.captured_at && <>
+              <h3 className="amp-sub">Latest campaign visit</h3>
+              <TouchFields t={joined.lastTouch} />
+            </>}
+          </> : <p className="amp-muted">No link information was recorded — they joined before sign-up sources were tracked, or came straight to the join page with no link tags or referring site.</p>}
+        </Card>
+
+        {isSuperAdmin() && <MemberActivityCard studentId={studentId} />}
 
         <Card title={`Mission answers${answers.data ? ` (${answers.data.length})` : ''}`} icon="bi-chat-left-text" className="wide" error={answers.error}>
           {answers.data?.length ? (

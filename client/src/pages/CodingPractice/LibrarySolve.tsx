@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
+import SplitWorkspace from '../../components/SplitWorkspace/SplitWorkspace';
 import { codingPracticeApi, LearnerProblem } from '../../api/problemSetApi';
 import { pbError, PbCustomResult, PbJudgeResult } from '../../api/problemBankApi';
 import { LANG_SHORT, Markdown, VERDICT_LABEL, relTime } from '../ProblemBank/shared';
@@ -131,7 +132,7 @@ const LibrarySolve: React.FC<{ base: string }> = ({ base }) => {
         <button className="pl-btn sm" disabled={!p.set.nextId} onClick={() => nav(`${base}/${p.set.nextId}`)}>Next <i className="fa-solid fa-chevron-right" /></button>
       </div>
 
-      <div className="pl-work">
+      <SplitWorkspace storageKey="cp-practice" className="pl-work" stackBelow={980} left={<>
         {/* ── Problem ── */}
         <div className="pl-card pl-left">
           <div className="head">
@@ -205,6 +206,7 @@ const LibrarySolve: React.FC<{ base: string }> = ({ base }) => {
           </div>
         </div>
 
+        </>} right={<>
         {/* ── Editor + console ── */}
         <div className="pl-card pl-right">
           <div className="bar">
@@ -316,7 +318,7 @@ const LibrarySolve: React.FC<{ base: string }> = ({ base }) => {
             </div>
           </div>
         </div>
-      </div>
+      </>} />
     </div>
   );
 };

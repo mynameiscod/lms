@@ -27,7 +27,7 @@
  * full-screen paper. That is correct for an exam: a navigation rail beside a timed checkpoint
  * is an invitation to wander off mid-question. It returns here when it is done.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import passportApi, { FoundationJourney as Journey } from '../../api/passportApi';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
@@ -39,6 +39,8 @@ import { withReturn } from '../../utils/careerpilotReturn';
 import './journeyDay.css';
 import './journeyDayMember.css';
 import { useProgramDays } from './useProgramDays';
+import NotesBook, { opensAsBook } from './NotesBook';
+import { keepTaskInView, showLessonIfStacked, useDayPanes } from './useDayPanes';
 
 /** Content types, in words a first-year recognises. Mirrors the roadmap screen. */
 export const TYPE_LABEL: Record<string, string> = {
@@ -118,7 +120,7 @@ export const ItemBody: React.FC<{ item: any; onLaunch: (path: string) => void }>
   switch (c.type) {
     case 'video': return <VideoPlayer content={c} onWatchEnough={() => { /* completion is explicit here */ }} />;
     case 'notes':
-    case 'worked_example': return <NotesViewer content={c} />;
+    case 'worked_example': return opensAsBook(c) ? <NotesBook text={c.notesContent} /> : <NotesViewer content={c} />;
     case 'tech_qa':
     case 'behavioral_qa': return <QAViewer content={c} />;
     case 'practice_coding':
@@ -164,6 +166,14 @@ const JourneyDay: React.FC = () => {
   /** A short "+5 XP" after a lesson is ticked off — the XP itself is paid by the server on that save. */
   const [flash, setFlash] = useState('');
   const { reload: reloadMember } = useMember();
+  const gridRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useDayPanes(gridRef, [loading, error, items.length > 0]);
+  // A new task starts at its top, and the task list keeps the chosen task in view.
+  useEffect(() => {
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    keepTaskInView(gridRef.current);
+  }, [selIdx]);
 
   const load = useCallback(async () => {
     setLoading(true); setError(''); setLocked(false); setDayLock(''); setLockToWelcome(false); setGate(null);
@@ -466,7 +476,7 @@ const JourneyDay: React.FC = () => {
       )}
 
       {!loading && !error && items.length > 0 && (
-        <div className="jd-grid">
+        <div className="jd-grid" ref={gridRef}>
           {/* The day's work, in order. Selecting never navigates: the member stays on the day. */}
           <aside className="jdm-rail-card">
             <div className="jdm-rail-head"><b>Today’s tasks</b><span>{doneCount}/{items.length}</span></div>
@@ -476,7 +486,7 @@ const JourneyDay: React.FC = () => {
                   <button
                     type="button"
                     className={`jd-item${i === selIdx ? ' sel' : ''}${it.isCompleted ? ' done' : ''}`}
-                    onClick={() => setSelIdx(i)}
+                    onClick={() => { setSelIdx(i); showLessonIfStacked(gridRef.current); }}
                     aria-current={i === selIdx ? 'true' : undefined}
                   >
                     <span className={`jd-item-icon t-${typeOf(it)}`} aria-hidden>
@@ -504,7 +514,7 @@ const JourneyDay: React.FC = () => {
             )}
           </aside>
 
-          <section className="jd-stage" id="jdm-stage" aria-live="polite">
+          <section className={`jd-stage${opensAsBook(selected?.content) ? ' fill' : ''}`} id="jdm-stage" aria-live="polite">
             {selected && (
               <>
                 <div className="jd-stage-head">
@@ -518,7 +528,7 @@ const JourneyDay: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="jd-body">
+                <div className="jd-body" ref={bodyRef}>
                   {/* A checkpoint comes back to this day when it is done, instead of the LMS quiz list. */}
                   <ItemBody item={selected} onLaunch={(p) => {
                     const back = `/careerpilot/journey/day/${dayNumber}?task=${selIdx}`;

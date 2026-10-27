@@ -1,0 +1,81 @@
+/* The day's notes as an open notebook (NotesBook.tsx). Borrows the Question Books paper, fonts and
+   page-turn keyframes from ../QuestionBooks/book.css; prefix nb-. The notes flow into columns the
+   size of a page: column width = half the book less both margins, column gap = two margins, so each
+   column lands centred on its sheet and one spread is exactly one book width further on. */
+/* Margins and handwriting grow with the book (cqi = 1% of its width), so a line stays a
+   comfortable length from a small laptop to a 1920 screen. */
+.nb { --page-pad: clamp(20px, 3.4cqi, 60px); --fs: clamp(17px, 1.1cqi + 8px, 23px); --lh: 1.75; --pno-h: 30px;
+  container-type: inline-size; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+
+.nb-book { position: relative; height: clamp(440px, calc(72vh / var(--app-zoom, 1)), 900px); border-radius: 12px; outline: none;
+  filter: drop-shadow(0 14px 22px rgba(15, 23, 42, .16)); perspective: 2600px; }
+.nb-book:focus-visible { box-shadow: 0 0 0 3px rgba(53, 154, 173, .45); }
+
+.nb-paper { position: absolute; top: 0; bottom: 0; width: 50%; background-color: var(--paper);
+  background-image: radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, .7), transparent 60%), radial-gradient(ellipse at 80% 90%, rgba(214, 196, 160, .18), transparent 55%); }
+.nb-paper.left { left: 0; border-radius: 12px 0 0 12px; box-shadow: inset -22px 0 30px -20px rgba(0, 0, 0, .26); }
+.nb-paper.right { right: 0; border-radius: 0 12px 12px 0; box-shadow: inset 22px 0 30px -20px rgba(0, 0, 0, .26); }
+.nb-book.one .nb-paper.left { width: 100%; border-radius: 12px; box-shadow: inset 10px 0 18px -14px rgba(0, 0, 0, .25); }
+
+.nb-flow { position: absolute; top: var(--page-pad); bottom: calc(var(--page-pad) * .6 + var(--pno-h)); left: var(--page-pad); right: var(--page-pad);
+  column-count: 2; column-gap: calc(var(--page-pad) * 2); column-fill: auto; overflow: hidden; z-index: 1; }
+@container (max-width: 680px) {
+  .nb { --page-pad: 20px; --fs: 17px; }
+  .nb-flow { column-count: 1; }
+}
+
+/* Handwriting everywhere on the page; the app's paragraph styles must not win inside the book. */
+.nb-flow, .nb-flow .cp-notes, .nb-flow p, .nb-flow li, .nb-flow span, .nb-flow div, .nb-flow blockquote,
+.nb-flow h1, .nb-flow h2, .nb-flow h3, .nb-flow h4, .nb-flow strong, .nb-flow em, .nb-flow td, .nb-flow th { font-family: var(--hand); }
+.nb-flow .cp-notes { font-size: var(--fs); line-height: var(--lh); color: var(--ink); }
+.nb-flow .cp-notes p, .nb-flow .cp-notes li { font-size: var(--fs); line-height: var(--lh); color: var(--ink); }
+.nb-chap { font-family: var(--title); font-size: calc(var(--fs) * 1.9); font-weight: 700; line-height: 1.1; color: #8a6d3b; margin: 0 0 14px; }
+
+.nb-flow .cp-notes h1, .nb-flow .cp-notes h2 { font-family: var(--title); font-size: calc(var(--fs) * 1.6); font-weight: 700; color: #c2410c; line-height: 1.15; margin: .9em 0 .35em; break-after: avoid; }
+.nb-flow .cp-notes h3, .nb-flow .cp-notes h4 { font-size: calc(var(--fs) * 1.1); font-weight: 700; color: #1d4ed8; margin: .9em 0 .3em; break-after: avoid; }
+/* A hand-drawn underline under the big headings. */
+.nb-flow .cp-notes h1, .nb-flow .cp-notes h2 { text-decoration: underline; text-decoration-style: wavy; text-decoration-color: rgba(194, 65, 12, .45); text-decoration-thickness: 1.5px; text-underline-offset: 6px; }
+/* Bold reads as highlighter. */
+.nb-flow .cp-notes strong, .nb-flow .cp-notes b { color: var(--ink); font-weight: 700; background: linear-gradient(104deg, transparent .4em, #fde68a .5em, #fde047 95%, transparent 100%) 0 70% / 100% 55% no-repeat; padding: 0 .12em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.nb-flow .cp-notes a { color: #1d4ed8; }
+/* A quote is a sticky note. */
+.nb-flow .cp-notes blockquote { border: 0; margin: 14px 4px 16px; padding: 10px 14px; background: #fef08a; color: #422006; box-shadow: 0 6px 12px rgba(0, 0, 0, .12); transform: rotate(-1deg); break-inside: avoid; }
+.nb-flow .cp-notes hr { border: 0; border-top: 2px dashed #cbb98f; }
+.nb-flow .cp-notes ul { list-style: '✎  '; }
+.nb-flow .cp-notes ul ul { list-style: '–  '; }
+/* Code keeps its monospace and its dark block. */
+.nb-flow .cp-notes pre, .nb-flow .cp-notes pre *, .nb-flow .cp-notes code, .nb-flow .cp-notes code * { font-family: 'JetBrains Mono', Consolas, ui-monospace, monospace !important; }
+.nb-flow .cp-notes pre { font-size: 13.5px; line-height: 20px; }
+.nb-flow .cp-notes code { font-size: .78em; background: rgba(15, 23, 42, .07); }
+.nb-flow .cp-notes pre code { font-size: 13.5px; background: transparent; }
+.nb-flow .cp-notes th, .nb-flow .cp-notes td { border-color: #d9cdb3; }
+.nb-flow .cp-notes th { background: rgba(214, 196, 160, .25); }
+.nb-flow .cp-notes img { max-height: 380px; object-fit: contain; break-inside: avoid; border-radius: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, .12); }
+.nb-flow .cp-notes .cp-table { break-inside: avoid; }
+
+.nb-pno { position: absolute; bottom: calc(var(--page-pad) * .55); font-family: var(--hand); font-size: 15px; color: #76716F; z-index: 1; }
+.nb-pno.left { left: var(--page-pad); }
+.nb-pno.right { right: var(--page-pad); }
+
+/* The page turn: the Question Books keyframes, quicker - this is reading, not a quiz reveal. */
+.nb-turn { position: absolute; top: 0; bottom: 0; width: 50%; z-index: 3; pointer-events: none; background-color: var(--paper);
+  background-image: radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, .7), transparent 60%); }
+.nb-turn.next { right: 0; transform-origin: left center; border-radius: 0 12px 12px 0; animation: qb-turn-next .85s cubic-bezier(.42, 0, .25, 1) forwards; }
+.nb-turn.prev { left: 0; transform-origin: right center; border-radius: 12px 0 0 12px; animation: qb-turn-prev .85s cubic-bezier(.42, 0, .25, 1) forwards; }
+.nb-book.one .nb-turn { width: 100%; border-radius: 12px; }
+@media (prefers-reduced-motion: reduce) { .nb-turn { display: none; } }
+
+.nb-nav { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.nb-count { font-family: var(--hand); font-size: 16px; color: var(--ink-soft); min-width: 120px; text-align: center; }
+.nb-btn, .nb-mode { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; border-radius: 11px; border: 1px solid #C9D8E5; background: #fff; color: #051D64; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.nb-btn:hover:not(:disabled), .nb-mode:hover { border-color: #051D64; }
+.nb-btn:disabled { opacity: .45; cursor: default; }
+.nb-mode { border-style: dashed; color: #33475B; font-weight: 600; }
+.nb-nav .nb-mode { margin-left: auto; }
+.nb-plainbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+/* A narrow lesson card (phone, or a small laptop) - by the book's own width, not the screen's. */
+@container (max-width: 560px) {
+  .nb-nav .nb-mode { margin-left: 0; flex-basis: 100%; justify-content: center; }
+  .nb-count { order: -1; width: 100%; }
+  .nb-btn { flex: 1; justify-content: center; white-space: nowrap; padding: 0 10px; }
+}

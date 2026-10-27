@@ -91,7 +91,7 @@ import visualizerRoutes from './visualizerRoutes';
 import batchOfferingRoutes from './batchOfferingRoutes';
 import assessmentScheduleRoutes from './assessmentScheduleRoutes';
 import passportRoutes from './passportRoutes';
-import { careerPilotActivity } from '../middleware/careerPilotActivity';
+import { careerPilotActivity, careerPilotMemberActivity } from '../middleware/careerPilotActivity';
 import publicPassportRoutes from './publicPassportRoutes';
 import conceptLessonRoutes from './conceptLessonRoutes';
 import interactiveLessonRoutes from './interactiveLessonRoutes';
@@ -232,7 +232,7 @@ router.use('/users', userRoutes);
 router.use('/roles', roleRoutes);
 router.use('/batches', batchRoutes);
 router.use('/attendance', attendanceRoutes);
-router.use('/quizzes', quizRoutes);
+router.use('/quizzes', careerPilotMemberActivity, quizRoutes);
 router.use('/assessment-items', assessmentItemRoutes);
 router.use('/hackathon-exams', hackathonExamRoutes);
 router.use('/assessment-candidates', assessmentCandidatesRoutes);
@@ -244,7 +244,7 @@ router.use('/content', contentRoutes);
 router.use('/progress', progressRoutes);
 router.use('/student-profile', studentProfileRoutes);
 router.use('/oauth', oauthRoutes);
-router.use('/assignments', assignmentRoutes);
+router.use('/assignments', careerPilotMemberActivity, assignmentRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/student-reports', studentReportRoutes);
 router.use('/exams', examRoutes);
@@ -289,7 +289,7 @@ router.use('/lead-distribution-config', leadDistributionRoutes);
 router.use('/whatsapp-drip-config', whatsappDripConfigRoutes);
 router.use('/whatsapp-templates', whatsAppTemplateRoutes); // author Meta templates in the LMS + assign to system uses
 router.use('/problem-bank', problemBankRoutes); // single store of runnable coding problems
-router.use('/coding-practice', codingPracticeRoutes); // learners solving problem sets from the bank
+router.use('/coding-practice', careerPilotMemberActivity, codingPracticeRoutes); // learners solving problem sets from the bank
 router.use('/employees', employeeRoutes); // employee directory, profiles, pay history, logins, lists
 router.use('/employee-portal', employeePortalRoutes); // an employee's own profile, daily activity, expenses
 router.use('/employee-activity', employeeActivityRoutes); // daily activity review
@@ -304,14 +304,14 @@ router.use('/ai-calls', aiCallRoutes);
 router.use('/public-quizzes', adminPublicQuizRoutes);
 
 // ─── Learning Plan Module ──────────────────────────────────────────────────────
-router.use('/learning-library', learningContentLibraryRoutes);
+router.use('/learning-library', careerPilotMemberActivity, learningContentLibraryRoutes);
 router.use('/live-classes', liveSessionRoutes);
 router.use('/hms-classes', liveClassRoutes); // 100ms-backed hybrid live classes (webinar stage model)
 router.use('/curricula', learningCurriculumRoutes);
 // Adaptive plans. Mounted alongside rather than inside /curricula: the resource is a
 // STUDENT'S plan, not a curriculum, and nesting it would imply curriculum permissions apply.
 router.use('/adaptive', adaptiveCurriculumRoutes);
-router.use('/enrollment-plans', enrollmentPlanRoutes);
+router.use('/enrollment-plans', careerPilotMemberActivity, enrollmentPlanRoutes);
 router.use('/projects', projectRoutes);
 router.use('/job-applications', jobApplicationRoutes);
 router.use('/ai-mentor', mentorRoutes);
@@ -327,7 +327,7 @@ router.use('/assessment-schedules', assessmentScheduleRoutes);
 // Every CareerPilot request is recorded on its way out — structural rather than per-handler,
 // so an endpoint added next month is in the trail without anybody remembering to add a line.
 router.use('/careerpilot', careerPilotActivity, passportRoutes);
-router.use('/passport', passportRoutes);   // legacy alias — keeps existing clients working
+router.use('/passport', careerPilotActivity, passportRoutes);   // legacy alias — keeps existing clients working; most member calls still use it, so it is recorded too
 router.use('/concept-lessons', conceptLessonRoutes);
 router.use('/interactive-lessons', interactiveLessonRoutes);
 

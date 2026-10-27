@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
+import SplitWorkspace from '../../components/SplitWorkspace/SplitWorkspace';
 import {
   assignmentApi,
   submissionApi,
@@ -863,7 +864,7 @@ const AssignmentWorkspace: React.FC = () => {
       )}
 
       {/* Workspace */}
-      <div className="workspace-layout">
+      <SplitWorkspace storageKey="assignment-workspace" className="workspace-layout" stackBelow={900} defaultPct={38} left={<>
         {/* Left Panel - Problem/Instructions */}
         <div className="workspace-problem">
           <div className="tabs" style={{ borderBottom: '1px solid #e5e7eb', padding: '0 16px' }}>
@@ -1415,6 +1416,7 @@ const AssignmentWorkspace: React.FC = () => {
           </div>
         </div>
 
+        </>} right={<>
         {/* Right Panel - Editor/Input */}
         <div className="workspace-editor">
           {/* Coding Assignment */}
@@ -1679,7 +1681,7 @@ const AssignmentWorkspace: React.FC = () => {
             </div>
           )}
         </div>
-      </div>
+      </>} />
     </div>
   );
 };

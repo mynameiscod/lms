@@ -111,6 +111,8 @@ export interface IUser extends Document {
      * by a join nobody remembers to write.
      */
     attribution?: ICareerPilotAttribution;
+    /** Set when `attribution` was reconstructed after signup (from activity or a payment), not captured live. */
+    attributionReconstructed?: string;
     /**
      * Answers to sign-up questions an admin added (PassportConfig.onboardingFields with
      * `custom: true`), by field key. The shipped questions map onto the named fields above;
@@ -304,6 +306,7 @@ const UserSchema: Schema = new Schema(
       shareSlug:   { type: String, index: true },
       passwordSet: { type: Boolean, default: false },
       attribution: { type: CareerPilotAttributionSchema, default: undefined },
+      attributionReconstructed: { type: String },
       customFields: { type: Schema.Types.Mixed, default: undefined },
     },
     phone: {

@@ -44,6 +44,7 @@ import * as readiness from '../controllers/roleReadinessController';
 import * as careerRoadmap from '../controllers/careerRoadmapController';
 import * as spine from '../controllers/spineController';
 import * as learningUnits2 from '../controllers/curriculumLearningUnitController';
+import * as videoScripts from '../controllers/videoScriptController';
 import * as foundationJourney from '../controllers/foundationJourneyController';
 import * as dailyPlan from '../controllers/careerDailyPlanController';
 import * as skillResources from '../controllers/careerSkillResourceController';
@@ -70,7 +71,7 @@ const orientationUpload = multer({
   limits: { fileSize: 60 * 1024 * 1024 },
 });
 import * as cpanalytics from '../controllers/careerPilotAnalyticsController';
-import { getMemberProfile } from '../controllers/memberProfileController';
+import { getMemberProfile, getMemberActivity } from '../controllers/memberProfileController';
 
 const router = express.Router();
 
@@ -324,6 +325,8 @@ router.get('/me/foundation-journey/day/:dayNumber', MEMBER, foundationJourney.ge
 router.get('/students/:studentId/readiness',    MANAGE_FOR.cpMembers, readiness.getStudentRoleReadiness);
 // One member's full picture for staff: account, CareerPilot setup, membership, payments, progress.
 router.get('/admin/students/:studentId/profile', MANAGE_FOR.cpMembers, getMemberProfile);
+// Everything one member has done (pages, actions, API calls, videos) — the super admin's view.
+router.get('/admin/students/:studentId/activity', SUPER_ADMIN, getMemberActivity);
 
 // ── 90-day roadmap (Module 9). The PLANNING layer: what to achieve over the window, in
 //    canonical skills. Distinct from `/roadmap` below, which is the mission journey — that
@@ -517,6 +520,10 @@ router.get('/curriculum-units/:unitCode/student-preview', MANAGE_FOR.cpContent, 
 router.post('/curriculum-units/:unitCode/content/reorder', MANAGE_FOR.cpContent, express.json(), learningUnits2.reorderUnitContent);
 router.post('/curriculum-units/:unitCode/content/:contentId',   MANAGE_FOR.cpContent, learningUnits2.attachContent);
 router.delete('/curriculum-units/:unitCode/content/:contentId', MANAGE_FOR.cpContent, learningUnits2.detachContent);
+// The day's video shooting script — admin-only; nothing a student can reach reads VideoScript.
+router.get('/curriculum-units/:unitCode/script',    MANAGE_FOR.cpContent, videoScripts.getScript);
+router.put('/curriculum-units/:unitCode/script',    MANAGE_FOR.cpContent, express.json({ limit: '1mb' }), videoScripts.saveScript);
+router.delete('/curriculum-units/:unitCode/script', MANAGE_FOR.cpContent, videoScripts.deleteScript);
 
 /**
  * ── What a unit MEASURES with ──

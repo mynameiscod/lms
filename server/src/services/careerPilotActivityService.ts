@@ -272,6 +272,57 @@ export async function getTimeline(tenantId: string, visitorId: string, limit = 5
 }
 
 /**
+ * Everything one member has done, newest first — for the super admin's member profile.
+ *
+ * Rows carry a userId only from the moment the member is known, and earlier rows are never
+ * backfilled. So the trail is stitched: every visitorId (browser) this member has EVER been signed in
+ * on, and all of that browser's rows — including the anonymous ones before signup, which is how the
+ * admin sees the marketing page they read and the join form they filled. Paged by time with `before`.
+ */
+export async function getUserTimeline(tenantId: string, userId: string, opts: { before?: string; limit?: number; kinds?: string[] } = {}) {
+  const tid = new mongoose.Types.ObjectId(tenantId);
+  const uid = new mongoose.Types.ObjectId(userId);
+  const visitorIds: string[] = await CareerPilotActivity.distinct('visitorId', { tenantId: tid, userId: uid }) as any;
+  const limit = Math.min(Math.max(Number(opts.limit) || 150, 1), 500);
+  const match: any = { tenantId: tid, $or: [{ userId: uid }, ...(visitorIds.length ? [{ visitorId: { $in: visitorIds }, userId: { $exists: false } }] : [])] };
+  if (opts.kinds?.length) match.kind = { $in: opts.kinds };
+  const before = opts.before ? new Date(opts.before) : null;
+  const pageMatch = before && !Number.isNaN(before.getTime()) ? { ...match, createdAt: { $lt: before } } : match;
+
+  const [rows, totals, devices] = await Promise.all([
+    CareerPilotActivity.find(pageMatch).sort({ createdAt: -1 }).limit(limit + 1)
+      .select('kind name route method status outcome errorMessage durationMs meta device ip referrer sessionId visitorId userId createdAt').lean(),
+    CareerPilotActivity.aggregate([
+      { $match: match },
+      { $group: {
+        _id: null, events: { $sum: 1 },
+        firstSeen: { $min: '$createdAt' }, lastSeen: { $max: '$createdAt' },
+        sessions: { $addToSet: '$sessionId' },
+        pages: { $sum: { $cond: [{ $eq: ['$kind', 'page'] }, 1, 0] } },
+        actions: { $sum: { $cond: [{ $eq: ['$kind', 'action'] }, 1, 0] } },
+        failures: { $sum: { $cond: [{ $eq: ['$outcome', 'failure'] }, 1, 0] } },
+      } },
+    ]),
+    CareerPilotActivity.aggregate([
+      { $match: match },
+      { $group: { _id: { t: '$device.deviceType', b: '$device.browser', o: '$device.os' }, n: { $sum: 1 }, last: { $max: '$createdAt' } } },
+      { $sort: { last: -1 } }, { $limit: 6 },
+    ]),
+  ]);
+  const t = totals[0];
+  return {
+    summary: t ? {
+      events: t.events, firstSeen: t.firstSeen, lastSeen: t.lastSeen,
+      sessions: (t.sessions || []).filter(Boolean).length, pages: t.pages, actions: t.actions, failures: t.failures,
+      browsers: visitorIds.length,
+    } : null,
+    devices: devices.map((d: any) => ({ deviceType: d._id.t || null, browser: d._id.b || null, os: d._id.o || null, events: d.n, lastSeen: d.last })),
+    rows: rows.slice(0, limit),
+    nextBefore: rows.length > limit ? rows[limit - 1].createdAt : null,
+  };
+}
+
+/**
  * Headline numbers for the period on screen.
  *
  * Bots are counted separately rather than excluded silently: a page-view figure that quietly

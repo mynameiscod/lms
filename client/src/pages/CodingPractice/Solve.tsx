@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
+import SplitWorkspace from '../../components/SplitWorkspace/SplitWorkspace';
 import { codingPracticeApi, LearnerProblem } from '../../api/problemSetApi';
 import { pbError, PbCustomResult, PbJudgeResult } from '../../api/problemBankApi';
 import { DifficultyPill, LANG_SHORT, Markdown, VERDICT_LABEL, relTime } from '../ProblemBank/shared';
@@ -124,7 +125,7 @@ const Solve: React.FC<{ base: string }> = ({ base }) => {
             {busy === 'submit' ? <span className="pb-spinner" /> : <i className="fa-solid fa-cloud-arrow-up" />} Submit</button>
         </div>
 
-        <div className="pb-studio-body">
+        <SplitWorkspace storageKey="coding-practice" className="pb-studio-body" stackBelow={1100} defaultPct={51} left={<>
           {/* ── Problem ── */}
           <div className="pb-studio-left">
             <div className="pb-tabs">
@@ -190,6 +191,7 @@ const Solve: React.FC<{ base: string }> = ({ base }) => {
             </div>
           </div>
 
+        </>} right={<>
           {/* ── Editor + console ── */}
           <div className="pb-studio-right">
             <div className="pb-lab-top">
@@ -266,7 +268,7 @@ const Solve: React.FC<{ base: string }> = ({ base }) => {
               )}
             </div>
           </div>
-        </div>
+        </>} />
       </div>
     </div>
   );

@@ -359,6 +359,18 @@ export const passportApi = {
     const r = await axios.get(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/student-preview`, { headers: auth() });
     return r.data;
   },
+  /** The day's video shooting script (admin-only). null when none has been written. */
+  getVideoScript: async (unitCode: string): Promise<VideoScript | null> => {
+    const r = await axios.get(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/script`, { headers: auth() });
+    return r.data?.data || null;
+  },
+  saveVideoScript: async (unitCode: string, body: VideoScriptInput): Promise<VideoScript> => {
+    const r = await axios.put(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/script`, body, { headers: auth() });
+    return r.data.data;
+  },
+  deleteVideoScript: async (unitCode: string): Promise<void> => {
+    await axios.delete(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/script`, { headers: auth() });
+  },
   attachUnitContent: async (unitCode: string, contentId: string): Promise<{ attached: boolean }> => {
     const r = await axios.post(
       `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/content/${encodeURIComponent(contentId)}`,
@@ -412,11 +424,11 @@ export const passportApi = {
     return r.data;
   },
   createUnitAssessment: async (
-    unitCode: string, kind: 'QUIZ' | 'ASSIGNMENT', title?: string,
+    unitCode: string, kind: 'QUIZ' | 'ASSIGNMENT', title?: string, type?: string,
   ): Promise<{ created: boolean; id: string }> => {
     const r = await axios.post(
       `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/assessments`,
-      { kind, title }, { headers: auth() });
+      { kind, title, ...(type ? { type } : {}) }, { headers: auth() });
     return r.data;
   },
   // ── Module and topic order ────────────────────────────────────────
@@ -733,6 +745,11 @@ export const passportApi = {
   /** Admin: one member's full picture — account, CareerPilot setup, membership, payments, progress. */
   getMemberProfile: async (studentId: string): Promise<any> => {
     const { data } = await axios.get(`${BASE}/admin/students/${encodeURIComponent(studentId)}/profile`, { headers: auth() });
+    return data.data;
+  },
+  /** Super admin: everything one member has done, newest first. `before` pages back in time. */
+  getMemberActivity: async (studentId: string, q: { before?: string; kinds?: string } = {}): Promise<MemberActivity> => {
+    const { data } = await axios.get(`${BASE}/admin/students/${encodeURIComponent(studentId)}/activity`, { headers: auth(), params: q });
     return data.data;
   },
   /** Admin: one member's Skill DNA. */
@@ -2327,6 +2344,29 @@ export interface UnitBundle {
   hasPractice: boolean;
   types: string[];
   resolvedMinutes: number;
+}
+
+export interface MemberActivityRow {
+  _id: string; kind: 'page' | 'action' | 'api' | 'error'; name: string; route?: string; method?: string; status?: number;
+  outcome?: string; errorMessage?: string; durationMs?: number; meta?: any; ip?: string; referrer?: string;
+  sessionId?: string; visitorId: string; userId?: string; createdAt: string;
+  device?: { browser?: string; os?: string; deviceType?: string; screen?: string };
+}
+export interface MemberActivity {
+  summary: { events: number; firstSeen: string; lastSeen: string; sessions: number; pages: number; actions: number; failures: number; browsers: number } | null;
+  devices: { deviceType: string | null; browser: string | null; os: string | null; events: number; lastSeen: string }[];
+  rows: MemberActivityRow[];
+  nextBefore: string | null;
+}
+
+export interface VideoScriptScene { heading: string; visual: string; narration: string; notes: string }
+export type VideoScriptStatus = 'DRAFT' | 'READY' | 'SHOT';
+export interface VideoScriptInput {
+  title: string; objective: string; targetMinutes: number; presenter: string;
+  scenes: VideoScriptScene[]; status: VideoScriptStatus;
+}
+export interface VideoScript extends VideoScriptInput {
+  _id: string; unitCode: string; updatedAt: string; updatedBy?: string; createdBy?: string;
 }
 
 export interface UnitStudentPreview {

@@ -64,7 +64,10 @@ const emitLeadEvent = (req: AuthenticatedRequest, event: string, data: any) => {
 export const adAndReEnquiryMatch = (q: any): Record<string, any> => {
   const out: Record<string, any> = {};
   const adId = typeof q?.adId === 'string' ? q.adId.trim() : '';
-  if (adId) out.$and = [{ $or: [{ 'sourceDetails.adId': adId }, { 'reEnquiries.adId': adId }] }];
+  if (adId.startsWith('form:')) {
+    // Leads whose ad Meta did not tell us (another ad account): grouped by the lead form they filled in.
+    out.$and = [{ 'sourceDetails.formId': adId.slice(5), 'sourceDetails.adId': { $in: [null, ''] } }];
+  } else if (adId) out.$and = [{ $or: [{ 'sourceDetails.adId': adId }, { 'reEnquiries.adId': adId }] }];
   if (q?.reEnquiry === 'true') out.reEnquiryUnseen = true;
   return out;
 };
@@ -1706,15 +1709,28 @@ export const getLeadSources = async (req: AuthenticatedRequest, res: Response<Ap
 export const getLeadAds = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const scopeFilter = await buildLeadScopeFilter(req);
-    const rows = await Lead.aggregate([
-      { $match: { tenantId: new mongoose.Types.ObjectId(String(req.tenantId)), ...scopeFilter, archivedAt: null, 'sourceDetails.adId': { $nin: [null, ''] } } },
-      { $group: { _id: '$sourceDetails.adId', adName: { $last: '$sourceDetails.adName' }, campaignName: { $last: '$sourceDetails.campaignName' }, adSetName: { $last: '$sourceDetails.adSetName' }, leads: { $sum: 1 }, latest: { $max: '$createdAt' } } },
-      { $sort: { latest: -1 } },
-      { $limit: 300 },
+    const base = { tenantId: new mongoose.Types.ObjectId(String(req.tenantId)), ...scopeFilter, archivedAt: null };
+    const [rows, formRows] = await Promise.all([
+      Lead.aggregate([
+        { $match: { ...base, 'sourceDetails.adId': { $nin: [null, ''] } } },
+        { $group: { _id: '$sourceDetails.adId', adName: { $last: '$sourceDetails.adName' }, campaignName: { $last: '$sourceDetails.campaignName' }, adSetName: { $last: '$sourceDetails.adSetName' }, leads: { $sum: 1 }, latest: { $max: '$createdAt' } } },
+        { $sort: { latest: -1 } },
+        { $limit: 300 },
+      ]),
+      // Form leads Meta sent without any ad (usually an ad account the page token cannot read): one row per form.
+      Lead.aggregate([
+        { $match: { ...base, source: 'meta_form', 'sourceDetails.formId': { $nin: [null, ''] }, 'sourceDetails.adId': { $in: [null, ''] } } },
+        { $group: { _id: '$sourceDetails.formId', leads: { $sum: 1 }, latest: { $max: '$createdAt' } } },
+        { $sort: { latest: -1 } },
+        { $limit: 50 },
+      ]),
     ]);
     res.json({
       success: true, message: 'Ads fetched',
-      data: rows.map((r: any) => ({ adId: r._id, adName: r.adName || '', campaignName: r.campaignName || '', adSetName: r.adSetName || '', leads: r.leads })),
+      data: [
+        ...rows.map((r: any) => ({ adId: r._id, adName: r.adName || '', campaignName: r.campaignName || '', adSetName: r.adSetName || '', leads: r.leads })),
+        ...formRows.map((r: any) => ({ adId: `form:${r._id}`, adName: '', campaignName: '', adSetName: '', formId: r._id, leads: r.leads })),
+      ],
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to fetch ads', error: error.message });

@@ -264,3 +264,12 @@
   .pci-act .acb-btn, .pci-foot .acb-btn { flex: 1 1 auto; justify-content: center; }
   .pci-opts { padding-left: 0; }
 }
+
+/* Small phones: an item's number, icon, title, XP and up to four buttons do not fit one row (the
+   last buttons sat past the screen edge at 360px). The title keeps the first row; the XP and the
+   buttons take a second row under it. */
+@media (max-width: 480px) {
+  .acb-items li { flex-wrap: wrap; row-gap: 8px; gap: 8px 10px; padding: 12px; }
+  .acb-items li .acb-i-t { flex: 1 1 calc(100% - 90px); }
+  .acb-items li .acb-i-xp { margin-left: 32px; margin-right: auto; }
+}

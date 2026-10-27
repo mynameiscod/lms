@@ -567,7 +567,7 @@ const LeadsPage: React.FC = () => {
   if(filterStage){const s=stages.find(x=>x._id===filterStage);if(s)activeFilters.push({label:`Stage: ${s.name}`,onRemove:()=>setFilterStage('')});}
   if(filterSource)activeFilters.push({label:`Source: ${SOURCE_LABELS[filterSource]||filterSource}`,onRemove:()=>setFilterSource('')});
   if(filterAssignee){const u=staff.find(x=>x._id===filterAssignee);if(u)activeFilters.push({label:`Assigned: ${u.firstName} ${u.lastName}`,onRemove:()=>setFilterAssignee('')});}
-  if(filterAd){const a=ads.find(x=>x.adId===filterAd);activeFilters.push({label:`Ad: ${a?(a.adName||a.campaignName||a.adId):filterAd}`,onRemove:()=>setFilterAd('')});}
+  if(filterAd){const a=ads.find(x=>x.adId===filterAd);activeFilters.push({label:`Ad: ${filterAd.startsWith('form:')?`lead form ${filterAd.slice(5)}`:a?(a.adName||a.campaignName||a.adId):filterAd}`,onRemove:()=>setFilterAd('')});}
   if(filterReEnq)activeFilters.push({label:'Enquired again',onRemove:()=>setFilterReEnq(false)});
   if(filterPriority)activeFilters.push({label:`Priority: ${PRIORITY_COLORS[filterPriority].label}`,onRemove:()=>setFilterPriority('')});
   if(dateRange!=='all')activeFilters.push({label:`Date: ${dateRange}`,onRemove:()=>{setDateRange('all');setDateFrom('');setDateTo('');}});
@@ -778,7 +778,7 @@ const LeadsPage: React.FC = () => {
           {ads.length>0&&(
             <select className="crm-filter-select" value={filterAd} onChange={e=>setFilterAd(e.target.value)} title="Show only the leads that came from one ad">
               <option value="">All Ads</option>
-              {ads.map(a=><option key={a.adId} value={a.adId}>{[a.campaignName,a.adName||a.adSetName||a.adId].filter(Boolean).join(' › ')} ({a.leads})</option>)}
+              {ads.map(a=><option key={a.adId} value={a.adId}>{a.adId.startsWith('form:')?`Lead form ${a.adId.slice(5)} · ad not reported by Meta`:[a.campaignName,a.adName||a.adSetName||a.adId].filter(Boolean).join(' › ')} ({a.leads})</option>)}
             </select>
           )}
           <button type="button" className={`crm-date-preset${filterReEnq?' active':''}`} onClick={()=>setFilterReEnq(v=>!v)} title="Leads that enquired again and have not been worked since">🔁 Enquired again</button>

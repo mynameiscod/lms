@@ -7,15 +7,18 @@ import './notesBook.css';
  * A day's written notes as an open notebook — the Question Books look (paper, handwriting, page
  * turns) with the notes as the pages. The text flows into CSS columns the size of a page; turning
  * a page scrolls the flow by one spread. Two pages side by side where there is room, one on a
- * phone. Code stays monospace. "Plain view" shows the same notes as an ordinary page.
+ * phone. Code stays monospace. "Plain view" shows the same note as an ordinary page, for that note only.
  */
 
 /** Written (not uploaded) notes open as a book; an uploaded file keeps its own viewer. */
 export const opensAsBook = (c: any): boolean =>
   !!c && (c.type === 'notes' || c.type === 'worked_example') && c.notesSource !== 'upload' && !!c.notesContent;
 
-const PLAIN_KEY = 'cp:notes-plain';
-const readPlain = () => { try { return localStorage.getItem(PLAIN_KEY) === '1'; } catch { return false; } };
+/**
+ * Notes ALWAYS open as the notebook. Plain view is a choice for the note in front of the member,
+ * not a setting: it is not remembered, so the next note - and the next visit - opens as a
+ * notebook again. (It used to be remembered per browser, and one click turned every note plain.)
+ */
 
 const NotesBook: React.FC<{ text: string; title?: string }> = ({ text, title }) => {
   const flowRef = useRef<HTMLDivElement>(null);
@@ -23,7 +26,7 @@ const NotesBook: React.FC<{ text: string; title?: string }> = ({ text, title }) 
   const [pages, setPages] = useState(1);
   const [perSpread, setPerSpread] = useState(2);
   const [turn, setTurn] = useState<{ dir: 'next' | 'prev'; key: number } | null>(null);
-  const [plain, setPlain] = useState(readPlain);
+  const [plain, setPlain] = useState(false);
   const spreads = Math.max(1, Math.ceil(pages / perSpread));
 
   /** One spread is the visible width plus the gap that sits in the next spread's outer margin. */
@@ -57,7 +60,7 @@ const NotesBook: React.FC<{ text: string; title?: string }> = ({ text, title }) 
     return () => { ro.disconnect(); imgs.forEach(i => i.removeEventListener('load', measure)); };
   }, [text, plain, measure]);
 
-  useEffect(() => { setSpread(0); setTurn(null); }, [text]);
+  useEffect(() => { setSpread(0); setTurn(null); setPlain(false); }, [text]);
   useEffect(() => { if (spread > spreads - 1) setSpread(spreads - 1); }, [spread, spreads]);
 
   // Keep the flow on the current spread (also after a resize changes the page width).
@@ -85,10 +88,7 @@ const NotesBook: React.FC<{ text: string; title?: string }> = ({ text, title }) 
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(spread - 1); }
   };
 
-  const setPlainView = (v: boolean) => {
-    setPlain(v);
-    try { localStorage.setItem(PLAIN_KEY, v ? '1' : '0'); } catch { /* per-device convenience only */ }
-  };
+  const setPlainView = (v: boolean) => setPlain(v);
 
   if (plain) {
     return <div className="nb nb-plain">

@@ -82,6 +82,14 @@ const STARTERS: { title: string; input: WaTemplateInput }[] = [
     },
   },
   {
+    title: 'Missed call: share your availability', input: {
+      name: 'missed_call_callback', language: 'en', category: 'UTILITY',
+      body: 'Hi {{1}}, we tried to reach you by phone about your enquiry with CodeBegun but could not connect. Please let us know a convenient time and we will call you back. Thank you!',
+      bodyExamples: ['Ravi'], footer: 'CodeBegun',
+      buttons: [{ type: 'QUICK_REPLY', text: 'Call me now' }, { type: 'QUICK_REPLY', text: 'Call me later today' }, { type: 'QUICK_REPLY', text: 'Call me tomorrow' }],
+    },
+  },
+  {
     title: 'Exam / event link', input: {
       name: 'exam_invite', language: 'en', category: 'UTILITY',
       body: 'Hi {{1}}, you are invited to {{2}} starting {{3}}. Use the button below to open your exam.',

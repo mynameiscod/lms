@@ -14,3 +14,5 @@
   .sdp-note { display: none; }
   .sdp-page { padding: 12px 12px 48px; }
 }
+/* No app navbar above the preview: the panes stick just under the preview bar. */
+.sdp-back .jdm .jd-grid { --jd-top: 14px; }

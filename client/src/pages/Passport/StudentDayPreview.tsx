@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { UnitStudentPreview } from '../../api/passportApi';
 import { ItemBody, ICON, TYPE_LABEL, mins, titleOf, typeOf } from './JourneyDay';
 import './journeyDay.css';
 import './journeyDayMember.css';
 import './studentDayPreview.css';
+import { opensAsBook } from './NotesBook';
+import { keepTaskInView, useDayPanes } from './useDayPanes';
 
 /**
  * Content Builder → "Preview as a student".
@@ -17,6 +19,13 @@ const StudentDayPreview: React.FC<{ preview: UnitStudentPreview; onClose: () => 
   const items = preview.items || [];
   const [sel, setSel] = useState(0);
   const selected = items[sel];
+  const gridRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useDayPanes(gridRef, [items.length > 0]);
+  useEffect(() => {
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    keepTaskInView(gridRef.current);
+  }, [sel]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -49,7 +58,7 @@ const StudentDayPreview: React.FC<{ preview: UnitStudentPreview; onClose: () => 
         </section>
 
         {!items.length ? <div className="jd-empty"><p>There is nothing on this day yet — a member would see an empty day.</p></div>
-          : <div className="jd-grid">
+          : <div className="jd-grid" ref={gridRef}>
             <aside className="jdm-rail-card">
               <div className="jdm-rail-head"><b>Today’s tasks</b><span>0/{items.length}</span></div>
               <ol className="jd-rail" aria-label="Today's activities">
@@ -68,7 +77,7 @@ const StudentDayPreview: React.FC<{ preview: UnitStudentPreview; onClose: () => 
               </ol>
             </aside>
 
-            <section className="jd-stage" aria-live="polite">
+            <section className={`jd-stage${opensAsBook(selected?.content) ? ' fill' : ''}`} aria-live="polite">
               {selected && <>
                 <div className="jd-stage-head">
                   <div>
@@ -80,7 +89,7 @@ const StudentDayPreview: React.FC<{ preview: UnitStudentPreview; onClose: () => 
                 {(selected.kind === 'quiz' || selected.kind === 'assignment') && selected.live === false && (
                   <p className="sdp-warn"><i className="bi bi-eye-slash" /> Not published yet — members cannot open this {selected.kind === 'quiz' ? 'checkpoint' : 'assignment'} until it is.</p>
                 )}
-                <div className="jd-body">
+                <div className="jd-body" ref={bodyRef}>
                   <ItemBody item={selected.content || selected.kind === 'content' ? selected : { ...selected, launchPath: selected.editPath }}
                     onLaunch={(p) => window.open(p, '_blank', 'noopener')} />
                 </div>

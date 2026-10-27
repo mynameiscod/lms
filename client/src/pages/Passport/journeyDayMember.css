@@ -183,3 +183,24 @@
 .jdm-hero .jdm-crumb, .jdm-crumb { display: flex; width: fit-content; margin-bottom: 12px; }
 /* The welcome day's description: grey on the white banner (it was white, left from the navy hero). */
 #root .gd .jdm .jdm-hero .jdm-blurb, .jdm .jdm-hero .jdm-blurb { color: #2F3F56 !important; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   TWO PANES (900px and up): today's tasks and the lesson each scroll on their
+   own. Scrolling the task list moves only the list; scrolling a lesson moves
+   only the lesson inside its card - the card, its title and its buttons stay
+   put. useDayPanes.ts sets --jd-pane-h to the height actually visible.
+   ──────────────────────────────────────────────────────────────────────────── */
+.jdm .jd-grid { --jd-top: 104px; }
+@media (min-width: 900px) {
+  .jdm-rail-card { top: var(--jd-top); max-height: var(--jd-pane-h, none); display: flex; flex-direction: column; }
+  .jdm-rail-card .jd-rail { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; margin-right: -6px; padding-right: 6px; }
+  .jdm .jd-stage { position: sticky; top: var(--jd-top); max-height: var(--jd-pane-h, none); display: flex; flex-direction: column; min-width: 0; }
+  .jdm .jd-stage .jd-stage-head, .jdm .jd-stage .jd-actions { flex: none; }
+  .jdm .jd-stage .jd-body { flex: 0 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  /* Notes open as a notebook that fills the card; its pages turn instead of scrolling. */
+  .jdm .jd-stage.fill { height: var(--jd-pane-h, auto); }
+  .jdm .jd-stage.fill .jd-body { flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column; }
+  .jdm .jd-stage.fill .nb { flex: 1 1 auto; }
+  .jdm .jd-stage.fill .nb-book { flex: 1 1 auto; height: auto; min-height: 160px; }
+  .jdm .jd-stage.fill .nb-nav { flex: none; }
+}

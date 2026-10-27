@@ -424,11 +424,11 @@ export const passportApi = {
     return r.data;
   },
   createUnitAssessment: async (
-    unitCode: string, kind: 'QUIZ' | 'ASSIGNMENT', title?: string,
+    unitCode: string, kind: 'QUIZ' | 'ASSIGNMENT', title?: string, type?: string,
   ): Promise<{ created: boolean; id: string }> => {
     const r = await axios.post(
       `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/assessments`,
-      { kind, title }, { headers: auth() });
+      { kind, title, ...(type ? { type } : {}) }, { headers: auth() });
     return r.data;
   },
   // ── Module and topic order ────────────────────────────────────────

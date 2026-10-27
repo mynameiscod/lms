@@ -5,6 +5,8 @@ import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import './adminContentBuilder.css';
 import { mediaUrl, mediaPathFor } from '../../utils/mediaUrl';
 import VideoScriptPanel from './VideoScriptPanel';
+import AssignmentDrawer from './AssignmentDrawer';
+import StudentDayPreview from './StudentDayPreview';
 
 /**
  * Content Builder — one screen for "what does a learner do on this day, and let me change it".
@@ -75,6 +77,8 @@ const AdminContentBuilder: React.FC = () => {
   const [toast, setToast] = useState('');
   /** Bumped by the "Add script" button; the script panel opens its editor when it changes. */
   const [scriptSignal, setScriptSignal] = useState(0);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [studentView, setStudentView] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -316,6 +320,20 @@ const AdminContentBuilder: React.FC = () => {
     setSaving(false);
   };
 
+  /** "Add assignment": create a draft of the chosen kind, bound to this day, and open its editor. */
+  const addAssignment = async (type: string, title: string) => {
+    if (!unit) return;
+    setSaving(true); setErr('');
+    try {
+      const r = await passportApi.createUnitAssessment(unit.unitCode, 'ASSIGNMENT', title || undefined, type);
+      await loadPreview(unit.unitCode);
+      setAssignOpen(false);
+      say('Assignment created — write the task next.');
+      if ((r as any)?.id) nav(`/admin/assignments/${(r as any).id}/edit`);
+    } catch (e: any) { setErr(e?.response?.data?.message || 'Could not create the assignment.'); }
+    setSaving(false);
+  };
+
   const publishUnit = async () => {
     if (!unit) return;
     setSaving(true); setErr('');
@@ -410,8 +428,12 @@ const AdminContentBuilder: React.FC = () => {
               </button>
             ))}
             <button type="button" className="acb-add-btn" onClick={addCheckpoint} disabled={saving}><i className="bi bi-question-circle-fill" /> Add checkpoint</button>
+            <button type="button" className="acb-add-btn" onClick={() => setAssignOpen(true)} disabled={saving}><i className="bi bi-clipboard-check-fill" /> Add assignment</button>
             <button type="button" className="acb-add-btn" onClick={() => setScriptSignal(n => n + 1)} title="Admins only — the shooting script for this day's video">
               <i className="bi bi-camera-reels-fill" /> Add script
+            </button>
+            <button type="button" className="acb-add-btn preview" onClick={() => setStudentView(true)} disabled={!preview || previewBusy} title="See this day exactly as a member sees it">
+              <i className="bi bi-eye-fill" /> Preview
             </button>
             <a className="acb-add-btn" href={`/learning-library/create?unitCode=${encodeURIComponent(unit.unitCode)}&topicCode=${encodeURIComponent(unit.topicCode)}&returnTo=${encodeURIComponent(`/admin/passport/content-builder?stage=${stage}&unit=${unit.unitCode}`)}`}>
               <i className="bi bi-upload" /> Upload a file
@@ -470,6 +492,8 @@ const AdminContentBuilder: React.FC = () => {
     {drawer && unit && <ContentDrawer kind={drawer} unitTitle={unit.title} saving={saving}
       onClose={() => setDrawer(null)} onSave={addContent} />}
     {editUnit && unit && <UnitDrawer unit={unit} saving={saving} stage={stage} onClose={() => setEditUnit(false)} onSave={saveUnit} />}
+    {assignOpen && unit && <AssignmentDrawer unitTitle={unit.title} saving={saving} onClose={() => setAssignOpen(false)} onCreate={addAssignment} />}
+    {studentView && preview && <StudentDayPreview preview={preview} onClose={() => setStudentView(false)} />}
     {editItem && <ItemDrawer item={editItem} saving={saving} onClose={() => setEditItem(null)} onSave={saveItem} />}
     {toast && <div className="acb-toast"><i className="bi bi-check-circle-fill" /> {toast}</div>}
   </div>;

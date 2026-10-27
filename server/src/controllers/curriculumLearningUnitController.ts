@@ -1240,7 +1240,7 @@ export const createUnitAssessment = async (req: Request, res: Response) => {
     }
     if (kind === 'ASSIGNMENT') {
       const createdBy = String((req as any).user?.id || (req as any).user?._id || '');
-      return res.json(await assessments.createAssignmentForUnit(tenantId, unitCode, createdBy, title));
+      return res.json(await assessments.createAssignmentForUnit(tenantId, unitCode, createdBy, title, clean(req.body?.type, 20).toLowerCase()));
     }
     return res.status(400).json({ message: 'kind must be QUIZ or ASSIGNMENT.' });
   } catch (e: any) {

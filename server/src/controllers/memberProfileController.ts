@@ -13,6 +13,7 @@ import { liveStreak } from '../services/passportXpService';
 import { spendableBalance } from '../services/coinSpendService';
 import { computeProfileCompleteness } from '../utils/profileCompleteness';
 import { getUserTimeline } from '../services/careerPilotActivityService';
+import { inferAttribution } from '../services/attributionInference';
 
 /**
  * A plain-words answer to "how did this member find us", from the stored first/last touch. Paid ad
@@ -69,6 +70,9 @@ export async function getMemberProfile(req: Request, res: Response) {
 
     const p = user.passport || {};
     const xp = progress?.xp || 0;
+    // Joined before sources were captured live: reconstruct from their payment or first visits.
+    const live = p.attribution?.first_touch || p.attribution?.last_touch;
+    const inferred = live ? null : await inferAttribution(tenantId, studentId).catch(() => null);
     const ivBy: Record<string, number> = {};
     for (const r of interviews as any[]) ivBy[r._id] = r.n;
     const clean = (v: any) => String(v ?? '').trim().replace(/^-+$/, '');
@@ -91,9 +95,11 @@ export async function getMemberProfile(req: Request, res: Response) {
         joined: {
           /** Where every CareerPilot account is created: the join form, then an OTP on WhatsApp. */
           via: 'CareerPilot join form (/careerpilot/join) — OTP verified',
-          source: sourceLabel(p.attribution?.first_touch || p.attribution?.last_touch),
-          firstTouch: p.attribution?.first_touch || null,
+          source: sourceLabel(live || inferred?.touch),
+          firstTouch: p.attribution?.first_touch || inferred?.touch || null,
           lastTouch: p.attribution?.last_touch || null,
+          /** 'activity' | 'payment' when the source was pieced together after signup rather than captured live. */
+          reconstructed: p.attributionReconstructed || inferred?.from || null,
           verifiedAt: p.verifiedAt || null,
         },
         setup: {

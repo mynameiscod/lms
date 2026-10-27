@@ -272,6 +272,7 @@ const AdminMemberProfile: React.FC = () => {
             <Field label="Verified" value={fmtDateTime(joined?.verifiedAt)} />
           </dl>
           {joined?.firstTouch ? <>
+            {joined.reconstructed && <p className="amp-muted"><i className="bi bi-info-circle" /> They joined before sources were captured live — this was pieced together from {joined.reconstructed === 'payment' ? 'their payment record' : 'their first recorded visits'}.</p>}
             <h3 className="amp-sub">First visit</h3>
             <TouchFields t={joined.firstTouch} />
             {joined.lastTouch && joined.lastTouch.captured_at !== joined.firstTouch.captured_at && <>

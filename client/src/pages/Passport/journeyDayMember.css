@@ -186,24 +186,24 @@
 #root .gd .jdm .jdm-hero .jdm-blurb, .jdm .jdm-hero .jdm-blurb { color: #2F3F56 !important; }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   TWO PANES (1100px and up): today's tasks and the lesson each scroll on their
-   own. Scrolling the task list moves only the list; scrolling a lesson moves
-   only the lesson inside its card - the card, its title and its buttons stay
-   put. useDayPanes.ts sets --jd-pane-h to the height actually visible.
+   TWO PANES (1100px and up): today's tasks scroll on their own and stay beside
+   the lesson. Scrolling the task list moves only the list - the lesson does not
+   move. The lesson itself is NEVER squeezed into a box with its own scrollbar
+   (a 10-minute video in a strip with a scrollbar beside it): it shows at full
+   size and the page scrolls when it is long, with the task list still pinned.
+   A video is sized so the whole player fits on screen, and the notebook fills
+   the screen. useDayPanes.ts sets --jd-pane-h (the list's visible height) and
+   --jd-full-h (the height of the screen below the top bar), in the grid's CSS px.
    ──────────────────────────────────────────────────────────────────────────── */
 .jdm .jd-grid { --jd-top: 104px; }
 @media (min-width: 1100px) {
   .jdm-rail-card { top: var(--jd-top); max-height: var(--jd-pane-h, none); display: flex; flex-direction: column; }
   .jdm-rail-card .jd-rail { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; margin-right: -6px; padding-right: 6px; }
-  .jdm .jd-stage { position: sticky; top: var(--jd-top); max-height: var(--jd-pane-h, none); display: flex; flex-direction: column; min-width: 0; }
-  .jdm .jd-stage .jd-stage-head, .jdm .jd-stage .jd-actions { flex: none; }
-  .jdm .jd-stage .jd-body { flex: 0 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
-  /* Notes open as a notebook that fills the card; its pages turn instead of scrolling. */
-  .jdm .jd-stage.fill { height: var(--jd-pane-h, auto); }
-  .jdm .jd-stage.fill .jd-body { flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column; }
-  .jdm .jd-stage.fill .nb { flex: 1 1 auto; }
-  .jdm .jd-stage.fill .nb-book { flex: 1 1 auto; height: auto; min-height: 160px; }
-  .jdm .jd-stage.fill .nb-nav { flex: none; }
+  .jdm .jd-stage { min-width: 0; scroll-margin-top: calc(var(--jd-top) + 8px); }
+  /* The title, the player and its controls in one screen: the player's width follows the height left for it. */
+  .jdm .jd-video { width: 100%; max-width: max(520px, calc((var(--jd-full-h, 760px) - 230px) * 16 / 9)); margin: 0 auto; }
+  /* The notebook fills the screen below the card's title, with its page buttons and the task buttons in view. */
+  .jdm .jd-stage.fill .nb-book { height: max(400px, calc(var(--jd-full-h, 760px) - 250px)); }
 }
 /* Stacked (phones, tablets, small laptops): the task list is a short box with its own scroll,
    so a long day does not push the lesson a whole screen down; picking a task brings the lesson

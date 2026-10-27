@@ -5,7 +5,7 @@ import './journeyDay.css';
 import './journeyDayMember.css';
 import './studentDayPreview.css';
 import { opensAsBook } from './NotesBook';
-import { keepTaskInView, showLessonIfStacked, useDayPanes } from './useDayPanes';
+import { keepTaskInView, showLessonIfStacked, showLessonTop, useDayPanes } from './useDayPanes';
 
 /**
  * Content Builder → "Preview as a student".
@@ -23,7 +23,7 @@ const StudentDayPreview: React.FC<{ preview: UnitStudentPreview; onClose: () => 
   const bodyRef = useRef<HTMLDivElement>(null);
   useDayPanes(gridRef, [items.length > 0]);
   useEffect(() => {
-    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    showLessonTop(gridRef.current);
     keepTaskInView(gridRef.current);
   }, [sel]);
 

@@ -40,7 +40,7 @@ import './journeyDay.css';
 import './journeyDayMember.css';
 import { useProgramDays } from './useProgramDays';
 import NotesBook, { opensAsBook } from './NotesBook';
-import { keepTaskInView, showLessonIfStacked, useDayPanes } from './useDayPanes';
+import { keepTaskInView, showLessonIfStacked, showLessonTop, useDayPanes } from './useDayPanes';
 
 /** Content types, in words a first-year recognises. Mirrors the roadmap screen. */
 export const TYPE_LABEL: Record<string, string> = {
@@ -118,7 +118,7 @@ export const ItemBody: React.FC<{ item: any; onLaunch: (path: string) => void }>
   }
 
   switch (c.type) {
-    case 'video': return <VideoPlayer content={c} onWatchEnough={() => { /* completion is explicit here */ }} />;
+    case 'video': return <div className="jd-video"><VideoPlayer content={c} onWatchEnough={() => { /* completion is explicit here */ }} /></div>;
     case 'notes':
     case 'worked_example': return opensAsBook(c) ? <NotesBook text={c.notesContent} /> : <NotesViewer content={c} />;
     case 'tech_qa':
@@ -171,7 +171,7 @@ const JourneyDay: React.FC = () => {
   useDayPanes(gridRef, [loading, error, items.length > 0]);
   // A new task starts at its top, and the task list keeps the chosen task in view.
   useEffect(() => {
-    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    showLessonTop(gridRef.current);
     keepTaskInView(gridRef.current);
   }, [selIdx]);
 

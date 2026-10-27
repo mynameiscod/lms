@@ -517,6 +517,11 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
         <iframe
           src={`https://www.youtube.com/embed/${ytId}`}
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+          // YouTube refuses to play an embed that arrives with no referrer ("Error 153"). The
+          // page's own policy may be stricter, so the frame states the one YouTube needs: our
+          // origin only, never the path.
+          referrerPolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           title={content.title}
         />
@@ -575,6 +580,8 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
         <iframe
           src={`https://player.vimeo.com/video/${vimeoId}`}
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+          referrerPolicy="strict-origin-when-cross-origin"
+          allow="autoplay; fullscreen; picture-in-picture"
           allowFullScreen
           title={content.title}
         />

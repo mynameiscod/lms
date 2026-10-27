@@ -123,6 +123,13 @@ app.use(compression({
 // Middleware - PROPER ORDER for Express
 app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP to avoid blocking static assets
+  /**
+   * Helmet's default is `no-referrer`, and this server also serves the app's pages. With no
+   * referrer at all, YouTube refuses to play an embedded lesson video ("Error 153: video player
+   * configuration error"). The browser default sends other sites our origin only - never a
+   * path or query, so no token or id leaks - and the full URL within our own site.
+   */
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 // Every request gets an id (X-Request-Id), first, so the access log, error log and any support
 // ticket raised about the request can be matched up.

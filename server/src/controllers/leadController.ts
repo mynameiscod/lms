@@ -853,6 +853,40 @@ export const approveStageChange = async (req: AuthenticatedRequest, res: Respons
 };
 
 // Add activity to a lead
+const OPEN_CALL_WINDOW_MS = 30 * 60 * 1000;
+const CALL_CLICK_DEDUPE_MS = 2 * 60 * 1000;
+
+/**
+ * POST /leads/:leadId/call-click — the Call button was pressed. Counts as one call in Team Activity straight away
+ * (labelled as a started call, not a connected one). A second press within two minutes is the same attempt, so a
+ * double click cannot inflate the count. Saving the outcome afterwards completes this entry (see addLeadActivity).
+ */
+export const logCallClick = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { leadId } = req.params;
+    const now = new Date();
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).select('telecallerMetrics activities');
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+
+    const mine = String(req.user!.id);
+    const recent = (lead.activities || []).some((a: any) =>
+      a.type === 'call' && a.metadata?.dialed === true && String(a.createdBy) === mine && now.getTime() - new Date(a.createdAt).getTime() < CALL_CLICK_DEDUPE_MS);
+    if (recent) return res.json({ success: true, message: 'Call already logged', data: { logged: false } });
+
+    const $set: any = { 'telecallerMetrics.lastActionAt': now, reEnquiryUnseen: false };
+    if (!lead.telecallerMetrics?.firstActionAt) $set['telecallerMetrics.firstActionAt'] = now;
+    await Lead.updateOne({ _id: leadId, tenantId: req.tenantId }, {
+      $push: { activities: { type: 'call', description: 'Call started (dialler opened). Outcome not recorded yet.', createdBy: req.user!.id as any, createdAt: now, metadata: { dialed: true } } },
+      $set,
+      $inc: { 'telecallerMetrics.totalActions': 1 },
+    });
+    res.json({ success: true, message: 'Call logged', data: { logged: true } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to log call', error: error.message });
+  }
+};
+
 export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
@@ -893,7 +927,31 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
     const scopeFilter = await buildLeadScopeFilter(req);
 
     // Check if firstActionAt needs to be set
-    const existing = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).select('telecallerMetrics');
+    const existing = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).select('telecallerMetrics activities');
+
+    // A call the person started with the Call button (one entry already counted in Team Activity) is completed
+    // in place when they record how it went, so one call is never counted twice.
+    if (type === 'call' && existing) {
+      const mine = String(req.user!.id);
+      const since = now.getTime() - OPEN_CALL_WINDOW_MS;
+      let idx = -1;
+      (existing.activities || []).forEach((a: any, i: number) => {
+        if (a.type === 'call' && a.metadata?.dialed === true && !a.callOutcome && String(a.createdBy) === mine && new Date(a.createdAt).getTime() >= since) idx = i;
+      });
+      if (idx >= 0) {
+        const $set: any = { [`activities.${idx}.description`]: description, [`activities.${idx}.metadata`]: { dialed: false, startedAt: (existing.activities as any)[idx].createdAt }, 'telecallerMetrics.lastActionAt': now, reEnquiryUnseen: false };
+        if (activityData.callOutcome) $set[`activities.${idx}.callOutcome`] = activityData.callOutcome;
+        if (activityData.callDuration !== undefined) $set[`activities.${idx}.callDuration`] = activityData.callDuration;
+        if (activityData.callStatus) $set[`activities.${idx}.callStatus`] = activityData.callStatus;
+        if (activityData.recordingUrl) $set[`activities.${idx}.recordingUrl`] = activityData.recordingUrl;
+        if (disposition) $set[`activities.${idx}.disposition`] = disposition;
+        const done = await Lead.findOneAndUpdate({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }, { $set }, { new: true })
+          .populate('stageId', 'name color order')
+          .populate('assignedTo', 'firstName lastName email')
+          .populate('activities.createdBy', 'firstName lastName');
+        if (done) return res.json({ success: true, message: 'Activity added', data: done });
+      }
+    }
     const metricsUpdate: any = { 'telecallerMetrics.lastActionAt': now };
     if (!existing?.telecallerMetrics?.firstActionAt) {
       metricsUpdate['telecallerMetrics.firstActionAt'] = now;

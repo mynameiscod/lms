@@ -164,10 +164,11 @@ const LeadDetailV2: React.FC = () => {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  // Nothing is written to the timeline just because a button was pressed: the dialler opens, then the
-  // person records how the call went (or skips it). A click is not a call.
+  // Pressing Call counts once in Team Activity, labelled as a started call (not a connected one). Then the dialler
+  // opens and the person records how it went, which completes that same entry rather than adding another.
   const handleCall = () => {
     if (lead?.phone) {
+      leadApi.logCallClick(leadId!).then((r: any) => { if (r?.data?.logged) fetchData(); }).catch(() => undefined);
       window.location.href = `tel:${lead.phone}`;
       setNoteType('call');
       setNoteText('');
@@ -523,7 +524,7 @@ const LeadDetailV2: React.FC = () => {
                 <i className="bi bi-telephone"></i>
                 <div>
                   <label>Phone</label>
-                  <a href={`tel:${lead.phone}`}>{lead.phone || '-'}</a>
+                  <a href={`tel:${lead.phone}`} onClick={() => { if (lead.phone) leadApi.logCallClick(leadId!).then((r: any) => { if (r?.data?.logged) fetchData(); }).catch(() => undefined); }}>{lead.phone || '-'}</a>
                 </div>
               </div>
               <div className="ld2-summary-item">

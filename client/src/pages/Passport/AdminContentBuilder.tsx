@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import passportApi, { CurriculumLearningUnit, DirectionCoverageReport, MegaCurriculumTopicRow, UnitStudentPreview } from '../../api/passportApi';
+import passportApi, { careerTrackApi, CareerTrackCatalogue, CurriculumLearningUnit, DirectionCoverageReport, MegaCurriculumTopicRow, UnitStudentPreview } from '../../api/passportApi';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import './adminContentBuilder.css';
 import { mediaUrl, mediaPathFor } from '../../utils/mediaUrl';
@@ -30,6 +30,20 @@ const DAY_BONUS_XP = 25;
 
 type DrawerKind = 'video' | 'notes' | 'tech_qa' | 'practice_theory' | null;
 
+/**
+ * CAREER TRACKS, as a tab of this builder.
+ *
+ * A track is not a stage of its own: its packs mix the topics written for the track (stageKey
+ * 'track') with year topics they reuse (Year 3 security, Year 2 DSA...). So the tab gathers every
+ * topic the chosen track's packs name, from whichever stage holds it, in pack order, and says
+ * where a topic is shared - an edit there changes it for every track and year that uses it.
+ */
+const TRACK_TAB = 'track';
+const STAGE_NAME: Record<string, string> = { foundation: 'Year 1', build: 'Year 2', specialize: 'Year 3', placement: 'Year 4', job_seeker: 'Job seeker', track: 'Track' };
+type BuilderRow = MegaCurriculumTopicRow & {
+  pack?: { key: string; title: string; kind: string }; priority?: string; fromStage?: string; alsoIn?: string[];
+};
+
 const KIND_META: Record<Exclude<DrawerKind, null>, { label: string; icon: string; blurb: string }> = {
   video: { label: 'Video', icon: 'bi-play-circle-fill', blurb: 'A YouTube or Vimeo link the learner watches.' },
   notes: { label: 'Notes', icon: 'bi-file-text-fill', blurb: 'Written notes the learner reads.' },
@@ -52,7 +66,7 @@ const prettyType = (t: string) => (t || '').replace(/_/g, ' ').replace(/\b\w/g, 
 const AdminContentBuilder: React.FC = () => {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
-  const [rows, setRows] = useState<MegaCurriculumTopicRow[]>([]);
+  const [rows, setRows] = useState<BuilderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [openTopics, setOpenTopics] = useState<Record<string, boolean>>({});
@@ -68,6 +82,12 @@ const AdminContentBuilder: React.FC = () => {
    */
   const stage = (params.get('stage') || 'foundation').toLowerCase();
   const [stages, setStages] = useState<{ key: string; label: string; who: string }[]>([]);
+  const isTrack = stage === TRACK_TAB;
+  const [catalogue, setCatalogue] = useState<CareerTrackCatalogue | null>(null);
+  /** Each stage's rows, fetched once per visit: a track reads topics from several of them. */
+  const stageCache = useRef<Record<string, MegaCurriculumTopicRow[]>>({});
+  const catalogueReq = useRef<Promise<CareerTrackCatalogue> | null>(null);
+  const trackKey = params.get('track') || '';
   const [preview, setPreview] = useState<UnitStudentPreview | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
   const [drawer, setDrawer] = useState<DrawerKind>(null);
@@ -79,16 +99,68 @@ const AdminContentBuilder: React.FC = () => {
   const [scriptSignal, setScriptSignal] = useState(0);
   const [assignOpen, setAssignOpen] = useState(false);
   const [studentView, setStudentView] = useState(false);
+  /**
+   * Bumped on a change of tab or track. Two tracks often open on the same first day (both start
+   * with Core Python), so the unit code comes back unchanged and its preview - cleared on the
+   * switch - would never be read again.
+   */
+  const [previewNonce, setPreviewNonce] = useState(0);
 
-  const load = useCallback(async () => {
+  const stageRows = useCallback(async (key: string) => {
+    if (!stageCache.current[key]) stageCache.current[key] = (await passportApi.megaCurriculum(key)).rows || [];
+    return stageCache.current[key];
+  }, []);
+
+  /**
+   * After a save the stage that holds the saved day is read again (`fresh`: that stage's key,
+   * or true for the one being shown); moving between tracks reuses what was read, so a track
+   * switch is instant.
+   */
+  const load = useCallback(async (fresh: boolean | string = true) => {
     setLoading(true);
+    if (typeof fresh === 'string') delete stageCache.current[fresh];
+    else if (fresh) delete stageCache.current[stage];
     try {
-      const r = await passportApi.megaCurriculum(stage);
-      setRows(r.rows || []);
+      if (!isTrack) {
+        setRows(await stageRows(stage));
+      } else {
+        if (!catalogueReq.current) catalogueReq.current = careerTrackApi.list();
+        const cat = await catalogueReq.current;
+        setCatalogue(c => c || cat);
+        const ordered = [...cat.tracks].sort((a, b) => a.order - b.order);
+        const track = ordered.find(t => t.key === trackKey) || ordered[0];
+        if (!track) { setRows([]); setLoading(false); return; }
+        const all = await Promise.all(['track', 'foundation', 'build', 'specialize', 'placement'].map(async k => [k, await stageRows(k)] as const));
+        const byTopic = new Map<string, { row: MegaCurriculumTopicRow; stage: string }>();
+        for (const [k, rs] of all) for (const r of rs) if (!byTopic.has(r.topicCode)) byTopic.set(r.topicCode, { row: r, stage: k });
+        const packByKey = new Map(cat.packs.map(p => [p.key, p]));
+        const tracksOfTopic = new Map<string, Set<string>>();
+        for (const t of cat.tracks) for (const pk of [...t.specializePacks, ...t.placementPacks]) for (const tp of packByKey.get(pk)?.topics || []) {
+          if (!tracksOfTopic.has(tp.topicCode)) tracksOfTopic.set(tp.topicCode, new Set());
+          tracksOfTopic.get(tp.topicCode)!.add(t.name);
+        }
+        const out: BuilderRow[] = [];
+        const seen = new Set<string>();
+        for (const pk of [...track.specializePacks, ...track.placementPacks]) {
+          const pack = packByKey.get(pk);
+          if (!pack) continue;
+          for (const tp of pack.topics) {
+            if (seen.has(tp.topicCode)) continue;
+            seen.add(tp.topicCode);
+            const hit = byTopic.get(tp.topicCode);
+            const base: MegaCurriculumTopicRow = hit?.row || { moduleCode: '', moduleName: '', moduleOrder: 0, topicCode: tp.topicCode, topicTitle: tp.title || tp.topicCode, topicSkillKeys: [], units: [], published: 0, drafts: 0 };
+            out.push({
+              ...base, pack: { key: pack.key, title: pack.title, kind: pack.kind }, priority: tp.priority, fromStage: hit?.stage,
+              alsoIn: Array.from(tracksOfTopic.get(tp.topicCode) || []).filter(n => n !== track.name),
+            });
+          }
+        }
+        setRows(out);
+      }
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not load the curriculum.'); }
     setLoading(false);
-  }, [stage]);
-  useEffect(() => { load(); }, [load]);
+  }, [stage, isTrack, trackKey, stageRows]);
+  useEffect(() => { load(false); }, [load]);
 
   /* The tabs come from the server's own stage list, as the other two curriculum screens do. */
   useEffect(() => {
@@ -110,9 +182,22 @@ const AdminContentBuilder: React.FC = () => {
     next.set('stage', key);
     next.delete('unit');
     setParams(next, { replace: true });
-    setRows([]); setUnitCode(''); setPreview(null); setOpenTopics({});
+    setRows([]); setUnitCode(''); setPreview(null); setOpenTopics({}); setPreviewNonce(n => n + 1);
     setDrawer(null); setEditUnit(false); setEditItem(null); setErr('');
   };
+  const setTrack = (key: string) => {
+    if (key === trackKey) return;
+    const next = new URLSearchParams(params);
+    next.set('track', key);
+    next.delete('unit');
+    setParams(next, { replace: true });
+    setRows([]); setUnitCode(''); setPreview(null); setOpenTopics({}); setPreviewNonce(n => n + 1);
+    setDrawer(null); setEditUnit(false); setEditItem(null); setErr('');
+  };
+  const tracksSorted = useMemo(() => (catalogue ? [...catalogue.tracks].sort((a, b) => a.order - b.order) : []), [catalogue]);
+  const currentTrack = tracksSorted.find(t => t.key === trackKey) || tracksSorted[0];
+  /** Where this builder is, for links that must bring the admin back to the same day. */
+  const here = (code: string) => `/admin/passport/content-builder?stage=${encodeURIComponent(stage)}${isTrack && currentTrack ? `&track=${encodeURIComponent(currentTrack.key)}` : ''}&unit=${encodeURIComponent(code)}`;
 
   const loadPreview = useCallback(async (code: string) => {
     if (!code) { setPreview(null); return; }
@@ -121,7 +206,7 @@ const AdminContentBuilder: React.FC = () => {
     catch (e: any) { setErr(e?.response?.data?.message || 'Could not load this unit.'); setPreview(null); }
     setPreviewBusy(false);
   }, []);
-  useEffect(() => { loadPreview(unitCode); }, [unitCode, loadPreview]);
+  useEffect(() => { loadPreview(unitCode); }, [unitCode, loadPreview, previewNonce]);
 
   /* The first topic opens itself, so the rail is never a wall of closed rows. */
   useEffect(() => {
@@ -242,7 +327,7 @@ const AdminContentBuilder: React.FC = () => {
       if (!(created as any).isPublished) await learningContentLibraryApi.togglePublish(id);
       setDrawer(null);
       await loadPreview(unit.unitCode);
-      await load();
+      await load(unit?.stageKey || true);
       say('Added to this day.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not add that.'); }
     setSaving(false);
@@ -264,7 +349,7 @@ const AdminContentBuilder: React.FC = () => {
       delete body._id; delete body.status; delete body.coverage;
       await passportApi.saveCurriculumUnit(unit.unitCode, body);
       setEditUnit(false);
-      await load(); await loadPreview(unit.unitCode);
+      await load(unit.stageKey || true); await loadPreview(unit.unitCode);
       say('Day saved.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not save this day.'); }
     setSaving(false);
@@ -302,7 +387,7 @@ const AdminContentBuilder: React.FC = () => {
     setSaving(true);
     try {
       await passportApi.detachUnitContent(unit.unitCode, String(it.contentId));
-      await loadPreview(unit.unitCode); await load();
+      await loadPreview(unit.unitCode); await load(unit.stageKey || true);
       say('Taken off this day.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not remove that.'); }
     setSaving(false);
@@ -339,7 +424,7 @@ const AdminContentBuilder: React.FC = () => {
     setSaving(true); setErr('');
     try {
       await passportApi.publishCurriculumUnit(unit.unitCode);
-      await load(); say('This day is published.');
+      await load(unit.stageKey || true); say('This day is published.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'This day is not ready to publish yet.'); }
     setSaving(false);
   };
@@ -353,12 +438,12 @@ const AdminContentBuilder: React.FC = () => {
         <h1>Build the learning days</h1>
         <p>Pick a day on the left. What you see on the right is what a member sees, in their order.</p>
       </div>
-      <a className="acb-btn ghost" href={`/admin/passport/mega-curriculum?stage=${encodeURIComponent(stage)}`}><i className="bi bi-sliders" /> Curriculum settings</a>
+      <a className="acb-btn ghost" href={`/admin/passport/mega-curriculum?stage=${encodeURIComponent(isTrack ? (unit?.stageKey || 'track') : stage)}${unit ? `&unit=${encodeURIComponent(unit.unitCode)}` : ''}`}><i className="bi bi-sliders" /> Curriculum settings</a>
     </header>
 
     {/* Which year's days are being built. Foundation alone until Build existed. */}
     <div className="acb-tabs">
-      {(stages.length ? stages : [{ key: 'foundation', label: 'Foundation', who: '' }]).map(t => (
+      {[...(stages.length ? stages : [{ key: 'foundation', label: 'Foundation', who: '' }]), { key: TRACK_TAB, label: 'Career Tracks', who: 'Year 3 & 4 role tracks' }].map(t => (
         <button key={t.key} type="button" className={t.key === stage ? 'on' : ''}
                 onClick={() => setStage(t.key)} disabled={loading}>
           {t.label}
@@ -367,9 +452,22 @@ const AdminContentBuilder: React.FC = () => {
       ))}
     </div>
 
+    {isTrack && <div className="acb-trackbar">
+      <label className="acb-field acb-track-pick"><span>Career track</span>
+        <select value={currentTrack?.key || ''} onChange={e => setTrack(e.target.value)} disabled={loading || !tracksSorted.length}>
+          {tracksSorted.map(t => <option key={t.key} value={t.key}>{t.name}{t.status === 'DRAFT' ? ' (draft)' : ''}</option>)}
+        </select>
+      </label>
+      {currentTrack && <p className="acb-track-note">
+        <span className={`acb-track-st s-${currentTrack.status.toLowerCase()}`}>{currentTrack.status === 'LIVE' ? 'Live' : 'Draft'}</span>
+        {rows.length} topics · {rows.reduce((n, r) => n + r.units.length, 0)} days · {rows.reduce((n, r) => n + r.published, 0)} published.
+        {' '}A topic marked <b>shared</b> is also used by a year or another track - an edit there changes it everywhere.
+      </p>}
+    </div>}
+
     {err && <div className="acb-err"><i className="bi bi-exclamation-circle" /> {err}</div>}
 
-    <CoveragePanel stage={stage} />
+    {!isTrack && <CoveragePanel stage={stage} />}
 
     <div className="acb-body">
       <aside className="acb-rail">
@@ -377,12 +475,21 @@ const AdminContentBuilder: React.FC = () => {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search days" aria-label="Search days" />
         </label>
         <div className="acb-tree">
-          {shown.map(r => {
+          {shown.map((r, i) => {
             const open = !!openTopics[r.topicCode];
-            return <section key={r.topicCode} className={`acb-topic${open ? ' open' : ''}`}>
+            const newPack = isTrack && r.pack && r.pack.key !== shown[i - 1]?.pack?.key;
+            const fromYear = isTrack && !!r.fromStage && r.fromStage !== 'track';
+            const shared = isTrack && (fromYear || (r.alsoIn?.length || 0) > 0);
+            return <React.Fragment key={r.topicCode}>
+              {newPack && <div className="acb-pack-hd"><i className={`bi ${r.pack!.kind === 'PLACEMENT' ? 'bi-briefcase' : 'bi-box-seam'}`} /> <span>{r.pack!.title}</span><em>{r.pack!.kind === 'PLACEMENT' ? 'Year 4' : 'Year 3'}</em></div>}
+              <section className={`acb-topic${open ? ' open' : ''}`}>
               <button type="button" className="acb-topic-hd" onClick={() => setOpenTopics(o => ({ ...o, [r.topicCode]: !open }))}>
                 <i className={`bi ${open ? 'bi-chevron-down' : 'bi-chevron-right'}`} />
-                <span className="acb-topic-t"><b>{r.topicTitle}</b><small>{r.moduleName}</small></span>
+                <span className="acb-topic-t"><b>{r.topicTitle}</b><small>{r.moduleName || r.topicCode}</small>
+                  {shared && <small className="acb-shared" title={[fromYear ? `Written for ${STAGE_NAME[r.fromStage!] || r.fromStage}` : '', r.alsoIn?.length ? `Also in: ${r.alsoIn.join(', ')}` : ''].filter(Boolean).join(' - ')}>
+                    <i className="bi bi-link-45deg" /> shared{fromYear ? ` · ${STAGE_NAME[r.fromStage!] || r.fromStage}` : ''}{r.alsoIn?.length ? ` · ${r.alsoIn.length} other track${r.alsoIn.length === 1 ? '' : 's'}` : ''}
+                  </small>}
+                </span>
                 <em>{r.published}/{r.units.length}</em>
               </button>
               {open && <ol className="acb-units">
@@ -396,7 +503,8 @@ const AdminContentBuilder: React.FC = () => {
                 ))}
                 {!r.units.length && <li className="acb-none">No days in this topic yet.</li>}
               </ol>}
-            </section>;
+            </section>
+            </React.Fragment>;
           })}
           {!shown.length && <p className="acb-none">Nothing matches that search.</p>}
         </div>
@@ -435,7 +543,7 @@ const AdminContentBuilder: React.FC = () => {
             <button type="button" className="acb-add-btn preview" onClick={() => setStudentView(true)} disabled={!preview || previewBusy} title="See this day exactly as a member sees it">
               <i className="bi bi-eye-fill" /> Preview
             </button>
-            <a className="acb-add-btn" href={`/learning-library/create?unitCode=${encodeURIComponent(unit.unitCode)}&topicCode=${encodeURIComponent(unit.topicCode)}&returnTo=${encodeURIComponent(`/admin/passport/content-builder?stage=${stage}&unit=${unit.unitCode}`)}`}>
+            <a className="acb-add-btn" href={`/learning-library/create?unitCode=${encodeURIComponent(unit.unitCode)}&topicCode=${encodeURIComponent(unit.topicCode)}&returnTo=${encodeURIComponent(here(unit.unitCode))}`}>
               <i className="bi bi-upload" /> Upload a file
             </a>
           </div>
@@ -491,7 +599,7 @@ const AdminContentBuilder: React.FC = () => {
 
     {drawer && unit && <ContentDrawer kind={drawer} unitTitle={unit.title} saving={saving}
       onClose={() => setDrawer(null)} onSave={addContent} />}
-    {editUnit && unit && <UnitDrawer unit={unit} saving={saving} stage={stage} onClose={() => setEditUnit(false)} onSave={saveUnit} />}
+    {editUnit && unit && <UnitDrawer unit={unit} saving={saving} stage={unit.stageKey || stage} onClose={() => setEditUnit(false)} onSave={saveUnit} />}
     {assignOpen && unit && <AssignmentDrawer unitTitle={unit.title} saving={saving} onClose={() => setAssignOpen(false)} onCreate={addAssignment} />}
     {studentView && preview && <StudentDayPreview preview={preview} onClose={() => setStudentView(false)} />}
     {editItem && <ItemDrawer item={editItem} saving={saving} onClose={() => setEditItem(null)} onSave={saveItem} />}

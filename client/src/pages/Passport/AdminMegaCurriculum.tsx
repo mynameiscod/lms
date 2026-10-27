@@ -561,7 +561,8 @@ const AdminMegaCurriculum: React.FC = () => {
 
       {/* Which year's curriculum is being edited. Foundation alone until Build existed. */}
       <div className="mgc-tabs">
-        {(stages.length ? stages : [{ key: 'foundation', label: 'Foundation', who: '' }]).map(s => (
+        {/* Career Tracks: every unit written for a track (stage 'track'); the years' units the tracks reuse stay in their own tabs. */}
+        {[...(stages.length ? stages : [{ key: 'foundation', label: 'Foundation', who: '' }]), { key: 'track', label: 'Career Tracks', who: 'Units written for the tracks' }].map(s => (
           <button key={s.key} className={s.key === stage ? 'on' : ''} onClick={() => setStage(s.key)} disabled={loading}>
             {s.label}
             {s.who && <em>{s.who}</em>}

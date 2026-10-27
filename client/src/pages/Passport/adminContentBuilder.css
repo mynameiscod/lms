@@ -203,3 +203,22 @@
 .acb-kind.on { border-color: var(--primary); background: #F2F6FD; box-shadow: 0 0 0 3px rgba(5, 29, 100, .1); }
 .acb-add-btn.preview { border-color: var(--teal); color: #0F5E6E; }
 @media (max-width: 640px) { .acb-kinds { grid-template-columns: 1fr; } }
+
+/* Career Tracks tab: the track picker, pack headings in the rail, and the "shared" mark. */
+.acb-trackbar { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: -6px 0 16px; }
+.acb-track-pick { min-width: 260px; max-width: 420px; flex: 0 1 380px; margin: 0; }
+.acb-track-note { flex: 1 1 320px; margin: 0 0 4px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.acb-track-note b { color: var(--navy); }
+.acb-track-st { display: inline-block; margin-right: 8px; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
+.acb-track-st.s-live { background: #EAF8F1; color: #13784F; }
+.acb-track-st.s-draft { background: #FFF4E0; color: #8A5300; }
+.acb-pack-hd { display: flex; align-items: center; gap: 7px; margin: 12px 4px 4px; padding: 6px 8px; border-radius: 9px; background: #EEF4FB; font-size: 12.5px; font-weight: 800; color: #1B3C77; }
+.acb-pack-hd:first-child { margin-top: 2px; }
+.acb-pack-hd span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acb-pack-hd em { flex: none; font-style: normal; font-size: 11px; font-weight: 700; color: #4A5D75; }
+.acb-topic-t small.acb-shared { display: inline-flex; align-items: center; gap: 3px; margin-top: 3px; padding: 1px 7px; border-radius: 999px; background: #F1EDFF; color: #5B3FBF; font-size: 11px; font-weight: 700; }
+@media (max-width: 640px) {
+  .acb-track-pick { min-width: 0; flex: 1 1 100%; max-width: none; }
+}
+.acb-track-pick select { width: 100%; border: 1.5px solid #D5E0EC; border-radius: 11px; padding: 10px 12px; font: inherit; font-size: 14px; color: var(--ink); background: #fff; outline: none; }
+.acb-track-pick select:focus { border-color: #359AAD; }

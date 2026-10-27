@@ -52,6 +52,32 @@ const FUNNEL: { key: string; label: string; short: string; icon: string; color: 
 /** Steps after sign-up that are not circles above but still matter (payment above all). */
 const MORE = ['setup', 'home', 'assessStart', 'checkout', 'paid', 'back'];
 
+/**
+ * What to say to someone who stopped at each step. {name} becomes their first name and {link} the sign-in page.
+ * The admin can edit the text before sending; the WhatsApp button opens the person's chat with it filled in.
+ */
+const NUDGES: Record<string, string> = {
+  setup: 'Hi {name}, this is CareerPilot by CodeBegun. Your account is ready. Finish the 2-minute setup so we can build your plan around your goal: {link}',
+  home: 'Hi {name}, this is CareerPilot by CodeBegun. Your account is ready and your Mission Control is waiting. Take a look: {link}',
+  orientation: 'Hi {name}, this is CareerPilot by CodeBegun. Day 1 is ready for you and takes about 10 minutes. Start here: {link}',
+  assessStart: 'Hi {name}, this is CareerPilot by CodeBegun. Your free skill assessment takes about 10 minutes and shows exactly where you stand. Start it here: {link}',
+  assessDone: 'Hi {name}, this is CareerPilot by CodeBegun. You started the skill assessment. Finish it to get your personal roadmap: {link}',
+  practice: 'Hi {name}, this is CareerPilot by CodeBegun. Your first practice task is ready. Ten minutes a day is what changes interview results: {link}',
+  checkout: 'Hi {name}, this is CareerPilot by CodeBegun. Want to unlock your full daily plan, mock interviews and readiness tracking? Here is where to start: {link}',
+  paid: 'Hi {name}, this is CareerPilot by CodeBegun. Your membership unlocks your full daily plan, mock interviews and readiness tracking. Continue here: {link}',
+  back: 'Hi {name}, this is CareerPilot by CodeBegun. Your next daily mission is ready. A small streak makes a big difference: {link}',
+  week2: 'Hi {name}, this is CareerPilot by CodeBegun. We have not seen you for a few days. Your plan is waiting and picking up takes 10 minutes: {link}',
+};
+const fillNudge = (tpl: string, name: string) => tpl.replace(/\{name\}/g, (name || '').split(' ')[0] || 'there').replace(/\{link\}/g, `${window.location.origin}/careerpilot/login`);
+const waLink = (phone: string, text: string) => {
+  const d = phone.replace(/\D/g, '');
+  return `https://wa.me/${d.length === 10 ? '91' + d : d}?text=${encodeURIComponent(text)}`;
+};
+const csvOf = (rows: Dropped['people']) => {
+  const q = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  return ['Name,Email,Phone,Last seen doing,Quiet for (days)', ...rows.map((p) => [p.name, p.email, p.phone, p.lastSeen, p.daysSince].map(q).join(','))].join('\n');
+};
+
 const when = (mins?: number | null) => {
   if (mins == null) return '—';
   if (mins < 1) return 'under a minute';
@@ -74,6 +100,8 @@ const AdminJourney: React.FC = () => {
   const [open, setOpen] = useState<Step | null>(null);
   const [dropped, setDropped] = useState<Dropped | null>(null);
   const [loading, setLoading] = useState(false);
+  const [nudge, setNudge] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const params = useCallback(() => (preset === 'custom' && custom.from
     ? { from: new Date(`${custom.from}T00:00:00`).toISOString(), to: new Date(`${custom.to || custom.from}T23:59:59.999`).toISOString() }
@@ -87,7 +115,7 @@ const AdminJourney: React.FC = () => {
 
   const step = (key: string) => data?.steps.find((s) => s.key === key);
   const pick = (s: Step) => {
-    setOpen(s); setDropped(null);
+    setOpen(s); setDropped(null); setNudge(NUDGES[s.key] || '');
     if (s.group === 'member' && s.key !== 'account') axios.get(`${BASE}/dropped`, { headers: auth(), params: { ...params(), step: s.key } }).then((r) => setDropped(r.data)).catch(() => setDropped({ total: 0, lastSeen: [], people: [] }));
   };
 
@@ -212,7 +240,7 @@ const AdminJourney: React.FC = () => {
                 return (
                   <div className="cj-node-wrap" key={f.key}>
                     <button className={`cj-node${open?.key === f.key ? ' sel' : ''}`} onClick={() => pick(s)}>
-                      <div className="cj-circle" style={{ background: f.color }}><i className={`bi ${f.icon}`} /></div>
+                      <div className="cj-circle" style={{ background: f.color }}><i className={`bi ${f.icon}`} /><span className="cj-step-no">{i + 1}</span></div>
                       <div className="cj-node-label">{f.label}</div>
                       <div className="cj-node-num">{view === 'users' ? s.count : pctText(pct)}</div>
                       {view === 'users' && <span className={`cj-chip${pct != null && pct < 50 ? ' bad' : ''}`} title={s.group === 'member' && s.key !== 'account' ? 'Share of the accounts created in this period' : 'Share of the step before'}>{pctText(pct)}</span>}
@@ -237,20 +265,33 @@ const AdminJourney: React.FC = () => {
             <div className="cj-card cj-detail">
               <h2 style={{ margin: '0 0 8px', fontSize: 17 }}>{open.group === 'member' ? `Did not reach: ${open.label}` : `Where the sign-up form loses people (before "${open.label}")`}</h2>
               {open.group === 'visitor' ? (
+                <>
+                <p style={{ margin: '0 0 10px', fontSize: 13, color: '#6b7280' }}>These visitors have not given us a name or number yet, so there is no one to message at this step. Once someone verifies their OTP they appear on the later steps, with their details.</p>
                 <div className="cj-leaks">
                   <LeakList title="Left the page after touching…" rows={data.formLeaks.leftAfterField} />
                   <LeakList title="Pressed Create but the form had errors in…" rows={data.formLeaks.blockedByErrors} />
                   <LeakList title="The server said no because…" rows={data.formLeaks.rejectedByServer} />
                   <div><b>OTP trouble</b><p style={{ margin: '6px 0 0' }}>{data.formLeaks.wrongOtpVisitors} visitors typed a wrong code · {data.formLeaks.resentOtpVisitors} asked for the code again.</p></div>
                 </div>
+                </>
               ) : open.key === 'account' ? <p style={{ color: '#6b7280' }}>These are the {accounts} accounts the rest of the funnel is measured against.</p>
                 : !dropped ? <p style={{ color: '#9ca3af' }}>Loading…</p> : (
                   <>
                     <p style={{ margin: '0 0 4px' }}><b>{dropped.total}</b> of the {accounts} new accounts. Last thing each was seen doing:</p>
                     <div className="cj-chips">{dropped.lastSeen.map((l) => <span key={l.name}>{l.name} <b>{l.count}</b></span>)}</div>
+                    {dropped.people.length > 0 && (
+                      <>
+                        <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151' }}>Message to send on WhatsApp (edit it if you like; {'{name}'} becomes their first name)</label>
+                        <textarea className="cj-msg" value={nudge} onChange={(e) => setNudge(e.target.value)} />
+                        <div className="cj-actions">
+                          <button className="cj-pill" onClick={() => { navigator.clipboard?.writeText(dropped.people.map((p) => p.phone).filter(Boolean).join('\n')).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => undefined); }}>{copied ? '✓ Copied' : 'Copy all numbers'}</button>
+                          <a className="cj-pill" href={`data:text/csv;charset=utf-8,${encodeURIComponent(csvOf(dropped.people))}`} download={`careerpilot-${open?.key}-stopped.csv`}>Download list (CSV)</a>
+                        </div>
+                      </>
+                    )}
                     <div style={{ overflowX: 'auto' }}>
                       <table className="cj-table">
-                        <thead><tr><th>Person</th><th>Phone</th><th>Last seen doing</th><th>Quiet for</th></tr></thead>
+                        <thead><tr><th>Person</th><th>Phone</th><th>Last seen doing</th><th>Quiet for</th><th></th></tr></thead>
                         <tbody>
                           {dropped.people.map((p) => (
                             <tr key={p.id}>
@@ -258,9 +299,10 @@ const AdminJourney: React.FC = () => {
                               <td>{p.phone ? <a href={`https://wa.me/${p.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">{p.phone}</a> : '—'}</td>
                               <td>{p.lastSeen}</td>
                               <td>{p.daysSince === 0 ? 'today' : `${p.daysSince} d`}</td>
+                              <td>{p.phone ? <a className="cj-wa" href={waLink(p.phone, fillNudge(nudge || NUDGES[open?.key || ''] || '', p.name))} target="_blank" rel="noreferrer"><i className="bi bi-whatsapp" /> WhatsApp</a> : '—'}</td>
                             </tr>
                           ))}
-                          {!dropped.people.length && <tr><td style={{ color: '#9ca3af' }} colSpan={4}>Nobody: everyone in this period reached this step.</td></tr>}
+                          {!dropped.people.length && <tr><td style={{ color: '#9ca3af' }} colSpan={5}>Nobody: everyone in this period reached this step.</td></tr>}
                         </tbody>
                       </table>
                     </div>

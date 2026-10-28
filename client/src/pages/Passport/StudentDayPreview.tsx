@@ -13,7 +13,8 @@ import { keepTaskInView, showLessonIfStacked, showLessonTop, useDayPanes } from 
  * The day exactly as a member opens it: the same task list and the same viewers (video player,
  * notes, Q&A, practice) the day player uses, fed by the unit's student preview — which the server
  * builds with the composer's own code and the member-safe content view. Nothing here writes: no
- * progress, no XP, no "Mark as done". Checkpoints and assignments open their editor in a new tab.
+ * progress, no XP, no "Mark as done". A checkpoint opens its editor in a new tab; an assignment opens the
+ * student workspace in its read-only preview mode.
  */
 const StudentDayPreview: React.FC<{ preview: UnitStudentPreview; onClose: () => void }> = ({ preview, onClose }) => {
   const items = preview.items || [];
@@ -90,7 +91,7 @@ const StudentDayPreview: React.FC<{ preview: UnitStudentPreview; onClose: () => 
                   <p className="sdp-warn"><i className="bi bi-eye-slash" /> Not published yet — members cannot open this {selected.kind === 'quiz' ? 'checkpoint' : 'assignment'} until it is.</p>
                 )}
                 <div className="jd-body" ref={bodyRef}>
-                  <ItemBody item={selected.content || selected.kind === 'content' ? selected : { ...selected, launchPath: selected.editPath }}
+                  <ItemBody item={selected.content || selected.kind === 'content' ? selected : { ...selected, launchPath: selected.previewPath || selected.editPath }}
                     onLaunch={(p) => window.open(p, '_blank', 'noopener')} />
                 </div>
                 <div className="jd-actions">

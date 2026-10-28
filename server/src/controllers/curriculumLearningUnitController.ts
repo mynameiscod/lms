@@ -1135,6 +1135,8 @@ export const unitStudentPreview = async (req: Request, res: Response) => {
           isCompleted: false,
           live: i.kind === 'quiz' ? quizLive.get(String(i.sourceId)) !== false : assignmentStatus.get(String(i.sourceId)) === 'published',
           editPath: i.kind === 'quiz' ? `/quiz/${i.sourceId}/questions` : `/admin/assignments/${i.sourceId}/edit`,
+          /** The assignment as a member opens it — the workspace in its read-only preview mode, which writes nothing. */
+          ...(i.kind === 'assignment' ? { previewPath: `/careerpilot/assignments/${i.sourceId}/workspace?preview=1` } : {}),
         })),
       /** Attached to the unit but not on any student's day, because they are not published. */
       notShown: (unpublished as any[]).map(r => ({ _id: String(r._id), title: r.title, type: r.type })),

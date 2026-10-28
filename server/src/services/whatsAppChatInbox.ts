@@ -34,9 +34,20 @@ export async function logLeadWhatsApp(tenantId: string, userId: string, phone: s
   try {
     const ten = last10(phone);
     if (ten.length < 10) return;
-    const lead: any = await Lead.findOne({ tenantId: oid(tenantId), phone: new RegExp(`${ten}$`) }).sort({ createdAt: -1 }).select('_id').lean();
+    const lead: any = await Lead.findOne({ tenantId: oid(tenantId), phone: new RegExp(`${ten}$`) }).sort({ createdAt: -1 }).select('_id activities').lean();
     if (!lead) return;
-    await Lead.updateOne({ _id: lead._id }, { $push: { activities: { type: 'whatsapp', description: description.slice(0, 500), createdBy: userId ? oid(userId) : undefined, createdAt: new Date() } } });
+    const now = new Date();
+    // A "WhatsApp opened" entry from the button press (already counted in Team Activity) is completed by the
+    // first message sent from the chat, so opening and then sending is one action, not two.
+    let open = -1;
+    (lead.activities || []).forEach((a: any, i: number) => {
+      if (userId && a.type === 'whatsapp' && a.metadata?.opened === true && String(a.createdBy) === String(userId) && now.getTime() - new Date(a.createdAt).getTime() < 30 * 60 * 1000) open = i;
+    });
+    if (open >= 0) {
+      await Lead.updateOne({ _id: lead._id }, { $set: { [`activities.${open}.description`]: description.slice(0, 500), [`activities.${open}.metadata`]: { opened: false } } });
+      return;
+    }
+    await Lead.updateOne({ _id: lead._id }, { $push: { activities: { type: 'whatsapp', description: description.slice(0, 500), createdBy: userId ? oid(userId) : undefined, createdAt: now } } });
   } catch (e: any) {
     console.warn('[wa-chat] could not log the message on the lead:', e?.message);
   }

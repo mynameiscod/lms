@@ -180,6 +180,8 @@ const LeadDetailV2: React.FC = () => {
   // The real chat opens in a side drawer. Only a message that is actually sent from it is logged (by the server).
   const handleWhatsApp = () => {
     if (!lead?.phone) return;
+    // Pressing WhatsApp counts once in Team Activity; sending a message from the chat completes that same entry.
+    leadApi.logWhatsAppClick(leadId!).then((r: any) => { if (r?.data?.logged) fetchData(); }).catch(() => undefined);
     if (chatAllowed) { setShowChat(true); return; }
     // Without chat permission the only option is the phone's own WhatsApp; nothing is logged for that.
     window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}`, '_blank');

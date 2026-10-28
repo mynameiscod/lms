@@ -1,0 +1,60 @@
+/* Team Activity v2: working time, calling, coverage, follow-ups, alerts and the one-day person view. */
+.ta2.ta-page { max-width: 1500px; }
+.ta2-range { margin-left: auto; font-size: 13px; font-weight: 700; color: #475569; }
+.ta2-to { color: #64748b; font-size: 13px; }
+
+.ta2-alerts { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; padding: 14px 18px; margin-bottom: 16px; }
+.ta2-alerts h3 { margin: 0 0 8px; font-size: 15px; font-weight: 800; color: #9a3412; }
+.ta2-alerts ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.ta2-alerts li { font-size: 13.5px; padding-left: 16px; position: relative; color: #431407; }
+.ta2-alerts li::before { content: ""; position: absolute; left: 0; top: 7px; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; }
+.ta2-alerts li.bad::before { background: #dc2626; }
+.ta2-alerts li.bad { font-weight: 600; }
+
+.ta2-totals { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .ta2-totals { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .ta2-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ta-total small { font-size: 11.5px; color: #64748b; }
+.ta-total.warn b { color: #b45309; }
+
+.ta2-table th, .ta2-table td { padding: 11px 10px; vertical-align: top; }
+.ta2-table td b { font-size: 14px; }
+.ta2-sub { font-size: 11.5px; color: #64748b; margin-top: 2px; line-height: 1.35; }
+.ta2-bad { color: #dc2626 !important; }
+.ta2-bar { height: 5px; border-radius: 99px; background: #e2e8f0; margin: 5px 0 3px; width: 110px; max-width: 100%; overflow: hidden; }
+.ta2-bar i { display: block; height: 100%; background: #2563eb; border-radius: 99px; }
+.ta2-who { display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.ta2-who b { display: block; font-size: 14px; color: #1d4ed8; }
+.ta2-who:hover b { text-decoration: underline; }
+.ta2-who small { display: block; font-size: 11.5px; color: #64748b; font-weight: 500; }
+.ta2-foot { margin: 12px 4px 0; font-size: 12px; color: #64748b; line-height: 1.5; }
+
+/* person modal */
+.ta2-person { max-width: 920px; }
+.ta2-person .ta-modal-head { gap: 12px; flex-wrap: wrap; }
+.ta2-person .ta-modal-head h3 { flex: 1; min-width: 200px; }
+.ta2-daynav { display: inline-flex; gap: 6px; align-items: center; }
+.ta2-daynav .ta-tab { padding: 6px 12px; }
+.ta2-daynav .ta-tab:disabled { opacity: .4; cursor: not-allowed; }
+.ta2-person-body { padding: 14px 20px 18px; }
+.ta2-pstats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+@media (max-width: 720px) { .ta2-pstats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ta2-pstats div { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 9px 11px; }
+.ta2-pstats span { display: block; font-size: 11.5px; color: #64748b; font-weight: 600; }
+.ta2-pstats b { font-size: 16px; color: #0f172a; }
+.ta2-hint { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 9px 12px; font-size: 12.5px; color: #92400e; margin: 0 0 10px; }
+.ta2-h { margin: 16px 0 8px; font-size: 14px; font-weight: 800; color: #0f172a; }
+.ta2-strip svg { width: 100%; height: auto; display: block; }
+.ta2-strip .wd { fill: #f1f5f9; }
+.ta2-strip .tick { stroke: #e2e8f0; stroke-width: 1; }
+.ta2-strip .lbl { fill: #64748b; font-size: 11px; font-weight: 600; }
+.ta2-strip .act { fill: #2563eb; opacity: .85; }
+.ta2-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: #475569; margin-top: 4px; }
+.ta2-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.ta2-legend .sw { width: 16px; height: 8px; border-radius: 3px; background: #2563eb; opacity: .85; }
+.ta2-legend .dot { width: 9px; height: 9px; border-radius: 50%; }
+.ta2-quiet { margin-top: 8px; font-size: 12.5px; color: #9a3412; background: #fff7ed; border-radius: 8px; padding: 7px 10px; }
+.ta2-leadtime { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ta2-leadtime li { display: flex; gap: 10px; align-items: baseline; font-size: 13px; padding: 6px 10px; background: #f8fafc; border-radius: 8px; }
+.ta2-leadtime span { color: #64748b; font-size: 12px; }
+.ta2-leadtime em { margin-left: auto; font-style: normal; font-weight: 700; color: #1d4ed8; }

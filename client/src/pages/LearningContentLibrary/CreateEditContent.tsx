@@ -372,7 +372,7 @@ export default function CreateEditContent() {
   if (step === 'type') {
     return (
       <div style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}>
-        <button onClick={() => navigate('/learning-library')} style={backBtnStyle}>← Back</button>
+        <button onClick={() => navigate(returnTo)} style={backBtnStyle}>← Back</button>
         <h2 style={{ margin: '16px 0 8px', fontWeight: 700, fontSize: '22px', color: '#0f172a' }}>
           Add Content — Choose Type
         </h2>
@@ -1172,7 +1172,7 @@ parent.postMessage({ type:'cb-activity-height', height }, '*');`}
 
       {/* Save button at bottom */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
-        <button onClick={() => navigate('/learning-library')} style={cancelBtnStyle}>Cancel</button>
+        <button onClick={() => navigate(returnTo)} style={cancelBtnStyle}>Cancel</button>
         <button onClick={handleSave} disabled={saving} style={saveBtnStyle}>
           {saving ? 'Saving...' : '💾 Save Content'}
         </button>

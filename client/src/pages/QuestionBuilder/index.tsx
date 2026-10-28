@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { quizApi } from '../../api';
 import { Button, Input, Alert, Spinner, Modal } from '../../components/common';
 import { Question } from '../../types';
@@ -17,6 +17,11 @@ interface QuestionForm {
 
 const QuestionBuilder: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
+  const navigate = useNavigate();
+  // Opened from a day in the Content Builder: offer the way back to that day.
+  const [searchParams] = useSearchParams();
+  const rawReturn = searchParams.get('returnTo') || '';
+  const returnTo = rawReturn.startsWith('/') && !rawReturn.startsWith('//') ? rawReturn : '';
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -211,7 +216,8 @@ const QuestionBuilder: React.FC = () => {
   return (
     <div className="question-builder-page">
       <div className="page-header">
-        <h1>❓ Question Builder</h1>
+        <h1 style={{ marginRight: 'auto' }}>❓ Question Builder</h1>
+        {returnTo && <Button variant="secondary" onClick={() => navigate(returnTo)}>← Back to the day</Button>}
         <Button onClick={() => {
           resetForm();
           setShowModal(true);

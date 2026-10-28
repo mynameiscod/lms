@@ -51,7 +51,25 @@
 .nb-flow .cp-notes th, .nb-flow .cp-notes td { border-color: #d9cdb3; }
 .nb-flow .cp-notes th { background: rgba(214, 196, 160, .25); }
 .nb-flow .cp-notes img { max-height: 380px; object-fit: contain; break-inside: avoid; border-radius: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, .12); }
-.nb-flow .cp-notes .cp-table { break-inside: avoid; }
+/* A table keeps to one page when it fits. NotesContent wraps it in a horizontal scroll box, and a
+   scroll box cannot be split across columns - a tall table was cut off at the page's foot. In the
+   book it is an ordinary block instead: it continues on the next page, a row is never cut in half,
+   the header repeats, and a word too long for its cell wraps rather than poking into the next page.
+   No white fill: when a row moves on, the space it leaves is just paper. */
+/* The blank page that evens out the last spread (NotesBook.tsx). */
+.nb-pad { break-before: column; height: 1px; }
+.nb-flow .cp-notes .cp-table { overflow: visible; break-inside: avoid; }
+.nb-flow .cp-notes .cp-table table { width: 100%; background: transparent; }
+/* The admin surface gives every table a 680px floor and unwrapped cells on a phone (CareerPilotAdmin.css,
+   AdminCore.css) - right for data grids, wrong in the book, where the admin's preview must match the member's. */
+.nb-flow .cp-notes .cp-table table { min-width: 0 !important; }
+.nb-flow .cp-notes .cp-table th, .nb-flow .cp-notes .cp-table td { white-space: normal !important; }
+.nb-flow .cp-notes .cp-table tr { break-inside: avoid; }
+.nb-flow .cp-notes .cp-table th, .nb-flow .cp-notes .cp-table td { overflow-wrap: break-word; background-color: transparent; }
+.nb-flow .cp-notes .cp-table th { background-color: rgba(214, 196, 160, .25); }
+/* Too wide for the page (NotesBook.tsx measures): equal columns, words broken only when they must. */
+.nb-flow .cp-notes .cp-table table.nb-fit { table-layout: fixed; }
+.nb-flow .cp-notes .cp-table table.nb-fit th, .nb-flow .cp-notes .cp-table table.nb-fit td { overflow-wrap: anywhere; hyphens: auto; padding-left: 6px; padding-right: 6px; }
 
 .nb-pno { position: absolute; bottom: calc(var(--page-pad) * .55); font-family: var(--hand); font-size: 15px; color: #76716F; z-index: 1; }
 .nb-pno.left { left: var(--page-pad); }

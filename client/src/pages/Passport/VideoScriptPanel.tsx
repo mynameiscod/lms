@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import passportApi, { VideoScript, VideoScriptInput, VideoScriptScene, VideoScriptStatus } from '../../api/passportApi';
 import './videoScript.css';
 import { parseVideoScript } from './videoScriptParse';
@@ -294,7 +294,14 @@ export const VideoScriptPanel: React.FC<{
     finally { setLoading(false); }
   }, [unitCode]);
   useEffect(() => { setScript(null); setEditing(false); setReading(false); load(); }, [load]);
-  useEffect(() => { if (openEditorSignal) setEditing(true); }, [openEditorSignal]);
+  // Open on a NEW click only. The panel is rebuilt for every day while the builder's counter keeps
+  // its value, so a non-zero signal at mount is an old click on another day, not a request here.
+  const seenSignal = useRef(openEditorSignal);
+  useEffect(() => {
+    if (openEditorSignal === seenSignal.current) return;
+    seenSignal.current = openEditorSignal;
+    setEditing(true);
+  }, [openEditorSignal]);
 
   const initial = useMemo<VideoScriptInput>(() => script
     ? { title: script.title, objective: script.objective, targetMinutes: script.targetMinutes, presenter: script.presenter, scenes: script.scenes.length ? script.scenes : [blankScene()], status: script.status }

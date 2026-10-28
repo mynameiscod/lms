@@ -111,7 +111,7 @@ Write it before code, in \`DESIGN.md\`. One page — if it needs three, the scop
 | M2 Core | Every Must feature works locally with seed data |
 | M3 Tests and deploy | pytest-django suite green; live at a public HTTPS URL |
 | M4 Assistant | FastAPI RAG answers with citations; evaluation set written and scored |
-| M5 Agent | Tools act with the user's permissions; approval before anything irreversible; limits on |
+| M5 Agent | Tools act with the user's permissions; approval before anything irreversible; limits on steps and spend |
 | M6 Polish | README, architecture diagram, demo script rehearsed on the live URL |
 
 **Deploy at M3, not on the last day.** The first deployment always finds something — \`ALLOWED_HOSTS\`,

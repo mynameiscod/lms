@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import {
@@ -23,6 +23,10 @@ type ActiveTab = 'basic' | 'coding' | 'mcq' | 'rubric' | 'settings';
 const AdminAssignmentForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  // Opened from a day in the Content Builder: go back to that day, not to the assignments list.
+  const [searchParams] = useSearchParams();
+  const rawReturn = searchParams.get('returnTo') || '';
+  const returnTo = rawReturn.startsWith('/') && !rawReturn.startsWith('//') ? rawReturn : '/admin/assignments';
   const isEdit = Boolean(id);
 
   const [loading, setLoading] = useState(false);
@@ -424,7 +428,7 @@ const AdminAssignmentForm: React.FC = () => {
         }
       }
 
-      navigate('/admin/assignments');
+      navigate(returnTo);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save assignment');
     } finally {
@@ -683,7 +687,7 @@ const AdminAssignmentForm: React.FC = () => {
         <div style={{ display: 'flex', gap: '12px' }}>
           <button 
             className="btn btn-secondary"
-            onClick={() => navigate('/admin/assignments')}
+            onClick={() => navigate(returnTo)}
           >
             Cancel
           </button>

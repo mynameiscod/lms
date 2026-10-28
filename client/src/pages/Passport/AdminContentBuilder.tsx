@@ -200,6 +200,8 @@ const AdminContentBuilder: React.FC = () => {
   const currentTrack = tracksSorted.find(t => t.key === trackKey) || tracksSorted[0];
   /** Where this builder is, for links that must bring the admin back to the same day. */
   const here = (code: string) => `/admin/passport/content-builder?stage=${encodeURIComponent(stage)}${isTrack && currentTrack ? `&track=${encodeURIComponent(currentTrack.key)}` : ''}&unit=${encodeURIComponent(code)}`;
+  /** An editor on another page, told to come back to this day when the author is done. */
+  const withReturn = (path: string, code: string) => `${path}${path.includes('?') ? '&' : '?'}returnTo=${encodeURIComponent(here(code))}`;
 
   const loadPreview = useCallback(async (code: string) => {
     if (!code) { setPreview(null); return; }
@@ -402,7 +404,7 @@ const AdminContentBuilder: React.FC = () => {
       const r = await passportApi.createUnitAssessment(unit.unitCode, 'QUIZ');
       await loadPreview(unit.unitCode);
       say('Checkpoint created — add its questions next.');
-      if ((r as any)?.id) nav(`/quiz/${(r as any).id}/questions`);
+      if ((r as any)?.id) nav(withReturn(`/quiz/${(r as any).id}/questions`, unit.unitCode));
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not create a checkpoint.'); }
     setSaving(false);
   };
@@ -416,7 +418,7 @@ const AdminContentBuilder: React.FC = () => {
       await loadPreview(unit.unitCode);
       setAssignOpen(false);
       say('Assignment created — write the task next.');
-      if ((r as any)?.id) nav(`/admin/assignments/${(r as any).id}/edit`);
+      if ((r as any)?.id) nav(withReturn(`/admin/assignments/${(r as any).id}/edit`, unit.unitCode));
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not create the assignment.'); }
     setSaving(false);
   };
@@ -580,7 +582,7 @@ const AdminContentBuilder: React.FC = () => {
                       </>
                     )}
                     {it.editPath
-                      ? <a className="acb-i-act" href={it.editPath} title="Open the editor"><i className="bi bi-box-arrow-up-right" /></a>
+                      ? <a className="acb-i-act" href={withReturn(it.editPath, unit.unitCode)} title="Open the editor"><i className="bi bi-box-arrow-up-right" /></a>
                       : <button className="acb-i-act" onClick={() => setEditItem(it)} title="Edit"><i className="bi bi-pencil" /></button>}
                     <button className="acb-i-act danger" onClick={() => removeItem(it)} title="Take off this day"><i className="bi bi-x-lg" /></button>
                   </li>;
@@ -604,7 +606,7 @@ const AdminContentBuilder: React.FC = () => {
     {editUnit && unit && <UnitDrawer unit={unit} saving={saving} stage={unit.stageKey || stage} onClose={() => setEditUnit(false)} onSave={saveUnit} />}
     {assignOpen && unit && <AssignmentDrawer unitTitle={unit.title} saving={saving} onClose={() => setAssignOpen(false)} onCreate={addAssignment} />}
     {studentView && preview && <StudentDayPreview preview={preview} onClose={() => setStudentView(false)} />}
-    {editItem && <ItemDrawer item={editItem} saving={saving} onClose={() => setEditItem(null)} onSave={saveItem} />}
+    {editItem && unit && <ItemDrawer item={editItem} fullEditorHref={editItem.contentId ? withReturn(`/learning-library/edit/${editItem.contentId}`, unit.unitCode) : ''} saving={saving} onClose={() => setEditItem(null)} onSave={saveItem} />}
     {toast && <div className="acb-toast"><i className="bi bi-check-circle-fill" /> {toast}</div>}
   </div>;
 };
@@ -971,7 +973,7 @@ const UnitDrawer: React.FC<{
 };
 
 /** One task on the day: its name, its length, and the link or notes it carries. */
-const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; onSave: (patch: any, file: File | null) => void }> = ({ item, saving, onClose, onSave }) => {
+const ItemDrawer: React.FC<{ item: any; fullEditorHref: string; saving: boolean; onClose: () => void; onSave: (patch: any, file: File | null) => void }> = ({ item, fullEditorHref, saving, onClose, onSave }) => {
   const [row, setRow] = useState<any>(null);
   const [loadErr, setLoadErr] = useState('');
   const [title, setTitle] = useState(item.contentTitle || '');
@@ -1092,7 +1094,7 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
         </label>
         {row && !isVideoLink && !isRichNotes && <p className="acb-drawer-to">
           <i className="bi bi-box-arrow-up-right" />
-          <a href={`/learning-library/edit/${item.contentId}`}>Open the full editor</a> to edit {isPracticeSet ? 'one question at a time' : 'this item\u2019s questions or file'}.
+          <a href={fullEditorHref}>Open the full editor</a> to edit {isPracticeSet ? 'one question at a time' : 'this item\u2019s questions or file'}.
         </p>}
         {problem && <div className="acb-err"><i className="bi bi-exclamation-circle" /> {problem}</div>}
       </div>

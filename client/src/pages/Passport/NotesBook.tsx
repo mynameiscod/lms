@@ -42,8 +42,16 @@ const NotesBook: React.FC<{ text: string; title?: string }> = ({ text, title }) 
     const per = parseInt(getComputedStyle(f).columnCount, 10) === 1 ? 1 : 2;
     const gap = parseFloat(getComputedStyle(f).columnGap) || 0;
     const pageW = (f.clientWidth + gap) / per;
+    // A table wider than a page cannot scroll sideways inside the book: share the page between its
+    // columns instead (nb-fit), so every column shows and long words wrap in their cells.
+    f.querySelectorAll('.cp-table table').forEach(t => {
+      t.classList.remove('nb-fit');
+      if (t.scrollWidth > pageW - gap + 1) t.classList.add('nb-fit');
+    });
+    // The blank page that evens out a two-page spread is not a page of notes.
+    const pad = f.querySelector('.nb-pad') ? 1 : 0;
     setPerSpread(per);
-    setPages(Math.max(1, Math.round((f.scrollWidth + gap) / pageW)));
+    setPages(Math.max(1, Math.round((f.scrollWidth + gap) / pageW) - pad));
   }, []);
 
   useLayoutEffect(() => {
@@ -60,13 +68,19 @@ const NotesBook: React.FC<{ text: string; title?: string }> = ({ text, title }) 
     return () => { ro.disconnect(); imgs.forEach(i => i.removeEventListener('load', measure)); };
   }, [text, plain, measure]);
 
-  useEffect(() => { setSpread(0); setTurn(null); setPlain(false); }, [text]);
+  // A new note opens on its first page. A layout effect, so it lands before the flow is scrolled.
+  useLayoutEffect(() => { setSpread(0); setTurn(null); setPlain(false); }, [text]);
   useEffect(() => { if (spread > spreads - 1) setSpread(spreads - 1); }, [spread, spreads]);
 
-  // Keep the flow on the current spread (also after a resize changes the page width).
+  // Keep the flow on the current spread (also after a resize changes the page width). Where we put
+  // the flow is remembered, so its scroll event is not mistaken for the reader moving: a new note
+  // used to open on the old note's page, because the old position came back as a "move".
+  const placedAt = useRef(0);
   useLayoutEffect(() => {
     const f = flowRef.current;
-    if (f) f.scrollLeft = spread * pitch();
+    if (!f) return;
+    f.scrollLeft = spread * pitch();
+    placedAt.current = f.scrollLeft;
   }, [spread, pages, perSpread, pitch]);
 
   const go = (to: number) => {
@@ -78,7 +92,7 @@ const NotesBook: React.FC<{ text: string; title?: string }> = ({ text, title }) 
   // Tabbing to a link on another page scrolls the flow; follow it so the page numbers stay right.
   const onFlowScroll = () => {
     const f = flowRef.current;
-    if (!f) return;
+    if (!f || Math.abs(f.scrollLeft - placedAt.current) < 2) return;
     const s = Math.round(f.scrollLeft / pitch());
     if (s !== spread) setSpread(s);
   };
@@ -110,6 +124,9 @@ const NotesBook: React.FC<{ text: string; title?: string }> = ({ text, title }) 
       <div className="nb-flow" ref={flowRef} onScroll={onFlowScroll}>
         {!!title && <div className="nb-chap">{title}</div>}
         <NotesContent text={text} className="nb-text" />
+        {/* An odd count leaves the last spread one page short, and the flow cannot scroll a whole
+            spread on - it stopped half-way and the last page never showed. A blank page fills it. */}
+        {perSpread === 2 && pages % 2 === 1 && <div className="nb-pad" aria-hidden />}
       </div>
       <span className="nb-pno left" aria-hidden>{first}</span>
       {perSpread === 2 && last > first && <span className="nb-pno right" aria-hidden>{last}</span>}

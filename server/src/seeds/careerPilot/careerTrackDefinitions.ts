@@ -475,6 +475,35 @@ export const PACKS: PackDefinition[] = [
   { key: 'PL_DE_CANDIDATE', title: 'The Data Engineering Candidate', kind: 'PLACEMENT',
     description: 'A data-engineering resume and portfolio, certifications and the career path, and a full interview loop.',
     topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['DE_PLACE_CANDIDATE', 'MUST']] },
+
+  /* ── QA / SDET, setup: what it reuses from the years and the Python track ── */
+  { key: 'QA_YEAR_BASICS', title: 'Testing, APIs, HTTP and Debugging Basics', kind: 'SKILL',
+    description: 'The years\u2019 testing, test design and isolation, APIs, HTTP and debugging lessons, SQL basics, and pytest from the Python track.',
+    topics: [['T2_TESTING', 'MUST'], ['T3_TEST_DESIGN', 'MUST'], ['T3_TEST_ISOLATION', 'MUST'], ['JT_PY_TESTING', 'MUST'], ['T2_APIS', 'MUST'],
+      ['T2_WEB_HTTP', 'MUST'], ['T2_DEBUGGING', 'MUST'], ['T3_COMPLEX_DEBUG', 'SHOULD'], ['T_SQL', 'SHOULD'], ['T2_DB_QUERY', 'SHOULD']] },
+  /* ── QA / SDET, batches QA1–QA3 ── */
+  { key: 'QA_FOUNDATIONS', title: 'Testing Practice, Test Design and Test Data', kind: 'SKILL',
+    description: 'Strategy and risk, defects and agile QA, test design techniques, and test data and SQL for testers.',
+    topics: [['QA_TESTING_PRACTICE', 'CORE'], ['QA_TEST_DESIGN', 'CORE'], ['QA_TEST_DATA_SQL', 'MUST']] },
+  { key: 'QA_AUTOMATION', title: 'Test Automation: pytest, Playwright, Selenium and APIs', kind: 'SKILL',
+    description: 'A pytest framework, Playwright, Selenium with Java and TestNG, and API testing with Postman, Python and REST Assured.',
+    topics: [['QA_PYTEST_FRAMEWORK', 'CORE'], ['QA_PLAYWRIGHT', 'CORE'], ['QA_API_TESTING', 'CORE'], ['QA_SELENIUM_JAVA', 'MUST']] },
+  { key: 'QA_ENGINEERING', title: 'Performance, Quality in CI, and Beyond Functional Testing', kind: 'SKILL',
+    description: 'Performance testing, quality in CI and flaky-test management, and mobile, accessibility and security checks.',
+    topics: [['QA_PERFORMANCE', 'CORE'], ['QA_CI_QUALITY', 'CORE'], ['QA_MOBILE_A11Y_SECURITY', 'MUST']] },
+  { key: 'CAPSTONE_QA', title: 'Capstone: A Test Strategy and Automation Suite', kind: 'SKILL',
+    description: 'One product tested end to end: designed tests, UI and API automation, a load test, CI with reports, and a release quality report.',
+    topics: [['QA_CAPSTONE', 'MUST']] },
+  /* ── QA / SDET, batch QA4: Year-4 placement ── */
+  { key: 'PL_QA_IV', title: 'QA / SDET Interviews', kind: 'PLACEMENT',
+    description: 'Testing fundamentals, test design, UI automation, API testing, performance and CI at interview depth.',
+    topics: [['QA_IV', 'MUST']] },
+  { key: 'PL_QA_SCENARIOS', title: 'QA Scenario Rounds', kind: 'PLACEMENT',
+    description: '"Test this" rounds, bug hunts, the automation take-home and SDET live coding.',
+    topics: [['QA_SCENARIO_ROUNDS', 'MUST']] },
+  { key: 'PL_QA_CANDIDATE', title: 'The QA Candidate', kind: 'PLACEMENT',
+    description: 'A QA resume and a framework that runs, certifications and the career path, and a full QA/SDET interview loop.',
+    topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['QA_PLACE_CANDIDATE', 'MUST']] },
 ];
 
 /** A track's placement: the shared packs, the AI interviews it needs, system design, and the AI candidate (HR and mocks last). */
@@ -560,4 +589,12 @@ export const TRACKS: TrackDefinition[] = [
     description: 'Data modelling and SQL for engineers; reliable ingestion; Spark, warehouses and lakehouses, and dbt; Airflow and Kafka; data quality and governance; and the AWS and Azure data stacks.',
     specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'SQL_ANALYTICS', 'DE_YEAR_BASICS', 'DE_FOUNDATIONS', 'DE_PROCESSING', 'DE_OPERATE', 'CAPSTONE_DE'],
     placementPacks: ['PL_APTITUDE', 'PL_DA_SQL', 'PL_CODING_PYTHON', 'PL_DE_IV', 'PL_DE_SCENARIOS', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_DE_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
+
+  /* QA / SDET — test design, automation with pytest, Playwright, Selenium (Java) and API tests,
+     performance, quality in CI, mobile/accessibility/security checks. Setup holds what it reuses; its
+     own topics (QA1–QA3), placement (QA4) and bank (QA5) land with their batches. */
+  { key: 'QA_SDET', name: 'QA / SDET (Test Automation)', language: 'Python and Java', order: 140,
+    description: 'Testing as a practice and test design; automation with pytest, Playwright and Selenium with Java; API testing; performance testing; quality in CI; mobile, accessibility and security checks.',
+    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'QA_YEAR_BASICS', 'QA_FOUNDATIONS', 'QA_AUTOMATION', 'QA_ENGINEERING', 'CAPSTONE_QA'],
+    placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_QA_IV', 'PL_QA_SCENARIOS', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_QA_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

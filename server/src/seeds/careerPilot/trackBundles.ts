@@ -160,6 +160,20 @@ import { TRACK_DE_CAPSTONE_BUNDLES } from './trackContentDeCapstone';
 import { TRACK_DE_IV_BUNDLES } from './trackContentDeIv';
 import { TRACK_DE_SCENARIO_ROUNDS_BUNDLES } from './trackContentDeScenarios';
 import { TRACK_DE_PLACE_CANDIDATE_BUNDLES } from './trackContentDePlaceCandidate';
+import { TRACK_QA_TESTING_PRACTICE_BUNDLES } from './trackContentQaPractice';
+import { TRACK_QA_TEST_DESIGN_BUNDLES } from './trackContentQaTestDesign';
+import { TRACK_QA_TEST_DATA_SQL_BUNDLES } from './trackContentQaTestData';
+import { TRACK_QA_PYTEST_FRAMEWORK_BUNDLES } from './trackContentQaPytest';
+import { TRACK_QA_PLAYWRIGHT_BUNDLES } from './trackContentQaPlaywright';
+import { TRACK_QA_SELENIUM_JAVA_BUNDLES } from './trackContentQaSelenium';
+import { TRACK_QA_API_TESTING_BUNDLES } from './trackContentQaApi';
+import { TRACK_QA_PERFORMANCE_BUNDLES } from './trackContentQaPerformance';
+import { TRACK_QA_CI_QUALITY_BUNDLES } from './trackContentQaCi';
+import { TRACK_QA_MOBILE_A11Y_SECURITY_BUNDLES } from './trackContentQaMobileA11y';
+import { TRACK_QA_CAPSTONE_BUNDLES } from './trackContentQaCapstone';
+import { TRACK_QA_IV_BUNDLES } from './trackContentQaIv';
+import { TRACK_QA_SCENARIO_ROUNDS_BUNDLES } from './trackContentQaScenarios';
+import { TRACK_QA_PLACE_CANDIDATE_BUNDLES } from './trackContentQaPlaceCandidate';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -338,4 +352,18 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_DE_IV_BUNDLES,
   ...TRACK_DE_SCENARIO_ROUNDS_BUNDLES,
   ...TRACK_DE_PLACE_CANDIDATE_BUNDLES,
+  ...TRACK_QA_TESTING_PRACTICE_BUNDLES,
+  ...TRACK_QA_TEST_DESIGN_BUNDLES,
+  ...TRACK_QA_TEST_DATA_SQL_BUNDLES,
+  ...TRACK_QA_PYTEST_FRAMEWORK_BUNDLES,
+  ...TRACK_QA_PLAYWRIGHT_BUNDLES,
+  ...TRACK_QA_SELENIUM_JAVA_BUNDLES,
+  ...TRACK_QA_API_TESTING_BUNDLES,
+  ...TRACK_QA_PERFORMANCE_BUNDLES,
+  ...TRACK_QA_CI_QUALITY_BUNDLES,
+  ...TRACK_QA_MOBILE_A11Y_SECURITY_BUNDLES,
+  ...TRACK_QA_CAPSTONE_BUNDLES,
+  ...TRACK_QA_IV_BUNDLES,
+  ...TRACK_QA_SCENARIO_ROUNDS_BUNDLES,
+  ...TRACK_QA_PLACE_CANDIDATE_BUNDLES,
 ].map(balanced);

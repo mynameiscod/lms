@@ -124,6 +124,10 @@ import { DATA_PIPELINES } from './dataPipelines';
 import { DATA_MODELLING } from './dataModelling';
 import { DATA_WAREHOUSING } from './dataWarehousing';
 import { BATCH_STREAM_PROCESSING } from './batchStreamProcessing';
+import { TEST_DESIGN } from './testDesign';
+import { UI_TEST_AUTOMATION } from './uiTestAutomation';
+import { API_TESTING } from './apiTesting';
+import { PERFORMANCE_TESTING } from './performanceTesting';
 
 export const TRACK_BANK: GoldenItem[] = [
   ...JAVA_BASICS,
@@ -238,4 +242,8 @@ export const TRACK_BANK: GoldenItem[] = [
   ...DATA_MODELLING,
   ...DATA_WAREHOUSING,
   ...BATCH_STREAM_PROCESSING,
+  ...TEST_DESIGN,
+  ...UI_TEST_AUTOMATION,
+  ...API_TESTING,
+  ...PERFORMANCE_TESTING,
 ];

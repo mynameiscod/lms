@@ -119,11 +119,13 @@ describe('the track follows setup (role + main language)', () => {
     expect(deriveTrackKey('SITE_RELIABILITY_ENGINEER', ['Go'])).toBe('CLOUD_DEVOPS');
     expect(deriveTrackKey('DATA_ENGINEER', ['Python'])).toBe('DATA_ENGINEERING');
     expect(deriveTrackKey('DATA_ENGINEER', [])).toBe('DATA_ENGINEERING');
+    expect(deriveTrackKey('QA_SDET', ['Java'])).toBe('QA_SDET');
+    expect(deriveTrackKey('QA_SDET', [])).toBe('QA_SDET');
   });
   it('gives no track when the member is not sure or has no main language', () => {
     expect(deriveTrackKey('NOT_SURE', ['Java'])).toBeNull();
     expect(deriveTrackKey('FULLSTACK_ENGINEER', ['Not Sure'])).toBeNull();
     expect(deriveTrackKey('FULLSTACK_ENGINEER', ['JavaScript'])).toBeNull();
-    expect(deriveTrackKey('QA_SDET', ['Java'])).toBeNull();
+    expect(deriveTrackKey('MOBILE_ENGINEER', ['Kotlin'])).toBeNull();
   });
 });

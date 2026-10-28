@@ -834,6 +834,23 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
     difficulty: 'ADVANCED', displayOrder: 170,
     description: 'Carrying one project from requirements to something deployed, tested and explainable.',
     prerequisiteKeys: ['DEPLOYMENT', 'AUTOMATED_TESTING'] },
+  // Quality engineering — what a QA engineer or SDET does at work (the QA/SDET career track).
+  { key: 'TEST_DESIGN', name: 'Test Design', parentKey: 'SE_PRACTICES',
+    difficulty: 'INTERMEDIATE', displayOrder: 180,
+    description: 'Turning requirements into the few test cases that find the most bugs: partitions, boundaries, decision tables, states and risk.',
+    aliases: ['Manual Testing', 'Test Case Design'], prerequisiteKeys: ['TESTING_FUNDAMENTALS'] },
+  { key: 'UI_TEST_AUTOMATION', name: 'UI Test Automation', parentKey: 'SE_PRACTICES',
+    difficulty: 'ADVANCED', displayOrder: 190,
+    description: 'Browser tests with Playwright and Selenium that find elements reliably, wait correctly and do not flake.',
+    aliases: ['Selenium', 'Playwright'], prerequisiteKeys: ['AUTOMATED_TESTING', 'BROWSER_FUNDAMENTALS'] },
+  { key: 'API_TESTING', name: 'API Testing', parentKey: 'SE_PRACTICES',
+    difficulty: 'ADVANCED', displayOrder: 200,
+    description: 'Testing services through their APIs: contracts, status codes, data, authentication, negative cases and test data.',
+    aliases: ['Postman', 'REST Assured'], prerequisiteKeys: ['AUTOMATED_TESTING', 'REST_APIS'] },
+  { key: 'PERFORMANCE_TESTING', name: 'Performance Testing', parentKey: 'SE_PRACTICES',
+    difficulty: 'ADVANCED', displayOrder: 210,
+    description: 'Load, stress and soak tests that answer a question about capacity, and reading what the numbers mean.',
+    aliases: ['Load Testing', 'JMeter', 'k6'], prerequisiteKeys: ['AUTOMATED_TESTING', 'HTTP'] },
 
   // ── Security engineering ──
   { key: 'THREAT_MODELING', name: 'Threat Modelling', parentKey: 'CS_FUNDAMENTALS',

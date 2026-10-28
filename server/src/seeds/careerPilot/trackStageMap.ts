@@ -884,6 +884,73 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Present a data-engineering resume and portfolio, plan certifications, and get through a full interview loop.']),
     ],
   },
+  /* ══════════════ QA / SDET: TESTING PRACTICE, TEST DESIGN, TEST DATA (batch QA1) ══════════════ */
+  {
+    moduleCode: 'QA_FOUNDATIONS',
+    moduleName: 'Testing Practice, Test Design and Test Data',
+    displayOrder: 620,
+    blurb: 'The years teach testing and test design basics; this is how a QA engineer works: strategy and risk, defects, agile QA, test design techniques, and test data and SQL.',
+    topics: [
+      t('QA_TESTING_PRACTICE', 'Testing as a Practice', ['TESTING_FUNDAMENTALS', 'TECHNICAL_COMMUNICATION'],
+        ['Work as a QA engineer: test levels and types, strategy and risk, defect reports and triage, and QA inside agile teams.']),
+      t('QA_TEST_DESIGN', 'Test Design', ['TEST_DESIGN'],
+        ['Design tests with partitions, boundaries, decision tables, state transitions, pairwise sets and exploratory sessions.']),
+      t('QA_TEST_DATA_SQL', 'Test Data and SQL for Testers', ['SQL_BASICS', 'TEST_DESIGN'],
+        ['Verify behaviour in the database, create and clean up test data safely, and test reports and data flows.']),
+    ],
+  },
+
+  /* ══════════════ QA / SDET: AUTOMATION (batch QA2) ══════════════ */
+  {
+    moduleCode: 'QA_AUTOMATION',
+    moduleName: 'Test Automation: pytest, Playwright, Selenium and APIs',
+    displayOrder: 630,
+    blurb: 'Automating tests a team can trust: a pytest framework, browser tests with Playwright and with Selenium in Java, and API testing.',
+    topics: [
+      t('QA_PYTEST_FRAMEWORK', 'A pytest Test Framework', ['AUTOMATED_TESTING'],
+        ['Design a test framework with fixtures, data-driven tests, markers, parallel runs and reports.']),
+      t('QA_PLAYWRIGHT', 'Playwright', ['UI_TEST_AUTOMATION'],
+        ['Automate the browser with Playwright: resilient locators, auto-waiting, page objects, network mocking and debugging flaky tests.']),
+      t('QA_SELENIUM_JAVA', 'Selenium with Java', ['UI_TEST_AUTOMATION', 'AUTOMATED_TESTING'],
+        ['Automate the browser with Selenium WebDriver, explicit waits, TestNG and page objects in Java, and Selenium Grid.']),
+      t('QA_API_TESTING', 'API Testing', ['API_TESTING', 'REST_APIS'],
+        ['Test APIs with Postman and Newman, Python requests and pytest, auth and input checks, contracts and mocks, and REST Assured.']),
+    ],
+  },
+
+  /* ══════════════ QA / SDET: QUALITY ENGINEERING, CAPSTONE (batch QA3) ══════════════ */
+  {
+    moduleCode: 'QA_ENGINEERING',
+    moduleName: 'Performance, Quality in CI, and Beyond Functional Testing',
+    displayOrder: 640,
+    blurb: 'Quality beyond the happy path: performance testing, tests in CI and flaky-test management, mobile, accessibility and basic security checks, and the QA/SDET capstone.',
+    topics: [
+      t('QA_PERFORMANCE', 'Performance Testing', ['PERFORMANCE_TESTING'],
+        ['Run load, stress and soak tests with Locust, k6 and JMeter, read percentiles correctly, and find the bottleneck.']),
+      t('QA_CI_QUALITY', 'Quality in CI', ['CI_CD', 'AUTOMATED_TESTING'],
+        ['Run test suites in CI fast and honestly, manage flaky tests, and write a quality strategy for a product.']),
+      t('QA_MOBILE_A11Y_SECURITY', 'Mobile, Accessibility and Security Checks', ['AUTOMATED_TESTING', 'WEB_ACCESSIBILITY'],
+        ['Plan mobile testing with Appium, test accessibility, add authorised security checks, and cover browsers and visuals.']),
+      t('QA_CAPSTONE', 'Capstone: A Test Strategy and Automation Suite', ['UI_TEST_AUTOMATION', 'API_TESTING', 'PERFORMANCE_TESTING', 'TEST_DESIGN'],
+        ['Plan, build, run, present and defend the testing of a real product: designed tests, UI and API automation, performance and CI.']),
+    ],
+  },
+
+  /* ══════════════ QA / SDET: PLACEMENT (batch QA4) ══════════════ */
+  {
+    moduleCode: 'QA_PLACE',
+    moduleName: 'QA / SDET Placement',
+    displayOrder: 650,
+    blurb: 'Year 4 teaches aptitude, coding, core CS, HR and mocks for everyone; this adds the QA/SDET interview, scenario rounds and the candidate.',
+    topics: [
+      t('QA_IV', 'QA / SDET Interview Questions', ['TESTING_FUNDAMENTALS', 'TEST_DESIGN', 'UI_TEST_AUTOMATION', 'API_TESTING', 'PERFORMANCE_TESTING'],
+        ['Answer testing, test design, UI automation, API testing, performance and CI interview questions with the follow-up.']),
+      t('QA_SCENARIO_ROUNDS', 'QA Scenario Rounds', ['TEST_DESIGN', 'UI_TEST_AUTOMATION', 'AUTOMATED_TESTING'],
+        ['Handle "test this", bug-hunt, automation take-home and SDET live-coding rounds with structure and evidence.']),
+      t('QA_PLACE_CANDIDATE', 'The QA Candidate', ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE', 'INTERVIEW_PERFORMANCE'],
+        ['Present a QA resume and a framework that runs, plan certifications, and get through a full QA/SDET interview loop.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

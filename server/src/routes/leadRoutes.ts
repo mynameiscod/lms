@@ -10,7 +10,7 @@ import {
   updateLead,
   changeLeadStage,
   approveStageChange,
-  addLeadActivity, logCallClick,
+  addLeadActivity, logCallClick, logWhatsAppClick, staffHeartbeat, getTeamOverview, getTeamPerson,
   deleteLead,
   getLeadAnalytics,
   convertToStudent,
@@ -68,6 +68,9 @@ router.get('/audit-logs', authMiddleware, tenantResolver, roleGuard(['manage_lea
 router.get('/my-performance', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads', 'create_leads', 'edit_leads']), getMyPerformance);
 // Team activity report (per-person, daily) — admins/managers
 router.get('/team-activity', authMiddleware, tenantResolver, roleGuard(['manage_leads', 'view_lead_analytics', 'view_reports', 'view_analytics']), getTeamActivity);
+router.get('/team-activity/overview', authMiddleware, tenantResolver, roleGuard(['manage_leads', 'view_lead_analytics', 'view_reports', 'view_analytics']), getTeamOverview);
+router.get('/team-activity/person', authMiddleware, tenantResolver, roleGuard(['manage_leads', 'view_lead_analytics', 'view_reports', 'view_analytics']), getTeamPerson);
+router.post('/heartbeat', authMiddleware, tenantResolver, staffHeartbeat);
 router.get('/team-activity/details', authMiddleware, tenantResolver, roleGuard(['manage_leads', 'view_lead_analytics', 'view_reports', 'view_analytics']), getTeamActivityDetails);
 
 // Export / Import (need export_leads or manage_leads)
@@ -97,6 +100,7 @@ router.post('/:leadId/approve-stage', authMiddleware, tenantResolver, roleGuard(
 // Activities (anyone who can view or edit can add activities)
 router.post('/:leadId/activities', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'view_leads', 'manage_leads']), uploadRecording.single('recording'), addLeadActivity);
 router.post('/:leadId/call-click', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'view_leads', 'manage_leads']), logCallClick);
+router.post('/:leadId/whatsapp-click', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'view_leads', 'manage_leads']), logWhatsAppClick);
 
 // Convert to student (need convert_leads or manage_leads)
 router.post('/:leadId/convert', authMiddleware, tenantResolver, roleGuard(['convert_leads', 'manage_leads']), convertToStudent);

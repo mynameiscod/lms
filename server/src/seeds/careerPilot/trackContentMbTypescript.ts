@@ -1499,9 +1499,11 @@ extended with extends, and two interface declarations with the same name merge, 
 fields to their types. In my projects I follow one rule, interface for object shapes and type for everything else,
 because consistency matters more than which one."
 
-**Follow-up.** "When would declaration merging bite you?" — "If two files declare an interface with the same name
-by accident, they merge silently instead of erroring, so you get a type with fields from both. With type aliases a
-duplicate name is an error. That is one reason some teams use type for everything."
+**Follow-up.** "When would declaration merging bite you?" — "When two declarations of the same interface name share a
+scope - the same file, a global declarations file, or a declare global block - they merge silently instead of
+erroring, so you get a type with fields from both. (Files with import or export are separate modules, so their
+interfaces do not merge.) With type aliases a duplicate name in one scope is an error. That is one reason some
+teams use type for everything."
 
 ## Q2. "What is the difference between any and unknown? And what does as do?"
 

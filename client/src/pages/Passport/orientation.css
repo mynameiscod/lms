@@ -16,8 +16,11 @@
  *
  * Defining the tokens on both roots fixes every such declaration at once. The nested case
  * simply redefines them to the same values, which costs nothing.
+ *
+ * `.ori-item` is a third root: WelcomeDay.tsx renders single items inside `.jdm`, which defines
+ * `--navy` but not `--navy-hover`, so "Stop and save" went white-on-white on hover.
  */
-.ori, .ori-day {
+.ori, .ori-day, .ori-item {
   --navy: #051D64;
   --navy-hover: #0A2A7A;
   --teal: #359AAD;

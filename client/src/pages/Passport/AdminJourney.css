@@ -1,5 +1,8 @@
 /* CareerPilot Journey dashboard */
-.cj { padding: 20px 24px 40px; max-width: 1280px; margin: 0 auto; color: #1f2937; }
+.cj { box-sizing: border-box; width: 100%; min-width: 0; padding: 20px 24px 40px; max-width: 1280px; margin: 0 auto; color: #1f2937; overflow-x: clip; }
+.cj * { box-sizing: border-box; }
+.cj-card, .cj-kpi, .cj-row, .cj-insight { min-width: 0; }
+.cj-table-wrap { overflow-x: auto; max-width: 100%; }
 .cj-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
 .cj-title { display: flex; align-items: center; gap: 10px; }
 .cj-back { border: 0; background: transparent; font-size: 20px; cursor: pointer; color: #1e3a8a; padding: 4px; }
@@ -11,7 +14,7 @@
 .cj-range { display: inline-flex; align-items: center; gap: 8px; }
 .cj-range input { border: 1px solid #dbe2ec; border-radius: 8px; padding: 6px 8px; font-size: 13px; }
 
-.cj-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 18px; }
+.cj-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
 .cj-kpi { background: #fff; border: 1px solid #e5eaf3; border-radius: 14px; padding: 16px; display: flex; gap: 12px; align-items: center; box-shadow: 0 1px 3px rgba(15, 23, 42, .04); }
 .cj-kpi-ico { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; font-size: 22px; flex: 0 0 auto; }
 .cj-kpi-label { font-size: 13px; font-weight: 700; color: #374151; }
@@ -51,7 +54,7 @@
 .cj-actions a.cj-pill { text-decoration: none; }
 .cj-msg { width: 100%; min-height: 70px; border: 1px solid #dbe2ec; border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 13px; }
 
-.cj-two { display: grid; grid-template-columns: 1.1fr 1fr; gap: 14px; margin-top: 18px; }
+.cj-two { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; margin-top: 18px; }
 .cj-drop { background: #fff5f5; border: 1px solid #fecaca; }
 .cj-ins { background: #f1f7ff; border: 1px solid #cfe0fb; }
 .cj-row { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #f3d4d4; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
@@ -66,11 +69,11 @@
 .cj-detail { margin-top: 18px; }
 .cj-chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 12px; }
 .cj-chips span { background: #f3f4f6; border-radius: 999px; padding: 4px 10px; font-size: 12.5px; }
-.cj-leaks { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; font-size: 13.5px; }
+.cj-leaks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 14px; font-size: 13.5px; }
 .cj-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .cj-table th { text-align: left; color: #6b7280; font-size: 11.5px; padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
 .cj-table td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
-.cj-tables { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 18px; }
+.cj-tables { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
 .cj-more { margin-top: 18px; }
 .cj-more button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 6px 4px; cursor: pointer; border-radius: 8px; }
 .cj-more button.sel { background: #eff6ff; }
@@ -78,5 +81,5 @@
 .cj-note { margin: 14px 0 0; font-size: 12.5px; color: #92400e; background: #fffbeb; padding: 8px 10px; border-radius: 8px; }
 .cj-err { color: #b91c1c; margin-bottom: 12px; }
 
-@media (max-width: 1100px) { .cj-kpis { grid-template-columns: repeat(2, 1fr); } .cj-two, .cj-tables { grid-template-columns: 1fr; } }
-@media (max-width: 560px) { .cj { padding: 14px 12px 32px; } .cj-kpis { grid-template-columns: 1fr; } .cj-sub { margin-left: 0; } }
+@media (max-width: 1100px) { .cj-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cj-two, .cj-tables { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { .cj { padding: 14px 12px 32px; } .cj-kpis { grid-template-columns: minmax(0, 1fr); } .cj-sub { margin-left: 0; } }

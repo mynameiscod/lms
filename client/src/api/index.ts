@@ -1949,6 +1949,19 @@ export const leadApi = {
       body: JSON.stringify({ stageId, notInterestedReason })
     });
   },
+  /** The WhatsApp button was pressed: counts as one WhatsApp action in Team Activity (a repeat within two minutes is ignored). */
+  logWhatsAppClick: async (leadId: string) => authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/whatsapp-click`, { method: 'POST' }),
+  /** "I am working in the app right now" (sent once a minute while active), with the lead page that is open, if any. */
+  heartbeat: async (leadId?: string) => authenticatedFetch(`${API_BASE_URL}/leads/heartbeat`, { method: 'POST', body: JSON.stringify({ leadId }) }),
+  getTeamOverview: async (params: { from?: string; to?: string }) => {
+    const q = new URLSearchParams();
+    if (params.from) q.append('from', params.from);
+    if (params.to) q.append('to', params.to);
+    return authenticatedFetch(`${API_BASE_URL}/leads/team-activity/overview${q.toString() ? `?${q}` : ''}`);
+  },
+  getTeamPerson: async (userId: string, date: string) => authenticatedFetch(`${API_BASE_URL}/leads/team-activity/person?userId=${encodeURIComponent(userId)}&date=${encodeURIComponent(date)}`),
+  /** The Call button was pressed: counts as one call in Team Activity (a repeat within two minutes is ignored). */
+  logCallClick: async (leadId: string) => authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/call-click`, { method: 'POST' }),
   addActivity: async (leadId: string, data: { type: string; description: string; callOutcome?: string; disposition?: string }, recordingFile?: File) => {
     if (recordingFile) {
       // Use FormData so the audio file can be sent as multipart

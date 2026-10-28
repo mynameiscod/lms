@@ -22,6 +22,9 @@ import leadAIService from '../services/leadAIService';
 import { enqueueAICall } from '../services/aiCallQueueService';
 import AICallConfig from '../models/AICallConfig';
 import { reviveIfArchived } from '../services/leadArchiveService';
+import StaffPresence from '../models/StaffPresence';
+import { teamOverview, teamPerson } from '../services/teamActivityService';
+import { istDay, istMinuteOfDay, istRange } from '../utils/istTime';
 
 // Helper to create audit log entries
 const auditLog = async (
@@ -64,7 +67,10 @@ const emitLeadEvent = (req: AuthenticatedRequest, event: string, data: any) => {
 export const adAndReEnquiryMatch = (q: any): Record<string, any> => {
   const out: Record<string, any> = {};
   const adId = typeof q?.adId === 'string' ? q.adId.trim() : '';
-  if (adId) out.$and = [{ $or: [{ 'sourceDetails.adId': adId }, { 'reEnquiries.adId': adId }] }];
+  if (adId.startsWith('form:')) {
+    // Leads whose ad Meta did not tell us (another ad account): grouped by the lead form they filled in.
+    out.$and = [{ 'sourceDetails.formId': adId.slice(5), 'sourceDetails.adId': { $in: [null, ''] } }];
+  } else if (adId) out.$and = [{ $or: [{ 'sourceDetails.adId': adId }, { 'reEnquiries.adId': adId }] }];
   if (q?.reEnquiry === 'true') out.reEnquiryUnseen = true;
   return out;
 };
@@ -850,6 +856,96 @@ export const approveStageChange = async (req: AuthenticatedRequest, res: Respons
 };
 
 // Add activity to a lead
+const OPEN_CALL_WINDOW_MS = 30 * 60 * 1000;
+const CLICK_DEDUPE_MS = 2 * 60 * 1000;
+
+/**
+ * A button press that counts as one action in Team Activity straight away (labelled as started, not as a result).
+ * A second press within two minutes is the same attempt, so a double click cannot inflate the count. Saving the
+ * outcome (call) or sending a message (WhatsApp) completes this entry instead of adding another.
+ */
+const recordClick = (type: 'call' | 'whatsapp', description: string, marker: 'dialed' | 'opened') =>
+  async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+    try {
+      const { leadId } = req.params;
+      const now = new Date();
+      const scopeFilter = await buildLeadScopeFilter(req);
+      const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).select('telecallerMetrics activities');
+      if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+
+      const mine = String(req.user!.id);
+      const recent = (lead.activities || []).some((a: any) =>
+        a.type === type && a.metadata?.[marker] === true && String(a.createdBy) === mine && now.getTime() - new Date(a.createdAt).getTime() < CLICK_DEDUPE_MS);
+      if (recent) return res.json({ success: true, message: 'Already logged', data: { logged: false } });
+
+      const $set: any = { 'telecallerMetrics.lastActionAt': now, reEnquiryUnseen: false };
+      if (!lead.telecallerMetrics?.firstActionAt) $set['telecallerMetrics.firstActionAt'] = now;
+      if (type === 'call' && !lead.telecallerMetrics?.firstCallAt) $set['telecallerMetrics.firstCallAt'] = now;
+      await Lead.updateOne({ _id: leadId, tenantId: req.tenantId }, {
+        $push: { activities: { type, description, createdBy: req.user!.id as any, createdAt: now, metadata: { [marker]: true } } },
+        $set,
+        $inc: { 'telecallerMetrics.totalActions': 1 },
+      });
+      res.json({ success: true, message: 'Logged', data: { logged: true } });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: 'Failed to log the action', error: error.message });
+    }
+  };
+
+/** POST /leads/:leadId/call-click: the Call button was pressed. */
+export const logCallClick = recordClick('call', 'Call started (dialler opened). Outcome not recorded yet.', 'dialed');
+/** POST /leads/:leadId/whatsapp-click: the WhatsApp button was pressed. */
+export const logWhatsAppClick = recordClick('whatsapp', 'WhatsApp opened. No message sent yet.', 'opened');
+
+/**
+ * POST /leads/heartbeat: the app tells us once a minute that this person is really working in it (input in the last
+ * two minutes, tab in front). One distinct minute is counted once, so repeated notes cannot inflate the time.
+ */
+export const staffHeartbeat = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    if (!req.user || (req.user as any).role === 'STUDENT') return res.json({ success: true, message: 'ignored' });
+    const now = new Date();
+    const day = istDay(now); const minute = istMinuteOfDay(now);
+    const leadId = typeof req.body?.leadId === 'string' && /^[a-f0-9]{24}$/.test(req.body.leadId) ? req.body.leadId : '';
+    const inc: any = { activeSeconds: 60 };
+    if (leadId) inc[`leadSeconds.${leadId}`] = 60;
+    try {
+      await StaffPresence.updateOne(
+        { tenantId: new mongoose.Types.ObjectId(String(req.tenantId)), userId: new mongoose.Types.ObjectId(String(req.user.id)), day, slots: { $ne: minute } },
+        { $addToSet: { slots: minute }, $inc: inc, $min: { firstSeenAt: now }, $max: { lastSeenAt: now } },
+        { upsert: true },
+      );
+    } catch (e: any) {
+      // The minute was already counted (the unique day row exists): nothing to add.
+      if (e?.code !== 11000) throw e;
+    }
+    res.json({ success: true, message: 'ok' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'heartbeat failed', error: error.message });
+  }
+};
+
+/** GET /leads/team-activity/overview?from&to: the full per-person report. */
+export const getTeamOverview = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { from, to } = req.query as any;
+    res.json({ success: true, message: 'Team overview fetched', data: await teamOverview(String(req.tenantId), from, to) });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to build the team overview', error: error.message });
+  }
+};
+
+/** GET /leads/team-activity/person?userId&date: one person's day. */
+export const getTeamPerson = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { userId, date } = req.query as any;
+    if (typeof userId !== 'string' || !/^[a-f0-9]{24}$/.test(userId)) return res.status(400).json({ success: false, message: 'userId is required' });
+    res.json({ success: true, message: 'Person day fetched', data: await teamPerson(String(req.tenantId), userId, date) });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to build the person day', error: error.message });
+  }
+};
+
 export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
@@ -890,7 +986,31 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
     const scopeFilter = await buildLeadScopeFilter(req);
 
     // Check if firstActionAt needs to be set
-    const existing = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).select('telecallerMetrics');
+    const existing = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).select('telecallerMetrics activities');
+
+    // A call the person started with the Call button (one entry already counted in Team Activity) is completed
+    // in place when they record how it went, so one call is never counted twice.
+    if (type === 'call' && existing) {
+      const mine = String(req.user!.id);
+      const since = now.getTime() - OPEN_CALL_WINDOW_MS;
+      let idx = -1;
+      (existing.activities || []).forEach((a: any, i: number) => {
+        if (a.type === 'call' && a.metadata?.dialed === true && !a.callOutcome && String(a.createdBy) === mine && new Date(a.createdAt).getTime() >= since) idx = i;
+      });
+      if (idx >= 0) {
+        const $set: any = { [`activities.${idx}.description`]: description, [`activities.${idx}.metadata`]: { dialed: false, startedAt: (existing.activities as any)[idx].createdAt }, 'telecallerMetrics.lastActionAt': now, reEnquiryUnseen: false };
+        if (activityData.callOutcome) $set[`activities.${idx}.callOutcome`] = activityData.callOutcome;
+        if (activityData.callDuration !== undefined) $set[`activities.${idx}.callDuration`] = activityData.callDuration;
+        if (activityData.callStatus) $set[`activities.${idx}.callStatus`] = activityData.callStatus;
+        if (activityData.recordingUrl) $set[`activities.${idx}.recordingUrl`] = activityData.recordingUrl;
+        if (disposition) $set[`activities.${idx}.disposition`] = disposition;
+        const done = await Lead.findOneAndUpdate({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }, { $set }, { new: true })
+          .populate('stageId', 'name color order')
+          .populate('assignedTo', 'firstName lastName email')
+          .populate('activities.createdBy', 'firstName lastName');
+        if (done) return res.json({ success: true, message: 'Activity added', data: done });
+      }
+    }
     const metricsUpdate: any = { 'telecallerMetrics.lastActionAt': now };
     if (!existing?.telecallerMetrics?.firstActionAt) {
       metricsUpdate['telecallerMetrics.firstActionAt'] = now;
@@ -1479,16 +1599,8 @@ export const getTeamActivity = async (req: AuthenticatedRequest, res: Response<A
     const tenantOid = new mongoose.Types.ObjectId(req.tenantId as string);
     const { date, from, to } = req.query as any;
 
-    let start: Date, end: Date;
-    if (from || to) {
-      start = from ? new Date(from) : new Date(0);
-      end = to ? new Date(to) : new Date();
-      end.setHours(23, 59, 59, 999);
-    } else {
-      const d = date ? new Date(date) : new Date();
-      start = new Date(d); start.setHours(0, 0, 0, 0);
-      end = new Date(d); end.setHours(23, 59, 59, 999);
-    }
+    // Days are Indian days, whatever timezone the server runs in.
+    const { start, end } = (from || to) ? istRange(from, to) : istRange(date, date);
 
     const rows = await Lead.aggregate([
       { $match: { tenantId: tenantOid } },
@@ -1552,16 +1664,8 @@ export const getTeamActivityDetails = async (req: AuthenticatedRequest, res: Res
     const tenantOid = new mongoose.Types.ObjectId(req.tenantId as string);
     const { date, from, to, userId, type } = req.query as any;
 
-    let start: Date, end: Date;
-    if (from || to) {
-      start = from ? new Date(from) : new Date(0);
-      end = to ? new Date(to) : new Date();
-      end.setHours(23, 59, 59, 999);
-    } else {
-      const d = date ? new Date(date) : new Date();
-      start = new Date(d); start.setHours(0, 0, 0, 0);
-      end = new Date(d); end.setHours(23, 59, 59, 999);
-    }
+    // Days are Indian days, whatever timezone the server runs in.
+    const { start, end } = (from || to) ? istRange(from, to) : istRange(date, date);
 
     // Map the clicked metric to the underlying activity type(s).
     // 'total' / 'leadsTouched' => no type filter (all activities).
@@ -1706,15 +1810,28 @@ export const getLeadSources = async (req: AuthenticatedRequest, res: Response<Ap
 export const getLeadAds = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const scopeFilter = await buildLeadScopeFilter(req);
-    const rows = await Lead.aggregate([
-      { $match: { tenantId: new mongoose.Types.ObjectId(String(req.tenantId)), ...scopeFilter, archivedAt: null, 'sourceDetails.adId': { $nin: [null, ''] } } },
-      { $group: { _id: '$sourceDetails.adId', adName: { $last: '$sourceDetails.adName' }, campaignName: { $last: '$sourceDetails.campaignName' }, adSetName: { $last: '$sourceDetails.adSetName' }, leads: { $sum: 1 }, latest: { $max: '$createdAt' } } },
-      { $sort: { latest: -1 } },
-      { $limit: 300 },
+    const base = { tenantId: new mongoose.Types.ObjectId(String(req.tenantId)), ...scopeFilter, archivedAt: null };
+    const [rows, formRows] = await Promise.all([
+      Lead.aggregate([
+        { $match: { ...base, 'sourceDetails.adId': { $nin: [null, ''] } } },
+        { $group: { _id: '$sourceDetails.adId', adName: { $last: '$sourceDetails.adName' }, campaignName: { $last: '$sourceDetails.campaignName' }, adSetName: { $last: '$sourceDetails.adSetName' }, leads: { $sum: 1 }, latest: { $max: '$createdAt' } } },
+        { $sort: { latest: -1 } },
+        { $limit: 300 },
+      ]),
+      // Form leads Meta sent without any ad (usually an ad account the page token cannot read): one row per form.
+      Lead.aggregate([
+        { $match: { ...base, source: 'meta_form', 'sourceDetails.formId': { $nin: [null, ''] }, 'sourceDetails.adId': { $in: [null, ''] } } },
+        { $group: { _id: '$sourceDetails.formId', leads: { $sum: 1 }, latest: { $max: '$createdAt' } } },
+        { $sort: { latest: -1 } },
+        { $limit: 50 },
+      ]),
     ]);
     res.json({
       success: true, message: 'Ads fetched',
-      data: rows.map((r: any) => ({ adId: r._id, adName: r.adName || '', campaignName: r.campaignName || '', adSetName: r.adSetName || '', leads: r.leads })),
+      data: [
+        ...rows.map((r: any) => ({ adId: r._id, adName: r.adName || '', campaignName: r.campaignName || '', adSetName: r.adSetName || '', leads: r.leads })),
+        ...formRows.map((r: any) => ({ adId: `form:${r._id}`, adName: '', campaignName: '', adSetName: '', formId: r._id, leads: r.leads })),
+      ],
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to fetch ads', error: error.message });

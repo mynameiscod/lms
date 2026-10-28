@@ -9,6 +9,7 @@ import './Layout.css';
 import './StudentCoreRemaining.css';
 import './AdminCore.css';
 import './CareerPilotAdmin.css';
+import { useStaffHeartbeat } from '../../hooks/useStaffHeartbeat';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -45,6 +46,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const studentCoreRouteKey = routeKeyFor(pathname);
   const isRemainingStudentCore = Boolean(studentCoreRouteKey) && !isAdminCore && !isCareerPilotAdmin;
   const adminCoreRouteKey = isAdminCore ? surfaceRouteKeyFor(pathname, 'dashboard') : '';
+  // Working time for Team Activity: a note once a minute while a staff member is really using the app.
+  useStaffHeartbeat(isAdminCore, pathname);
   const careerPilotRouteKey = isCareerPilotAdmin ? surfaceRouteKeyFor(pathname, 'careerpilot-admin') : '';
 
   useEffect(() => {

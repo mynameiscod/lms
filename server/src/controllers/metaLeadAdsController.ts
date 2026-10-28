@@ -430,7 +430,14 @@ async function fetchAndCreateLead(
     throw fetchError;
   }
 
-  await createOrUpdateLeadFromData({ ...leadData, id: leadData.id || leadgenId }, meta.formId || leadData.form_id || '', tenantId);
+  // Meta leaves the ad fields off the lead when the ad sits in an ad account the page token cannot read,
+  // but the webhook itself still names the ad and campaign, so keep those rather than lose the ad.
+  await createOrUpdateLeadFromData({
+    ...leadData,
+    id: leadData.id || leadgenId,
+    ad_id: leadData.ad_id || meta.adId,
+    campaign_id: leadData.campaign_id || meta.campaignId,
+  }, meta.formId || leadData.form_id || '', tenantId);
 }
 
 // ===================== GRAPH API HELPER =====================

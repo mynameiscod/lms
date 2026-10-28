@@ -110,7 +110,8 @@ export async function computeLeaderboard(tenantId: string, callerId: string, bat
     return { studentId: id, name: s.firstName || 'Student', avg, count: a.count, streak: st.currentStreak, days: st.totalCompletedDays, composite };
   }).filter((r) => r.count > 0);
 
-  scored.sort((a, b) => b.composite - a.composite || b.avg - a.avg);
+  // The goal is more practice, so rank by days practised, then current streak, then average score.
+  scored.sort((a, b) => b.days - a.days || b.streak - a.streak || b.avg - a.avg);
   const rows = scored.map((r, i) => ({ rank: i + 1, ...r }));
   const meIdx = rows.findIndex((r) => r.studentId === callerId);
   return { rows: rows.slice(0, 10), me: meIdx >= 0 ? rows[meIdx] : null };

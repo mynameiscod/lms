@@ -14,6 +14,7 @@ import { TRACK_CY_FOUNDATIONS, TRACK_CY_SOC, TRACK_CY_DEFEND, TRACK_CY_PLACE } f
 import { TRACK_CL_AWS, TRACK_CL_DELIVERY, TRACK_CL_OPERATE, TRACK_CL_PLACE } from './trackUnitsCloud';
 import { TRACK_DE_FOUNDATIONS, TRACK_DE_PROCESSING, TRACK_DE_OPERATE, TRACK_DE_PLACE } from './trackUnitsDataEng';
 import { TRACK_QA_FOUNDATIONS, TRACK_QA_AUTOMATION, TRACK_QA_ENGINEERING, TRACK_QA_PLACE } from './trackUnitsQa';
+import { TRACK_MB_FOUNDATIONS, TRACK_MB_APP, TRACK_MB_SHIP, TRACK_MB_PLACE } from './trackUnitsMobile';
 
 /**
  * Every career-track topic and its units (stage `track`), in one dataset. See trackStageMap for
@@ -67,4 +68,8 @@ export const TRACK_CONTENT: Record<string, TopicSeed> = {
   ...TRACK_QA_AUTOMATION,
   ...TRACK_QA_ENGINEERING,
   ...TRACK_QA_PLACE,
+  ...TRACK_MB_FOUNDATIONS,
+  ...TRACK_MB_APP,
+  ...TRACK_MB_SHIP,
+  ...TRACK_MB_PLACE,
 };

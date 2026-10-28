@@ -197,6 +197,7 @@ const DIMENSION: Record<string, AssessmentDimension> = {
   CLOUD_COMPUTE: 'core_stack', KUBERNETES: 'core_stack', INFRA_AS_CODE: 'core_stack', CONFIG_MANAGEMENT: 'core_stack', OBSERVABILITY: 'core_stack', SLI_SLO: 'core_stack', RELIABILITY_PATTERNS: 'core_stack', INCIDENT_MANAGEMENT: 'core_stack',
   ETL_FUNDAMENTALS: 'core_stack', DATA_PIPELINES: 'core_stack', DATA_MODELLING: 'core_stack', DATA_WAREHOUSING: 'core_stack', BATCH_STREAM_PROCESSING: 'core_stack',
   TEST_DESIGN: 'core_stack', UI_TEST_AUTOMATION: 'core_stack', API_TESTING: 'core_stack', PERFORMANCE_TESTING: 'core_stack',
+  TYPESCRIPT: 'core_stack', REACT_NATIVE: 'core_stack', ANDROID_DEVELOPMENT: 'core_stack', MOBILE_RELEASE: 'core_stack',
   // The AI tracks (batch AI7).
   LLM_FUNDAMENTALS: 'core_stack', RAG_FUNDAMENTALS: 'core_stack', VECTOR_DATABASES: 'core_stack', LLM_EVALUATION: 'core_stack', AI_GUARDRAILS: 'core_stack', PROMPT_INJECTION: 'core_stack', AI_RESPONSIBLE: 'core_stack', GENAI_APP_PATTERNS: 'core_stack', LLM_FINE_TUNING: 'core_stack', AGENT_FUNDAMENTALS: 'core_stack', TOOL_CALLING: 'core_stack', AGENT_ORCHESTRATION: 'core_stack', AGENT_MEMORY: 'core_stack', AGENT_EVALUATION: 'core_stack', ML_PIPELINES: 'core_stack', MODEL_VERSIONING: 'core_stack', LLM_SECURITY: 'core_stack', MODEL_RED_TEAMING: 'core_stack',
   APTITUDE_DATA_INTERPRETATION: 'aptitude',

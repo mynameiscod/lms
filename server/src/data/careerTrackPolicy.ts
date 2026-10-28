@@ -206,6 +206,7 @@ export function validatePackInput(input: any): { ok: true; value: PackDef } | { 
  *   Cloud / DevOps, DevOps, Site Reliability, Cloud Engineer      → Cloud & DevOps Engineer (AWS + Azure)
  *   Data Engineer, Analytics Engineer, ETL / Big Data Engineer     → Data Engineer
  *   QA / SDET, QA Engineer, Test / Automation Test Engineer        → QA / SDET
+ *   Mobile App Developer, Android Engineer, iOS Engineer           → Mobile App Development (React Native)
  * Anything else (Not sure, no main language, other roles) has no track and keeps the regular
  * Year 3/4 roadmap. Once a roadmap is built from a track the track is fixed; only an admin changes it.
  */
@@ -228,6 +229,7 @@ export const CYBERSECURITY_TRACK_ROLES = ['CYBERSECURITY_ANALYST'];
 export const CLOUD_TRACK_ROLES = ['CLOUD_DEVOPS', 'DEVOPS_ENGINEER', 'SITE_RELIABILITY_ENGINEER', 'CLOUD_ENGINEER', 'SRE'];
 export const DATA_ENGINEERING_TRACK_ROLES = ['DATA_ENGINEER', 'ANALYTICS_ENGINEER', 'ETL_DEVELOPER', 'BIG_DATA_ENGINEER'];
 export const QA_TRACK_ROLES = ['QA_SDET', 'QA_ENGINEER', 'SDET', 'TEST_ENGINEER', 'AUTOMATION_TEST_ENGINEER'];
+export const MOBILE_TRACK_ROLES = ['MOBILE_ENGINEER', 'ANDROID_ENGINEER', 'IOS_ENGINEER'];
 export const FULL_STACK_TRACK_BY_LANGUAGE: Record<string, string> = {
   java: 'JAVA_FULLSTACK_AI', python: 'PY_FULLSTACK_AI', 'c#': 'DOTNET_FULLSTACK_AI',
 };
@@ -241,6 +243,7 @@ export function deriveTrackKey(primaryRole: string | null | undefined, languages
   if (CLOUD_TRACK_ROLES.includes(role)) return 'CLOUD_DEVOPS';
   if (DATA_ENGINEERING_TRACK_ROLES.includes(role)) return 'DATA_ENGINEERING';
   if (QA_TRACK_ROLES.includes(role)) return 'QA_SDET';
+  if (MOBILE_TRACK_ROLES.includes(role)) return 'MOBILE_APP';
   if (!FULL_STACK_TRACK_ROLES.includes(role)) return null;
   for (const l of languages || []) {
     const key = FULL_STACK_TRACK_BY_LANGUAGE[String(l).trim().toLowerCase()];

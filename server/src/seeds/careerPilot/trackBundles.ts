@@ -174,6 +174,20 @@ import { TRACK_QA_CAPSTONE_BUNDLES } from './trackContentQaCapstone';
 import { TRACK_QA_IV_BUNDLES } from './trackContentQaIv';
 import { TRACK_QA_SCENARIO_ROUNDS_BUNDLES } from './trackContentQaScenarios';
 import { TRACK_QA_PLACE_CANDIDATE_BUNDLES } from './trackContentQaPlaceCandidate';
+import { TRACK_MB_TYPESCRIPT_BUNDLES } from './trackContentMbTypescript';
+import { TRACK_MB_RN_BASICS_BUNDLES } from './trackContentMbRnBasics';
+import { TRACK_MB_NAVIGATION_BUNDLES } from './trackContentMbNavigation';
+import { TRACK_MB_STATE_DATA_BUNDLES } from './trackContentMbState';
+import { TRACK_MB_STORAGE_OFFLINE_BUNDLES } from './trackContentMbStorage';
+import { TRACK_MB_DEVICE_APIS_BUNDLES } from './trackContentMbDevice';
+import { TRACK_MB_ANDROID_NATIVE_BUNDLES } from './trackContentMbAndroid';
+import { TRACK_MB_AUTH_API_BUNDLES } from './trackContentMbAuthApi';
+import { TRACK_MB_TESTING_PERF_BUNDLES } from './trackContentMbTestingPerf';
+import { TRACK_MB_RELEASE_BUNDLES } from './trackContentMbRelease';
+import { TRACK_MB_CAPSTONE_BUNDLES } from './trackContentMbCapstone';
+import { TRACK_MB_IV_BUNDLES } from './trackContentMbIv';
+import { TRACK_MB_SCENARIO_ROUNDS_BUNDLES } from './trackContentMbScenarios';
+import { TRACK_MB_PLACE_CANDIDATE_BUNDLES } from './trackContentMbPlaceCandidate';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -366,4 +380,18 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_QA_IV_BUNDLES,
   ...TRACK_QA_SCENARIO_ROUNDS_BUNDLES,
   ...TRACK_QA_PLACE_CANDIDATE_BUNDLES,
+  ...TRACK_MB_TYPESCRIPT_BUNDLES,
+  ...TRACK_MB_RN_BASICS_BUNDLES,
+  ...TRACK_MB_NAVIGATION_BUNDLES,
+  ...TRACK_MB_STATE_DATA_BUNDLES,
+  ...TRACK_MB_STORAGE_OFFLINE_BUNDLES,
+  ...TRACK_MB_DEVICE_APIS_BUNDLES,
+  ...TRACK_MB_ANDROID_NATIVE_BUNDLES,
+  ...TRACK_MB_AUTH_API_BUNDLES,
+  ...TRACK_MB_TESTING_PERF_BUNDLES,
+  ...TRACK_MB_RELEASE_BUNDLES,
+  ...TRACK_MB_CAPSTONE_BUNDLES,
+  ...TRACK_MB_IV_BUNDLES,
+  ...TRACK_MB_SCENARIO_ROUNDS_BUNDLES,
+  ...TRACK_MB_PLACE_CANDIDATE_BUNDLES,
 ].map(balanced);

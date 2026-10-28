@@ -951,6 +951,74 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Present a QA resume and a framework that runs, plan certifications, and get through a full QA/SDET interview loop.']),
     ],
   },
+
+  /* ══════════════ MOBILE: TYPESCRIPT, REACT NATIVE, NAVIGATION (batch MB1) ══════════════ */
+  {
+    moduleCode: 'MB_FOUNDATIONS',
+    moduleName: 'TypeScript, React Native and Navigation',
+    displayOrder: 660,
+    blurb: 'The years teach how a mobile app is structured; this is the stack: TypeScript, React Native with Expo, and navigation between screens.',
+    topics: [
+      t('MB_TYPESCRIPT', 'TypeScript for React Native', ['TYPESCRIPT'],
+        ['Write typed JavaScript: interfaces, unions and narrowing, generics, typed React components, and validated API data.']),
+      t('MB_RN_BASICS', 'React Native and Expo', ['REACT_NATIVE', 'MOBILE_APP_BASICS'],
+        ['Build and run React Native screens with Expo: core components, Flexbox layout, lists and platform differences.']),
+      t('MB_NAVIGATION', 'Navigation', ['REACT_NATIVE'],
+        ['Structure an app with stacks, tabs and drawers, protect signed-in screens, and open screens from deep links.']),
+    ],
+  },
+
+  /* ══════════════ MOBILE: BUILDING THE APP (batch MB2) ══════════════ */
+  {
+    moduleCode: 'MB_APP_BUILD',
+    moduleName: 'State, Storage, Device Features and Native Android',
+    displayOrder: 670,
+    blurb: 'Building a real app: state and server data, storage and offline, the camera, location and notifications, and enough native Android to bridge to it.',
+    topics: [
+      t('MB_STATE_DATA', 'State, Server Data and Forms', ['STATE_MANAGEMENT', 'REACT_NATIVE'],
+        ['Manage app and server state with Zustand, Redux Toolkit and TanStack Query, build validated forms, and structure the codebase.']),
+      t('MB_STORAGE_OFFLINE', 'Storage and Offline', ['MOBILE_APP_BASICS', 'REACT_NATIVE'],
+        ['Store data on the device with key-value storage, SQLite and secure storage, and keep the app working offline.']),
+      t('MB_DEVICE_APIS', 'Device Features', ['REACT_NATIVE'],
+        ['Use permissions, the camera, files, location and maps, notifications and background work correctly.']),
+      t('MB_ANDROID_NATIVE', 'Native Android for React Native Developers', ['ANDROID_DEVELOPMENT'],
+        ['Read Kotlin, find your way around an Android project, build a Compose screen, and write a native module.']),
+    ],
+  },
+
+  /* ══════════════ MOBILE: SHIPPING, CAPSTONE (batch MB3) ══════════════ */
+  {
+    moduleCode: 'MB_ENGINEERING',
+    moduleName: 'Auth, Testing, Performance and Release',
+    displayOrder: 680,
+    blurb: 'Taking an app to users: auth and a resilient API layer, mobile security, testing, performance and animation, and releasing to the stores.',
+    topics: [
+      t('MB_AUTH_API', 'Auth, APIs and Mobile Security', ['REACT_NATIVE', 'REST_APIS'],
+        ['Build an API layer for mobile networks, log users in with tokens and OAuth, and avoid common mobile security mistakes.']),
+      t('MB_TESTING_PERF', 'Testing, Performance and Animation', ['REACT_NATIVE', 'AUTOMATED_TESTING', 'WEB_ACCESSIBILITY'],
+        ['Test components and flows, find and fix performance problems, animate on the UI thread, and make apps accessible.']),
+      t('MB_RELEASE', 'Building, Releasing and Running the App', ['MOBILE_RELEASE'],
+        ['Sign builds, publish to Google Play, plan iOS releases, ship over-the-air updates, and monitor the live app.']),
+      t('MB_CAPSTONE', 'Capstone: A Production-Style Mobile App', ['REACT_NATIVE', 'TYPESCRIPT', 'MOBILE_RELEASE', 'MOBILE_APP_BASICS'],
+        ['Plan, build, test and release a React Native app with a backend, offline support and a device feature.']),
+    ],
+  },
+
+  /* ══════════════ MOBILE: PLACEMENT (batch MB4) ══════════════ */
+  {
+    moduleCode: 'MB_PLACE',
+    moduleName: 'Mobile Developer Placement',
+    displayOrder: 690,
+    blurb: 'Year 4 teaches aptitude, coding, core CS, HR and mocks for everyone; this adds the mobile interview, scenario rounds and the candidate.',
+    topics: [
+      t('MB_IV', 'Mobile Developer Interview Questions', ['TYPESCRIPT', 'REACT_NATIVE', 'STATE_MANAGEMENT', 'ANDROID_DEVELOPMENT', 'MOBILE_RELEASE'],
+        ['Answer JavaScript and TypeScript, React Native, architecture, Android and release interview questions with the follow-up.']),
+      t('MB_SCENARIO_ROUNDS', 'Mobile Scenario Rounds', ['REACT_NATIVE', 'TYPESCRIPT', 'DEBUGGING'],
+        ['Handle build-a-screen, debugging, take-home and live-coding rounds with structure and evidence.']),
+      t('MB_PLACE_CANDIDATE', 'The Mobile Candidate', ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE', 'INTERVIEW_PERFORMANCE'],
+        ['Present a mobile resume and a published app, choose a career path, and get through a full mobile interview loop.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

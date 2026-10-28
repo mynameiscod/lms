@@ -271,6 +271,10 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'JS_ES6', name: 'Modern JavaScript (ES6+)', parentKey: 'JAVASCRIPT', difficulty: 'INTERMEDIATE', displayOrder: 55,
     description: 'let/const, arrow functions, destructuring, spread, modules and classes — the JavaScript every framework is written in.',
     prerequisiteKeys: ['JS_FUNCTIONS', 'JS_ARRAYS_OBJECTS'] },
+  // TypeScript — the typed JavaScript React Native apps are written in (the Mobile career track).
+  { key: 'TYPESCRIPT', name: 'TypeScript', parentKey: 'JAVASCRIPT', difficulty: 'INTERMEDIATE', displayOrder: 60,
+    description: 'Types, interfaces, unions and narrowing, generics, typed React components and validating data at runtime.',
+    aliases: ['TS'], prerequisiteKeys: ['JS_ES6'] },
 
   // ── Data Structures & Algorithms ──────────────────────────────────────────────
   GROUP('DSA', 'Data Structures & Algorithms', 20, 'Choosing the right structure and algorithm, and knowing what it costs.'),
@@ -791,6 +795,19 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
     difficulty: 'INTERMEDIATE', displayOrder: 170,
     description: 'Pages with React Router, calling APIs, and the loading, error and empty states between.',
     prerequisiteKeys: ['REACT_HOOKS', 'JS_ASYNC'] },
+  // Mobile development — what a React Native developer does at work (the Mobile career track).
+  { key: 'REACT_NATIVE', name: 'React Native', parentKey: 'WEB_FUNDAMENTALS',
+    difficulty: 'ADVANCED', displayOrder: 180,
+    description: 'Building cross-platform mobile apps with React Native and Expo: components, layout, lists, navigation, state, storage and device features.',
+    aliases: ['Expo', 'Cross-platform Mobile'], prerequisiteKeys: ['REACT_HOOKS', 'MOBILE_APP_BASICS'] },
+  { key: 'ANDROID_DEVELOPMENT', name: 'Android Development', parentKey: 'WEB_FUNDAMENTALS',
+    difficulty: 'ADVANCED', displayOrder: 190,
+    description: 'Native Android with Kotlin and Jetpack Compose: the project and its build, the activity lifecycle, and native modules for React Native.',
+    aliases: ['Kotlin', 'Jetpack Compose'], prerequisiteKeys: ['MOBILE_APP_BASICS', 'OOP_CONCEPTS'] },
+  { key: 'MOBILE_RELEASE', name: 'Mobile Release and Operations', parentKey: 'WEB_FUNDAMENTALS',
+    difficulty: 'ADVANCED', displayOrder: 200,
+    description: 'Signing and building, publishing to the Play Store and App Store, over-the-air updates, mobile CI/CD, and crash and usage monitoring.',
+    aliases: ['Play Store', 'EAS', 'App Release'], prerequisiteKeys: ['REACT_NATIVE'] },
 
   // ── Software engineering at production depth ──
   { key: 'SOFTWARE_ARCHITECTURE', name: 'Software Architecture', parentKey: 'SE_PRACTICES',

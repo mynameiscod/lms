@@ -504,6 +504,35 @@ export const PACKS: PackDefinition[] = [
   { key: 'PL_QA_CANDIDATE', title: 'The QA Candidate', kind: 'PLACEMENT',
     description: 'A QA resume and a framework that runs, certifications and the career path, and a full QA/SDET interview loop.',
     topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['QA_PLACE_CANDIDATE', 'MUST']] },
+
+  /* ── Mobile, setup: what it reuses from the years ── */
+  { key: 'MB_YEAR_BASICS', title: 'Mobile, APIs, HTTP and Testing Basics', kind: 'SKILL',
+    description: 'The years’ platform-neutral mobile lessons (app structure, storage and sync, talking to a backend, quality), APIs and HTTP, testing and debugging.',
+    topics: [['T2_TRACK_MOBILE', 'MUST'], ['T3_MOBILE_APP', 'MUST'], ['T3_MOBILE_DATA', 'MUST'], ['T3_MOBILE_API', 'MUST'], ['T3_MOBILE_QUALITY', 'SHOULD'],
+      ['T2_APIS', 'MUST'], ['T2_WEB_HTTP', 'SHOULD'], ['T2_TESTING', 'SHOULD'], ['T2_DEBUGGING', 'SHOULD']] },
+  /* ── Mobile, batches MB1–MB3 ── */
+  { key: 'MB_FOUNDATIONS', title: 'TypeScript, React Native and Navigation', kind: 'SKILL',
+    description: 'TypeScript for React Native, React Native and Expo from components to lists, and navigation with stacks, tabs and deep links.',
+    topics: [['MB_TYPESCRIPT', 'CORE'], ['MB_RN_BASICS', 'CORE'], ['MB_NAVIGATION', 'CORE']] },
+  { key: 'MB_APP_BUILD', title: 'State, Storage, Device Features and Native Android', kind: 'SKILL',
+    description: 'State and server data, storage and offline, the camera, location and notifications, and Kotlin, Compose and native modules.',
+    topics: [['MB_STATE_DATA', 'CORE'], ['MB_STORAGE_OFFLINE', 'CORE'], ['MB_DEVICE_APIS', 'MUST'], ['MB_ANDROID_NATIVE', 'MUST']] },
+  { key: 'MB_ENGINEERING', title: 'Auth, Testing, Performance and Release', kind: 'SKILL',
+    description: 'Auth and a resilient API layer, mobile security, testing, performance and animation, and releasing to the Play Store and App Store.',
+    topics: [['MB_AUTH_API', 'CORE'], ['MB_TESTING_PERF', 'CORE'], ['MB_RELEASE', 'CORE']] },
+  { key: 'CAPSTONE_MB', title: 'Capstone: A Production-Style Mobile App', kind: 'SKILL',
+    description: 'One app planned, built, tested and released: typed screens and navigation, auth, offline support, a device feature, and a Play Store testing track.',
+    topics: [['MB_CAPSTONE', 'MUST']] },
+  /* ── Mobile, batch MB4: Year-4 placement ── */
+  { key: 'PL_MB_IV', title: 'Mobile Developer Interviews', kind: 'PLACEMENT',
+    description: 'JavaScript and TypeScript, React Native, state and architecture, Android, and performance and release at interview depth.',
+    topics: [['MB_IV', 'MUST']] },
+  { key: 'PL_MB_SCENARIOS', title: 'Mobile Scenario Rounds', kind: 'PLACEMENT',
+    description: '"Build this screen" and debugging rounds, the take-home, and live coding in TypeScript.',
+    topics: [['MB_SCENARIO_ROUNDS', 'MUST']] },
+  { key: 'PL_MB_CANDIDATE', title: 'The Mobile Candidate', kind: 'PLACEMENT',
+    description: 'A mobile resume and a published app, the mobile career path, and a full mobile interview loop.',
+    topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['MB_PLACE_CANDIDATE', 'MUST']] },
 ];
 
 /** A track's placement: the shared packs, the AI interviews it needs, system design, and the AI candidate (HR and mocks last). */
@@ -597,4 +626,12 @@ export const TRACKS: TrackDefinition[] = [
     description: 'Testing as a practice and test design; automation with pytest, Playwright and Selenium with Java; API testing; performance testing; quality in CI; mobile, accessibility and security checks.',
     specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'QA_YEAR_BASICS', 'QA_FOUNDATIONS', 'QA_AUTOMATION', 'QA_ENGINEERING', 'CAPSTONE_QA'],
     placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_QA_IV', 'PL_QA_SCENARIOS', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_QA_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
+
+  /* Mobile App Development — React Native with TypeScript and Expo as the main stack, native Android
+     (Kotlin, Compose) to read and bridge native code, testing, performance and store release. Setup
+     holds what it reuses; its own topics (MB1–MB3), placement (MB4) and bank (MB5) land with their batches. */
+  { key: 'MOBILE_APP', name: 'Mobile App Development (React Native)', language: 'TypeScript and Kotlin', order: 150,
+    description: 'TypeScript and React Native with Expo; navigation, state and server data; storage, offline and device features; native Android with Kotlin; testing, performance and release to the Play Store.',
+    specializePacks: ['JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'MB_YEAR_BASICS', 'MB_FOUNDATIONS', 'MB_APP_BUILD', 'MB_ENGINEERING', 'CAPSTONE_MB'],
+    placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_MB_IV', 'PL_MB_SCENARIOS', 'PL_WEB_INTERVIEW', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_MB_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

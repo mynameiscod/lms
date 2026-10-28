@@ -128,6 +128,10 @@ import { TEST_DESIGN } from './testDesign';
 import { UI_TEST_AUTOMATION } from './uiTestAutomation';
 import { API_TESTING } from './apiTesting';
 import { PERFORMANCE_TESTING } from './performanceTesting';
+import { TYPESCRIPT } from './typescript';
+import { REACT_NATIVE } from './reactNative';
+import { ANDROID_DEVELOPMENT } from './androidDevelopment';
+import { MOBILE_RELEASE } from './mobileRelease';
 
 export const TRACK_BANK: GoldenItem[] = [
   ...JAVA_BASICS,
@@ -246,4 +250,8 @@ export const TRACK_BANK: GoldenItem[] = [
   ...UI_TEST_AUTOMATION,
   ...API_TESTING,
   ...PERFORMANCE_TESTING,
+  ...TYPESCRIPT,
+  ...REACT_NATIVE,
+  ...ANDROID_DEVELOPMENT,
+  ...MOBILE_RELEASE,
 ];

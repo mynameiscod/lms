@@ -121,11 +121,13 @@ describe('the track follows setup (role + main language)', () => {
     expect(deriveTrackKey('DATA_ENGINEER', [])).toBe('DATA_ENGINEERING');
     expect(deriveTrackKey('QA_SDET', ['Java'])).toBe('QA_SDET');
     expect(deriveTrackKey('QA_SDET', [])).toBe('QA_SDET');
+    expect(deriveTrackKey('MOBILE_ENGINEER', ['Kotlin'])).toBe('MOBILE_APP');
+    expect(deriveTrackKey('ANDROID_ENGINEER', [])).toBe('MOBILE_APP');
   });
   it('gives no track when the member is not sure or has no main language', () => {
     expect(deriveTrackKey('NOT_SURE', ['Java'])).toBeNull();
     expect(deriveTrackKey('FULLSTACK_ENGINEER', ['Not Sure'])).toBeNull();
     expect(deriveTrackKey('FULLSTACK_ENGINEER', ['JavaScript'])).toBeNull();
-    expect(deriveTrackKey('MOBILE_ENGINEER', ['Kotlin'])).toBeNull();
+    expect(deriveTrackKey('', ['Kotlin'])).toBeNull();
   });
 });

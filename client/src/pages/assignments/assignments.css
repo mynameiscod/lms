@@ -2527,3 +2527,15 @@
 .asgn-detail .asgn-title-banner, .asgn-detail .asgn-title-banner * { color: #fff !important; }
 .asgn-detail .asgn-rich pre { background: #0F172A !important; color: #E2E8F0 !important; border-radius: 10px; padding: 14px 16px; overflow-x: auto; }
 .asgn-detail .asgn-rich pre code { color: inherit !important; background: transparent !important; }
+
+/* ?preview=1 — an author looking at the workspace as a member does. Nothing is saved, so it says so. */
+.asgn-preview-strip {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  background: #FEF3C7;
+  border-bottom: 1px solid #F5D98B;
+  color: #7A4B00;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}

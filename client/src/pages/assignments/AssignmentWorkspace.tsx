@@ -36,8 +36,16 @@ const AssignmentWorkspace: React.FC = () => {
    */
   const cpMode = location.pathname.startsWith('/careerpilot/');
   const returnTo = careerpilotReturn(location.search);
+  /*
+   * ?preview=1 — an author opened this from the Content Builder's student preview. They see exactly what a
+   * member sees, but nothing reaches the server: no attempt is started, nothing is saved, run on the judge,
+   * hinted or submitted. It opened in its own tab, so every exit closes that tab.
+   */
+  const previewMode = new URLSearchParams(location.search).get('preview') === '1';
+  const PREVIEW_ONLY = 'This is a preview — nothing is saved or submitted.';
   const exitTo = returnTo || (cpMode ? '/careerpilot' : '/assignments');
-  const exitLabel = returnTo ? returnLabel(returnTo) : (cpMode ? 'Back to CareerPilot' : 'Back to Assignments');
+  const exitLabel = previewMode ? 'Close preview' : returnTo ? returnLabel(returnTo) : (cpMode ? 'Back to CareerPilot' : 'Back to Assignments');
+  const exit = () => (previewMode ? window.close() : navigate(exitTo));
   const resultPath = withReturn(cpMode ? `/careerpilot/assignments/${assignmentId}/result` : `/assignments/${assignmentId}/result`, returnTo);
   const [retrying, setRetrying] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -138,6 +146,7 @@ const AssignmentWorkspace: React.FC = () => {
       const assignmentRes = await assignmentApi.getById(assignmentId);
       const asgn = assignmentRes.data.data;
       setAssignment(asgn);
+      if (previewMode) return;
 
       // Check if student already has an in-progress or submitted submission
       try {
@@ -155,11 +164,18 @@ const AssignmentWorkspace: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [assignmentId, initWorkspaceFromSubmission]);
+  }, [assignmentId, initWorkspaceFromSubmission, previewMode]);
 
   // Called when student clicks "Start Assignment"
   const handleStartAssignment = async () => {
     if (!assignment || !assignmentId) return;
+    if (previewMode) {
+      // A stand-in attempt that lives only in this tab, so the editor opens as it does for a member.
+      const local = { _id: 'preview', status: SubmissionStatus.IN_PROGRESS, attemptNumber: 1, startedAt: new Date().toISOString(), uploadedFiles: [] };
+      initWorkspaceFromSubmission(local as unknown as Submission, assignment);
+      setShowInstructionsPage(false);
+      return;
+    }
     try {
       setStarting(true);
       const submissionRes = await submissionApi.startSubmission(assignmentId);
@@ -251,7 +267,8 @@ const AssignmentWorkspace: React.FC = () => {
 
   const handleSave = async (silent = false) => {
     if (!submission || (assignment?.type !== AssignmentType.CODING && assignment?.type !== AssignmentType.SQL && assignment?.type !== AssignmentType.WEB)) return;
-    
+    if (previewMode) { if (!silent) setError(PREVIEW_ONLY); return; }
+
     try {
       if (!silent) setSaving(true);
       await submissionApi.saveCode(submission._id, {
@@ -304,6 +321,11 @@ const AssignmentWorkspace: React.FC = () => {
       setWebPreview(buildWebPreview());
       return;
     }
+    if (previewMode) {
+      setActiveTab('output');
+      setOutput('Running code against the tests is off in the preview. A member runs it here.');
+      return;
+    }
 
     try {
       setRunning(true);
@@ -348,6 +370,7 @@ const AssignmentWorkspace: React.FC = () => {
     if (!submission) return;
     const result = testResults[index];
     if (!result) return;
+    if (previewMode) { setHintError(PREVIEW_ONLY); return; }
 
     try {
       setHintLoadingIndex(index);
@@ -378,6 +401,7 @@ const AssignmentWorkspace: React.FC = () => {
 
   const requestConceptHint = async () => {
     if (!submission) return;
+    if (previewMode) { setHintError(PREVIEW_ONLY); return; }
     try {
       setConceptHintLoading(true);
       setHintError(null);
@@ -395,6 +419,7 @@ const AssignmentWorkspace: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!submission || !assignment) return;
+    if (previewMode) { setError(PREVIEW_ONLY); return; }
 
     const kind = submissionKindFor(assignment.type);
     if (assignment.type === AssignmentType.PROJECT) {
@@ -439,6 +464,7 @@ const AssignmentWorkspace: React.FC = () => {
 
   const handleUpload = async (list: FileList | null) => {
     if (!submission || !list || !list.length) return;
+    if (previewMode) { setError(PREVIEW_ONLY); return; }
     setUploading(true); setError(null);
     try {
       const res = await submissionApi.uploadFiles(submission._id, Array.from(list));
@@ -449,7 +475,7 @@ const AssignmentWorkspace: React.FC = () => {
   };
 
   const handleRemoveFile = async (filename: string) => {
-    if (!submission) return;
+    if (!submission || previewMode) return;
     try {
       const res = await submissionApi.removeFile(submission._id, filename);
       setSubmission(res.data.data);
@@ -529,7 +555,7 @@ const AssignmentWorkspace: React.FC = () => {
           <div className="empty-state-icon">🔒</div>
           <h3>{error ? 'This assignment is not open' : 'Assignment not found'}</h3>
           <p>{error || 'It may have been removed, or the link is wrong.'}</p>
-          <button className="btn btn-primary" onClick={() => navigate(exitTo)}>← {exitLabel}</button>
+          <button className="btn btn-primary" onClick={exit}>← {exitLabel}</button>
         </div>
       </div>
     );
@@ -556,7 +582,7 @@ const AssignmentWorkspace: React.FC = () => {
                 {retrying ? 'Starting…' : 'Try again'}
               </button>
             )}
-            <button className="btn btn-secondary" onClick={() => navigate(exitTo)}>← {exitLabel}</button>
+            <button className="btn btn-secondary" onClick={exit}>← {exitLabel}</button>
           </div>
           {submission.shareToken && assignment && (
             <div style={{ marginTop: '16px' }}>
@@ -606,10 +632,11 @@ const AssignmentWorkspace: React.FC = () => {
 
     return (
       <div className="asgn-detail">
+        {previewMode && <div className="asgn-preview-strip">👁 Student preview — nothing here is saved or submitted.</div>}
         {/* Hero */}
         <div className="asgn-hero">
           <div className="asgn-hero-inner">
-            <button className="asgn-back" onClick={() => navigate(exitTo)}>
+            <button className="asgn-back" onClick={exit}>
               ← {exitLabel}
             </button>
             <h1 className="asgn-hero-title">{assignment.title}</h1>
@@ -752,7 +779,7 @@ const AssignmentWorkspace: React.FC = () => {
                 : <span className="asgn-progress-label">{submissionsLabel} · {estimatedTime}</span>}
             </div>
             <div className="asgn-footer-actions">
-              <button className="asgn-btn-ghost" onClick={() => navigate(exitTo)}>← {exitLabel}</button>
+              <button className="asgn-btn-ghost" onClick={exit}>← {exitLabel}</button>
               <button className="asgn-btn-primary" onClick={handleStartAssignment} disabled={starting}>
                 {starting ? '⏳ Starting…' : startLabel}
               </button>
@@ -765,12 +792,13 @@ const AssignmentWorkspace: React.FC = () => {
 
   return (
     <div className="workspace-container">
+      {previewMode && <div className="asgn-preview-strip">👁 Student preview — nothing here is saved or submitted.</div>}
       {/* Header */}
       <div className="workspace-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button
             className="btn btn-secondary btn-sm"
-            onClick={() => navigate(exitTo)}
+            onClick={exit}
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#e5e7eb' }}
           >
             ← {exitLabel}

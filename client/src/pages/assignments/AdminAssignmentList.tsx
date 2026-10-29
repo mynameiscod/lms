@@ -80,6 +80,7 @@ const ActionsDropdown: React.FC<{
     };
   }, [open]);
 
+  const isExam = assignment.type === AssignmentType.EXAM;
   return (
     <div className="actions-dropdown" ref={ref}>
       <button
@@ -92,15 +93,16 @@ const ActionsDropdown: React.FC<{
       </button>
       {open && createPortal(
         <div ref={menuRef} className="actions-dropdown-menu" style={{ position: 'fixed', top: pos.top, left: pos.left, right: 'auto', maxHeight: '85vh', overflowY: 'auto', zIndex: 3000 }}>
-          <button onClick={() => { onPreview(); setOpen(false); }}>👁️ Preview</button>
-          <button onClick={() => { onTry(); setOpen(false); }}>🧪 Try it (as student)</button>
+          {/* An exam's paper is drawn per student, so there is no single paper to preview or try. */}
+          {!isExam && <button onClick={() => { onPreview(); setOpen(false); }}>👁️ Preview</button>}
+          {!isExam && <button onClick={() => { onTry(); setOpen(false); }}>🧪 Try it (as student)</button>}
           <button onClick={() => { onEdit(); setOpen(false); }}>✏️ Edit</button>
           {assignment.status === AssignmentStatus.DRAFT && (
             <button onClick={() => { onPublish(); setOpen(false); }}>🚀 Publish</button>
           )}
           {assignment.status === AssignmentStatus.PUBLISHED && (
             <>
-              <button onClick={() => { onViewSubmissions(); setOpen(false); }}>👥 View Submissions</button>
+              <button onClick={() => { onViewSubmissions(); setOpen(false); }}>{isExam ? '📊 Exam results' : '👥 View Submissions'}</button>
               <button onClick={() => { onArchive(); setOpen(false); }}>📦 Archive</button>
             </>
           )}
@@ -470,7 +472,7 @@ const AdminAssignmentList: React.FC = () => {
       onPreview={() => setPreviewId(assignment._id)}
       onTry={() => navigate(`/assignments/${assignment._id}/workspace`)}
       onPublish={() => handlePublish(assignment._id)}
-      onViewSubmissions={() => navigate(`/admin/assignments/${assignment._id}/submissions`)}
+      onViewSubmissions={() => navigate(assignment.type === AssignmentType.EXAM ? `/admin/assignments/${assignment._id}/exam-results` : `/admin/assignments/${assignment._id}/submissions`)}
       onArchive={() => handleArchive(assignment._id)}
       onClone={() => handleClone(assignment._id)}
       onAssign={() => setAssignTarget({ contentId: assignment._id, contentTitle: assignment.title })}

@@ -217,6 +217,7 @@ const StudentAssignmentList = lazy(() => import('./pages/assignments').then(m =>
 const AssignmentWorkspace = lazy(() => import('./pages/assignments').then(m => ({ default: m.AssignmentWorkspace })));
 const ExamLobby = lazy(() => import('./pages/PoolExam/ExamLobby'));
 const ExamRoom = lazy(() => import('./pages/PoolExam/ExamRoom'));
+const ExamResults = lazy(() => import('./pages/PoolExam/ExamResults'));
 const AssignmentResult = lazy(() => import('./pages/assignments').then(m => ({ default: m.AssignmentResult })));
 const AssignmentReports = lazy(() => import('./pages/AssignmentReports'));
 const StudentFeaturesPage = lazy(() => import('./pages/StudentFeatures'));
@@ -1976,6 +1977,10 @@ const AppRoutes: React.FC = () => {
         }
       />
       {/* Question pools: reusable shortlists of bank questions that pool exams draw from. */}
+      <Route
+        path="/admin/assignments/:id/exam-results"
+        element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}><Layout><ExamResults /></Layout></ProtectedRoute>}
+      />
       <Route
         path="/admin/assignments/pools"
         element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}><Layout><QuestionPools /></Layout></ProtectedRoute>}

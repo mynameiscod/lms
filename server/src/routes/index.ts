@@ -117,6 +117,7 @@ import systemSettingsRoutes from './systemSettingsRoutes';
 import whatsAppTemplateRoutes from './whatsAppTemplateRoutes';
 import whatsAppChatRoutes from './whatsAppChatRoutes';
 import problemBankRoutes from './problemBankRoutes';
+import questionPoolRoutes from './questionPoolRoutes';
 import codingPracticeRoutes from './codingPracticeRoutes';
 import externalApiRoutes from './externalApiRoutes';
 import codeJudgeRoutes from './codeJudgeRoutes';
@@ -289,6 +290,7 @@ router.use('/lead-distribution-config', leadDistributionRoutes);
 router.use('/whatsapp-drip-config', whatsappDripConfigRoutes);
 router.use('/whatsapp-templates', whatsAppTemplateRoutes); // author Meta templates in the LMS + assign to system uses
 router.use('/problem-bank', problemBankRoutes); // single store of runnable coding problems
+router.use('/question-pools', questionPoolRoutes); // reusable shortlists of bank questions that pool exams draw from
 router.use('/coding-practice', careerPilotMemberActivity, codingPracticeRoutes); // learners solving problem sets from the bank
 router.use('/employees', employeeRoutes); // employee directory, profiles, pay history, logins, lists
 router.use('/employee-portal', employeePortalRoutes); // an employee's own profile, daily activity, expenses

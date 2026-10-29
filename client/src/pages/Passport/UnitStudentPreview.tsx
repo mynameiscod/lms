@@ -125,12 +125,14 @@ const UnitStudentPreview: React.FC<{ unitCode: string; onClose: () => void }> = 
 
                       <div className="jd-body">
                         <ItemBody
-                          item={selected.content ? selected : { ...selected, launchPath: selected.editPath }}
-                          onLaunch={() => setNote(
-                            selected.kind === 'quiz'
-                              ? 'In preview the checkpoint does not open. A student opens it here as a full-screen paper.'
-                              : 'In preview the project does not open. A student opens it here in its workspace.',
-                          )}
+                          item={selected.content ? selected : { ...selected, launchPath: selected.previewPath || selected.editPath }}
+                          onLaunch={() => (selected.previewPath
+                            ? window.open(selected.previewPath, '_blank', 'noopener')
+                            : setNote(
+                              selected.kind === 'quiz'
+                                ? 'In preview the checkpoint does not open. A student opens it here as a full-screen paper.'
+                                : 'In preview the project does not open. A student opens it here in its workspace.',
+                            ))}
                         />
                         {selected.content === null && selected.kind === 'content' && (
                           <p className="jd-muted">This content could not be loaded.</p>

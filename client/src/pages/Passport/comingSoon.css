@@ -1,0 +1,70 @@
+/* A "coming soon" section inside the CareerPilot shell. Brand: CodeBegun navy #051D64, teal #359AAD. */
+.cps {
+  --cps-navy: #051D64;
+  --cps-teal: #359AAD;
+  --cps-ink: #0f172a;
+  --cps-muted: #5b6478;
+  --cps-line: #e3e8f2;
+  --cps-soft: #eef6f8;
+  padding: 28px 24px 40px;
+  display: flex;
+  justify-content: center;
+}
+.cps-card {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  background: #fff;
+  border: 1px solid var(--cps-line);
+  border-radius: 20px;
+  padding: 40px 36px 36px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(5, 29, 100, .06);
+  overflow: hidden;
+}
+.cps-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--cps-navy), var(--cps-teal));
+}
+.cps-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 999px;
+  background: var(--cps-soft); color: #1f6f7d;
+  font-size: 12.5px; font-weight: 700; letter-spacing: .02em;
+}
+.cps-icon {
+  display: grid; place-items: center;
+  width: 72px; height: 72px; margin: 22px auto 14px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--cps-navy), var(--cps-teal));
+  color: #fff; font-size: 32px;
+  box-shadow: 0 10px 24px rgba(5, 29, 100, .2);
+}
+.cps h1 { margin: 0 0 10px; font-size: 28px; color: var(--cps-navy); font-weight: 800; }
+.cps-intro { margin: 0 auto 22px; max-width: 540px; color: var(--cps-muted); font-size: 15px; line-height: 1.6; }
+.cps-topics { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 auto 22px; max-width: 580px; }
+.cps-topics span {
+  padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--cps-line); background: #f8fafc;
+  color: var(--cps-ink); font-size: 13px; font-weight: 600;
+}
+.cps-note { margin: 0 0 20px; color: var(--cps-muted); font-size: 13.5px; }
+.cps-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 20px; border: 0; border-radius: 12px;
+  background: var(--cps-navy); color: #fff;
+  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: background .15s, transform .15s;
+}
+.cps-cta:hover { background: #0a2a86; transform: translateY(-1px); }
+.cps-cta:focus-visible { outline: 3px solid rgba(53, 154, 173, .45); outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  .cps { padding: 16px 16px 28px; }
+  .cps-card { padding: 30px 18px 24px; border-radius: 16px; }
+  .cps h1 { font-size: 24px; }
+  .cps-intro { font-size: 14px; }
+}

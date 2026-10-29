@@ -151,6 +151,8 @@ const PassportPlacementReadiness = lazy(() => import('./pages/Passport/Placement
 const PassportSkillAssessment = lazy(() => import('./pages/Passport/SkillAssessment'));
 const PassportGamification = lazy(() => import('./pages/Passport/Gamification'));
 const PassportRewards = lazy(() => import('./pages/Passport/Rewards'));
+const AptitudeSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.AptitudeSoon })));
+const ReasoningSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.ReasoningSoon })));
 const PassportPractice = lazy(() => import('./pages/Passport/Practice'));
 const PassportPracticeItem = lazy(() => import('./pages/Passport/PracticeItem'));
 const PassportInterview = lazy(() => import('./pages/Passport/Interview'));
@@ -848,6 +850,9 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/progress" element={<PassportGamification />} />
         {/* Coins buy rewards; XP never does. */}
         <Route path="/careerpilot/rewards" element={<PassportRewards />} />
+        {/* Announced in the rail, not built yet: each says what is coming and where to practise meanwhile. */}
+        <Route path="/careerpilot/aptitude" element={<AptitudeSoon />} />
+        <Route path="/careerpilot/reasoning" element={<ReasoningSoon />} />
         <Route path="/passport/roadmap" element={<LegacyRedirect to="/careerpilot/roadmap" />} />
         {/*
           Built-ins ONLY. Left on the default 'all', this listed the admin-authored bank as

@@ -8,7 +8,7 @@ import './tenantContentAccess.css';
  * (the Problem Bank's global problems). The institute's OWN problems are never affected.
  *
  *   All     — the whole shared library, including problems added later (the default).
- *   Filter  — only problems of the chosen difficulties and/or topics.
+ *   Filter  — only problems of the chosen difficulties, topics and/or tags (e.g. DSA).
  *   Pick    — exactly the problems ticked here.
  *   None    — no shared problems; the institute uses only its own.
  */
@@ -16,8 +16,8 @@ import './tenantContentAccess.css';
 type Mode = 'all' | 'filter' | 'pick' | 'none';
 interface Access {
   tenant: { id: string; name: string };
-  practice: { mode: Mode; isDefault: boolean; difficulties: string[]; topics: string[]; problemIds: string[]; updatedAt: string | null; updatedByName: string | null; grantedCount: number };
-  sharedLibrary: { total: number; byDifficulty: Record<string, number>; topics: { name: string; count: number }[] };
+  practice: { mode: Mode; isDefault: boolean; difficulties: string[]; topics: string[]; tags?: string[]; problemIds: string[]; updatedAt: string | null; updatedByName: string | null; grantedCount: number };
+  sharedLibrary: { total: number; byDifficulty: Record<string, number>; topics: { name: string; count: number }[]; tags?: { name: string; count: number }[] };
 }
 interface Row { id: string; number: number; title: string; difficulty: string; topics: string[] }
 
@@ -26,7 +26,7 @@ const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bea
 const DIFFS = ['easy', 'medium', 'hard'];
 const MODES: { key: Mode; label: string; hint: string; icon: string }[] = [
   { key: 'all', label: 'All', hint: 'The whole shared library, including problems added later', icon: 'fa-solid fa-layer-group' },
-  { key: 'filter', label: 'By difficulty / topic', hint: 'Only problems that match what you choose', icon: 'fa-solid fa-filter' },
+  { key: 'filter', label: 'By difficulty / topic / tag', hint: 'Only problems that match what you choose', icon: 'fa-solid fa-filter' },
   { key: 'pick', label: 'Pick problems', hint: 'Exactly the problems you tick', icon: 'fa-solid fa-list-check' },
   { key: 'none', label: 'None', hint: 'No shared problems — only the institute\'s own', icon: 'fa-solid fa-ban' },
 ];
@@ -37,6 +37,7 @@ const TenantContentAccess: React.FC<{ tenantId: string }> = ({ tenantId }) => {
   const [mode, setMode] = useState<Mode>('all');
   const [diffs, setDiffs] = useState<string[]>([]);
   const [topics, setTopics] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [topicQ, setTopicQ] = useState('');
   const [saving, setSaving] = useState(false);
@@ -56,6 +57,7 @@ const TenantContentAccess: React.FC<{ tenantId: string }> = ({ tenantId }) => {
     setMode(a.practice.mode);
     setDiffs(a.practice.difficulties);
     setTopics(a.practice.topics);
+    setTags(a.practice.tags || []);
     setPicked(new Set(a.practice.problemIds));
   };
 
@@ -93,7 +95,7 @@ const TenantContentAccess: React.FC<{ tenantId: string }> = ({ tenantId }) => {
 
   const save = async () => {
     setSaving(true); setMsg(null);
-    const body = { mode, difficulties: diffs, topics, problemIds: Array.from(picked) };
+    const body = { mode, difficulties: diffs, topics, tags, problemIds: Array.from(picked) };
     const j = await fetch(`${API}/tenants/${tenantId}/content-access/practice`, { method: 'PUT', headers: headers(), body: JSON.stringify(body) })
       .then((r) => r.json()).catch(() => null);
     setSaving(false);
@@ -106,7 +108,7 @@ const TenantContentAccess: React.FC<{ tenantId: string }> = ({ tenantId }) => {
 
   const lib = d.sharedLibrary;
   const dirty = mode !== d.practice.mode
-    || (mode === 'filter' && (diffs.join() !== d.practice.difficulties.join() || topics.join() !== d.practice.topics.join()))
+    || (mode === 'filter' && (diffs.join() !== d.practice.difficulties.join() || topics.join() !== d.practice.topics.join() || tags.join() !== (d.practice.tags || []).join()))
     || (mode === 'pick' && (picked.size !== d.practice.problemIds.length || d.practice.problemIds.some((id) => !picked.has(id))));
   const pageAllPicked = rows.length > 0 && rows.every((r) => picked.has(r.id));
 
@@ -164,7 +166,25 @@ const TenantContentAccess: React.FC<{ tenantId: string }> = ({ tenantId }) => {
                 ))}
               </div>
             </div>
-            <p className="tca-note">A problem is granted when it matches a chosen difficulty <b>and</b> one of the chosen topics. Leave one empty to not restrict by it.</p>
+            <div className="tca-field">
+              <span className="tca-label">Tags {tags.length ? <em>{tags.length} chosen</em> : <em>any tag</em>}</span>
+              <div className="tca-chips">
+                {tags.filter((t) => !(lib.tags || []).some((x) => x.name.toLowerCase() === t.toLowerCase())).map((t) => (
+                  <button key={t} type="button" className="tca-chip on" onClick={() => toggle(tags, setTags, t)}>{t} ✕</button>
+                ))}
+                {(lib.tags || []).slice(0, 60).map((t) => {
+                  const on = tags.some((x) => x.toLowerCase() === t.name.toLowerCase());
+                  return (
+                    <button key={t.name} type="button" className={`tca-chip${on ? ' on' : ''}`}
+                      onClick={() => setTags(on ? tags.filter((x) => x.toLowerCase() !== t.name.toLowerCase()) : [...tags, t.name])}>
+                      {t.name} <em>{t.count}</em>
+                    </button>
+                  );
+                })}
+                {!(lib.tags || []).length && !tags.length && <span className="tca-note" style={{ margin: 0 }}>No shared problem has a tag yet.</span>}
+              </div>
+            </div>
+            <p className="tca-note">A problem is granted when it matches a chosen difficulty, <b>and</b> one of the chosen topics, <b>and</b> one of the chosen tags. Leave any of them empty to not restrict by it. Tags match in any case — <b>DSA</b> also shares problems tagged “dsa”.</p>
           </div>
         )}
 

@@ -204,7 +204,7 @@ export interface ListQuery {
   sort?: 'number' | 'newest' | 'updated' | 'title' | 'difficulty'; page?: number; limit?: number;
 }
 
-const LIST_FIELDS = 'scope tenantId number slug title kind difficulty rating marks topics tags companies status testCount sampleCount verification.status verification.checkedAt source updatedAt createdAt languages.language stats';
+const LIST_FIELDS = 'scope tenantId number slug title kind difficulty rating marks topics tags audiences companies status testCount sampleCount verification.status verification.checkedAt source updatedAt createdAt languages.language stats';
 
 export async function listProblems(a: Actor, q: ListQuery) {
   const and: any[] = [await visibilityFilter(a)];

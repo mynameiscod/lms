@@ -91,6 +91,8 @@ const ProblemBank = lazy(() => import('./pages/ProblemBank'));
 const ProblemStudio = lazy(() => import('./pages/ProblemBank/Studio'));
 const ProblemSets = lazy(() => import('./pages/ProblemBank/Sets'));
 const ProblemSetEditor = lazy(() => import('./pages/ProblemBank/SetEditor'));
+const QuestionPools = lazy(() => import('./pages/QuestionPools'));
+const QuestionPoolEditor = lazy(() => import('./pages/QuestionPools/PoolEditor'));
 const ProblemBankApi = lazy(() => import('./pages/ProblemBank/ApiAccess'));
 const PracticePassAdmin = lazy(() => import('./pages/PracticePass'));
 const EmployeeDirectory = lazy(() => import('./pages/Employees/EmployeeDirectory'));
@@ -1970,6 +1972,15 @@ const AppRoutes: React.FC = () => {
             </Layout>
           </ProtectedRoute>
         }
+      />
+      {/* Question pools: reusable shortlists of bank questions that pool exams draw from. */}
+      <Route
+        path="/admin/assignments/pools"
+        element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}><Layout><QuestionPools /></Layout></ProtectedRoute>}
+      />
+      <Route
+        path="/admin/assignments/pools/:id"
+        element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}><Layout><QuestionPoolEditor /></Layout></ProtectedRoute>}
       />
 
       {/* Assignment Routes - Student */}

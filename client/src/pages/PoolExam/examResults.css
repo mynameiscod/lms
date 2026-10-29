@@ -80,6 +80,7 @@
 .xr-opts li.wrong .xr-tag { color: var(--pb-bad); }
 .xr-none { margin: 6px 0 0; font-size: 13px; }
 .xr-code-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; margin-bottom: 8px; }
+.xr-sim { display: inline-flex; gap: 6px; align-items: center; padding: 2px 10px; border-radius: 999px; background: #fff7ed; color: #b45309; font-weight: 600; font-size: 12px; }
 .xr-code { margin: 0; max-height: 360px; overflow: auto; background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 12px 14px; font: 12.5px/1.55 ui-monospace, 'SFMono-Regular', Consolas, monospace; white-space: pre; }
 .xr-timeline { background: #fff; border: 1px solid var(--pb-line); border-radius: 12px; padding: 14px 16px; margin-top: 14px; }
 .xr-timeline ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13.5px; }

@@ -127,6 +127,7 @@ const PaperPanel: React.FC<{ row: ResultRow; onClose: () => void; onChanged: () 
                       <span className="pb-lang">{LANG_SHORT[it.language || ''] || it.language}</span>
                       {it.result?.verdict && <span><b>{VERDICT_LABEL[it.result.verdict] || it.result.verdict}</b>{it.result.total ? ` · ${it.result.passed}/${it.result.total} tests passed` : ''}</span>}
                       <span className="pb-muted">{it.runs || 0} run{it.runs === 1 ? '' : 's'}</span>
+                      {it.result?.simulated && <span className="xr-sim" title="Set PISTON_URL on the server, then Re-mark this exam."><i className="fa-solid fa-triangle-exclamation" /> Marked without a code runner — not a real result</span>}
                     </div>
                     <pre className="xr-code">{it.code}</pre>
                   </> : <p className="pb-muted xr-none">Not answered</p>}

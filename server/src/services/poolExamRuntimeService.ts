@@ -9,7 +9,9 @@ import { poolsForExam, PoolQuestion } from './questionPoolService';
 import { mcqAnswerKey } from './mcqAnswerKey';
 import { normalizePoolExam } from './poolExamService';
 import { PbError } from './problemBankService';
-import { assertLanguage, runSamples } from './problemDeliveryService';
+import { assertLanguage, judgeView, runSamples } from './problemDeliveryService';
+import { judge, isStarterUnchanged, STARTER_UNCHANGED_MESSAGE } from './problemJudgeService';
+import codeRunner from './codeRunnerService';
 import { gradeAttempt } from './poolExamGradingService';
 
 /**
@@ -316,7 +318,15 @@ export async function saveAnswer(s: Student, attemptId: string, key: string, bod
   return { key, savedAt: new Date() };
 }
 
-/** Run code on the problem's example tests (or the student's own input). Limited per question. */
+/**
+ * Run code against the problem's tests (or the student's own input). Limited per question.
+ *
+ * Every test runs, hidden ones included: examples come back in full, a hidden test only says
+ * whether it passed and why it failed (time limit, runtime error…), never its input or output.
+ * `simulated` is true when no real code runner is connected (a dev server without PISTON_URL):
+ * the output is then a guess from the code's text, and the room says so instead of passing it off
+ * as a verdict.
+ */
 export async function run(s: Student, attemptId: string, key: string, body: any) {
   const { attempt, item } = await openItem(s, attemptId, key);
   if (item.kind !== 'coding') throw new PbError('Only coding questions can be run.');
@@ -327,20 +337,30 @@ export async function run(s: Student, attemptId: string, key: string, body: any)
   if (!problem) throw new PbError('This problem is no longer available.', 404);
 
   const language = assertLanguage(problem, String(body?.language || ''));
-  if (String(body?.code || '').length > MAX_CODE) throw new PbError('Code is limited to 100 KB.');
+  const code = String(body?.code || '');
+  if (code.length > MAX_CODE) throw new PbError('Code is limited to 100 KB.');
+  const custom = body?.mode === 'custom';
+  // Checked before a run is counted, so neither costs the student one of their runs.
+  const jp: any = judgeView(problem.toObject(), item.marks);
+  if (!custom && isStarterUnchanged(jp, language, code)) throw new PbError(STARTER_UNCHANGED_MESSAGE);
+  const tests = custom ? [] : await CodingProblemTestCase.find({ problemId: problem._id }).sort({ order: 1 }).lean();
+  if (!custom && !tests.length) throw new PbError('This problem has no tests to run.');
 
   // Counted with the same conditions it was checked against, so two runs fired together cannot
   // both slip under the limit. The code being run is the student's latest work: keep it too.
   const now = new Date();
   const counted = await PoolExamAttempt.updateOne(
     { _id: attempt._id, status: 'in_progress', items: { $elemMatch: { key, runs: item.runs } } },
-    { $inc: { 'items.$.runs': 1 }, $set: { 'items.$.lastRunAt': now, 'items.$.answer': { language, code: String(body?.code || '') }, 'items.$.answeredAt': now } },
+    { $inc: { 'items.$.runs': 1 }, $set: { 'items.$.lastRunAt': now, 'items.$.answer': { language, code }, 'items.$.answeredAt': now } },
   );
   if (!counted.modifiedCount) throw new PbError('Another run is in progress — wait a moment.', 429);
-  const r = await runSamples(problem, item.marks, {
-    language, code: String(body?.code || ''), stdin: body?.stdin, mode: body?.mode === 'custom' ? 'custom' : 'samples',
-  });
-  return { ...r, runsLeft: MAX_RUNS_PER_QUESTION - item.runs - 1 };
+  const runsLeft = MAX_RUNS_PER_QUESTION - item.runs - 1;
+  const simulated = !codeRunner.isRealExecutionEnabled();
+  if (custom) {
+    return { ...(await runSamples(problem, item.marks, { language, code, stdin: body?.stdin, mode: 'custom' })), runsLeft, simulated };
+  }
+  const result = await judge(jp, language, code, tests.map(t => ({ ...t })), { revealHidden: false });
+  return { result, runsLeft, simulated };
 }
 
 /**

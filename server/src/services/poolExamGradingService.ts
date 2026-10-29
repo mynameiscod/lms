@@ -2,6 +2,7 @@ import PoolExamAttempt from '../models/PoolExamAttempt';
 import CodingProblem, { CodingProblemTestCase } from '../models/CodingProblem';
 import { judge } from './problemJudgeService';
 import { judgeView } from './problemDeliveryService';
+import codeRunner from './codeRunnerService';
 
 /**
  * Marking a submitted pool-exam attempt.
@@ -44,7 +45,7 @@ export async function gradeAttempt(attemptId: string, tries = 0): Promise<void> 
     const r = await judge(judgeView(problem.toObject(), item.marks) as any, lang, code, tests.map(t => ({ ...t })), { revealHidden: false });
     if (r.verdict === 'BUSY') { busy = true; continue; }
     item.score = r.maxScore > 0 ? round2(item.marks * (r.score / r.maxScore)) : 0;
-    item.result = { verdict: r.verdict, passed: r.passed, total: r.total };
+    item.result = { verdict: r.verdict, passed: r.passed, total: r.total, ...(codeRunner.isRealExecutionEnabled() ? {} : { simulated: true }) };
   }
 
   // Written with a conditional update, not save(): a late proctoring event can touch the attempt

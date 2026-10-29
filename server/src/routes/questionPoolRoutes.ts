@@ -15,6 +15,7 @@ router.get('/', ctrl.list);
 router.post('/', ctrl.create);
 /** Can these pools fill these exam sections? Asked live by the exam form; publishing asks again. */
 router.post('/check-exam', ctrl.checkExam);
+router.get('/import-template', ctrl.importTemplate);
 router.get('/:id', ctrl.get);
 router.patch('/:id', ctrl.update);
 router.delete('/:id', ctrl.remove);
@@ -22,5 +23,7 @@ router.get('/:id/bank', ctrl.browseBank);
 router.post('/:id/questions', ctrl.addQuestions);
 router.post('/:id/questions/remove', ctrl.removeQuestions);
 router.post('/:id/import-mcq', ctrl.importMcqs);
+/** A CSV or Excel file: MCQs into the Question Bank, coding problems into the Problem Bank (LMS only). */
+router.post('/:id/import', ctrl.importFile);
 
 export default router;

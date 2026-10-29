@@ -1,6 +1,18 @@
 /* Question Pools — layout on top of the Problem Bank styles (pb-*). */
 .qp-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
+/* Spreadsheet import: the whole drop area is the file button. */
+.qp-import-note { display: flex; gap: 10px; align-items: flex-start; }
+.qp-import-note > i { margin-top: 3px; }
+.qp-file {
+  display: flex; align-items: center; gap: 12px; padding: 18px 16px; margin: 4px 0 10px;
+  border: 1.5px dashed var(--pb-accent-line); border-radius: 12px; background: var(--pb-accent-soft);
+  color: var(--pb-accent-ink); cursor: pointer; overflow-wrap: anywhere; transition: border-color .15s, background .15s;
+}
+.qp-file:hover, .qp-file:focus-within { border-color: var(--pb-accent); }
+.qp-file > i { font-size: 22px; flex: 0 0 auto; }
+.qp-file input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
 /* Phones: tables become cards — the title on its own line, its level, topics and marks as tags under it. */
 @media (max-width: 640px) {
   .qp-head { flex-wrap: wrap; }

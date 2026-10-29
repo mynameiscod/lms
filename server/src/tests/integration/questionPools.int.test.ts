@@ -15,7 +15,9 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'question-pool-integration-te
 
 import User from '../../models/User';
 import Question from '../../models/Question';
-import CodingProblem from '../../models/CodingProblem';
+import * as XLSX from 'xlsx';
+import CodingProblem, { availableTo } from '../../models/CodingProblem';
+import { csvTemplate } from '../../services/problemImportService';
 import questionPoolRoutes from '../../routes/questionPoolRoutes';
 import { createProblem, setStatus, Actor } from '../../services/problemBankService';
 import { SAMPLE_PROBLEM } from '../../services/problemImportService';
@@ -113,6 +115,51 @@ describe('coding pools', () => {
 
     await CodingProblem.updateOne({ _id: live }, { status: 'archived' });
     expect((await pools.getPool(ME, pool.id)).counts.usable).toBe(0);
+  });
+
+  it('imports a CSV of coding problems as published, LMS-only exam questions, refusing incomplete rows', async () => {
+    const pool = await pools.createPool(ME, { name: 'Imported coding', kind: 'coding' });
+    const csv = csvTemplate({ complete: true })
+      + '"No tests",easy,5,,,,"Print hi",,,,,,,,,,,,,\n'
+      + '"Tagged DSA",medium,10,arrays,DSA,,"Echo the line",,,,,"x","x","y","y",,,"print(input())",,\n';
+    const r = await pools.importFile(ME, pool.id, { filename: 'coding.csv', data: Buffer.from(csv).toString('base64') });
+    expect(r.imported).toBe(2);
+    expect(r.refused).toHaveLength(1);
+    expect(r.refused[0]).toMatchObject({ row: 2 });
+    expect(r.refused[0].reason).toMatch(/test/i);
+    expect(r.pool.counts.usable).toBe(2);
+
+    const made = await CodingProblem.find({ tenantId: ME.tenantId }).lean() as any[];
+    expect(made.map(p => p.status)).toEqual(['published', 'published']);
+    for (const p of made) {
+      expect(p.audiences).toEqual(['lms']);
+      expect(p.tags).toContain('Exam');
+    }
+    // Even a row tagged DSA stays out of the CareerPilot practice library: it is LMS only.
+    const cp = await CodingProblem.countDocuments({ tenantId: ME.tenantId, ...availableTo('careerpilot') });
+    expect(cp).toBe(0);
+  });
+
+  it('imports MCQs from an Excel file', async () => {
+    const pool = await pools.createPool(ME, { name: 'Excel MCQs', kind: 'mcq' });
+    const sheet = XLSX.utils.aoa_to_sheet([
+      ['Question', 'Option A', 'Option B', 'Option C', 'Correct', 'Difficulty'],
+      ['2 + 2?', '3', '4', '5', 'B', 'Easy'],
+      ['Largest planet?', 'Mars', 'Jupiter', '', 'Jupiter', 'medium'],
+      ['Broken', 'x', 'y', '', 'z', ''],
+    ]);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, sheet, 'Sheet1');
+    const data = (XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer).toString('base64');
+    const r = await pools.importFile(ME, pool.id, { filename: 'mcqs.xlsx', data });
+    expect(r.imported).toBe(2);
+    expect(r.refused).toEqual([{ row: 3, reason: 'Answer "z" matches no option' }]);
+    const stored = await Question.findOne({ question: '2 + 2?' }).lean() as any;
+    expect(stored.correctAnswers).toEqual(['4']);
+  });
+
+  it('refuses a file that is not a spreadsheet', async () => {
+    const pool = await pools.createPool(ME, { name: 'C', kind: 'coding' });
+    await expect(pools.importFile(ME, pool.id, { filename: 'notes.txt', data: 'aGk=' })).rejects.toThrow(/\.csv, \.xlsx or \.xls/);
   });
 
   it('refuses an MCQ import into a coding pool', async () => {

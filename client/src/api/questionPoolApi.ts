@@ -48,6 +48,16 @@ export const questionPoolApi = {
   add: (id: string, ids: string[]): Promise<{ added: number; refused: { id: string; title: string; reason: string }[]; pool: Pool }> =>
     axios.post(`${BASE}/${id}/questions`, { ids }, h()).then(d),
   removeQuestions: (id: string, ids: string[]): Promise<Pool> => axios.post(`${BASE}/${id}/questions/remove`, { ids }, h()).then(d),
-  importMcqs: (id: string, rows: McqImportRow[]): Promise<{ imported: number; refused: { row: number; reason: string }[]; pool: Pool }> =>
+  importMcqs: (id: string, rows: McqImportRow[]): Promise<ImportResult> =>
     axios.post(`${BASE}/${id}/import-mcq`, { rows }, h()).then(d),
+  /** A CSV or Excel file, base64: MCQs into the Question Bank, coding problems into the Problem Bank (LMS only). */
+  importFile: (id: string, filename: string, data: string): Promise<ImportResult> =>
+    axios.post(`${BASE}/${id}/import`, { filename, data }, h()).then(d),
+  downloadTemplate: async (kind: PoolKind) => {
+    const r = await axios.get(`${BASE}/import-template`, { ...h(), params: { kind }, responseType: 'blob' });
+    const url = URL.createObjectURL(r.data);
+    const a = document.createElement('a'); a.href = url; a.download = `${kind}-pool-template.csv`; a.click(); URL.revokeObjectURL(url);
+  },
 };
+
+export interface ImportResult { imported: number; refused: { row: number; reason: string }[]; pool: Pool }

@@ -270,3 +270,14 @@
   .exr-done { padding: 26px 18px; }
   .exr-done h1 { font-size: 22px; }
 }
+
+/* A hidden test's result: whether it passed and why not, never its data. */
+.exr-hidden { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0; padding: 12px 14px; border-radius: 10px; font-size: 13px; }
+.exr-hidden > i { font-size: 18px; margin-top: 1px; }
+.exr-hidden b { display: block; margin-bottom: 2px; }
+.exr-hidden span { color: var(--pb-muted); }
+.exr-hidden.pass { background: var(--pb-ok-soft); color: var(--pb-ok); }
+.exr-hidden.fail { background: var(--pb-bad-soft); color: var(--pb-bad); }
+/* The verdict stays on one line; the pass counts wrap under it on a narrow screen. */
+.exr-coding .pb-verdict { flex-wrap: wrap; row-gap: 2px; }
+.exr-coding .pb-verdict b { white-space: nowrap; }

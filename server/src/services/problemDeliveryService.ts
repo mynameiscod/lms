@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import ProblemSet, { IProblemSet, SET_AUDIENCE_TYPES } from '../models/ProblemSet';
 import ProblemSubmission from '../models/ProblemSubmission';
-import CodingProblem, { CodingProblemTestCase } from '../models/CodingProblem';
+import CodingProblem, { CodingProblemTestCase, ProblemProduct, isAvailableTo } from '../models/CodingProblem';
 import User from '../models/User';
 import Batch from '../models/Batch';
 import { judge, runCustom, isStarterUnchanged, STARTER_UNCHANGED_MESSAGE } from './problemJudgeService';
@@ -341,11 +341,32 @@ async function validateItems(tenantId: string, role: string, userId: string, ite
     .map((i) => ({ problemId: new mongoose.Types.ObjectId(String(i.problemId)), ...(Number.isFinite(Number(i.marks)) && i.marks !== null && (i.marks as any) !== '' ? { marks: Math.max(0, Number(i.marks)) } : {}) }));
 }
 
+/**
+ * A set given to all CareerPilot members may only hold problems available to CareerPilot; one given
+ * to LMS students (all of them, or a batch) only problems available to the LMS. A set for named people
+ * is checked against neither — a person can be in either product.
+ */
+async function assertProblemsFitAudience(ids: mongoose.Types.ObjectId[], audience: { type: string }[]) {
+  const need: ProblemProduct[] = [];
+  if (audience.some((x) => x.type === 'all_careerpilot')) need.push('careerpilot');
+  if (audience.some((x) => x.type === 'all_lms' || x.type === 'batch')) need.push('lms');
+  if (!need.length || !ids.length) return;
+  const rows = await CodingProblem.find({ _id: { $in: ids } }).select('title audiences').lean() as any[];
+  for (const product of need) {
+    const off = rows.filter((p) => !isAvailableTo(p, product));
+    if (off.length) {
+      const names = off.slice(0, 3).map((p) => `"${p.title}"`).join(', ') + (off.length > 3 ? ` and ${off.length - 3} more` : '');
+      throw new PbError(`${names} ${off.length === 1 ? 'is' : 'are'} not available to ${product === 'lms' ? 'the LMS' : 'CareerPilot'}. Change "Available to" on the problem, or remove it from this set.`);
+    }
+  }
+}
+
 export async function saveSet(a: { tenantId: string; userId: string; role: string }, id: string | null, input: SetInput) {
   const title = String(input.title || '').trim();
   if (!title) throw new PbError('Give the set a title.');
   const items = await validateItems(a.tenantId, a.role, a.userId, input.items);
   const audience = await resolveAudience(a.tenantId, input.audience);
+  await assertProblemsFitAudience(items.map((i) => i.problemId), audience);
   const opensAt = input.opensAt ? new Date(input.opensAt) : undefined;
   const dueAt = input.dueAt ? new Date(input.dueAt) : undefined;
   if (opensAt && dueAt && dueAt <= opensAt) throw new PbError('The due date must be after the opening date.');

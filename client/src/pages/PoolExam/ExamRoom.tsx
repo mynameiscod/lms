@@ -22,6 +22,8 @@ import './poolExam.css';
 type Answer = NonNullable<ExamItem['answer']>;
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 const LETTERS = 'ABCDEFGHIJ';
+/** What the error box is called for each way a test can fail. */
+const ERROR_LABEL: Record<string, string> = { RE: 'Runtime error', TLE: 'Time limit exceeded', CE: 'Compile error', WA: 'Error output' };
 const CODE_SAVE_DELAY = 1200;
 
 const answered = (it: ExamItem, a: Answer | null | undefined) =>
@@ -79,6 +81,7 @@ const CodingQuestion: React.FC<{
   const [custom, setCustom] = useState<PbCustomResult | null>(null);
   const [runErr, setRunErr] = useState('');
   const [runsLeft, setRunsLeft] = useState(item.runsLeft ?? 0);
+  const [simulated, setSimulated] = useState(false);
   const [sel, setSel] = useState(0);
   const [useCustom, setUseCustom] = useState(false);
   const [stdin, setStdin] = useState(p.samples[0]?.input || '');
@@ -93,7 +96,10 @@ const CodingQuestion: React.FC<{
     setBusy(true); setRunErr(''); setRes(null); setCustom(null);
     try {
       const r = await poolExamApi.run(attemptId, item.key, { language: lang, code, mode: useCustom ? 'custom' : 'samples', stdin });
-      setRes(r.result || null); setCustom(r.custom || null); setRunsLeft(r.runsLeft); setSel(0);
+      setRes(r.result || null); setCustom(r.custom || null); setRunsLeft(r.runsLeft); setSimulated(!!r.simulated);
+      // Open on the first failure, so the reason is on screen without a click.
+      const firstFail = r.result?.cases.findIndex(x => !x.passed) ?? -1;
+      setSel(firstFail >= 0 ? firstFail : 0);
     } catch (e: any) {
       if (e?.response?.status === 409) onTimeUp();
       setRunErr(examError(e, 'Run failed.'));
@@ -102,6 +108,13 @@ const CodingQuestion: React.FC<{
   };
 
   const c = res?.cases[sel];
+  const examples = res ? res.cases.filter(x => x.isSample) : [];
+  const hidden = res ? res.cases.filter(x => !x.isSample) : [];
+  // Examples and hidden tests are numbered separately: "Example 2", "Hidden 3".
+  const caseLabel = (cs: { isSample: boolean }, i: number) => {
+    const n = res!.cases.slice(0, i + 1).filter(x => x.isSample === cs.isSample).length;
+    return cs.isSample ? `Example ${n}` : `Hidden ${n}`;
+  };
   return (
     <SplitWorkspace storageKey="pool-exam" className="pb-studio-body exr-coding" stackBelow={1100} defaultPct={48} left={
       <div className="pb-studio-left">
@@ -150,6 +163,12 @@ const CodingQuestion: React.FC<{
             <input type="checkbox" checked={useCustom} onChange={e => setUseCustom(e.target.checked)} /> Run with my own input
           </label>
           {useCustom && <textarea className="pb-textarea pb-mono" rows={3} value={stdin} onChange={e => setStdin(e.target.value)} spellCheck={false} aria-label="Your input" />}
+          {!busy && simulated && (res || custom) && (
+            <div className="pb-alert pb-alert-warn" style={{ marginTop: 8 }}>
+              <b>The code runner is not connected on this server</b>, so your code was not really run and these results are not real.
+              Your code is saved. Tell your teacher.
+            </div>
+          )}
           {busy ? <div className="pb-muted" style={{ marginTop: 8 }}><span className="pb-spinner" /> Running…</div>
             : runErr ? <div className="pb-alert pb-alert-bad">{runErr}</div>
               : custom ? (
@@ -160,24 +179,42 @@ const CodingQuestion: React.FC<{
                 </div>
               ) : res ? (
                 <div style={{ marginTop: 8 }}>
-                  <div className={`pb-verdict pb-v-${res.verdict}`}><b>{VERDICT_LABEL[res.verdict] || res.verdict}</b><span>{res.passed}/{res.total} examples passed</span></div>
-                  {res.compileError ? <div className="pb-io"><div className="k">Compiler</div><pre className="pb-mono err">{res.compileError}</pre></div> : <>
+                  <div className={`pb-verdict pb-v-${res.verdict}`}>
+                    <b>{VERDICT_LABEL[res.verdict] || res.verdict}</b>
+                    <span>
+                      {examples.filter(x => x.passed).length}/{examples.length} example{examples.length === 1 ? '' : 's'}
+                      {hidden.length > 0 && <> · {hidden.filter(x => x.passed).length}/{hidden.length} hidden test{hidden.length === 1 ? '' : 's'}</>} passed
+                    </span>
+                  </div>
+                  {res.compileError ? <div className="pb-io"><div className="k">Compile error</div><pre className="pb-mono err">{res.compileError}</pre></div> : <>
                     <div className="pb-case-strip">
                       {res.cases.map((cs, i) => (
-                        <button key={i} className={`pb-case-dot ${cs.passed ? 'pass' : 'fail'} ${sel === i ? 'sel' : ''}`} onClick={() => setSel(i)}>Example {i + 1} {cs.passed ? '✓' : '✗'}</button>
+                        <button key={i} className={`pb-case-dot ${cs.passed ? 'pass' : 'fail'} ${sel === i ? 'sel' : ''}`} onClick={() => setSel(i)}>
+                          {!cs.isSample && <i className="fa-solid fa-lock" style={{ fontSize: 10, marginRight: 4 }} aria-hidden />}
+                          {caseLabel(cs, i)} {cs.passed ? '✓' : '✗'}
+                        </button>
                       ))}
                     </div>
-                    {c && <>
+                    {c && (c.isSample ? <>
                       <div className="pb-io"><div className="k">Input</div><pre className="pb-mono">{c.input || '(empty)'}</pre></div>
                       <div className="pb-test-grid" style={{ padding: 0 }}>
                         <div className="pb-io"><div className="k">Expected</div><pre className="pb-mono">{c.expectedOutput}</pre></div>
                         <div className="pb-io"><div className="k">Your output</div><pre className="pb-mono console">{c.output || '(no output)'}</pre></div>
                       </div>
-                      {c.error && <div className="pb-io"><div className="k">Error</div><pre className="pb-mono err">{c.error}</pre></div>}
-                    </>}
+                      {c.error && <div className="pb-io"><div className="k">{ERROR_LABEL[c.verdict] || 'Error'}</div><pre className="pb-mono err">{c.error}</pre></div>}
+                    </> : <>
+                      <div className={`exr-hidden ${c.passed ? 'pass' : 'fail'}`}>
+                        <i className={`fa-solid ${c.passed ? 'fa-circle-check' : 'fa-circle-xmark'}`} aria-hidden />
+                        <div>
+                          <b>{caseLabel(c, sel)} {c.passed ? 'passed' : `failed — ${VERDICT_LABEL[c.verdict] || c.verdict}`}</b>
+                          <span>A hidden test's input and expected output are not shown{c.passed ? '.' : ' — check your code against the constraints and edge cases.'}</span>
+                        </div>
+                      </div>
+                      {c.error && <div className="pb-io"><div className="k">{ERROR_LABEL[c.verdict] || 'Error'}</div><pre className="pb-mono err">{c.error}</pre></div>}
+                    </>)}
                   </>}
                 </div>
-              ) : <div className="pb-muted" style={{ fontSize: 13 }}>Run checks your code against the examples. Your saved code is marked against every test when you submit the exam.</div>}
+              ) : <div className="pb-muted" style={{ fontSize: 13 }}>Run checks your code against the examples and the hidden tests. Hidden tests show only whether they passed. Your saved code is marked when you submit the exam.</div>}
         </div>
       </div>
     } />

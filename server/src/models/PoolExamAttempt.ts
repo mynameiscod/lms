@@ -44,7 +44,7 @@ export interface IExamItem {
   lastRunAt?: Date;
   /** Filled by grading. */
   score?: number;
-  result?: { passed?: number; total?: number; verdict?: string; correct?: boolean };
+  result?: { passed?: number; total?: number; verdict?: string; correct?: boolean; /** Marked by the simulator: no real code runner was connected. */ simulated?: boolean };
 }
 
 export interface IPoolExamAttempt extends Document {
@@ -90,7 +90,7 @@ const ItemSchema = new Schema<IExamItem>({
   runs: { type: Number, default: 0 },
   lastRunAt: Date,
   score: Number,
-  result: { passed: Number, total: Number, verdict: String, correct: Boolean },
+  result: { passed: Number, total: Number, verdict: String, correct: Boolean, simulated: Boolean },
 }, { _id: false });
 
 const PoolExamAttemptSchema = new Schema<IPoolExamAttempt>({

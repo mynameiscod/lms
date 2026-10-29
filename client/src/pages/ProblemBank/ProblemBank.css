@@ -267,3 +267,9 @@
   .pb-test-grid, .pb-sample-body { grid-template-columns: 1fr; }
   .pb-sample-body > div + div { border-left: 0; border-top: 1px solid var(--pb-line); }
 }
+
+/* Who may be given a problem: DSA practice (in the CareerPilot library) and single-product badges. */
+.pb-tag-dsa { background: #ecfdf5; color: #047857; gap: 4px; }
+.pb-tag-product { background: #eff6ff; color: #1d4ed8; }
+.pb-tagfilter { width: 150px; }
+@media (max-width: 640px) { .pb-tagfilter { width: 100%; } }

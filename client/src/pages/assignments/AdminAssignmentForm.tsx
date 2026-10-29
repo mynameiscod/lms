@@ -340,7 +340,8 @@ const AdminAssignmentForm: React.FC = () => {
       setLatePenaltyPercent(a.settings?.latePenaltyPercent || 10);
       
       // Access control
-      if (a.accessibleTo) setAccessibleTo(a.accessibleTo);
+      // An old row open to "everyone" is saved back as batch-wise: it reaches students only once assigned.
+      if (a.accessibleTo) setAccessibleTo(a.accessibleTo === 'everyone' && !a.isExternalAssignment ? 'batch_wise' : a.accessibleTo);
       if (a.selectedBatches) setSelectedBatches(a.selectedBatches);
       if (a.selectedStudents) setSelectedStudents(a.selectedStudents);
       if (a.isExternalAssignment !== undefined) setIsExternalAssignment(a.isExternalAssignment);

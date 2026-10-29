@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import CodingProblem, { CodingProblemTestCase, ICodingProblem, nextProblemNumber, ProblemScope } from '../models/CodingProblem';
+import CodingProblem, { CodingProblemTestCase, ICodingProblem, nextProblemNumber, ProblemScope, PROBLEM_PRODUCTS, availableTo } from '../models/CodingProblem';
 import {
   PB_DEFAULT_MARKS, PB_LANGUAGE_KEYS, PB_TOPIC_KEYS, normalizeDifficulty, normalizeLanguage, normalizeTopic,
 } from '../config/problemBankTaxonomy';
@@ -37,6 +37,8 @@ export interface ProblemInput {
   marks?: number;
   topics?: string[];
   tags?: string[];
+  /** Products it may be assigned in. Omitted or empty = both. */
+  audiences?: string[];
   companies?: string[];
   languages?: { language: string; starterCode?: string; headerCode?: string; footerCode?: string; solutionCode?: string }[];
   sqlSetup?: string;
@@ -135,6 +137,10 @@ export function normalizeInput(raw: ProblemInput) {
     rating: Number.isFinite(Number(raw.rating)) && Number(raw.rating) > 0 ? Math.round(Number(raw.rating)) : undefined,
     marks,
     topics, tags,
+    audiences: (() => {
+      const a = PROBLEM_PRODUCTS.filter((x) => (raw.audiences || []).includes(x));
+      return a.length ? a : [...PROBLEM_PRODUCTS];
+    })(),
     companies: cleanList(raw.companies),
     languages,
     sqlSetup: kind === 'sql' ? String(raw.sqlSetup || '') : '',
@@ -193,12 +199,12 @@ async function loadEditable(a: Actor, id: string) {
 /* ── Read ─────────────────────────────────────────────────────────────────────────────────── */
 
 export interface ListQuery {
-  q?: string; difficulty?: string; topic?: string; language?: string; company?: string;
+  q?: string; difficulty?: string; topic?: string; language?: string; company?: string; tag?: string; product?: string;
   scope?: 'all' | 'global' | 'tenant'; status?: string; verification?: string; source?: string;
   sort?: 'number' | 'newest' | 'updated' | 'title' | 'difficulty'; page?: number; limit?: number;
 }
 
-const LIST_FIELDS = 'scope tenantId number slug title kind difficulty rating marks topics tags companies status testCount sampleCount verification.status verification.checkedAt source updatedAt createdAt languages.language stats';
+const LIST_FIELDS = 'scope tenantId number slug title kind difficulty rating marks topics tags audiences companies status testCount sampleCount verification.status verification.checkedAt source updatedAt createdAt languages.language stats';
 
 export async function listProblems(a: Actor, q: ListQuery) {
   const and: any[] = [await visibilityFilter(a)];
@@ -208,6 +214,9 @@ export async function listProblems(a: Actor, q: ListQuery) {
   if (q.topic) and.push({ topics: { $all: String(q.topic).split(',') } });
   if (q.language) and.push({ 'languages.language': { $in: String(q.language).split(',') } });
   if (q.company) and.push({ companies: { $in: String(q.company).split(',') } });
+  // Tags are free text ("DSA", "dsa"…): an exact tag, any case.
+  if (q.tag) and.push({ tags: { $regex: `^${String(q.tag).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } });
+  if (q.product === 'lms' || q.product === 'careerpilot') and.push(availableTo(q.product));
   if (q.status) and.push({ status: { $in: String(q.status).split(',') } });
   else and.push({ status: { $ne: 'archived' } });
   if (q.verification) and.push({ 'verification.status': { $in: String(q.verification).split(',') } });

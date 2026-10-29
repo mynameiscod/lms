@@ -1,9 +1,11 @@
 import mongoose from 'mongoose';
+import * as XLSX from 'xlsx';
 import QuestionPool, { IQuestionPool, PoolKind, POOL_KINDS } from '../models/QuestionPool';
-import CodingProblem from '../models/CodingProblem';
+import CodingProblem, { isAvailableTo } from '../models/CodingProblem';
 import Question from '../models/Question';
 import Assignment from '../models/Assignment';
-import { Actor, PbError, listProblems, visibilityFilter } from './problemBankService';
+import { Actor, PbError, createProblem, listProblems, normalizeInput, visibilityFilter } from './problemBankService';
+import { parseImport } from './problemImportService';
 import { mcqProblem } from './mcqAnswerKey';
 
 /**
@@ -45,11 +47,13 @@ export async function resolveQuestions(a: Actor, kind: PoolKind, ids: string[]):
 
   if (kind === 'coding') {
     const rows = await CodingProblem.find({ _id: { $in: valid }, ...(await visibilityFilter(a)) })
-      .select('title difficulty topics marks status testCount').lean() as any[];
+      .select('title difficulty topics marks status testCount audiences').lean() as any[];
     for (const p of rows) {
       out.set(String(p._id), {
         id: String(p._id), title: p.title, difficulty: diff(p.difficulty), topics: p.topics || [], marks: p.marks || 0,
-        problem: p.status !== 'published' ? `Not published (${p.status})` : !(p.testCount > 0) ? 'Has no test cases' : '',
+        // Pool exams are LMS assignments: a problem kept for CareerPilot alone cannot be drawn into one.
+        problem: p.status !== 'published' ? `Not published (${p.status})` : !(p.testCount > 0) ? 'Has no test cases'
+          : !isAvailableTo(p, 'lms') ? 'Not available to the LMS' : '',
       });
     }
   } else {
@@ -199,7 +203,7 @@ export async function browseBank(a: Actor, id: string, q: any) {
 
   if (pool.kind === 'coding') {
     const r = await listProblems(a, {
-      q: q?.q, difficulty, topic: q?.topic, language: q?.language, status: 'published', sort: 'number', page, limit,
+      q: q?.q, difficulty, topic: q?.topic, tag: q?.tag, language: q?.language, status: 'published', product: 'lms', sort: 'number', page, limit,
     });
     const rows = (r.items as any[]).map(p => ({
       id: String(p._id), title: p.title, number: p.number, difficulty: diff(p.difficulty), topics: p.topics || [],
@@ -273,3 +277,102 @@ export async function importMcqs(a: Actor, id: string, rows: any) {
   await pool.save();
   return { imported: created.length, refused, pool: await view(a, pool) };
 }
+
+/* ── Spreadsheet imports (CSV or Excel) ───────────────────────────────────────────────────────── */
+
+const MAX_FILE_ROWS = 1000;
+/** Tag every imported coding problem carries, so the Problem Bank can list exam questions. */
+export const EXAM_TAG = 'Exam';
+const SHEET_FILE = /\.(csv|xlsx|xls)$/i;
+
+const sheetRows = (filename: string, base64: string): Record<string, string>[] => {
+  if (!SHEET_FILE.test(filename)) throw new PbError('Upload a .csv, .xlsx or .xls file.');
+  let wb: XLSX.WorkBook;
+  // raw: CSV cells exactly as typed — "0", "007" and "0 5" stay text, never numbers or dates.
+  try { wb = XLSX.read(Buffer.from(base64, 'base64'), { type: 'buffer', raw: true }); } catch { throw new PbError('That file could not be read as a spreadsheet.'); }
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  if (!sheet) throw new PbError('The file has no sheets.');
+  return XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '', raw: false });
+};
+
+/** Header names are matched loosely ("Option A", "option_a", "optionA"). */
+const looseKey = (s: string) => s.toLowerCase().replace(/[\s_-]+/g, '');
+
+/** MCQ rows from a CSV or Excel file, in the shape importMcqs takes. */
+export function mcqRowsFromFile(filename: string, base64: string): McqImportRow[] {
+  return sheetRows(filename, base64).map(raw => {
+    const row: Record<string, string> = {};
+    for (const [k, v] of Object.entries(raw)) row[looseKey(k)] = String(v ?? '').trim();
+    const pick = (...names: string[]) => { for (const n of names) { const v = row[looseKey(n)]; if (v) return v; } return ''; };
+    return {
+      question: pick('question', 'q'),
+      options: ['a', 'b', 'c', 'd', 'e', 'f'].map((l, i) => pick(`option${l}`, l, `option${i + 1}`)).filter(Boolean),
+      correct: pick('correct', 'correctAnswer', 'answer', 'correctOption', 'ans'),
+      difficulty: pick('difficulty', 'level'), marks: Number(pick('marks', 'mark', 'points')) || 1,
+      subject: pick('subject'), topic: pick('topic'), tags: pick('tags', 'tag').split(/[;|]/).map(t => t.trim()).filter(Boolean),
+    };
+  }).filter(r => r.question || r.options.length);
+}
+
+/**
+ * Coding problems from a CSV or Excel file (the Problem Bank's columns): each row becomes a
+ * published problem in this institute's bank, "Available to" the LMS only and tagged Exam, and is
+ * linked to this pool. LMS-only keeps it out of the CareerPilot practice library, and the LMS has
+ * no open library, so a student meets it only inside an exam paper. A row that could not be drawn
+ * into a paper as it stands (no tests, no sample, a test without its expected output…) is refused
+ * with the reason, never saved half-done.
+ */
+export async function importCoding(a: Actor, id: string, filename: string, base64: string) {
+  const pool = await load(a, id);
+  if (pool.kind !== 'coding') throw new PbError('Only a coding pool can import coding problems.');
+  if (!SHEET_FILE.test(filename)) throw new PbError('Upload a .csv, .xlsx or .xls file.');
+  const items: any[] = parseImport(filename, base64, undefined);
+  if (!items.length) throw new PbError('The file has no problems.');
+  if (items.length > MAX_FILE_ROWS) throw new PbError(`At most ${MAX_FILE_ROWS} problems per file — split it.`);
+  if (pool.items.length + items.length > MAX_ITEMS) throw new PbError(`A pool holds at most ${MAX_ITEMS} questions.`);
+
+  const refused: { row: number; reason: string }[] = [];
+  const created: mongoose.Types.ObjectId[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (item.__error) { refused.push({ row: i + 1, reason: item.__error }); continue; }
+    const n = normalizeInput(item);
+    const reasons = [...n.errors, ...n.publishErrors];
+    if (reasons.length) { refused.push({ row: i + 1, reason: reasons.join(' ') }); continue; }
+    const tags = n.clean.tags.some((t: string) => t.toLowerCase() === EXAM_TAG.toLowerCase()) ? n.clean.tags : [...n.clean.tags, EXAM_TAG];
+    try {
+      const { problem } = await createProblem(a, { ...item, tags, audiences: ['lms'], scope: 'tenant', status: 'published' }, 'import');
+      created.push(problem._id as mongoose.Types.ObjectId);
+    } catch (e: any) {
+      refused.push({ row: i + 1, reason: e?.message || 'Could not be saved' });
+    }
+  }
+  pool.items.push(...created.map(c => ({ refId: c, addedAt: new Date(), addedBy: a.userId })) as any);
+  await pool.save();
+  return { imported: created.length, refused, pool: await view(a, pool) };
+}
+
+/** One upload for either kind of pool: MCQs go to the Question Bank, coding problems to the Problem Bank. */
+export async function importFile(a: Actor, id: string, body: any) {
+  const pool = await load(a, id);
+  const filename = String(body?.filename || ''), data = String(body?.data || '');
+  if (!data) throw new PbError('Choose a file to import.');
+  // A file in the other kind's format gets told where it belongs, not a list of failed rows.
+  const head = new Set(Object.keys(sheetRows(filename, data)[0] || {}).map(looseKey));
+  const mcqFile = head.has('question') && (head.has('optiona') || head.has('a') || head.has('option1'));
+  const codingFile = head.has('title') && (head.has('statement') || head.has('description'));
+  if (pool.kind === 'coding' && mcqFile && !codingFile) {
+    throw new PbError('This file is in the MCQ format. Import it into an MCQ pool — this pool holds coding problems. Download the coding template for the coding format.');
+  }
+  if (pool.kind === 'mcq' && codingFile && !mcqFile) {
+    throw new PbError('This file is in the coding format. Import it into a coding pool — this pool holds MCQs. Download the MCQ template for the MCQ format.');
+  }
+  if (pool.kind === 'coding') return importCoding(a, id, filename, data);
+  const rows = mcqRowsFromFile(filename, data);
+  if (!rows.length) throw new PbError('No questions found. The first row must be the column names — download the template to see them.');
+  return importMcqs(a, id, rows);
+}
+
+export const MCQ_TEMPLATE = 'question,optionA,optionB,optionC,optionD,correct,difficulty,marks,subject,topic,tags\n'
+  + '"What does JVM stand for?",Java Virtual Machine,Java Variable Method,Joint Virtual Memory,,A,easy,1,Java,Basics,jvm;intro\n'
+  + '"Which keyword stops a Java variable from being reassigned?",static,final,const,volatile,B,medium,2,Java,Keywords,\n';

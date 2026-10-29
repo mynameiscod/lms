@@ -35,7 +35,8 @@ jest.mock('../models/Assignment', () => ({
   AssignmentStatus: { DRAFT: 'draft', PUBLISHED: 'published', ARCHIVED: 'archived' },
   default: { find: (q: any) => { lastAssignmentQuery = q; return chain([]); } },
 }));
-jest.mock('../models/Submission', () => ({ __esModule: true, SubmissionStatus: {}, default: {} }));
+jest.mock('../models/Submission', () => ({ __esModule: true, SubmissionStatus: {}, default: { distinct: async () => [] } }));
+jest.mock('../models/PoolExamAttempt', () => ({ __esModule: true, default: { distinct: async () => [] } }));
 jest.mock('../models/User', () => ({ __esModule: true, default: { findById: () => chain({ batchId: null }) } }));
 jest.mock('../models/Chapter', () => ({ __esModule: true, default: {} }));
 jest.mock('../services/emailService', () => ({ EmailService: class {} }));
@@ -131,6 +132,13 @@ describe('getStudentAssignments query', () => {
     const published = lastAssignmentQuery.$or.find((b: any) => b.status === 'published');
     expect(published.audience).toEqual({ $in: ['lms', 'all', null] });
     expect(published.unitCode).toEqual({ $in: [null, ''] });
+  });
+
+  it('"everyone" delivers to nobody: a published assignment needs a batch, a student or a schedule', async () => {
+    schedules = new Map();
+    await assignmentService.getStudentAssignments(new Types.ObjectId(), new Types.ObjectId(), new Types.ObjectId());
+    const published = lastAssignmentQuery.$or.find((b: any) => b.status === 'published');
+    expect(published.$or.some((c: any) => c.accessibleTo === 'everyone')).toBe(false);
   });
 
   it('the scheduled branch is untouched by audience', async () => {

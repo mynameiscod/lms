@@ -62,7 +62,7 @@ export const poolExamApi = {
   save: (attemptId: string, key: string, answer: { selected?: number[]; language?: string; code?: string }) =>
     axios.put(`${BASE}/attempts/${attemptId}/answers/${encodeURIComponent(key)}`, answer, h()).then(d),
   run: (attemptId: string, key: string, body: { language: string; code: string; mode?: 'samples' | 'custom'; stdin?: string }):
-    Promise<{ result?: PbJudgeResult; custom?: PbCustomResult; runsLeft: number }> =>
+    Promise<{ result?: PbJudgeResult; custom?: PbCustomResult; runsLeft: number; /** No real code runner connected: the output is a guess. */ simulated?: boolean }> =>
     axios.post(`${BASE}/attempts/${attemptId}/run/${encodeURIComponent(key)}`, body, h()).then(d),
   violation: (attemptId: string, type: 'tab_switch' | 'copy' | 'paste'): Promise<{ tabSwitches: number; maxWarnings?: number; submitted: boolean }> =>
     axios.post(`${BASE}/attempts/${attemptId}/violation`, { type }, h()).then(d),
@@ -97,7 +97,7 @@ export interface QuestionStat {
 export interface PaperItem {
   n: number; key: string; section: string; kind: 'mcq' | 'coding'; difficulty: string; marks: number; score: number | null;
   question?: string; options?: string[]; answerKey?: number[]; selected?: number[]; correct?: boolean | null;
-  title?: string; language?: string; code?: string; result?: { passed?: number; total?: number; verdict?: string } | null; runs?: number;
+  title?: string; language?: string; code?: string; result?: { passed?: number; total?: number; verdict?: string; simulated?: boolean } | null; runs?: number;
 }
 export interface PaperDetail {
   id: string; examTitle: string; student: { name: string; email: string }; attemptNumber: number; status: ResultStatus;

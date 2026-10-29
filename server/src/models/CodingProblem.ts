@@ -25,6 +25,28 @@ import mongoose, { Schema, Document } from 'mongoose';
  * driver that reads input, calls the candidate's function and prints the result.
  */
 export type ProblemScope = 'global' | 'tenant';
+
+/**
+ * WHO A PROBLEM MAY BE GIVEN TO, AND WHO SEES IT UNASKED.
+ *
+ * `audiences` says which products an admin may assign it in: CareerPilot, the LMS, or both. Being
+ * available is not being shown — a student meets a problem only when it is assigned (an exam pool, a
+ * problem set), with one exception: the CareerPilot practice library, which lists the problems
+ * tagged DSA and nothing else.
+ *
+ * Rows written before `audiences` existed have no field and are read as available to both, so
+ * nothing that worked before this field loses a problem.
+ */
+export const PROBLEM_PRODUCTS = ['lms', 'careerpilot'] as const;
+export type ProblemProduct = typeof PROBLEM_PRODUCTS[number];
+
+export const availableTo = (product: ProblemProduct) =>
+  ({ $or: [{ audiences: product }, { audiences: { $exists: false } }, { audiences: { $size: 0 } }] });
+export const isAvailableTo = (p: { audiences?: string[] | null }, product: ProblemProduct) =>
+  !p.audiences?.length || p.audiences.includes(product);
+
+/** The practice-library tag. Free-text tags were typed as "DSA", "dsa"…; all of them count. */
+export const DSA_TAG = /^dsa$/i;
 export type ProblemKind = 'code' | 'sql';
 export type ProblemStatus = 'draft' | 'published' | 'archived';
 export type VerificationStatus = 'unverified' | 'queued' | 'running' | 'verified' | 'failed' | 'stale';
@@ -64,6 +86,8 @@ export interface ICodingProblem extends Document {
   marks: number;
   topics: string[];
   tags: string[];
+  /** See PROBLEM_PRODUCTS. Missing or empty = both. */
+  audiences?: ProblemProduct[];
   companies: string[];
   languages: IProblemLanguage[];
   sqlSetup: string;
@@ -119,6 +143,7 @@ const CodingProblemSchema = new Schema<ICodingProblem>({
   marks: { type: Number, default: 20, min: 0 },
   topics: { type: [String], default: [] },
   tags: { type: [String], default: [] },
+  audiences: { type: [String], enum: PROBLEM_PRODUCTS as unknown as string[], default: undefined },
   companies: { type: [String], default: [] },
   languages: { type: [LanguageSchema], default: [] },
   sqlSetup: { type: String, default: '' },

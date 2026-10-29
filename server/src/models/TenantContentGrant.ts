@@ -21,6 +21,8 @@ export interface ITenantContentGrant extends Document {
   /** 'filter': granted when the problem matches these (empty list = no restriction on that field). */
   difficulties: string[];
   topics: string[];
+  /** Problem tags, matched in any case. */
+  tags: string[];
   /** 'pick': exactly these problems. */
   problemIds: mongoose.Types.ObjectId[];
   updatedBy?: string;
@@ -35,6 +37,7 @@ const TenantContentGrantSchema = new Schema<ITenantContentGrant>({
   mode: { type: String, required: true, enum: ['all', 'none', 'filter', 'pick'], default: 'all' },
   difficulties: { type: [String], default: [] },
   topics: { type: [String], default: [] },
+  tags: { type: [String], default: [] },
   problemIds: { type: [Schema.Types.ObjectId], default: [] },
   updatedBy: { type: String },
   updatedByName: { type: String },

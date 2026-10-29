@@ -5,6 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node src/server.ts",
+    "dev:runner": "node scripts/dev-code-runner.js",
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "ts-node src/seed.ts",

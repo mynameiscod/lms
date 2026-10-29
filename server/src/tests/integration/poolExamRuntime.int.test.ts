@@ -17,6 +17,8 @@ import assignmentService from '../../services/assignmentService';
 import * as pools from '../../services/questionPoolService';
 import * as exam from '../../services/poolExamRuntimeService';
 import { Actor } from '../../services/problemBankService';
+import { csvTemplate } from '../../services/problemImportService';
+import codeRunner from '../../services/codeRunnerService';
 
 const TENANT = '507f1f77bcf86cd799439b01';
 const ADMIN: Actor = { userId: '507f1f77bcf86cd799439a01', tenantId: TENANT, role: 'TENANT_ADMIN' };
@@ -202,5 +204,68 @@ describe('answering and handing in', () => {
     await exam.submit(s, attemptId);
     expect(await exam.overview(s, id)).toMatchObject({ canStart: false, blocked: 'no_attempts' });
     await expect(exam.start(s, id)).rejects.toThrow(/used all your attempts/);
+  });
+});
+
+describe('running code in the exam', () => {
+  /** A coding pool holding the sample problem: tests 1 sample + 2 hidden. */
+  const codingPool = async () => {
+    const p = await pools.createPool(ADMIN, { name: 'Code', kind: 'coding' });
+    const csv = csvTemplate({ complete: true });
+    await pools.importFile(ADMIN, p.id, { filename: 'c.csv', data: Buffer.from(csv).toString('base64') });
+    return p.id;
+  };
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it('checks the hidden tests too, showing only whether each passed and why, and says when no runner is connected', async () => {
+    const p = await codingPool();
+    const id = await publishedExam({ sections: [{ poolId: p, title: 'C', easy: 1 }] });
+    const s = await student('s@x.com');
+    const { attemptId } = await exam.start(s, id);
+    const key = (await exam.paper(s, attemptId)).items[0].key;
+
+    jest.spyOn(codeRunner, 'isRealExecutionEnabled').mockReturnValue(false);
+    jest.spyOn(codeRunner, 'executeBatch').mockResolvedValue([
+      { passed: true, output: '5', executionTime: 3 },
+      { passed: false, output: '', error: 'ZeroDivisionError: division by zero', executionTime: 2 },
+      { passed: false, output: '1', executionTime: 2 },
+    ] as any);
+    const r: any = await exam.run(s, attemptId, key, { language: 'python', code: 'a, b = map(int, input().split())\nprint(a // 0)\n' });
+
+    expect(r.simulated).toBe(true);
+    expect(r.result.total).toBe(3);
+    const [sample, crashed, wrong] = r.result.cases;
+    expect(sample).toMatchObject({ isSample: true, passed: true, input: '2 3', output: '5' });
+    expect(crashed).toMatchObject({ isSample: false, passed: false, verdict: 'RE', error: expect.stringMatching(/ZeroDivisionError/) });
+    expect(wrong).toMatchObject({ isSample: false, passed: false, verdict: 'WA' });
+    for (const h of [crashed, wrong]) {
+      expect(h.input).toBeUndefined();
+      expect(h.expectedOutput).toBeUndefined();
+      expect(h.output).toBeUndefined();
+    }
+  });
+
+  it('does not spend a run on the untouched starter code', async () => {
+    const p = await codingPool();
+    const id = await publishedExam({ sections: [{ poolId: p, title: 'C', easy: 1 }] });
+    const s = await student('s@x.com');
+    const { attemptId } = await exam.start(s, id);
+    const item = (await exam.paper(s, attemptId)).items[0] as any;
+    const starter = item.problem.languages.find((l: any) => l.language === 'python').starterCode;
+    await expect(exam.run(s, attemptId, item.key, { language: 'python', code: starter })).rejects.toThrow(/not changed the starter/);
+    expect((await PoolExamAttempt.findById(attemptId).lean() as any).items[0].runs).toBe(0);
+  });
+
+  it('flags a mark given without a real runner', async () => {
+    const p = await codingPool();
+    const id = await publishedExam({ sections: [{ poolId: p, title: 'C', easy: 1 }], showResultsImmediately: false });
+    const s = await student('s@x.com');
+    const { attemptId } = await exam.start(s, id);
+    const key = (await exam.paper(s, attemptId)).items[0].key;
+    await exam.saveAnswer(s, attemptId, key, { language: 'python', code: 'print(5)\n' });
+    jest.spyOn(codeRunner, 'isRealExecutionEnabled').mockReturnValue(false);
+    await exam.submit(s, attemptId);
+    expect((await graded(attemptId)).items[0].result.simulated).toBe(true);
   });
 });

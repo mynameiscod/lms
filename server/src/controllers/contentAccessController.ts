@@ -17,10 +17,12 @@ export const superAdminOnly = (req: any, res: Response, next: any) =>
 const sharedPublished = { scope: 'global', status: 'published' };
 
 async function describe(tenantId: string) {
-  const [grant, totals, topics, clause] = await Promise.all([
+  const [grant, totals, topics, tags, clause] = await Promise.all([
     getGrant(tenantId, 'practice_problems'),
     CodingProblem.aggregate([{ $match: sharedPublished }, { $group: { _id: '$difficulty', n: { $sum: 1 } } }]),
     CodingProblem.aggregate([{ $match: sharedPublished }, { $unwind: '$topics' }, { $group: { _id: '$topics', n: { $sum: 1 } } }, { $sort: { n: -1, _id: 1 } }, { $limit: 300 }]),
+    // Tags are free text, so "DSA" and "dsa" are one tag here.
+    CodingProblem.aggregate([{ $match: sharedPublished }, { $unwind: '$tags' }, { $group: { _id: { $toLower: '$tags' }, name: { $first: '$tags' }, n: { $sum: 1 } } }, { $sort: { n: -1, _id: 1 } }, { $limit: 200 }]),
     globalPracticeClause(tenantId),
   ]);
   const byDifficulty: Record<string, number> = { easy: 0, medium: 0, hard: 0 };
@@ -34,6 +36,7 @@ async function describe(tenantId: string) {
       isDefault: !g,
       difficulties: g?.difficulties || [],
       topics: g?.topics || [],
+      tags: g?.tags || [],
       problemIds: (g?.problemIds || []).map(String),
       updatedAt: g?.updatedAt || null,
       updatedByName: g?.updatedByName || null,
@@ -43,6 +46,7 @@ async function describe(tenantId: string) {
       total,
       byDifficulty,
       topics: (topics as any[]).filter((t) => t._id).map((t) => ({ name: String(t._id), count: t.n })),
+      tags: (tags as any[]).filter((t) => t._id).map((t) => ({ name: String(t.name), count: t.n })),
     },
   };
 }
@@ -59,7 +63,7 @@ export async function getContentAccess(req: Request, res: Response) {
   }
 }
 
-/** PUT /tenants/:tenantId/content-access/practice  { mode, difficulties?, topics?, problemIds? } */
+/** PUT /tenants/:tenantId/content-access/practice  { mode, difficulties?, topics?, tags?, problemIds? } */
 export async function savePracticeAccess(req: any, res: Response) {
   try {
     const { tenantId } = req.params;

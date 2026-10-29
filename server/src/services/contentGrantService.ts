@@ -13,6 +13,8 @@ export interface ContentGrantInput {
   mode: ContentGrantMode;
   difficulties?: string[];
   topics?: string[];
+  /** Problem tags, matched in any case ("DSA" shares "dsa" too). */
+  tags?: string[];
   problemIds?: string[];
 }
 
@@ -46,6 +48,7 @@ export async function globalPracticeClause(tenantId: string): Promise<Record<str
   const clause: Record<string, any> = { scope: 'global' };
   if (g.difficulties?.length) clause.difficulty = { $in: g.difficulties };
   if (g.topics?.length) clause.topics = { $in: g.topics };
+  if (g.tags?.length) clause.tags = { $in: g.tags.map((t: string) => new RegExp(`^${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')) };
   return clause;
 }
 
@@ -55,10 +58,11 @@ export function validateGrant(input: any): { ok: true; value: ContentGrantInput 
   const list = (v: any) => (Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : []);
   const difficulties = list(input.difficulties).filter((d) => ['easy', 'medium', 'hard'].includes(d));
   const topics = list(input.topics).slice(0, 300);
+  const tags = list(input.tags).slice(0, 100);
   const problemIds = list(input.problemIds).filter((id) => mongoose.isValidObjectId(id)).slice(0, 5000);
-  if (mode === 'filter' && !difficulties.length && !topics.length) return { ok: false, error: 'Pick at least one difficulty or topic for the filter.' };
+  if (mode === 'filter' && !difficulties.length && !topics.length && !tags.length) return { ok: false, error: 'Pick at least one difficulty, topic or tag for the filter.' };
   if (mode === 'pick' && !problemIds.length) return { ok: false, error: 'Pick at least one problem, or choose None.' };
-  return { ok: true, value: { mode: mode as ContentGrantMode, difficulties, topics, problemIds } };
+  return { ok: true, value: { mode: mode as ContentGrantMode, difficulties, topics, tags, problemIds } };
 }
 
 export async function saveGrant(
@@ -70,6 +74,7 @@ export async function saveGrant(
       mode: value.mode,
       difficulties: value.mode === 'filter' ? value.difficulties || [] : [],
       topics: value.mode === 'filter' ? value.topics || [] : [],
+      tags: value.mode === 'filter' ? value.tags || [] : [],
       problemIds: value.mode === 'pick' ? (value.problemIds || []).map((id) => new mongoose.Types.ObjectId(id)) : [],
       updatedBy: by.id, updatedByName: by.name,
     } },

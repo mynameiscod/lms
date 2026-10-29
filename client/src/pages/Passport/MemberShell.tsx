@@ -70,7 +70,9 @@ const SCREEN_NAMES: Record<string, string> = {
   '/careerpilot/readiness': 'Role readiness',
   '/careerpilot/placement': 'Placement readiness',
   '/careerpilot/progress': 'My progress',
-  '/careerpilot/rewards': 'Rewards',
+  '/careerpilot/rewards': 'Reward Store',
+  '/careerpilot/aptitude': 'Aptitude (coming soon)',
+  '/careerpilot/reasoning': 'Reasoning (coming soon)',
   '/careerpilot/interview': 'Mock interview',
   '/careerpilot/communication': 'Communication Lab',
   '/careerpilot/resume': 'Resume',
@@ -84,8 +86,8 @@ const SCREEN_NAMES: Record<string, string> = {
  *
  * A checkpoint's results belong to My 90 Days, which is where the checkpoint was opened and where
  * it returns to. Topics, courses and materials are roadmap work. A mock test is only opened from a company
- * profile. Coins, rewards, badges and the leaderboard are the My Progress story under four
- * other names. Without this table each of those screens leaves the rail blank, which is the
+ * profile. Coins, badges and the leaderboard are the My Progress story under other names
+ * (rewards has its own Reward Store item, so it lights that one). Without this table each of those screens leaves the rail blank, which is the
  * one moment navigation exists to answer: where am I?
  */
 const NAV_ALIASES: Array<[string, string]> = [
@@ -95,7 +97,6 @@ const NAV_ALIASES: Array<[string, string]> = [
   ['/careerpilot/material', '/careerpilot/roadmap'],
   ['/careerpilot/quiz', '/careerpilot/plan'],
   ['/careerpilot/mock-test', '/careerpilot/companies'],
-  ['/careerpilot/rewards', '/careerpilot/progress'],
   ['/careerpilot/coins', '/careerpilot/progress'],
   ['/careerpilot/achievements', '/careerpilot/progress'],
   ['/careerpilot/leaderboard', '/careerpilot/progress'],
@@ -275,7 +276,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
    * and it also makes the product look smaller than it is. It still navigates, because the
    * destination now explains itself rather than dead-ending.
    */
-  const navBtn = (label: string, icon: string, to: string, section?: MemberSection, feature?: CareerPilotFeatureKey, badge = 0) => {
+  const navBtn = (label: string, icon: string, to: string, section?: MemberSection, feature?: CareerPilotFeatureKey, badge = 0, tag = '') => {
     // Switched off by the institute's admin (Student Features, CareerPilot tab): not shown at all.
     if (feature && hiddenSet.has(feature)) return null;
     const locked = !!section && lockedSet.has(section);
@@ -296,6 +297,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         <span className="ic"><Icon name={icon} /></span>
         <span className="lbl">{label}</span>
         {badge > 0 && <span className="gd-nav-badge" aria-label={`${badge} new`}>{badge > 9 ? '9+' : badge}</span>}
+        {tag && <span className="gd-nav-tag">{tag}</span>}
         {locked && <span className="lk" aria-label="Membership"><i className="bi bi-lock-fill" /></span>}
       </button>
     );
@@ -380,9 +382,11 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap', 'roadmap')}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice', 'practice')}
           {navBtn('Coding Sets', 'codeSets', '/careerpilot/coding', 'coding', 'coding')}
-          {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
           {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'thinkingLab', 'thinkingLab')}
+          {/* Announced, not built yet: each opens a "Coming soon" page (ComingSoon.tsx). */}
+          {navBtn('Aptitude', 'calculator', '/careerpilot/aptitude', undefined, undefined, 0, 'Soon')}
+          {navBtn('Reasoning', 'puzzle', '/careerpilot/reasoning', undefined, undefined, 0, 'Soon')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication', 'communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview', 'interview')}
           {navBtn('Interview Experiences', 'experiences', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
@@ -398,6 +402,10 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {/* Membership-only like the rest of the product; the institute can also hide it
               (Student Features, CareerPilot tab). */}
           {navBtn('Industry Connect', 'handshake', '/careerpilot/industry-connect', 'industryConnect', 'industryConnect')}
+          {/* The tools end of the rail, in the order asked for: Playground, then Reward Store, then Help & Support.
+              Reward Store is part of My Progress (coins buy rewards), so it locks and hides with it. */}
+          {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
+          {navBtn('Reward Store', 'gift', '/careerpilot/rewards', 'progress', 'progress')}
           {/* Never locked behind membership: anyone signed in must be able to ask for help, including about paying. */}
           {navBtn('Help & Support', 'support', '/careerpilot/support', undefined, 'support', supportUnread)}
         </nav>

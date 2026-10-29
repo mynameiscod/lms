@@ -41,6 +41,8 @@ export interface PbProblemInput {
   marks: number;
   topics: string[];
   tags: string[];
+  /** Products it may be assigned in. Missing or empty = both. */
+  audiences: PbProduct[];
   companies: string[];
   languages: PbLanguage[];
   sqlSetup: string;
@@ -66,9 +68,14 @@ export interface PbProblem extends PbProblemInput {
   updatedAt: string;
 }
 
+export type PbProduct = 'lms' | 'careerpilot';
+export const PB_PRODUCTS: { key: PbProduct; label: string }[] = [{ key: 'careerpilot', label: 'CareerPilot' }, { key: 'lms', label: 'LMS' }];
+/** The CareerPilot practice library lists only problems tagged DSA (any case). */
+export const isDsa = (tags?: string[]) => (tags || []).some((t) => t.trim().toLowerCase() === 'dsa');
+
 export interface PbListItem {
   _id: string; scope: 'global' | 'tenant'; number: number; title: string; kind: string; difficulty: PbDifficulty;
-  marks: number; topics: string[]; tags: string[]; companies: string[]; status: string; testCount: number; sampleCount: number;
+  marks: number; topics: string[]; tags: string[]; audiences?: PbProduct[]; companies: string[]; status: string; testCount: number; sampleCount: number;
   verification: { status: string; checkedAt?: string }; source: string; updatedAt: string; languages: string[]; editable: boolean;
 }
 
@@ -140,7 +147,7 @@ export const pbError = (e: any, fallback = 'Something went wrong') => {
 /** A blank problem, as the studio starts one. */
 export const emptyProblem = (): PbProblemInput => ({
   title: '', kind: 'code', statement: '', inputFormat: '', outputFormat: '', constraints: '', hints: [], editorial: '',
-  difficulty: 'easy', marks: 10, topics: [], tags: [], companies: [],
+  difficulty: 'easy', marks: 10, topics: [], tags: [], audiences: ['lms', 'careerpilot'], companies: [],
   languages: [], sqlSetup: '', limits: { timeMs: 2000, memoryMb: 256 }, comparisonMode: 'lenient',
   tests: [{ input: '', expectedOutput: '', isSample: true, weight: 1, explanation: '' }],
 });

@@ -11,7 +11,7 @@ import * as ctrl from '../controllers/problemDeliveryController';
 const router = express.Router();
 router.use(authMiddleware, tenantResolver);
 
-// The practice library: every published problem, chosen by the member. Facets before :problemId.
+// The practice library: published problems tagged DSA and available to CareerPilot, chosen by the member. Facets before :problemId.
 router.get('/library', ctrl.libraryList);
 router.get('/library/facets', ctrl.libraryFacets);
 router.get('/library/:problemId', ctrl.libraryProblem);

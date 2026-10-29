@@ -126,7 +126,9 @@ export function parseImport(filename: string, base64: string | undefined, text: 
     return arr.map(fromJson);
   }
   if (/\.(csv|xlsx|xls)$/.test(name)) {
-    const wb = XLSX.read(Buffer.from(base64 || '', 'base64'), { type: 'buffer', raw: false });
+    // raw: a CSV cell is kept exactly as typed. Without it the reader guesses types, so "007"
+    // loses its zeros and a test input like "0 5" becomes the date 5/1/00.
+    const wb = XLSX.read(Buffer.from(base64 || '', 'base64'), { type: 'buffer', raw: true });
     const sheet = wb.Sheets[wb.SheetNames[0]];
     if (!sheet) throw new PbError('The file has no sheets.');
     const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '', raw: false });
@@ -197,14 +199,18 @@ export const SAMPLE_PROBLEM: ProblemInput = {
   ],
 };
 
-export function csvTemplate(): string {
+/**
+ * `complete`: every expected output filled in. A pool import publishes rows as they are and so
+ * cannot generate a blank output from the reference solution, as the bank's own import does.
+ */
+export function csvTemplate(opts: { complete?: boolean } = {}): string {
   const headers = ['title', 'difficulty', 'marks', 'topics', 'tags', 'companies', 'statement', 'input_format', 'output_format',
     'constraints', 'hints', 'sample_input_1', 'sample_output_1', 'test_input_1', 'test_output_1', 'test_input_2', 'test_output_2',
     'starter_python', 'solution_python', 'solution_java'];
   const s = SAMPLE_PROBLEM;
   const java = s.languages![1].solutionCode!;
   const values = [s.title, s.difficulty, String(s.marks), 'basics|math', 'warm-up', '', s.statement!, s.inputFormat!, s.outputFormat!,
-    s.constraints!, s.hints!.join('||'), '2 3', '5', '-4 10', '6', '1000000000 1000000000', '',
+    s.constraints!, s.hints!.join('||'), '2 3', '5', '-4 10', '6', '1000000000 1000000000', opts.complete ? '2000000000' : '',
     s.languages![0].starterCode!, s.languages![0].solutionCode!, java];
   const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
   return `${headers.join(',')}\n${values.map(esc).join(',')}\n`;

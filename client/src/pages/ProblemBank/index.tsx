@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { problemBankApi, pbError, PbListItem, PbMeta } from '../../api/problemBankApi';
+import { isDsa, PB_PRODUCTS, problemBankApi, pbError, PbListItem, PbMeta } from '../../api/problemBankApi';
 import { DifficultyPill, LANG_SHORT, Menu, ScopePill, StatusPill, VerifyBadge, relTime, useToast } from './shared';
 import ImportDialog from './ImportDialog';
 import AiDialog from './AiDialog';
@@ -36,6 +36,9 @@ const ProblemBank: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [language, setLanguage] = useState('');
   const [company, setCompany] = useState('');
+  const [tag, setTag] = useState('');
+  const [debouncedTag, setDebouncedTag] = useState('');
+  const [product, setProduct] = useState('');
   const [scope, setScope] = useState<'all' | 'global' | 'tenant'>('all');
   const [status, setStatus] = useState('');
   const [verification, setVerification] = useState('');
@@ -46,7 +49,8 @@ const ProblemBank: React.FC = () => {
   const [bulkFailed, setBulkFailed] = useState<{ id: string; title: string; reason: string }[]>([]);
 
   useEffect(() => { const t = setTimeout(() => setDebouncedQ(q), 300); return () => clearTimeout(t); }, [q]);
-  useEffect(() => { setPage(1); }, [debouncedQ, difficulty, topic, language, company, scope, status, verification, sort]);
+  useEffect(() => { const t = setTimeout(() => setDebouncedTag(tag.trim()), 300); return () => clearTimeout(t); }, [tag]);
+  useEffect(() => { setPage(1); }, [debouncedQ, difficulty, topic, language, company, debouncedTag, product, scope, status, verification, sort]);
 
   const loadMeta = useCallback(() => problemBankApi.meta().then(setMeta).catch((e) => setErr(pbError(e, 'Could not load the Problem Bank.'))), []);
   useEffect(() => { loadMeta(); }, [loadMeta]);
@@ -56,16 +60,16 @@ const ProblemBank: React.FC = () => {
     try {
       const r = await problemBankApi.list({
         q: debouncedQ || undefined, difficulty: difficulty.join(',') || undefined, topic: topic || undefined,
-        language: language || undefined, company: company || undefined, scope, status: status || undefined,
+        language: language || undefined, company: company || undefined, tag: debouncedTag || undefined, product: product || undefined, scope, status: status || undefined,
         verification: verification || undefined, sort, page, limit: PAGE,
       });
       setRows(r.items); setTotal(r.total); setPages(r.pages); setErr('');
     } catch (e) { setErr(pbError(e, 'Could not load problems.')); }
     setLoading(false);
-  }, [debouncedQ, difficulty, topic, language, company, scope, status, verification, sort, page]);
+  }, [debouncedQ, difficulty, topic, language, company, debouncedTag, product, scope, status, verification, sort, page]);
   useEffect(() => { load(); }, [load]);
   // A selection belongs to the rows on screen; a new page or filter starts it again.
-  useEffect(() => { setSelected(new Set()); }, [debouncedQ, difficulty, topic, language, company, scope, status, verification, sort, page]);
+  useEffect(() => { setSelected(new Set()); }, [debouncedQ, difficulty, topic, language, company, debouncedTag, product, scope, status, verification, sort, page]);
 
   const refresh = () => { load(); loadMeta(); };
   const topicLabel = useMemo(() => Object.fromEntries((meta?.topics || []).map((t) => [t.key, t.label])), [meta]);
@@ -191,6 +195,14 @@ const ProblemBank: React.FC = () => {
               {s.companies.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           )}
+          <div className="pb-tagfilter">
+            <input className="pb-input" list="pb-tag-choices" placeholder="Tag, e.g. DSA" value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Tag" />
+            <datalist id="pb-tag-choices"><option value="DSA" /></datalist>
+          </div>
+          <select className="pb-select" value={product} onChange={(e) => setProduct(e.target.value)} aria-label="Available to">
+            <option value="">Any product</option>
+            {PB_PRODUCTS.map((x) => <option key={x.key} value={x.key}>Available to {x.label}</option>)}
+          </select>
           <select className="pb-select" value={scope} onChange={(e) => setScope(e.target.value as any)} aria-label="Owner">
             <option value="all">All owners</option>
             <option value="global">CodeBegun library</option>
@@ -298,6 +310,9 @@ const ProblemBank: React.FC = () => {
                       <td className="pb-title-cell">
                         <div className="t">{p.title}{p.kind === 'sql' && <span className="pb-tag" style={{ marginLeft: 6 }}>SQL</span>}</div>
                         <div className="sub">
+                          {isDsa(p.tags) && (!p.audiences?.length || p.audiences.includes('careerpilot'))
+                            && <span className="pb-tag pb-tag-dsa" title="Open in the CareerPilot practice library"><i className="fa-solid fa-dumbbell" /> DSA practice</span>}
+                          {p.audiences?.length === 1 && <span className="pb-tag pb-tag-product" title="The only product that may assign it">{p.audiences[0] === 'lms' ? 'LMS only' : 'CareerPilot only'}</span>}
                           {p.topics.slice(0, 3).map((t) => <span key={t} className="pb-tag">{topicLabel[t] || t}</span>)}
                           {p.topics.length > 3 && <span className="pb-faint" style={{ fontSize: 12 }}>+{p.topics.length - 3}</span>}
                           {p.companies.slice(0, 2).map((c) => <span key={c} className="pb-tag" style={{ background: '#fdf4ff', color: '#86198f' }}>{c}</span>)}

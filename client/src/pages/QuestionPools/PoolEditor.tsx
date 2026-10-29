@@ -1,48 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { questionPoolApi, Pool, BankRow, McqImportRow } from '../../api/questionPoolApi';
+import { questionPoolApi, Pool, BankRow } from '../../api/questionPoolApi';
 import { pbError } from '../../api/problemBankApi';
 import { DifficultyPill, Modal, useToast } from '../ProblemBank/shared';
 import { KIND_LABEL, LevelLine } from './index';
 import '../ProblemBank/ProblemBank.css';
 import './questionPools.css';
-
-/** One CSV line into fields, honouring quotes and doubled quotes inside them. */
-const csvFields = (line: string): string[] => {
-  const out: string[] = []; let cur = ''; let quoted = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (quoted) {
-      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') quoted = false; else cur += c;
-    } else if (c === '"') quoted = true;
-    else if (c === ',') { out.push(cur); cur = ''; } else cur += c;
-  }
-  out.push(cur);
-  return out.map(f => f.trim());
-};
-
-/** Header names are matched loosely, the way the Question Bank's own import matches them. */
-const norm = (s: string) => s.toLowerCase().replace(/[\s_]+/g, '');
-const CSV_TEMPLATE = 'question,optionA,optionB,optionC,optionD,correct,difficulty,marks,subject,topic,tags\n'
-  + '"What does JVM stand for?",Java Virtual Machine,Java Variable Method,Joint Virtual Memory,,A,easy,1,Java,Basics,jvm;intro\n';
-
-const parseMcqCsv = (text: string): McqImportRow[] => {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (lines.length < 2) return [];
-  const head = csvFields(lines[0]).map(norm);
-  return lines.slice(1).map(l => {
-    const f = csvFields(l);
-    const pick = (...names: string[]) => { for (const n of names) { const i = head.indexOf(norm(n)); if (i >= 0 && f[i]) return f[i]; } return ''; };
-    return {
-      question: pick('question', 'q'),
-      options: [pick('optionA', 'a', 'option1'), pick('optionB', 'b', 'option2'), pick('optionC', 'c', 'option3'),
-        pick('optionD', 'd', 'option4'), pick('optionE', 'e', 'option5')].filter(Boolean),
-      correct: pick('correct', 'correctAnswer', 'answer', 'correctOption', 'ans'),
-      difficulty: pick('difficulty', 'level'), marks: Number(pick('marks', 'mark', 'points')) || 1,
-      subject: pick('subject'), topic: pick('topic'), tags: pick('tags', 'tag').split(';').map(t => t.trim()).filter(Boolean),
-    };
-  });
-};
 
 /** The bank, browsed from inside the pool. Rows already in it, or that could not be drawn, cannot be ticked. */
 const BankPicker: React.FC<{ pool: Pool; onClose: () => void; onAdded: (p: Pool, msg: string) => void }> = ({ pool, onClose, onAdded }) => {
@@ -137,49 +100,103 @@ const BankPicker: React.FC<{ pool: Pool; onClose: () => void; onAdded: (p: Pool,
   );
 };
 
-/** MCQs from a spreadsheet: written into the Question Bank and linked to this pool. */
-const CsvImport: React.FC<{ pool: Pool; onClose: () => void; onDone: (p: Pool, msg: string, close: boolean) => void }> = ({ pool, onClose, onDone }) => {
-  const [rows, setRows] = useState<McqImportRow[] | null>(null);
-  const [file, setFile] = useState('');
+/** A spreadsheet the server can read (CSV or Excel), sent base64. */
+const SHEET = /\.(csv|xlsx|xls)$/i;
+const MAX_FILE_MB = 7;
+const asBase64 = (f: File) => new Promise<string>((resolve, reject) => {
+  const r = new FileReader();
+  r.onload = () => resolve(String(r.result).split(',')[1] || '');
+  r.onerror = () => reject(new Error('That file could not be read.'));
+  r.readAsDataURL(f);
+});
+
+/** The two spreadsheet formats, one per pool kind. Both are offered so the other one is never a mystery. */
+const FORMATS: { kind: 'mcq' | 'coding'; label: string; pool: string; icon: string; columns: React.ReactNode }[] = [
+  {
+    kind: 'mcq', label: 'MCQ', pool: 'MCQ pools', icon: 'fa-solid fa-list-check',
+    columns: <><b>question, optionA–optionD, correct</b> (a letter like A, or the answer text); optional <b>difficulty, marks, subject, topic, tags</b>.</>,
+  },
+  {
+    kind: 'coding', label: 'Coding', pool: 'coding pools', icon: 'fa-solid fa-code',
+    columns: <><b>title, statement, difficulty, marks</b>, <b>sample_input_1 / sample_output_1</b>, hidden tests <b>test_input_1 / test_output_1</b>…, and <b>starter_python</b>, <b>starter_java</b>… per language.</>,
+  },
+];
+
+/**
+ * Questions from a CSV or Excel file, into this pool. MCQs are saved in the Question Bank; coding
+ * problems in the Problem Bank as published, LMS-only exam questions (tagged Exam), so students
+ * never see them outside an exam paper.
+ */
+const FileImport: React.FC<{ pool: Pool; onClose: () => void; onDone: (p: Pool, msg: string, close: boolean) => void }> = ({ pool, onClose, onDone }) => {
+  const coding = pool.kind === 'coding';
+  const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [refused, setRefused] = useState<{ row: number; reason: string }[]>([]);
 
-  const read = async (f: File | undefined) => {
+  const pick = (f: File | undefined) => {
+    setErr(''); setRefused([]); setFile(null);
     if (!f) return;
-    setErr(''); setRefused([]); setFile(f.name);
-    const parsed = parseMcqCsv(await f.text());
-    if (!parsed.length) { setRows(null); setErr('No questions found. The first row must be the column names — download the template to see them.'); return; }
-    setRows(parsed);
+    if (!SHEET.test(f.name)) { setErr('Choose a .csv, .xlsx or .xls file.'); return; }
+    if (f.size > MAX_FILE_MB * 1024 * 1024) { setErr(`The file is larger than ${MAX_FILE_MB} MB — split it into smaller files.`); return; }
+    setFile(f);
   };
-  const template = () => {
-    const url = URL.createObjectURL(new Blob([CSV_TEMPLATE], { type: 'text/csv' }));
-    const a = document.createElement('a'); a.href = url; a.download = 'mcq-pool-template.csv'; a.click(); URL.revokeObjectURL(url);
-  };
-  const run = () => {
-    if (!rows) return;
+  const run = async () => {
+    if (!file) return;
     setBusy(true); setErr('');
-    questionPoolApi.importMcqs(pool.id, rows).then(r => {
+    try {
+      const r = await questionPoolApi.importFile(pool.id, file.name, await asBase64(file));
       // Refused rows keep the dialog open so the admin can read which ones and why.
-      if (r.refused.length) { setRefused(r.refused); setRows(null); setBusy(false); }
-      onDone(r.pool, `${r.imported} imported into the Question Bank and this pool${r.refused.length ? ` · ${r.refused.length} rows refused` : ''}`, !r.refused.length);
-    }).catch(e => { setErr(pbError(e)); setBusy(false); });
+      if (r.refused.length) { setRefused(r.refused); setFile(null); }
+      setBusy(false);
+      const where = coding ? 'the Problem Bank (LMS only, tagged Exam)' : 'the Question Bank';
+      const refusedNote = r.refused.length ? ` · ${r.refused.length} row${r.refused.length === 1 ? '' : 's'} refused` : '';
+      onDone(r.pool, `${r.imported} imported into ${where} and this pool${refusedNote}`, !r.refused.length);
+    } catch (e) { setErr(pbError(e)); setBusy(false); }
   };
 
   return (
-    <Modal title="Import MCQs from a spreadsheet" onClose={onClose} footer={<>
-      <button className="pb-btn pb-btn-ghost" onClick={template}><i className="fa-solid fa-download" /> Template</button>
+    <Modal title={`Import ${coding ? 'coding problems' : 'MCQs'} from a spreadsheet`} onClose={onClose} footer={<>
       <span className="pb-grow" />
       <button className="pb-btn" onClick={onClose}>{refused.length ? 'Done' : 'Cancel'}</button>
-      <button className="pb-btn pb-btn-primary" disabled={!rows?.length || busy} onClick={run}>{busy ? 'Importing…' : `Import ${rows?.length || ''}`}</button>
+      <button className="pb-btn pb-btn-primary" disabled={!file || busy} onClick={run}>{busy ? 'Importing…' : 'Import'}</button>
     </>}>
       <p className="pb-muted" style={{ marginTop: 0 }}>
-        A CSV with the columns <b>question, optionA–optionD, correct</b> (a letter like <b>A</b>, or the answer text), and optionally
-        <b> difficulty, marks, subject, topic, tags</b>. The questions are saved in the Question Bank, so other pools and quizzes can use them too.
+        There are two formats, one for each kind of pool. This is {coding ? 'a coding pool' : 'an MCQ pool'}, so use the
+        <b> {coding ? 'coding' : 'MCQ'} format</b>. Both open in Excel or Google Sheets and can be saved as CSV or Excel.
       </p>
+      <div className="qp-formats">
+        {FORMATS.map(f => {
+          const mine = f.kind === pool.kind;
+          return (
+            <div key={f.kind} className={`qp-format${mine ? ' is-mine' : ''}`}>
+              <div className="qp-format-head">
+                <i className={f.icon} />
+                <b className="pb-grow">{f.label}</b>
+                {mine ? <span className="pb-tag qp-format-tag">This pool</span> : <span className="pb-faint qp-format-tag">For {f.pool}</span>}
+              </div>
+              <div className="qp-format-cols">{f.columns}</div>
+              <button className={`pb-btn pb-btn-sm${mine ? ' pb-btn-primary' : ''}`}
+                onClick={() => questionPoolApi.downloadTemplate(f.kind).catch(e => setErr(pbError(e)))}>
+                <i className="fa-solid fa-download" /> {f.label} template
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <div className="pb-alert pb-alert-info qp-import-note">
+        <i className="fa-solid fa-eye-slash" />
+        <span>{coding
+          ? <>Imported problems are saved in the Problem Bank as <b>LMS only</b> and tagged <b>Exam</b>. Students never see them in a practice library — only in an exam paper that draws them.</>
+          : <>Imported MCQs are saved in the Question Bank. Students see them only in an exam or quiz that uses them.</>}</span>
+      </div>
       {err && <div className="pb-alert pb-alert-bad">{err}</div>}
-      <input type="file" accept=".csv,text/csv" onChange={e => read(e.target.files?.[0])} />
-      {rows && <div className="pb-alert pb-alert-info">{file}: {rows.length} questions ready to import.</div>}
+      <label className="qp-file">
+        <input type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+          onChange={e => { pick(e.target.files?.[0]); e.target.value = ''; }} />
+        <i className="fa-solid fa-file-arrow-up" />
+        <span>{file ? <><b>{file.name}</b> · {(file.size / 1024).toFixed(0)} KB</> : 'Choose a CSV or Excel file'}</span>
+      </label>
       {!!refused.length && (
         <div className="pb-alert pb-alert-warn">
           <b>These rows were not imported:</b>
@@ -253,7 +270,7 @@ const PoolEditor: React.FC = () => {
               <p><span className="pb-tag">{KIND_LABEL[pool.kind]}</span> {pool.description}</p>
             </>}
           </div>
-          {!coding && <button className="pb-btn" onClick={() => setImporting(true)}><i className="fa-solid fa-file-csv" /> Import CSV</button>}
+          <button className="pb-btn" onClick={() => setImporting(true)}><i className="fa-solid fa-file-csv" /> Import CSV / Excel</button>
           <button className="pb-btn pb-btn-primary" onClick={() => setPicker(true)}><i className="fa-solid fa-plus" /> Add from {coding ? 'Problem Bank' : 'Question Bank'}</button>
         </div>
 
@@ -286,8 +303,8 @@ const PoolEditor: React.FC = () => {
           <div className="pb-card pb-empty">
             <h2>This pool is empty</h2>
             <p className="pb-muted">{coding
-              ? 'Add published problems from the Problem Bank. Only problems with test cases can be added, because they are marked automatically.'
-              : 'Add MCQs from the Question Bank, or import a spreadsheet.'}</p>
+              ? 'Add published problems from the Problem Bank, or import a CSV / Excel file of new ones. Every problem needs test cases, because answers are marked automatically.'
+              : 'Add MCQs from the Question Bank, or import a CSV / Excel file.'}</p>
           </div>
         ) : (
           <div className="pb-card pb-table-wrap">
@@ -310,7 +327,7 @@ const PoolEditor: React.FC = () => {
         <p className="pb-faint" style={{ fontSize: 12.5, marginTop: 10 }}><LevelLine c={pool.counts} /> · questions are linked from the bank, so edits made there show here and in every exam that uses this pool.</p>
       </div>
       {picker && <BankPicker pool={pool} onClose={() => setPicker(false)} onAdded={(p, msg) => { setPool(p); setPicker(false); toast.show(msg); }} />}
-      {importing && <CsvImport pool={pool} onClose={() => setImporting(false)} onDone={(p, msg, close) => { setPool(p); toast.show(msg); if (close) setImporting(false); }} />}
+      {importing && <FileImport pool={pool} onClose={() => setImporting(false)} onDone={(p, msg, close) => { setPool(p); toast.show(msg); if (close) setImporting(false); }} />}
       {toast.node}
     </div>
   );

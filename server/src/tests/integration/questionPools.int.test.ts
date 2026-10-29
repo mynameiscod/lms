@@ -157,6 +157,16 @@ describe('coding pools', () => {
     expect(stored.correctAnswers).toEqual(['4']);
   });
 
+  it('says where a file in the other format belongs instead of refusing every row', async () => {
+    const coding = await pools.createPool(ME, { name: 'Code', kind: 'coding' });
+    const mcqs = await pools.createPool(ME, { name: 'Quiz', kind: 'mcq' });
+    const b64 = (s: string) => Buffer.from(s).toString('base64');
+    await expect(pools.importFile(ME, coding.id, { filename: 'm.csv', data: b64(pools.MCQ_TEMPLATE) })).rejects.toThrow(/MCQ format\. Import it into an MCQ pool/);
+    await expect(pools.importFile(ME, mcqs.id, { filename: 'c.csv', data: b64(csvTemplate({ complete: true })) })).rejects.toThrow(/coding format\. Import it into a coding pool/);
+    // The MCQ template itself imports cleanly into an MCQ pool.
+    expect((await pools.importFile(ME, mcqs.id, { filename: 'm.csv', data: b64(pools.MCQ_TEMPLATE) })).imported).toBe(2);
+  });
+
   it('refuses a file that is not a spreadsheet', async () => {
     const pool = await pools.createPool(ME, { name: 'C', kind: 'coding' });
     await expect(pools.importFile(ME, pool.id, { filename: 'notes.txt', data: 'aGk=' })).rejects.toThrow(/\.csv, \.xlsx or \.xls/);

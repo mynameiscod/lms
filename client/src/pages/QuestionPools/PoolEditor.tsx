@@ -110,6 +110,18 @@ const asBase64 = (f: File) => new Promise<string>((resolve, reject) => {
   r.readAsDataURL(f);
 });
 
+/** The two spreadsheet formats, one per pool kind. Both are offered so the other one is never a mystery. */
+const FORMATS: { kind: 'mcq' | 'coding'; label: string; pool: string; icon: string; columns: React.ReactNode }[] = [
+  {
+    kind: 'mcq', label: 'MCQ', pool: 'MCQ pools', icon: 'fa-solid fa-list-check',
+    columns: <><b>question, optionA–optionD, correct</b> (a letter like A, or the answer text); optional <b>difficulty, marks, subject, topic, tags</b>.</>,
+  },
+  {
+    kind: 'coding', label: 'Coding', pool: 'coding pools', icon: 'fa-solid fa-code',
+    columns: <><b>title, statement, difficulty, marks</b>, <b>sample_input_1 / sample_output_1</b>, hidden tests <b>test_input_1 / test_output_1</b>…, and <b>starter_python</b>, <b>starter_java</b>… per language.</>,
+  },
+];
+
 /**
  * Questions from a CSV or Excel file, into this pool. MCQs are saved in the Question Bank; coding
  * problems in the Problem Bank as published, LMS-only exam questions (tagged Exam), so students
@@ -145,23 +157,33 @@ const FileImport: React.FC<{ pool: Pool; onClose: () => void; onDone: (p: Pool, 
 
   return (
     <Modal title={`Import ${coding ? 'coding problems' : 'MCQs'} from a spreadsheet`} onClose={onClose} footer={<>
-      <button className="pb-btn pb-btn-ghost" onClick={() => questionPoolApi.downloadTemplate(pool.kind).catch(e => setErr(pbError(e)))}><i className="fa-solid fa-download" /> Template</button>
       <span className="pb-grow" />
       <button className="pb-btn" onClick={onClose}>{refused.length ? 'Done' : 'Cancel'}</button>
       <button className="pb-btn pb-btn-primary" disabled={!file || busy} onClick={run}>{busy ? 'Importing…' : 'Import'}</button>
     </>}>
-      {coding ? (
-        <p className="pb-muted" style={{ marginTop: 0 }}>
-          A CSV or Excel file, one problem per row, with the columns <b>title, statement, difficulty, marks</b>, at least one
-          <b> sample_input_1 / sample_output_1</b> and your hidden tests as <b>test_input_1 / test_output_1</b>…, and
-          <b> starter_python</b>, <b>starter_java</b>… for the languages allowed. Download the template for a worked row.
-        </p>
-      ) : (
-        <p className="pb-muted" style={{ marginTop: 0 }}>
-          A CSV or Excel file with the columns <b>question, optionA–optionD, correct</b> (a letter like <b>A</b>, or the answer text), and optionally
-          <b> difficulty, marks, subject, topic, tags</b>.
-        </p>
-      )}
+      <p className="pb-muted" style={{ marginTop: 0 }}>
+        There are two formats, one for each kind of pool. This is {coding ? 'a coding pool' : 'an MCQ pool'}, so use the
+        <b> {coding ? 'coding' : 'MCQ'} format</b>. Both open in Excel or Google Sheets and can be saved as CSV or Excel.
+      </p>
+      <div className="qp-formats">
+        {FORMATS.map(f => {
+          const mine = f.kind === pool.kind;
+          return (
+            <div key={f.kind} className={`qp-format${mine ? ' is-mine' : ''}`}>
+              <div className="qp-format-head">
+                <i className={f.icon} />
+                <b className="pb-grow">{f.label}</b>
+                {mine ? <span className="pb-tag qp-format-tag">This pool</span> : <span className="pb-faint qp-format-tag">For {f.pool}</span>}
+              </div>
+              <div className="qp-format-cols">{f.columns}</div>
+              <button className={`pb-btn pb-btn-sm${mine ? ' pb-btn-primary' : ''}`}
+                onClick={() => questionPoolApi.downloadTemplate(f.kind).catch(e => setErr(pbError(e)))}>
+                <i className="fa-solid fa-download" /> {f.label} template
+              </button>
+            </div>
+          );
+        })}
+      </div>
       <div className="pb-alert pb-alert-info qp-import-note">
         <i className="fa-solid fa-eye-slash" />
         <span>{coding

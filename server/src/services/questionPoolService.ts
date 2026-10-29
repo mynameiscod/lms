@@ -356,6 +356,16 @@ export async function importFile(a: Actor, id: string, body: any) {
   const pool = await load(a, id);
   const filename = String(body?.filename || ''), data = String(body?.data || '');
   if (!data) throw new PbError('Choose a file to import.');
+  // A file in the other kind's format gets told where it belongs, not a list of failed rows.
+  const head = new Set(Object.keys(sheetRows(filename, data)[0] || {}).map(looseKey));
+  const mcqFile = head.has('question') && (head.has('optiona') || head.has('a') || head.has('option1'));
+  const codingFile = head.has('title') && (head.has('statement') || head.has('description'));
+  if (pool.kind === 'coding' && mcqFile && !codingFile) {
+    throw new PbError('This file is in the MCQ format. Import it into an MCQ pool — this pool holds coding problems. Download the coding template for the coding format.');
+  }
+  if (pool.kind === 'mcq' && codingFile && !mcqFile) {
+    throw new PbError('This file is in the coding format. Import it into a coding pool — this pool holds MCQs. Download the MCQ template for the MCQ format.');
+  }
   if (pool.kind === 'coding') return importCoding(a, id, filename, data);
   const rows = mcqRowsFromFile(filename, data);
   if (!rows.length) throw new PbError('No questions found. The first row must be the column names — download the template to see them.');

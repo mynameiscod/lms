@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as svc from '../services/questionPoolService';
 import { Actor } from '../services/problemBankService';
+import { checkPoolExam } from '../services/poolExamService';
 
 const actor = (req: Request): Actor => ({
   userId: String((req as any).user?.id || ''),
@@ -26,3 +27,4 @@ export const addQuestions = wrap(async (req, res) => { res.json({ success: true,
 export const removeQuestions = wrap(async (req, res) => { res.json({ success: true, data: await svc.removeQuestions(actor(req), req.params.id, req.body?.ids) }); });
 export const browseBank = wrap(async (req, res) => { res.json({ success: true, data: await svc.browseBank(actor(req), req.params.id, req.query) }); });
 export const importMcqs = wrap(async (req, res) => { res.json({ success: true, data: await svc.importMcqs(actor(req), req.params.id, req.body?.rows) }); });
+export const checkExam = wrap(async (req, res) => { res.json({ success: true, data: await checkPoolExam(actor(req), req.body?.sections) }); });

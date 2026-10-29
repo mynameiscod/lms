@@ -14,6 +14,7 @@ import { studentSchedulesMap, policyFromRow } from './assessmentDeliveryService'
 import { computeStatus, DEFAULT_POLICY } from './deadlinePolicyService';
 import { Types } from 'mongoose';
 import { audienceFilterFor, audienceIncludes, isContentAudience, ContentAudience } from './learnerAudience';
+import { checkPoolExam, examTotalMarks, normalizePoolExam } from './poolExamService';
 
 const emailService = new EmailService();
 
@@ -93,11 +94,22 @@ interface PaginationOptions {
   sortOrder?: 'asc' | 'desc';
 }
 
+/**
+ * A pool exam's settings, cleaned, and its total marks worked out from its sections — the form's
+ * Total Points box does not apply to an exam, whose total is whatever its sections add up to.
+ */
+function examFields(input: { type?: AssignmentType; poolExam?: any }) {
+  if (input.type !== AssignmentType.EXAM || input.poolExam === undefined) return {};
+  const poolExam = normalizePoolExam(input.poolExam);
+  return { poolExam, totalPoints: examTotalMarks(poolExam.sections), maxAttempts: poolExam.maxAttempts };
+}
+
 class AssignmentService {
   // Create a new assignment
   async create(input: CreateAssignmentInput): Promise<IAssignment> {
     const assignment = new Assignment({
       ...input,
+      ...examFields(input),
       status: AssignmentStatus.DRAFT
     });
     await assignment.save();
@@ -130,7 +142,7 @@ class AssignmentService {
 
     const assignment = await Assignment.findOneAndUpdate(
       { _id: id, tenant },
-      { $set: input },
+      { $set: { ...input, ...examFields({ ...input, type: input.type || existingAssignment?.type }) } },
       { new: true, runValidators: true }
     );
 
@@ -277,6 +289,12 @@ class AssignmentService {
     
     if (assignment.type === AssignmentType.MCQ) {
       if (!assignment.mcqQuestions?.length) validationErrors.push('At least one MCQ question is required');
+    }
+
+    // Every student's paper must be fillable from the pools before anyone can press Start.
+    if (assignment.type === AssignmentType.EXAM) {
+      const check = await checkPoolExam({ tenantId: String(tenant), userId: String(userId), role: '' }, assignment.poolExam?.sections || []);
+      validationErrors.push(...check.problems);
     }
 
     if (validationErrors.length > 0) {

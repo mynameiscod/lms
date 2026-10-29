@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import QuestionPool, { IQuestionPool, PoolKind, POOL_KINDS } from '../models/QuestionPool';
 import CodingProblem from '../models/CodingProblem';
 import Question from '../models/Question';
+import Assignment from '../models/Assignment';
 import { Actor, PbError, listProblems, visibilityFilter } from './problemBankService';
 import { mcqProblem } from './mcqAnswerKey';
 
@@ -94,6 +95,12 @@ async function view(a: Actor, pool: IQuestionPool) {
   };
 }
 
+/** The pools an exam names, each with its questions resolved. Pools of another institute are absent. */
+export async function poolsForExam(a: Actor, ids: string[]) {
+  const pools = await QuestionPool.find({ _id: { $in: ids.filter(i => mongoose.isValidObjectId(i)) }, tenantId: a.tenantId });
+  return new Map((await Promise.all(pools.map(p => view(a, p)))).map(v => [v.id, v]));
+}
+
 export async function listPools(a: Actor) {
   const pools = await QuestionPool.find({ tenantId: a.tenantId }).sort({ updatedAt: -1 });
   return Promise.all(pools.map(async p => {
@@ -138,6 +145,8 @@ export async function updatePool(a: Actor, id: string, body: any) {
 
 export async function deletePool(a: Actor, id: string) {
   const pool = await load(a, id);
+  const exams = await Assignment.find({ tenant: a.tenantId, 'poolExam.sections.poolId': pool._id }).select('title').limit(5).lean() as any[];
+  if (exams.length) throw new PbError(`This pool is used by ${exams.map(e => `"${e.title}"`).join(', ')}. Remove it from those exams first.`, 409);
   await pool.deleteOne();
   return { deleted: true };
 }

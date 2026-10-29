@@ -13,6 +13,8 @@ router.use(authMiddleware, tenantResolver, roleGuard(['manage_assignments']));
 
 router.get('/', ctrl.list);
 router.post('/', ctrl.create);
+/** Can these pools fill these exam sections? Asked live by the exam form; publishing asks again. */
+router.post('/check-exam', ctrl.checkExam);
 router.get('/:id', ctrl.get);
 router.patch('/:id', ctrl.update);
 router.delete('/:id', ctrl.remove);

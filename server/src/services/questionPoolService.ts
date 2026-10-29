@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import QuestionPool, { IQuestionPool, PoolKind, POOL_KINDS } from '../models/QuestionPool';
-import CodingProblem from '../models/CodingProblem';
+import CodingProblem, { isAvailableTo } from '../models/CodingProblem';
 import Question from '../models/Question';
 import Assignment from '../models/Assignment';
 import { Actor, PbError, listProblems, visibilityFilter } from './problemBankService';
@@ -45,11 +45,13 @@ export async function resolveQuestions(a: Actor, kind: PoolKind, ids: string[]):
 
   if (kind === 'coding') {
     const rows = await CodingProblem.find({ _id: { $in: valid }, ...(await visibilityFilter(a)) })
-      .select('title difficulty topics marks status testCount').lean() as any[];
+      .select('title difficulty topics marks status testCount audiences').lean() as any[];
     for (const p of rows) {
       out.set(String(p._id), {
         id: String(p._id), title: p.title, difficulty: diff(p.difficulty), topics: p.topics || [], marks: p.marks || 0,
-        problem: p.status !== 'published' ? `Not published (${p.status})` : !(p.testCount > 0) ? 'Has no test cases' : '',
+        // Pool exams are LMS assignments: a problem kept for CareerPilot alone cannot be drawn into one.
+        problem: p.status !== 'published' ? `Not published (${p.status})` : !(p.testCount > 0) ? 'Has no test cases'
+          : !isAvailableTo(p, 'lms') ? 'Not available to the LMS' : '',
       });
     }
   } else {
@@ -199,7 +201,7 @@ export async function browseBank(a: Actor, id: string, q: any) {
 
   if (pool.kind === 'coding') {
     const r = await listProblems(a, {
-      q: q?.q, difficulty, topic: q?.topic, language: q?.language, status: 'published', sort: 'number', page, limit,
+      q: q?.q, difficulty, topic: q?.topic, tag: q?.tag, language: q?.language, status: 'published', product: 'lms', sort: 'number', page, limit,
     });
     const rows = (r.items as any[]).map(p => ({
       id: String(p._id), title: p.title, number: p.number, difficulty: diff(p.difficulty), topics: p.topics || [],

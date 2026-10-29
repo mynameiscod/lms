@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import CodingProblem, { CodingProblemTestCase } from '../models/CodingProblem';
+import CodingProblem, { CodingProblemTestCase, DSA_TAG, availableTo } from '../models/CodingProblem';
 import ProblemSubmission from '../models/ProblemSubmission';
 import { PbError } from './problemBankService';
 import { Learner, runSamples, gradeAndRecord } from './problemDeliveryService';
@@ -15,10 +15,20 @@ import { globalPracticeClause, onGrantChange } from './contentGrantService';
  * solutions and the code wrappers are never sent to the browser.
  */
 
-/** Published problems this tenant may open: its own, plus the shared ones the super admin granted it. */
+/**
+ * The problems a member may open here: published, tagged DSA, available to CareerPilot, and either
+ * the institute's own or shared with it by the super admin.
+ *
+ * DSA ONLY. Everything else in the bank — exam questions above all — reaches a student only when it
+ * is assigned (an exam pool, a problem set). Without this rule every new problem would turn up here
+ * the moment it was published.
+ */
 const visible = async (tenantId: string) => {
   const shared = await globalPracticeClause(tenantId);
-  return { status: 'published', $or: [...(shared ? [shared] : []), { scope: 'tenant', tenantId }] };
+  return {
+    status: 'published', tags: DSA_TAG,
+    $and: [{ $or: [...(shared ? [shared] : []), { scope: 'tenant', tenantId }] }, availableTo('careerpilot')],
+  };
 };
 // Totals and filter choices are cached per tenant; a grant change must show at once.
 onGrantChange(() => cache.clear());

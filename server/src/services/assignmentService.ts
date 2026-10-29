@@ -6,6 +6,7 @@ import Assignment, {
   ProgrammingLanguage 
 } from '../models/Assignment';
 import Submission, { SubmissionStatus } from '../models/Submission';
+import PoolExamAttempt from '../models/PoolExamAttempt';
 import User from '../models/User';
 import Chapter from '../models/Chapter';
 import { EmailService } from './emailService';
@@ -102,6 +103,17 @@ function examFields(input: { type?: AssignmentType; poolExam?: any }) {
   if (input.type !== AssignmentType.EXAM || input.poolExam === undefined) return {};
   const poolExam = normalizePoolExam(input.poolExam);
   return { poolExam, totalPoints: examTotalMarks(poolExam.sections), maxAttempts: poolExam.maxAttempts };
+}
+
+async function examAttemptAsSubmission(assignment: IAssignment, studentId: Types.ObjectId) {
+  const a = await PoolExamAttempt.findOne({ assignment: assignment._id, student: studentId }).sort({ attemptNumber: -1 }).lean() as any;
+  if (!a) return null;
+  const visible = !!(assignment.poolExam?.showResultsImmediately || assignment.poolExam?.resultsReleasedAt);
+  return {
+    status: a.status === 'graded' && !visible ? SubmissionStatus.SUBMITTED : a.status,
+    attemptNumber: a.attemptNumber, submittedAt: a.submittedAt,
+    finalScore: visible ? a.score : undefined, percentage: visible ? a.percentage : undefined,
+  };
 }
 
 class AssignmentService {
@@ -563,17 +575,21 @@ class AssignmentService {
     };
 
     const assignments = await Assignment.find(query)
-      .select('title description type difficulty totalPoints dueDate startDate topics')
+      .select('title description type difficulty totalPoints dueDate startDate topics poolExam.showResultsImmediately poolExam.resultsReleasedAt')
       .sort({ dueDate: 1 });
 
     // Get submission status for each assignment
     const assignmentsWithStatus = await Promise.all(
       assignments.map(async (assignment) => {
-        const submission = await Submission.findOne({
-          assignment: assignment._id,
-          student: studentId,
-          tenant
-        }).sort({ attemptNumber: -1 });
+        // A pool exam's attempts live in their own collection; read in the same shape, with the
+        // score withheld until results are released.
+        const submission: any = assignment.type === AssignmentType.EXAM
+          ? await examAttemptAsSubmission(assignment, studentId)
+          : await Submission.findOne({
+            assignment: assignment._id,
+            student: studentId,
+            tenant
+          }).sort({ attemptNumber: -1 });
 
         // Resolve the deadline + status: schedule row for this batch wins, else baked dueDate.
         const row = schedMap.get(String(assignment._id));

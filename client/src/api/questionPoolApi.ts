@@ -31,7 +31,13 @@ export interface McqImportRow {
   difficulty?: string; marks?: number; tags?: string[]; subject?: string; topic?: string;
 }
 
+export interface ExamCheck {
+  ok: boolean; totalQuestions: number; totalMarks: number; problems: string[];
+  sections: { key: string; title: string; poolId: string; poolName: string; kind: string; questions: number; marks: number; problem: string }[];
+}
+
 export const questionPoolApi = {
+  checkExam: (sections: unknown[]): Promise<ExamCheck> => axios.post(`${BASE}/check-exam`, { sections }, h()).then(d),
   list: (): Promise<PoolSummary[]> => axios.get(BASE, h()).then(d),
   get: (id: string): Promise<Pool> => axios.get(`${BASE}/${id}`, h()).then(d),
   create: (body: { name: string; description: string; kind: PoolKind }): Promise<Pool> => axios.post(BASE, body, h()).then(d),

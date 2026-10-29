@@ -30,7 +30,25 @@ export enum AssignmentType {
   THEORY = 'theory',
   SQL = 'sql',
   FILE_UPLOAD = 'file_upload',
-  WEB = 'web'
+  WEB = 'web',
+  EXAM = 'exam'
+}
+
+/** One block of a pool exam: how many questions of each level to draw from one Question Pool. */
+export interface PoolExamSection {
+  key: string; title: string; poolId: string;
+  easy: number; medium: number; hard: number; any: number; marksPerQuestion: number;
+}
+
+export interface PoolExamSettings {
+  sections: PoolExamSection[];
+  durationMinutes: number;
+  maxAttempts: number;
+  preferUnseen: boolean;
+  tabSwitch: { enabled: boolean; maxWarnings: number; autoSubmit: boolean };
+  blockCopyPaste: boolean;
+  showResultsImmediately: boolean;
+  resultsReleasedAt?: string | null;
 }
 
 export enum DifficultyLevel {
@@ -149,6 +167,8 @@ export interface Assignment {
   timeLimit?: number;
   memoryLimit?: number;
   mcqQuestions: MCQQuestion[];
+  /** Only on an EXAM: how each student's paper is drawn from Question Pools. */
+  poolExam?: PoolExamSettings;
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
   rubric: RubricItem[];

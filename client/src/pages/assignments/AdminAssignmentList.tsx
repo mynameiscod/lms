@@ -447,6 +447,7 @@ const AdminAssignmentList: React.FC = () => {
     theory: { icon: '📖', bg: '#fef3c7', color: '#d97706' },
     project: { icon: '🗂', bg: '#f0fdf4', color: '#16a34a' },
     file_upload: { icon: '📎', bg: '#faf5ff', color: '#a855f7' },
+    exam: { icon: '🎯', bg: '#fff1f2', color: '#e11d48' },
   };
   const typeTile = (type: string) => TYPE_TILE[type] || { icon: '🌐', bg: '#eff6ff', color: '#2563eb' };
 

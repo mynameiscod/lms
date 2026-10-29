@@ -98,7 +98,7 @@ const StudentAssignmentList: React.FC = () => {
   const typeIcon = (type: AssignmentType) => {
     const map: Record<string, string> = {
       coding: 'bi-code-slash', mcq: 'bi-ui-checks-grid', theory: 'bi-journal-text', project: 'bi-rocket-takeoff',
-      file_upload: 'bi-paperclip', sql: 'bi-database', web: 'bi-window-stack',
+      file_upload: 'bi-paperclip', sql: 'bi-database', web: 'bi-window-stack', exam: 'bi-bullseye',
     };
     return map[type] || 'bi-file-earmark-text';
   };

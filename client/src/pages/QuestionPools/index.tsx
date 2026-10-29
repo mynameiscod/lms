@@ -4,6 +4,7 @@ import { questionPoolApi, PoolSummary, PoolKind } from '../../api/questionPoolAp
 import { pbError } from '../../api/problemBankApi';
 import { Modal, relTime } from '../ProblemBank/shared';
 import '../ProblemBank/ProblemBank.css';
+import './questionPools.css';
 
 export const KIND_LABEL: Record<PoolKind, string> = { coding: 'Coding problems', mcq: 'MCQs' };
 
@@ -74,19 +75,19 @@ const QuestionPools: React.FC = () => {
           </div>
         ) : (
           <div className="pb-card pb-table-wrap">
-            <table className="pb-table">
+            <table className="pb-table qp-table">
               <thead><tr><th>Pool</th><th>Holds</th><th>Questions</th><th>By level</th><th>Updated</th></tr></thead>
               <tbody>
                 {rows.map(p => (
                   <tr key={p.id} onClick={() => nav(`/admin/assignments/pools/${p.id}`)}>
-                    <td className="pb-title-cell"><div className="t">{p.name}</div>{p.description && <div className="sub pb-muted">{p.description}</div>}</td>
-                    <td><span className="pb-tag">{KIND_LABEL[p.kind]}</span></td>
-                    <td>
+                    <td className="pb-title-cell qp-main"><div className="t">{p.name}</div>{p.description && <div className="sub pb-muted">{p.description}</div>}</td>
+                    <td className="qp-meta"><span className="pb-tag">{KIND_LABEL[p.kind]}</span></td>
+                    <td className="qp-meta" data-label="Questions">
                       <b>{p.counts.usable}</b>
                       {p.counts.total > p.counts.usable && <span className="pb-pill pb-badge-bad" style={{ marginLeft: 8 }}>{p.counts.total - p.counts.usable} can't be drawn</span>}
                     </td>
-                    <td><LevelLine c={p.counts} /></td>
-                    <td className="pb-muted">{relTime(p.updatedAt)}</td>
+                    <td className="qp-meta"><LevelLine c={p.counts} /></td>
+                    <td className="pb-muted qp-hide-sm">{relTime(p.updatedAt)}</td>
                   </tr>
                 ))}
               </tbody>

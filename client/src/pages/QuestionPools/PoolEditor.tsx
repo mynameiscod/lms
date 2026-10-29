@@ -5,6 +5,7 @@ import { pbError } from '../../api/problemBankApi';
 import { DifficultyPill, Modal, useToast } from '../ProblemBank/shared';
 import { KIND_LABEL, LevelLine } from './index';
 import '../ProblemBank/ProblemBank.css';
+import './questionPools.css';
 
 /** One CSV line into fields, honouring quotes and doubled quotes inside them. */
 const csvFields = (line: string): string[] => {
@@ -102,7 +103,7 @@ const BankPicker: React.FC<{ pool: Pool; onClose: () => void; onAdded: (p: Pool,
         </select>
       </div>
       <div className="pb-card pb-table-wrap" style={{ maxHeight: 440, overflowY: 'auto' }}>
-        <table className="pb-table">
+        <table className="pb-table qp-table">
           <thead><tr>
             <th style={{ width: 36 }}><input type="checkbox" aria-label="Select all on this page" checked={allOnPage} disabled={!pageRows.length} onChange={togglePage} /></th>
             {coding && <th>#</th>}<th>{coding ? 'Title' : 'Question'}</th><th>Level</th><th>{coding ? 'Topics' : 'Subject / topic'}</th><th>Marks</th>
@@ -112,14 +113,14 @@ const BankPicker: React.FC<{ pool: Pool; onClose: () => void; onAdded: (p: Pool,
             {data && !data.items.length && <tr><td colSpan={6} className="pb-muted" style={{ textAlign: 'center', padding: 24 }}>Nothing in the bank matches.</td></tr>}
             {data?.items.map(r => (
               <tr key={r.id} onClick={() => toggle(r)} style={{ opacity: pickable(r) ? 1 : 0.55, cursor: pickable(r) ? 'pointer' : 'default' }}>
-                <td><input type="checkbox" disabled={!pickable(r)} checked={r.inPool || picked.has(r.id)} readOnly /></td>
-                {coding && <td className="pb-muted pb-mono">{r.number}</td>}
-                <td style={{ fontWeight: 600 }}>{r.title}
+                <td className="qp-check"><input type="checkbox" disabled={!pickable(r)} checked={r.inPool || picked.has(r.id)} readOnly aria-label="Select" /></td>
+                {coding && <td className="pb-muted pb-mono qp-hide-sm">{r.number}</td>}
+                <td className="qp-main" style={{ fontWeight: 600 }}>{r.title}
                   {r.inPool && <span className="pb-faint"> · already in pool</span>}
                   {!r.inPool && r.problem && <span style={{ color: 'var(--pb-bad)', fontWeight: 500 }}> · {r.problem}</span>}</td>
-                <td><DifficultyPill d={r.difficulty} /></td>
-                <td className="pb-muted">{r.topics.join(' · ')}</td>
-                <td className="pb-muted">{r.marks}</td>
+                <td className="qp-meta"><DifficultyPill d={r.difficulty} /></td>
+                <td className="pb-muted qp-meta">{r.topics.join(' · ')}</td>
+                <td className="pb-muted qp-meta" data-label="Marks">{r.marks}</td>
               </tr>
             ))}
           </tbody>
@@ -236,7 +237,7 @@ const PoolEditor: React.FC = () => {
     <div className="pb-root">
       <div className="pb-page">
         <button className="pb-btn pb-btn-ghost pb-btn-sm" style={{ marginBottom: 8 }} onClick={() => nav('/admin/assignments/pools')}><i className="fa-solid fa-arrow-left" /> All pools</button>
-        <div className="pb-head">
+        <div className="pb-head qp-head">
           <div className="pb-grow">
             {editing ? (
               <div style={{ maxWidth: 560 }}>
@@ -256,7 +257,7 @@ const PoolEditor: React.FC = () => {
           <button className="pb-btn pb-btn-primary" onClick={() => setPicker(true)}><i className="fa-solid fa-plus" /> Add from {coding ? 'Problem Bank' : 'Question Bank'}</button>
         </div>
 
-        <div className="pb-stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="pb-stats qp-stats">
           <div className="pb-card pb-stat"><div className="n">{pool.counts.usable}</div><div className="l">can be drawn</div></div>
           <div className="pb-card pb-stat"><div className="n">{pool.counts.easy}</div><div className="l">easy</div></div>
           <div className="pb-card pb-stat"><div className="n">{pool.counts.medium}</div><div className="l">medium</div></div>
@@ -290,16 +291,16 @@ const PoolEditor: React.FC = () => {
           </div>
         ) : (
           <div className="pb-card pb-table-wrap">
-            <table className="pb-table">
+            <table className="pb-table qp-table">
               <thead><tr><th style={{ width: 36 }} /><th>{coding ? 'Problem' : 'Question'}</th><th>Level</th><th>{coding ? 'Topics' : 'Subject / topic'}</th><th>Marks</th></tr></thead>
               <tbody>
                 {shown.map(q => (
                   <tr key={q.id} onClick={() => toggle(q.id)}>
-                    <td><input type="checkbox" checked={selected.has(q.id)} readOnly aria-label="Select" /></td>
-                    <td style={{ fontWeight: 600 }}>{q.title}{q.problem && <span style={{ color: 'var(--pb-bad)', fontWeight: 500 }}> · {q.problem}</span>}</td>
-                    <td><DifficultyPill d={q.difficulty} /></td>
-                    <td className="pb-muted">{q.topics.join(' · ')}</td>
-                    <td className="pb-muted">{q.marks}</td>
+                    <td className="qp-check"><input type="checkbox" checked={selected.has(q.id)} readOnly aria-label="Select" /></td>
+                    <td className="qp-main" style={{ fontWeight: 600 }}>{q.title}{q.problem && <span style={{ color: 'var(--pb-bad)', fontWeight: 500 }}> · {q.problem}</span>}</td>
+                    <td className="qp-meta"><DifficultyPill d={q.difficulty} /></td>
+                    <td className="pb-muted qp-meta">{q.topics.join(' · ')}</td>
+                    <td className="pb-muted qp-meta" data-label="Marks">{q.marks}</td>
                   </tr>
                 ))}
               </tbody>

@@ -10,15 +10,17 @@ import {
   TestCase,
   StarterCode,
   RubricItem,
-  MCQQuestion
+  MCQQuestion,
+  PoolExamSettings
 } from '../../api/assignmentApi';
+import PoolExamEditor, { DEFAULT_POOL_EXAM, poolExamTotal } from './PoolExamEditor';
 import { courseApi, subjectApi, chapterApi, quizApi, batchApi, userApi } from '../../api';
 import { TECH_CATEGORIES } from '../../config/techCategories';
 import { AUDIENCE_OPTIONS, audienceDef, ContentAudience } from '../../config/contentAudience';
 import CourseSelect from '../../components/common/CourseSelect';
 import './assignments.css';
 
-type ActiveTab = 'basic' | 'coding' | 'mcq' | 'rubric' | 'settings';
+type ActiveTab = 'basic' | 'coding' | 'mcq' | 'rubric' | 'exam' | 'settings';
 
 const AdminAssignmentForm: React.FC = () => {
   const navigate = useNavigate();
@@ -44,6 +46,10 @@ const AdminAssignmentForm: React.FC = () => {
   // Which student population lists it. Legacy assignments have none and have always been LMS.
   const [audience, setAudience] = useState<ContentAudience>('lms');
   const [totalPoints, setTotalPoints] = useState(100);
+  /** Only for an EXAM; its total marks come from its sections, not the Total Points box. */
+  const [poolExam, setPoolExam] = useState<PoolExamSettings>(DEFAULT_POOL_EXAM);
+  const isExam = type === AssignmentType.EXAM;
+  const effectiveTotal = isExam ? poolExamTotal(poolExam) : totalPoints;
   // The pass line a submission is judged against (Submission.isPassing). The model's default is 40.
   const [passingPoints, setPassingPoints] = useState(40);
   const [topics, setTopics] = useState<string[]>([]);
@@ -329,6 +335,7 @@ const AdminAssignmentForm: React.FC = () => {
       }
       setTimeLimitMinutes(a.settings?.timeLimitMinutes || 0);
       setMaxAttempts(a.settings?.maxAttempts || 0);
+      if (a.poolExam) setPoolExam({ ...DEFAULT_POOL_EXAM, ...a.poolExam, tabSwitch: { ...DEFAULT_POOL_EXAM.tabSwitch, ...a.poolExam.tabSwitch } });
       setAllowLateSubmission(a.settings?.allowLateSubmission ?? false);
       setLatePenaltyPercent(a.settings?.latePenaltyPercent || 10);
       
@@ -361,8 +368,8 @@ const AdminAssignmentForm: React.FC = () => {
       setError('Please enter a title');
       return;
     }
-    if (!(passingPoints >= 0 && passingPoints <= totalPoints)) {
-      setError(`The pass mark must be between 0 and the total points (${totalPoints}).`);
+    if (!(passingPoints >= 0 && passingPoints <= effectiveTotal)) {
+      setError(`The pass mark must be between 0 and the total points (${effectiveTotal}).`);
       return;
     }
 
@@ -378,8 +385,9 @@ const AdminAssignmentForm: React.FC = () => {
         difficulty,
         primaryTech: primaryTech || undefined,
         audience,
-        totalPoints,
+        totalPoints: effectiveTotal,
         passingPoints,
+        ...(isExam ? { poolExam } : {}),
         topics,
         // Course structure linking
         course: selectedCourse || undefined,
@@ -747,12 +755,23 @@ const AdminAssignmentForm: React.FC = () => {
             📊 Rubric
           </button>
         )}
-        <button 
-          className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settings')}
-        >
-          ⚙️ Settings
-        </button>
+        {isExam && (
+          <button 
+            className={`tab ${activeTab === 'exam' ? 'active' : ''}`}
+            onClick={() => setActiveTab('exam')}
+          >
+            🎯 Exam Paper
+          </button>
+        )}
+        {/* An exam's rules live on its Exam Paper tab; none of these settings apply to it. */}
+        {!isExam && (
+          <button 
+            className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveTab('settings')}
+          >
+            ⚙️ Settings
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -841,6 +860,7 @@ const AdminAssignmentForm: React.FC = () => {
                   <option value="file_upload">📎 File Upload</option>
                   <option value="sql">🗄️ SQL Challenge</option>
                   <option value="web">🌐 Web (HTML/CSS/Bootstrap)</option>
+                  <option value="exam">🎯 Exam (from pools)</option>
                 </select>
               </div>
 
@@ -887,10 +907,12 @@ const AdminAssignmentForm: React.FC = () => {
                 <input
                   type="number"
                   className="form-control"
-                  value={totalPoints}
+                  value={effectiveTotal}
                   onChange={(e) => setTotalPoints(Number(e.target.value))}
                   min={1}
+                  readOnly={isExam}
                 />
+                {isExam && <small style={{ color: '#64748b' }}>Worked out from the sections on the Exam Paper tab.</small>}
               </div>
 
               <div className="form-group">
@@ -902,7 +924,7 @@ const AdminAssignmentForm: React.FC = () => {
                   value={passingPoints}
                   onChange={(e) => setPassingPoints(Number(e.target.value))}
                   min={0}
-                  max={totalPoints}
+                  max={effectiveTotal}
                 />
                 <small style={{ color: '#64748b' }}>A submission scoring at least this many points passes.</small>
               </div>
@@ -1489,7 +1511,11 @@ const AdminAssignmentForm: React.FC = () => {
         )}
 
         {/* Settings Tab */}
-        {activeTab === 'settings' && (
+        {activeTab === 'exam' && isExam && (
+          <PoolExamEditor value={poolExam} onChange={setPoolExam} />
+        )}
+
+        {activeTab === 'settings' && !isExam && (
           <div className="form-section" style={{ padding: '24px' }}>
             <h3 className="section-title" style={{ marginTop: 0 }}>Assignment Settings</h3>
             <p className="section-description">Configure schedule and submission rules</p>

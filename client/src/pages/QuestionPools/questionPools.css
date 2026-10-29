@@ -1,0 +1,21 @@
+/* Question Pools — layout on top of the Problem Bank styles (pb-*). */
+.qp-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* Phones: tables become cards — the title on its own line, its level, topics and marks as tags under it. */
+@media (max-width: 640px) {
+  .qp-head { flex-wrap: wrap; }
+  .qp-head > .pb-btn { flex: 1 1 100%; justify-content: center; }
+  .qp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .qp-table thead { display: none; }
+  /* The bank tables keep a 680px minimum for sideways scrolling; as cards they fit the screen instead. */
+  .qp-table, .qp-table tbody { display: block; width: 100%; min-width: 0 !important; }
+  .qp-table tr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 12px 14px; border-bottom: 1px solid var(--pb-line); }
+  .qp-table tr:last-child { border-bottom: 0; }
+  .qp-table td { display: block; padding: 0 !important; border: 0 !important; white-space: normal; }
+  .qp-table td.qp-check { flex: 0 0 auto; align-self: flex-start; padding-top: 2px !important; }
+  .qp-table td.qp-main { flex: 1 1 calc(100% - 40px); min-width: 0; overflow-wrap: anywhere; }
+  .qp-table td.qp-meta { font-size: 12.5px; }
+  .qp-table tr:has(td.qp-check) td.qp-meta:first-of-type { margin-left: 30px; }
+  .qp-table td[data-label]::before { content: attr(data-label) ': '; color: var(--pb-muted); font-weight: 600; }
+  .qp-table td.qp-hide-sm { display: none; }
+}

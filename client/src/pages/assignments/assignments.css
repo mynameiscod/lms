@@ -320,6 +320,11 @@
   color: #0f766e;
 }
 
+.badge-exam {
+  background: #ffe4e6;
+  color: #9f1239;
+}
+
 .badge-beginner {
   background: #d1fae5;
   color: #065f46;
@@ -2538,4 +2543,39 @@
   font-size: 13px;
   font-weight: 700;
   text-align: center;
+}
+
+/* ── Pool exam: the Exam Paper tab ── */
+.pex .pex-section { border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; background: #fff; }
+.pex .pex-section.bad { border-color: #fca5a5; background: #fffafa; }
+.pex .pex-section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.pex .pex-title { font-weight: 600; max-width: 360px; }
+.pex .pex-remove { margin-left: auto; background: none; border: 0; color: #b42318; font-weight: 600; font-size: 13px; cursor: pointer; }
+.pex .pex-grid { display: grid; grid-template-columns: minmax(220px, 2.4fr) repeat(5, minmax(76px, 1fr)); gap: 10px; align-items: start; }
+.pex .pex-grid .form-group { margin-bottom: 0; }
+.pex .pex-section-foot { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 13px; color: #475569; }
+.pex .pex-problem { color: #b42318; font-weight: 600; }
+.pex .pex-hint { display: block; font-size: 12.5px; color: #64748b; margin-top: 4px; line-height: 1.45; }
+.pex .pex-summary { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; margin: 16px 0 8px; padding: 12px 14px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 14px; }
+.pex .pex-summary.ok { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+.pex .pex-summary.bad { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.pex .pex-h4 { margin: 22px 0 10px; font-size: 15px; }
+.pex .pex-note { padding: 12px 14px; border-radius: 10px; background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; font-size: 13px; line-height: 1.6; margin-bottom: 12px; }
+.pex .pex-toggle { padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; }
+.pex .pex-toggle-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.pex .pex-toggle-label { font-weight: 500; margin-bottom: 2px; }
+.pex .pex-switch { position: relative; flex: 0 0 48px; width: 48px; height: 26px; }
+.pex .pex-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.pex .pex-switch span { position: absolute; inset: 0; cursor: pointer; background: #cbd5e1; border-radius: 26px; transition: .2s; }
+.pex .pex-switch span.on { background: #3b82f6; }
+.pex .pex-switch span i { position: absolute; width: 20px; height: 20px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+.pex .pex-switch span.on i { left: 25px; }
+.pex .pex-switch input:focus-visible + span { outline: 2px solid #1d4ed8; outline-offset: 2px; }
+.pex .pex-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; margin-top: 12px; font-size: 13.5px; }
+.pex .pex-sub label { display: flex; align-items: center; gap: 8px; }
+.pex .pex-sub input[type="number"] { width: 80px; }
+.pex .pex-check input { width: 16px; height: 16px; }
+@media (max-width: 900px) {
+  .pex .pex-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pex .pex-grid .pex-pool { grid-column: 1 / -1; }
 }

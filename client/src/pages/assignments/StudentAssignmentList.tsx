@@ -8,6 +8,10 @@ import {
 } from '../../api/assignmentApi';
 import './StudentAssignmentList.css';
 
+/** Descriptions are written in the rich editor; a one-line preview shows their text, not their tags. */
+const plainText = (html?: string) => String(html || '').replace(/<[^>]*>/g, ' ')
+  .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+
 interface StudentAssignment extends Assignment {
   submission?: {
     _id: string;
@@ -98,7 +102,7 @@ const StudentAssignmentList: React.FC = () => {
   const typeIcon = (type: AssignmentType) => {
     const map: Record<string, string> = {
       coding: 'bi-code-slash', mcq: 'bi-ui-checks-grid', theory: 'bi-journal-text', project: 'bi-rocket-takeoff',
-      file_upload: 'bi-paperclip', sql: 'bi-database', web: 'bi-window-stack',
+      file_upload: 'bi-paperclip', sql: 'bi-database', web: 'bi-window-stack', exam: 'bi-bullseye',
     };
     return map[type] || 'bi-file-earmark-text';
   };
@@ -117,6 +121,13 @@ const StudentAssignmentList: React.FC = () => {
 
   const actionMeta = (a: StudentAssignment) => {
     const status = statusOf(a);
+    if (a.type === AssignmentType.EXAM) {
+      if (status === 'graded') return { label: 'View result', icon: 'bi-award' };
+      if (status === 'submitted' || status === 'late') return { label: 'View exam', icon: 'bi-eye' };
+      if (status === 'in_progress') return { label: 'Resume exam', icon: 'bi-arrow-right-circle' };
+      if (status === 'missed') return { label: 'Closed', icon: 'bi-lock' };
+      return { label: 'Open exam', icon: 'bi-bullseye' };
+    }
     if (status === 'graded') return { label: 'View Feedback', icon: 'bi-chat-left-text' };
     if (status === 'submitted' || status === 'late') return { label: 'View Submission', icon: 'bi-eye' };
     if (status === 'in_progress') return { label: 'Continue', icon: 'bi-arrow-right-circle' };
@@ -125,6 +136,8 @@ const StudentAssignmentList: React.FC = () => {
   };
 
   const openAssignment = (a: StudentAssignment) => {
+    // An exam opens on its own page, which shows the attempts, the result once released, and Start.
+    if (a.type === AssignmentType.EXAM) return navigate(`/exams/${a._id}`);
     if (statusOf(a) === 'graded') navigate(`/assignments/${a._id}/result`);
     else if (statusOf(a) !== 'missed') navigate(`/assignments/${a._id}/workspace`);
   };
@@ -239,7 +252,7 @@ const StudentAssignmentList: React.FC = () => {
             <div className="sa-feature-meta">
               <span>{featured.topics?.[0] || 'Assignment'}</span><span>•</span><span className="sa-cap">{featured.type}</span><span>•</span><span className="sa-cap">{featured.difficulty}</span>
             </div>
-            <p>{featured.description || 'Complete this assignment to strengthen the concepts covered in your learning plan.'}</p>
+            <p>{plainText(featured.description) || 'Complete this assignment to strengthen the concepts covered in your learning plan.'}</p>
             <div className="sa-feature-facts">
               <div><i className="bi bi-calendar3" /><span>Due Date<strong>{formatDate(dueOf(featured))}<small>{formatTime(dueOf(featured))}</small></strong></span></div>
               <div><i className="bi bi-clock-history" /><span>Time Remaining<strong>{timeRemaining(featured)}</strong></span></div>
@@ -251,7 +264,7 @@ const StudentAssignmentList: React.FC = () => {
             <div className="sa-code-lines"><span /><span /><span /><span /></div>
           </div>
           <button className="sa-feature-action" onClick={() => openAssignment(featured)}>
-            {statusOf(featured) === 'in_progress' ? 'Continue Assignment' : 'Start Assignment'} <i className="bi bi-arrow-right" />
+            {featured.type === AssignmentType.EXAM ? actionMeta(featured).label : statusOf(featured) === 'in_progress' ? 'Continue Assignment' : 'Start Assignment'} <i className="bi bi-arrow-right" />
           </button>
         </section>
       )}
@@ -292,7 +305,7 @@ const StudentAssignmentList: React.FC = () => {
                       const status = statusMeta(a);
                       const action = actionMeta(a);
                       return <tr key={a._id}>
-                        <td><div className="sa-assignment-cell"><span className={`sa-type-tile type-${a.type}`}><i className={`bi ${typeIcon(a.type)}`} /></span><div><strong>{a.title}</strong><small>{a.description || `${a.type} assignment`}</small></div></div></td>
+                        <td><div className="sa-assignment-cell"><span className={`sa-type-tile type-${a.type}`}><i className={`bi ${typeIcon(a.type)}`} /></span><div><strong>{a.title}</strong><small>{plainText(a.description) || `${a.type} assignment`}</small></div></div></td>
                         <td><strong className="sa-topic">{a.topics?.[0] || 'General'}</strong><small className="sa-row-sub">{a.topics?.[1] || a.difficulty}</small></td>
                         <td><span className={isOverdue(a) ? 'sa-date overdue' : 'sa-date'}>{formatDate(dueOf(a))}</span><small className="sa-row-sub">{formatTime(dueOf(a))}</small></td>
                         <td><span className={`sa-badge ${status.cls}`}>{status.label}</span></td>

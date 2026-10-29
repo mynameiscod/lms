@@ -138,7 +138,7 @@ const PATH_MODULE: [string, ModuleKey][] = ([
   ['/attendance', 'attendance'], ['/my-attendance', 'attendance'], ['/attendance-reports', 'attendance'],
   ['/my-leave', 'attendance'], ['/admin/leave-requests', 'attendance'],
   ['/quizzes', 'quizzes'], ['/quiz-management', 'quizzes'], ['/registrations', 'quizzes'], ['/question-bank', 'quizzes'], ['/quiz-reports', 'quizzes'],
-  ['/assignments', 'assignments'], ['/admin/assignments', 'assignments'],
+  ['/assignments', 'assignments'], ['/admin/assignments', 'assignments'], ['/exams', 'assignments'],
   ['/coding-snippets', 'codeAssessments'], ['/admin/coding-snippets', 'codeAssessments'], ['/playground', 'codeAssessments'], ['/coding-practice', 'codeAssessments'],
   ['/my-learning', 'learningPlans'], ['/my-tasks', 'learningPlans'], ['/learning-library', 'learningPlans'],
   ['/curriculum-builder', 'learningPlans'], ['/enrollment-plans', 'learningPlans'], ['/batch-offerings', 'learningPlans'],

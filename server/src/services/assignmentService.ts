@@ -6,6 +6,7 @@ import Assignment, {
   ProgrammingLanguage 
 } from '../models/Assignment';
 import Submission, { SubmissionStatus } from '../models/Submission';
+import PoolExamAttempt from '../models/PoolExamAttempt';
 import User from '../models/User';
 import Chapter from '../models/Chapter';
 import { EmailService } from './emailService';
@@ -14,6 +15,7 @@ import { studentSchedulesMap, policyFromRow } from './assessmentDeliveryService'
 import { computeStatus, DEFAULT_POLICY } from './deadlinePolicyService';
 import { Types } from 'mongoose';
 import { audienceFilterFor, audienceIncludes, isContentAudience, ContentAudience } from './learnerAudience';
+import { checkPoolExam, examTotalMarks, normalizePoolExam } from './poolExamService';
 
 const emailService = new EmailService();
 
@@ -93,11 +95,33 @@ interface PaginationOptions {
   sortOrder?: 'asc' | 'desc';
 }
 
+/**
+ * A pool exam's settings, cleaned, and its total marks worked out from its sections — the form's
+ * Total Points box does not apply to an exam, whose total is whatever its sections add up to.
+ */
+function examFields(input: { type?: AssignmentType; poolExam?: any }) {
+  if (input.type !== AssignmentType.EXAM || input.poolExam === undefined) return {};
+  const poolExam = normalizePoolExam(input.poolExam);
+  return { poolExam, totalPoints: examTotalMarks(poolExam.sections), maxAttempts: poolExam.maxAttempts };
+}
+
+async function examAttemptAsSubmission(assignment: IAssignment, studentId: Types.ObjectId) {
+  const a = await PoolExamAttempt.findOne({ assignment: assignment._id, student: studentId }).sort({ attemptNumber: -1 }).lean() as any;
+  if (!a) return null;
+  const visible = !!(assignment.poolExam?.showResultsImmediately || assignment.poolExam?.resultsReleasedAt);
+  return {
+    status: a.status === 'graded' && !visible ? SubmissionStatus.SUBMITTED : a.status,
+    attemptNumber: a.attemptNumber, submittedAt: a.submittedAt,
+    finalScore: visible ? a.score : undefined, percentage: visible ? a.percentage : undefined,
+  };
+}
+
 class AssignmentService {
   // Create a new assignment
   async create(input: CreateAssignmentInput): Promise<IAssignment> {
     const assignment = new Assignment({
       ...input,
+      ...examFields(input),
       status: AssignmentStatus.DRAFT
     });
     await assignment.save();
@@ -130,7 +154,7 @@ class AssignmentService {
 
     const assignment = await Assignment.findOneAndUpdate(
       { _id: id, tenant },
-      { $set: input },
+      { $set: { ...input, ...examFields({ ...input, type: input.type || existingAssignment?.type }) } },
       { new: true, runValidators: true }
     );
 
@@ -277,6 +301,12 @@ class AssignmentService {
     
     if (assignment.type === AssignmentType.MCQ) {
       if (!assignment.mcqQuestions?.length) validationErrors.push('At least one MCQ question is required');
+    }
+
+    // Every student's paper must be fillable from the pools before anyone can press Start.
+    if (assignment.type === AssignmentType.EXAM) {
+      const check = await checkPoolExam({ tenantId: String(tenant), userId: String(userId), role: '' }, assignment.poolExam?.sections || []);
+      validationErrors.push(...check.problems);
     }
 
     if (validationErrors.length > 0) {
@@ -545,17 +575,21 @@ class AssignmentService {
     };
 
     const assignments = await Assignment.find(query)
-      .select('title description type difficulty totalPoints dueDate startDate topics')
+      .select('title description type difficulty totalPoints dueDate startDate topics poolExam.showResultsImmediately poolExam.resultsReleasedAt')
       .sort({ dueDate: 1 });
 
     // Get submission status for each assignment
     const assignmentsWithStatus = await Promise.all(
       assignments.map(async (assignment) => {
-        const submission = await Submission.findOne({
-          assignment: assignment._id,
-          student: studentId,
-          tenant
-        }).sort({ attemptNumber: -1 });
+        // A pool exam's attempts live in their own collection; read in the same shape, with the
+        // score withheld until results are released.
+        const submission: any = assignment.type === AssignmentType.EXAM
+          ? await examAttemptAsSubmission(assignment, studentId)
+          : await Submission.findOne({
+            assignment: assignment._id,
+            student: studentId,
+            tenant
+          }).sort({ attemptNumber: -1 });
 
         // Resolve the deadline + status: schedule row for this batch wins, else baked dueDate.
         const row = schedMap.get(String(assignment._id));

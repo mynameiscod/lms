@@ -105,7 +105,7 @@ describe('a paper and the questions', () => {
     const s = await student('Asha');
     const attemptId = await sit(s, id, 1);
     const d = await results.attemptDetail(TENANT, attemptId);
-    expect(d.items[0]).toMatchObject({ kind: 'mcq', options: ['Right', 'Wrong'], key: [0], selected: [0], correct: true, score: 1 });
+    expect(d.items[0]).toMatchObject({ kind: 'mcq', options: ['Right', 'Wrong'], answerKey: [0], selected: [0], correct: true, score: 1 });
     expect(d.items[1]).toMatchObject({ selected: [1], correct: false, score: 0 });
 
     for (const name of ['B', 'C']) await sit(await student(name), id, 0);

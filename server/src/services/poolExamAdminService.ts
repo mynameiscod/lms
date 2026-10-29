@@ -147,7 +147,7 @@ export async function attemptDetail(tenantId: string, attemptId: string) {
     items: a.items.map((i, n) => ({
       n: n + 1, key: i.key, section: i.sectionTitle, kind: i.kind, difficulty: i.difficulty, marks: i.marks, score: i.score ?? null,
       ...(i.kind === 'mcq'
-        ? { question: i.question, options: i.options || [], key: i.mcqKey || [], selected: i.answer?.selected || [], correct: i.result?.correct ?? null }
+        ? { question: i.question, options: i.options || [], answerKey: i.mcqKey || [], selected: i.answer?.selected || [], correct: i.result?.correct ?? null }
         : { title: problems.get(String(i.refId)) || i.title || 'Problem', language: i.answer?.language || '', code: i.answer?.code || '', result: i.result || null, runs: i.runs }),
     })),
   };

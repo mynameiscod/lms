@@ -126,7 +126,9 @@ export function parseImport(filename: string, base64: string | undefined, text: 
     return arr.map(fromJson);
   }
   if (/\.(csv|xlsx|xls)$/.test(name)) {
-    const wb = XLSX.read(Buffer.from(base64 || '', 'base64'), { type: 'buffer', raw: false });
+    // raw: a CSV cell is kept exactly as typed. Without it the reader guesses types, so "007"
+    // loses its zeros and a test input like "0 5" becomes the date 5/1/00.
+    const wb = XLSX.read(Buffer.from(base64 || '', 'base64'), { type: 'buffer', raw: true });
     const sheet = wb.Sheets[wb.SheetNames[0]];
     if (!sheet) throw new PbError('The file has no sheets.');
     const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '', raw: false });

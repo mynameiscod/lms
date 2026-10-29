@@ -288,7 +288,8 @@ const SHEET_FILE = /\.(csv|xlsx|xls)$/i;
 const sheetRows = (filename: string, base64: string): Record<string, string>[] => {
   if (!SHEET_FILE.test(filename)) throw new PbError('Upload a .csv, .xlsx or .xls file.');
   let wb: XLSX.WorkBook;
-  try { wb = XLSX.read(Buffer.from(base64, 'base64'), { type: 'buffer', raw: false }); } catch { throw new PbError('That file could not be read as a spreadsheet.'); }
+  // raw: CSV cells exactly as typed — "0", "007" and "0 5" stay text, never numbers or dates.
+  try { wb = XLSX.read(Buffer.from(base64, 'base64'), { type: 'buffer', raw: true }); } catch { throw new PbError('That file could not be read as a spreadsheet.'); }
   const sheet = wb.Sheets[wb.SheetNames[0]];
   if (!sheet) throw new PbError('The file has no sheets.');
   return XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '', raw: false });

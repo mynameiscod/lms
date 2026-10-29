@@ -16,7 +16,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'question-pool-integration-te
 import User from '../../models/User';
 import Question from '../../models/Question';
 import * as XLSX from 'xlsx';
-import CodingProblem, { availableTo } from '../../models/CodingProblem';
+import CodingProblem, { CodingProblemTestCase, availableTo } from '../../models/CodingProblem';
 import { csvTemplate } from '../../services/problemImportService';
 import questionPoolRoutes from '../../routes/questionPoolRoutes';
 import { createProblem, setStatus, Actor } from '../../services/problemBankService';
@@ -165,6 +165,22 @@ describe('coding pools', () => {
     await expect(pools.importFile(ME, mcqs.id, { filename: 'c.csv', data: b64(csvTemplate({ complete: true })) })).rejects.toThrow(/coding format\. Import it into a coding pool/);
     // The MCQ template itself imports cleanly into an MCQ pool.
     expect((await pools.importFile(ME, mcqs.id, { filename: 'm.csv', data: b64(pools.MCQ_TEMPLATE) })).imported).toBe(2);
+  });
+
+  it('keeps CSV values that start with zero exactly as typed', async () => {
+    const pool = await pools.createPool(ME, { name: 'Zeros', kind: 'coding' });
+    const csv = 'title,difficulty,marks,statement,sample_input_1,sample_output_1,test_input_1,test_output_1,starter_python\n'
+      + '"Pad it",easy,5,"Print the number with zeros",0 5,005,007,007,"n = input()"\n';
+    const r = await pools.importFile(ME, pool.id, { filename: 'zeros.csv', data: Buffer.from(csv).toString('base64') });
+    expect(r.refused).toEqual([]);
+    const p = await CodingProblem.findOne({ title: 'Pad it' }).lean() as any;
+    const tests = await CodingProblemTestCase.find({ problemId: p._id }).sort({ order: 1 }).lean() as any[];
+    expect(tests.map(t => [t.input, t.expectedOutput])).toEqual([['0 5', '005'], ['007', '007']]);
+
+    const mcqs = await pools.createPool(ME, { name: 'Zero MCQs', kind: 'mcq' });
+    const m = await pools.importFile(ME, mcqs.id, { filename: 'z.csv', data: Buffer.from('question,optionA,optionB,correct\n"5 - 5?",0,05,A\n').toString('base64') });
+    expect(m.imported).toBe(1);
+    expect((await Question.findOne({ question: '5 - 5?' }).lean() as any).correctAnswers).toEqual(['0']);
   });
 
   it('refuses a file that is not a spreadsheet', async () => {

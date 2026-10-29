@@ -215,6 +215,8 @@ const AdminAssignmentForm = lazy(() => import('./pages/assignments').then(m => (
 const AdminSubmissions = lazy(() => import('./pages/assignments').then(m => ({ default: m.AdminSubmissions })));
 const StudentAssignmentList = lazy(() => import('./pages/assignments').then(m => ({ default: m.StudentAssignmentList })));
 const AssignmentWorkspace = lazy(() => import('./pages/assignments').then(m => ({ default: m.AssignmentWorkspace })));
+const ExamLobby = lazy(() => import('./pages/PoolExam/ExamLobby'));
+const ExamRoom = lazy(() => import('./pages/PoolExam/ExamRoom'));
 const AssignmentResult = lazy(() => import('./pages/assignments').then(m => ({ default: m.AssignmentResult })));
 const AssignmentReports = lazy(() => import('./pages/AssignmentReports'));
 const StudentFeaturesPage = lazy(() => import('./pages/StudentFeatures'));
@@ -2002,6 +2004,15 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/careerpilot/assignments/:assignmentId/workspace"
         element={<ProtectedRoute><AssignmentWorkspace /></ProtectedRoute>}
+      />
+      {/* Pool exams: the lobby inside the app, the exam room full screen. */}
+      <Route
+        path="/exams/:assignmentId"
+        element={<ProtectedRoute><FeatureRoute feature="assignments"><Layout><ExamLobby /></Layout></FeatureRoute></ProtectedRoute>}
+      />
+      <Route
+        path="/exams/:assignmentId/attempt/:attemptId"
+        element={<ProtectedRoute><FeatureRoute feature="assignments"><ExamRoom /></FeatureRoute></ProtectedRoute>}
       />
       <Route
         path="/assignments/:assignmentId/workspace"

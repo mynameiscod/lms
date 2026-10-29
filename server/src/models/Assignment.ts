@@ -318,7 +318,9 @@ const AssignmentSchema = new Schema<IAssignment>({
   batch: { type: Schema.Types.ObjectId, ref: 'Batch', index: true },
 
   // Access Control
-  accessibleTo: { type: String, enum: ['everyone', 'batch_wise', 'individual'], default: 'everyone' },
+  // Batch-wise with no batches = nobody yet: an assignment reaches students only once it is assigned.
+  // 'everyone' is kept for external (link) assignments and old rows; it delivers to no LMS student.
+  accessibleTo: { type: String, enum: ['everyone', 'batch_wise', 'individual'], default: 'batch_wise' },
   selectedBatches: [{ type: String }],
   selectedStudents: [{ type: String }],
   isExternalAssignment: { type: Boolean, default: false },

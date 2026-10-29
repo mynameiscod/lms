@@ -116,12 +116,23 @@ async function examAttemptAsSubmission(assignment: IAssignment, studentId: Types
   };
 }
 
+/**
+ * An assignment is reusable content: publishing puts it in the bank, and it reaches students only
+ * once it is given to them — a batch, chosen students, or Assign to Batches. "everyone" is never
+ * stored for one; it reads as batch-wise with no batches yet (nobody). An external assignment is
+ * reached through its link and keeps what it was given.
+ */
+function deliveryFields(accessibleTo: string | undefined, isExternal: boolean | undefined) {
+  return accessibleTo === 'everyone' && !isExternal ? { accessibleTo: 'batch_wise' as const } : {};
+}
+
 class AssignmentService {
   // Create a new assignment
   async create(input: CreateAssignmentInput): Promise<IAssignment> {
     const assignment = new Assignment({
       ...input,
       ...examFields(input),
+      ...deliveryFields(input.accessibleTo, (input as any).isExternalAssignment),
       status: AssignmentStatus.DRAFT
     });
     await assignment.save();
@@ -154,7 +165,11 @@ class AssignmentService {
 
     const assignment = await Assignment.findOneAndUpdate(
       { _id: id, tenant },
-      { $set: { ...input, ...examFields({ ...input, type: input.type || existingAssignment?.type }) } },
+      { $set: {
+        ...input,
+        ...examFields({ ...input, type: input.type || existingAssignment?.type }),
+        ...deliveryFields(input.accessibleTo, (input as any).isExternalAssignment ?? existingAssignment?.isExternalAssignment),
+      } },
       { new: true, runValidators: true }
     );
 
@@ -337,8 +352,10 @@ class AssignmentService {
       const accessibleTo = (assignment as any).accessibleTo || 'everyone';
       let students: any[] = [];
 
+      // "everyone" emails nobody: publishing puts an assignment in the bank, not in front of the
+      // whole institute. Students hear about it when it is assigned to their batch or to them.
       if (accessibleTo === 'everyone') {
-        students = await User.find({ tenantId: tenant, role: 'STUDENT', isActive: true }).select('firstName lastName email');
+        students = [];
       } else if (accessibleTo === 'batch_wise' && (assignment as any).selectedBatches?.length) {
         students = await User.find({
           tenantId: tenant,
@@ -508,6 +525,7 @@ class AssignmentService {
       ...original.toObject(),
       _id: undefined,
       title: `${original.title} (Copy)`,
+      ...deliveryFields(original.accessibleTo, original.isExternalAssignment),
       status: AssignmentStatus.DRAFT,
       createdBy: userId,
       updatedBy: undefined,
@@ -543,10 +561,10 @@ class AssignmentService {
     const batchIdStr = resolvedBatch ? resolvedBatch.toString() : null;
 
     // Access model: a student sees an assignment only if it's explicitly for them —
-    // 'everyone', their batch, or them individually. Legacy records (no accessibleTo)
-    // count ONLY when their `batch` matches this student's batch.
+    // their batch, or them individually. Legacy records (no accessibleTo) count ONLY when
+    // their `batch` matches this student's batch. "everyone" delivers to nobody: publishing
+    // puts an assignment in the bank, it is not an assignment to the whole institute.
     const accessOr: any[] = [
-      { accessibleTo: 'everyone' },
       { accessibleTo: 'individual', selectedStudents: studentIdStr },
       ...(batchIdStr ? [
         { accessibleTo: 'batch_wise', selectedBatches: batchIdStr },
@@ -561,10 +579,19 @@ class AssignmentService {
     const schedMap = await studentSchedulesMap(tenant.toString(), studentIdStr, batchIdStr, 'assignment');
     const scheduledIds = [...schedMap.keys()];
 
+    // Work the student already started or handed in stays on their list, even if the
+    // assignment was later taken off their batch (or was only ever open to "everyone").
+    const [submittedIds, attemptedIds] = await Promise.all([
+      Submission.distinct('assignment', { tenant, student: studentId }),
+      PoolExamAttempt.distinct('assignment', { student: studentId }),
+    ]);
+    const startedIds = [...submittedIds, ...attemptedIds];
+
     const query: any = {
       tenant,
       $or: [
         ...(scheduledIds.length ? [{ _id: { $in: scheduledIds } }] : []),
+        ...(startedIds.length ? [{ _id: { $in: startedIds }, status: AssignmentStatus.PUBLISHED, unitCode: { $in: [null, ''] } }] : []),
         /* A CareerPilot unit's assignment is delivered through the member's day; its
            accessibleTo defaults to 'everyone', so it must never auto-list for LMS students.
            Only an explicit schedule (above) delivers one. The audience condition does the

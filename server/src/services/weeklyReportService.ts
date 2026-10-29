@@ -413,10 +413,11 @@ function accessibleFilter(batchId: string, studentId: string) {
   or.push({ accessibleTo: 'individual', selectedStudents: studentId });
   return { $or: or };
 }
-// Assignment accessibility (returns an array for use inside a $and/$or)
+// Assignment accessibility (returns an array for use inside a $and/$or). Mirrors the student's
+// own list: their batch or them — "everyone" delivers to nobody, a legacy row only to its batch.
 function accessibleFilterAssignment(batchId: string, studentId: string): any[] {
-  const or: any[] = [{ accessibleTo: 'everyone' }, { accessibleTo: { $exists: false } }];
-  if (batchId) or.push({ accessibleTo: 'batch_wise', selectedBatches: batchId });
+  const or: any[] = [];
+  if (batchId) or.push({ accessibleTo: 'batch_wise', selectedBatches: batchId }, { accessibleTo: { $exists: false }, batch: batchId });
   or.push({ accessibleTo: 'individual', selectedStudents: studentId });
   return or;
 }

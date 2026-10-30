@@ -73,6 +73,7 @@ const ROUTE_FEATURES: [string, CareerPilotFeatureKey][] = [
   ['/careerpilot/roadmap', 'roadmap'], ['/careerpilot/plan', 'plan'], ['/careerpilot/mentor', 'mentor'],
   ['/careerpilot/companies', 'companies'], ['/careerpilot/news', 'news'], ['/careerpilot/resume', 'resume'], ['/careerpilot/progress', 'progress'],
   ['/careerpilot/industry-connect', 'industryConnect'], ['/careerpilot/support', 'support'],
+  ['/careerpilot/aptitude', 'aptitude'], ['/careerpilot/reasoning', 'reasoning'], ['/careerpilot/rewards', 'progress'],
 ];
 const featureForRoute = (pathname: string) =>
   ROUTE_FEATURES.find(([p]) => pathname === p || pathname.startsWith(`${p}/`))?.[1];

@@ -114,7 +114,7 @@ export const STUDENT_FEATURE_KEYS: StudentFeatureKey[] = FEATURE_META.map(f => f
 // block are always there. These keys MUST match server/src/data/studentFeatureKeys.ts.
 
 export type CareerPilotFeatureKey =
-  | 'plan' | 'roadmap' | 'practice' | 'coding' | 'playground' | 'visualizer' | 'thinkingLab' | 'communication'
+  | 'plan' | 'roadmap' | 'practice' | 'coding' | 'playground' | 'visualizer' | 'thinkingLab' | 'aptitude' | 'reasoning' | 'communication'
   | 'interview' | 'experiences' | 'questionBooks' | 'mentor' | 'companies' | 'news' | 'resume' | 'progress' | 'industryConnect' | 'support';
 
 export type CareerPilotGroup = 'Plan' | 'Practice' | 'Interview prep' | 'Career';
@@ -136,6 +136,8 @@ export const CAREERPILOT_FEATURE_META: CareerPilotFeatureMeta[] = [
   { key: 'playground',    label: 'Playground',            description: 'Free code editor to run code without an assignment', icon: '🎮', group: 'Practice' },
   { key: 'visualizer',    label: 'Code Visualizer',       description: 'Step-by-step view of how code runs (only for members it is assigned to)', icon: '🔬', group: 'Practice' },
   { key: 'thinkingLab',   label: 'Thinking Lab',          description: 'Logic and aptitude problems', icon: '🧩', group: 'Practice' },
+  { key: 'aptitude',      label: 'Aptitude',              description: 'Quantitative aptitude practice (coming soon)', icon: '🧮', group: 'Practice' },
+  { key: 'reasoning',     label: 'Reasoning',             description: 'Logical and verbal reasoning practice (coming soon)', icon: '🧠', group: 'Practice' },
   { key: 'communication', label: 'Communication Lab',     description: 'Daily spoken practice with feedback', icon: '🎙', group: 'Practice' },
   { key: 'interview',     label: 'Mock Interview',        description: 'AI interview practice, by voice or text', icon: '🎤', group: 'Interview prep' },
   { key: 'experiences',   label: 'Interview Experiences', description: 'Real interviews shared by candidates, round by round', icon: '💬', group: 'Interview prep' },

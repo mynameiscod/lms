@@ -385,8 +385,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'thinkingLab', 'thinkingLab')}
           {/* Announced, not built yet: each opens a "Coming soon" page (ComingSoon.tsx). */}
-          {navBtn('Aptitude', 'calculator', '/careerpilot/aptitude', undefined, undefined, 0, 'Soon')}
-          {navBtn('Reasoning', 'puzzle', '/careerpilot/reasoning', undefined, undefined, 0, 'Soon')}
+          {navBtn('Aptitude', 'calculator', '/careerpilot/aptitude', undefined, 'aptitude', 0, 'Soon')}
+          {navBtn('Reasoning', 'puzzle', '/careerpilot/reasoning', undefined, 'reasoning', 0, 'Soon')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication', 'communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview', 'interview')}
           {navBtn('Interview Experiences', 'experiences', '/careerpilot/interview-experiences', 'experiences', 'experiences')}

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { User } from '../types';
+import { LOGGED_OUT_KEY } from '../utils/loginPath';
 
 interface AuthContextType {
   user: User | null;
@@ -220,6 +221,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('tenantId');
     if (message) {
       localStorage.setItem('loginMessage', message);
+    } else {
+      // A deliberate log-out: the login page that follows is not "sign in to open that page".
+      try { sessionStorage.setItem(LOGGED_OUT_KEY, String(Date.now())); } catch { /* private mode */ }
     }
     setToken(null);
     setUser(null);

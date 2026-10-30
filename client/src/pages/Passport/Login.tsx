@@ -12,6 +12,7 @@ import './careerpilot.css';
 import './careerpilotLogin.css';
 import { startActivityBeacon, trackPage, trackFailure, trackNow } from './activityBeacon';
 import { JOURNEY } from './journeyTrack';
+import { careerPilotPageName, safeNext } from '../../utils/loginPath';
 
 /**
  * Shows the verification step AS THE PAGE while the login form that started it stays mounted.
@@ -61,6 +62,11 @@ const PassportLogin: React.FC<{
 }> = ({ embedded = false, onCreateAccount }) => {
   const [params] = useSearchParams();
   const tenant = params.get('tenant') || hostTenantSlug() || 'codebegun';
+  /**
+   * The member page a signed-out visitor was sent here from (?next=, set by the route guard): the
+   * form says so, and signing in returns there. Only our own member pages are accepted.
+   */
+  const next = safeNext(params.get('next'));
 
   const [mode, setMode] = useState<'password' | 'otp'>('password');
   const [otpStep, setOtpStep] = useState(false);
@@ -121,7 +127,8 @@ const PassportLogin: React.FC<{
 
   const goHome = (onboardingCompleted?: boolean) => {
     trackNow(JOURNEY.loginOk, undefined, 'success');
-    window.location.href = onboardingCompleted ? '/careerpilot' : '/careerpilot/setup';
+    // Back to the page they were trying to open; a member who has not finished setup does that first.
+    window.location.href = onboardingCompleted ? (next || '/careerpilot') : '/careerpilot/setup';
   };
 
   const land = (r: { token: string; tenantId: string; user: any; onboardingCompleted?: boolean }) => {
@@ -335,6 +342,15 @@ const PassportLogin: React.FC<{
             </button>
           </div>
 
+          {next && !msg && (
+            <div className="cpl-msg info" role="status">
+              <i className="bi bi-lock-fill" aria-hidden="true" />
+              <span>
+                Please sign in to open <b>{careerPilotPageName(next)}</b>. You will go straight there.
+                {onCreateAccount && <> New to CareerPilot? <button type="button" className="cpl-inline-link" onClick={onCreateAccount}>Create a free account</button>.</>}
+              </span>
+            </div>
+          )}
           {msg && <div className={`cpl-msg ${sent ? 'ok' : 'err'}`}>{msg}</div>}
           {/No CareerPilot account was found/.test(msg) && (
             <a className="cpl-link" style={{ display: 'inline-block', margin: '6px 0 2px', fontWeight: 700 }} href={`/careerpilot/join${tenant ? `?tenant=${encodeURIComponent(tenant)}` : ''}`}>Create your free account →</a>

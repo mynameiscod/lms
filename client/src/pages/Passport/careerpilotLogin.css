@@ -108,6 +108,11 @@
 .cpl-msg { font-size: 13px; line-height: 1.5; border-radius: 12px; padding: 11px 13px; margin-bottom: 14px; }
 .cpl-msg.err { background: #FFF1F2; color: #B42318; border: 1px solid #FFD0D5; }
 .cpl-msg.ok { background: #ECFDF3; color: #177245; border: 1px solid #C8F2D7; }
+/* "Please sign in to open My Roadmap": where the visitor was going, not an error. */
+.cpl-msg.info { display: flex; gap: 9px; align-items: flex-start; background: #EEF4FF; color: #0B2D72; border: 1px solid #D3E0FB; }
+.cpl-msg.info > i { margin-top: 2px; color: #359AAD; }
+.cpl-inline-link { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: #051D64; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.cpl-inline-link:hover { color: #0A2A7A; }
 
 .cpl-label { display: block; margin: 0 0 7px; font-size: 12.5px; font-weight: 800; color: var(--cpl-ink); }
 .cpl-input { position: relative; margin-bottom: 17px; }

@@ -2,7 +2,7 @@ import { ComposerResult, SelectedUnit, StudentProfile, ComposableUnit } from './
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
 import { densityFor } from '../data/learningDensityPolicy';
 import {
-  standingOn, bridgeUnitsForTopic, fitToDays, packTight, slotsOf, revisionPick, PlanItem, V2Tier, V2Phase,
+  standingOn, bridgeUnitsForTopic, fitToDays, packTight, slotsOf, revisionPick, isYearRefresher, PlanItem, V2Tier, V2Phase,
 } from '../data/roadmapV2PlanPolicy';
 import { trackTopics, placementSplit, TrackPriority, MAX_TRACK_SHARE } from '../data/careerTrackPolicy';
 import { asSelected, byTopic, topicSkills, V2Plan } from './roadmapV2ComposerService';
@@ -252,7 +252,9 @@ export async function composeTrackRoadmap(
   const fillCurriculum = (n: number): { days: Item[][]; dropped: Record<V2Tier, number> } | null => {
     if (n < 1) return { days: [], dropped: { ESSENTIAL: 0, MUST_EXTRA: 0, BRIDGE_EXTRA: 0, REVISION: 0, SHOULD: 0, OPTIONAL: 0, DRILL: 0 } };
     const direction = profile.primaryDirection || (profile.explorationDirections || [])[0] || null;
+    // The year's own refresher module (B01_BRIDGE…) is left out, as the regular V2 year leaves it out: the track has just taught it.
     const mine = (t: { topicCode: string }) => (unitsOf.get(t.topicCode) || [])
+      .filter(u => !isYearRefresher(u.moduleCode))
       .filter(u => !(u.applicableDirections || []).length || (!!direction && appliesToDirection(u.applicableDirections, direction)));
     const build = (drilled: Set<string> | 'ALL'): Item[] => {
       const items: Item[] = [];

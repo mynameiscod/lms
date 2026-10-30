@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { libraryApi, libError, KIND_LABEL, LibKind, LibItem, LibItemInput, SearchResult, Bundle } from '../../api/contentLibraryApi';
 import { Modal, useToast } from '../ProblemBank/shared';
 import '../ProblemBank/ProblemBank.css';
+import './ProblemBundles.css';
 
 const KINDS = Object.keys(KIND_LABEL) as LibKind[];
 const DIFF = ['easy', 'medium', 'hard'];
@@ -224,95 +225,143 @@ const ProblemBundles: React.FC = () => {
 
   const f = res?.facets;
   const count = (arr: { value: string; count: number }[] | undefined, v: string) => arr?.find(x => x.value === v)?.count;
-  const empty = meta && !meta.counts.mine && !meta.counts.shared;
+
+  const sharedBundles = bundles?.filter(b => b.scope === 'global').length ?? 0;
+  const anyFilter = !!(kinds.length || diffs.length || source || subject || topic || bundleFilter || q);
+  const clearAll = () => { setQ(''); setKinds([]); setDiffs([]); setSource(''); setSubject(''); setTopic(''); setBundleFilter(''); };
+  const [view, setView] = useState<'grid' | 'list'>(() => { try { return localStorage.getItem('pbl-view') === 'list' ? 'list' : 'grid'; } catch { return 'grid'; } });
+  const pickView = (v: 'grid' | 'list') => { setView(v); try { localStorage.setItem('pbl-view', v); } catch { /* storage may be blocked */ } };
+  const stats: { label: string; value: number | string; icon: string; tone: string; go?: () => void }[] = [
+    { label: 'Total Bundles', value: meta?.counts.bundles ?? '–', icon: 'fa-cube', tone: 'blue', go: () => setTab('bundles') },
+    { label: 'Total Questions', value: meta ? meta.counts.mine + meta.counts.shared : '–', icon: 'fa-list-ul', tone: 'green', go: () => { setTab('library'); setSource(''); } },
+    { label: 'Shared Bundles', value: bundles ? sharedBundles : '–', icon: 'fa-user-group', tone: 'violet', go: () => setTab('bundles') },
+    { label: 'My Copies', value: meta?.counts.mine ?? '–', icon: 'fa-star', tone: 'amber', go: () => { setTab('library'); setSource('mine'); } },
+  ];
+
+  const ItemActions = (i: LibItem) => (
+    <div className="pbl-actions">
+      {i.scope === 'global' && !meta?.canEditGlobal && (i.myCopyId
+        ? <span className="pbl-tag ok">In your library</span>
+        : <button className="pbl-btn sm" onClick={() => cloneSel([i._id])}>Clone</button>)}
+      {i.canEdit && <button className="pbl-btn sm" onClick={() => setEditor({ item: i })}>Edit</button>}
+      {i.canEdit && <button className="pbl-btn sm danger" onClick={() => archive(i)}>Remove</button>}
+    </div>
+  );
+  const ItemMeta = (i: LibItem) => (
+    <div className="pbl-meta">
+      <span className="pbl-tag">{KIND_LABEL[i.kind]}</span>
+      <span className={`pbl-tag d-${i.difficulty}`}><i className="pbl-dot" />{i.difficulty}</span>
+      {i.scope === 'global' && <span className="pbl-tag brand">CodeBegun</span>}
+      {i.status === 'draft' && <span className="pbl-tag warn">Draft</span>}
+      {(i.subject || i.topic) && <span className="pbl-sub">{[i.subject, i.topic].filter(Boolean).join(' · ')}</span>}
+    </div>
+  );
 
   return (
-    <div className="pb-root"><div className="pb-page">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-        <div style={{ flex: 1, minWidth: 220 }}>
+    <div className="pb-root pbl"><div className="pb-page">
+      <nav className="pbl-crumbs" aria-label="Breadcrumb"><a href="/dashboard" aria-label="Home"><i className="fa-solid fa-house" /></a><span>/</span><b>Problem Bundles</b></nav>
+
+      <header className="pbl-head">
+        <div className="pbl-logo"><i className="fa-solid fa-cube" /></div>
+        <div className="pbl-title">
           <h1>Problem Bundles</h1>
-          <div className="pb-muted">One place for every question and problem. Use CodeBegun's, clone what you like, and make it yours.</div>
+          <p>Create, organize and manage question bundles for practice, assessments and learning paths.</p>
         </div>
-        <button className="pb-btn" onClick={() => syncOld()} title="Copies your existing Question Bank, Problem Bank and Interview questions here. Nothing is moved or changed.">Bring in my existing banks</button>
-        {meta?.canEditGlobal && <button className="pb-btn" onClick={() => syncOld('global')} title="Copies CodeBegun's Problem Bank into the shared library every institute can clone.">Publish Problem Bank as shared</button>}
-        <button className="pb-btn" onClick={() => setImporting(true)}>Import</button>
-        <button className="pb-btn pb-btn-primary" onClick={() => setEditor({})}>+ Add item</button>
-      </div>
+        <div className="pbl-head-actions">
+          <button className="pbl-btn" onClick={() => syncOld()} title="Copies your existing Question Bank, Problem Bank and Interview questions here. Nothing is moved or changed."><i className="fa-regular fa-file-lines" /> Bring in my existing banks</button>
+          {meta?.canEditGlobal && <button className="pbl-btn" onClick={() => syncOld('global')} title="Copies the CodeBegun Problem Bank into the shared library every institute can clone."><i className="fa-regular fa-paper-plane" /> Publish as shared</button>}
+          <button className="pbl-btn" onClick={() => setImporting(true)}><i className="fa-solid fa-arrow-up-from-bracket" /> Import</button>
+          <button className="pbl-btn primary" onClick={() => setEditor({})}><i className="fa-solid fa-plus" /> Add item</button>
+        </div>
+      </header>
 
-      <div className="pb-chips" style={{ marginBottom: 14 }}>
-        <button className={`pb-chip ${tab === 'library' ? 'on' : ''}`} onClick={() => setTab('library')}>Library {meta ? `(${meta.counts.mine + meta.counts.shared})` : ''}</button>
-        <button className={`pb-chip ${tab === 'bundles' ? 'on' : ''}`} onClick={() => setTab('bundles')}>Bundles {meta ? `(${meta.counts.bundles})` : ''}</button>
-      </div>
+      <section className="pbl-stats" aria-label="Summary">
+        {stats.map(s => (
+          <button key={s.label} className={`pbl-stat ${s.tone}`} onClick={s.go}>
+            <span className="pbl-stat-ic"><i className={`fa-solid ${s.icon}`} /></span>
+            <span><span className="pbl-stat-l">{s.label}</span><span className="pbl-stat-v">{s.value}</span></span>
+          </button>
+        ))}
+      </section>
 
-      {tab === 'library' && (<>
-        {empty && <div className="pb-card" style={{ padding: 16, marginBottom: 12 }}>Nothing here yet. Click <b>Bring in my existing banks</b> to copy what you already have, or <b>Import</b> a file, or <b>+ Add item</b>.</div>}
-        <div className="pb-card" style={{ padding: 12, marginBottom: 12 }}>
-          <div className="pb-search" style={{ marginBottom: 10 }}>
-            <input className="pb-input" placeholder="Search questions, topics, tags, companies…" value={q} onChange={e => setQ(e.target.value)} aria-label="Search" />
-          </div>
-          <div className="pb-chips" style={{ marginBottom: 8 }}>
-            {KINDS.map(k => <button key={k} className={`pb-chip ${kinds.includes(k) ? 'on' : ''}`} onClick={() => toggle(kinds, k, setKinds)}>{KIND_LABEL[k]}{count(f?.kind, k) != null ? ` · ${count(f?.kind, k)}` : ''}</button>)}
-          </div>
-          <div className="pb-chips" style={{ marginBottom: 8 }}>
-            {DIFF.map(d => <button key={d} className={`pb-chip ${diffs.includes(d) ? 'on' : ''}`} onClick={() => toggle(diffs, d, setDiffs)}>{d}{count(f?.difficulty, d) != null ? ` · ${count(f?.difficulty, d)}` : ''}</button>)}
-            <span style={{ width: 12 }} />
-            {[['', 'All'], ['codebegun', 'CodeBegun'], ['mine', 'My copies']].map(([v, l]) => <button key={v} className={`pb-chip ${source === v ? 'on' : ''}`} onClick={() => setSource(v)}>{l}</button>)}
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <select className="pb-select" style={{ width: 200 }} value={subject} onChange={e => setSubject(e.target.value)} aria-label="Subject"><option value="">All subjects</option>{f?.subject.map(s => <option key={s.value} value={s.value}>{s.value} ({s.count})</option>)}</select>
-            <select className="pb-select" style={{ width: 200 }} value={topic} onChange={e => setTopic(e.target.value)} aria-label="Topic"><option value="">All topics</option>{f?.topic.map(s => <option key={s.value} value={s.value}>{s.value} ({s.count})</option>)}</select>
-            <select className="pb-select" style={{ width: 220 }} value={bundleFilter} onChange={e => setBundleFilter(e.target.value)} aria-label="Bundle"><option value="">Any bundle</option>{bundles?.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}</select>
-            {(kinds.length || diffs.length || source || subject || topic || bundleFilter || q) ? <button className="pb-btn pb-btn-ghost pb-btn-sm" onClick={() => { setQ(''); setKinds([]); setDiffs([]); setSource(''); setSubject(''); setTopic(''); setBundleFilter(''); }}>Clear all</button> : null}
-          </div>
+      <div className="pbl-panel">
+        <div className="pbl-tabs" role="tablist">
+          <button role="tab" aria-selected={tab === 'library'} className={tab === 'library' ? 'on' : ''} onClick={() => setTab('library')}>Library</button>
+          <button role="tab" aria-selected={tab === 'bundles'} className={tab === 'bundles' ? 'on' : ''} onClick={() => setTab('bundles')}>Bundles</button>
         </div>
 
-        {picked.size > 0 && (
-          <div className="pb-card" style={{ padding: 10, marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', background: 'var(--pb-accent-soft)' }}>
-            <b>{picked.size} selected</b>
-            <button className="pb-btn pb-btn-sm" onClick={() => cloneSel(Array.from(picked))}>Clone to my library</button>
-            <select className="pb-select" style={{ width: 200 }} value="" onChange={e => e.target.value && addToBundle(e.target.value)} aria-label="Add to bundle">
-              <option value="">Add to bundle…</option>{bundles?.filter(b => b.canEdit).map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
-            </select>
-            <button className="pb-btn pb-btn-sm" onClick={newBundle}>New bundle from selection</button>
-            <button className="pb-btn pb-btn-ghost pb-btn-sm" onClick={() => setPicked(new Set())}>Clear</button>
+        {tab === 'library' && (<>
+          <div className="pbl-searchrow">
+            <label className="pbl-search"><i className="fa-solid fa-magnifying-glass" />
+              <input placeholder="Search questions, topics, tags, companies..." value={q} onChange={e => setQ(e.target.value)} aria-label="Search" /></label>
+            <button className="pbl-btn" onClick={clearAll} disabled={!anyFilter}><i className="fa-solid fa-rotate-left" /> Clear filters</button>
+            <div className="pbl-view"><span>View</span>
+              <button className={view === 'grid' ? 'on' : ''} onClick={() => pickView('grid')} aria-label="Grid view" aria-pressed={view === 'grid'}><i className="fa-solid fa-table-cells-large" /></button>
+              <button className={view === 'list' ? 'on' : ''} onClick={() => pickView('list')} aria-label="List view" aria-pressed={view === 'list'}><i className="fa-solid fa-bars" /></button>
+            </div>
           </div>
-        )}
 
-        <div className="pb-card" style={{ opacity: loading ? .7 : 1 }}>
-          {!res ? <div style={{ padding: 20 }} className="pb-muted">Loading…</div>
-            : !res.items.length ? <div style={{ padding: 20 }} className="pb-muted">No matches. Try fewer filters or a different word.</div>
-            : res.items.map(i => (
-              <div key={i._id} style={{ display: 'flex', gap: 10, padding: '11px 14px', borderBottom: '1px solid var(--pb-line)', alignItems: 'flex-start' }}>
-                <input type="checkbox" checked={picked.has(i._id)} aria-label={`Select ${i.title}`} style={{ marginTop: 4 }}
-                  onChange={e => setPicked(p => { const n = new Set(p); e.target.checked ? n.add(i._id) : n.delete(i._id); return n; })} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 650 }}>{i.title}</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 5, alignItems: 'center' }}>
-                    <span className="pb-pill pb-badge-neutral">{KIND_LABEL[i.kind]}</span>{diffPill(i.difficulty)}
-                    {i.subject && <span className="pb-muted">{i.subject}{i.topic ? ` · ${i.topic}` : ''}</span>}
-                    {i.scope === 'global' && <span className="pb-pill" style={{ background: 'var(--pb-accent-soft)', color: 'var(--pb-accent-ink)' }}>CodeBegun</span>}
-                    {i.status === 'draft' && <span className="pb-pill pb-badge-warn">Draft</span>}
-                    {i.tags.slice(0, 4).map(t => <span key={t} className="pb-faint">#{t}</span>)}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {i.scope === 'global' && !meta?.canEditGlobal && (i.myCopyId
-                    ? <span className="pb-pill pb-badge-ok">In your library</span>
-                    : <button className="pb-btn pb-btn-sm" onClick={() => cloneSel([i._id])}>Clone</button>)}
-                  {i.canEdit && <button className="pb-btn pb-btn-sm" onClick={() => setEditor({ item: i })}>Edit</button>}
-                  {i.canEdit && <button className="pb-btn pb-btn-ghost pb-btn-sm pb-btn-danger" onClick={() => archive(i)}>Remove</button>}
-                </div>
-              </div>
-            ))}
-          {res && res.pages > 1 && (
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', alignItems: 'center', padding: 12 }}>
-              <button className="pb-btn pb-btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
-              <span className="pb-muted">Page {res.page} of {res.pages} · {res.total} items</span>
-              <button className="pb-btn pb-btn-sm" disabled={page >= res.pages} onClick={() => setPage(page + 1)}>Next</button>
+          <div className="pbl-filters">
+            <div className="pbl-fg wide"><div className="pbl-fl">Question Type</div>
+              <div className="pbl-chips">{KINDS.map(k => <button key={k} className={`pbl-chip ${kinds.includes(k) ? 'on' : ''}`} onClick={() => toggle(kinds, k, setKinds)}>{KIND_LABEL[k]}{count(f?.kind, k) != null ? <em>{count(f?.kind, k)}</em> : null}</button>)}</div></div>
+            <div className="pbl-fg"><div className="pbl-fl">Difficulty</div>
+              <div className="pbl-chips">{DIFF.map(d => <button key={d} className={`pbl-chip ${diffs.includes(d) ? 'on' : ''}`} onClick={() => toggle(diffs, d, setDiffs)}><i className={`pbl-dot d-${d}`} />{d[0].toUpperCase() + d.slice(1)}</button>)}</div></div>
+            <div className="pbl-fg"><div className="pbl-fl">Source</div>
+              <div className="pbl-chips">{[['', 'All'], ['codebegun', 'CodeBegun'], ['mine', 'My copies']].map(([v, l]) => <button key={v} className={`pbl-chip ${source === v ? 'on' : ''}`} onClick={() => setSource(v)}>{l}</button>)}</div></div>
+          </div>
+          <div className="pbl-selects">
+            <label><span className="pbl-fl">Subject</span><span className="pbl-sel"><i className="fa-solid fa-book-open" /><select value={subject} onChange={e => setSubject(e.target.value)}><option value="">All subjects</option>{f?.subject.map(s => <option key={s.value} value={s.value}>{s.value} ({s.count})</option>)}</select></span></label>
+            <label><span className="pbl-fl">Topic</span><span className="pbl-sel"><i className="fa-solid fa-align-left" /><select value={topic} onChange={e => setTopic(e.target.value)}><option value="">All topics</option>{f?.topic.map(s => <option key={s.value} value={s.value}>{s.value} ({s.count})</option>)}</select></span></label>
+            <label><span className="pbl-fl">Bundle</span><span className="pbl-sel"><i className="fa-solid fa-cube" /><select value={bundleFilter} onChange={e => setBundleFilter(e.target.value)}><option value="">Any bundle</option>{bundles?.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}</select></span></label>
+          </div>
+
+          {picked.size > 0 && (
+            <div className="pbl-bulk">
+              <b>{picked.size} selected</b>
+              <button className="pbl-btn sm" onClick={() => cloneSel(Array.from(picked))}>Clone to my library</button>
+              <select value="" onChange={e => e.target.value && addToBundle(e.target.value)} aria-label="Add to bundle"><option value="">Add to bundle…</option>{bundles?.filter(b => b.canEdit).map(b => <option key={b._id} value={b._id}>{b.name}</option>)}</select>
+              <button className="pbl-btn sm" onClick={newBundle}>New bundle from selection</button>
+              <button className="pbl-btn sm ghost" onClick={() => setPicked(new Set())}>Clear</button>
             </div>
           )}
-        </div>
-      </>)}
+
+          <div className={`pbl-results ${loading ? 'busy' : ''}`}>
+            {!res ? <div className="pbl-note">Loading…</div>
+              : !res.items.length ? (
+                <div className="pbl-empty">
+                  <div className="pbl-art" aria-hidden="true"><i className="fa-solid fa-cube" /><span className="a"><i className="fa-solid fa-code" /></span><span className="b">?</span></div>
+                  <h2>{anyFilter ? 'No matches' : 'No problem bundles yet'}</h2>
+                  <p>{anyFilter ? 'Try fewer filters or a different word.' : 'Create your first problem bundle or import questions from existing banks to get started.'}</p>
+                  {anyFilter
+                    ? <button className="pbl-btn" onClick={clearAll}>Clear filters</button>
+                    : <div className="pbl-empty-actions">
+                        <button className="pbl-btn primary" onClick={() => setEditor({})}><i className="fa-solid fa-plus" /> Add item</button>
+                        <button className="pbl-btn" onClick={() => setImporting(true)}><i className="fa-solid fa-arrow-up-from-bracket" /> Import</button>
+                        <button className="pbl-btn" onClick={() => syncOld()}><i className="fa-regular fa-file-lines" /> Bring in my existing banks</button>
+                      </div>}
+                </div>
+              ) : (
+                <div className={view === 'grid' ? 'pbl-grid' : 'pbl-list'}>
+                  {res.items.map(i => (
+                    <article key={i._id} className={`pbl-item ${picked.has(i._id) ? 'sel' : ''}`}>
+                      <input type="checkbox" checked={picked.has(i._id)} aria-label={`Select ${i.title}`}
+                        onChange={e => setPicked(p => { const n = new Set(p); e.target.checked ? n.add(i._id) : n.delete(i._id); return n; })} />
+                      <div className="pbl-item-main"><div className="pbl-item-t">{i.title}</div>{ItemMeta(i)}
+                        {view === 'grid' && i.tags.length > 0 && <div className="pbl-tags">{i.tags.slice(0, 4).map(t => <span key={t}>#{t}</span>)}</div>}</div>
+                      {ItemActions(i)}
+                    </article>
+                  ))}
+                </div>
+              )}
+            {res && res.pages > 1 && (
+              <div className="pbl-pager">
+                <button className="pbl-btn sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
+                <span>Page {res.page} of {res.pages} · {res.total} items</span>
+                <button className="pbl-btn sm" disabled={page >= res.pages} onClick={() => setPage(page + 1)}>Next</button>
+              </div>
+            )}
+          </div>
+        </>)}
 
       {tab === 'bundles' && (
         <div>
@@ -343,6 +392,8 @@ const ProblemBundles: React.FC = () => {
           )}
         </div>
       )}
+
+      </div>
 
       {open && (
         <Modal title={open.name} onClose={() => setOpen(null)} wide>

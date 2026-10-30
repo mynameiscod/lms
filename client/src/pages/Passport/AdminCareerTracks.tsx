@@ -287,8 +287,8 @@ const AdminCareerTracks: React.FC = () => {
         <div>
           <span className="rv2-eyebrow">CareerPilot</span>
           <h1>Career Tracks</h1>
-          <p>From Year 3 a student learns one track — a role and a language, such as Java Full Stack + AI. Year 4 is the same track
-            again, then placement. A track is made of skill packs; a pack is topics, each taught by lessons from any year, so a topic
+          <p>From Year 2 a student learns one track — a role and a language, such as Java Full Stack + AI. Year 2 uses the track's
+            Year-2 packs (none set: the regular Year-2 roadmap), Year 3 its Year-3 packs, and Year 4 the same track again, then placement. A track is made of skill packs; a pack is topics, each taught by lessons from any year, so a topic
             is written once and reused by every track that needs it.</p>
         </div>
         <span className="rv2-status on"><i className="bi bi-circle-fill" /> {cat.tracks.filter(t => t.status === 'LIVE').length} live · {cat.tracks.length} tracks · {cat.packs.length} packs</span>

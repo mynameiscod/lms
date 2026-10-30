@@ -686,3 +686,82 @@
   #root .gd .md .md-streak-art { display: none !important; }
   #root .gd .md .md-streak b { font-size: 15px !important; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ONE BUTTON STYLE FOR CAREERPILOT — the Communication Lab "Start Speaking" button.
+   Main buttons: blue gradient, white bold text, 10px corners, soft blue shadow that lifts on
+   hover. Outline buttons: the same shape in white with blue text and border. Only colour,
+   border, corners, shadow and weight are set here; each page keeps its own sizes and layout.
+   Listed by class because the pages name their buttons differently; a new page's buttons join
+   by using one of these classes or the `primary` modifier on a *-btn class.
+   ════════════════════════════════════════════════════════════════════════════ */
+#root .gd :is(button, a):is(
+  [class*="btn"].primary, [class*="-act"].primary, [class*="-cta"].primary,
+  .rq-primary, .cpp-primary, .mc-mission-primary, .sp-btn-primary, .cpx-btn-primary,
+  .fj-start:not(.ghost), .clh-start, .pl-btn.go, .skc-cta, .spc-cta, .skp-cta, .plr-cta,
+  .opp-side-cta, .opp-resume-cta, .ska-v2-start, .fjp-day-cta,
+  .iv2-btn.light, .opp2-btn.light, .fjm-btn.light, .tl-ov-start, .cps-cta,
+  .sp-btn-teal, .dl2-btn.light, .slk-btn:not(.ghost):not(.secondary),
+  .cp-iv-round-go, .gd-pwd-nudge .go, .gd-unlock-cta
+) {
+  background: linear-gradient(135deg, #1976D2, #1752D6) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 12px 26px rgba(23, 82, 214, .32) !important;
+  font-weight: 800 !important;
+  transition: transform .12s, box-shadow .12s, filter .12s;
+}
+#root .gd :is(button, a):is(
+  [class*="btn"].primary, [class*="-act"].primary, [class*="-cta"].primary,
+  .rq-primary, .cpp-primary, .mc-mission-primary, .sp-btn-primary, .cpx-btn-primary,
+  .fj-start:not(.ghost), .clh-start, .pl-btn.go, .skc-cta, .spc-cta, .skp-cta, .plr-cta,
+  .opp-side-cta, .opp-resume-cta, .ska-v2-start, .fjp-day-cta,
+  .iv2-btn.light, .opp2-btn.light, .fjm-btn.light, .tl-ov-start, .cps-cta,
+  .sp-btn-teal, .dl2-btn.light, .slk-btn:not(.ghost):not(.secondary),
+  .cp-iv-round-go, .gd-pwd-nudge .go, .gd-unlock-cta
+) :is(i, svg, span:not([class])) { color: inherit !important; }
+#root .gd :is(button, a):is(
+  [class*="btn"].primary, [class*="-act"].primary, [class*="-cta"].primary,
+  .rq-primary, .cpp-primary, .mc-mission-primary, .sp-btn-primary, .cpx-btn-primary,
+  .fj-start:not(.ghost), .clh-start, .pl-btn.go, .skc-cta, .spc-cta, .skp-cta, .plr-cta,
+  .opp-side-cta, .opp-resume-cta, .ska-v2-start, .fjp-day-cta,
+  .iv2-btn.light, .opp2-btn.light, .fjm-btn.light, .tl-ov-start, .cps-cta,
+  .sp-btn-teal, .dl2-btn.light, .slk-btn:not(.ghost):not(.secondary),
+  .cp-iv-round-go, .gd-pwd-nudge .go, .gd-unlock-cta
+):hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 16px 30px rgba(23, 82, 214, .38) !important; filter: brightness(1.04); }
+
+#root .gd :is(button, a):is(
+  .md-btn, .pm-btn, .pl-btn, .sdn-btn, .dl2-btn, .ska-btn, .plr-btn, .rr-btn, .clx-btn, .mpl-btn,
+  .rc-btn, .qb-btn, .jd-btn, .qd-btn, .ori-btn, .ivp-btn, .rwd-btn, .sci-btn, .skp-btn, .ss-btn,
+  .tdp-btn, .mv-btn, .lst-btn, .mgc-btn, .cj-btn, .fjp-btn, .fjm-act, .fj-start.ghost, .rq-ghost,
+  .iv2-btn.ghost, .opp2-btn.ghost
+):not(.primary):not(.light):not(.go):not(.on):not(.active):not(.danger) {
+  background: #fff !important;
+  color: #1752D6 !important;
+  border: 1.5px solid #C7D8F6 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 16px rgba(23, 82, 214, .08) !important;
+  font-weight: 800 !important;
+  transition: transform .12s, box-shadow .12s, border-color .12s, background .12s;
+}
+#root .gd :is(button, a):is(
+  .md-btn, .pm-btn, .pl-btn, .sdn-btn, .dl2-btn, .ska-btn, .plr-btn, .rr-btn, .clx-btn, .mpl-btn,
+  .rc-btn, .qb-btn, .jd-btn, .qd-btn, .ori-btn, .ivp-btn, .rwd-btn, .sci-btn, .skp-btn, .ss-btn,
+  .tdp-btn, .mv-btn, .lst-btn, .mgc-btn, .cj-btn, .fjp-btn, .fjm-act, .fj-start.ghost, .rq-ghost,
+  .iv2-btn.ghost, .opp2-btn.ghost
+):not(.primary):not(.light):not(.go):not(.on):not(.active):not(.danger):hover:not(:disabled) {
+  border-color: #1752D6 !important; background: #F3F7FF !important; transform: translateY(-1px);
+}
+#root .gd :is(button, a):is(
+  .md-btn, .pm-btn, .pl-btn, .sdn-btn, .dl2-btn, .ska-btn, .plr-btn, .rr-btn, .clx-btn, .mpl-btn,
+  .rc-btn, .qb-btn, .jd-btn, .qd-btn, .ori-btn, .ivp-btn, .rwd-btn, .sci-btn, .skp-btn, .ss-btn,
+  .tdp-btn, .mv-btn, .lst-btn, .mgc-btn, .cj-btn, .fjp-btn, .fjm-act, .fj-start.ghost, .rq-ghost,
+  .iv2-btn.ghost, .opp2-btn.ghost
+):not(.primary):not(.light):not(.go):not(.on):not(.active):not(.danger) i { color: inherit !important; }
+#root .gd :is(button, a):disabled, #root .gd :is(button, a)[aria-disabled="true"] { transform: none !important; }
+/* Phones: a hero's two buttons stack full width instead of squeezing a long label onto three lines. */
+@media (max-width: 560px) {
+  #root .gd .iv2-actions { flex-direction: column; padding-bottom: 8px; }
+  #root .gd .iv2-actions .iv2-btn { width: 100%; flex: none; justify-content: center; }
+}

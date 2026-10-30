@@ -92,7 +92,6 @@ export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
             <p>Solve real-world coding problems, track your progress and get interview ready with structured practice.</p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <button className="pl-btn primary" onClick={start} disabled={!data}><i className="fa-solid fa-play" /> {prog?.solved ? 'Continue practicing' : 'Start Practicing'}</button>
-              <button className="pl-btn" onClick={() => nav('/careerpilot/roadmap')}><i className="fa-regular fa-map" /> View My Roadmap</button>
             </div>
             <div className="pl-hero-art" aria-hidden><i /><i /><i /><i /><i /></div>
           </section>

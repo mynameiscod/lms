@@ -89,7 +89,7 @@ const Rewards: React.FC = () => {
         <div className="gifts"><i className="bi bi-gift-fill" /><i className="bi bi-trophy-fill" /><i className="bi bi-mortarboard-fill" /></div>
         <b>Rewards are coming soon</b>
         <span>Keep building your XP, streak and coins. When the store opens, your coins will be ready to spend.</span>
-        <button onClick={() => nav('/careerpilot')}><i className="bi bi-lightning-charge-fill" /> Earn coins now</button>
+        <button className="rwd-btn primary" onClick={() => nav('/careerpilot')}><i className="bi bi-lightning-charge-fill" /> Earn coins now</button>
       </div> :
       <div className="rwd-grid">{data.rewards.map((r, idx) => { const e = r.eligibility; const out = e.reasons.includes('OUT_OF_STOCK'); const progress = Math.min(100, Math.round((student.coins / Math.max(r.coinCost, 1)) * 100)); return <article className={`rwd-card${e.eligible ? '' : ' locked'}`} key={r.key}>
         <div className={`rwd-art art-${idx % 4}`}><i className={`bi ${r.iconKey || 'bi-gift'}`} />{!e.eligible && <span className="lock"><i className="bi bi-lock-fill" /></span>}</div>

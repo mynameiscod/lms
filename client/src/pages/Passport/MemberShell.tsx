@@ -383,29 +383,26 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
             default programme length, so the fallback is what it always was.
           */}
           {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap', 'plan')}
+          {/* The rail, in the order asked for (2026-10-30). */}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice', 'practice')}
-          {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'thinkingLab', 'thinkingLab')}
+          {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication', 'communication')}
+          {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview', 'interview')}
+          {navBtn('Question Books', 'books', '/careerpilot/question-books', 'questionBooks', 'questionBooks')}
+          {navBtn('Job Board', 'building', '/careerpilot/companies', 'companies', 'companies')}
+          {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume', 'resume')}
+          {navBtn('Interview Experiences', 'experiences', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
+          {/* Assigned per member: shown only once it has been. */}
+          {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
+          {/* Membership-only like the rest of the product; the institute can also hide it (Student Features, CareerPilot tab). */}
+          {navBtn('Industry Connect', 'handshake', '/careerpilot/industry-connect', 'industryConnect', 'industryConnect')}
           {/* Announced, not built yet: each opens a "Coming soon" page (ComingSoon.tsx). */}
           {navBtn('Aptitude', 'calculator', '/careerpilot/aptitude', undefined, 'aptitude', 0, 'Soon')}
           {navBtn('Reasoning', 'puzzle', '/careerpilot/reasoning', undefined, 'reasoning', 0, 'Soon')}
-          {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication', 'communication')}
-          {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview', 'interview')}
-          {navBtn('Interview Experiences', 'experiences', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
-          {navBtn('Question Books', 'books', '/careerpilot/question-books', 'questionBooks', 'questionBooks')}
           {navBtn('AI Mentor', 'robot', '/careerpilot/mentor', 'mentor', 'mentor')}
-          {navBtn('Job Board', 'building', '/careerpilot/companies', 'companies', 'companies')}
-          {/* Sits with Opportunities because it answers the same question — what is happening in
-              the industry I am applying to. It was reachable only from the user menu, which is
-              where people look for their account, not for a daily read. */}
           {navBtn('Tech News', 'news', '/careerpilot/news', 'news', 'news')}
-          {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume', 'resume')}
-          {/* Membership-only like the rest of the product; the institute can also hide it
-              (Student Features, CareerPilot tab). */}
-          {navBtn('Industry Connect', 'handshake', '/careerpilot/industry-connect', 'industryConnect', 'industryConnect')}
-          {/* The tools end of the rail, in the order asked for: Playground, then Reward Store, then Help & Support.
-              Reward Store goes with the progress switch (coins buy rewards), so it locks and hides with it. */}
-          {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
+          {navBtn('Code Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
+          {/* Reward Store goes with the progress switch (coins buy rewards), so it locks and hides with it. */}
           {navBtn('Reward Store', 'gift', '/careerpilot/rewards', 'progress', 'progress')}
           {/* Never locked behind membership: anyone signed in must be able to ask for help, including about paying. */}
           {navBtn('Help & Support', 'support', '/careerpilot/support', undefined, 'support', supportUnread)}

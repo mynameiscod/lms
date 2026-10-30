@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { calculateStudentRoleReadiness, explainReadiness } from '../services/roleReadinessService';
+import { calculateStudentRoleReadiness, explainReadiness, shownRoleReadiness } from '../services/roleReadinessService';
+import User from '../models/User';
 
 /**
  * Reading a student's readiness against their target role.
@@ -48,6 +49,8 @@ const studentShape = (r: any) => {
     role: r.role,
     readiness: r.readiness,
     coverage: r.coverage,
+    provisional: r.provisional,
+    wholeRoleReadiness: r.wholeRoleReadiness,
     confidence: r.confidence,
     summary: r.summary,
     skills: r.skills.map(skill),
@@ -64,7 +67,9 @@ export const getMyRoleReadiness = async (req: Request, res: Response) => {
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
-    const result = await calculateStudentRoleReadiness(tenantId, studentId);
+    // Year 1 has no role, so no role readiness figure (shownRoleReadiness).
+    const result: any = await shownRoleReadiness(tenantId, studentId);
+    if (result.reason === 'YEAR_1') return res.json(result);
 
     // An unavailable readiness is a normal state, not an error: no role chosen, no
     // published blueprint, or nothing measured yet. The screen explains each differently.

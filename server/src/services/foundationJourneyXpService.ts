@@ -110,6 +110,28 @@ export async function reconcileJourneyDayXp(input: JourneyDayXpInput): Promise<n
   return paid;
 }
 
+/**
+ * How far through their current journey a member is: days completed out of the journey's days.
+ * The coder score's "Missions" part reads this; it used to read the retired mission roadmap, which
+ * a journey member never writes to, so it stayed at 0 for them. Null when there is no journey.
+ */
+export async function journeyCompletion(tenantId: string, studentId: string): Promise<{ completedDays: number; totalDays: number } | null> {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(studentId)) return null;
+    const sid = new mongoose.Types.ObjectId(studentId);
+    const enrollment: any = await CurriculumEnrollment.findOne({ tenantId, studentId: sid, enrolledBy: 'foundation-journey' })
+      .sort({ createdAt: -1 }).select('curriculumId completedDays').lean();
+    if (!enrollment?.curriculumId) return null;
+    const totalDays = await DayPlan.countDocuments({ curriculumId: enrollment.curriculumId });
+    if (!totalDays) return null;
+    const completedDays = new Set((enrollment.completedDays || []).map(Number).filter((d: number) => d >= 1 && d <= totalDays)).size;
+    return { completedDays, totalDays };
+  } catch (e: any) {
+    console.error('[foundation-journey-xp] completion:', e?.message || e);
+    return null;
+  }
+}
+
 export interface JourneyDayGoal { day: number; target: number; earned: number }
 
 /**

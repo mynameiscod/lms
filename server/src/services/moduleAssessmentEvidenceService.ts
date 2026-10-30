@@ -107,6 +107,8 @@ export async function projectModuleAssessment(input: {
   const perSkill = new Map<string, { earned: number; max: number }>();
   let dropped = 0;
 
+  /** Skills touched only as SECONDARY: recomputed with the primary ones below. */
+  const touched = new Set<string>();
   for (const a of mapped) {
     const primary = String(a.skillKey).toUpperCase();
     if (!valid.has(primary)) { dropped++; continue; }
@@ -141,6 +143,7 @@ export async function projectModuleAssessment(input: {
     for (const sec of secondaries) {
       const key = String(sec.skillKey).toUpperCase();
       if (key === primary || !valid.has(key)) continue;
+      touched.add(key);
       ops.push(evidenceOp({
       sourceType,
         tenantId, studentId, skillKey: key, assessmentRef,
@@ -152,7 +155,8 @@ export async function projectModuleAssessment(input: {
 
   if (ops.length) {
     await StudentSkillEvidence.bulkWrite(ops, { ordered: false });
-    await recomputeStudentSkills(tenantId, studentId, [...perSkill.keys()]);
+    // Every skill that got a row, secondary ones included — they used to keep a stale profile.
+    await recomputeStudentSkills(tenantId, studentId, [...perSkill.keys(), ...touched]);
   }
 
   const skillScores = [...perSkill.entries()]

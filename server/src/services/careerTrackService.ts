@@ -54,7 +54,7 @@ export async function liveTracks(tenantId: string): Promise<{ key: string; name:
 /**
  * The track a student's roadmap for this stage is built from, or null (they are planned as before).
  *
- * Only Year 3 and Year 4 have tracks. The track must exist and be LIVE — or have been set by an
+ * Years 2, 3 and 4 have tracks. The track must exist and be LIVE — or have been set by an
  * admin, which is how a DRAFT track is piloted on a few students before it opens to everyone.
  * Never throws: a failed lookup must not cost a learner their roadmap.
  */

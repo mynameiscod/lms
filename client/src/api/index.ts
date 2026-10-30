@@ -1,5 +1,5 @@
 import { pushClientError } from '../utils/errorStore';
-import { loginPathFor } from '../utils/loginPath';
+import { loginRedirectFor } from '../utils/loginPath';
 
 // Use relative URL (no hardcoded domain) - works with any deployment
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api/v1';
@@ -69,7 +69,8 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     localStorage.setItem('loginMessage', message);
     
     // Redirect to login - use replace to ensure navigation happens immediately
-    window.location.replace(loginPathFor(window.location.pathname));
+    // Back to the same page after signing in again (CareerPilot pages carry it as ?next=).
+    window.location.replace(loginRedirectFor(window.location.pathname, window.location.search));
     
     // Return a never-resolving promise to prevent further code execution
     return new Promise(() => {});

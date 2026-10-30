@@ -601,7 +601,7 @@ const AssignmentWorkspace: React.FC = () => {
 
   // Show instructions page before starting
   if (showInstructionsPage) {
-    const timeMinutes = assignment.settings?.timeLimitMinutes || assignment.timeLimit || 0;
+    const timeMinutes = assignment.settings?.timeLimitMinutes || 0;
     const estimatedTime = timeMinutes
       ? timeMinutes >= 60
         ? `${(timeMinutes / 60).toFixed(timeMinutes % 60 === 0 ? 0 : 1)} Hours`

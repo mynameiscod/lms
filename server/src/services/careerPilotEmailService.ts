@@ -1,7 +1,8 @@
 /**
- * The two emails a CareerPilot member gets:
+ * The emails a CareerPilot member gets:
  *   1. when the account is created (after the OTP is verified): a welcome that says where to sign in
  *   2. when a membership payment goes through: a receipt that says what was paid and until when
+ *   3. when they set or change their password: a confirmation, and what to do if it was not them
  *
  * Until now CareerPilot sent no email at all. Both are sent AFTER the thing they describe has already
  * succeeded and are never allowed to fail it: a signup or a payment must not roll back, error or even slow
@@ -71,6 +72,30 @@ export function paymentEmail(r: ReceiptInput) {
   return { subject: `Payment received: your CareerPilot membership is active (${amount})`, html, text };
 }
 
+/**
+ * Password set or changed. Never contains the password. It says when it happened and how to sign in
+ * with it, and — because a member who did not do this needs to act — how to take the account back.
+ */
+export function passwordSetEmail(user: { firstName?: string; email?: string; phone?: string }, changed: boolean, at: Date | string = new Date()) {
+  const name = esc((user.firstName || 'there').trim() || 'there');
+  const url = `${base()}/careerpilot/login`;
+  const what = changed ? 'changed' : 'set';
+  const signInWith = [user.email, user.phone].filter(Boolean).map(esc).join(' or ') || 'your email or mobile number';
+  const html = shell(changed ? 'Your password was changed' : 'Your password is set',
+    p(`Hi ${name}, your CareerPilot password was ${what} on <b>${esc(dayTime(at))}</b>.`)
+    + p(`Next time, sign in with <b>${signInWith}</b> and this password — no WhatsApp code needed. Please remember it, or keep it somewhere safe.`)
+    + `<div style="margin:6px 0 16px;padding:12px 14px;border-radius:10px;background:#fff7e8;border:1px solid #f5ddb5;font-size:14px;line-height:1.55;color:#7a4a00">`
+    + `<b>Didn’t do this?</b> Sign in with your WhatsApp code and set a new password straight away, then tell us through Help &amp; Support.</div>`,
+    { label: 'Sign in to CareerPilot', url });
+  const text = `Your CareerPilot password was ${what}.
+
+Hi ${user.firstName || 'there'}, your password was ${what} on ${dayTime(at)}.
+Next time, sign in at ${url} with ${[user.email, user.phone].filter(Boolean).join(' or ') || 'your email or mobile number'} and this password. Please remember it.
+
+Didn't do this? Sign in with your WhatsApp code and set a new password straight away, then tell us through Help & Support.`;
+  return { subject: changed ? 'Your CareerPilot password was changed' : 'Your CareerPilot password is set', html, text };
+}
+
 /** Sent, never thrown: a failed email must not undo a signup or a payment. */
 async function deliver(tenantId: string | undefined, to: string | undefined, mail: { subject: string; html: string; text: string }, label: string): Promise<boolean> {
   try {
@@ -86,6 +111,9 @@ async function deliver(tenantId: string | undefined, to: string | undefined, mai
 
 export const sendRegistrationEmail = (user: any) =>
   deliver(user?.tenantId ? String(user.tenantId) : undefined, user?.email, registrationEmail(user || {}), 'registration email');
+
+export const sendPasswordSetEmail = (user: any, changed: boolean) =>
+  deliver(user?.tenantId ? String(user.tenantId) : undefined, user?.email, passwordSetEmail(user || {}, changed), 'password email');
 
 export const sendPaymentEmail = (user: any, payment: any, validUntil?: Date) =>
   deliver(user?.tenantId ? String(user.tenantId) : undefined, user?.email, paymentEmail({

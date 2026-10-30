@@ -36,7 +36,7 @@ const fail = (res: Response, e: any, what: string) => {
 async function rebuildIfNotStarted(tenantId: string, studentId: string, by: string): Promise<boolean> {
   try {
     const sid = new mongoose.Types.ObjectId(studentId);
-    const journeys = await LearningCurriculum.find({ tenantId, personalizedFor: sid, journeyKind: FOUNDATION_JOURNEY_KIND, adaptiveStage: { $in: ['specialize', 'placement'] } })
+    const journeys = await LearningCurriculum.find({ tenantId, personalizedFor: sid, journeyKind: FOUNDATION_JOURNEY_KIND, adaptiveStage: { $in: ['build', 'specialize', 'placement'] } })
       .select('_id').lean() as any[];
     if (!journeys.length) return false;
     const started = await CurriculumEnrollment.exists({ curriculumId: { $in: journeys.map(j => j._id) }, studentId: sid, 'completedDays.0': { $exists: true } });

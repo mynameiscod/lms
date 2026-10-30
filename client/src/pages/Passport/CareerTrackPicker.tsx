@@ -4,14 +4,14 @@ import { careerTrackApi, MyTracks } from '../../api/passportApi';
 import './careerTrackPicker.css';
 
 /**
- * Year 3 and 4: the career track the roadmap is built from (role + language, e.g. Java Full Stack
+ * Years 2, 3 and 4: the career track the roadmap is built from (role + language, e.g. Java Full Stack
  * + AI). Read only. The track follows what the member chose in setup — their target role and their
  * one main language — and is fixed once their roadmap is built from it. Changing it goes through
  * Help & Support, so a member cannot hop between tracks and lose the work of the one they were on.
  *
  * `onPicked` is kept for the pages that render this; nothing here picks any more.
  */
-const TRACK_YEARS = ['specialize', 'placement'];
+const TRACK_YEARS = ['build', 'specialize', 'placement'];
 
 const CareerTrackPicker: React.FC<{ onPicked?: () => void }> = () => {
   const nav = useNavigate();

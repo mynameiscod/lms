@@ -208,10 +208,11 @@ describe('answering and handing in', () => {
 });
 
 describe('running code in the exam', () => {
-  /** A coding pool holding the sample problem: tests 1 sample + 2 hidden. */
+  /** A coding pool holding only the template's first problem: 2 open tests + 3 hidden. */
   const codingPool = async () => {
     const p = await pools.createPool(ADMIN, { name: 'Code', kind: 'coding' });
-    const csv = csvTemplate({ complete: true });
+    const all = csvTemplate({ complete: true });
+    const csv = all.slice(0, all.indexOf('"Right-Angled Star Triangle"'));
     await pools.importFile(ADMIN, p.id, { filename: 'c.csv', data: Buffer.from(csv).toString('base64') });
     return p.id;
   };
@@ -228,14 +229,16 @@ describe('running code in the exam', () => {
     jest.spyOn(codeRunner, 'isRealExecutionEnabled').mockReturnValue(false);
     jest.spyOn(codeRunner, 'executeBatch').mockResolvedValue([
       { passed: true, output: '5', executionTime: 3 },
+      { passed: true, output: '30', executionTime: 3 },
       { passed: false, output: '', error: 'ZeroDivisionError: division by zero', executionTime: 2 },
       { passed: false, output: '1', executionTime: 2 },
+      { passed: true, output: '2000000000', executionTime: 2 },
     ] as any);
     const r: any = await exam.run(s, attemptId, key, { language: 'python', code: 'a, b = map(int, input().split())\nprint(a // 0)\n' });
 
     expect(r.simulated).toBe(true);
-    expect(r.result.total).toBe(3);
-    const [sample, crashed, wrong] = r.result.cases;
+    expect(r.result.total).toBe(5);
+    const [sample, , crashed, wrong] = r.result.cases;
     expect(sample).toMatchObject({ isSample: true, passed: true, input: '2 3', output: '5' });
     expect(crashed).toMatchObject({ isSample: false, passed: false, verdict: 'RE', error: expect.stringMatching(/ZeroDivisionError/) });
     expect(wrong).toMatchObject({ isSample: false, passed: false, verdict: 'WA' });

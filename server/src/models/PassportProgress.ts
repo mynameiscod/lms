@@ -1,4 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { XpLedger } from './GamificationModels';
+import { LEGACY_XP_EVENT_KEYS } from '../data/legacyXpPolicy';
+
+export { LEGACY_XP_EVENT_KEYS };
 
 /**
  * PassportProgress — a Passport member's journey state: daily-mission completions,
@@ -121,5 +125,59 @@ PassportProgressSchema.index({ tenantId: 1, studentId: 1 }, { unique: true });
  * Non-unique, so building it over existing data cannot fail.
  */
 PassportProgressSchema.index({ tenantId: 1, xp: -1 });
+
+/**
+ * XP added in memory by passportXpService.addXp (missions, practice, resume, problem delivery)
+ * reaches the XP ledger here, when the progress doc is saved.
+ *
+ * Those awards only ever moved the balance and xpLog, so the ledger — which the weekly and
+ * monthly leaderboards, the admin activity counts and rebuildXpBalance all read — missed them,
+ * and the history never added up to the balance. The engine's own awards are not queued here;
+ * they write the ledger themselves.
+ */
+type XpLogEntry = { at: Date; amount: number; source: string };
+
+/**
+ * Ledger rows for xpLog entries written by addXp. The key is the entry itself plus how many
+ * identical entries came before it, so the same entry always gives the same key: the backfill
+ * can be run again, and a row the hook already wrote is not written twice.
+ */
+export function legacyXpLedgerRows(progress: { _id: any; tenantId: string; studentId: any; xpLog?: XpLogEntry[] }) {
+  const seen = new Map<string, number>();
+  return (progress.xpLog || []).flatMap((e) => {
+    const eventKey = LEGACY_XP_EVENT_KEYS[e.source];
+    if (!eventKey || !(e.amount > 0)) return [];
+    const at = new Date(e.at);
+    const base = `${at.toISOString()}:${e.source}:${e.amount}`;
+    const n = seen.get(base) || 0;
+    seen.set(base, n + 1);
+    return [{
+      tenantId: progress.tenantId, studentId: progress.studentId, eventKey, sourceType: e.source,
+      sourceId: String(progress._id), idempotencyKey: `xplog:${progress._id}:${base}:${n}`, amount: e.amount, at,
+    }];
+  });
+}
+
+/** Writes ledger rows, skipping any already there. A ledger failure never fails the save. */
+export async function insertLegacyXpRows(rows: any[]): Promise<number> {
+  if (!rows.length) return 0;
+  try {
+    const res = await XpLedger.insertMany(rows, { ordered: false });
+    return res.length;
+  } catch (e: any) {
+    const inserted = e?.insertedDocs?.length ?? e?.result?.insertedCount ?? 0;
+    const onlyDuplicates = (e?.writeErrors || []).every((w: any) => (w.code ?? w.err?.code) === 11000);
+    if (!onlyDuplicates) console.error('[xp-ledger] legacy rows:', e?.message || e);
+    return inserted;
+  }
+}
+
+PassportProgressSchema.post('save', async function (doc: any) {
+  const queued = Number(doc.$locals?.queuedLegacyXp) || 0;
+  if (!queued) return;
+  doc.$locals.queuedLegacyXp = 0;
+  const rows = legacyXpLedgerRows(doc).slice(-queued);
+  await insertLegacyXpRows(rows);
+});
 
 export default mongoose.model<IPassportProgress>('PassportProgress', PassportProgressSchema);

@@ -1,4 +1,4 @@
-import { registrationEmail, paymentEmail } from '../services/careerPilotEmailService';
+import { registrationEmail, paymentEmail, passwordSetEmail } from '../services/careerPilotEmailService';
 
 describe('the CareerPilot emails', () => {
   it('welcomes the member by name, says where to sign in, and is branded CareerPilot by CodeBegun', () => {
@@ -35,5 +35,19 @@ describe('the CareerPilot emails', () => {
     expect(m.subject).toContain('₹1,500');
     expect(m.html).not.toContain('undefined');
     expect(m.text).not.toContain('undefined');
+  });
+
+  it('confirms a password without ever containing it, and says what to do if it was not them', () => {
+    const set = passwordSetEmail({ firstName: 'Asha', email: 'asha@example.com', phone: '9876543210' }, false, '2026-10-30T10:00:00Z');
+    expect(set.subject).toBe('Your CareerPilot password is set');
+    expect(set.html).toContain('asha@example.com');
+    expect(set.html).toContain('9876543210');
+    expect(set.html).toMatch(/remember it/i);
+    expect(set.html).toMatch(/Didn’t do this\?/);
+    expect(set.html).toContain('/careerpilot/login');
+    expect(set.text).toMatch(/remember it/i);
+    const changed = passwordSetEmail({ firstName: 'Asha', email: 'asha@example.com' }, true);
+    expect(changed.subject).toBe('Your CareerPilot password was changed');
+    expect(changed.html).toContain('was changed');
   });
 });

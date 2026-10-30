@@ -11,7 +11,7 @@ const StudentTrackSelect: React.FC<{ studentId: string; stage: string | null; cu
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => { careerTrackApi.list().then(c => setTracks(c.tracks)).catch(() => setTracks([])); }, []);
-  if (!['specialize', 'placement'].includes(String(stage)) || !tracks?.length) return null;
+  if (!['build', 'specialize', 'placement'].includes(String(stage)) || !tracks?.length) return null;
 
   const change = async (key: string) => {
     setBusy(true); setMsg(null);

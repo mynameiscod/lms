@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { passportPublicApi, PassportCard } from '../../api/passportApi';
 import './shareCard.css';
+import { barWidth } from '../../utils/barWidth';
 
 /**
  * The CareerPilot card — one design, drawn in two places:
@@ -90,7 +91,7 @@ export const CareerCard: React.FC<{ card: PassportCard; compact?: boolean }> = (
             <div className="cpc-level">
               <b>Level {card.level.level}</b><span>{card.level.title}</span>
             </div>
-            <div className="cpc-bar" aria-hidden><i style={{ width: `${Math.max(3, card.level.progressPct)}%` }} /></div>
+            <div className="cpc-bar" aria-hidden><i style={{ width: `${barWidth(card.level.progressPct)}%` }} /></div>
             <em>{card.level.xpToNextLevel.toLocaleString('en-IN')} XP to Level {card.level.level + 1}</em>
           </div>
         </div>
@@ -113,7 +114,7 @@ export const CareerCard: React.FC<{ card: PassportCard; compact?: boolean }> = (
             {card.topSkills.map(s => (
               <div key={s.key} className="cpc-skill">
                 <span>{s.name}</span>
-                <div className="cpc-skill-bar" aria-hidden><i style={{ width: `${Math.max(4, Math.min(100, s.score))}%` }} /></div>
+                <div className="cpc-skill-bar" aria-hidden><i style={{ width: `${barWidth(s.score)}%` }} /></div>
                 <b>{s.score}</b>
               </div>
             ))}

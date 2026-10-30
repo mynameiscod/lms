@@ -74,7 +74,8 @@
 .dl2-ready-top span { display: block; margin-top: 3px; font-size: 13.5px; color: var(--muted); }
 .dl2-ready-bar { height: 10px; border-radius: 999px; background: #EDF2F7; margin: 16px 0 18px; overflow: hidden; }
 .dl2-ready-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), var(--teal)); }
-.dl2-ready-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.dl2-ready-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 520px) { .dl2-ready-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .dl2-ready-facts > div { border: 1px solid var(--line); border-top-width: 4px; border-radius: 14px; padding: 14px 10px; text-align: center; }
 .dl2-ready-facts > .danger { border-top-color: var(--red); }
 .dl2-ready-facts > .warn { border-top-color: #E7A43A; }
@@ -128,6 +129,11 @@
   .dl2-grid { grid-template-columns: 1fr; }
   .dl2-member { grid-template-columns: 1fr; }
 }
+/* The score panel goes under the welcome instead of squeezing it into a narrow column. */
+@media (max-width: 1150px) {
+  .dl2-hero { grid-template-columns: 1fr; gap: 22px; }
+  .dl2-hero-score { justify-self: start; }
+}
 @media (max-width: 860px) {
   .dl2-hero { grid-template-columns: 1fr; padding: 24px 20px; }
   .dl2-hero-score { justify-self: start; }
@@ -176,3 +182,15 @@
 /* The hero's own CTA is .dl2-btn.primary (already navy-filled) and it still reads
    on the tinted start panel. .dl2-btn.light only appears inside .dl2-buy, which
    stays navy, so it is deliberately not re-coloured here. */
+
+/* Year 1: the plan card beside Skill DNA (no role readiness in Year 1). */
+.dl2-plan { display: flex; flex-direction: column; }
+.dl2-focus { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.dl2-focus li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--soft, #F4F8FC); border: 1px solid var(--line); }
+.dl2-focus .n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--primary); color: #fff; font-size: 13px; font-weight: 800; }
+.dl2-focus b { flex: 1; min-width: 0; font-size: 14.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl2-focus em { font-style: normal; font-size: 13.5px; font-weight: 800; color: var(--green); }
+.dl2-focus em.mid { color: var(--amber); } .dl2-focus em.low { color: var(--red); }
+.dl2-plan-foot { margin-top: auto; padding-top: 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.dl2-plan-foot > span { font-size: 13.5px; color: var(--muted); display: inline-flex; align-items: center; gap: 7px; }
+.dl2-plan .dl2-btn { min-height: 44px; }

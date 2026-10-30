@@ -78,3 +78,6 @@
   .cp-notes pre { padding: 10px 12px; margin-left: 0; margin-right: 0; }
   .cp-notes pre code { font-size: 12px; }
 }
+
+/* A question or an option written over several lines (code, a pattern) keeps its lines and indentation. */
+.cp-notes-inline { white-space: pre-wrap; }

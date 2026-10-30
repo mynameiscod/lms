@@ -1,0 +1,117 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   The CareerPilot footer (CareerPilotFooter). Namespaced `cpf-`.
+   Navy #061A43 with the logo's teal for hovers; four columns on a desktop,
+   brand + two side by side on a tablet, one stack on a phone.
+   Selectors are prefixed with `.cpf` and kept specific, because member pages
+   style bare `a`, `h4` and `p` under `.gd` (dashboard-fidelity.css).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.cpf {
+  --cpf-bg: #061a43;
+  --cpf-ink: #ffffff;
+  --cpf-text: #c7d2ea;
+  --cpf-muted: #9fb0d3;
+  --cpf-line: rgba(255, 255, 255, 0.12);
+  --cpf-teal: #7fd3e0;
+  width: 100%;
+  background: var(--cpf-bg);
+  color: var(--cpf-text);
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  margin-top: auto;
+}
+
+.cpf .cpf-in {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 56px clamp(20px, 6vw, 96px) 28px;
+}
+
+/* In the page's own container: its width and side margins come from that class, not from here. */
+.cpf .cpf-in.cpf-page { max-width: none; padding-left: 0; padding-right: 0; }
+
+.cpf .cpf-top {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.5fr) repeat(3, minmax(150px, 1fr));
+  gap: 36px clamp(24px, 4vw, 64px);
+  padding-bottom: 36px;
+  border-bottom: 1px solid var(--cpf-line);
+}
+
+/* ── brand ── */
+.cpf .cpf-logo { display: inline-block; line-height: 0; }
+.cpf .cpf-logo img { height: 64px; width: auto; display: block; }
+.cpf .cpf-brand p {
+  margin: 22px 0 0;
+  max-width: 440px;
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--cpf-text);
+}
+.cpf .cpf-social { display: flex; gap: 12px; margin-top: 24px; }
+.cpf .cpf-social a {
+  width: 42px; height: 42px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--cpf-ink);
+  font-size: 18px;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.cpf .cpf-social a:hover { background: var(--cpf-teal); color: var(--cpf-bg); transform: translateY(-2px); }
+
+/* ── link columns ── */
+.cpf .cpf-col { display: flex; flex-direction: column; gap: 13px; min-width: 0; }
+.cpf .cpf-col h4 {
+  margin: 4px 0 6px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--cpf-ink);
+  letter-spacing: 0;
+}
+.cpf .cpf-col a,
+.cpf .cpf-col span {
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--cpf-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  width: fit-content;
+}
+.cpf .cpf-col a:hover { color: var(--cpf-teal); }
+.cpf a:focus-visible { outline: 2px solid var(--cpf-teal); outline-offset: 3px; border-radius: 4px; }
+
+/* ── bottom line ── */
+.cpf .cpf-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding-top: 22px;
+  font-size: 13.5px;
+  color: var(--cpf-muted);
+}
+
+.cpf .cpf-bottom-links { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.cpf .cpf-bottom-links a { color: var(--cpf-muted); text-decoration: none; }
+.cpf .cpf-bottom-links a:hover { color: var(--cpf-teal); }
+
+/* Tablet: the brand on its own row, the three columns under it. */
+@media (max-width: 1024px) {
+  .cpf .cpf-top { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cpf .cpf-brand { grid-column: 1 / -1; }
+  .cpf .cpf-brand p { max-width: 560px; }
+}
+
+/* Phone: one column, everything left-aligned, comfortable tap targets. */
+@media (max-width: 640px) {
+  .cpf .cpf-in { padding: 40px 16px 24px; }
+  .cpf .cpf-top { grid-template-columns: 1fr 1fr; gap: 30px 20px; padding-bottom: 28px; }
+  .cpf .cpf-col:last-child { grid-column: 1 / -1; }
+  .cpf .cpf-logo img { height: 54px; }
+  .cpf .cpf-brand p { font-size: 14.5px; margin-top: 16px; }
+  .cpf .cpf-col { gap: 12px; }
+  .cpf .cpf-col h4 { font-size: 16.5px; }
+  .cpf .cpf-col a, .cpf .cpf-col span { font-size: 14.5px; }
+  .cpf .cpf-bottom { flex-direction: column; align-items: flex-start; font-size: 12.5px; }
+}

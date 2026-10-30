@@ -114,11 +114,11 @@ const asBase64 = (f: File) => new Promise<string>((resolve, reject) => {
 const FORMATS: { kind: 'mcq' | 'coding'; label: string; pool: string; icon: string; columns: React.ReactNode }[] = [
   {
     kind: 'mcq', label: 'MCQ', pool: 'MCQ pools', icon: 'fa-solid fa-list-check',
-    columns: <><b>question, optionA–optionD, correct</b> (a letter like A, or the answer text); optional <b>difficulty, marks, subject, topic, tags</b>.</>,
+    columns: <><b>question, optionA–optionD, correct</b> (a letter like A, a number like 1, or the answer text); optional <b>explanation, difficulty, marks, subject, topic, tags</b>. Code over several lines: one cell with line breaks (Alt+Enter), or type \n between the lines.</>,
   },
   {
     kind: 'coding', label: 'Coding', pool: 'coding pools', icon: 'fa-solid fa-code',
-    columns: <><b>title, statement, difficulty, marks</b>, <b>sample_input_1 / sample_output_1</b>, hidden tests <b>test_input_1 / test_output_1</b>…, and <b>starter_python</b>, <b>starter_java</b>… per language.</>,
+    columns: <><b>title, statement, difficulty, marks</b>, 5 tests: 2 open (<b>sample_input_1 / sample_output_1</b>, <b>_2</b>) and 3 hidden (<b>test_input_1 / test_output_1</b> … <b>_3</b>), and <b>starter_python</b>, <b>solution_python</b>… per language. A pattern output over several lines: one cell with line breaks (Alt+Enter), or type \n between the lines.</>,
   },
 ];
 
@@ -133,6 +133,7 @@ const FileImport: React.FC<{ pool: Pool; onClose: () => void; onDone: (p: Pool, 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [refused, setRefused] = useState<{ row: number; reason: string }[]>([]);
+  const [notRead, setNotRead] = useState<string[]>([]);
 
   const pick = (f: File | undefined) => {
     setErr(''); setRefused([]); setFile(null);
@@ -148,10 +149,13 @@ const FileImport: React.FC<{ pool: Pool; onClose: () => void; onDone: (p: Pool, 
       const r = await questionPoolApi.importFile(pool.id, file.name, await asBase64(file));
       // Refused rows keep the dialog open so the admin can read which ones and why.
       if (r.refused.length) { setRefused(r.refused); setFile(null); }
+      setNotRead(r.notRead || []);
+      if (r.notRead?.length) setFile(null);
       setBusy(false);
       const where = coding ? 'the Problem Bank (LMS only, tagged Exam)' : 'the Question Bank';
       const refusedNote = r.refused.length ? ` · ${r.refused.length} row${r.refused.length === 1 ? '' : 's'} refused` : '';
-      onDone(r.pool, `${r.imported} imported into ${where} and this pool${refusedNote}`, !r.refused.length);
+      const notReadNote = r.notRead?.length ? ` · columns not read: ${r.notRead.join(', ')}` : '';
+      onDone(r.pool, `${r.imported} imported into ${where} and this pool${refusedNote}${notReadNote}`, !r.refused.length && !r.notRead?.length);
     } catch (e) { setErr(pbError(e)); setBusy(false); }
   };
 
@@ -204,6 +208,12 @@ const FileImport: React.FC<{ pool: Pool; onClose: () => void; onDone: (p: Pool, 
           {refused.length > 20 && <div>…and {refused.length - 20} more.</div>}
         </div>
       )}
+      {!!notRead.length && (
+        <div className="pb-alert pb-alert-warn">
+          <b>These columns were not read:</b> {notRead.join(', ')}. Their names do not match the template, so what is in them was not
+          saved. To bring it in, rename them as in the template, remove the questions just imported, and import the file again.
+        </div>
+      )}
     </Modal>
   );
 };
@@ -239,13 +249,17 @@ const PoolEditor: React.FC = () => {
       .catch(e => toast.show(pbError(e), true));
   };
   const removeSelected = () => {
-    if (!window.confirm(`Remove ${selected.size} question(s) from this pool? They stay in the bank.`)) return;
+    if (!window.confirm(`Remove ${selected.size} question(s) from this pool?
+
+Questions picked from the bank stay in the bank. Questions imported into this pool are deleted, unless another pool uses them or a student has had them in an exam.`)) return;
     questionPoolApi.removeQuestions(pool.id, Array.from(selected))
       .then(p => { setPool(p); setSelected(new Set()); toast.show('Removed from the pool'); })
       .catch(e => toast.show(pbError(e), true));
   };
   const deletePool = () => {
-    if (!window.confirm(`Delete the pool "${pool.name}"? Its questions stay in the bank.`)) return;
+    if (!window.confirm(`Delete the pool "${pool.name}"?
+
+Questions picked from the bank stay in the bank. Questions imported into this pool are deleted with it, unless another pool uses them or a student has had them in an exam.`)) return;
     questionPoolApi.remove(pool.id).then(() => nav('/admin/assignments/pools')).catch(e => toast.show(pbError(e), true));
   };
   const toggle = (qid: string) => { const s = new Set(selected); if (s.has(qid)) s.delete(qid); else s.add(qid); setSelected(s); };

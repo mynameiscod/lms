@@ -490,10 +490,30 @@ const CodePlayground: React.FC = () => {
    */
   const QuickActions = () => (
     <div className="cp-quick">
-      <button className="cp-qcard" onClick={resetCode}><i className="bi bi-code-slash" /><span className="lbl">Starter code</span></button>
-      <button className="cp-qcard" onClick={handleSave} disabled={saving}><i className="bi bi-bookmark-plus" /><span className="lbl">{saving ? 'Saving…' : 'Save program'}</span></button>
+      {/* CareerPilot's toolbar already has Reset (the starter code) and Save; the panel does not repeat them. */}
+      {!inCareerPilot && <button className="cp-qcard" onClick={resetCode}><i className="bi bi-code-slash" /><span className="lbl">Starter code</span></button>}
+      {!inCareerPilot && <button className="cp-qcard" onClick={handleSave} disabled={saving}><i className="bi bi-bookmark-plus" /><span className="lbl">{saving ? 'Saving…' : 'Save program'}</span></button>}
       <button className="cp-qcard" onClick={downloadCode}><i className="bi bi-download" /><span className="lbl">Download</span></button>
       <button className="cp-qcard" onClick={handlePushGithub} disabled={pushing}><i className="bi bi-github" /><span className="lbl">{pushing ? 'Pushing…' : 'Push to GitHub'}</span></button>
+    </div>
+  );
+
+  /* The open files. CareerPilot shows them under the toolbar, beside the code they belong to. */
+  const tabBar = (
+    <div className="cp-tabbar">
+      {tabs.map(t => (
+        <div
+          key={t.id}
+          className={`cp-tab ${t.id === activeTabId ? 'active' : ''}`}
+          onClick={() => switchTab(t.id)}
+          title={t.title || 'Untitled'}
+        >
+          <span className="cp-tab-i">{byKey(t.language).icon}</span>
+          <span>{(t.title && t.title.trim()) || 'Untitled'}</span>
+          <span className="cp-tab-x" onClick={(e) => closeTab(t.id, e)} title="Close tab"><i className="bi bi-x" /></span>
+        </div>
+      ))}
+      <button className="cp-tab-add" onClick={addTab} title="New tab">+</button>
     </div>
   );
 
@@ -513,26 +533,12 @@ const CodePlayground: React.FC = () => {
             <span>Write, run and debug code in {LANGS.length} languages and {FRAMEWORKS.length} frameworks — and save what you build.</span>
           </div>
           <div className="cpg-head-tags">
+            <span><i className="bi bi-code-slash" aria-hidden /> {langLabel}</span>
             <span><i className="bi bi-folder2-open" aria-hidden /> {programs.length} saved</span>
           </div>
         </div>
       )}
-      {/* Tabs */}
-      <div className="cp-tabbar">
-        {tabs.map(t => (
-          <div
-            key={t.id}
-            className={`cp-tab ${t.id === activeTabId ? 'active' : ''}`}
-            onClick={() => switchTab(t.id)}
-            title={t.title || 'Untitled'}
-          >
-            <span className="cp-tab-i">{byKey(t.language).icon}</span>
-            <span>{(t.title && t.title.trim()) || 'Untitled'}</span>
-            <span className="cp-tab-x" onClick={(e) => closeTab(t.id, e)} title="Close tab"><i className="bi bi-x" /></span>
-          </div>
-        ))}
-        <button className="cp-tab-add" onClick={addTab} title="New tab">+</button>
-      </div>
+      {!inCareerPilot && tabBar}
 
       {/* Toolbar */}
       <div className="cp-toolbar">
@@ -608,6 +614,8 @@ const CodePlayground: React.FC = () => {
         )}
       </div>
 
+      {inCareerPilot && tabBar}
+
       {/* Body */}
       <div className="cp-body">
         <div className="cp-editor-wrap">
@@ -653,7 +661,7 @@ const CodePlayground: React.FC = () => {
             <div className="cp-right-head">
               <span className={`cp-rtab ${rightTab === 'input' ? 'active' : ''}`} onClick={() => setRightTab('input')}>Input</span>
               <span className={`cp-rtab ${rightTab === 'output' ? 'active' : ''}`} onClick={() => setRightTab('output')}>Output</span>
-              <button className="cp-run-input" onClick={handleRun} disabled={running}><i className="bi bi-play-fill" />{running ? 'Running…' : (isWeb || isSql ? 'Run' : 'Run with input')}</button>
+              {!inCareerPilot && <button className="cp-run-input" onClick={handleRun} disabled={running}><i className="bi bi-play-fill" />{running ? 'Running…' : (isWeb || isSql ? 'Run' : 'Run with input')}</button>}
             </div>
 
             {isWeb ? (
@@ -693,7 +701,7 @@ const CodePlayground: React.FC = () => {
               </>
             )}
 
-            <div className="cp-sec-label cp-quick-head">Quick Actions</div>
+            <div className="cp-sec-label cp-quick-head">{inCareerPilot ? 'More' : 'Quick Actions'}</div>
             <QuickActions />
           </div>
         )}

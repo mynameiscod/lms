@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import passportApi, { RewardCatalogue, RewardCard, RedemptionRow } from '../../api/passportApi';
 import './rewards.css';
 import './rewardsRedesign.css';
+import { barWidth } from '../../utils/barWidth';
 
 const STATUS_LABEL: Record<string, string> = { PENDING: 'Processing', RESERVED: 'Reserved', FULFILLED: 'Fulfilled', CANCELLED: 'Cancelled' };
 const newIntent = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -65,7 +66,7 @@ const Rewards: React.FC = () => {
         <p>Coins you earn from real career work can be spent here. Your XP is never spent — it shows how consistent you are.</p>
         <div className="rwd2-unlock">
           <div className="top"><b>{locked ? `${(min - student.coins).toLocaleString()} coins to unlock redeeming` : 'Redeeming is unlocked'}</b><span>{student.coins.toLocaleString()}{min > 0 ? ` / ${min.toLocaleString()}` : ''} coins</span></div>
-          <div className="bar"><i style={{ width: `${Math.max(unlockPct, 2)}%` }} /></div>
+          <div className="bar"><i style={{ width: `${barWidth(unlockPct)}%` }} /></div>
         </div>
       </div>
       <div className="rwd2-wallet">
@@ -88,7 +89,7 @@ const Rewards: React.FC = () => {
         <div className="gifts"><i className="bi bi-gift-fill" /><i className="bi bi-trophy-fill" /><i className="bi bi-mortarboard-fill" /></div>
         <b>Rewards are coming soon</b>
         <span>Keep building your XP, streak and coins. When the store opens, your coins will be ready to spend.</span>
-        <button onClick={() => nav('/careerpilot')}><i className="bi bi-lightning-charge-fill" /> Earn coins now</button>
+        <button className="rwd-btn primary" onClick={() => nav('/careerpilot')}><i className="bi bi-lightning-charge-fill" /> Earn coins now</button>
       </div> :
       <div className="rwd-grid">{data.rewards.map((r, idx) => { const e = r.eligibility; const out = e.reasons.includes('OUT_OF_STOCK'); const progress = Math.min(100, Math.round((student.coins / Math.max(r.coinCost, 1)) * 100)); return <article className={`rwd-card${e.eligible ? '' : ' locked'}`} key={r.key}>
         <div className={`rwd-art art-${idx % 4}`}><i className={`bi ${r.iconKey || 'bi-gift'}`} />{!e.eligible && <span className="lock"><i className="bi bi-lock-fill" /></span>}</div>

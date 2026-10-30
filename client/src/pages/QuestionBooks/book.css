@@ -155,7 +155,7 @@
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
   background: transparent;
 }
-.qbk .qbk-page { max-width: 1280px; margin: 0 auto; }
+.qbk .qbk-page { max-width: none; margin: 0; }
 .qbk .pb-btn-primary { background: #051D64; border-color: #051D64; }
 .qbk .pb-btn-primary:hover:not(:disabled) { background: #0A2A7A; border-color: #0A2A7A; }
 

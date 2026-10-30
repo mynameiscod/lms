@@ -1,12 +1,14 @@
 import mongoose from 'mongoose';
 import * as XLSX from 'xlsx';
 import QuestionPool, { IQuestionPool, PoolKind, POOL_KINDS } from '../models/QuestionPool';
-import CodingProblem, { isAvailableTo } from '../models/CodingProblem';
+import CodingProblem, { CodingProblemTestCase, isAvailableTo } from '../models/CodingProblem';
+import PoolExamAttempt from '../models/PoolExamAttempt';
 import Question from '../models/Question';
 import Assignment from '../models/Assignment';
 import { Actor, PbError, createProblem, listProblems, normalizeInput, visibilityFilter } from './problemBankService';
 import { parseImport } from './problemImportService';
 import { mcqProblem } from './mcqAnswerKey';
+import { looseRow, pick, textCell } from './importText';
 
 /**
  * Question Pools — see models/QuestionPool.ts for what a pool is and why it only holds links.
@@ -147,12 +149,69 @@ export async function updatePool(a: Actor, id: string, body: any) {
   return view(a, pool);
 }
 
+/** An item without the imported flag counts as imported when its question was created as it was added. */
+const IMPORT_WINDOW_MS = 60_000;
+
+/**
+ * Of these pool items, the questions the pool itself imported and nothing has used — they are
+ * deleted with the pool, or when removed from it, so test imports do not pile up in the banks.
+ * While the pool exists they are ordinary questions, drawn into exams like any other.
+ *
+ * NEVER A BANK QUESTION. A question picked from the Problem Bank or the Question Bank was not
+ * imported here and is only unlinked. On top of that, a question is kept when it is:
+ *   - a CodeBegun library problem, or another institute's;
+ *   - given to CareerPilot (the practice library), or not an imported Exam-tagged LMS problem;
+ *   - an MCQ that belongs to a quiz;
+ *   - in any other pool;
+ *   - on any student's exam paper, so past results still open.
+ */
+async function ownedQuestions(pool: IQuestionPool, items: IQuestionPool['items']): Promise<mongoose.Types.ObjectId[]> {
+  if (!items.length) return [];
+  const ids = items.map(i => i.refId);
+  const docs: any[] = pool.kind === 'coding'
+    ? await CodingProblem.find({ _id: { $in: ids } }).select('scope tenantId audiences source tags createdAt').lean()
+    : await Question.find({ _id: { $in: ids } }).select('tenantId source quizId usedInQuizzes createdAt').lean();
+  const byId = new Map(docs.map(d => [String(d._id), d]));
+  const candidates = items.filter(i => {
+    const d = byId.get(String(i.refId));
+    if (!d || String(d.tenantId) !== String(pool.tenantId)) return false;
+    const imported = i.imported === true
+      || (i.imported === undefined && Math.abs(new Date(i.addedAt).getTime() - new Date(d.createdAt).getTime()) <= IMPORT_WINDOW_MS);
+    if (!imported) return false;
+    if (pool.kind === 'coding') {
+      return d.scope === 'tenant' && d.source === 'import' && !isAvailableTo(d, 'careerpilot')
+        && (d.tags || []).some((t: string) => t.toLowerCase() === EXAM_TAG.toLowerCase());
+    }
+    return d.source === 'csv' && !d.quizId && !(d.usedInQuizzes || []).length;
+  }).map(i => i.refId);
+  if (!candidates.length) return [];
+  const [elsewhere, onPapers] = await Promise.all([
+    QuestionPool.find({ _id: { $ne: pool._id }, 'items.refId': { $in: candidates } }).select('items.refId').lean() as Promise<any[]>,
+    PoolExamAttempt.distinct('items.refId', { 'items.refId': { $in: candidates } }),
+  ]);
+  const keep = new Set([
+    ...elsewhere.flatMap(p => p.items.map((i: any) => String(i.refId))),
+    ...onPapers.map(String),
+  ]);
+  return candidates.filter(c => !keep.has(String(c)));
+}
+
+async function deleteOwned(pool: IQuestionPool, ids: mongoose.Types.ObjectId[]): Promise<number> {
+  if (!ids.length) return 0;
+  if (pool.kind === 'coding') {
+    await CodingProblemTestCase.deleteMany({ problemId: { $in: ids } });
+    return (await CodingProblem.deleteMany({ _id: { $in: ids }, scope: 'tenant', tenantId: pool.tenantId })).deletedCount || 0;
+  }
+  return (await Question.deleteMany({ _id: { $in: ids }, tenantId: pool.tenantId })).deletedCount || 0;
+}
+
 export async function deletePool(a: Actor, id: string) {
   const pool = await load(a, id);
   const exams = await Assignment.find({ tenant: a.tenantId, 'poolExam.sections.poolId': pool._id }).select('title').limit(5).lean() as any[];
   if (exams.length) throw new PbError(`This pool is used by ${exams.map(e => `"${e.title}"`).join(', ')}. Remove it from those exams first.`, 409);
+  const owned = await ownedQuestions(pool, pool.items);
   await pool.deleteOne();
-  return { deleted: true };
+  return { deleted: true, questionsDeleted: await deleteOwned(pool, owned) };
 }
 
 /**
@@ -181,13 +240,28 @@ export async function addQuestions(a: Actor, id: string, ids: any) {
   return { added: added.length, refused, pool: await view(a, pool) };
 }
 
-/** Unlink questions. They stay in their bank. */
+/** Unlink questions. Bank questions stay in their bank; ones only this pool imported and used go (ownedQuestions). */
 export async function removeQuestions(a: Actor, id: string, ids: any) {
   const pool = await load(a, id);
   const drop = new Set((Array.isArray(ids) ? ids : []).map(String));
+  const owned = await ownedQuestions(pool, pool.items.filter(i => drop.has(String(i.refId))));
   pool.items = pool.items.filter(i => !drop.has(String(i.refId))) as any;
   await pool.save();
+  await deleteOwned(pool, owned);
   return view(a, pool);
+}
+
+/** Question text or title, compared without case or spacing, to spot the same question imported twice. */
+const sameText = (s: unknown) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+/** What this pool already holds, by text: an import skips these instead of adding a second copy. */
+async function textsInPool(pool: IQuestionPool): Promise<Set<string>> {
+  const ids = pool.items.map(i => i.refId);
+  if (!ids.length) return new Set();
+  const docs: any[] = pool.kind === 'coding'
+    ? await CodingProblem.find({ _id: { $in: ids } }).select('title').lean()
+    : await Question.find({ _id: { $in: ids } }).select('question').lean();
+  return new Set(docs.map(d => sameText(pool.kind === 'coding' ? d.title : d.question)));
 }
 
 /**
@@ -235,6 +309,8 @@ export async function browseBank(a: Actor, id: string, q: any) {
 export interface McqImportRow {
   question: string; options: string[]; correct: string;
   difficulty?: string; marks?: number; tags?: string[]; subject?: string; topic?: string;
+  /** Why the answer is right — shown with the result. */
+  explanation?: string;
 }
 
 /**
@@ -250,6 +326,7 @@ export async function importMcqs(a: Actor, id: string, rows: any) {
 
   const refused: { row: number; reason: string }[] = [];
   const docs: any[] = [];
+  const seen = await textsInPool(pool);
   list.forEach((r, i) => {
     const text = String(r?.question || '').trim();
     const options = (Array.isArray(r?.options) ? r.options : []).map(o => String(o || '').trim()).filter(Boolean);
@@ -261,19 +338,22 @@ export async function importMcqs(a: Actor, id: string, rows: any) {
     if (!text) return refused.push({ row: i + 1, reason: 'No question text' });
     if (options.length < 2) return refused.push({ row: i + 1, reason: 'Fewer than two options' });
     if (idx < 0) return refused.push({ row: i + 1, reason: `Answer "${answer}" matches no option` });
+    if (seen.has(sameText(text))) return refused.push({ row: i + 1, reason: 'Already in this pool' });
+    seen.add(sameText(text));
     docs.push({
       tenantId: a.tenantId, createdBy: a.userId, type: 'mcq_single', question: text,
       options: options.map((t, j) => ({ text: t, isCorrect: j === idx })), correctAnswers: [options[idx]],
       marks: Math.max(Number(r?.marks) || 1, 0), difficultyLevel: diff(String(r?.difficulty || '').toLowerCase()),
       tags: Array.isArray(r?.tags) ? r.tags.map(String).filter(Boolean) : [],
       subject: String(r?.subject || '').trim() || undefined, topic: String(r?.topic || '').trim() || undefined,
+      explanation: String(r?.explanation || '').trim() || undefined,
       source: 'csv', usageCount: 0, usedInQuizzes: [],
     });
   });
   if (pool.items.length + docs.length > MAX_ITEMS) throw new PbError(`A pool holds at most ${MAX_ITEMS} questions.`);
 
   const created = docs.length ? await Question.insertMany(docs) : [];
-  pool.items.push(...created.map(c => ({ refId: c._id as any, addedAt: new Date(), addedBy: a.userId })));
+  pool.items.push(...created.map(c => ({ refId: c._id as any, addedAt: new Date(), addedBy: a.userId, imported: true })));
   await pool.save();
   return { imported: created.length, refused, pool: await view(a, pool) };
 }
@@ -299,17 +379,29 @@ const sheetRows = (filename: string, base64: string): Record<string, string>[] =
 const looseKey = (s: string) => s.toLowerCase().replace(/[\s_-]+/g, '');
 
 /** MCQ rows from a CSV or Excel file, in the shape importMcqs takes. */
+/**
+ * MCQ rows from a CSV or Excel file, in the shape importMcqs takes. Column names are read loosely
+ * ("Question Text", "Option 1", "Correct Answer" all work), a question or option written on one line
+ * with typed \n between its lines gets its line breaks back, and an answer may be a letter (B), a
+ * number (2) or the option's own text.
+ */
 export function mcqRowsFromFile(filename: string, base64: string): McqImportRow[] {
   return sheetRows(filename, base64).map(raw => {
-    const row: Record<string, string> = {};
-    for (const [k, v] of Object.entries(raw)) row[looseKey(k)] = String(v ?? '').trim();
-    const pick = (...names: string[]) => { for (const n of names) { const v = row[looseKey(n)]; if (v) return v; } return ''; };
+    const { row } = looseRow(raw);
+    const get = (...names: string[]) => pick(row, ...names);
+    const optionNames = (l: string, i: number) => [`option${l}`, `option_${l}`, l, `option${i + 1}`, `choice${l}`, `choice${i + 1}`, `opt${l}`, `opt${i + 1}`, `answer${l}`];
+    const options = ['a', 'b', 'c', 'd', 'e', 'f'].map((l, i) => textCell(get(...optionNames(l, i)).trim())).filter(Boolean);
+    let correct = get('correct', 'correctAnswer', 'answer', 'correctOption', 'ans', 'key', 'answerKey', 'rightAnswer', 'solution').trim();
+    // "Option B" / "option 2" → the letter or number on its own.
+    correct = correct.replace(/^(option|choice)\s*/i, '');
     return {
-      question: pick('question', 'q'),
-      options: ['a', 'b', 'c', 'd', 'e', 'f'].map((l, i) => pick(`option${l}`, l, `option${i + 1}`)).filter(Boolean),
-      correct: pick('correct', 'correctAnswer', 'answer', 'correctOption', 'ans'),
-      difficulty: pick('difficulty', 'level'), marks: Number(pick('marks', 'mark', 'points')) || 1,
-      subject: pick('subject'), topic: pick('topic'), tags: pick('tags', 'tag').split(/[;|]/).map(t => t.trim()).filter(Boolean),
+      question: textCell(get('question', 'questionText', 'questions', 'q', 'mcq', 'problem', 'statement', 'title').trim()),
+      options,
+      correct: textCell(correct),
+      difficulty: get('difficulty', 'level').trim(), marks: Number(get('marks', 'mark', 'points', 'score')) || 1,
+      subject: get('subject').trim(), topic: get('topic').trim(),
+      tags: get('tags', 'tag').split(/[;|,]/).map(t => t.trim()).filter(Boolean),
+      explanation: textCell(get('explanation', 'answerExplanation', 'reason', 'rationale', 'solutionExplanation').trim()),
     };
   }).filter(r => r.question || r.options.length);
 }
@@ -333,12 +425,15 @@ export async function importCoding(a: Actor, id: string, filename: string, base6
 
   const refused: { row: number; reason: string }[] = [];
   const created: mongoose.Types.ObjectId[] = [];
+  const seen = await textsInPool(pool);
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     if (item.__error) { refused.push({ row: i + 1, reason: item.__error }); continue; }
     const n = normalizeInput(item);
     const reasons = [...n.errors, ...n.publishErrors];
     if (reasons.length) { refused.push({ row: i + 1, reason: reasons.join(' ') }); continue; }
+    if (seen.has(sameText(n.clean.title))) { refused.push({ row: i + 1, reason: 'Already in this pool' }); continue; }
+    seen.add(sameText(n.clean.title));
     const tags = n.clean.tags.some((t: string) => t.toLowerCase() === EXAM_TAG.toLowerCase()) ? n.clean.tags : [...n.clean.tags, EXAM_TAG];
     try {
       const { problem } = await createProblem(a, { ...item, tags, audiences: ['lms'], scope: 'tenant', status: 'published' }, 'import');
@@ -347,9 +442,10 @@ export async function importCoding(a: Actor, id: string, filename: string, base6
       refused.push({ row: i + 1, reason: e?.message || 'Could not be saved' });
     }
   }
-  pool.items.push(...created.map(c => ({ refId: c, addedAt: new Date(), addedBy: a.userId })) as any);
+  pool.items.push(...created.map(c => ({ refId: c, addedAt: new Date(), addedBy: a.userId, imported: true })) as any);
   await pool.save();
-  return { imported: created.length, refused, pool: await view(a, pool) };
+  const notRead = Array.from(new Set(items.flatMap((it: any) => it.__unused || [])));
+  return { imported: created.length, refused, notRead, pool: await view(a, pool) };
 }
 
 /** One upload for either kind of pool: MCQs go to the Question Bank, coding problems to the Problem Bank. */
@@ -359,8 +455,10 @@ export async function importFile(a: Actor, id: string, body: any) {
   if (!data) throw new PbError('Choose a file to import.');
   // A file in the other kind's format gets told where it belongs, not a list of failed rows.
   const head = new Set(Object.keys(sheetRows(filename, data)[0] || {}).map(looseKey));
-  const mcqFile = head.has('question') && (head.has('optiona') || head.has('a') || head.has('option1'));
-  const codingFile = head.has('title') && (head.has('statement') || head.has('description'));
+  const any = (...names: string[]) => names.some(n => head.has(n));
+  const mcqFile = any('question', 'questiontext', 'questions', 'q', 'mcq') && any('optiona', 'a', 'option1', 'choicea', 'choice1', 'opta', 'opt1');
+  const codingFile = any('title', 'name', 'problemtitle', 'problemname')
+    && any('statement', 'description', 'problemstatement', 'problemdescription', 'sampleinput1', 'input1', 'testinput1');
   if (pool.kind === 'coding' && mcqFile && !codingFile) {
     throw new PbError('This file is in the MCQ format. Import it into an MCQ pool — this pool holds coding problems. Download the coding template for the coding format.');
   }
@@ -373,6 +471,7 @@ export async function importFile(a: Actor, id: string, body: any) {
   return importMcqs(a, id, rows);
 }
 
-export const MCQ_TEMPLATE = 'question,optionA,optionB,optionC,optionD,correct,difficulty,marks,subject,topic,tags\n'
-  + '"What does JVM stand for?",Java Virtual Machine,Java Variable Method,Joint Virtual Memory,,A,easy,1,Java,Basics,jvm;intro\n'
-  + '"Which keyword stops a Java variable from being reassigned?",static,final,const,volatile,B,medium,2,Java,Keywords,\n';
+export const MCQ_TEMPLATE = 'question,optionA,optionB,optionC,optionD,correct,explanation,difficulty,marks,subject,topic,tags\n'
+  + '"What does JVM stand for?",Java Virtual Machine,Java Variable Method,Joint Virtual Memory,,A,"The JVM runs compiled Java bytecode.",easy,1,Java,Basics,jvm;intro\n'
+  + '"Which keyword stops a Java variable from being reassigned?",static,final,const,volatile,B,"A final variable can be assigned once.",medium,2,Java,Keywords,\n'
+  + '"What does this print?\nfor (int i = 1; i <= 3; i++) {\n  System.out.print(i + "" "");\n}",1 2 3,"1\n2\n3",0 1 2,Compile error,A,"print keeps the cursor on the same line, so the numbers share one line.",easy,1,Java,Loops,loops;output\n';

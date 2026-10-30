@@ -12,6 +12,7 @@ import { startActivityBeacon, trackPage } from './activityBeacon';
 import visualizerApi from '../../api/visualizerApi';
 import supportApi from '../../api/supportApi';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
+import { barWidth } from '../../utils/barWidth';
 
 const ICONS: Record<string, string> = {
   home: 'house-door-fill',
@@ -62,14 +63,13 @@ interface Props {
  * readable label, never the event itself, which is the right way round for a log.
  */
 const SCREEN_NAMES: Record<string, string> = {
-  '/careerpilot': 'Mission Control',
+  '/careerpilot': 'My Dashboard',
   '/careerpilot/setup': 'Setup — academic details',
   '/careerpilot/skill-assessment': 'Skill assessment',
   '/careerpilot/roadmap': 'My roadmap',
   '/careerpilot/skills': 'Skill DNA',
   '/careerpilot/readiness': 'Role readiness',
   '/careerpilot/placement': 'Placement readiness',
-  '/careerpilot/progress': 'My progress',
   '/careerpilot/rewards': 'Reward Store',
   '/careerpilot/aptitude': 'Aptitude (coming soon)',
   '/careerpilot/reasoning': 'Reasoning (coming soon)',
@@ -92,14 +92,17 @@ const SCREEN_NAMES: Record<string, string> = {
  */
 const NAV_ALIASES: Array<[string, string]> = [
   ['/careerpilot/journey', '/careerpilot/plan'],
-  ['/careerpilot/topic', '/careerpilot/roadmap'],
-  ['/careerpilot/learn', '/careerpilot/roadmap'],
-  ['/careerpilot/material', '/careerpilot/roadmap'],
+  // My Roadmap is part of My N Days now (its "View roadmap" button): roadmap pages light that up.
+  ['/careerpilot/roadmap', '/careerpilot/plan'],
+  ['/careerpilot/topic', '/careerpilot/plan'],
+  ['/careerpilot/learn', '/careerpilot/plan'],
+  ['/careerpilot/material', '/careerpilot/plan'],
   ['/careerpilot/quiz', '/careerpilot/plan'],
   ['/careerpilot/mock-test', '/careerpilot/companies'],
-  ['/careerpilot/coins', '/careerpilot/progress'],
-  ['/careerpilot/achievements', '/careerpilot/progress'],
-  ['/careerpilot/leaderboard', '/careerpilot/progress'],
+  // My Progress is part of My Dashboard now: its detail pages light up the dashboard in the rail.
+  ['/careerpilot/coins', '/careerpilot'],
+  ['/careerpilot/achievements', '/careerpilot'],
+  ['/careerpilot/leaderboard', '/careerpilot'],
 ];
 
 /**
@@ -368,7 +371,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         </button>
 
         <nav className="gd-nav">
-          {navBtn('Home', 'home', '/careerpilot')}
+          {/* Home and My Progress are one page now: My Dashboard. */}
+          {navBtn('My Dashboard', 'home', '/careerpilot')}
           {/*
             Named from the learner's own plan, not from a constant: "My 90 Days" was shown to
             everybody, which is wrong for every second-year, whose plan is 110, and was already
@@ -379,32 +383,26 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
             default programme length, so the fallback is what it always was.
           */}
           {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap', 'plan')}
-          {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap', 'roadmap')}
+          {/* The rail, in the order asked for (2026-10-30). */}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice', 'practice')}
-          {navBtn('Coding Sets', 'codeSets', '/careerpilot/coding', 'coding', 'coding')}
-          {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'thinkingLab', 'thinkingLab')}
-          {/* Announced, not built yet: each opens a "Coming soon" page (ComingSoon.tsx). */}
-          {navBtn('Aptitude', 'calculator', '/careerpilot/aptitude', undefined, undefined, 0, 'Soon')}
-          {navBtn('Reasoning', 'puzzle', '/careerpilot/reasoning', undefined, undefined, 0, 'Soon')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication', 'communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview', 'interview')}
-          {navBtn('Interview Experiences', 'experiences', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
           {navBtn('Question Books', 'books', '/careerpilot/question-books', 'questionBooks', 'questionBooks')}
-          {navBtn('AI Mentor', 'robot', '/careerpilot/mentor', 'mentor', 'mentor')}
-          {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies', 'companies')}
-          {/* Sits with Opportunities because it answers the same question — what is happening in
-              the industry I am applying to. It was reachable only from the user menu, which is
-              where people look for their account, not for a daily read. */}
-          {navBtn('Tech News', 'news', '/careerpilot/news', 'news', 'news')}
+          {navBtn('Job Board', 'building', '/careerpilot/companies', 'companies', 'companies')}
           {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume', 'resume')}
-          {navBtn('My Progress', 'trophy', '/careerpilot/progress', 'progress', 'progress')}
-          {/* Membership-only like the rest of the product; the institute can also hide it
-              (Student Features, CareerPilot tab). */}
+          {navBtn('Interview Experiences', 'experiences', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
+          {/* Assigned per member: shown only once it has been. */}
+          {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
+          {/* Membership-only like the rest of the product; the institute can also hide it (Student Features, CareerPilot tab). */}
           {navBtn('Industry Connect', 'handshake', '/careerpilot/industry-connect', 'industryConnect', 'industryConnect')}
-          {/* The tools end of the rail, in the order asked for: Playground, then Reward Store, then Help & Support.
-              Reward Store is part of My Progress (coins buy rewards), so it locks and hides with it. */}
-          {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
+          {/* Announced, not built yet: each opens a "Coming soon" page (ComingSoon.tsx). */}
+          {navBtn('Aptitude', 'calculator', '/careerpilot/aptitude', undefined, 'aptitude', 0, 'Soon')}
+          {navBtn('Reasoning', 'puzzle', '/careerpilot/reasoning', undefined, 'reasoning', 0, 'Soon')}
+          {navBtn('AI Mentor', 'robot', '/careerpilot/mentor', 'mentor', 'mentor')}
+          {navBtn('Tech News', 'news', '/careerpilot/news', 'news', 'news')}
+          {navBtn('Code Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
+          {/* Reward Store goes with the progress switch (coins buy rewards), so it locks and hides with it. */}
           {navBtn('Reward Store', 'gift', '/careerpilot/rewards', 'progress', 'progress')}
           {/* Never locked behind membership: anyone signed in must be able to ask for help, including about paying. */}
           {navBtn('Help & Support', 'support', '/careerpilot/support', undefined, 'support', supportUnread)}
@@ -446,7 +444,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         <div className="gd-topbar">
           <div className="gd-topbar-l">
             {/* Only over the working dashboard: the locked one (PassportHome's other branch) greets in its own hero. */}
-            {path === '/careerpilot' && d?.active && d?.hasAssessment && <div className="gd-hello"><h1>Hey {firstName}!</h1><p>Let’s code, solve problems and level up your skills.</p></div>}
+            {path === '/careerpilot' && d?.active && d?.hasAssessment && <div className="gd-hello"><h1>My Dashboard</h1><p>Hey {firstName}! Your day, your scores and your progress in one place.</p></div>}
           </div>
           <div className="gd-topbar-r">
             {/*
@@ -479,12 +477,12 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                     <b><span className="gd-stat-long">Level </span><span className="gd-stat-short">Lv </span>{lv.level}</b>
                     <small>{lv.title}</small>
                     <span className="gd-stat-bar" aria-hidden>
-                      <i style={{ width: `${Math.max(4, Math.min(100, lv.progressPct))}%` }} />
+                      <i style={{ width: `${barWidth(lv.progressPct)}%` }} />
                     </span>
                   </span>
                   <span className="gd-tip" aria-hidden>Your level rises with XP. {lv.progressPct}% of the way to level {lv.nextLevel}.</span>
                 </Link>
-                <Link to="/careerpilot/progress" className="gd-stat s-xp"
+                <Link to="/careerpilot" className="gd-stat s-xp"
                       aria-label={`${lv.xp.toLocaleString()} XP, ${lv.xpToNextLevel.toLocaleString()} to level ${lv.nextLevel}. See your progress`}>
                   <span className="gd-stat-ic" aria-hidden><i className="bi bi-lightning-charge-fill" /></span>
                   <span className="gd-stat-tx"><b>{lv.xp.toLocaleString()}<em> XP</em></b><small>{lv.xpToNextLevel.toLocaleString()} to level {lv.nextLevel}</small></span>

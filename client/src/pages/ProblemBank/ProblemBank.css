@@ -268,8 +268,35 @@
   .pb-sample-body > div + div { border-left: 0; border-top: 1px solid var(--pb-line); }
 }
 
-/* Who may be given a problem: DSA practice (in the CareerPilot library) and single-product badges. */
-.pb-tag-dsa { background: #ecfdf5; color: #047857; gap: 4px; }
-.pb-tag-product { background: #eff6ff; color: #1d4ed8; }
+/* Who a problem is given to ("Available to"): CareerPilot (in the practice library), LMS, or nobody yet. */
+.pb-tag-cp { background: #e6f4f6; color: #1f6f7d; gap: 4px; }
+.pb-tag-lms { background: #eff6ff; color: #1d4ed8; }
+.pb-tag-none { background: #fff7ed; color: #b45309; }
+
+/* Bulk bar: the count, "select all that match", and the Available to menu. */
+.pb-bulk-count { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.pb-linkbtn { border: 0; background: none; padding: 0; color: var(--pb-accent); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.pb-linkbtn:hover { color: var(--pb-accent-ink); }
+.pb-aud-wrap { position: relative; }
+.pb-aud-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 230px; padding: 6px; background: #fff;
+  border: 1px solid var(--pb-line); border-radius: 12px; box-shadow: 0 12px 32px rgba(15, 23, 42, .14); }
+.pb-aud-menu button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 8px 10px; border: 0; background: none; border-radius: 8px;
+  font: inherit; font-size: 13.5px; color: var(--pb-ink); text-align: left; cursor: pointer; }
+.pb-aud-menu button:hover, .pb-aud-menu button:focus-visible { background: var(--pb-accent-soft); }
+.pb-aud-menu button i { width: 14px; color: var(--pb-muted); }
+.pb-aud-menu hr { border: 0; border-top: 1px solid var(--pb-line); margin: 4px 2px; }
+@media (max-width: 640px) {
+  .pb-aud-wrap { width: 100%; }
+  .pb-aud-wrap > .pb-btn { width: 100%; justify-content: center; }
+  .pb-aud-menu { left: 0; right: 0; }
+}
+
+/* Import: who the imported problems are given to. */
+.pb-import-aud { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: -2px 0 12px; }
+.pb-import-aud-label { font-weight: 700; font-size: 13.5px; color: var(--pb-ink); }
+.pb-import-aud-help { font-size: 12.5px; flex: 1 1 260px; }
 .pb-tagfilter { width: 150px; }
 @media (max-width: 640px) { .pb-tagfilter { width: 100%; } }
+
+/* A statement block laid out by its spaces (a pattern, pasted code): shown exactly as written. */
+.pb-md pre.pb-pre-text { margin: 8px 0; padding: 10px 12px; border-radius: 8px; background: #F6F8FB; border: 1px solid #E2EAF2; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; white-space: pre; overflow-x: auto; }

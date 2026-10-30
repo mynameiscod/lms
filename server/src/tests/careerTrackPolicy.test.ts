@@ -63,6 +63,11 @@ describe('what stops a track from going live', () => {
     expect(stageProblems(t, packs, 'specialize')).toEqual([]);
     expect(stageProblems(t, packs, 'placement').join(' ')).toMatch(/Year 4 placement has no packs/);
   });
+  it('Year 2 needs the same packs as Year 3: the full track is taught from Year 2', () => {
+    const t = { key: 'J', name: 'J', language: 'Java', specializePacks: ['JAVA'], placementPacks: [] };
+    expect(stageProblems(t, packs, 'build')).toEqual([]);
+    expect(stageProblems({ ...t, specializePacks: [] }, packs, 'build').join(' ')).toMatch(/Year 3 has no packs/);
+  });
   it('names a missing pack, an empty pack, a pack of the wrong kind and an empty year', () => {
     const p = trackProblems({ key: 'J', name: 'J', language: 'Java', specializePacks: ['MISSING', 'EMPTY', 'JAVA_INTERVIEW'], placementPacks: [] }, packs);
     expect(p.join(' | ')).toMatch(/MISSING/);

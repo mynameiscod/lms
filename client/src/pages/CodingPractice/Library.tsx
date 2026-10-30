@@ -6,6 +6,7 @@ import { LANG_SHORT } from '../ProblemBank/shared';
 import LibrarySolve from './LibrarySolve';
 import '../ProblemBank/ProblemBank.css';
 import './practiceLibrary.css';
+import { barWidth } from '../../utils/barWidth';
 
 /**
  * The practice library: every published Problem Bank problem, chosen by the member. Filters live
@@ -83,134 +84,125 @@ export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
   const from = data ? (data.page - 1) * data.limit + 1 : 0;
 
   return (
-    <div className="pl">
-      <div className="pl-grid">
-        <div>
-          <section className="pl-hero">
-            <div className="pl-eyebrow">PRACTICE &nbsp;•&nbsp; LEARN &nbsp;•&nbsp; IMPROVE</div>
-            <h1>Turn Problems into <span>Progress</span></h1>
-            <p>Solve real-world coding problems, track your progress and get interview ready with structured practice.</p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <button className="pl-btn primary" onClick={start} disabled={!data}><i className="fa-solid fa-play" /> {prog?.solved ? 'Continue practicing' : 'Start Practicing'}</button>
-              <button className="pl-btn" onClick={() => nav('/careerpilot/roadmap')}><i className="fa-regular fa-map" /> View My Roadmap</button>
+    <div className="pl pl2x">
+      {/*
+        * ONE TOP CARD, EVERYTHING ONCE. The page used to say the same things twice: a Start button
+        * and an "Up next · Solve it" card that opened the same problem; four figure cards and a
+        * "Your progress" card with the same Easy/Medium/Hard bars; plus a decorative picture, a
+        * quote and an AI Mentor card that repeats the sidebar. Now: what to do next on the left,
+        * where they stand on the right, and the list across the page below.
+        */}
+      <section className="plx-hero">
+        <div className="plx-copy">
+          <span className="plx-eyebrow">Practice Lab</span>
+          <h1>Turn problems into <span>progress</span></h1>
+          <p>Real coding problems with tests that run your code. Pick by topic, company or difficulty, or carry on from where you stopped.</p>
+          {data?.next ? (
+            <div className="plx-next">
+              <small>{prog?.solved ? 'Up next for you' : 'Start with'}</small>
+              <b>{data.next.number}. {data.next.title}</b>
+              <span className={`pl-diff ${data.next.difficulty}`}>{cap(data.next.difficulty)}</span>
             </div>
-            <div className="pl-hero-art" aria-hidden><i /><i /><i /><i /><i /></div>
-          </section>
-
-          <div className="pl-stats">
-            <div className="pl-card pl-stat"><span className="ic" style={{ background: '#d1fae5', color: '#047857' }}><i className="fa-solid fa-chart-simple" /></span>
-              <div><b>{prog?.solved ?? 0} <span style={{ color: '#2F3F56', fontWeight: 600, fontSize: 15 }}>/ {prog?.total ?? '…'}</span></b><small>Problems Solved</small></div></div>
-            {(['easy', 'medium', 'hard'] as const).map((d) => {
-              const x = prog?.byDifficulty[d];
-              return (
-                <div key={d} className="pl-card pl-stat"><span className="ic" style={{ background: d === 'easy' ? '#d1fae5' : d === 'medium' ? '#fef3c7' : '#ffe4e6', color: d === 'easy' ? '#047857' : d === 'medium' ? '#b45309' : '#be123c' }}><i className={`fa-solid ${d === 'easy' ? 'fa-seedling' : d === 'medium' ? 'fa-bolt' : 'fa-fire-flame-curved'}`} /></span>
-                  <div style={{ flex: 1 }}><b>{x?.solved ?? 0} <span style={{ color: '#2F3F56', fontWeight: 600, fontSize: 15 }}>/ {x?.total ?? '…'}</span></b><small>{cap(d)} solved</small>
-                    <div className="bar"><span style={{ width: `${pct(x?.solved, x?.total)}%`, background: DCOL[d] }} /></div></div></div>
-              );
-            })}
+          ) : null}
+          <div className="plx-actions">
+            <button className="pl-btn primary" onClick={start} disabled={!data}>
+              <i className="fa-solid fa-play" /> {prog?.solved ? 'Continue practising' : 'Start practising'}
+            </button>
+            <button type="button" className="pl-btn" onClick={() => nav('/careerpilot/mentor')}>
+              <i className="fa-solid fa-robot" /> Ask AI Mentor
+            </button>
           </div>
-
-          <section className="pl-card pl-panel">
-            <div className="pl-tabs">
-              {STATUS.map(([v, l]) => (
-                <button key={v} className={`pl-tab${get('status') === v ? ' on' : ''}`} onClick={() => set({ status: v })}>
-                  <i className={`fa-${v === '' ? 'solid fa-table-cells-large' : v === 'todo' ? 'regular fa-star' : v === 'attempted' ? 'solid fa-clock-rotate-left' : 'regular fa-circle-check'}`} /> {l}
-                </button>
-              ))}
-              <span className="grow" />
-              <button className="pl-btn" onClick={randomProblem} disabled={!data || picking}><i className="fa-solid fa-shuffle" /> Random Problem</button>
-            </div>
-
-            <div className="pl-filters">
-              <div className="pl-search"><i className="fa-solid fa-magnifying-glass" />
-                <input placeholder="Search by title, topic, tag or number…" value={text} onChange={(e) => setText(e.target.value)} aria-label="Search problems" /></div>
-              <label className="pl-field">Difficulty
-                <select value={get('difficulty')} onChange={(e) => set({ difficulty: e.target.value })}>
-                  <option value="">All</option>
-                  {(['easy', 'medium', 'hard'] as const).map((d) => <option key={d} value={d}>{cap(d)}{facets ? ` (${facets.difficulties[d] || 0})` : ''}</option>)}
-                </select></label>
-              <label className="pl-field">Topic
-                <select value={get('topic')} onChange={(e) => set({ topic: e.target.value })}>
-                  <option value="">All</option>{(facets?.topics || []).map((t) => <option key={t.name} value={t.name}>{t.name} ({t.count})</option>)}
-                </select></label>
-              <label className="pl-field">Company
-                <select value={get('company')} onChange={(e) => set({ company: e.target.value })}>
-                  <option value="">All</option>{(facets?.companies || []).map((t) => <option key={t.name} value={t.name}>{t.name} ({t.count})</option>)}
-                </select></label>
-              <label className="pl-field">Language
-                <select value={get('language')} onChange={(e) => set({ language: e.target.value })}>
-                  <option value="">All</option>{(facets?.languages || []).map((t) => <option key={t.name} value={t.name}>{LANG_SHORT[t.name] || t.name} ({t.count})</option>)}
-                </select></label>
-              <button className="pl-btn" onClick={reset} disabled={!active.length && !get('status') && !get('sort')}><i className="fa-solid fa-rotate" /> Reset</button>
-            </div>
-
-            <div className="pl-meta">
-              <span>{data ? (data.total ? `Showing ${from} - ${from + data.rows.length - 1} of ${data.total.toLocaleString()} problems` : 'No problems') : 'Loading…'}</span>
-              <span>Sort by
-                <select value={get('sort') || 'number'} onChange={(e) => set({ sort: e.target.value === 'number' ? '' : e.target.value })} aria-label="Sort">
-                  {SORTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select></span>
-            </div>
-
-            {err && <div className="pb-alert pb-alert-bad">{err}</div>}
-            {data && !data.rows.length && <div className="pl-empty"><h3>{active.length || get('status') ? 'No problems match' : 'No problems yet'}</h3><p>{active.length || get('status') ? 'Try removing a filter.' : 'Problems appear here as they are published.'}</p></div>}
-            {data?.rows.map((r) => (
-              <div key={r._id} className="pl-row" onClick={() => nav(`${base}/${r._id}`)} role="link" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') nav(`${base}/${r._id}`); }}>
-                <span title={r.status === 'solved' ? 'Solved' : r.status === 'attempted' ? 'Attempted' : 'Not started'}>
-                  {r.status === 'solved' ? <i className="fa-solid fa-circle-check" style={{ color: '#059669' }} />
-                    : r.status === 'attempted' ? <i className="fa-solid fa-circle-half-stroke" style={{ color: '#d97706' }} />
-                      : <i className="fa-regular fa-circle" style={{ color: '#a3acc0' }} />}
-                </span>
-                <span className="num">{r.number}</span>
-                <span className="t">{r.title}</span>
-                <span className="pl-chips hide-sm">{r.topics.slice(0, 3).map((t) => <span key={t} className="pl-chip" onClick={(e) => { e.stopPropagation(); set({ topic: t }); }}>{t}</span>)}</span>
-                <span className="pl-chips hide-sm">{r.companies.slice(0, 2).map((c) => <span key={c} className="pl-chip co">{c}</span>)}</span>
-                <span className="hide-sm" style={{ color: '#475569' }}>{r.acceptance != null ? `${r.acceptance}%` : ''}</span>
-                <span className="pl-att hide-sm">{r.attempts ? <>{kfmt(r.attempts)}<br />attempts</> : ''}</span>
-                <span className={`pl-diff ${r.difficulty}`}>{cap(r.difficulty)}</span>
-                <button className={`pl-solve${r.status === 'solved' ? ' done' : ''}`} onClick={(e) => { e.stopPropagation(); nav(`${base}/${r._id}`); }}>{r.status === 'solved' ? 'Review' : 'Solve →'}</button>
-                <i className="fa-solid fa-chevron-right hide-sm" style={{ color: '#a3acc0', fontSize: 11 }} />
-              </div>
-            ))}
-
-            {data && data.pages > 1 && (
-              <div className="pl-pager">
-                <button className="pl-btn sm" disabled={data.page <= 1} onClick={() => set({ page: String(data.page - 1) }, true)}><i className="fa-solid fa-chevron-left" /> Previous</button>
-                <span>Page {data.page} of {data.pages}</span>
-                <button className="pl-btn sm" disabled={data.page >= data.pages} onClick={() => set({ page: String(data.page + 1) }, true)}>Next <i className="fa-solid fa-chevron-right" /></button>
-              </div>
-            )}
-          </section>
         </div>
 
-        <aside className="pl-rail">
-          {data?.next && (
-            <div className="pl-card">
-              <h3><i className="fa-solid fa-bolt" style={{ color: '#d97706' }} /> Up next for you</h3>
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>{data.next.number}. {data.next.title}</div>
-              <span className={`pl-diff ${data.next.difficulty}`} style={{ display: 'inline-block', padding: '3px 14px', marginBottom: 12 }}>{cap(data.next.difficulty)}</span>
-              <button className="pl-btn go" style={{ width: '100%', justifyContent: 'center' }} onClick={() => nav(`${base}/${data.next!._id}`)}>Solve it →</button>
-            </div>
-          )}
-          <div className="pl-card">
-            <h3><i className="fa-solid fa-bullseye" style={{ color: '#4f46e5' }} /> Your progress</h3>
-            {(['easy', 'medium', 'hard'] as const).map((d) => {
-              const x = prog?.byDifficulty[d];
-              return (
-                <div key={d} className="pl-diffrow">
-                  <div className="h"><span>{cap(d)}</span><span style={{ color: '#2F3F56' }}>{x?.solved ?? 0} / {x?.total ?? 0}</span></div>
-                  <div className="bar"><span style={{ width: `${pct(x?.solved, x?.total)}%`, background: DCOL[d] }} /></div>
-                </div>
-              );
-            })}
+        <div className="plx-progress" aria-label="Your progress">
+          <div className="plx-total">
+            <b>{prog?.solved ?? 0}<em> / {prog?.total ?? 0}</em></b>
+            <span>problems solved</span>
           </div>
-          <figure className="pl-card pl-quote"><blockquote><span className="q" aria-hidden="true">“</span>Consistency today creates opportunities tomorrow.<span className="q" aria-hidden="true">”</span></blockquote><figcaption>— CodeBegun</figcaption></figure>
-          <div className="pl-card">
-            <div className="pl-help"><span className="ic"><i className="fa-solid fa-robot" /></span><div><b>Need Help?</b><div style={{ color: '#2F3F56', fontSize: 13 }}>Get hints, explanations and learning resources from AI Mentor.</div></div></div>
-            <button className="pl-btn" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }} onClick={() => nav('/careerpilot/mentor')}>Open AI Mentor →</button>
+          <div className="plx-bar"><i style={{ width: `${barWidth(pct(prog?.solved, prog?.total))}%` }} /></div>
+          {(['easy', 'medium', 'hard'] as const).map((d) => {
+            const x = prog?.byDifficulty[d];
+            return (
+              <div key={d} className="plx-diffrow">
+                <div className="h"><span><i className={`dot ${d}`} />{cap(d)}</span><span>{x?.solved ?? 0} / {x?.total ?? 0}</span></div>
+                <div className="bar"><span style={{ width: `${barWidth(pct(x?.solved, x?.total))}%`, background: DCOL[d] }} /></div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="pl-card pl-panel">
+        <div className="pl-tabs">
+          {STATUS.map(([v, l]) => (
+            <button key={v} className={`pl-tab${get('status') === v ? ' on' : ''}`} onClick={() => set({ status: v })}>
+              <i className={`fa-${v === '' ? 'solid fa-table-cells-large' : v === 'todo' ? 'regular fa-star' : v === 'attempted' ? 'solid fa-clock-rotate-left' : 'regular fa-circle-check'}`} /> {l}
+            </button>
+          ))}
+          <span className="grow" />
+          <button className="pl-btn" onClick={randomProblem} disabled={!data || picking}><i className="fa-solid fa-shuffle" /> Random Problem</button>
+        </div>
+
+        <div className="pl-filters">
+          <div className="pl-search"><i className="fa-solid fa-magnifying-glass" />
+            <input placeholder="Search by title, topic, tag or number…" value={text} onChange={(e) => setText(e.target.value)} aria-label="Search problems" /></div>
+          <label className="pl-field">Difficulty
+            <select value={get('difficulty')} onChange={(e) => set({ difficulty: e.target.value })}>
+              <option value="">All</option>
+              {(['easy', 'medium', 'hard'] as const).map((d) => <option key={d} value={d}>{cap(d)}{facets ? ` (${facets.difficulties[d] || 0})` : ''}</option>)}
+            </select></label>
+          <label className="pl-field">Topic
+            <select value={get('topic')} onChange={(e) => set({ topic: e.target.value })}>
+              <option value="">All</option>{(facets?.topics || []).map((t) => <option key={t.name} value={t.name}>{t.name} ({t.count})</option>)}
+            </select></label>
+          <label className="pl-field">Company
+            <select value={get('company')} onChange={(e) => set({ company: e.target.value })}>
+              <option value="">All</option>{(facets?.companies || []).map((t) => <option key={t.name} value={t.name}>{t.name} ({t.count})</option>)}
+            </select></label>
+          <label className="pl-field">Language
+            <select value={get('language')} onChange={(e) => set({ language: e.target.value })}>
+              <option value="">All</option>{(facets?.languages || []).map((t) => <option key={t.name} value={t.name}>{LANG_SHORT[t.name] || t.name} ({t.count})</option>)}
+            </select></label>
+          <button className="pl-btn" onClick={reset} disabled={!active.length && !get('status') && !get('sort')}><i className="fa-solid fa-rotate" /> Reset</button>
+        </div>
+
+        <div className="pl-meta">
+          <span>{data ? (data.total ? `Showing ${from} - ${from + data.rows.length - 1} of ${data.total.toLocaleString()} problems` : 'No problems') : 'Loading…'}</span>
+          <span>Sort by
+            <select value={get('sort') || 'number'} onChange={(e) => set({ sort: e.target.value === 'number' ? '' : e.target.value })} aria-label="Sort">
+              {SORTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select></span>
+        </div>
+
+        {err && <div className="pb-alert pb-alert-bad">{err}</div>}
+        {data && !data.rows.length && <div className="pl-empty"><h3>{active.length || get('status') ? 'No problems match' : 'No problems yet'}</h3><p>{active.length || get('status') ? 'Try removing a filter.' : 'Problems appear here as they are published.'}</p></div>}
+        {data?.rows.map((r) => (
+          <div key={r._id} className="pl-row" onClick={() => nav(`${base}/${r._id}`)} role="link" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') nav(`${base}/${r._id}`); }}>
+            <span title={r.status === 'solved' ? 'Solved' : r.status === 'attempted' ? 'Attempted' : 'Not started'}>
+              {r.status === 'solved' ? <i className="fa-solid fa-circle-check" style={{ color: '#059669' }} />
+                : r.status === 'attempted' ? <i className="fa-solid fa-circle-half-stroke" style={{ color: '#d97706' }} />
+                  : <i className="fa-regular fa-circle" style={{ color: '#a3acc0' }} />}
+            </span>
+            <span className="num">{r.number}</span>
+            <span className="t">{r.title}</span>
+            <span className="pl-chips hide-sm">{r.topics.slice(0, 3).map((t) => <span key={t} className="pl-chip" onClick={(e) => { e.stopPropagation(); set({ topic: t }); }}>{t}</span>)}</span>
+            <span className="pl-chips hide-sm">{r.companies.slice(0, 2).map((c) => <span key={c} className="pl-chip co">{c}</span>)}</span>
+            <span className="hide-sm" style={{ color: '#475569' }}>{r.acceptance != null ? `${r.acceptance}%` : ''}</span>
+            <span className="pl-att hide-sm">{r.attempts ? <>{kfmt(r.attempts)}<br />attempts</> : ''}</span>
+            <span className={`pl-diff ${r.difficulty}`}>{cap(r.difficulty)}</span>
+            <button className={`pl-solve${r.status === 'solved' ? ' done' : ''}`} onClick={(e) => { e.stopPropagation(); nav(`${base}/${r._id}`); }}>{r.status === 'solved' ? 'Review' : 'Solve →'}</button>
+            <i className="fa-solid fa-chevron-right hide-sm" style={{ color: '#a3acc0', fontSize: 11 }} />
           </div>
-        </aside>
-      </div>
+        ))}
+
+        {data && data.pages > 1 && (
+          <div className="pl-pager">
+            <button className="pl-btn sm" disabled={data.page <= 1} onClick={() => set({ page: String(data.page - 1) }, true)}><i className="fa-solid fa-chevron-left" /> Previous</button>
+            <span>Page {data.page} of {data.pages}</span>
+            <button className="pl-btn sm" disabled={data.page >= data.pages} onClick={() => set({ page: String(data.page + 1) }, true)}>Next <i className="fa-solid fa-chevron-right" /></button>
+          </div>
+        )}
+      </section>
     </div>
   );
 };

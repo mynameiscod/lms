@@ -8,8 +8,9 @@ import {
 import { useMember } from './MemberLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import './skillAssessment.css';
-import { copyrightLine } from '../../config/brand';
+import CareerPilotFooter from '../../components/CareerPilotFooter';
 import { useProgramDays, daysLabel } from './useProgramDays';
+import { barWidth } from '../../utils/barWidth';
 
 /**
  * A stage key as the member's own year, for the identity strip.
@@ -89,7 +90,7 @@ const PlacementDone: React.FC<{ result: PlacementResult; topic: string; onBack: 
             {skills.map(k => (
               <li key={k.skillKey}>
                 <span>{label(k.skillKey)}</span>
-                <i><em style={{ width: `${Math.max(3, k.percentage)}%` }} /></i>
+                <i><em style={{ width: `${barWidth(k.percentage)}%` }} /></i>
                 <b>{k.earned}/{k.max}</b>
               </li>
             ))}
@@ -499,15 +500,7 @@ const SkillAssessment: React.FC = () => {
     </header>
   );
 
-  const Footer = () => (
-    <footer className="ska-foot">
-      <div className="ska-wrap ska-foot-in">
-        <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" />
-        <span>{copyrightLine()}</span>
-        <span className="ska-foot-made">Made for ambitious careers in India</span>
-      </div>
-    </footer>
-  );
+  const Footer = () => <CareerPilotFooter wrapClassName="ska-wrap" />;
 
   if (loading) return <div className="ska-page"><Header /><div className="ska-state"><div className="ska-load">Loading your assessment…</div></div><Footer /></div>;
 
@@ -890,13 +883,13 @@ const SkillAssessment: React.FC = () => {
         ? <span><b>Nothing to lose.</b> What you prove comes out of your plan; anything you miss simply stays in it.</span>
         : <span><b>No pass mark, no pressure.</b> Answer honestly so CareerPilot can build the right plan for you.</span>}</div>
 
-      <Footer />
+      {/* No footer while answering: the paper keeps the screen to the questions. */}
 
       {confirming && (
         <div className="ska-modal" role="dialog" aria-modal="true">
           <div className="bx">
             <span className="ska-modal-icon"><i className="bi bi-send-check" /></span>
-            <b>{placing ? 'Submit your check?' : 'Submit your assessment?'}</b>
+            <b>Ready to submit?</b>
             <p>{answeredCount} of {paper.items.length} answered{answeredCount < paper.items.length && ` · ${paper.items.length - answeredCount} marked “I don’t know”`}. You cannot change your answers afterwards.</p>
             <div className="ska-actions">
               <button className="ska-btn ghost" onClick={() => setConfirming(false)}>Keep working</button>

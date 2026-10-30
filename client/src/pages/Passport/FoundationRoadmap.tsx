@@ -32,6 +32,7 @@ import './foundationJourney.css';
 import './foundationRoadmap.css';
 import './foundationMember.css';
 import { useProgramDays } from './useProgramDays';
+import { barWidth } from '../../utils/barWidth';
 
 const GROUP_LABEL: Record<RoadmapGroup['state'], string> = {
   COMPLETED: 'Completed',
@@ -124,6 +125,8 @@ const FoundationRoadmap: React.FC = () => {
 
   return (
     <div className="fj-page fr-page frm">
+      {/* The roadmap is opened from My N Days ("View roadmap"), so it leads back there. */}
+      <button type="button" className="frm-back" onClick={() => nav('/careerpilot/plan')}><i className="bi bi-arrow-left" aria-hidden /> Back to My {totalDays} Days</button>
       <section className="fjm-hero">
         <div className="fjm-hero-copy">
           <span className="fjm-eyebrow">Your personalised {totalDays}-day roadmap</span>
@@ -150,7 +153,7 @@ const FoundationRoadmap: React.FC = () => {
           {!preview && (
             <div className="fjm-hero-bar" role="progressbar" aria-valuenow={percentComplete}
                  aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress">
-              <i style={{ width: `${Math.max(1, percentComplete)}%` }} />
+              <i style={{ width: `${barWidth(percentComplete)}%` }} />
             </div>
           )}
         </div>

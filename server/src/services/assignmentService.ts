@@ -3,7 +3,8 @@ import Assignment, {
   AssignmentType, 
   AssignmentStatus, 
   DifficultyLevel,
-  ProgrammingLanguage 
+  ProgrammingLanguage,
+  IAssignmentSettings,
 } from '../models/Assignment';
 import Submission, { SubmissionStatus } from '../models/Submission';
 import PoolExamAttempt from '../models/PoolExamAttempt';
@@ -56,6 +57,7 @@ interface CreateAssignmentInput {
   allowedFileTypes?: string[];
   maxFiles?: number;
   maxAttempts?: number;
+  settings?: Partial<IAssignmentSettings>;
   showTestCaseResults?: boolean;
   showExpectedOutput?: boolean;
   enableHints?: boolean;
@@ -126,11 +128,43 @@ function deliveryFields(accessibleTo: string | undefined, isExternal: boolean | 
   return accessibleTo === 'everyone' && !isExternal ? { accessibleTo: 'batch_wise' as const } : {};
 }
 
+const nonNegative = (v: unknown, max = Number.MAX_SAFE_INTEGER): number => {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) ? Math.min(max, Math.max(0, n)) : 0;
+};
+
+/**
+ * The form's settings, kept as the form sent them, and mirrored to the fields grading reads:
+ * the attempt limit (0 = unlimited) and the shuffles. A late penalty applies only when late
+ * submission is allowed. Missing settings change nothing, so old assignments keep what they had.
+ */
+function settingsFields(input: { settings?: any }) {
+  const s = input.settings;
+  if (!s || typeof s !== 'object') return {};
+  const settings = {
+    timeLimitMinutes: nonNegative(s.timeLimitMinutes),
+    maxAttempts: nonNegative(s.maxAttempts),
+    shuffleQuestions: !!s.shuffleQuestions,
+    shuffleOptions: !!s.shuffleOptions,
+    showCorrectAnswers: !!s.showCorrectAnswers,
+    allowLateSubmission: !!s.allowLateSubmission,
+    latePenaltyPercent: nonNegative(s.latePenaltyPercent, 100),
+  };
+  return {
+    settings,
+    maxAttempts: settings.maxAttempts,
+    shuffleQuestions: settings.shuffleQuestions,
+    shuffleOptions: settings.shuffleOptions,
+    lateSubmissionPenalty: settings.allowLateSubmission ? settings.latePenaltyPercent : 0,
+  };
+}
+
 class AssignmentService {
   // Create a new assignment
   async create(input: CreateAssignmentInput): Promise<IAssignment> {
     const assignment = new Assignment({
       ...input,
+      ...settingsFields(input),
       ...examFields(input),
       ...deliveryFields(input.accessibleTo, (input as any).isExternalAssignment),
       status: AssignmentStatus.DRAFT
@@ -167,6 +201,7 @@ class AssignmentService {
       { _id: id, tenant },
       { $set: {
         ...input,
+        ...settingsFields(input),
         ...examFields({ ...input, type: input.type || existingAssignment?.type }),
         ...deliveryFields(input.accessibleTo, (input as any).isExternalAssignment ?? existingAssignment?.isExternalAssignment),
       } },

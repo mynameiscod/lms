@@ -23,6 +23,13 @@ import { createProblem, setStatus, Actor } from '../../services/problemBankServi
 import { SAMPLE_PROBLEM } from '../../services/problemImportService';
 import * as pools from '../../services/questionPoolService';
 
+/** The coding template cut to its first problem (Sum of Two Numbers: 2 open tests, 3 hidden). */
+const allTemplate = csvTemplate({ complete: true });
+const oneProblem = allTemplate.slice(0, allTemplate.indexOf('"Right-Angled Star Triangle"'));
+/** One more row in the template's own columns. */
+const templateRow = (o: Record<string, string>) =>
+  allTemplate.split('\n')[0].split(',').map(h => `"${(o[h] || '').replace(/"/g, '""')}"`).join(',') + '\n';
+
 const ME: Actor = { userId: '507f1f77bcf86cd799439a01', tenantId: '507f1f77bcf86cd799439b01', role: 'TENANT_ADMIN' };
 const OTHER: Actor = { userId: '507f1f77bcf86cd799439a02', tenantId: '507f1f77bcf86cd799439b02', role: 'TENANT_ADMIN' };
 
@@ -32,9 +39,10 @@ const mcq = (a: Actor, question: string, extra: any = {}) => Question.create({
   difficultyLevel: 'easy', ...extra,
 }).then(q => String(q._id));
 
-const problem = async (a: Actor, title: string, publish: boolean) => {
+/** A problem given to the LMS (exam pools are LMS), unless `lms` is false: then it is not assigned yet. */
+const problem = async (a: Actor, title: string, publish: boolean, lms = true) => {
   const r = await createProblem(a, {
-    ...SAMPLE_PROBLEM, title, status: 'draft',
+    ...SAMPLE_PROBLEM, title, status: 'draft', audiences: lms ? ['lms'] : [],
     tests: (SAMPLE_PROBLEM.tests || []).map((t) => ({ ...t, expectedOutput: t.expectedOutput || '2000000000' })),
   } as any);
   const id = String(r.problem._id);
@@ -113,15 +121,20 @@ describe('coding pools', () => {
     expect(r.added).toBe(1);
     expect(r.refused[0].reason).toMatch(/Not published/);
 
+    // A problem not given to the LMS yet is refused too, with the reason.
+    const unassigned = await problem(ME, 'Not assigned', true, false);
+    expect((await pools.addQuestions(ME, pool.id, [unassigned])).refused[0].reason).toBe('Not available to the LMS');
+
     await CodingProblem.updateOne({ _id: live }, { status: 'archived' });
     expect((await pools.getPool(ME, pool.id)).counts.usable).toBe(0);
   });
 
   it('imports a CSV of coding problems as published, LMS-only exam questions, refusing incomplete rows', async () => {
     const pool = await pools.createPool(ME, { name: 'Imported coding', kind: 'coding' });
-    const csv = csvTemplate({ complete: true })
-      + '"No tests",easy,5,,,,"Print hi",,,,,,,,,,,,,\n'
-      + '"Tagged DSA",medium,10,arrays,DSA,,"Echo the line",,,,,"x","x","y","y",,,"print(input())",,\n';
+    const csv = oneProblem
+      + templateRow({ title: 'No tests', difficulty: 'easy', marks: '5', statement: 'Print hi' })
+      + templateRow({ title: 'Tagged DSA', difficulty: 'medium', marks: '10', topics: 'arrays', tags: 'DSA', available_to: 'careerpilot',
+        statement: 'Echo the line', sample_input_1: 'x', sample_output_1: 'x', sample_input_2: 'y', sample_output_2: 'y', starter_python: 'print(input())' });
     const r = await pools.importFile(ME, pool.id, { filename: 'coding.csv', data: Buffer.from(csv).toString('base64') });
     expect(r.imported).toBe(2);
     expect(r.refused).toHaveLength(1);
@@ -164,7 +177,7 @@ describe('coding pools', () => {
     await expect(pools.importFile(ME, coding.id, { filename: 'm.csv', data: b64(pools.MCQ_TEMPLATE) })).rejects.toThrow(/MCQ format\. Import it into an MCQ pool/);
     await expect(pools.importFile(ME, mcqs.id, { filename: 'c.csv', data: b64(csvTemplate({ complete: true })) })).rejects.toThrow(/coding format\. Import it into a coding pool/);
     // The MCQ template itself imports cleanly into an MCQ pool.
-    expect((await pools.importFile(ME, mcqs.id, { filename: 'm.csv', data: b64(pools.MCQ_TEMPLATE) })).imported).toBe(2);
+    expect((await pools.importFile(ME, mcqs.id, { filename: 'm.csv', data: b64(pools.MCQ_TEMPLATE) })).imported).toBe(3);
   });
 
   it('keeps CSV values that start with zero exactly as typed', async () => {
@@ -227,5 +240,119 @@ describe('routes', () => {
     const t = await token('STUDENT', 'student@example.com');
     const r = await request(app).get('/api/v1/question-pools').set('Authorization', `Bearer ${t}`);
     expect(r.status).toBe(403);
+  });
+});
+
+describe('questions a pool imported belong to it', () => {
+  const b64 = (s: string) => Buffer.from(s).toString('base64');
+  const mcqCsv = 'question,optionA,optionB,correct\n"Is 4 even?",Yes,No,A\n"Is 5 even?",Yes,No,B\n';
+
+  it('skips a question already in the pool when the same file is imported again', async () => {
+    const mcqs = await pools.createPool(ME, { name: 'Twice MCQ', kind: 'mcq' });
+    expect((await pools.importFile(ME, mcqs.id, { filename: 'm.csv', data: b64(mcqCsv) })).imported).toBe(2);
+    const again = await pools.importFile(ME, mcqs.id, { filename: 'm.csv', data: b64(mcqCsv) });
+    expect(again.imported).toBe(0);
+    expect(again.refused.map(r => r.reason)).toEqual(['Already in this pool', 'Already in this pool']);
+
+    const coding = await pools.createPool(ME, { name: 'Twice coding', kind: 'coding' });
+    const csv = oneProblem;
+    expect((await pools.importFile(ME, coding.id, { filename: 'c.csv', data: b64(csv) })).imported).toBe(1);
+    expect((await pools.importFile(ME, coding.id, { filename: 'c.csv', data: b64(csv) })).imported).toBe(0);
+    expect(await CodingProblem.countDocuments({ tenantId: ME.tenantId })).toBe(1);
+  });
+
+  it('deletes them with the pool, but never a bank question or one used elsewhere', async () => {
+    const bankMcq = await mcq(ME, 'From the bank');
+    const bankProblem = await problem(ME, 'Bank problem', true);
+    const mcqs = await pools.createPool(ME, { name: 'Owned MCQ', kind: 'mcq' });
+    await pools.importFile(ME, mcqs.id, { filename: 'm.csv', data: b64(mcqCsv) });
+    await pools.addQuestions(ME, mcqs.id, [bankMcq]);
+    // One imported MCQ is also in another pool: it stays.
+    const shared = String((await Question.findOne({ question: 'Is 5 even?' }).lean() as any)._id);
+    const other = await pools.createPool(ME, { name: 'Other', kind: 'mcq' });
+    await pools.addQuestions(ME, other.id, [shared]);
+
+    const coding = await pools.createPool(ME, { name: 'Owned coding', kind: 'coding' });
+    await pools.importFile(ME, coding.id, { filename: 'c.csv', data: b64(oneProblem) });
+    await pools.addQuestions(ME, coding.id, [bankProblem]);
+
+    expect((await pools.deletePool(ME, mcqs.id)).questionsDeleted).toBe(1);
+    expect(await Question.exists({ question: 'Is 4 even?' })).toBeNull();
+    expect(await Question.exists({ _id: shared })).not.toBeNull();
+    expect(await Question.exists({ _id: bankMcq })).not.toBeNull();
+
+    expect((await pools.deletePool(ME, coding.id)).questionsDeleted).toBe(1);
+    expect(await CodingProblem.exists({ _id: bankProblem })).not.toBeNull();
+    expect(await CodingProblem.countDocuments({ tenantId: ME.tenantId })).toBe(1);
+    expect(await CodingProblemTestCase.countDocuments({ problemId: { $ne: new mongoose.Types.ObjectId(bankProblem) } })).toBe(0);
+  });
+
+  it('keeps an imported problem that was given to CareerPilot or drawn onto a paper', async () => {
+    const coding = await pools.createPool(ME, { name: 'Kept coding', kind: 'coding' });
+    await pools.importFile(ME, coding.id, { filename: 'c.csv', data: b64(oneProblem) });
+    const id = (await pools.getPool(ME, coding.id)).questions[0].id;
+    await CodingProblem.updateOne({ _id: id }, { $set: { audiences: ['lms', 'careerpilot'] } });
+    expect((await pools.deletePool(ME, coding.id)).questionsDeleted).toBe(0);
+
+    const mcqs = await pools.createPool(ME, { name: 'Kept MCQ', kind: 'mcq' });
+    await pools.importFile(ME, mcqs.id, { filename: 'm.csv', data: b64(mcqCsv) });
+    const used = (await pools.getPool(ME, mcqs.id)).questions[0].id;
+    await mongoose.connection.collection('poolexamattempts').insertOne({ items: [{ refId: new mongoose.Types.ObjectId(used) }] });
+    await pools.removeQuestions(ME, mcqs.id, [used]);
+    expect(await Question.exists({ _id: used })).not.toBeNull();
+    expect((await pools.deletePool(ME, mcqs.id)).questionsDeleted).toBe(1);
+  });
+});
+
+describe('spreadsheet imports read what authors write', () => {
+  const b64 = (s: string) => Buffer.from(s).toString('base64');
+  const BS = String.fromCharCode(92);
+
+  it('the coding template has 2 open and 3 hidden tests per problem, and its pattern problem keeps its lines', async () => {
+    const pool = await pools.createPool(ME, { name: 'Template', kind: 'coding' });
+    const r = await pools.importFile(ME, pool.id, { filename: 'c.csv', data: b64(csvTemplate({ complete: true })) });
+    expect(r.refused).toEqual([]);
+    expect(r.imported).toBe(2);
+    const made = await CodingProblem.find({ tenantId: ME.tenantId }).sort({ title: -1 }).lean() as any[];
+    for (const p of made) {
+      const tests = await CodingProblemTestCase.find({ problemId: p._id }).lean() as any[];
+      expect(tests.filter(t => t.isSample)).toHaveLength(2);
+      expect(tests.filter(t => !t.isSample)).toHaveLength(3);
+    }
+    const pattern = made.find(p => /Star Triangle/.test(p.title));
+    const tests = await CodingProblemTestCase.find({ problemId: pattern._id }).sort({ order: 1 }).lean() as any[];
+    expect(tests[0].expectedOutput).toBe('*\n**\n***');
+    expect(pattern.statement).toContain('\nRow i has i stars.');
+  });
+
+  it('turns typed \n into lines, keeps \n inside code strings, and reads other column names', async () => {
+    const pool = await pools.createPool(ME, { name: 'Typed', kind: 'coding' });
+    const csv = 'Title,Difficulty,Description,Input 1,Output 1,Input 2,Output 2,Input 3,Output 3,Input 4,Output 4,Input 5,Output 5,Solution Python,Notes\n'
+      + `"Count Down",easy,"Print n down to 1.${BS}nOne number per line.","3","3${BS}n2${BS}n1","1","1","2","2${BS}n1","4","4${BS}n3${BS}n2${BS}n1","5","5${BS}n4${BS}n3${BS}n2${BS}n1","n=int(input())${BS}nprint('${BS}n'.join(str(i) for i in range(n,0,-1)))",ignored\n`;
+    const r: any = await pools.importFile(ME, pool.id, { filename: 'x.csv', data: b64(csv) });
+    expect(r.refused).toEqual([]);
+    expect(r.notRead).toEqual(['Notes']);
+    const p: any = await CodingProblem.findOne({ tenantId: ME.tenantId, title: 'Count Down' }).lean();
+    expect(p.statement).toBe('Print n down to 1.\nOne number per line.');
+    expect(p.languages.find((l: any) => l.language === 'python').solutionCode).toBe(`n=int(input())\nprint('${BS}n'.join(str(i) for i in range(n,0,-1)))`);
+    const tests = await CodingProblemTestCase.find({ problemId: p._id }).sort({ order: 1 }).lean() as any[];
+    expect(tests.map(t => [t.expectedOutput, t.isSample])).toEqual([
+      ['3\n2\n1', true], ['1', true], ['2\n1', false], ['4\n3\n2\n1', false], ['5\n4\n3\n2\n1', false],
+    ]);
+  });
+
+  it('MCQs: other column names, a code question over several lines, the answer as text, and the explanation kept', async () => {
+    const pool = await pools.createPool(ME, { name: 'MCQ names', kind: 'mcq' });
+    const csv = 'Question Text,Option 1,Option 2,Option 3,Correct Answer,Explanation\n'
+      + `"What does this print?${BS}nfor i in range(2):${BS}n    print(i)","0 1","0${BS}n1","1 2","0${BS}n1","Each print ends its line."\n`;
+    const r = await pools.importFile(ME, pool.id, { filename: 'm.csv', data: b64(csv) });
+    expect(r.refused).toEqual([]);
+    const q: any = await Question.findOne({ tenantId: ME.tenantId }).lean();
+    expect(q.question).toBe('What does this print?\nfor i in range(2):\n    print(i)');
+    expect(q.options.find((o: any) => o.isCorrect).text).toBe('0\n1');
+    expect(q.explanation).toBe('Each print ends its line.');
+    const t = await pools.importFile(ME, pool.id, { filename: 't.csv', data: b64(pools.MCQ_TEMPLATE) });
+    expect(t.refused).toEqual([]);
+    expect(t.imported).toBe(3);
   });
 });

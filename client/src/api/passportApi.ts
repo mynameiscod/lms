@@ -1889,7 +1889,8 @@ export interface DashboardData {
   level?: LevelInfo;
   coderScore?: { score: number; parts: { label: string; earned: number; max: number }[] };
   percentileAhead?: number | null;
-  skills?: { key: string; label: string; score: number }[];
+  /** The skill meter: Skill DNA by skill area (early = only low-confidence evidence in that area). */
+  skills?: { key: string; label: string; score: number; early?: boolean }[];
   careerScore?: number | null;
   careerLevel?: string | null;
   pathwayLabel?: string;
@@ -3150,7 +3151,8 @@ export interface ReadinessSkill {
 /** Readiness is unavailable for distinct, differently-fixable reasons. */
 export interface RoleReadinessUnavailable {
   available: false;
-  reason: 'ROLE_NOT_SELECTED' | 'ROLE_BLUEPRINT_NOT_READY' | 'NO_EVIDENCE';
+  /** YEAR_1: role readiness opens in Year 2 (Year 1 has no role). */
+  reason: 'ROLE_NOT_SELECTED' | 'ROLE_BLUEPRINT_NOT_READY' | 'NO_EVIDENCE' | 'YEAR_1';
   message: string;
   role?: { key: string; name?: string };
 }
@@ -3162,6 +3164,10 @@ export interface RoleReadinessAvailable {
   readiness: number | null;
   /** How much of the role has trustworthy evidence. Always shown beside readiness. */
   coverage: number;
+  /** Under 40% of the role measured: `readiness` is an early estimate, not the headline. */
+  provisional?: boolean;
+  /** Readiness against the whole role, unmeasured skills counted as 0. */
+  wholeRoleReadiness?: number;
   confidence: string;
   summary: {
     requiredSkills: number; assessedSkills: number;

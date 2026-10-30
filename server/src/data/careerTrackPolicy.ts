@@ -1,12 +1,15 @@
 /**
- * Career tracks — role + language roadmaps from Year 3 (e.g. Java Full Stack + AI).
+ * Career tracks — role + language roadmaps from Year 2 (e.g. Java Full Stack + AI).
  *
- * THE MODEL. A track is an ordered list of SKILL PACKS for Year 3 and of PLACEMENT PACKS for
- * Year 4. A pack is an ordered list of topics, each with a priority; the units that teach a topic
+ * THE MODEL. A track is an ordered list of SKILL PACKS (the track itself, taught from Year 2) and
+ * of PLACEMENT PACKS for Year 4. A pack is an ordered list of topics, each with a priority; the units that teach a topic
  * are found by its topicCode in any year's content, so a lesson written once (HTML, SQL, React) is
  * reused by every track whose packs name its topic — never copied.
  *
- * YEAR 3 is the track and nothing else: its skill packs, in order, fitted into the admin's days.
+ * YEARS 2 AND 3 (user decision 2026-10-30): a FRESH joiner gets the FULL track — every lesson and
+ * practice, checkpoints given up only if it cannot fit — then the year's own curriculum in the days
+ * left. A member who did the track the year before gets a short revision of it (memberTrackShare)
+ * and then the year's curriculum. See careerTrackComposerService.
  *
  * YEAR 4 is the same track again, then placement:
  *   - a member who did Year 3 on the track with us gets a SHORT revision of it (weakest first,
@@ -24,10 +27,10 @@
  * lesson and its checkpoints whatever happens.
  */
 export type TrackPriority = 'CORE' | 'MUST' | 'SHOULD' | 'OPTIONAL';
-export type TrackStage = 'specialize' | 'placement';
+export type TrackStage = 'build' | 'specialize' | 'placement';
 export type PackKind = 'SKILL' | 'PLACEMENT';
 
-export const TRACK_STAGES: readonly TrackStage[] = ['specialize', 'placement'];
+export const TRACK_STAGES: readonly TrackStage[] = ['build', 'specialize', 'placement'];
 export const PACK_KINDS: readonly PackKind[] = ['SKILL', 'PLACEMENT'];
 export const TRACK_PRIORITIES: readonly TrackPriority[] = ['CORE', 'MUST', 'SHOULD', 'OPTIONAL'];
 
@@ -127,9 +130,9 @@ export function trackProblems(track: TrackDef, packs: Map<string, PackDef>): str
 }
 
 /**
- * What stops a track from building THIS year's roadmap: Year 3 needs only its skill packs; Year 4
- * needs both, since it is the track again and then placement. Going live still needs both
- * (`trackProblems`) — this is what lets a track's Year 3 be piloted before its placement packs exist.
+ * What stops a track from building THIS year's roadmap: Years 2 and 3 need only its skill packs;
+ * Year 4 needs both, since it is the track again and then placement. Going live still needs both
+ * (`trackProblems`) — this is what lets a track be piloted before its placement packs exist.
  */
 export function stageProblems(track: TrackDef, packs: Map<string, PackDef>, stage: string): string[] {
   const all = trackProblems(track, packs);
@@ -208,7 +211,7 @@ export function validatePackInput(input: any): { ok: true; value: PackDef } | { 
  *   QA / SDET, QA Engineer, Test / Automation Test Engineer        → QA / SDET
  *   Mobile App Developer, Android Engineer, iOS Engineer           → Mobile App Development (React Native)
  * Anything else (Not sure, no main language, other roles) has no track and keeps the regular
- * Year 3/4 roadmap. Once a roadmap is built from a track the track is fixed; only an admin changes it.
+ * Year 2/3/4 roadmap. Year 1 has no role, so never a track. Once a roadmap is built from a track the track is fixed; only an admin changes it.
  */
 export const FULL_STACK_TRACK_ROLES = ['SOFTWARE_ENGINEER', 'SDE', 'FULLSTACK_ENGINEER', 'BACKEND_ENGINEER', 'FRONTEND_ENGINEER'];
 export const DATA_ANALYTICS_TRACK_ROLES = ['DATA_ANALYST', 'BUSINESS_ANALYST', 'BI_ANALYST'];

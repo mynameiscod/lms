@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import {
-  emptyProblem, isDsa, PB_PRODUCTS, problemBankApi, pbError, PbCustomResult, PbJudgeResult, PbLanguage, PbMeta, PbProblemInput, PbTest, PbVerification,
+  emptyProblem, audiencesOf, PB_PRODUCTS, problemBankApi, pbError, PbCustomResult, PbJudgeResult, PbLanguage, PbMeta, PbProblemInput, PbTest, PbVerification,
 } from '../../api/problemBankApi';
 import {
   DifficultyPill, LANG_SHORT, Markdown, Menu, ScopePill, StatusPill, VERDICT_LABEL, VerifyBadge, useToast,
@@ -67,7 +67,7 @@ const ProblemStudio: React.FC = () => {
       setP({
         title: r.title, kind: r.kind, statement: r.statement, inputFormat: r.inputFormat, outputFormat: r.outputFormat,
         constraints: r.constraints, hints: r.hints || [], editorial: r.editorial || '', difficulty: r.difficulty, marks: r.marks,
-        topics: r.topics || [], tags: r.tags || [], audiences: r.audiences?.length ? r.audiences : ['lms', 'careerpilot'], companies: r.companies || [], languages: r.languages || [], sqlSetup: r.sqlSetup || '',
+        topics: r.topics || [], tags: r.tags || [], audiences: audiencesOf(r), companies: r.companies || [], languages: r.languages || [], sqlSetup: r.sqlSetup || '',
         limits: r.limits || { timeMs: 2000, memoryMb: 256 }, comparisonMode: r.comparisonMode || 'lenient',
         tests: (r.tests || []).map((t: any) => ({ input: t.input, expectedOutput: t.expectedOutput, isSample: t.isSample, weight: t.weight ?? 1, explanation: t.explanation || '' })),
       });
@@ -617,18 +617,22 @@ const SettingsTab: React.FC<{
         const on = p.audiences.includes(key);
         return (
           <button key={key} type="button" className={on ? 'on' : ''} aria-pressed={on}
-            // At least one product stays on: a problem nobody may be given is a draft by another name.
-            onClick={() => (on ? p.audiences.length > 1 && edit({ audiences: p.audiences.filter((x) => x !== key) }) : edit({ audiences: [...p.audiences, key] }))}>
-            <i className={`fa-solid ${on ? 'fa-square-check' : 'fa-square'}`} /> {label}
+            // None ticked is allowed: "not assigned yet", given to nobody.
+            onClick={() => edit({ audiences: on ? p.audiences.filter((x) => x !== key) : [...p.audiences, key] })}>
+            <i className={on ? 'fa-solid fa-square-check' : 'fa-regular fa-square'} /> {label}
           </button>
         );
       })}
     </div>
     <div className="pb-help">
-      Which products may assign this problem — in exams, problem sets and practice tracks. Students never see it until it is assigned to them.
-      {' '}{isDsa(p.tags)
-        ? (p.audiences.includes('careerpilot') ? <b>Tagged DSA: it is also open in the CareerPilot practice library.</b> : <>Tagged DSA, but not available to CareerPilot, so it stays out of the practice library.</>)
-        : <>Tag it <b>DSA</b> to open it in the CareerPilot practice library.</>}
+      {p.audiences.includes('careerpilot')
+        ? <><b>CareerPilot:</b> once published, it is in the CareerPilot practice library for members to solve, and can go into CareerPilot problem sets. </>
+        : null}
+      {p.audiences.includes('lms')
+        ? <><b>LMS:</b> teachers can put it in problem sets and exams; students see it only when it is assigned to them. </>
+        : null}
+      {!p.audiences.length && <><b>Not assigned yet:</b> nobody can be given this problem. Tick CareerPilot, LMS or both. </>}
+      To change many problems at once, tick them in the Problem Bank list and use <b>Available to</b>.
     </div>
   </div>
 );

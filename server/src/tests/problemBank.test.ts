@@ -159,12 +159,11 @@ describe('judging', () => {
 describe('bulk import', () => {
   it('reads the CSV template round-trip, including numbered tests and per-language columns', () => {
     const items = parseImport('t.csv', Buffer.from(csvTemplate()).toString('base64'), undefined);
-    expect(items).toHaveLength(1);
+    expect(items.map((i) => i.title)).toEqual(['Sum of Two Numbers', 'Right-Angled Star Triangle']);
     const p = items[0];
-    expect(p.title).toBe('Sum of Two Numbers');
     expect(p.topics).toEqual(['basics', 'math']);
-    expect(p.tests!.filter((t) => t.isSample)).toHaveLength(1);
-    expect(p.tests).toHaveLength(3);
+    expect(p.tests!.filter((t) => t.isSample)).toHaveLength(2);
+    expect(p.tests).toHaveLength(5);
     expect(p.languages!.map((l) => l.language).sort()).toEqual(['java', 'python']);
     expect(p.hints).toHaveLength(1);
   });

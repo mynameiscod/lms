@@ -77,7 +77,7 @@ jest.mock('../services/careerContextService', () => ({
   __esModule: true, getCareerContext: async () => context,
 }));
 jest.mock('../services/roleReadinessService', () => ({
-  __esModule: true, calculateStudentRoleReadiness: async () => roleResult,
+  __esModule: true, calculateStudentRoleReadiness: async () => roleResult, shownRoleReadiness: async () => roleResult,
 }));
 
 /**

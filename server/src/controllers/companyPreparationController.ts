@@ -7,7 +7,7 @@ import { readinessFor, readySlugs } from '../services/companyReadinessService';
 import { calculateCompanyFit, summariseCompanyFits } from '../services/companyFitService';
 import { evaluateEligibility } from '../services/companyEligibilityService';
 import { getCareerContext } from '../services/careerContextService';
-import { calculateStudentRoleReadiness, RoleReadinessResult } from '../services/roleReadinessService';
+import { shownRoleReadiness, RoleReadinessResult } from '../services/roleReadinessService';
 import { CompanyFitResult } from '../services/companyFitService';
 import { MAX_TARGET_COMPANIES, FIT_LABEL } from '../data/companyFitPolicy';
 
@@ -78,7 +78,7 @@ export const companyReadiness = async (req: Request, res: Response) => {
 
     // Module 8's own figure, read and reported unchanged. This module never recalculates it
     // and never writes it.
-    const role = await calculateStudentRoleReadiness(tenantId, studentId);
+    const role = await shownRoleReadiness(tenantId, studentId);   // none in Year 1
 
     res.json({
       company: { slug, name: company.name, type: company.type, logoUrl: company.logoUrl || '' },

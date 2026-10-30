@@ -41,10 +41,10 @@ const get = (path: string, who: string) => (request(app) as any).get(path).set('
 const post = (path: string, who: string, body: any = {}) => (request(app) as any).post(path).set('Authorization', `Bearer ${tokens[who]}`).set('X-Tenant-Id', String(T._id)).send(body);
 
 let n = 0;
-/** A library problem: tagged DSA unless `dsa: false`, since only DSA problems are in the library. */
-const problem = async ({ dsa = true, ...o }: any = {}) => {
+/** A library problem: given to CareerPilot unless it says otherwise, since only those are in the library. */
+const problem = async (o: any = {}) => {
   n++;
-  o.tags = [...(o.tags || []), ...(dsa ? ['DSA'] : [])];
+  if (!('audiences' in o)) o.audiences = ['careerpilot'];
   const p: any = await CodingProblem.create({
     scope: 'tenant', tenantId: String(T._id), number: n, slug: `p-${n}`, title: `Problem ${n}`, statement: 'Add two numbers.', difficulty: 'easy', status: 'published', marks: 20,
     topics: ['arrays'], tags: [], companies: [], languages: [{ language: 'python', starterCode: 'def solve():\n  pass', headerCode: 'SECRET_HEADER', footerCode: 'SECRET_FOOTER', solutionCode: 'SECRET_SOLUTION' }],
@@ -102,14 +102,16 @@ describe('who can use the library, and what they can see', () => {
     expect((await get('/coding-practice/library/not-an-id', 'member')).status).toBe(404);
   });
 
-  it('lists only problems tagged DSA (any case) that are available to CareerPilot', async () => {
-    await problem({ title: 'Tagged DSA' });
-    await problem({ title: 'Tagged dsa', dsa: false, tags: ['dsa'] });
-    await problem({ title: 'Exam question', dsa: false, tags: ['Exam'] });
-    await problem({ title: 'LMS only', audiences: ['lms'] });
+  it('lists only problems given to CareerPilot, whatever their tags', async () => {
+    await problem({ title: 'Given to CareerPilot', tags: ['Arrays'] });
     await problem({ title: 'Both products', audiences: ['lms', 'careerpilot'] });
+    await problem({ title: 'Tagged DSA but LMS only', tags: ['DSA'], audiences: ['lms'] });
+    await problem({ title: 'Exam question', audiences: [] });
+    // Written before "Available to" existed: no field at all, read as LMS only.
+    const legacy = await problem({ title: 'Older problem' });
+    await CodingProblem.collection.updateOne({ _id: legacy._id }, { $unset: { audiences: 1 } });
     const r = await get('/coding-practice/library?limit=100', 'member');
-    expect(r.body.data.rows.map((x: any) => x.title).sort()).toEqual(['Both products', 'Tagged DSA', 'Tagged dsa']);
+    expect(r.body.data.rows.map((x: any) => x.title).sort()).toEqual(['Both products', 'Given to CareerPilot']);
     const exam = await CodingProblem.findOne({ title: 'Exam question' });
     expect((await get(`/coding-practice/library/${exam!._id}`, 'member')).status).toBe(404);
     expect((await post(`/coding-practice/library/${exam!._id}/run`, 'member', { language: 'python', code: 'x' })).status).toBe(404);

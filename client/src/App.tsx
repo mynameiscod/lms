@@ -2,7 +2,7 @@ import { homePathFor, productRedirect } from './utils/product';
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { loginPathFor } from './utils/loginPath';
+import { loginRedirectFor } from './utils/loginPath';
 import { TenantProvider } from './contexts/TenantContext';
 import { StudentFeaturesProvider, useStudentFeatures, StudentFeatures } from './contexts/StudentFeaturesContext';
 import { TenantModulesProvider } from './contexts/TenantModulesContext';
@@ -150,7 +150,6 @@ const PassportSkillDna = lazy(() => import('./pages/Passport/SkillDna'));
 const PassportRoleReadiness = lazy(() => import('./pages/Passport/RoleReadiness'));
 const PassportPlacementReadiness = lazy(() => import('./pages/Passport/PlacementReadiness'));
 const PassportSkillAssessment = lazy(() => import('./pages/Passport/SkillAssessment'));
-const PassportGamification = lazy(() => import('./pages/Passport/Gamification'));
 const PassportRewards = lazy(() => import('./pages/Passport/Rewards'));
 const AptitudeSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.AptitudeSoon })));
 const ReasoningSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.ReasoningSoon })));
@@ -368,7 +367,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredPermissions,
 }) => {
   const { isAuthenticated, loading, user } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { isFeatureEnabled: studentFeatureOn } = useStudentFeatures();
 
   if (loading) return <Spinner fullScreen />;
@@ -377,8 +376,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // Send CareerPilot members to the CareerPilot login, not the LMS one. This covers
     // logging out (logout() only clears state — the redirect happens here when the guard
     // re-runs) and a session expiring mid-visit. `replace` so the back button does not
-    // return to a page they are no longer allowed to see.
-    return <Navigate to={loginPathFor(pathname)} replace />;
+    // return to a page they are no longer allowed to see. A CareerPilot page the visitor was
+    // trying to open goes along as ?next=, so the login says so and returns there afterwards.
+    return <Navigate to={loginRedirectFor(pathname, search)} replace />;
   }
 
   if (user?.role === 'STUDENT') {
@@ -848,7 +848,8 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/playground" element={<CodePlayground />} />
         <Route path="/careerpilot/visualizer" element={<CodeVisualizer />} />
         <Route path="/careerpilot/visualizer/:slug" element={<CodeVisualizerWorkspace />} />
-        <Route path="/careerpilot/progress" element={<PassportGamification />} />
+        {/* My Progress is part of My Dashboard; an old link or bookmark lands there. */}
+        <Route path="/careerpilot/progress" element={<Navigate to="/careerpilot" replace />} />
         {/* Coins buy rewards; XP never does. */}
         <Route path="/careerpilot/rewards" element={<PassportRewards />} />
         {/* Announced in the rail, not built yet: each says what is coming and where to practise meanwhile. */}

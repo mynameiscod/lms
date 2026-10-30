@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import passportApi, { ConceptJourney as Journey, ConceptJourneyStep } from '../../api/passportApi';
 import './conceptJourney.css';
+import { barWidth } from '../../utils/barWidth';
 
 /**
  * The whole course for one skill, as the student sees it.
@@ -142,7 +143,7 @@ const ConceptJourney: React.FC = () => {
           </span>
         </div>
         <div className="cj-bar" role="img" aria-label={`${progress.percent}% complete`}>
-          <i className={finished ? 'full' : ''} style={{ width: `${Math.max(2, progress.percent)}%` }} />
+          <i className={finished ? 'full' : ''} style={{ width: `${barWidth(progress.percent)}%` }} />
         </div>
         {next && (
           <button

@@ -51,7 +51,7 @@ export interface IStudentFeatures {
 export interface ICareerPilotFeatures {
   plan?: boolean; roadmap?: boolean; practice?: boolean; coding?: boolean; playground?: boolean; thinkingLab?: boolean;
   communication?: boolean; interview?: boolean; experiences?: boolean; questionBooks?: boolean; mentor?: boolean;
-  companies?: boolean; news?: boolean; resume?: boolean; progress?: boolean; industryConnect?: boolean; support?: boolean;
+  companies?: boolean; news?: boolean; resume?: boolean; progress?: boolean; industryConnect?: boolean; support?: boolean; aptitude?: boolean; reasoning?: boolean;
 }
 
 // Platform-level module gates set by SUPER_ADMIN (applies to ALL roles in the tenant)
@@ -293,6 +293,8 @@ const TenantSchema: Schema = new Schema(
       resume: { type: Boolean, default: true },
       progress: { type: Boolean, default: true },
       industryConnect: { type: Boolean, default: true },
+      aptitude: { type: Boolean, default: true },
+      reasoning: { type: Boolean, default: true },
       support: { type: Boolean, default: true }
     },
     // Platform-level module gates — set by SUPER_ADMIN, apply to ALL roles in the tenant

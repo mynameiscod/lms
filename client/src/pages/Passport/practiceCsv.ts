@@ -68,7 +68,25 @@ export function parseCsv(text: string): string[][] {
   return rows;
 }
 
-const norm = (h: string) => h.trim().toLowerCase().replace(/[\s-]+/g, '_');
+/** Column names without case, spaces, underscores or hyphens: "Question Text" = question_text. */
+const norm = (h: string) => h.trim().toLowerCase().replace(/[\s_\-.]+/g, '');
+
+/**
+ * A cell written on one line with typed \n between its lines (common in Excel) gets its line breaks
+ * back; a cell that already has real line breaks is left as it is. Code in a question, and a code
+ * answer in an option, then reads line by line.
+ */
+export const textCell = (v: string) => (/\r|\n/.test(v) ? v.replace(/\r\n?/g, '\n') : v.replace(/\\r\\n|\\n/g, '\n').replace(/\\t/g, '\t'));
+
+const NAMES = {
+  type: ['type', 'questiontype', 'kind'],
+  question: ['question', 'questiontext', 'questions', 'q', 'mcq', 'problem', 'statement', 'title'],
+  correct: ['correct', 'correctanswer', 'answer', 'correctoption', 'ans', 'key', 'answerkey', 'rightanswer'],
+  explanation: ['explanation', 'answerexplanation', 'solution', 'reason', 'rationale', 'modelanswer'],
+  difficulty: ['difficulty', 'level'],
+  marks: ['marks', 'mark', 'points', 'score'],
+};
+const optionNames = (l: string, i: number) => [`option${l}`, l, `option${i + 1}`, `choice${l}`, `choice${i + 1}`, `opt${l}`, `opt${i + 1}`];
 
 export function importPracticeCsv(text: string): CsvImportResult {
   const rows = parseCsv(text);
@@ -77,23 +95,24 @@ export function importPracticeCsv(text: string): CsvImportResult {
   if (!rows.length) return { questions, errors: [{ row: 1, message: 'The file is empty.' }] };
 
   const header = rows[0].map(norm);
-  const col = (name: string) => header.indexOf(name);
+  const colOf = (names: string[]) => { for (const n of names) { const k = header.indexOf(n); if (k >= 0) return k; } return -1; };
+  const col = (name: keyof typeof NAMES) => colOf(NAMES[name]);
   if (col('question') < 0) {
     return { questions, errors: [{ row: 1, message: 'No "question" column. Start from the template - its first row names the columns.' }] };
   }
-  const optionCols = LETTERS.map(l => col(`option_${l.toLowerCase()}`));
+  const optionCols = LETTERS.map((l, i) => colOf(optionNames(l.toLowerCase(), i)));
 
   const body = rows.slice(1);
   let seen = 0;
   body.forEach((r, i) => {
     const rowNo = i + 2;
-    const get = (name: string) => { const k = col(name); return k >= 0 ? String(r[k] ?? '').trim() : ''; };
+    const get = (name: keyof typeof NAMES) => { const k = col(name); return k >= 0 ? textCell(String(r[k] ?? '')).trim() : ''; };
     if (r.every(c => !String(c).trim())) return;                 // blank line
     seen++;
     if (seen > MAX_ROWS) { if (seen === MAX_ROWS + 1) errors.push({ row: rowNo, message: `Only ${MAX_ROWS} questions can be imported at once; the rest were skipped.` }); return; }
 
     const question = get('question');
-    const options = optionCols.map((k, j) => ({ letter: LETTERS[j], text: k >= 0 ? String(r[k] ?? '').trim() : '' })).filter(o => o.text);
+    const options = optionCols.map((k, j) => ({ letter: LETTERS[j], text: k >= 0 ? textCell(String(r[k] ?? '')).trim() : '' })).filter(o => o.text);
     const typeRaw = get('type').toLowerCase();
     const type: 'mcq' | 'theory' | '' = typeRaw === '' ? (options.length ? 'mcq' : 'theory')
       : ['mcq', 'multiple choice', 'multiple_choice', 'choice'].includes(typeRaw) ? 'mcq'
@@ -112,8 +131,23 @@ export function importPracticeCsv(text: string): CsvImportResult {
     let correct: string[] = [];
     if (type === 'mcq') {
       if (options.length < 2) problems.push('an MCQ needs at least two options');
-      correct = Array.from(new Set(get('correct').toUpperCase().replace(/[^A-F]/g, '').split('').filter(Boolean)));
-      if (!correct.length) problems.push('"correct" is empty - give the right letter, e.g. B');
+      /*
+       * The answer as a letter (B, "A|C"), a number (2, "1|3") or the option's own text. Only a
+       * value made of letters A–F and separators is read as letters, so a text answer like "pwd"
+       * is not mistaken for option D.
+       */
+      const raw = get('correct').replace(/^(option|choice)\s*/i, '');
+      const parts = raw.split(/\s*[|;,]\s*|\s+/).filter(Boolean);
+      if (/^[A-Fa-f](\s*[|;, ]\s*[A-Fa-f])*$/.test(raw) || /^[A-Fa-f]{2,6}$/.test(raw)) {
+        correct = Array.from(new Set(raw.toUpperCase().replace(/[^A-F]/g, '').split('')));
+      } else if (parts.length && parts.every(p => /^[1-6]$/.test(p))) {
+        correct = Array.from(new Set(parts.map(p => LETTERS[Number(p) - 1])));
+      } else if (raw) {
+        const byText = options.find(o => o.text.trim().toLowerCase() === raw.trim().toLowerCase());
+        correct = byText ? [byText.letter] : [];
+        if (!byText) problems.push(`"correct" is "${raw}", which is not a letter, a number or one of the options`);
+      }
+      if (!correct.length && !get('correct')) problems.push('"correct" is empty - give the right letter, e.g. B');
       const missing = correct.filter(l => !options.some(o => o.letter === l));
       if (missing.length) problems.push(`"correct" names ${missing.join(', ')} but that option is empty`);
     }
@@ -142,6 +176,7 @@ export function templateCsv(): string {
     TEMPLATE_HEADER,
     ['mcq', 'Which command prints the directory you are in?', 'ls', 'pwd', 'cd', 'echo $HOME', '', '', 'B', '`pwd` prints the working directory; `ls` lists what is in it.', 'easy', '1'],
     ['mcq', 'Which of these are absolute paths? (choose all that apply)', '/home/priya/notes', 'notes/day1.md', '/etc/hosts', '../reports', '', '', 'A|C', 'An absolute path starts at the root, /.', 'medium', '2'],
+    ['mcq', 'What does this print?\nfor i in range(3):\n    print(i, end=" ")', '0 1 2', '1 2 3', '0\n1\n2', '0 1 2 3', '', '', 'A', '`end=" "` keeps the numbers on one line; range(3) is 0, 1, 2.', 'easy', '1'],
     ['theory', 'Explain, in your own words, the difference between an absolute and a relative path.', '', '', '', '', '', '', '', 'Absolute starts at the root and means the same everywhere; relative starts from the current directory, so its meaning changes with where you are.', 'medium', '2'],
   ];
   // The BOM lets Excel open the file as UTF-8 (names, ₹, quotes) instead of guessing.

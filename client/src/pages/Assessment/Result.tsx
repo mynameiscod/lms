@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { assessmentApi, DIMENSION_LABELS } from '../../api/assessmentApi';
 import './assessment.css';
-import { copyrightLine } from '../../config/brand';
+import CareerPilotFooter from '../../components/CareerPilotFooter';
+import { readinessBand, ReadinessTone } from '../../utils/readinessBand';
 
 interface SubScore { dimension: string; percentage: number; }
 interface ResultData {
@@ -30,14 +31,9 @@ const PRIO_COLORS: Record<string, { bg: string; fg: string }> = {
 
 const PURPLE = '#6650d8', TEAL = '#14a89c', NAVY = '#0a2a5e', INK = '#1f2937', MUTED = '#64748b';
 
-// Warm, honest label for the readiness band.
-const readinessBand = (v: number): { label: string; color: string } => {
-  if (v >= 80) return { label: 'Job-ready', color: '#0a8d7a' };
-  if (v >= 60) return { label: 'Almost there', color: '#14a89c' };
-  if (v >= 40) return { label: 'Getting there', color: '#6650d8' };
-  if (v >= 20) return { label: 'Strong start', color: '#e8830c' };
-  return { label: 'Early days', color: '#e8830c' };
-};
+// The shared readiness band, in this page's colours.
+const BAND_COLOR: Record<ReadinessTone, string> = { strong: '#0a8d7a', close: '#14a89c', building: '#6650d8', early: '#e8830c' };
+const resultBand = (v: number) => { const b = readinessBand(v); return { label: b.label, color: BAND_COLOR[b.tone] }; };
 
 // Circular readiness gauge (conic-gradient ring).
 const Gauge: React.FC<{ value: number }> = ({ value }) => {
@@ -74,7 +70,7 @@ const Result: React.FC = () => {
   const rm = data.roadmap;
   const name = data.candidateName?.split(' ')[0] || 'there';
   const initials = (data.candidateName || 'CB').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-  const band = readinessBand(readiness);
+  const band = resultBand(readiness);
   const role = data.targetRole || rm?.targetRole || 'your target role';
   const existing = data.newAccount === false;
 
@@ -317,19 +313,7 @@ const Result: React.FC = () => {
         </main>
       </div>
 
-      {/* Footer */}
-      <footer style={{ background: '#0b1730', color: '#aab6cf', padding: '26px 26px', marginTop: 8 }}>
-        <div style={{ maxWidth: 1300, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 24, justifyContent: 'space-between' }}>
-          <div style={{ maxWidth: 260 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: '#fff', fontSize: 16 }}><span style={{ width: 22, height: 22, borderRadius: 7, background: `linear-gradient(135deg,${PURPLE},${TEAL})` }} /> CareerPilot <span style={{ color: '#7385a8', fontSize: 12 }}>by CodeBegun</span></div>
-            <p style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 8 }}>Your AI co-pilot to a successful tech career.</p>
-          </div>
-          <div style={{ fontSize: 12.5 }}><div style={{ color: '#fff', fontWeight: 700, marginBottom: 8 }}>Quick Links</div>Roadmap · Practice · Blog · Community</div>
-          <div style={{ fontSize: 12.5 }}><div style={{ color: '#fff', fontWeight: 700, marginBottom: 8 }}>Support</div>Help Center · Contact Us · Privacy Policy · Terms</div>
-          <div style={{ fontSize: 12.5 }}><div style={{ color: '#fff', fontWeight: 700, marginBottom: 8 }}>Stay Connected</div>in · ig · yt · fb</div>
-        </div>
-        <div style={{ textAlign: 'center', fontSize: 12, color: '#6b7a97', marginTop: 22 }}>{copyrightLine()}</div>
-      </footer>
+      <CareerPilotFooter variant="visitor" wrapStyle={{ maxWidth: 1300, margin: '0 auto', paddingLeft: 26, paddingRight: 26, boxSizing: 'border-box' }} />
     </div>
   );
 };

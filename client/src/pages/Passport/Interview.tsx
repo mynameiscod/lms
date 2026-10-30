@@ -8,6 +8,7 @@ import { useInterviewVoice, speechInSupported, speechOutSupported } from './useI
 import { INTERVIEWER_FACE_ENABLED } from './interviewFace';
 import './interviewRedesign.css';
 import './interviewDashboard.css';
+import { barWidth } from '../../utils/barWidth';
 
 const InterviewAvatar = React.lazy(() => import('./InterviewAvatar'));
 
@@ -590,7 +591,7 @@ const Interview: React.FC = () => {
                 <span>{bestScore !== null
                   ? `${completed.length} graded · best score ${bestScore}%`
                   : 'Finish a round and your first score appears here.'}</span>
-                {bestScore !== null && <i className="iv2-strip-bar" aria-hidden="true"><em style={{ width: `${Math.max(4, bestScore)}%` }} /></i>}
+                {bestScore !== null && <i className="iv2-strip-bar" aria-hidden="true"><em style={{ width: `${barWidth(bestScore)}%` }} /></i>}
               </div>
             </div>
             {rounds.length > 1 && (

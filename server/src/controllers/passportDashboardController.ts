@@ -19,7 +19,9 @@ import { getTodaysPlan, toMemberMissions } from '../services/dailyMissionOrchest
 import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
 import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import * as g from '../services/passportGamificationService';
-import { journeyDayGoal } from '../services/foundationJourneyXpService';
+import { journeyDayGoal, journeyCompletion } from '../services/foundationJourneyXpService';
+import { calculateStudentRoleReadiness } from '../services/roleReadinessService';
+import { skillDnaByArea } from '../services/skillDnaService';
 import { programDaysFor } from '../services/foundationProgramLengthService';
 import { membershipPriceFor } from '../services/membershipPricingService';
 
@@ -249,8 +251,9 @@ export const getDashboard = async (req: Request, res: Response) => {
       PassportInterview.find({ tenantId, studentId, status: 'completed' }).select('evaluation completedAt role').lean(),
       PassportResume.findOne({ tenantId, studentId }).select('score').lean() as any,
     ]);
-    const bestInterview = interviews.reduce<number | null>(
-      (best, i: any) => Math.max(best ?? 0, i?.evaluation?.overallScore ?? 0) || null, null);
+    // Best evaluated interview, 0–100. A real 0 stays 0; only "no evaluated interview" is null.
+    const interviewScores = interviews.map((i: any) => i?.evaluation?.overallScore).filter((n: any) => typeof n === 'number' && Number.isFinite(n));
+    const bestInterview = interviewScores.length ? Math.max(...interviewScores) : null;
 
     // Practice now comes from the Problem Bank. The old built-in exercises a member solved before
     // that still count: they are kept in solvedProblems and simply added.
@@ -277,16 +280,36 @@ export const getDashboard = async (req: Request, res: Response) => {
       .select('title prize startAt slug').sort({ startAt: 1 }).limit(3).lean();
 
     const level = g.levelFromXp(progress.xp);
+    /*
+     * THE ASSESSMENT PART reads the current readiness-based Career Score (careerScoreService, written
+     * when at least 40% of the role is measured). Below that, the whole-role readiness — the same
+     * ratios with every unmeasured skill counted as 0 — so a member who sat the paper is neither
+     * scored 0 nor flattered by the few skills measured so far. A legacy questionnaire score is the
+     * last resort, for members who only ever had one.
+     */
+    const passportScore = user?.passport?.careerScoreSource === 'role_readiness' && typeof user?.passport?.careerScore === 'number'
+      ? user.passport.careerScore : null;
+    let assessmentScore: number | null = passportScore;
+    if (assessmentScore === null && assessedState.source === 'skill_dna') {
+      const r: any = await calculateStudentRoleReadiness(tenantId, studentId).catch(() => null);
+      if (r?.available) assessmentScore = r.wholeRoleReadiness;
+    }
+    if (assessmentScore === null && assessedState.source === 'attempt') assessmentScore = attempt.careerScore ?? null;
+    // THE MISSIONS PART is the member's journey: days completed of the journey's days. The retired
+    // mission roadmap is used only by a member who has no journey.
+    const journey = await journeyCompletion(tenantId, studentId);
     const score = g.coderScore({
-      careerScore: attempt.careerScore ?? null,
+      careerScore: assessmentScore,
       solvedCount,
       totalProblems: g.PRACTICE_TARGET,
-      completedDays: roadmap.completedDays,
-      totalDays,
+      completedDays: journey ? journey.completedDays : roadmap.completedDays,
+      totalDays: journey ? journey.totalDays : totalDays,
       interviewsCompleted: interviews.length,
       bestInterviewScore: bestInterview,
       resumeScore: resume?.score?.total ?? null,
     });
+
+    const dnaAreas = await skillDnaByArea(tenantId, studentId).catch(() => []);
 
     res.json({
       active: true,
@@ -308,8 +331,14 @@ export const getDashboard = async (req: Request, res: Response) => {
       coderScore: score,
       percentileAhead: g.percentileAhead(progress.xp, board.map(b => b.xp)),
 
-      skills: (attempt.categoryScores || []).map((c: any) => ({ key: c.key, label: c.label, score: c.score })),
-      careerScore: attempt.careerScore,
+      // The skill meter: Skill DNA by skill area. A member with no Skill DNA keeps their questionnaire categories.
+      skills: dnaAreas.length
+        ? dnaAreas.map(a => ({ key: a.key, label: a.label, score: a.score, early: a.early }))
+        : assessedState.source === 'attempt'
+          ? (attempt.categoryScores || []).map((c: any) => ({ key: c.key, label: c.label, score: c.score }))
+          : [],
+      // The same figure the coder score's assessment part uses (see assessmentScore above).
+      careerScore: assessmentScore,
       careerLevel: assessedState.level,
       pathwayLabel: attempt.pathwayLabel,
 
@@ -323,7 +352,7 @@ export const getDashboard = async (req: Request, res: Response) => {
         xp: progress.xp,
         day: dailyPlan.available ? dailyPlan.roadmapDay : day,
         totalDays: dailyPlan.available ? Math.max(1, dailyPlan.weekCount * 7) : totalDays,
-        completedDays: roadmap.completedDays,
+        completedDays: journey ? journey.completedDays : roadmap.completedDays,
         interviews: interviews.length,
         bestInterview,
         resumeScore: resume?.score?.total ?? null,
@@ -352,10 +381,10 @@ export const getDashboard = async (req: Request, res: Response) => {
         totalCoding: g.PRACTICE_TARGET,
         streak: liveStreak(progress, now),
         longestStreak: progress.longestStreak,
-        completedDays: roadmap.completedDays,
+        completedDays: journey ? journey.completedDays : roadmap.completedDays,
         interviewsCompleted: interviews.length,
         resumeScore: resume?.score?.total ?? null,
-        careerScore: attempt.careerScore ?? null,
+        careerScore: assessmentScore,
       }),
 
       journey: roadmap.phases.map(p => ({

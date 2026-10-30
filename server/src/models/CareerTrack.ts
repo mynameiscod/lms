@@ -1,10 +1,11 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 /**
- * A career track: a role + language roadmap from Year 3 (e.g. "Java Full Stack + AI").
+ * A career track: a role + language roadmap from Year 2 (e.g. "Java Full Stack + AI").
  * See data/careerTrackPolicy.ts for what it means; the admin manages it on the Career Tracks screen.
  *
- * Year 3 is `specializePacks` in order. Year 4 is the same packs again (revision for a member,
+ * `specializePacks` is the track, in order: in full for a fresh joiner in Years 2 and 3, revised for
+ * a member who did it the year before. Year 4 is the same packs again (revision for a member,
  * essentials for a fresh joiner, sized by `split`) followed by `placementPacks`.
  */
 export interface ICareerTrack extends Document {

@@ -52,6 +52,7 @@ export function toStudentAssignment(doc: any, options: StudentAssignmentOptions 
   const tests: any[] = a.testCases || [];
   return {
     ...pick(a, TASK_FIELDS),
+    ...(a.settings ? { settings: pick(a.settings, ['timeLimitMinutes', 'maxAttempts', 'allowLateSubmission', 'latePenaltyPercent']) } : {}),
     course: nameOnly(a.course),
     subject: nameOnly(a.subject),
     chapter: nameOnly(a.chapter),

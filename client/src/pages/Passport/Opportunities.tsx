@@ -6,6 +6,8 @@ import { useMember } from './MemberLayout';
 import { copyText } from '../../components/feedback/appFeedback';
 import './opportunities.css';
 import './opportunitiesRedesign.css';
+import { readinessBand } from '../../utils/readinessBand';
+import { barWidth } from '../../utils/barWidth';
 
 type AppStatus = 'applied' | 'shortlisted' | 'selected' | 'rejected' | 'placed';
 
@@ -198,7 +200,7 @@ const Opportunities: React.FC = () => {
   };
 
   const readinessValue = readiness?.available ? readiness.readiness : null;
-  const readinessLabel = readinessValue == null ? 'Keep building evidence' : readinessValue >= 80 ? 'Strong readiness' : readinessValue >= 60 ? 'Getting close' : 'Keep building';
+  const readinessLabel = readinessValue == null ? 'Keep building evidence' : readinessBand(readinessValue).label;
   const gaps = readiness?.available ? (readiness.skills || []).filter((s: any) => s.status === 'PRIORITY_GAP' || s.status === 'NEEDS_WORK').slice(0, 3) : [];
   const interviewCount = applications.filter(a => (a.rounds || []).some(r => r.date && new Date(r.date).getTime() >= Date.now())).length;
   const statusCounts = applications.reduce<Record<string, number>>((acc, a) => { acc[a.status] = (acc[a.status] || 0) + 1; return acc; }, {});
@@ -217,8 +219,8 @@ const Opportunities: React.FC = () => {
       {/* A logo-navy hero, as on every redesigned CareerPilot page: what this is, the two actions, and the four figures. */}
       <header className="opp-head opp2-hero">
         <div className="opp2-hero-copy">
-          <div className="opp-kicker">Career opportunities</div>
-          <h1>Your <span>Opportunities</span></h1>
+          <div className="opp-kicker">Jobs and internships</div>
+          <h1>Job <span>Board</span></h1>
           <p>Jobs and internships open to you through your college and the CodeBegun network — matched to your profile.</p>
           <div className="opp-head-actions">
             <button className="opp2-btn light" onClick={() => document.getElementById('application-status')?.scrollIntoView({ behavior: 'smooth' })}><i className="bi bi-briefcase" /> Track applications</button>
@@ -378,7 +380,7 @@ const Opportunities: React.FC = () => {
           <section className="opp-side-card">
             <div className="opp-side-hd"><h3>Priority Skills</h3><button onClick={() => nav('/careerpilot/skills')}>View Skill DNA</button></div>
             {!gaps.length ? <p className="opp-side-empty">Complete your skill assessment to unlock gap-based guidance.</p> : gaps.map((g: any) => (
-              <div className="opp-skill-row" key={g.skillKey || g.skillLabel}><span>{g.skillName || g.skillLabel || prettySkill(g.skillKey)}</span><b>{g.studentScore == null ? '—' : `${g.studentScore}%`}</b><i className="opp2-skill-bar"><em style={{ width: `${Math.max(3, g.studentScore || 0)}%` }} /></i></div>
+              <div className="opp-skill-row" key={g.skillKey || g.skillLabel}><span>{g.skillName || g.skillLabel || prettySkill(g.skillKey)}</span><b>{g.studentScore == null ? '—' : `${g.studentScore}%`}</b><i className="opp2-skill-bar"><em style={{ width: `${barWidth(g.studentScore)}%` }} /></i></div>
             ))}
           </section>
 

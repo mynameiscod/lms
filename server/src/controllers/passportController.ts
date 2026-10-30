@@ -28,6 +28,7 @@ import { resolveRoadmapV2, validateRoadmapV2Patch } from '../data/roadmapV2Polic
 import { membershipPriceFor, validatePriceInr } from '../services/membershipPricingService';
 import { clampPreviewDays } from '../data/foundationAccessPolicy';
 import { normaliseOnboardingFields } from '../data/onboardingFieldPolicy';
+import { sendPasswordSetEmail } from '../services/careerPilotEmailService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -381,11 +382,14 @@ export const setPassword = async (req: Request, res: Response) => {
     if (problem) return res.status(400).json({ message: problem });
     const user: any = await User.findById(userIdOf(req));
     if (!user) return res.status(404).json({ message: 'Account not found' });
+    const changed = !!user.passport?.passwordSet;
     user.password = password; // hashed by the pre-save hook
     if (!user.passport) user.passport = {} as any;
     user.passport.passwordSet = true;
     await user.save();
     res.json({ success: true });
+    // After the reply: a slow or failing mail server never holds up or undoes the change.
+    void sendPasswordSetEmail(user, changed);
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to set password' });
   }

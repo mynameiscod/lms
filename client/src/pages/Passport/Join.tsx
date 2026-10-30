@@ -8,7 +8,7 @@ import OtpVerify, { isOtpInfo, otpSendMessage } from './OtpVerify';
 import './careerpilotJoin.css';
 import { startActivityBeacon, trackPage, trackAction, trackFailure, trackNow } from './activityBeacon';
 import { JOURNEY, sourceMeta } from './journeyTrack';
-import { copyrightLine } from '../../config/brand';
+import CareerPilotFooter from '../../components/CareerPilotFooter';
 
 const LOGO = '/assets/careerpilot/careerpilot-logo.png';
 
@@ -279,6 +279,21 @@ const PassportJoin: React.FC = () => {
    * covered its heading. The bar's height is measured at the moment of the jump (it is taller on a
    * phone, and the menu closes first), and the section stops just beneath it.
    */
+  /**
+   * Opened as /careerpilot/join#faqs (the footer on other public pages links here), so land on that
+   * section — or on the signup card for #careerpilot-signup — once the page has drawn.
+   */
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    const t = window.setTimeout(() => {
+      if (id === 'careerpilot-signup') { setAuthMode('create'); scrollToSignup(); } else if (document.getElementById(id)) scrollTo(id);
+    }, 300);
+    return () => window.clearTimeout(t);
+    // Once, on arrival: later hash changes come from the page's own links, which scroll themselves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const scrollTo = (id: string) => {
     setMenuOpen(false);
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -377,7 +392,7 @@ const PassportJoin: React.FC = () => {
   const NAV: [string, string][] = [
     ['How It Works', 'how-it-works'],
     ['Career Tools', 'career-tools'],
-    ['Opportunities', 'opportunities'],
+    ['Job Board', 'opportunities'],
     ['Success Stories', 'success-stories'],
     ['FAQs', 'faqs'],
   ];
@@ -741,7 +756,6 @@ const PassportJoin: React.FC = () => {
         <section className="cpx-section cpx-white" id="faqs">
           <div className="cpx-wrap">
             <div className="cpx-head">
-              <div className="cpx-eyebrow">Questions</div>
               <h2>Frequently Asked Questions</h2>
             </div>
             <div className="cpx-faq">
@@ -777,34 +791,7 @@ const PassportJoin: React.FC = () => {
         </section>
       </main>
 
-      {/* ── Footer ─────────────────────────────────────────────────── */}
-      <footer className="cpx-footer">
-        <div className="cpx-wrap cpx-footer-grid">
-          <div className="cpx-footer-brand">
-            <img src={LOGO} alt="CareerPilot by CodeBegun" />
-            <p>Career clarity, skill development and personalised progress — built for the next generation of careers.</p>
-          </div>
-          <div>
-            <h4>Product</h4>
-            <a href="#how-it-works" onClick={e => { e.preventDefault(); scrollTo('how-it-works'); }}>How It Works</a>
-            <a href="#career-tools" onClick={e => { e.preventDefault(); scrollTo('career-tools'); }}>Career Tools</a>
-            <a href="#opportunities" onClick={e => { e.preventDefault(); scrollTo('opportunities'); }}>Opportunities</a>
-            <a href="#faqs" onClick={e => { e.preventDefault(); scrollTo('faqs'); }}>FAQs</a>
-          </div>
-          <div>
-            <h4>Company</h4>
-            <a href="https://codebegun.com" target="_blank" rel="noopener noreferrer">About CodeBegun</a>
-            <a href="https://codebegun.com" target="_blank" rel="noopener noreferrer">Programs</a>
-            <a href="https://codebegun.com" target="_blank" rel="noopener noreferrer">For Colleges</a>
-          </div>
-          <div>
-            <h4>Account</h4>
-            <button type="button" className="cpx-footer-link" onClick={goLogin}>CareerPilot Login</button>
-            <button type="button" className="cpx-footer-link" onClick={scrollToSignup}>Create an Account</button>
-          </div>
-        </div>
-        <div className="cpx-wrap cpx-copy">{copyrightLine()}</div>
-      </footer>
+      <CareerPilotFooter variant="visitor" wrapClassName="cpx-wrap" actions={{ onSection: scrollTo, onLogin: goLogin, onCreateAccount: () => { setAuthMode('create'); scrollToSignup(); } }} />
     </div>
   );
 };

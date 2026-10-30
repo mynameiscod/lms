@@ -5,7 +5,7 @@ import CareerSkill from '../models/CareerSkill';
 import SkillEvidence from '../models/SkillEvidence';
 import {
   SKILL_DNA_VERSION, evidenceWeightFor, performanceFor, aggregate, explain,
-  EVIDENCE_KIND_FOR_SOURCE, evidenceBasis, evidenceKindOf, EvidenceBasis,
+  EVIDENCE_KIND_FOR_SOURCE, evidenceBasis, evidenceKindOf, EvidenceBasis, latestPerItem,
 } from '../data/skillDnaPolicy';
 import { GradedAnswer } from './assessmentAnswerGradingService';
 
@@ -210,11 +210,13 @@ export async function recomputeStudentSkills(
       continue;
     }
 
-    const result = aggregate(rows.map(r => ({
+    // A retaken item counts once, at its latest answer (skillDnaPolicy.latestPerItem).
+    const result = aggregate(latestPerItem(rows.map(r => ({
       performance: r.performance,
       evidenceWeight: r.evidenceWeight,
       itemKey: key(r.itemSourceType, r.itemSourceId),
-    })));
+      observedAt: r.observedAt,
+    }))));
 
     const lastEvidenceAt = rows.reduce(
       (latest: Date, r: any) => (r.observedAt > latest ? r.observedAt : latest),
@@ -238,8 +240,62 @@ export async function recomputeStudentSkills(
     });
   }
 
-  if (ops.length) await StudentSkillProfile.bulkWrite(ops, { ordered: false });
+  if (ops.length) {
+    await StudentSkillProfile.bulkWrite(ops, { ordered: false });
+    /*
+     * The Career Score is read from role readiness, which is read from these profiles. It used to be
+     * refreshed only when an assessment was submitted, so quizzes, coding, interviews and placement
+     * checks moved the skills and left the score behind. Every recompute now refreshes it. Loaded
+     * lazily (careerScoreService → roleReadinessService reads profiles), and never allowed to fail
+     * the recompute: the profiles are already saved.
+     */
+    try {
+      const { refreshCareerScoreFromReadiness } = await import('./careerScoreService');
+      await refreshCareerScoreFromReadiness(tenantId, studentId);
+    } catch (e: any) {
+      console.error('[skill-dna] career score refresh failed:', e?.message || e);
+    }
+  }
   return ops.length;
+}
+
+/**
+ * The "skill meter": Skill DNA summed up by skill area (the skill's `domainKey`), for Home's radar.
+ *
+ *   area score = Σ(skill score × skill evidence weight) / Σ(skill evidence weight)
+ *
+ * over the area's skills measured with MEDIUM or HIGH confidence — the same bar role readiness
+ * uses. An area with only LOW-confidence skills still appears, from those, flagged `early`. The
+ * areas with the most evidence come first; at most `limit`. Replaces a placeholder that gave every
+ * category the same number (the career score).
+ */
+export async function skillDnaByArea(tenantId: string, studentId: string, limit = 6): Promise<{
+  key: string; label: string; score: number; skills: number; early: boolean;
+}[]> {
+  const profiles = await StudentSkillProfile.find({ tenantId, studentId }).select('skillKey score confidence effectiveEvidenceWeight').lean() as any[];
+  if (!profiles.length) return [];
+  const docs = await CareerSkill.find({ key: { $in: profiles.map(p => p.skillKey) } }).select('key domainKey active').lean() as any[];
+  const domainOf = new Map(docs.filter(d => d.active !== false).map(d => [String(d.key), String(d.domainKey || '')]));
+  const areas = new Map<string, { sure: any[]; all: any[] }>();
+  for (const p of profiles) {
+    const area = domainOf.get(String(p.skillKey));
+    if (!area) continue;
+    const a = areas.get(area) || { sure: [], all: [] };
+    a.all.push(p);
+    if (p.confidence === 'MEDIUM' || p.confidence === 'HIGH') a.sure.push(p);
+    areas.set(area, a);
+  }
+  const label = (k: string) => k.toLowerCase().split(/[_\s]+/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+  return [...areas.entries()].map(([key, a]) => {
+    const rows = a.sure.length ? a.sure : a.all;
+    const w = (p: any) => Math.max(0.01, Number(p.effectiveEvidenceWeight) || 0);
+    const total = rows.reduce((n, p) => n + w(p), 0);
+    return {
+      key, label: label(key),
+      score: Math.round(rows.reduce((n, p) => n + (Number(p.score) || 0) * w(p), 0) / total),
+      skills: rows.length, early: !a.sure.length, weight: total,
+    };
+  }).sort((x, y) => y.weight - x.weight).slice(0, limit).map(({ weight, ...rest }) => rest);
 }
 
 /**
@@ -333,13 +389,15 @@ export async function explainSkill(tenantId: string, studentId: string, skillKey
     StudentSkillEvidence.find({ tenantId, studentId, skillKey: sk }).sort({ observedAt: 1 }).lean() as any,
   ]);
 
-  const { lines } = explain((evidence || []).map((e: any) => ({
+  // The same rows the stored score was computed from: the latest answer to each item.
+  const { lines } = explain(latestPerItem((evidence || []).map((e: any) => ({
     performance: e.performance,
     evidenceWeight: e.evidenceWeight,
     itemKey: key(e.itemSourceType, e.itemSourceId),
+    observedAt: e.observedAt,
     difficulty: e.difficulty,
     relationship: e.relationship,
-  })));
+  }))));
 
   return {
     skillKey: sk,

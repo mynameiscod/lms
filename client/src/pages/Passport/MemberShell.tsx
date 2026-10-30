@@ -92,9 +92,11 @@ const SCREEN_NAMES: Record<string, string> = {
  */
 const NAV_ALIASES: Array<[string, string]> = [
   ['/careerpilot/journey', '/careerpilot/plan'],
-  ['/careerpilot/topic', '/careerpilot/roadmap'],
-  ['/careerpilot/learn', '/careerpilot/roadmap'],
-  ['/careerpilot/material', '/careerpilot/roadmap'],
+  // My Roadmap is part of My N Days now (its "View roadmap" button): roadmap pages light that up.
+  ['/careerpilot/roadmap', '/careerpilot/plan'],
+  ['/careerpilot/topic', '/careerpilot/plan'],
+  ['/careerpilot/learn', '/careerpilot/plan'],
+  ['/careerpilot/material', '/careerpilot/plan'],
   ['/careerpilot/quiz', '/careerpilot/plan'],
   ['/careerpilot/mock-test', '/careerpilot/companies'],
   // My Progress is part of My Dashboard now: its detail pages light up the dashboard in the rail.
@@ -381,7 +383,6 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
             default programme length, so the fallback is what it always was.
           */}
           {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap', 'plan')}
-          {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap', 'roadmap')}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice', 'practice')}
           {navBtn('Coding Sets', 'codeSets', '/careerpilot/coding', 'coding', 'coding')}
           {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}

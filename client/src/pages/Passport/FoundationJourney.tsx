@@ -38,6 +38,7 @@ import './foundationPreview.css';
 import './foundationMember.css';
 import './orientation.css';
 import { useProgramDays } from './useProgramDays';
+import { barWidth } from '../../utils/barWidth';
 
 /** Content types, in words a first-year recognises. */
 const TYPE_LABEL: Record<string, string> = {
@@ -761,7 +762,6 @@ const FoundationJourneyPage: React.FC = () => {
    * summaries and, when the day being read IS today, that day's own tasks. Nothing is fetched for
    * it, and a figure the page was never given is left out rather than guessed.
    */
-  const daysLeft = Math.max(0, totalDays - completedCount);
   const openSummary = openDay !== null ? days.find(d => d.day === openDay) || null : null;
   const todaySummary = days.find(d => d.day === currentDay) || null;
   const todayActs = day && day.day === currentDay ? (day.activities || []) : [];
@@ -772,25 +772,6 @@ const FoundationJourneyPage: React.FC = () => {
     : todaySummary && todaySummary.activities > 0
       ? `${todaySummary.activities} ${todaySummary.activities === 1 ? 'task' : 'tasks'}${todaySummary.minutes > 0 ? ` · ${mins(todaySummary.minutes)}` : ''}`
       : '';
-  /* Four marks taken off the real day number: the start, today, the next week boundary, day ninety. */
-  const weekMark = Math.min(totalDays, Math.ceil((currentDay + 1) / 7) * 7);
-  const lastWeek = weekMark >= totalDays;
-  const marks = [
-    /*
-      * THE FIRST MARK IS WHERE THEY ACTUALLY START.
-      *
-      * Everybody begins on the welcome, so a rail whose first mark reads "Day 1" is naming a day
-      * the server will refuse. While the welcome is outstanding the start mark is the welcome,
-      * and "today" is that welcome day rather than learning day one — which is not today, has not
-      * opened, and is not what the next click should do.
-      */
-    /* Named, not numbered: on the welcome (or on Day 1) start and today are the same day, and the
-       rail read "Day 0.1 · Day 0.1". The day itself is in the hero's eyebrow and the button below. */
-    { key: 'start', label: 'Start', at: 1 },
-    { key: 'today', label: 'Today', at: currentDay },
-    { key: 'week', label: lastWeek ? 'Final week' : `Day ${weekMark}`, at: lastWeek ? Math.max(currentDay + 1, totalDays - 6) : weekMark },
-    { key: 'end', label: `Day ${totalDays}`, at: totalDays },
-  ];
   /**
    * What the one big button does.
    *
@@ -807,7 +788,12 @@ const FoundationJourneyPage: React.FC = () => {
 
   return (
     <div className="fj-page fjm">
-      <section className="fjm-hero">
+      {/*
+        * ONE CARD: where they are, how far along, and the two things to do — open today, or see the
+        * whole road. It used to be three boxes (the journey, a "My N days" rail and a separate ring)
+        * that each repeated the day count. My Roadmap is reached from here now, not the sidebar.
+        */}
+      <section className="fjm-hero fjm-hero2">
         <div className="fjm-hero-copy">
           {/*
             * WHERE THEY ACTUALLY ARE, WHICH IS NOT ALWAYS DAY 1.
@@ -830,57 +816,22 @@ const FoundationJourneyPage: React.FC = () => {
             <span><i className="bi bi-flag" /> {Math.max(0, totalDays - completedCount)} to go</span>
           </div>
         </div>
-        {/* My ninety, in the member's own numbers: the days finished, where today sits between day
-            one and day ninety, and what today still holds — not decoration. */}
-        <div className="fjm-momentum">
-          {/* Named from the programme, not from ninety: a second-year's plan is 110 days. */}
-          <span className="fjm-eyebrow">My {totalDays} days</span>
-          <div className={`fjm-days${completedCount > 0 ? ' on' : ''}`}>
-            <span className="ic"><i className="bi bi-calendar2-check-fill" aria-hidden /></span>
-            <div>
-              <b>{completedCount} of {totalDays} days done</b>
-              <span>{daysLeft > 0 ? `${daysLeft} learning ${daysLeft === 1 ? 'day' : 'days'} to go` : 'Every day finished — well done'}</span>
-            </div>
-            <i className="fjm-days-art" aria-hidden="true"><em /><em /><em /></i>
+        <div className="fjm-side">
+          <div className="fjm-side-top"><b>{percentComplete}% complete</b><span>{completedCount} of {totalDays} days</span></div>
+          <div className="fjm-side-bar" role="progressbar" aria-valuenow={percentComplete} aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress"><i style={{ width: `${barWidth(percentComplete)}%` }} /></div>
+          {(onWelcome && welcomeOutstanding) ? (
+            <p className="fjm-next"><i className="bi bi-play-circle" aria-hidden /> <span><b>Next: Day {welcomeLabel}</b>{welcomeOutstanding.title ? ` · ${welcomeOutstanding.title}` : ''}<em>Finish the welcome and Day 1 opens</em></span></p>
+          ) : todayLine ? (
+            <p className="fjm-next"><i className={`bi ${todayDone ? 'bi-check-circle' : 'bi-play-circle'}`} aria-hidden /> <span><b>{todayDone ? 'Today is finished' : `Today: Day ${currentDay}`}</b>{todaySummary?.title ? ` · ${todaySummary.title}` : ''}<em>{todayLine}</em></span></p>
+          ) : null}
+          <div className="fjm-side-actions">
+            <button type="button" className="fjm-act primary" onClick={openToday}>
+              {onWelcome && welcomeOutstanding ? `Start Day ${welcomeLabel}` : todayDone ? `Review Day ${currentDay}` : `${todayLeft < todayActs.length ? 'Continue' : 'Start'} Day ${currentDay}`} <i className="bi bi-arrow-right" aria-hidden />
+            </button>
+            <button type="button" className="fjm-act" onClick={() => nav('/careerpilot/roadmap')}>
+              <i className="bi bi-map" aria-hidden /> View roadmap
+            </button>
           </div>
-          <ol className="fjm-steps2">
-            {marks.map((m, i) => {
-              const state = currentDay >= m.at && i !== 1 ? 'done' : (i === 1 ? 'current' : '');
-              return <li key={m.key} className={state}><i /><span>{m.label}</span></li>;
-            })}
-          </ol>
-          {/*
-            * ON THE WELCOME, THE BUTTON IS THE WELCOME.
-            *
-            * This rendered only when a LEARNING day had tasks, so a member on the welcome either
-            * saw no button at all or saw one pointing at Day 1. Both are wrong: the welcome is
-            * the work, it is mandatory, and it is what the next click should open.
-            */}
-          {onWelcome && welcomeOutstanding ? (
-            <button type="button" className="fjm-challenge" onClick={openToday}>
-              <span className="ic"><i className="bi bi-play-circle-fill" aria-hidden /></span>
-              <div>
-                <b>Start here</b>
-                <span>Day {welcomeLabel}{welcomeOutstanding.title ? ` · ${welcomeOutstanding.title}` : ''}</span>
-                <em>Finish the welcome and Day 1 opens</em>
-              </div>
-              <i className="bi bi-chevron-right" aria-hidden />
-            </button>
-          ) : todayLine && (
-            <button type="button" className="fjm-challenge" onClick={openToday}>
-              <span className="ic"><i className={`bi ${todayDone ? 'bi-check-circle-fill' : 'bi-play-circle-fill'}`} aria-hidden /></span>
-              <div>
-                <b>{todayDone ? 'Today is finished' : 'Today’s work'}</b>
-                <span>Day {currentDay}{todaySummary?.title ? ` · ${todaySummary.title}` : ''}</span>
-                <em>{todayLine}</em>
-              </div>
-              <i className="bi bi-chevron-right" aria-hidden />
-            </button>
-          )}
-        </div>
-        <div className="fjm-ring" role="progressbar" aria-valuenow={percentComplete} aria-valuemin={0} aria-valuemax={100}
-             aria-label="Journey progress" style={{ ['--fjm-deg' as any]: `${percentComplete * 3.6}deg` }}>
-          <div><strong>{percentComplete}%</strong><span>complete</span></div>
         </div>
       </section>
 

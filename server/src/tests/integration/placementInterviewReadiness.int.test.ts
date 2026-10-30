@@ -8,6 +8,7 @@ import { startMongo, stopMongo, clearCollections } from './mongoHarness';
 jest.setTimeout(180_000);
 
 import PassportInterview from '../../models/PassportInterview';
+import User from '../../models/User';
 import { getMyPlacementReadiness } from '../../controllers/placementReadinessController';
 
 const TENANT = String(new mongoose.Types.ObjectId());
@@ -18,6 +19,13 @@ const sit = (completedAt: string, overallScore: number, areaScores: any[]) => Pa
   skillTargets: [{ skillKey: 'java', skillName: 'Java' }],
   evaluation: { overallScore, areaScores },
 } as any);
+
+const placement = async () => {
+  let body: any;
+  const res: any = { status: () => res, json: (b: any) => { body = b; return res; } };
+  await getMyPlacementReadiness({ user: { tenantId: TENANT, id: String(STUDENT) } } as any, res);
+  return body;
+};
 
 const readiness = async () => {
   let body: any;
@@ -51,5 +59,16 @@ describe('interview readiness', () => {
     const r = await readiness();
     expect(r.available).toBe(false);
     expect(r.reason).toBe('INTERVIEW_NOT_SCORED');
+  });
+});
+
+describe('Year 1', () => {
+  it('shows no role readiness on placement readiness, since a first-year has no role', async () => {
+    await User.create({
+      _id: STUDENT, tenantId: new mongoose.Types.ObjectId(TENANT), firstName: 'Y', lastName: 'One', email: 'y1@example.com',
+      password: 'x', role: 'STUDENT', isActive: true, passport: { stage: 'foundation' },
+    } as any);
+    const body = await placement();
+    expect(body.skill).toMatchObject({ available: false, reason: 'YEAR_1' });
   });
 });

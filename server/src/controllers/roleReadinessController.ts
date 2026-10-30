@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { calculateStudentRoleReadiness, explainReadiness } from '../services/roleReadinessService';
+import { calculateStudentRoleReadiness, explainReadiness, shownRoleReadiness } from '../services/roleReadinessService';
 import User from '../models/User';
 
 /**
@@ -67,20 +67,9 @@ export const getMyRoleReadiness = async (req: Request, res: Response) => {
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
-    /*
-     * Year 1 has no role (setup stores "Not sure" for every first-year), so a member never sees a
-     * role readiness figure in Year 1. It is still worked out internally — the roadmap ranks the
-     * Year-1 skill gaps from it — but it is not shown as "role readiness".
-     */
-    const me = await User.findOne({ _id: studentId, tenantId }).select('passport.stage').lean() as any;
-    if (me?.passport?.stage === 'foundation') {
-      return res.json({
-        available: false, reason: 'YEAR_1',
-        message: 'Role readiness opens in your 2nd year, when you choose the role you are working toward. In Year 1 your Skill DNA shows how your foundations are growing.',
-      });
-    }
-
-    const result = await calculateStudentRoleReadiness(tenantId, studentId);
+    // Year 1 has no role, so no role readiness figure (shownRoleReadiness).
+    const result: any = await shownRoleReadiness(tenantId, studentId);
+    if (result.reason === 'YEAR_1') return res.json(result);
 
     // An unavailable readiness is a normal state, not an error: no role chosen, no
     // published blueprint, or nothing measured yet. The screen explains each differently.

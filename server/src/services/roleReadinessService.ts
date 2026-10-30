@@ -1,3 +1,4 @@
+import User from '../models/User';
 import { requirementForYear } from '../models/RoleSkillBlueprint';
 import StudentSkillProfile from '../models/StudentSkillProfile';
 import CareerSkill from '../models/CareerSkill';
@@ -111,6 +112,24 @@ export type ReadinessOutcome = RoleReadinessResult | RoleReadinessUnavailable;
  * profile in one batch, and skill metadata in one batch. A lookup per required skill would
  * be thirty round trips for one page.
  */
+/**
+ * Year 1 has no role (setup stores "Not sure" for every first-year), so no screen shows a role
+ * readiness figure in Year 1 — not role readiness, not placement readiness's skill figure, not a
+ * company page. It is still worked out internally (calculateStudentRoleReadiness): the roadmap ranks
+ * the Year-1 skill gaps from it. Every screen asks this instead.
+ */
+export const YEAR_1_READINESS = Object.freeze({
+  available: false as const,
+  reason: 'YEAR_1' as const,
+  message: 'Role readiness opens in your 2nd year, when you choose the role you are working toward. In Year 1 your Skill DNA shows how your foundations are growing.',
+});
+
+export async function shownRoleReadiness(tenantId: string, studentId: string) {
+  const me = await User.findOne({ _id: studentId, tenantId }).select('passport.stage').lean() as any;
+  if (me?.passport?.stage === 'foundation') return YEAR_1_READINESS;
+  return calculateStudentRoleReadiness(tenantId, studentId);
+}
+
 export async function calculateStudentRoleReadiness(
   tenantId: string,
   studentId: string,

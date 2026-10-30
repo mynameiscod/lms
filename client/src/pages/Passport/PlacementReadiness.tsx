@@ -194,7 +194,9 @@ const PlacementReadiness: React.FC = () => {
   if (loading) return <div className="plr-load"><i className="bi bi-arrow-repeat spin" /> Loading placement readiness…</div>;
   if (err || !data) return <div className="plr-err page">{err || 'Nothing to show yet.'}</div>;
 
-  const roleName = data.resume.available ? data.resume.role?.name : undefined;
+  // Year 1 has no role: no target-role chip and no role skills figure (the server sends reason YEAR_1).
+  const year1 = (data.skill as any).reason === 'YEAR_1';
+  const roleName = data.resume.available && !year1 ? data.resume.role?.name : undefined;
   const measuredCount = [data.skill.available, data.resume.available, data.interview.available].filter(Boolean).length;
 
   return (
@@ -218,7 +220,7 @@ const PlacementReadiness: React.FC = () => {
       </section>
 
       <div className="plr-score-grid">
-        <ScoreRing value={data.skill.available ? data.skill.readiness : null} label="Skills readiness" icon="bi-cpu" detail={data.skill.available && typeof data.skill.coverage === 'number' ? `${data.skill.coverage}% of target role measured · ${String(data.skill.confidence || '').toLowerCase()} confidence` : 'Choose a target role and complete assessment evidence.'} />
+        <ScoreRing value={data.skill.available ? data.skill.readiness : null} label="Skills readiness" icon="bi-cpu" detail={data.skill.available && typeof data.skill.coverage === 'number' ? `${data.skill.coverage}% of target role measured · ${String(data.skill.confidence || '').toLowerCase()} confidence` : year1 ? 'Opens in your 2nd year, when you choose a role.' : 'Choose a target role and complete assessment evidence.'} />
         <ScoreRing value={data.resume.available ? data.resume.readiness : null} label="Resume readiness" icon="bi-file-earmark-text" detail={data.resume.available ? 'How clearly your resume shows role-relevant evidence.' : (data.resume.reason === 'NO_RESUME' ? 'Build your resume to measure this.' : 'Not reviewable yet.')} />
         <ScoreRing value={data.interview.available ? data.interview.readiness : null} label="Interview readiness" icon="bi-mic" detail={data.interview.available ? 'What you demonstrated under interview conditions.' : 'Take a role interview to measure this.'} />
       </div>

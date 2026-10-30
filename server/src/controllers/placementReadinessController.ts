@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import PassportInterview from '../models/PassportInterview';
 import { analyseResume } from '../services/resumeIntelligenceService';
 import { planInterviewCoverage, adaptPassportInterview } from '../services/interviewIntelligenceService';
-import { calculateStudentRoleReadiness, RoleReadinessResult } from '../services/roleReadinessService';
+import { shownRoleReadiness, RoleReadinessResult } from '../services/roleReadinessService';
 import {
   PLACEMENT_READINESS_VERSION, INTERVIEW_WEIGHTS, weightedScore,
 } from '../data/placementReadinessPolicy';
@@ -110,7 +110,7 @@ export const getMyPlacementReadiness = async (req: Request, res: Response) => {
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
     const [skill, resume, interview] = await Promise.all([
-      calculateStudentRoleReadiness(tenantId, studentId),
+      shownRoleReadiness(tenantId, studentId),
       analyseResume(tenantId, studentId),
       latestInterviewReadiness(tenantId, studentId),
     ]);
@@ -129,7 +129,7 @@ export const getMyPlacementReadiness = async (req: Request, res: Response) => {
             coverage: (skill as RoleReadinessResult).coverage,
             confidence: (skill as RoleReadinessResult).confidence,
           }
-        : { available: false, reason: (skill as any).reason },
+        : { available: false, reason: (skill as any).reason, message: (skill as any).message },
       resume,
       interview,
     });
@@ -181,7 +181,7 @@ export const getStudentPlacementReadiness = async (req: Request, res: Response) 
     if (!studentId) return res.status(400).json({ message: 'Student is required.' });
 
     const [skill, resume, interview] = await Promise.all([
-      calculateStudentRoleReadiness(tenantId, studentId),
+      shownRoleReadiness(tenantId, studentId),
       analyseResume(tenantId, studentId),
       latestInterviewReadiness(tenantId, studentId),
     ]);

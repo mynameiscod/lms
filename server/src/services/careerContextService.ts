@@ -356,6 +356,16 @@ export async function updateCareerContext(
     graduated, now,
   });
   p.stage = derived.stage || undefined;
+  /*
+   * Year 1 (the foundation stage) has no target role: it builds what every role needs, and roles
+   * (and role readiness) open from Year 2. Whatever was sent or stored before, a first-year is
+   * "Not sure" — decided after the education above, so a member who has just told us they are in
+   * first year is covered by the same save.
+   */
+  if (derived.stage === 'foundation') {
+    p.primaryRole = ROLE_NOT_SURE;
+    p.secondaryRole = undefined;
+  }
   p.background = derived.background;
   p.stageComputedAt = derived.stageComputedAt;
   if (graduated) p.graduated = true;

@@ -3,6 +3,7 @@
 // doc, so streak + XP stay one number across the whole product.
 
 import PassportProgress, { IPassportProgress } from '../models/PassportProgress';
+import { LEGACY_XP_EVENT_KEYS } from '../data/legacyXpPolicy';
 import { ymd } from './passportMissionService';
 
 export async function getOrCreateProgress(
@@ -31,8 +32,10 @@ export function addXp(
   progress.xp += gain;
   if (gain > 0) {
     if (!progress.xpLog) progress.xpLog = [] as any;
-    progress.xpLog.push({ at: now, amount: gain, source });
+    progress.xpLog.push({ at: now, amount: gain, source: source in LEGACY_XP_EVENT_KEYS ? source : 'other' });
     if (progress.xpLog.length > 400) progress.xpLog = progress.xpLog.slice(-400);
+    // Written to the XP ledger when the doc is saved (PassportProgress post-save).
+    if (progress.$locals) progress.$locals.queuedLegacyXp = (Number(progress.$locals.queuedLegacyXp) || 0) + 1;
   }
   if (!bumpStreak) return;
   const today = ymd(now);

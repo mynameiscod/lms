@@ -735,7 +735,7 @@
   .md-btn, .pm-btn, .pl-btn, .sdn-btn, .dl2-btn, .ska-btn, .plr-btn, .rr-btn, .clx-btn, .mpl-btn,
   .rc-btn, .qb-btn, .jd-btn, .qd-btn, .ori-btn, .ivp-btn, .rwd-btn, .sci-btn, .skp-btn, .ss-btn,
   .tdp-btn, .mv-btn, .lst-btn, .mgc-btn, .cj-btn, .fjp-btn, .fjm-act, .fj-start.ghost, .rq-ghost,
-  .iv2-btn.ghost, .opp2-btn.ghost
+  .iv2-btn.ghost, .opp2-btn.ghost, .pl-solve:not(.done)
 ):not(.primary):not(.light):not(.go):not(.on):not(.active):not(.danger) {
   background: #fff !important;
   color: #1752D6 !important;
@@ -749,7 +749,7 @@
   .md-btn, .pm-btn, .pl-btn, .sdn-btn, .dl2-btn, .ska-btn, .plr-btn, .rr-btn, .clx-btn, .mpl-btn,
   .rc-btn, .qb-btn, .jd-btn, .qd-btn, .ori-btn, .ivp-btn, .rwd-btn, .sci-btn, .skp-btn, .ss-btn,
   .tdp-btn, .mv-btn, .lst-btn, .mgc-btn, .cj-btn, .fjp-btn, .fjm-act, .fj-start.ghost, .rq-ghost,
-  .iv2-btn.ghost, .opp2-btn.ghost
+  .iv2-btn.ghost, .opp2-btn.ghost, .pl-solve:not(.done)
 ):not(.primary):not(.light):not(.go):not(.on):not(.active):not(.danger):hover:not(:disabled) {
   border-color: #1752D6 !important; background: #F3F7FF !important; transform: translateY(-1px);
 }
@@ -757,7 +757,7 @@
   .md-btn, .pm-btn, .pl-btn, .sdn-btn, .dl2-btn, .ska-btn, .plr-btn, .rr-btn, .clx-btn, .mpl-btn,
   .rc-btn, .qb-btn, .jd-btn, .qd-btn, .ori-btn, .ivp-btn, .rwd-btn, .sci-btn, .skp-btn, .ss-btn,
   .tdp-btn, .mv-btn, .lst-btn, .mgc-btn, .cj-btn, .fjp-btn, .fjm-act, .fj-start.ghost, .rq-ghost,
-  .iv2-btn.ghost, .opp2-btn.ghost
+  .iv2-btn.ghost, .opp2-btn.ghost, .pl-solve:not(.done)
 ):not(.primary):not(.light):not(.go):not(.on):not(.active):not(.danger) i { color: inherit !important; }
 #root .gd :is(button, a):disabled, #root .gd :is(button, a)[aria-disabled="true"] { transform: none !important; }
 /* Phones: a hero's two buttons stack full width instead of squeezing a long label onto three lines. */

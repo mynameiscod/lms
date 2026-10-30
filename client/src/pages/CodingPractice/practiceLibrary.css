@@ -185,3 +185,67 @@
   .pl .pl-row > .pl-diff { grid-area: d; justify-self: start; }
   .pl .pl-row > .pl-solve { grid-area: s; justify-self: end; min-width: 92px; }
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   PRACTICE LIBRARY, REDESIGNED (.pl2x): one top card — what to do next on the left,
+   progress on the right — and the problem list across the full width below.
+   ──────────────────────────────────────────────────────────────────────────── */
+.pl.pl2x { display: flex; flex-direction: column; gap: 18px; max-width: 1760px; margin: 0 auto; }
+.plx-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 420px); gap: 28px; align-items: stretch;
+  padding: 28px 32px; border-radius: 20px; background: #fff; border: 1px solid var(--pl-line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07); }
+.plx-copy { display: flex; flex-direction: column; min-width: 0; }
+.plx-eyebrow { align-self: flex-start; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #1B3C77; background: #EAF1FB; border-radius: 999px; padding: 6px 12px; }
+.pl .plx-hero h1 { margin: 12px 0 8px; font-size: clamp(28px, 2.6vw, 38px); line-height: 1.1; font-weight: 800; color: var(--pl-navy); }
+.pl .plx-hero h1 span { color: #1752D6; }
+.pl .plx-hero p { margin: 0; max-width: 620px; font-size: 15px; line-height: 1.6; color: #2F3F56; }
+.plx-next { margin-top: 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 14px; background: #F5F9FE; border: 1px solid #DFE8F4; }
+.plx-next small { width: 100%; font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #167E92; }
+.plx-next b { font-size: 15.5px; color: var(--pl-navy); min-width: 0; overflow-wrap: anywhere; }
+.plx-next .pl-diff { padding: 3px 12px; }
+.plx-actions { margin-top: 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.plx-actions .pl-btn.primary { min-height: 46px; padding: 0 22px; font-size: 15px; }
+.plx-link { border: 0; background: none; padding: 4px 0; color: #1752D6; font-size: 14px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.plx-link:hover { text-decoration: underline; }
+
+.plx-progress { display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 20px 22px; border-radius: 16px; background: linear-gradient(135deg, #F5F9FE, #EDF4FC); border: 1px solid #DFE8F4; }
+.plx-total { display: flex; align-items: baseline; gap: 10px; }
+.plx-total b { font-size: 30px; line-height: 1; font-weight: 800; color: var(--pl-navy); }
+.plx-total b em { font-style: normal; font-size: 16px; color: #2F3F56; font-weight: 700; }
+.plx-total span { font-size: 14px; color: #2F3F56; font-weight: 600; }
+.plx-bar { height: 10px; border-radius: 999px; background: #DFE7F1; overflow: hidden; margin-bottom: 4px; }
+.plx-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1976D2, #1752D6); }
+.plx-diffrow { font-size: 13.5px; }
+.plx-diffrow .h { display: flex; justify-content: space-between; margin-bottom: 5px; color: #2F3F56; font-weight: 600; }
+.plx-diffrow .h span:first-child { display: inline-flex; align-items: center; gap: 8px; color: var(--pl-ink); font-weight: 700; }
+.plx-diffrow .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.plx-diffrow .dot.easy { background: #10b981; } .plx-diffrow .dot.medium { background: #f59e0b; } .plx-diffrow .dot.hard { background: #f43f5e; }
+.plx-diffrow .bar { height: 7px; border-radius: 5px; background: #E3EAF3; overflow: hidden; }
+.plx-diffrow .bar span { display: block; height: 100%; border-radius: 5px; }
+
+/* The list now has the full width. */
+.pl.pl2x .pl-panel { padding: 18px 20px 8px; border-radius: 20px; }
+
+@media (max-width: 1000px) {
+  .plx-hero { grid-template-columns: 1fr; padding: 24px 22px; }
+}
+@media (max-width: 600px) {
+  .pl.pl2x { gap: 14px; }
+  .plx-hero { padding: 20px 16px; border-radius: 16px; gap: 18px; }
+  .plx-actions { flex-direction: column; align-items: stretch; gap: 10px; }
+  .plx-actions .pl-btn.primary { justify-content: center; }
+  .plx-link { justify-content: center; }
+  .pl.pl2x .pl-panel { padding: 14px 12px 6px; border-radius: 16px; }
+}
+/* Mid widths (small laptops, landscape tablets): the top card stacks instead of squeezing the
+   title to a word per line, and the list keeps status, number, title, topics, difficulty and Solve
+   — company, success rate and attempts overlapped one another at this width. */
+@media (max-width: 1200px) {
+  .plx-hero { grid-template-columns: 1fr; }
+}
+@media (min-width: 981px) and (max-width: 1200px) {
+  .pl.pl2x .pl-row { grid-template-columns: 28px 44px minmax(0, 1.4fr) minmax(0, 1fr) 92px 96px 16px; }
+  .pl.pl2x .pl-row > :nth-child(5), .pl.pl2x .pl-row > :nth-child(6), .pl.pl2x .pl-row > :nth-child(7) { display: none; }
+  .pl.pl2x .pl-row .pl-chips { flex-wrap: nowrap; min-width: 0; }
+  .pl.pl2x .pl-row .pl-chips > .pl-chip:nth-child(n+2) { display: none; }
+  .pl.pl2x .pl-row .pl-chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+}

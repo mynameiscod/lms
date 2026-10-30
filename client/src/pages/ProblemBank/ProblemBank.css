@@ -297,3 +297,6 @@
 .pb-import-aud-help { font-size: 12.5px; flex: 1 1 260px; }
 .pb-tagfilter { width: 150px; }
 @media (max-width: 640px) { .pb-tagfilter { width: 100%; } }
+
+/* A statement block laid out by its spaces (a pattern, pasted code): shown exactly as written. */
+.pb-md pre.pb-pre-text { margin: 8px 0; padding: 10px 12px; border-radius: 8px; background: #F6F8FB; border: 1px solid #E2EAF2; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; white-space: pre; overflow-x: auto; }

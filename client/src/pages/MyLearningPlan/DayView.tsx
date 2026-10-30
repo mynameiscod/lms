@@ -103,6 +103,12 @@ export function QAViewer({ content }: { content: any }) {
  * first 120 characters). Shown as heading AND body, every such question read twice. The body is
  * shown only when it adds something.
  */
+/*
+ * A question written line by line with no Markdown fences (code or a star pattern from a spreadsheet)
+ * is shown exactly as written. As notes its lines were joined into one sentence.
+ */
+const laidOut = (description: string) => String(description || '').includes('\n') && !String(description).includes('```');
+
 const repeatsTitle = (title: string, description: string) => {
   const t = String(title || '').trim().replace(/…$/, '');
   const d = String(description || '').trim();
@@ -141,7 +147,9 @@ export function PracticeViewer({ content }: { content: any }) {
 
           {q.description && !(repeatsTitle(q.title, q.description) && String(q.description).length <= 240) && (
             <div style={{ marginBottom: '12px' }}>
-              <NotesContent text={q.description} compact />
+              {laidOut(q.description)
+                ? <div style={{ fontSize: '14px', color: '#334155', lineHeight: 1.6 }}><InlineNotes text={q.description} /></div>
+                : <NotesContent text={q.description} compact />}
             </div>
           )}
 

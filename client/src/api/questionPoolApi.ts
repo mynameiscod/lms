@@ -60,4 +60,4 @@ export const questionPoolApi = {
   },
 };
 
-export interface ImportResult { imported: number; refused: { row: number; reason: string }[]; pool: Pool }
+export interface ImportResult { imported: number; refused: { row: number; reason: string }[]; pool: Pool; /** Columns the import found no use for (coding files). */ notRead?: string[] }

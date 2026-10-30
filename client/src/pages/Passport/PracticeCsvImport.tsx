@@ -61,7 +61,7 @@ const PracticeCsvImport: React.FC<{
         {qs.slice(0, 8).map((q, i) => <li key={i}>
           <span className={`pci-type t-${q.type}`}>{q.type === 'mcq' ? 'MCQ' : 'Theory'}</span>
           <span className="pci-q">{q.title}</span>
-          {q.options && <span className="pci-opts">{q.options.map((o, j) => <em key={j} className={o.isCorrect ? 'ok' : ''}>{String.fromCharCode(65 + j)}. {o.text}</em>)}</span>}
+          {q.options && <span className="pci-opts">{q.options.map((o, j) => <em key={j} className={o.isCorrect ? 'ok' : ''}><b>{String.fromCharCode(65 + j)}.</b><span>{o.text}</span></em>)}</span>}
         </li>)}
         {qs.length > 8 && <li className="pci-more">…and {qs.length - 8} more</li>}
       </ol>}

@@ -32,12 +32,9 @@ export interface ImportRow {
   publishable: boolean;
 }
 
-const splitList = (v: unknown) => String(v ?? '').split(/\s*[|,]\s*/).map((s) => s.trim()).filter(Boolean);
-const cell = (r: Record<string, any>, k: string) => {
-  const v = r[k];
-  return v === undefined || v === null ? '' : String(v);
-};
+import { looseKey, looseRow, textCell, codeCell, flagCell, unusedColumns } from './importText';
 
+const splitList = (v: unknown) => String(v ?? '').split(/\s*[|,]\s*/).map((s) => s.trim()).filter(Boolean);
 /**
  * The optional available_to column: careerpilot, lms, both (or "careerpilot|lms"), none. Blank
  * leaves the row to the import's own choice.
@@ -50,58 +47,88 @@ function audienceColumn(v: string): { audiences?: string[] } {
   return { audiences: splitList(t).map((x) => (x === 'cp' || x === 'career pilot' ? 'careerpilot' : x)) };
 }
 
+/** Open (sample) tests a numbered column set gets when the sheet does not say: the 2 open + 3 hidden convention. */
+export const DEFAULT_OPEN_TESTS = 2;
+
 function fromSpreadsheetRow(r: Record<string, any>): ProblemInput {
-  // Header names are matched case- and space-insensitively.
-  const row: Record<string, any> = {};
-  for (const [k, v] of Object.entries(r)) row[k.trim().toLowerCase().replace(/[\s-]+/g, '_')] = v;
+  // Column names are matched without case, spaces, underscores or hyphens ("Sample Input 1" = sample_input_1).
+  const { row, original } = looseRow(r);
+  const used = new Set<string>();
+  const get = (...names: string[]) => {
+    for (const n of names) { const k = looseKey(n); if (k in row) { used.add(k); if (String(row[k]).trim() !== '') return row[k]; } }
+    return '';
+  };
+  const has = (...names: string[]) => names.some((n) => looseKey(n) in row);
 
   let tests: any[] = [];
-  const json = cell(row, 'tests_json') || cell(row, 'tests');
+  const json = get('tests_json', 'tests', 'test_cases_json', 'testcases');
   if (json.trim()) {
     try { tests = JSON.parse(json); } catch { throw new Error('tests_json is not valid JSON.'); }
     if (!Array.isArray(tests)) throw new Error('tests_json must be a JSON array.');
   }
-  for (const [prefix, isSample] of [['sample', true], ['test', false]] as const) {
-    for (let i = 1; i <= 100; i++) {
-      const inKey = `${prefix}_input_${i}`, outKey = `${prefix}_output_${i}`;
-      if (!(inKey in row) && !(outKey in row)) { if (i > 1) break; continue; }
-      if (!cell(row, inKey) && !cell(row, outKey)) continue;
-      tests.push({ input: cell(row, inKey), output: cell(row, outKey), sample: isSample });
+  /*
+   * Numbered tests, in any of the names authors use. Explicit kinds first: sample/example/open/visible
+   * are shown to the learner, test/hidden are not. Then plain numbered ones (input_1, tc1_input,
+   * test_case_1_input …): a hidden column says which; with none, the first two are open and the
+   * rest hidden — the 2 open + 3 hidden convention. Open tests are listed before hidden ones.
+   */
+  const numbered: any[] = [];
+  const SAMPLE = [['sample_input_', 'sample_output_'], ['example_input_', 'example_output_'], ['open_input_', 'open_output_'], ['visible_input_', 'visible_output_'], ['public_input_', 'public_output_']];
+  const HIDDEN = [['test_input_', 'test_output_'], ['hidden_input_', 'hidden_output_'], ['private_input_', 'private_output_']];
+  for (let i = 1; i <= 50; i++) {
+    for (const [pairs, isSample] of [[SAMPLE, true], [HIDDEN, false]] as const) {
+      for (const [inP, outP] of pairs) {
+        const input = get(`${inP}${i}`), output = get(`${outP}${i}`, `${outP.replace('output', 'expected')}${i}`);
+        if (input || output) numbered.push({ input: textCell(input), output: textCell(output), sample: isSample });
+      }
+    }
+    const inNames = [`input_${i}`, `tc${i}_input`, `test_case_${i}_input`, `testcase${i}_input`, `case_${i}_input`];
+    const outNames = [`output_${i}`, `expected_output_${i}`, `expected_${i}`, `tc${i}_expected`, `tc${i}_output`, `test_case_${i}_output`, `test_case_${i}_expected`, `testcase${i}_output`, `case_${i}_output`];
+    const flagNames = [`hidden_${i}`, `is_hidden_${i}`, `tc${i}_hidden`, `test_case_${i}_hidden`, `input_${i}_hidden`, `case_${i}_hidden`];
+    const input = get(...inNames), output = get(...outNames);
+    if (input || output) {
+      const flag = flagCell(get(...flagNames));
+      numbered.push({ input: textCell(input), output: textCell(output), sample: flag === undefined ? (has(...flagNames) ? false : i <= DEFAULT_OPEN_TESTS) : !flag });
     }
   }
+  tests.push(...numbered.filter((t) => t.sample), ...numbered.filter((t) => !t.sample));
 
   const languages = PB_LANGUAGE_KEYS.map((l) => ({
     language: l,
-    starterCode: cell(row, `starter_${l}`),
-    solutionCode: cell(row, `solution_${l}`),
-    headerCode: cell(row, `header_${l}`),
-    footerCode: cell(row, `footer_${l}`),
+    starterCode: codeCell(get(`starter_${l}`, `starter_code_${l}`, `${l}_starter`)),
+    solutionCode: codeCell(get(`solution_${l}`, `solution_code_${l}`, `${l}_solution`)),
+    headerCode: codeCell(get(`header_${l}`)),
+    footerCode: codeCell(get(`footer_${l}`)),
   })).filter((l) => l.starterCode || l.solutionCode || l.headerCode || l.footerCode);
 
-  return {
-    title: cell(row, 'title'),
-    kind: cell(row, 'kind').toLowerCase() === 'sql' ? 'sql' : 'code',
-    difficulty: cell(row, 'difficulty'),
-    marks: cell(row, 'marks') ? Number(cell(row, 'marks')) : undefined,
-    topics: splitList(row.topics),
-    tags: splitList(row.tags),
-    companies: splitList(row.companies),
-    ...audienceColumn(cell(row, 'available_to')),
-    statement: cell(row, 'statement') || cell(row, 'description'),
-    inputFormat: cell(row, 'input_format'),
-    outputFormat: cell(row, 'output_format'),
-    constraints: cell(row, 'constraints'),
-    hints: cell(row, 'hints').split('||').map((s) => s.trim()).filter(Boolean),
-    editorial: cell(row, 'editorial'),
-    sqlSetup: cell(row, 'sql_setup'),
-    limits: { timeMs: cell(row, 'time_limit_ms') ? Number(cell(row, 'time_limit_ms')) : undefined },
-    comparisonMode: (cell(row, 'comparison') || undefined) as any,
+  const title = get('title', 'name', 'problem_title', 'problem_name', 'question_title');
+  const out: ProblemInput & { __unused?: string[] } = {
+    title,
+    kind: get('kind', 'type').toLowerCase() === 'sql' ? 'sql' : 'code',
+    difficulty: (get('difficulty', 'level') || '').toLowerCase() as any,
+    marks: get('marks', 'points', 'score') ? Number(get('marks', 'points', 'score')) : undefined,
+    topics: splitList(get('topics', 'topic')),
+    tags: splitList(get('tags', 'tag')),
+    companies: splitList(get('companies', 'company')),
+    ...audienceColumn(get('available_to', 'audience', 'for')),
+    statement: textCell(get('statement', 'description', 'problem_statement', 'problem_description', 'question', 'problem')),
+    inputFormat: textCell(get('input_format', 'input_description', 'input_spec')),
+    outputFormat: textCell(get('output_format', 'output_description', 'output_spec')),
+    constraints: textCell(get('constraints', 'constraint', 'limits')),
+    hints: textCell(get('hints', 'hint')).split('||').map((h) => h.trim()).filter(Boolean),
+    editorial: textCell(get('editorial', 'approach', 'explanation')),
+    sqlSetup: codeCell(get('sql_setup', 'setup_sql')),
+    limits: { timeMs: get('time_limit_ms', 'time_limit') ? Number(get('time_limit_ms', 'time_limit')) : undefined },
+    comparisonMode: (get('comparison', 'comparison_mode') || undefined) as any,
     languages,
     tests: tests.map((t) => ({
       input: String(t.input ?? ''), expectedOutput: String(t.expectedOutput ?? t.output ?? ''),
       isSample: !!(t.isSample ?? t.sample), weight: t.weight, explanation: t.explanation,
     })),
   };
+  const unused = unusedColumns(original, used);
+  if (unused.length) out.__unused = unused;
+  return out;
 }
 
 function fromJson(item: any): ProblemInput {
@@ -160,6 +187,7 @@ export function previewImport(items: ProblemInput[]): ImportRow[] {
     const n = normalizeInput(p);
     const hasSolution = n.clean.languages.some((l: any) => l.solutionCode.trim());
     const warnings = [...n.warnings];
+    if (p.__unused?.length) warnings.push(`Columns not read: ${p.__unused.join(', ')}. Check their names against the template.`);
     const missingOutputs = n.tests.some((t) => !t.expectedOutput.trim());
     if (missingOutputs && hasSolution) warnings.push('Missing expected outputs will be generated from the reference solution.');
     const errors = [...n.errors];
@@ -221,14 +249,29 @@ export const SAMPLE_PROBLEM: ProblemInput = {
  * cannot generate a blank output from the reference solution, as the bank's own import does.
  */
 export function csvTemplate(opts: { complete?: boolean } = {}): string {
+  // Five tests per problem: 2 open (sample_*) the learner sees, 3 hidden (test_*) used to mark.
   const headers = ['title', 'difficulty', 'marks', 'topics', 'tags', 'companies', 'available_to', 'statement', 'input_format', 'output_format',
-    'constraints', 'hints', 'sample_input_1', 'sample_output_1', 'test_input_1', 'test_output_1', 'test_input_2', 'test_output_2',
+    'constraints', 'hints', 'sample_input_1', 'sample_output_1', 'sample_input_2', 'sample_output_2',
+    'test_input_1', 'test_output_1', 'test_input_2', 'test_output_2', 'test_input_3', 'test_output_3',
     'starter_python', 'solution_python', 'solution_java'];
   const s = SAMPLE_PROBLEM;
   const java = s.languages![1].solutionCode!;
-  const values = [s.title, s.difficulty, String(s.marks), 'basics|math', 'warm-up', '', 'careerpilot', s.statement!, s.inputFormat!, s.outputFormat!,
-    s.constraints!, s.hints!.join('||'), '2 3', '5', '-4 10', '6', '1000000000 1000000000', opts.complete ? '2000000000' : '',
+  const sum = [s.title, s.difficulty, String(s.marks), 'basics|math', 'warm-up', '', 'careerpilot', s.statement!, s.inputFormat!, s.outputFormat!,
+    s.constraints!, s.hints!.join('||'),
+    '2 3', '5', '10 20', '30',
+    '-4 10', '6', '0 0', '0', '1000000000 1000000000', opts.complete ? '2000000000' : '',
     s.languages![0].starterCode!, s.languages![0].solutionCode!, java];
+  // A pattern problem: each multi-line value is one quoted cell with real line breaks (Alt+Enter in
+  // Excel). Typing it on one line with a backslash-n between the lines works too.
+  const L = (...lines: string[]) => lines.join('\n');
+  const pattern = ['Right-Angled Star Triangle', 'easy', '10', 'patterns|loops', 'nested-loops', '', 'careerpilot',
+    L('Read an integer **n** and print a right-angled triangle of stars.', 'Row i has i stars.'), 'A single integer n.', 'n lines; line i has i stars.',
+    '1 <= n <= 20', 'Use one loop for the rows and print i stars on row i.',
+    '3', L('*', '**', '***'), '1', '*',
+    '2', L('*', '**'), '4', L('*', '**', '***', '****'), '5', L('*', '**', '***', '****', '*****'),
+    L('n = int(input())', '# print the triangle', ''), L('n = int(input())', 'for i in range(1, n + 1):', '    print("*" * i)', ''),
+    L('import java.util.*;', '', 'public class Main {', '  public static void main(String[] args) {', '    int n = new Scanner(System.in).nextInt();',
+      '    for (int i = 1; i <= n; i++) System.out.println("*".repeat(i));', '  }', '}', '')];
   const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
-  return `${headers.join(',')}\n${values.map(esc).join(',')}\n`;
+  return `${headers.join(',')}\n${sum.map(esc).join(',')}\n${pattern.map(esc).join(',')}\n`;
 }

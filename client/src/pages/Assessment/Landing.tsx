@@ -297,7 +297,7 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      <CareerPilotFooter />
+      <CareerPilotFooter variant="visitor" />
 
       <style>{`
         .cdna-navlink:hover { color: #fff; }

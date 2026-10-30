@@ -317,7 +317,7 @@ const Result: React.FC = () => {
         </main>
       </div>
 
-      <CareerPilotFooter />
+      <CareerPilotFooter variant="visitor" />
     </div>
   );
 };

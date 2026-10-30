@@ -279,6 +279,21 @@ const PassportJoin: React.FC = () => {
    * covered its heading. The bar's height is measured at the moment of the jump (it is taller on a
    * phone, and the menu closes first), and the section stops just beneath it.
    */
+  /**
+   * Opened as /careerpilot/join#faqs (the footer on other public pages links here), so land on that
+   * section — or on the signup card for #careerpilot-signup — once the page has drawn.
+   */
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    const t = window.setTimeout(() => {
+      if (id === 'careerpilot-signup') { setAuthMode('create'); scrollToSignup(); } else if (document.getElementById(id)) scrollTo(id);
+    }, 300);
+    return () => window.clearTimeout(t);
+    // Once, on arrival: later hash changes come from the page's own links, which scroll themselves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const scrollTo = (id: string) => {
     setMenuOpen(false);
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -777,7 +792,7 @@ const PassportJoin: React.FC = () => {
         </section>
       </main>
 
-      <CareerPilotFooter />
+      <CareerPilotFooter variant="visitor" actions={{ onSection: scrollTo, onLogin: goLogin, onCreateAccount: () => { setAuthMode('create'); scrollToSignup(); } }} />
     </div>
   );
 };

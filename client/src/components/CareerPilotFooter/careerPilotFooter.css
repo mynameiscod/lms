@@ -89,6 +89,10 @@
   color: var(--cpf-muted);
 }
 
+.cpf .cpf-bottom-links { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.cpf .cpf-bottom-links a { color: var(--cpf-muted); text-decoration: none; }
+.cpf .cpf-bottom-links a:hover { color: var(--cpf-teal); }
+
 /* Tablet: the brand on its own row, the three columns under it. */
 @media (max-width: 1024px) {
   .cpf .cpf-top { grid-template-columns: repeat(3, minmax(0, 1fr)); }

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { assessmentApi, DIMENSION_LABELS } from '../../api/assessmentApi';
 import './assessment.css';
-import { copyrightLine } from '../../config/brand';
+import CareerPilotFooter from '../../components/CareerPilotFooter';
 
 interface SubScore { dimension: string; percentage: number; }
 interface ResultData {
@@ -317,19 +317,7 @@ const Result: React.FC = () => {
         </main>
       </div>
 
-      {/* Footer */}
-      <footer style={{ background: '#0b1730', color: '#aab6cf', padding: '26px 26px', marginTop: 8 }}>
-        <div style={{ maxWidth: 1300, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 24, justifyContent: 'space-between' }}>
-          <div style={{ maxWidth: 260 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: '#fff', fontSize: 16 }}><span style={{ width: 22, height: 22, borderRadius: 7, background: `linear-gradient(135deg,${PURPLE},${TEAL})` }} /> CareerPilot <span style={{ color: '#7385a8', fontSize: 12 }}>by CodeBegun</span></div>
-            <p style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 8 }}>Your AI co-pilot to a successful tech career.</p>
-          </div>
-          <div style={{ fontSize: 12.5 }}><div style={{ color: '#fff', fontWeight: 700, marginBottom: 8 }}>Quick Links</div>Roadmap · Practice · Blog · Community</div>
-          <div style={{ fontSize: 12.5 }}><div style={{ color: '#fff', fontWeight: 700, marginBottom: 8 }}>Support</div>Help Center · Contact Us · Privacy Policy · Terms</div>
-          <div style={{ fontSize: 12.5 }}><div style={{ color: '#fff', fontWeight: 700, marginBottom: 8 }}>Stay Connected</div>in · ig · yt · fb</div>
-        </div>
-        <div style={{ textAlign: 'center', fontSize: 12, color: '#6b7a97', marginTop: 22 }}>{copyrightLine()}</div>
-      </footer>
+      <CareerPilotFooter />
     </div>
   );
 };

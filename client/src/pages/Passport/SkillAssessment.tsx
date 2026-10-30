@@ -8,7 +8,7 @@ import {
 import { useMember } from './MemberLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import './skillAssessment.css';
-import { copyrightLine } from '../../config/brand';
+import CareerPilotFooter from '../../components/CareerPilotFooter';
 import { useProgramDays, daysLabel } from './useProgramDays';
 
 /**
@@ -499,15 +499,7 @@ const SkillAssessment: React.FC = () => {
     </header>
   );
 
-  const Footer = () => (
-    <footer className="ska-foot">
-      <div className="ska-wrap ska-foot-in">
-        <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" />
-        <span>{copyrightLine()}</span>
-        <span className="ska-foot-made">Made for ambitious careers in India</span>
-      </div>
-    </footer>
-  );
+  const Footer = () => <CareerPilotFooter />;
 
   if (loading) return <div className="ska-page"><Header /><div className="ska-state"><div className="ska-load">Loading your assessment…</div></div><Footer /></div>;
 

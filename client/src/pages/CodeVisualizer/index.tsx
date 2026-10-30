@@ -46,50 +46,62 @@ const CodeVisualizerLibrary: React.FC = () => {
   const card = (it: VzListItem) => (
     <Link key={it._id} to={`${base}/${it.slug}`} className={`vz-lib-card ${it.kind}`}>
       <div className="vz-lib-card-top">
+        <span className="vz-lib-ic"><i className={it.kind === 'concept' ? 'fa-regular fa-lightbulb' : 'fa-solid fa-code'} aria-hidden /></span>
         <span className="vz-chip">{it.topic}</span>
         <span className={`vz-chip d-${it.difficulty}`}>{it.difficulty}</span>
       </div>
-      <h3>{it.kind === 'concept' && <i className="fa-regular fa-lightbulb vz-bulb" aria-hidden />} {it.title}</h3>
+      <h3>{it.title}</h3>
       {it.summary && <p>{it.summary}</p>}
-      {(it.timeComplexity || it.spaceComplexity) && it.kind === 'problem' && (
-        <div className="vz-lib-cx">
-          {it.timeComplexity && <span><i className="fa-regular fa-clock" aria-hidden /> {it.timeComplexity}</span>}
-          {it.spaceComplexity && <span><i className="fa-solid fa-memory" aria-hidden /> {it.spaceComplexity}</span>}
-        </div>
-      )}
+      <div className="vz-lib-foot">
+        {it.kind === 'problem' && (it.timeComplexity || it.spaceComplexity) ? (
+          <span className="vz-lib-cx">
+            {it.timeComplexity && <span><i className="fa-regular fa-clock" aria-hidden /> {it.timeComplexity}</span>}
+            {it.spaceComplexity && <span><i className="fa-solid fa-memory" aria-hidden /> {it.spaceComplexity}</span>}
+          </span>
+        ) : <span className="vz-lib-cx" />}
+        <span className="vz-lib-go">{it.kind === 'concept' ? 'Learn' : 'Open'} <i className="fa-solid fa-arrow-right" aria-hidden /></span>
+      </div>
     </Link>
   );
 
   return (
-    <div className="vz-root">
-      <div className="vz-hero">
-        <div>
-          <h1><i className="fa-solid fa-chart-simple" aria-hidden /> Code Visualizer</h1>
-          <p>Understand the problem, write the code, then watch it run — line by line, with every variable, comparison and swap shown.</p>
+    <div className="vz-root vz-lib">
+      {/* One top card: what this is, how much there is, and every filter. */}
+      <section className="vz-hero2">
+        <div className="vz-hero2-top">
+          <span className="vz-hero2-ic"><i className="fa-solid fa-chart-simple" aria-hidden /></span>
+          <div className="vz-hero2-copy">
+            <h1>Code <span>Visualizer</span></h1>
+            <p>Understand the problem, write the code, then watch it run — line by line, with every variable, comparison and swap shown.</p>
+          </div>
+          <div className="vz-hero2-counts">
+            <span><b>{concepts.length}</b> concept{concepts.length === 1 ? '' : 's'}</span>
+            <span><b>{problems.length}</b> problem{problems.length === 1 ? '' : 's'}</span>
+          </div>
         </div>
-      </div>
-
-      <div className="vz-filters">
-        <input className="vz-search" placeholder="Search problems and concepts…" value={search} onChange={e => setSearch(e.target.value)} />
-        <select value={topic} onChange={e => setTopic(e.target.value)} aria-label="Topic">
-          <option value="">All topics</option>
-          {topics.map(t => <option key={t.topic} value={t.topic}>{t.topic} ({t.count})</option>)}
-        </select>
-        <div className="vz-seg">
-          <button className={`vz-seg-btn${!difficulty ? ' on' : ''}`} onClick={() => setDifficulty('')}>All</button>
-          {DIFFS.map(d => (
-            <button key={d} className={`vz-seg-btn${difficulty === d ? ' on' : ''}`} onClick={() => setDifficulty(d)}>{d}</button>
-          ))}
+        <div className="vz-filters">
+          <label className="vz-search-wrap"><i className="fa-solid fa-magnifying-glass" aria-hidden />
+            <input className="vz-search" placeholder="Search problems and concepts…" value={search} onChange={e => setSearch(e.target.value)} aria-label="Search" />
+          </label>
+          <select value={topic} onChange={e => setTopic(e.target.value)} aria-label="Topic">
+            <option value="">All topics</option>
+            {topics.map(t => <option key={t.topic} value={t.topic}>{t.topic} ({t.count})</option>)}
+          </select>
+          <div className="vz-seg" role="group" aria-label="Difficulty">
+            <button className={`vz-seg-btn${!difficulty ? ' on' : ''}`} onClick={() => setDifficulty('')}>All</button>
+            {DIFFS.map(d => (
+              <button key={d} className={`vz-seg-btn${difficulty === d ? ' on' : ''}`} onClick={() => setDifficulty(d)}>{d}</button>
+            ))}
+          </div>
         </div>
-        <span className="vz-muted">{total} item{total === 1 ? '' : 's'}</span>
-      </div>
+      </section>
 
       {loading ? <div className="vz-empty">Loading…</div> : items.length === 0 ? (
         <div className="vz-empty">Nothing matches these filters yet.</div>
       ) : (
         <>
-          {concepts.length > 0 && (<><h2 className="vz-section">Concepts</h2><div className="vz-lib-grid">{concepts.map(card)}</div></>)}
-          {problems.length > 0 && (<><h2 className="vz-section">Problems</h2><div className="vz-lib-grid">{problems.map(card)}</div></>)}
+          {concepts.length > 0 && (<><h2 className="vz-section">Concepts <span>Start here: what Big-O and memory mean</span></h2><div className="vz-lib-grid">{concepts.map(card)}</div></>)}
+          {problems.length > 0 && (<><h2 className="vz-section">Problems <span>{total} item{total === 1 ? '' : 's'} in the library</span></h2><div className="vz-lib-grid">{problems.map(card)}</div></>)}
         </>
       )}
     </div>

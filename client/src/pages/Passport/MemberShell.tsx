@@ -384,7 +384,6 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           */}
           {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap', 'plan')}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice', 'practice')}
-          {navBtn('Coding Sets', 'codeSets', '/careerpilot/coding', 'coding', 'coding')}
           {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'thinkingLab', 'thinkingLab')}
           {/* Announced, not built yet: each opens a "Coming soon" page (ComingSoon.tsx). */}

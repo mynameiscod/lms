@@ -178,7 +178,7 @@ const Workspace: React.FC = () => {
   if (!item) return <div className="vz-root"><div className="vz-empty">Loading…</div></div>;
 
   const header = (
-    <>
+    <header className="vz-head-card">
       <nav className="vz-crumbs" aria-label="Breadcrumb">
         <Link to={base}><i className="fa-solid fa-arrow-left" aria-hidden /> Library</Link>
         <i className="fa-solid fa-chevron-right sep" aria-hidden />
@@ -194,14 +194,12 @@ const Workspace: React.FC = () => {
           </div>
           {item.summary && <p className="vz-subtitle">{item.summary}</p>}
         </div>
+        {/* The topic is in the breadcrumb and the complexity in its own tab; only the kind is new here. */}
         <div className="vz-tags">
-          <span className="vz-tag">{item.topic}</span>
-          {item.kind === 'concept' ? <span className="vz-tag">Concept</span> : <span className="vz-tag">Java</span>}
-          {item.timeComplexity && <span className="vz-tag mono">Time {item.timeComplexity}</span>}
-          {item.spaceComplexity && <span className="vz-tag mono">Space {item.spaceComplexity}</span>}
+          <span className="vz-tag">{item.kind === 'concept' ? 'Concept' : 'Java'}</span>
         </div>
       </div>
-    </>
+    </header>
   );
 
   if (item.kind === 'concept') {
@@ -316,9 +314,9 @@ const Workspace: React.FC = () => {
               </select>
               <i className="fa-solid fa-chevron-down caret" aria-hidden />
             </label>
+            <button className="vz-btn" onClick={reset} title="Back to the starter code" aria-label="Starter code"><i className="fa-solid fa-rotate-left" aria-hidden /><span className="lbl">Starter</span></button>
+            {item.solutionCode && <button className="vz-btn" onClick={loadSolution} title="Load the reference solution" aria-label="Solution"><i className="fa-regular fa-lightbulb" aria-hidden /><span className="lbl">Solution</span></button>}
             <div className="vz-spacer" />
-            <button className="vz-btn" onClick={reset}><i className="fa-solid fa-code" aria-hidden /> Starter</button>
-            {item.solutionCode && <button className="vz-btn" onClick={loadSolution}><i className="fa-regular fa-lightbulb vz-bulb" aria-hidden /> Solution</button>}
             <button className="vz-btn vz-btn-primary" onClick={visualize} disabled={running || !code.trim()}>
               <i className={running ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-play'} aria-hidden /> {running ? 'Running…' : 'Visualize'}
             </button>

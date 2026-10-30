@@ -888,7 +888,7 @@ const SkillAssessment: React.FC = () => {
         <div className="ska-modal" role="dialog" aria-modal="true">
           <div className="bx">
             <span className="ska-modal-icon"><i className="bi bi-send-check" /></span>
-            <b>{placing ? 'Submit your check?' : 'Submit your assessment?'}</b>
+            <b>Ready to submit?</b>
             <p>{answeredCount} of {paper.items.length} answered{answeredCount < paper.items.length && ` · ${paper.items.length - answeredCount} marked “I don’t know”`}. You cannot change your answers afterwards.</p>
             <div className="ska-actions">
               <button className="ska-btn ghost" onClick={() => setConfirming(false)}>Keep working</button>

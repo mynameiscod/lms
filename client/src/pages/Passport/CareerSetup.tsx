@@ -127,7 +127,7 @@ const CareerSetup: React.FC = () => {
         /**
          * ARRIVING TO CHANGE SOMETHING IS NOT THE SAME AS ARRIVING FRESH.
          *
-         * Setup jumped straight to the "Your CareerPilot is ready!" summary whenever
+         * Setup jumped straight to the "Setup complete" summary whenever
          * onboarding was complete — and that summary had no way to change anything, despite
          * saying "You can change any of it later". So the roadmap's "Choose my target role"
          * button landed here and showed a page with two buttons, neither of which chose a
@@ -254,8 +254,8 @@ const CareerSetup: React.FC = () => {
             <div className="cpr-wrap cpr-band-grid">
               <div className="cpr-band-copy">
                 <div className="cpr-badge"><i className="bi bi-check-lg" /></div>
-                <div className="cpr-eyebrow">Profile ready</div>
-                <h1>Your CareerPilot is ready!</h1>
+                <div className="cpr-eyebrow">Setup complete</div>
+                <h1>Now let’s see where you stand</h1>
                 <p>CareerPilot will use these choices to personalise your assessment, roadmap and daily missions. You can change any of it later.</p>
                 <div className="cpr-pills">{pills.map(t => <span key={t}>{t}</span>)}</div>
               </div>

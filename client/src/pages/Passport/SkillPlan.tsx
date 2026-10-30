@@ -58,7 +58,7 @@ const NEXT_ACTION: Record<string, { label: string; to: string }> = {
    * `?step=direction` lands on the role picker itself.
    *
    * Plain /careerpilot/setup showed a member who had already finished onboarding the
-   * "Your CareerPilot is ready!" summary — which offered an assessment and a dashboard,
+   * "Setup complete" summary — which offered an assessment and a dashboard,
    * and no way to choose a role. So the button labelled "Choose my target role" led to a
    * screen on which choosing a role was impossible, and back to the dashboard, and back
    * here. A member on "Not sure yet" could circle that indefinitely.

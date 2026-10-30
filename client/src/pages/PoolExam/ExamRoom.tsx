@@ -449,7 +449,7 @@ const ExamRoom: React.FC = () => {
       {confirm && (
         <div className="exr-modal-back" role="dialog" aria-modal="true" aria-labelledby="exr-confirm-title">
           <div className="exr-modal">
-            <h2 id="exr-confirm-title">Submit your exam?</h2>
+            <h2 id="exr-confirm-title">Ready to submit?</h2>
             <p>You have answered <b>{doneCount} of {items.length}</b> questions. Once you submit, you cannot change your answers.</p>
             {!!unanswered.length && (
               <div className="exr-unanswered">

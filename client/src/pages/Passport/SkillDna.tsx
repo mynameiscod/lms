@@ -148,7 +148,6 @@ const SkillDna: React.FC = () => {
       {/* Hero: who this is about and the one number, in the logo navy. */}
       <section className="sdn-hero">
         <div className="sdn-hero-copy">
-          <span className="sdn-eyebrow light">Your Skill DNA</span>
           <h1>Your Skill <span>DNA</span></h1>
           <p>What your assessment measured, skill by skill. Scores show how you performed; confidence shows how much evidence stands behind each score.</p>
           <div className="sdn-hero-chips">

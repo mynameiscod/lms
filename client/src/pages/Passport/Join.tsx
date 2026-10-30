@@ -756,7 +756,6 @@ const PassportJoin: React.FC = () => {
         <section className="cpx-section cpx-white" id="faqs">
           <div className="cpx-wrap">
             <div className="cpx-head">
-              <div className="cpx-eyebrow">Questions</div>
               <h2>Frequently Asked Questions</h2>
             </div>
             <div className="cpx-faq">

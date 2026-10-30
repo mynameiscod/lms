@@ -330,7 +330,6 @@ const CareerSetup: React.FC = () => {
       {header}
       <main className="cps-shell">
         <aside className="cps-pitch">
-          <div className="cps-eyebrow">LET'S PERSONALIZE</div>
           <h1>Let’s personalize<br />your <span>career journey</span></h1>
           <p>A few quick details to understand you better and create your personalized career roadmap.</p>
           <div className="cps-benefits">

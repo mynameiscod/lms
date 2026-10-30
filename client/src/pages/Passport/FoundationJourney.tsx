@@ -266,6 +266,7 @@ const NotReady: React.FC<{ totalDays: number; stage?: string; message?: string; 
  * and the gate is honest. The server agrees: it composes these days live and stores nothing.
  */
 const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = ({ journey, onUnlocked }) => {
+  const nav = useNavigate();
   const programDays = useProgramDays();
   const previewDays = journey.preview || [];
   const [open, setOpen] = useState<number>(previewDays[0]?.day ?? 1);
@@ -290,16 +291,9 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
    */
   const openPct = totalDays ? Math.round((openCount / totalDays) * 100) : 0;
 
-  /* The preview starts where a member starts: on the welcome, not on learning day one. */
-  const marks = [
-    { key: 'start', label: 'Day 0.1', at: 1 },
-    { key: 'preview', label: `Day ${openCount}`, at: openCount },
-    { key: 'end', label: `Day ${totalDays}`, at: totalDays },
-  ];
-
   return (
     <div className="fj-page fjm fjm-preview">
-      <section className="fjm-hero">
+      <section className="fjm-hero fjm-hero2">
         <div className="fjm-hero-copy">
           {/* Not "Day 1 of N": nobody starts there. Every student starts on the welcome. */}
           <span className="fjm-eyebrow">Starts on Day 0.1 · {totalDays} learning days</span>
@@ -312,37 +306,16 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
           </div>
         </div>
 
-        {/* The same column the member's progress sits in, saying what is true before membership. */}
-        <div className="fjm-momentum">
-          <span className="fjm-eyebrow">My {totalDays} days</span>
-          <div className="fjm-days on">
-            <span className="ic"><i className="bi bi-eye-fill" aria-hidden /></span>
-            <div>
-              <b>{openCount} of {totalDays} days open</b>
-              <span>{lockedCount > 0 ? `${lockedCount} unlock with membership` : 'Every day is open'}</span>
-            </div>
-            <i className="fjm-days-art" aria-hidden="true"><em /><em /><em /></i>
+        {/* One card, like the member's: what is open, the unlock, and the roadmap preview. */}
+        <div className="fjm-side">
+          <div className="fjm-side-top"><b>{openCount} of {totalDays} days open</b><span>{openPct}%</span></div>
+          <div className="fjm-side-bar" role="progressbar" aria-valuenow={openPct} aria-valuemin={0} aria-valuemax={100} aria-label="Days open to preview"><i style={{ width: `${barWidth(openPct)}%` }} /></div>
+          <p className="fjm-next"><i className="bi bi-lock" aria-hidden /> <span><b>{lockedCount > 0 ? `${lockedCount} days unlock with membership` : 'Every day is open'}</b><em>Every lesson, checkpoint and project</em></span></p>
+          <div className="fjm-side-actions">
+            <button type="button" className="fjm-act primary" onClick={() => unlock(onUnlocked)} disabled={busy}>{unlockLabel}</button>
+            <button type="button" className="fjm-act" onClick={() => nav('/careerpilot/roadmap')}><i className="bi bi-map" aria-hidden /> View roadmap</button>
           </div>
-          <ol className="fjm-steps2">
-            {marks.map((m, i) => (
-              <li key={m.key} className={i === 0 ? 'current' : ''}><i /><span>{m.label}</span></li>
-            ))}
-          </ol>
-          <button type="button" className="fjm-challenge" onClick={() => unlock(onUnlocked)} disabled={busy}>
-            <span className="ic"><i className="bi bi-unlock-fill" aria-hidden /></span>
-            <div>
-              <b>{busy ? 'Opening payment…' : `Unlock all ${totalDays} days`}</b>
-              <span>Every lesson, checkpoint and project</span>
-              {priceInr ? <em>₹{priceInr}</em> : null}
-            </div>
-            <i className="bi bi-chevron-right" aria-hidden />
-          </button>
           {msg && <p className="fj-msg err">{msg}</p>}
-        </div>
-
-        <div className="fjm-ring" role="progressbar" aria-valuenow={openPct} aria-valuemin={0} aria-valuemax={100}
-             aria-label="Days open to preview" style={{ ['--fjm-deg' as any]: `${openPct * 3.6}deg` }}>
-          <div><strong>{openCount}</strong><span>days to read</span></div>
         </div>
       </section>
 
@@ -511,32 +484,6 @@ const PlacementOffer: React.FC<{ topic: string | null; day: number }> = ({ topic
         {busy ? 'Preparing…' : 'Test out'}
       </button>
     </div>
-  );
-};
-
-/**
- * The welcome, on the plan screen.
- *
- * Shown while a member has orientation left: as the way in for somebody who must finish it before
- * Day 1, and as an invitation for somebody already learning, who is never blocked by it.
- */
-const OrientationCard: React.FC<{ view: OrientationView; onOpen: () => void }> = ({ view, onOpen }) => {
-  const left = view.totalDays - view.completedDays;
-  return (
-    <section className={`fj-orient${view.mandatory ? ' must' : ''}`}>
-      <span className="fj-orient-ic"><i className={`bi ${view.mandatory ? 'bi-signpost-split-fill' : 'bi-stars'}`} aria-hidden /></span>
-      <div className="fj-orient-tx">
-        <b>{view.mandatory ? 'Start with your welcome' : 'A short welcome, whenever you like'}</b>
-        <span>
-          {view.mandatory
-            ? `${left} short ${left === 1 ? 'day' : 'days'} to set you up — your learning days open once they are done.`
-            : `${left} short ${left === 1 ? 'day' : 'days'} we added for new members. Your plan stays open either way.`}
-        </span>
-      </div>
-      <button type="button" className="fj-orient-btn" onClick={onOpen}>
-        {view.completedDays ? 'Continue' : 'Start'} <i className="bi bi-arrow-right" aria-hidden />
-      </button>
-    </section>
   );
 };
 
@@ -837,12 +784,6 @@ const FoundationJourneyPage: React.FC = () => {
 
       <CareerTrackPicker onPicked={() => { load(); }} />
 
-      {/* The card invites; once the welcome is finished it stops asking. The days stay in the strip. */}
-      {orientation && !orientation.complete && (
-        <OrientationCard view={orientation}
-                         onOpen={() => nav(`/careerpilot/journey/welcome/${orientation.nextDay ?? orientation.days[0]?.dayNumber ?? 1}`)} />
-      )}
-
       {/* The ninety, as a strip you step through with the arrows either side (see DayStrip) —
           with range jumps, so the days beyond the edge are never a guess, and a lock on every
           day that cannot be opened yet. */}
@@ -924,13 +865,14 @@ const FoundationJourneyPage: React.FC = () => {
                 </div>
                 <div className="fj-day-actions">
                   {minutes > 0 && <span className="fj-mins">{mins(minutes)}</span>}
-                  {!wd.locked && (
+                  {/* Today's day is started from the top card; another day is opened from here. */}
+                  {!wd.locked && !(isToday && !finished) && (
                     <button
                       type="button"
-                      className={`fj-start${finished ? ' ghost' : ''}`}
+                      className="fj-start ghost"
                       onClick={() => nav(`/careerpilot/journey/welcome/${wd.dayNumber}`)}
                     >
-                      {finished ? 'Review this day' : isToday ? `Start Day ${wd.day}` : 'Open this day'}
+                      {finished ? 'Review this day' : 'Open this day'}
                     </button>
                   )}
                 </div>
@@ -1002,14 +944,14 @@ const FoundationJourneyPage: React.FC = () => {
                 {/* The day opens inside CareerPilot, where each lesson, checkpoint and project
                     is worked through without leaving the member rail. Locking stays the
                     server's: a day not yet reachable says so there. */}
-                {enrollmentId && (
+                {/* Today's day is started from the top card; another day is opened from here. */}
+                {enrollmentId && day.status !== 'CURRENT' && (
                   <button
                     type="button"
-                    className={`fj-start${day.status === 'CURRENT' ? '' : ' ghost'}`}
+                    className="fj-start ghost"
                     onClick={() => nav(`/careerpilot/journey/day/${day.day}`)}
                   >
-                    {day.status === 'CURRENT' ? `Start Day ${day.day}`
-                      : day.status === 'COMPLETED' ? 'Review this day' : 'Open this day'}
+                    {day.status === 'COMPLETED' ? 'Review this day' : 'Open this day'}
                   </button>
                 )}
               </div>

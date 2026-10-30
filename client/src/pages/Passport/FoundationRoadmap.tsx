@@ -126,7 +126,7 @@ const FoundationRoadmap: React.FC = () => {
   return (
     <div className="fj-page fr-page frm">
       {/* The roadmap is opened from My N Days ("View roadmap"), so it leads back there. */}
-      {!preview && <button type="button" className="frm-back" onClick={() => nav('/careerpilot/plan')}><i className="bi bi-arrow-left" aria-hidden /> Back to My {totalDays} Days</button>}
+      <button type="button" className="frm-back" onClick={() => nav('/careerpilot/plan')}><i className="bi bi-arrow-left" aria-hidden /> Back to My {totalDays} Days</button>
       <section className="fjm-hero">
         <div className="fjm-hero-copy">
           <span className="fjm-eyebrow">Your personalised {totalDays}-day roadmap</span>

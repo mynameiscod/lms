@@ -394,7 +394,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Interview Experiences', 'experiences', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
           {navBtn('Question Books', 'books', '/careerpilot/question-books', 'questionBooks', 'questionBooks')}
           {navBtn('AI Mentor', 'robot', '/careerpilot/mentor', 'mentor', 'mentor')}
-          {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies', 'companies')}
+          {navBtn('Job Board', 'building', '/careerpilot/companies', 'companies', 'companies')}
           {/* Sits with Opportunities because it answers the same question — what is happening in
               the industry I am applying to. It was reachable only from the user menu, which is
               where people look for their account, not for a daily read. */}

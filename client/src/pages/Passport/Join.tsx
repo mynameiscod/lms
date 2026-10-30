@@ -392,7 +392,7 @@ const PassportJoin: React.FC = () => {
   const NAV: [string, string][] = [
     ['How It Works', 'how-it-works'],
     ['Career Tools', 'career-tools'],
-    ['Opportunities', 'opportunities'],
+    ['Job Board', 'opportunities'],
     ['Success Stories', 'success-stories'],
     ['FAQs', 'faqs'],
   ];

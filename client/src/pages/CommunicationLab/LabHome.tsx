@@ -196,21 +196,28 @@ const RecentDays: React.FC<{ days: DayRow[]; start: string; onOpen: (a: CommAtte
   </section>;
 };
 
-const Journey: React.FC<{ days: DayRow[]; start: string; today: string }> = ({ days, start, today }) => {
-  const done = useMemo(() => new Set(days.map((d) => d.date)), [days]);
+/**
+ * A DAY IS DONE WHEN ITS STEPS ARE DONE. One answer used to tick a day green; now the tick means the
+ * day's session is finished (all its steps). Today reads the live session; earlier days count the
+ * answers recorded that day. A day with some answers but not all is "partly done".
+ */
+const Journey: React.FC<{ days: DayRow[]; start: string; today: string; stepsPerDay: number; todayComplete: boolean }> = ({ days, start, today, stepsPerDay, todayComplete }) => {
+  const byDate = useMemo(() => new Map(days.map((d) => [d.date, d])), [days]);
+  const done = useMemo(() => new Set(days.filter((d) => d.date === today ? todayComplete : d.count >= stepsPerDay).map((d) => d.date).concat(todayComplete ? [today] : [])), [days, today, todayComplete, stepsPerDay]);
   const dayNo = dayDiff(start, today) + 1;
   const first = dayNo > 30 ? addDays(today, -29) : start;
   const cells = Array.from({ length: 30 }, (_, i) => { const date = addDays(first, i); return { date, no: dayDiff(start, date) + 1 }; });
   return <section className="clh-card clh-journey">
     <div className="clh-card-head tight">
       <h2>Your 30-Day Journey</h2>
-      <span className="clh-pill-note">{done.size} day{done.size === 1 ? '' : 's'} practised</span>
+      <span className="clh-pill-note">{done.size} day{done.size === 1 ? '' : 's'} completed</span>
     </div>
     <ol className="clh-track">
       {cells.map((c) => {
         const isToday = c.date === today; const isDone = done.has(c.date); const past = c.date < today;
-        const cls = isDone ? 'done' : isToday ? 'today' : past ? 'missed' : 'future';
-        return <li key={c.date} className={cls} title={`${longDate(c.date)}${isDone ? ' · practised' : past ? ' · missed' : ''}`}>
+        const partly = !isDone && !!byDate.get(c.date);
+        const cls = isDone ? 'done' : isToday ? 'today' : partly ? 'partly' : past ? 'missed' : 'future';
+        return <li key={c.date} className={cls} title={`${longDate(c.date)}${isDone ? ' · completed' : partly ? ' · partly done' : past ? ' · missed' : ''}`}>
           <span className="c">{isDone ? <i className="bi bi-check-lg" /> : c.no}</span>
           <em>{isToday ? 'Today' : `Day ${c.no}`}</em>
         </li>;
@@ -232,7 +239,9 @@ const LabHome: React.FC<{
   return <div className="clh">
     <div className="clh-main">
       <TodayCard state={state} loading={loading} today={today} dayNo={dayNo} onStart={onStart} />
-      <Journey days={days} start={start} today={today} />
+      <Journey days={days} start={start} today={today}
+               stepsPerDay={Math.max(1, state?.totalSteps || 4)}
+               todayComplete={!!state && state.totalSteps > 0 && state.stepsDone >= state.totalSteps} />
     </div>
     <div className="clh-rail">
       <ImprovementCard days={days} />

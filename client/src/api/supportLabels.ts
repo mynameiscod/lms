@@ -17,7 +17,7 @@ export const MODULES: { key: string; label: string }[] = [
   { key: 'assessment', label: 'Assessment' }, { key: 'plan', label: 'My plan (days)' }, { key: 'roadmap', label: 'Roadmap' },
   { key: 'practice', label: 'Practice' }, { key: 'coding', label: 'Coding sets' }, { key: 'playground', label: 'Playground' },
   { key: 'thinking_lab', label: 'Thinking Lab' }, { key: 'communication', label: 'Communication Lab' },
-  { key: 'interview', label: 'Mock interview' }, { key: 'mentor', label: 'AI Mentor' }, { key: 'opportunities', label: 'Opportunities' },
+  { key: 'interview', label: 'Mock interview' }, { key: 'mentor', label: 'AI Mentor' }, { key: 'opportunities', label: 'Job Board' },
   { key: 'news', label: 'Tech News' }, { key: 'resume', label: 'Resume' }, { key: 'progress', label: 'My progress' },
   { key: 'career_tracks', label: 'Career tracks' }, { key: 'other', label: 'Something else' },
 ];

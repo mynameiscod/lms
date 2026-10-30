@@ -22,7 +22,7 @@ export const MEMBER_NAV: { path: string; label: string; icon: string }[] = [
   { path: '/careerpilot/thinking-lab', label: 'Thinking Lab', icon: '🧠' },
   { path: '/careerpilot/interview', label: 'Mock Interview',  icon: '🎙️' },
   { path: '/careerpilot/resume',    label: 'Resume Center',   icon: '📄' },
-  { path: '/careerpilot/companies', label: 'Opportunities',   icon: '💼' },
+  { path: '/careerpilot/companies', label: 'Job Board',       icon: '💼' },
   { path: '/careerpilot/news',      label: 'Tech News',       icon: '📰' },
   { path: '/careerpilot/coins',     label: 'My Coins',        icon: '🪙' },
   { path: '/careerpilot/profile',   label: 'My Profile',      icon: '👤' },

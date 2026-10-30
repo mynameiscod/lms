@@ -455,7 +455,7 @@
    styles the admin problem pages, and InterviewHub/QuestionBooks have admin screens. This only
    applies inside the member shell. `#root#root` (two ids) outranks the page files' own
    `#root .gd .cb-member-x .root` !important caps without listing each one. */
-#root .gd { --cp-page-max: 2600px; }
+#root .gd { --cp-page-max: 3400px; }   /* fills the column on screens up to ~2560 real pixels (zoom .75) */
 #root .gd .cb-member-page { max-width: var(--cp-page-max); margin-left: auto; margin-right: auto; }
 #root#root .gd .cb-member-page > *,
 #root#root .gd .cb-member-page > [class*="-surface"] > *,

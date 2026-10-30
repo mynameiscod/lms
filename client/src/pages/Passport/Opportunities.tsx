@@ -219,8 +219,8 @@ const Opportunities: React.FC = () => {
       {/* A logo-navy hero, as on every redesigned CareerPilot page: what this is, the two actions, and the four figures. */}
       <header className="opp-head opp2-hero">
         <div className="opp2-hero-copy">
-          <div className="opp-kicker">Career opportunities</div>
-          <h1>Your <span>Opportunities</span></h1>
+          <div className="opp-kicker">Jobs and internships</div>
+          <h1>Job <span>Board</span></h1>
           <p>Jobs and internships open to you through your college and the CodeBegun network — matched to your profile.</p>
           <div className="opp-head-actions">
             <button className="opp2-btn light" onClick={() => document.getElementById('application-status')?.scrollIntoView({ behavior: 'smooth' })}><i className="bi bi-briefcase" /> Track applications</button>

@@ -131,3 +131,6 @@
   .clh-days button { grid-template-columns: 28px auto 1fr auto; }
   .clh-days .chev { display: none; }
 }
+
+/* A day with some of its steps done: a green ring, not yet the filled green tick. */
+.clh-track li.partly .c { background: #fff; border-color: #16a36b; color: #13704E; }

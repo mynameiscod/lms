@@ -143,7 +143,7 @@ export const CAREERPILOT_FEATURE_META: CareerPilotFeatureMeta[] = [
   { key: 'experiences',   label: 'Interview Experiences', description: 'Real interviews shared by candidates, round by round', icon: '💬', group: 'Interview prep' },
   { key: 'questionBooks', label: 'Question Books',        description: 'Interview questions grouped into readable books', icon: '📘', group: 'Interview prep' },
   { key: 'mentor',        label: 'AI Mentor',             description: 'Ask an AI mentor what to study or fix next', icon: '🤖', group: 'Interview prep' },
-  { key: 'companies',     label: 'Opportunities',         description: 'Companies hiring and what they ask', icon: '🏢', group: 'Career' },
+  { key: 'companies',     label: 'Job Board',         description: 'Companies hiring and what they ask', icon: '🏢', group: 'Career' },
   { key: 'news',          label: 'Tech News',             description: 'Daily industry reading', icon: '📰', group: 'Career' },
   { key: 'resume',        label: 'Resume',                description: 'Build and share a resume', icon: '📄', group: 'Career' },
   { key: 'progress',      label: 'My Progress',           description: 'Streaks, XP, badges and standings', icon: '🏆', group: 'Career' },

@@ -52,7 +52,7 @@ const VISITOR_COLUMNS: { title: string; links: Item[] }[] = [
     links: [
       { label: 'How It Works', section: 'how-it-works' },
       { label: 'Career Tools', section: 'career-tools' },
-      { label: 'Opportunities', section: 'opportunities' },
+      { label: 'Job Board', section: 'opportunities' },
       { label: 'FAQs', section: 'faqs' },
     ],
   },

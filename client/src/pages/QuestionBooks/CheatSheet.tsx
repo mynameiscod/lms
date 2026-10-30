@@ -16,7 +16,7 @@ const CheatSheet: React.FC = () => {
   const total = (groups || []).reduce((n, g) => n + g.items.length, 0);
   return (
     <div className="pb-root qb qbk">
-      <div className="pb-page qb-sheet qbk-page" style={{ maxWidth: 960 }}>
+      <div className="pb-page qb-sheet qbk-page">
         <button className="ihx-back-qb qb-noprint qbk-link" style={{ textDecoration: 'none', marginBottom: 12, display: 'inline-flex', gap: 7, alignItems: 'center' }} onClick={() => nav(base)}><i className="bi bi-arrow-left" aria-hidden="true" /> Library</button>
         <div className="qbk-sheet-head">
           <span className="ic"><i className="bi bi-star-fill" aria-hidden="true" /></span>

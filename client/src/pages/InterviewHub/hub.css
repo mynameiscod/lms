@@ -356,3 +356,25 @@
   .ih-cb .ihx-hero { grid-template-columns: minmax(0, 1fr); gap: 22px; }
   .ih-cb .ihx-hero-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* ── Interview Experiences top card, redesigned: white, like the other CareerPilot pages ── */
+.ih-cb .ihx-hero.ihx-hero2 { background: #fff !important; color: #102A4F; border: 1px solid #E2EAF2; box-shadow: 0 6px 22px rgba(15, 46, 77, .07); grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); padding: 28px 30px; }
+.ih-cb .ihx-hero2::before, .ih-cb .ihx-hero2::after { display: none !important; }
+.ih-cb .ihx-hero2 .ihx-eyebrow { background: #EAF1FB; color: #1B3C77; }
+.ih-cb .ihx-hero2 h1 { color: #051D64 !important; }
+.ih-cb .ihx-hero2 h1 span { color: #1752D6; }
+.ih-cb .ihx-hero2 p { color: #2F3F56 !important; }
+.ih-cb .ihx-hero2 .ihx-hero-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ih-cb .ihx-hero2 .ihx-hero-stats > div { background: linear-gradient(135deg, #F5F9FE, #EDF4FC); border: 1px solid #DFE8F4; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.ih-cb .ihx-hero2 .ihx-hero-stats .ic { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: #fff; color: #1752D6; font-size: 16px; box-shadow: 0 2px 8px rgba(15, 46, 77, .06); }
+.ih-cb .ihx-hero2 .ihx-hero-stats .ic.good { color: #13784F; }
+.ih-cb .ihx-hero2 .ihx-hero-stats dt { color: #53677D; font-size: 12.5px; font-weight: 700; margin: 0; }
+.ih-cb .ihx-hero2 .ihx-hero-stats dd { color: #051D64; font-size: 26px; font-weight: 800; line-height: 1.1; margin: 0; }
+@media (max-width: 1100px) { .ih-cb .ihx-hero.ihx-hero2 { grid-template-columns: 1fr; } }
+@media (max-width: 600px) {
+  .ih-cb .ihx-hero.ihx-hero2 { padding: 20px 16px; }
+  .ih-cb .ihx-hero2 .ihx-hero-stats { gap: 8px; }
+  .ih-cb .ihx-hero2 .ihx-hero-stats > div { padding: 12px 10px; }
+  .ih-cb .ihx-hero2 .ihx-hero-stats dd { font-size: 22px; }
+  .ih-cb .ihx-hero2 .ihx-hero-actions .ihx-btn { width: 100%; justify-content: center; }
+}

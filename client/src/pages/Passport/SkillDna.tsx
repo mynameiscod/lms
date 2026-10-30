@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { averageSkillScore, focusOrder } from './skillScore';
+import { averageSkillScore } from './skillScore';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { SkillDnaRow } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
@@ -105,23 +105,21 @@ const SkillDna: React.FC = () => {
   const [assessed, setAssessed] = useState(true);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
+  // Year 1 has no role, so the next step is the roadmap rather than role readiness.
+  const [year1, setYear1] = useState(false);
 
   useEffect(() => {
     passportApi.getMySkillDna()
       .then(r => { setSkills(r.skills); setAssessed(r.assessed); })
       .catch(e => setErr(e?.response?.data?.message || 'Could not load your skills.'))
       .finally(() => setLoading(false));
+    passportApi.getMyReadiness().then((r: any) => setYear1(r?.reason === 'YEAR_1')).catch(() => undefined);
   }, []);
 
   const activeSkills = useMemo(() => skills.filter(s => s.skillActive !== false), [skills]);
   const ranked = useMemo(() => [...activeSkills].sort((a, b) => b.score - a.score), [activeSkills]);
   // One rule for "average skill score" on every screen (skillScore.ts): reliably measured skills only.
   const avgScore = averageSkillScore(activeSkills).score ?? 0;
-  /* Where to focus: the weakest skills we are reasonably sure about first (skillScore.focusOrder). */
-  const focus = useMemo(() => focusOrder(activeSkills).slice(0, 3), [activeSkills]);
-  const lowEvidence = activeSkills.filter(s => s.confidence === 'LOW').length;
-  const highEvidence = activeSkills.filter(s => s.confidence === 'HIGH').length;
-  const evidenceTotal = activeSkills.reduce((sum, s) => sum + (s.evidenceCount || 0), 0);
   const radarSkills = ranked.slice(0, 8);
   const firstName = user?.firstName || 'there';
   const strongest = ranked[0];
@@ -167,41 +165,20 @@ const SkillDna: React.FC = () => {
         </div>
       </section>
 
-      {/* The figures, once each. */}
-      <section className="sdn-kpis">
-        <div><span className="ic blue"><i className="bi bi-clipboard-data" /></span><div><small>Skills measured</small><b>{activeSkills.length}</b></div></div>
-        <div><span className="ic teal"><i className="bi bi-speedometer2" /></span><div><small>Average score</small><b>{avgScore}<em>/100</em></b></div></div>
-        <div><span className="ic green"><i className="bi bi-shield-check" /></span><div><small>Evidence collected</small><b>{evidenceTotal}</b></div></div>
-        <div><span className="ic amber"><i className="bi bi-hourglass-split" /></span><div><small>Need more evidence</small><b>{lowEvidence}</b></div></div>
-      </section>
-
-      {/* Two columns that stack on their own, so a short card never leaves a gap beside a tall one. */}
+      {/* The meter beside the list; the meter stays in view while a long list scrolls. */}
       <section className="sdn-grid">
-        <div className="sdn-col">
+        <div className="sdn-col sdn-col-meter">
           <article className="sdn-card">
             <header className="sdn-card-head">
-              <div><h2>Skill shape</h2><p>Each point is one measured skill, 0 at the centre to 100 at the edge.</p></div>
+              <div><h2>Skill meter</h2><p>Each point is one measured skill, 0 at the centre to 100 at the edge.</p></div>
             </header>
             {radarSkills.length >= 3
               ? <Radar skills={radarSkills} />
-              : <div className="sdn-placeholder">The shape appears once three or more skills are measured.</div>}
-          </article>
-
-          <article className="sdn-card">
-            <header className="sdn-card-head">
-              <div><h2>Where to focus first</h2><p>Your lowest-scoring skills. These are where practice moves your profile most.</p></div>
-            </header>
-            <div className="sdn-focus">
-              {focus.map((s, i) => (
-                <div className="sdn-focus-item" key={s.skillKey}>
-                  <span className="sdn-focus-n">{i + 1}</span>
-                  <div>
-                    <b>{s.skillName}</b>
-                    <span>{s.score}/100 · {CONFIDENCE_COPY[s.confidence] || s.confidence}</span>
-                  </div>
-                  <i className={`bi ${SKILL_ICON(s.skillName)}`} />
-                </div>
-              ))}
+              : <div className="sdn-placeholder">The meter appears once three or more skills are measured.</div>}
+            <div className="sdn-legend" aria-hidden>
+              <span><i className="strong" /> Strong 70+</span>
+              <span><i className="mid" /> Developing 40–69</span>
+              <span><i className="low" /> Needs work below 40</span>
             </div>
           </article>
         </div>
@@ -227,25 +204,19 @@ const SkillDna: React.FC = () => {
               ))}
             </ul>
           </article>
-
-          <article className="sdn-card">
-            <header className="sdn-card-head">
-              <div><h2>How sure is this picture?</h2><p>Confidence is set per skill by the evidence behind it.</p></div>
-            </header>
-            <div className="sdn-evidence">
-              <div><b>{evidenceTotal}</b><span>Total evidence</span></div>
-              <div><b>{highEvidence}</b><span>Well evidenced</span></div>
-              <div><b>{lowEvidence}</b><span>Limited evidence</span></div>
-            </div>
-            <p className="sdn-explain"><i className="bi bi-info-circle" /><span>A low confidence does not mean a low skill — it means we have seen only a few answers. More practice and check-ins make each score more reliable.</span></p>
-          </article>
         </div>
       </section>
 
       <section className="sdn-next">
-        <span className="sdn-next-ic"><i className="bi bi-bullseye" /></span>
-        <div><b>Great progress, {firstName}!</b><span>Next, see how these skills match your target role — Role Readiness shows the gaps to close first.</span></div>
-        <button className="sdn-btn primary" onClick={() => nav('/careerpilot/readiness')}>Check Role Readiness <i className="bi bi-arrow-right" /></button>
+        <span className="sdn-next-ic"><i className={`bi ${year1 ? 'bi-signpost-split' : 'bi-bullseye'}`} /></span>
+        {year1 ? (
+          <div><b>Your next step, {firstName}</b><span>Your roadmap works on your lowest-scoring skills first, day by day.</span></div>
+        ) : (
+          <div><b>Your next step, {firstName}</b><span>See how these skills match your target role — Role Readiness shows the gaps to close first.</span></div>
+        )}
+        <button className="sdn-btn primary" onClick={() => nav(year1 ? '/careerpilot/roadmap' : '/careerpilot/readiness')}>
+          {year1 ? 'Open my roadmap' : 'Check Role Readiness'} <i className="bi bi-arrow-right" />
+        </button>
       </section>
     </div>
   );

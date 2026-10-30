@@ -383,7 +383,6 @@ const CareerSetup: React.FC = () => {
                 </div></div>
                 {!!knownContext && <p className="cps-known cps-ctxbadge"><i className="bi bi-mortarboard" /> <b>{knownContext}</b>{!steps.includes('education') && <button type="button" className="cps-link" onClick={() => { setEditEducation(true); setStepIx(0); }}>Change academic details</button>}</p>}
                 {opts.roles.filter(r => r.key === 'NOT_SURE').map(r => <button key={r.key} className={`cps-unsure${a.primaryRole === r.key ? ' on' : ''}`} onClick={() => setA(s => ({ ...s, primaryRole: r.key }))}><i className="bi bi-compass" /><span><b>{r.label}</b><em>{r.blurb}</em></span></button>)}
-                {year1 && <p className="cps-known"><i className="bi bi-info-circle" /> Roles and role readiness open in your 2nd year. Until then your plan covers the basics of programming, problem solving and the web.</p>}
                 {!year1 && (() => {
                   const all = opts.roles.filter(r => r.key !== 'NOT_SURE');
                   const q = roleQuery.trim().toLowerCase();

@@ -8,6 +8,7 @@ import {
 import { useMember } from './MemberLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import './skillAssessment.css';
+import CareerPilotFooter from '../../components/CareerPilotFooter';
 import { useProgramDays, daysLabel } from './useProgramDays';
 import { barWidth } from '../../utils/barWidth';
 
@@ -499,11 +500,12 @@ const SkillAssessment: React.FC = () => {
     </header>
   );
 
+  const Footer = () => <CareerPilotFooter wrapClassName="ska-wrap" />;
 
-  if (loading) return <div className="ska-page"><Header /><div className="ska-state"><div className="ska-load">Loading your assessment…</div></div></div>;
+  if (loading) return <div className="ska-page"><Header /><div className="ska-state"><div className="ska-load">Loading your assessment…</div></div><Footer /></div>;
 
   if (done?.placementCheck) {
-    return <div className="ska-page"><Header /><PlacementDone result={done} topic={topicName} onBack={() => nav(returnTo || '/careerpilot/plan')} /></div>;
+    return <div className="ska-page"><Header /><PlacementDone result={done} topic={topicName} onBack={() => nav(returnTo || '/careerpilot/plan')} /><Footer /></div>;
   }
 
   if (done) {
@@ -607,6 +609,7 @@ const SkillAssessment: React.FC = () => {
             </div>
           </section>
         </main>
+        <Footer />
       </div>
     );
   }
@@ -637,6 +640,7 @@ const SkillAssessment: React.FC = () => {
             </div>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -727,6 +731,7 @@ const SkillAssessment: React.FC = () => {
             </div>
           </section>
         </main>
+        <Footer />
       </div>
     );
   }
@@ -878,6 +883,7 @@ const SkillAssessment: React.FC = () => {
         ? <span><b>Nothing to lose.</b> What you prove comes out of your plan; anything you miss simply stays in it.</span>
         : <span><b>No pass mark, no pressure.</b> Answer honestly so CareerPilot can build the right plan for you.</span>}</div>
 
+      {/* No footer while answering: the paper keeps the screen to the questions. */}
 
       {confirming && (
         <div className="ska-modal" role="dialog" aria-modal="true">

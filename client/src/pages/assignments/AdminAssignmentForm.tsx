@@ -334,7 +334,7 @@ const AdminAssignmentForm: React.FC = () => {
         setDueDate(new Date(a.dueDate).toISOString().slice(0, 16));
       }
       setTimeLimitMinutes(a.settings?.timeLimitMinutes || 0);
-      setMaxAttempts(a.settings?.maxAttempts || 0);
+      setMaxAttempts(a.settings?.maxAttempts ?? a.maxAttempts ?? 0);
       if (a.poolExam) setPoolExam({ ...DEFAULT_POOL_EXAM, ...a.poolExam, tabSwitch: { ...DEFAULT_POOL_EXAM.tabSwitch, ...a.poolExam.tabSwitch } });
       setAllowLateSubmission(a.settings?.allowLateSubmission ?? false);
       setLatePenaltyPercent(a.settings?.latePenaltyPercent || 10);
@@ -407,8 +407,8 @@ const AdminAssignmentForm: React.FC = () => {
           shuffleQuestions,
           shuffleOptions,
           showCorrectAnswers,
-          timeLimitMinutes: timeLimitMinutes || undefined,
-          maxAttempts: maxAttempts || undefined,
+          timeLimitMinutes,
+          maxAttempts,
           allowLateSubmission,
           latePenaltyPercent
         },

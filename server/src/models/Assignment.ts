@@ -132,6 +132,17 @@ export interface IPoolExam {
   resultsReleasedAt?: Date | null;
 }
 
+/** The assignment form's settings. 0 means "no limit" for both numbers. */
+export interface IAssignmentSettings {
+  timeLimitMinutes: number;
+  maxAttempts: number;
+  shuffleQuestions: boolean;
+  shuffleOptions: boolean;
+  showCorrectAnswers: boolean;
+  allowLateSubmission: boolean;
+  latePenaltyPercent: number;
+}
+
 export interface IAssignment extends Document {
   _id: Types.ObjectId;
   tenant: Types.ObjectId;
@@ -216,6 +227,8 @@ export interface IAssignment extends Document {
   
   // Settings
   maxAttempts: number;
+  /** What the assignment form sets. maxAttempts and the shuffles are mirrored to the fields above, which grading reads. */
+  settings?: IAssignmentSettings;
   comparisonMode?: 'lenient' | 'exact' | 'case_insensitive' | 'numeric'; // how test output is compared
   showTestCaseResults: boolean;
   showExpectedOutput: boolean;
@@ -375,6 +388,18 @@ const AssignmentSchema = new Schema<IAssignment>({
   
   // Settings
   maxAttempts: { type: Number, default: 3 },
+  settings: {
+    type: new Schema({
+      timeLimitMinutes: { type: Number, default: 0, min: 0 },
+      maxAttempts: { type: Number, default: 0, min: 0 },
+      shuffleQuestions: { type: Boolean, default: false },
+      shuffleOptions: { type: Boolean, default: false },
+      showCorrectAnswers: { type: Boolean, default: false },
+      allowLateSubmission: { type: Boolean, default: false },
+      latePenaltyPercent: { type: Number, default: 0, min: 0, max: 100 },
+    }, { _id: false }),
+    default: undefined,
+  },
   comparisonMode: { type: String, enum: ['lenient', 'exact', 'case_insensitive', 'numeric'], default: 'lenient' },
   showTestCaseResults: { type: Boolean, default: true },
   showExpectedOutput: { type: Boolean, default: false },

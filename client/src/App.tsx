@@ -94,6 +94,7 @@ const ProblemSetEditor = lazy(() => import('./pages/ProblemBank/SetEditor'));
 const QuestionPools = lazy(() => import('./pages/QuestionPools'));
 const QuestionPoolEditor = lazy(() => import('./pages/QuestionPools/PoolEditor'));
 const ProblemBankApi = lazy(() => import('./pages/ProblemBank/ApiAccess'));
+const ProblemBundles = lazy(() => import('./pages/ProblemBundles'));
 const PracticePassAdmin = lazy(() => import('./pages/PracticePass'));
 const EmployeeDirectory = lazy(() => import('./pages/Employees/EmployeeDirectory'));
 const EmployeeProfile = lazy(() => import('./pages/Employees/EmployeeProfile'));
@@ -1040,6 +1041,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['STUDENT']}>
             <Layout>
               <MyPractice />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/problem-bundles"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ProblemBundles />
             </Layout>
           </ProtectedRoute>
         }

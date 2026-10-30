@@ -234,3 +234,64 @@ describe('routes', () => {
     expect(r.status).toBe(403);
   });
 });
+
+describe('questions a pool imported belong to it', () => {
+  const b64 = (s: string) => Buffer.from(s).toString('base64');
+  const mcqCsv = 'question,optionA,optionB,correct\n"Is 4 even?",Yes,No,A\n"Is 5 even?",Yes,No,B\n';
+
+  it('skips a question already in the pool when the same file is imported again', async () => {
+    const mcqs = await pools.createPool(ME, { name: 'Twice MCQ', kind: 'mcq' });
+    expect((await pools.importFile(ME, mcqs.id, { filename: 'm.csv', data: b64(mcqCsv) })).imported).toBe(2);
+    const again = await pools.importFile(ME, mcqs.id, { filename: 'm.csv', data: b64(mcqCsv) });
+    expect(again.imported).toBe(0);
+    expect(again.refused.map(r => r.reason)).toEqual(['Already in this pool', 'Already in this pool']);
+
+    const coding = await pools.createPool(ME, { name: 'Twice coding', kind: 'coding' });
+    const csv = csvTemplate({ complete: true });
+    expect((await pools.importFile(ME, coding.id, { filename: 'c.csv', data: b64(csv) })).imported).toBe(1);
+    expect((await pools.importFile(ME, coding.id, { filename: 'c.csv', data: b64(csv) })).imported).toBe(0);
+    expect(await CodingProblem.countDocuments({ tenantId: ME.tenantId })).toBe(1);
+  });
+
+  it('deletes them with the pool, but never a bank question or one used elsewhere', async () => {
+    const bankMcq = await mcq(ME, 'From the bank');
+    const bankProblem = await problem(ME, 'Bank problem', true);
+    const mcqs = await pools.createPool(ME, { name: 'Owned MCQ', kind: 'mcq' });
+    await pools.importFile(ME, mcqs.id, { filename: 'm.csv', data: b64(mcqCsv) });
+    await pools.addQuestions(ME, mcqs.id, [bankMcq]);
+    // One imported MCQ is also in another pool: it stays.
+    const shared = String((await Question.findOne({ question: 'Is 5 even?' }).lean() as any)._id);
+    const other = await pools.createPool(ME, { name: 'Other', kind: 'mcq' });
+    await pools.addQuestions(ME, other.id, [shared]);
+
+    const coding = await pools.createPool(ME, { name: 'Owned coding', kind: 'coding' });
+    await pools.importFile(ME, coding.id, { filename: 'c.csv', data: b64(csvTemplate({ complete: true })) });
+    await pools.addQuestions(ME, coding.id, [bankProblem]);
+
+    expect((await pools.deletePool(ME, mcqs.id)).questionsDeleted).toBe(1);
+    expect(await Question.exists({ question: 'Is 4 even?' })).toBeNull();
+    expect(await Question.exists({ _id: shared })).not.toBeNull();
+    expect(await Question.exists({ _id: bankMcq })).not.toBeNull();
+
+    expect((await pools.deletePool(ME, coding.id)).questionsDeleted).toBe(1);
+    expect(await CodingProblem.exists({ _id: bankProblem })).not.toBeNull();
+    expect(await CodingProblem.countDocuments({ tenantId: ME.tenantId })).toBe(1);
+    expect(await CodingProblemTestCase.countDocuments({ problemId: { $ne: new mongoose.Types.ObjectId(bankProblem) } })).toBe(0);
+  });
+
+  it('keeps an imported problem that was given to CareerPilot or drawn onto a paper', async () => {
+    const coding = await pools.createPool(ME, { name: 'Kept coding', kind: 'coding' });
+    await pools.importFile(ME, coding.id, { filename: 'c.csv', data: b64(csvTemplate({ complete: true })) });
+    const id = (await pools.getPool(ME, coding.id)).questions[0].id;
+    await CodingProblem.updateOne({ _id: id }, { $set: { audiences: ['lms', 'careerpilot'] } });
+    expect((await pools.deletePool(ME, coding.id)).questionsDeleted).toBe(0);
+
+    const mcqs = await pools.createPool(ME, { name: 'Kept MCQ', kind: 'mcq' });
+    await pools.importFile(ME, mcqs.id, { filename: 'm.csv', data: b64(mcqCsv) });
+    const used = (await pools.getPool(ME, mcqs.id)).questions[0].id;
+    await mongoose.connection.collection('poolexamattempts').insertOne({ items: [{ refId: new mongoose.Types.ObjectId(used) }] });
+    await pools.removeQuestions(ME, mcqs.id, [used]);
+    expect(await Question.exists({ _id: used })).not.toBeNull();
+    expect((await pools.deletePool(ME, mcqs.id)).questionsDeleted).toBe(1);
+  });
+});

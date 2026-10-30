@@ -25,6 +25,12 @@ export interface IQuestionPoolItem {
   refId: mongoose.Types.ObjectId;
   addedAt: Date;
   addedBy?: string;
+  /**
+   * Written by this pool's own file import, not picked from a bank. Such a question belongs to the
+   * pool: deleting the pool, or removing it, deletes it too when nothing else uses it. Items from
+   * before this flag are recognised by being created at the moment they were added.
+   */
+  imported?: boolean;
 }
 
 export interface IQuestionPool extends Document {
@@ -48,6 +54,7 @@ const QuestionPoolSchema = new Schema<IQuestionPool>({
       refId: { type: Schema.Types.ObjectId, required: true },
       addedAt: { type: Date, default: Date.now },
       addedBy: String,
+      imported: Boolean,
       _id: false,
     }],
     default: [],

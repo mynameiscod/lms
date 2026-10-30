@@ -125,6 +125,6 @@ describe('pools in use', () => {
     await exam({ sections: [{ poolId: p, title: 'A', easy: 1 }] });
     await expect(pools.deletePool(ME, p)).rejects.toThrow(/used by "Mid-term"/);
     await Assignment.deleteMany({});
-    await expect(pools.deletePool(ME, p)).resolves.toEqual({ deleted: true });
+    await expect(pools.deletePool(ME, p)).resolves.toMatchObject({ deleted: true });
   });
 });

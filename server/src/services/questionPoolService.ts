@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import * as XLSX from 'xlsx';
 import QuestionPool, { IQuestionPool, PoolKind, POOL_KINDS } from '../models/QuestionPool';
-import CodingProblem, { isAvailableTo } from '../models/CodingProblem';
+import CodingProblem, { CodingProblemTestCase, isAvailableTo } from '../models/CodingProblem';
+import PoolExamAttempt from '../models/PoolExamAttempt';
 import Question from '../models/Question';
 import Assignment from '../models/Assignment';
 import { Actor, PbError, createProblem, listProblems, normalizeInput, visibilityFilter } from './problemBankService';
@@ -147,12 +148,69 @@ export async function updatePool(a: Actor, id: string, body: any) {
   return view(a, pool);
 }
 
+/** An item without the imported flag counts as imported when its question was created as it was added. */
+const IMPORT_WINDOW_MS = 60_000;
+
+/**
+ * Of these pool items, the questions the pool itself imported and nothing has used — they are
+ * deleted with the pool, or when removed from it, so test imports do not pile up in the banks.
+ * While the pool exists they are ordinary questions, drawn into exams like any other.
+ *
+ * NEVER A BANK QUESTION. A question picked from the Problem Bank or the Question Bank was not
+ * imported here and is only unlinked. On top of that, a question is kept when it is:
+ *   - a CodeBegun library problem, or another institute's;
+ *   - given to CareerPilot (the practice library), or not an imported Exam-tagged LMS problem;
+ *   - an MCQ that belongs to a quiz;
+ *   - in any other pool;
+ *   - on any student's exam paper, so past results still open.
+ */
+async function ownedQuestions(pool: IQuestionPool, items: IQuestionPool['items']): Promise<mongoose.Types.ObjectId[]> {
+  if (!items.length) return [];
+  const ids = items.map(i => i.refId);
+  const docs: any[] = pool.kind === 'coding'
+    ? await CodingProblem.find({ _id: { $in: ids } }).select('scope tenantId audiences source tags createdAt').lean()
+    : await Question.find({ _id: { $in: ids } }).select('tenantId source quizId usedInQuizzes createdAt').lean();
+  const byId = new Map(docs.map(d => [String(d._id), d]));
+  const candidates = items.filter(i => {
+    const d = byId.get(String(i.refId));
+    if (!d || String(d.tenantId) !== String(pool.tenantId)) return false;
+    const imported = i.imported === true
+      || (i.imported === undefined && Math.abs(new Date(i.addedAt).getTime() - new Date(d.createdAt).getTime()) <= IMPORT_WINDOW_MS);
+    if (!imported) return false;
+    if (pool.kind === 'coding') {
+      return d.scope === 'tenant' && d.source === 'import' && !isAvailableTo(d, 'careerpilot')
+        && (d.tags || []).some((t: string) => t.toLowerCase() === EXAM_TAG.toLowerCase());
+    }
+    return d.source === 'csv' && !d.quizId && !(d.usedInQuizzes || []).length;
+  }).map(i => i.refId);
+  if (!candidates.length) return [];
+  const [elsewhere, onPapers] = await Promise.all([
+    QuestionPool.find({ _id: { $ne: pool._id }, 'items.refId': { $in: candidates } }).select('items.refId').lean() as Promise<any[]>,
+    PoolExamAttempt.distinct('items.refId', { 'items.refId': { $in: candidates } }),
+  ]);
+  const keep = new Set([
+    ...elsewhere.flatMap(p => p.items.map((i: any) => String(i.refId))),
+    ...onPapers.map(String),
+  ]);
+  return candidates.filter(c => !keep.has(String(c)));
+}
+
+async function deleteOwned(pool: IQuestionPool, ids: mongoose.Types.ObjectId[]): Promise<number> {
+  if (!ids.length) return 0;
+  if (pool.kind === 'coding') {
+    await CodingProblemTestCase.deleteMany({ problemId: { $in: ids } });
+    return (await CodingProblem.deleteMany({ _id: { $in: ids }, scope: 'tenant', tenantId: pool.tenantId })).deletedCount || 0;
+  }
+  return (await Question.deleteMany({ _id: { $in: ids }, tenantId: pool.tenantId })).deletedCount || 0;
+}
+
 export async function deletePool(a: Actor, id: string) {
   const pool = await load(a, id);
   const exams = await Assignment.find({ tenant: a.tenantId, 'poolExam.sections.poolId': pool._id }).select('title').limit(5).lean() as any[];
   if (exams.length) throw new PbError(`This pool is used by ${exams.map(e => `"${e.title}"`).join(', ')}. Remove it from those exams first.`, 409);
+  const owned = await ownedQuestions(pool, pool.items);
   await pool.deleteOne();
-  return { deleted: true };
+  return { deleted: true, questionsDeleted: await deleteOwned(pool, owned) };
 }
 
 /**
@@ -181,13 +239,28 @@ export async function addQuestions(a: Actor, id: string, ids: any) {
   return { added: added.length, refused, pool: await view(a, pool) };
 }
 
-/** Unlink questions. They stay in their bank. */
+/** Unlink questions. Bank questions stay in their bank; ones only this pool imported and used go (ownedQuestions). */
 export async function removeQuestions(a: Actor, id: string, ids: any) {
   const pool = await load(a, id);
   const drop = new Set((Array.isArray(ids) ? ids : []).map(String));
+  const owned = await ownedQuestions(pool, pool.items.filter(i => drop.has(String(i.refId))));
   pool.items = pool.items.filter(i => !drop.has(String(i.refId))) as any;
   await pool.save();
+  await deleteOwned(pool, owned);
   return view(a, pool);
+}
+
+/** Question text or title, compared without case or spacing, to spot the same question imported twice. */
+const sameText = (s: unknown) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+/** What this pool already holds, by text: an import skips these instead of adding a second copy. */
+async function textsInPool(pool: IQuestionPool): Promise<Set<string>> {
+  const ids = pool.items.map(i => i.refId);
+  if (!ids.length) return new Set();
+  const docs: any[] = pool.kind === 'coding'
+    ? await CodingProblem.find({ _id: { $in: ids } }).select('title').lean()
+    : await Question.find({ _id: { $in: ids } }).select('question').lean();
+  return new Set(docs.map(d => sameText(pool.kind === 'coding' ? d.title : d.question)));
 }
 
 /**
@@ -250,6 +323,7 @@ export async function importMcqs(a: Actor, id: string, rows: any) {
 
   const refused: { row: number; reason: string }[] = [];
   const docs: any[] = [];
+  const seen = await textsInPool(pool);
   list.forEach((r, i) => {
     const text = String(r?.question || '').trim();
     const options = (Array.isArray(r?.options) ? r.options : []).map(o => String(o || '').trim()).filter(Boolean);
@@ -261,6 +335,8 @@ export async function importMcqs(a: Actor, id: string, rows: any) {
     if (!text) return refused.push({ row: i + 1, reason: 'No question text' });
     if (options.length < 2) return refused.push({ row: i + 1, reason: 'Fewer than two options' });
     if (idx < 0) return refused.push({ row: i + 1, reason: `Answer "${answer}" matches no option` });
+    if (seen.has(sameText(text))) return refused.push({ row: i + 1, reason: 'Already in this pool' });
+    seen.add(sameText(text));
     docs.push({
       tenantId: a.tenantId, createdBy: a.userId, type: 'mcq_single', question: text,
       options: options.map((t, j) => ({ text: t, isCorrect: j === idx })), correctAnswers: [options[idx]],
@@ -273,7 +349,7 @@ export async function importMcqs(a: Actor, id: string, rows: any) {
   if (pool.items.length + docs.length > MAX_ITEMS) throw new PbError(`A pool holds at most ${MAX_ITEMS} questions.`);
 
   const created = docs.length ? await Question.insertMany(docs) : [];
-  pool.items.push(...created.map(c => ({ refId: c._id as any, addedAt: new Date(), addedBy: a.userId })));
+  pool.items.push(...created.map(c => ({ refId: c._id as any, addedAt: new Date(), addedBy: a.userId, imported: true })));
   await pool.save();
   return { imported: created.length, refused, pool: await view(a, pool) };
 }
@@ -333,12 +409,15 @@ export async function importCoding(a: Actor, id: string, filename: string, base6
 
   const refused: { row: number; reason: string }[] = [];
   const created: mongoose.Types.ObjectId[] = [];
+  const seen = await textsInPool(pool);
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     if (item.__error) { refused.push({ row: i + 1, reason: item.__error }); continue; }
     const n = normalizeInput(item);
     const reasons = [...n.errors, ...n.publishErrors];
     if (reasons.length) { refused.push({ row: i + 1, reason: reasons.join(' ') }); continue; }
+    if (seen.has(sameText(n.clean.title))) { refused.push({ row: i + 1, reason: 'Already in this pool' }); continue; }
+    seen.add(sameText(n.clean.title));
     const tags = n.clean.tags.some((t: string) => t.toLowerCase() === EXAM_TAG.toLowerCase()) ? n.clean.tags : [...n.clean.tags, EXAM_TAG];
     try {
       const { problem } = await createProblem(a, { ...item, tags, audiences: ['lms'], scope: 'tenant', status: 'published' }, 'import');
@@ -347,7 +426,7 @@ export async function importCoding(a: Actor, id: string, filename: string, base6
       refused.push({ row: i + 1, reason: e?.message || 'Could not be saved' });
     }
   }
-  pool.items.push(...created.map(c => ({ refId: c, addedAt: new Date(), addedBy: a.userId })) as any);
+  pool.items.push(...created.map(c => ({ refId: c, addedAt: new Date(), addedBy: a.userId, imported: true })) as any);
   await pool.save();
   return { imported: created.length, refused, pool: await view(a, pool) };
 }

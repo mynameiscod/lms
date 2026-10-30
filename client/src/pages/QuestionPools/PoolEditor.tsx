@@ -239,13 +239,17 @@ const PoolEditor: React.FC = () => {
       .catch(e => toast.show(pbError(e), true));
   };
   const removeSelected = () => {
-    if (!window.confirm(`Remove ${selected.size} question(s) from this pool? They stay in the bank.`)) return;
+    if (!window.confirm(`Remove ${selected.size} question(s) from this pool?
+
+Questions picked from the bank stay in the bank. Questions imported into this pool are deleted, unless another pool uses them or a student has had them in an exam.`)) return;
     questionPoolApi.removeQuestions(pool.id, Array.from(selected))
       .then(p => { setPool(p); setSelected(new Set()); toast.show('Removed from the pool'); })
       .catch(e => toast.show(pbError(e), true));
   };
   const deletePool = () => {
-    if (!window.confirm(`Delete the pool "${pool.name}"? Its questions stay in the bank.`)) return;
+    if (!window.confirm(`Delete the pool "${pool.name}"?
+
+Questions picked from the bank stay in the bank. Questions imported into this pool are deleted with it, unless another pool uses them or a student has had them in an exam.`)) return;
     questionPoolApi.remove(pool.id).then(() => nav('/admin/assignments/pools')).catch(e => toast.show(pbError(e), true));
   };
   const toggle = (qid: string) => { const s = new Set(selected); if (s.has(qid)) s.delete(qid); else s.add(qid); setSelected(s); };

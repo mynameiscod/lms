@@ -136,6 +136,7 @@ import employeeExpenseRoutes from './employeeExpenseRoutes';
 import companyExpenseRoutes from './companyExpenseRoutes';
 import interviewHubRoutes from './interviewHubRoutes';
 import questionBookRoutes from './questionBookRoutes';
+import contentLibraryRoutes from './contentLibraryRoutes';
 import concernRoutes from './concernRoutes';
 import supportRoutes from './supportRoutes';
 import monitorRoutes from './monitorRoutes';
@@ -304,6 +305,7 @@ router.use('/company-expenses', companyExpenseRoutes); // the company expense le
 router.use('/practice-pass', practicePassRoutes); // daily practice attendance + placement hold
 router.use('/interview-hub', interviewHubRoutes); // real interview experiences, global pool + invites
 router.use('/question-books', questionBookRoutes); // staff-written interview question books, read notebook-style
+router.use('/content-library', contentLibraryRoutes); // Problem Bundles: one library of every assessable item (additive)
 router.use('/sales-call-recordings', salesCallRecordingRoutes);
 router.use('/google-leads', googleAdsRoutes);
 router.use('/ai-calls', aiCallRoutes);

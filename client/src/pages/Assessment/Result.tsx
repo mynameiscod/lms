@@ -313,7 +313,7 @@ const Result: React.FC = () => {
         </main>
       </div>
 
-      <CareerPilotFooter variant="visitor" />
+      <CareerPilotFooter variant="visitor" wrapStyle={{ maxWidth: 1300, margin: '0 auto', paddingLeft: 26, paddingRight: 26, boxSizing: 'border-box' }} />
     </div>
   );
 };

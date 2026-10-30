@@ -108,12 +108,17 @@ const FooterLink: React.FC<{ item: Item; actions?: FooterActions }> = ({ item, a
     : <Link to={href}>{item.label}</Link>;
 };
 
-const CareerPilotFooter: React.FC<{ variant?: 'member' | 'visitor'; actions?: FooterActions; className?: string }> = ({ variant = 'member', actions, className }) => {
+/**
+ * `wrapClassName` / `wrapStyle`: the page's own content container. The footer's columns then start and
+ * end exactly where the page's header and sections do, at every screen width, instead of in a fixed
+ * 1440px box of their own that sat narrower than wide pages.
+ */
+const CareerPilotFooter: React.FC<{ variant?: 'member' | 'visitor'; actions?: FooterActions; className?: string; wrapClassName?: string; wrapStyle?: React.CSSProperties }> = ({ variant = 'member', actions, className, wrapClassName, wrapStyle }) => {
   const visitor = variant === 'visitor';
   const columns = visitor ? VISITOR_COLUMNS : MEMBER_COLUMNS;
   return (
     <footer className={`cpf${visitor ? ' cpf-visitor' : ''}${className ? ` ${className}` : ''}`}>
-      <div className="cpf-in">
+      <div className={`cpf-in${wrapClassName || wrapStyle ? ` cpf-page ${wrapClassName || ''}` : ''}`} style={wrapStyle}>
         <div className="cpf-top">
           <div className="cpf-brand">
             <Link to={visitor ? JOIN : '/careerpilot'} className="cpf-logo" aria-label="CareerPilot home">

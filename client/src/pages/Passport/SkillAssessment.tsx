@@ -500,7 +500,7 @@ const SkillAssessment: React.FC = () => {
     </header>
   );
 
-  const Footer = () => <CareerPilotFooter />;
+  const Footer = () => <CareerPilotFooter wrapClassName="ska-wrap" />;
 
   if (loading) return <div className="ska-page"><Header /><div className="ska-state"><div className="ska-load">Loading your assessment…</div></div><Footer /></div>;
 

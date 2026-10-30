@@ -26,6 +26,9 @@
   padding: 56px clamp(20px, 6vw, 96px) 28px;
 }
 
+/* In the page's own container: its width and side margins come from that class, not from here. */
+.cpf .cpf-in.cpf-page { max-width: none; padding-left: 0; padding-right: 0; }
+
 .cpf .cpf-top {
   display: grid;
   grid-template-columns: minmax(260px, 1.5fr) repeat(3, minmax(150px, 1fr));

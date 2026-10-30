@@ -320,7 +320,7 @@ const CareerSetup: React.FC = () => {
             </div>
           </section>
         </main>
-        <CareerPilotFooter />
+        <CareerPilotFooter wrapClassName="cpr-wrap" />
       </div>
     );
   }
@@ -492,7 +492,7 @@ const CareerSetup: React.FC = () => {
       </main>
 
       <section className="cps-capabilities"><div className="cps-cap-title">With <b>Career<span>Pilot</span></b>, you can</div><div className="cps-cap-grid">{CAPABILITIES.map((item, index) => <div className={`cps-cap tone-${(index % 5) + 1}`} key={item.title}><span><i className={`bi ${item.icon}`} /></span><b>{item.title}</b></div>)}</div></section>
-      <CareerPilotFooter />
+      <CareerPilotFooter wrapClassName="cpr-wrap" />
     </div>
   );
 };

@@ -791,7 +791,7 @@ const PassportJoin: React.FC = () => {
         </section>
       </main>
 
-      <CareerPilotFooter variant="visitor" actions={{ onSection: scrollTo, onLogin: goLogin, onCreateAccount: () => { setAuthMode('create'); scrollToSignup(); } }} />
+      <CareerPilotFooter variant="visitor" wrapClassName="cpx-wrap" actions={{ onSection: scrollTo, onLogin: goLogin, onCreateAccount: () => { setAuthMode('create'); scrollToSignup(); } }} />
     </div>
   );
 };

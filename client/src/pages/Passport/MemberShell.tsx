@@ -63,14 +63,13 @@ interface Props {
  * readable label, never the event itself, which is the right way round for a log.
  */
 const SCREEN_NAMES: Record<string, string> = {
-  '/careerpilot': 'Mission Control',
+  '/careerpilot': 'My Dashboard',
   '/careerpilot/setup': 'Setup — academic details',
   '/careerpilot/skill-assessment': 'Skill assessment',
   '/careerpilot/roadmap': 'My roadmap',
   '/careerpilot/skills': 'Skill DNA',
   '/careerpilot/readiness': 'Role readiness',
   '/careerpilot/placement': 'Placement readiness',
-  '/careerpilot/progress': 'My progress',
   '/careerpilot/rewards': 'Reward Store',
   '/careerpilot/aptitude': 'Aptitude (coming soon)',
   '/careerpilot/reasoning': 'Reasoning (coming soon)',
@@ -98,9 +97,10 @@ const NAV_ALIASES: Array<[string, string]> = [
   ['/careerpilot/material', '/careerpilot/roadmap'],
   ['/careerpilot/quiz', '/careerpilot/plan'],
   ['/careerpilot/mock-test', '/careerpilot/companies'],
-  ['/careerpilot/coins', '/careerpilot/progress'],
-  ['/careerpilot/achievements', '/careerpilot/progress'],
-  ['/careerpilot/leaderboard', '/careerpilot/progress'],
+  // My Progress is part of My Dashboard now: its detail pages light up the dashboard in the rail.
+  ['/careerpilot/coins', '/careerpilot'],
+  ['/careerpilot/achievements', '/careerpilot'],
+  ['/careerpilot/leaderboard', '/careerpilot'],
 ];
 
 /**
@@ -369,7 +369,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         </button>
 
         <nav className="gd-nav">
-          {navBtn('Home', 'home', '/careerpilot')}
+          {/* Home and My Progress are one page now: My Dashboard. */}
+          {navBtn('My Dashboard', 'home', '/careerpilot')}
           {/*
             Named from the learner's own plan, not from a constant: "My 90 Days" was shown to
             everybody, which is wrong for every second-year, whose plan is 110, and was already
@@ -399,12 +400,11 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
               where people look for their account, not for a daily read. */}
           {navBtn('Tech News', 'news', '/careerpilot/news', 'news', 'news')}
           {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume', 'resume')}
-          {navBtn('My Progress', 'trophy', '/careerpilot/progress', 'progress', 'progress')}
           {/* Membership-only like the rest of the product; the institute can also hide it
               (Student Features, CareerPilot tab). */}
           {navBtn('Industry Connect', 'handshake', '/careerpilot/industry-connect', 'industryConnect', 'industryConnect')}
           {/* The tools end of the rail, in the order asked for: Playground, then Reward Store, then Help & Support.
-              Reward Store is part of My Progress (coins buy rewards), so it locks and hides with it. */}
+              Reward Store goes with the progress switch (coins buy rewards), so it locks and hides with it. */}
           {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
           {navBtn('Reward Store', 'gift', '/careerpilot/rewards', 'progress', 'progress')}
           {/* Never locked behind membership: anyone signed in must be able to ask for help, including about paying. */}
@@ -447,7 +447,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         <div className="gd-topbar">
           <div className="gd-topbar-l">
             {/* Only over the working dashboard: the locked one (PassportHome's other branch) greets in its own hero. */}
-            {path === '/careerpilot' && d?.active && d?.hasAssessment && <div className="gd-hello"><h1>Hey {firstName}!</h1><p>Let’s code, solve problems and level up your skills.</p></div>}
+            {path === '/careerpilot' && d?.active && d?.hasAssessment && <div className="gd-hello"><h1>My Dashboard</h1><p>Hey {firstName}! Your day, your scores and your progress in one place.</p></div>}
           </div>
           <div className="gd-topbar-r">
             {/*
@@ -485,7 +485,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                   </span>
                   <span className="gd-tip" aria-hidden>Your level rises with XP. {lv.progressPct}% of the way to level {lv.nextLevel}.</span>
                 </Link>
-                <Link to="/careerpilot/progress" className="gd-stat s-xp"
+                <Link to="/careerpilot" className="gd-stat s-xp"
                       aria-label={`${lv.xp.toLocaleString()} XP, ${lv.xpToNextLevel.toLocaleString()} to level ${lv.nextLevel}. See your progress`}>
                   <span className="gd-stat-ic" aria-hidden><i className="bi bi-lightning-charge-fill" /></span>
                   <span className="gd-stat-tx"><b>{lv.xp.toLocaleString()}<em> XP</em></b><small>{lv.xpToNextLevel.toLocaleString()} to level {lv.nextLevel}</small></span>

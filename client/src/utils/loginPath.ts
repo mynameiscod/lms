@@ -74,7 +74,7 @@ const PAGE_NAMES: [string, string][] = [
   ['/careerpilot/companies', 'Opportunities'],
   ['/careerpilot/news', 'Tech News'],
   ['/careerpilot/resume', 'Resume'],
-  ['/careerpilot/progress', 'My Progress'],
+  ['/careerpilot/progress', 'My Dashboard'],
   ['/careerpilot/rewards', 'the Reward Store'],
   ['/careerpilot/aptitude', 'Aptitude'],
   ['/careerpilot/reasoning', 'Reasoning'],

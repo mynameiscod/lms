@@ -149,7 +149,6 @@ const PassportSkillDna = lazy(() => import('./pages/Passport/SkillDna'));
 const PassportRoleReadiness = lazy(() => import('./pages/Passport/RoleReadiness'));
 const PassportPlacementReadiness = lazy(() => import('./pages/Passport/PlacementReadiness'));
 const PassportSkillAssessment = lazy(() => import('./pages/Passport/SkillAssessment'));
-const PassportGamification = lazy(() => import('./pages/Passport/Gamification'));
 const PassportRewards = lazy(() => import('./pages/Passport/Rewards'));
 const AptitudeSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.AptitudeSoon })));
 const ReasoningSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.ReasoningSoon })));
@@ -848,7 +847,8 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/playground" element={<CodePlayground />} />
         <Route path="/careerpilot/visualizer" element={<CodeVisualizer />} />
         <Route path="/careerpilot/visualizer/:slug" element={<CodeVisualizerWorkspace />} />
-        <Route path="/careerpilot/progress" element={<PassportGamification />} />
+        {/* My Progress is part of My Dashboard; an old link or bookmark lands there. */}
+        <Route path="/careerpilot/progress" element={<Navigate to="/careerpilot" replace />} />
         {/* Coins buy rewards; XP never does. */}
         <Route path="/careerpilot/rewards" element={<PassportRewards />} />
         {/* Announced in the rail, not built yet: each says what is coming and where to practise meanwhile. */}

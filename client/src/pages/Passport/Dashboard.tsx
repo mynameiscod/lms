@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import passportApi, { DashboardData, Badge, TodayMissions, FoundationJourney, FoundationJourneyDay, OrientationDay } from '../../api/passportApi';
+import passportApi, { DashboardData, Badge, TodayMissions, FoundationJourney, FoundationJourneyDay, OrientationDay, GamificationSummary, ScopedLeaderboardResponse, ScopedLeaderboardRow } from '../../api/passportApi';
 import './dashboard.css';
 import './dashboard-redesign.css';
 import './memberDashboard.css';
+import './myDashboard.css';
 import { barWidth } from '../../utils/barWidth';
 
 const Bi: React.FC<{ name: string; className?: string }> = ({ name, className = '' }) => (
@@ -155,6 +156,40 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const [justCoached, setJustCoached] = useState<{ key: string; feedback: string } | null>(null);
   const [missionMsg, setMissionMsg] = useState('');
 
+  /**
+   * MY DASHBOARD IS HOME AND MY PROGRESS IN ONE.
+   *
+   * My Progress was its own page: level, coins, ranks, badges, the scoped leaderboard. Its figures come
+   * from the same server summaries it read, loaded beside the member payload; a failure leaves those
+   * cards out rather than the dashboard.
+   */
+  const [prog, setProg] = useState<GamificationSummary | null>(null);
+  const [coins, setCoins] = useState<number | null>(null);
+  const [board, setBoard] = useState<ScopedLeaderboardResponse | null>(null);
+  const [boardBusy, setBoardBusy] = useState(false);
+  const [scope, setScope] = useState('COLLEGE');
+  const [period, setPeriod] = useState('ALL_TIME');
+  const [allBadges, setAllBadges] = useState(false);
+  useEffect(() => {
+    Promise.allSettled([passportApi.getMyGamification(), passportApi.getRewards()]).then(([g, r]) => {
+      if (g.status === 'fulfilled') {
+        setProg(g.value);
+        // Open on a board this member is on: with no college the college board is only a note.
+        if (!g.value?.ranks?.college?.available && g.value?.ranks?.global?.available) setScope('GLOBAL');
+      }
+      if (r.status === 'fulfilled') setCoins(Number(r.value?.student?.coins ?? r.value?.student?.coinBalance ?? 0));
+    });
+  }, [data]);
+  useEffect(() => {
+    let live = true;
+    setBoardBusy(true);
+    passportApi.getMyLeaderboard(scope, period)
+      .then(b => { if (live) setBoard(b); })
+      .catch(() => { if (live) setBoard(null); })
+      .finally(() => { if (live) setBoardBusy(false); });
+    return () => { live = false; };
+  }, [scope, period]);
+
   useEffect(() => { setD(data); }, [data]);
   /**
    * The Foundation journey, when the unit engine plans this student: its current day IS today's missions.
@@ -286,298 +321,266 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const streakTarget = st.streak < 7 ? 7 : st.streak < 21 ? 21 : st.streak < 30 ? 30 : 100;
   const missionXp = shownMissions.reduce((s, m) => s + m.xp, 0);
   const missionsDone = shownMissions.filter(m => m.done).length;
-  /* Today's challenge is the day bonus a member can still earn: finish everything on the day. */
-  const challenge = (() => {
-    if (welcomeDay && wItems.length) {
-      const left = wItems.length - wDone;
-      return {
-        done: left === 0,
-        text: left === 0 ? `Welcome day ${welcomeDay.day} finished` : `Finish welcome day ${welcomeDay.day} (${left} to go)`,
-        reward: 0,
-        href: welcomeHref,
-      };
-    }
-    if (jDay && jActs.length) {
-      const left = jActs.length - jDone;
-      return {
-        done: left === 0,
-        text: left === 0 ? `All ${jActs.length} tasks finished today` : `Finish all ${jActs.length} tasks today (${left} to go)`,
-        reward: jDay.dayBonusXp || 0,
-        href: dayHref,
-      };
-    }
-    const total = shownMissions.length;
-    if (!total) return null;
-    const left = total - missionsDone;
-    return {
-      done: left === 0,
-      text: left === 0 ? `All ${total} missions finished today` : `Finish all ${total} missions today (${left} to go)`,
-      reward: 0,
-      href: '/careerpilot/plan',
-    };
-  })();
+  // The institute's "My Progress" switch (Student Features) still hides the progress half here.
+  const progressOn = !((d as any).hidden || []).includes('progress');
+  const ranks = prog?.ranks || {};
+  const earnedBadges = (d.badges || []).filter(b => b.earned).length;
+  const shownBadges = allBadges ? (d.badges || []) : (d.badges || []).slice(0, 6);
+  const ladderFrom = Math.max(1, lv.level - 1);
+  const ladder = [0, 1, 2, 3].map(i => ladderFrom + i);
+  // Only the ranks the member actually holds; "College —" read like a broken figure.
+  const rankLine = ([['College', ranks.college], ['Global', ranks.global]] as const)
+    .filter(([, r]) => r?.available && r.rank)
+    .map(([label, r]) => `${label} #${r!.rank}${r!.participants ? ` of ${r!.participants.toLocaleString()}` : ''}`)
+    .join(' · ');
 
   /**
-   * THE MEMBER HOME, IN THE ORDER A STUDENT USES IT.
+   * MY DASHBOARD, IN THE ORDER A STUDENT USES IT.
    *
-   * What to do now leads (today's goal, the journey day, the missions); how they are doing follows (scores,
-   * activity, the board); the long view closes (badges, contests, the career path). Every figure is the one
-   * this screen always showed — the redesign moves and groups them, it does not invent any.
+   * The figures first (one row for everything Home and My Progress counted), then what to do today beside
+   * how they are moving, then how they compare and what they have earned, and the long view last. Every
+   * figure is one these two pages already showed — the redesign moves and groups them, it invents none.
    */
   return (
-    <div className="md">
-      <section className="md-hero">
-        <div className="md-hero-copy">
-          <span className="md-eyebrow">{welcomeDay ? `Day ${welcomeDay.day} · before Day 1` : `Day ${heroDay} of ${heroTotal}`}{d.pathwayLabel ? ` · ${d.pathwayLabel}` : ''}</span>
-          <h1>Today’s <span>focus</span></h1>
-          <p>{goal.met
-            ? 'Today’s goal is reached — anything else you do today is bonus.'
-            : `${Math.max(0, goal.target - goal.earned)} XP to today’s goal. Finish your missions to get there.`}</p>
-          <div className={`md-goal${goal.met ? ' met' : ''}`}>
-            <div className="md-goal-top"><b>{goal.met ? <><i className="bi bi-check-circle-fill" /> Today’s goal reached</> : 'Today’s goal'}</b><span>{goal.earned} / {goal.target} XP · {goalPct}%</span></div>
-            <div className="md-goal-bar" role="progressbar" aria-valuenow={goalPct} aria-valuemin={0} aria-valuemax={100} aria-label="Today's goal"><i style={{ width: `${Math.max(goal.earned > 0 ? 3 : 0, goalPct)}%` }} /></div>
-          </div>
-          <div className="md-hero-actions">
-            {welcomeDay
-              ? <button className="md-btn light" onClick={() => nav(welcomeHref)} disabled={!!welcomeDay.locked}>{welcomeDay.locked ? 'Next welcome day opens tomorrow' : `${wDone ? 'Continue' : 'Start'} Day ${welcomeDay.day}`} {!welcomeDay.locked && <Bi name="arrow-right" />}</button>
-              : journeyMode && journey?.available && journey.enrollmentId
-              ? <button className="md-btn light" onClick={() => nav(dayHref)}>{`${jDone ? 'Continue' : 'Start'} Day ${journey?.currentDay ?? 1}`} <Bi name="arrow-right" /></button>
-              : <button className="md-btn light" onClick={startNext}>
-                  {nextMission ? (nextMission.link ? 'Start next mission' : 'Write your answer') : 'Practice anyway'} <Bi name="arrow-right" />
-                </button>}
-            <button className="md-btn ghost" onClick={() => nav('/careerpilot/roadmap')}><Bi name="map" /> My roadmap</button>
-          </div>
-        </div>
-        {/* Daily momentum: the streak, where today sits on the way to a 7- and 30-day run, and the day bonus
-            still on the table — all from the member's own numbers, not decoration. */}
-        <div className="md-momentum">
-          <span className="md-eyebrow">Daily momentum</span>
-          <div className={`md-streak${st.streak > 0 ? ' on' : ''}`}>
-            <span className="ic"><Bi name="fire" /></span>
-            <div>
-              <b>{st.streak > 0 ? `${st.streak} day streak` : 'Start your streak'}</b>
-              <span>{st.streak > 0 ? 'Show up today. Build consistency.' : 'Finish one task today to begin.'}</span>
-            </div>
-            <i className="md-streak-art" aria-hidden="true"><em /><em /><em /></i>
-          </div>
-          <ol className="md-steps2">
-            {[{ k: 'start', label: 'Start', at: 1 }, { k: 'today', label: 'Today', at: st.streak > 0 ? st.streak : 1 }, { k: 'seven', label: '7 days', at: 7 }, { k: 'thirty', label: '30 days', at: 30 }].map((s2, i) => {
-              const state = st.streak >= s2.at && !(i === 1) ? 'done' : (i === 1 ? 'current' : '');
-              return <li key={s2.k} className={state}><i /><span>{s2.label}</span></li>;
-            })}
-          </ol>
-          {challenge && <button className="md-challenge" onClick={() => nav(challenge.href)}>
-            <span className="ic"><Bi name={challenge.done ? 'check-circle-fill' : 'bullseye'} /></span>
-            <div><b>{challenge.done ? 'Today’s challenge done' : 'Today’s challenge'}</b><span>{challenge.text}</span>{challenge.reward ? <em>{challenge.done ? 'Earned' : 'Reward'}: +{challenge.reward} bonus XP</em> : null}</div>
-            <Bi name="chevron-right" />
-          </button>}
-          <p className="md-quote"><span className="q" aria-hidden="true">“</span>Small progress every day creates big results.<span className="q" aria-hidden="true">”</span></p>
-        </div>
-        <div className="md-hero-score">
-          <div className="md-score-ring" style={{ ['--md-deg' as any]: `${Math.min(1000, score) * 0.36}deg` }}>
-            <div><strong>{score}</strong><span>/ 1000</span></div>
-          </div>
-          <div className="md-hero-score-copy">
-            <small>Coder score <span className="md-help" title="A 0–1000 composite of your assessment, practice, missions, interviews and resume.">?</span></small>
-            <b>{scoreTag}</b>
-            <span>{d.percentileAhead !== null && d.percentileAhead !== undefined
-              ? <>Ahead of <em>{d.percentileAhead}%</em> of CareerPilot members on XP.</>
-              : 'Rankings appear once more members join your cohort.'}</span>
-          </div>
-        </div>
-      </section>
-
-      <section className="md-kpis">
+    <div className="md mdb">
+      <section className="mdb-stats" aria-label="Your figures">
         <div><span className="ic amber"><Bi name="fire" /></span><div><small>Streak</small><b>{st.streak}<em> {st.streak === 1 ? 'day' : 'days'}</em></b><span>Best {st.longestStreak} {st.longestStreak === 1 ? 'day' : 'days'}</span></div></div>
-        <div><span className="ic blue"><Bi name="award-fill" /></span><div><small>Level {lv.level}</small><b className="sm">{lv.title}</b><span className="md-mini-bar"><i style={{ width: `${lv.progressPct}%` }} /></span><span>{lv.xpToNextLevel.toLocaleString()} XP to level {lv.nextLevel}</span></div></div>
+        <div><span className="ic blue"><Bi name="award-fill" /></span><div><small>Level {lv.level}</small><b className="sm">{lv.title}</b><span className="md-mini-bar"><i style={{ width: `${barWidth(lv.progressPct)}%` }} /></span><span>{lv.xpToNextLevel.toLocaleString()} XP to level {lv.nextLevel}</span></div></div>
+        <div><span className="ic teal"><Bi name="lightning-charge-fill" /></span><div><small>Total XP</small><b>{lv.xp.toLocaleString()}</b><span>{d.percentileAhead !== null && d.percentileAhead !== undefined ? `Ahead of ${d.percentileAhead}% on XP` : 'Activity earned'}</span></div></div>
+        {progressOn && <div><span className="ic gold"><Bi name="coin" /></span><div><small>Coins</small><b>{coins === null ? '—' : coins.toLocaleString()}</b><button className="md-link" onClick={() => nav('/careerpilot/rewards')}>Rewards store <Bi name="arrow-right" /></button></div></div>}
         <div><span className="ic teal"><Bi name="code-slash" /></span><div><small>Problems solved</small><b>{st.solved}<em> / {st.totalProblems}</em></b><span>{st.accuracy ? `${st.accuracy.pct}% accuracy` : 'No attempts yet'}</span></div></div>
         <div><span className="ic violet"><Bi name="mic-fill" /></span><div><small>Mock interviews</small><b>{st.interviews}</b><span>{st.bestInterview !== null ? `Best ${st.bestInterview}%` : 'Not attempted yet'}</span></div></div>
       </section>
 
-
-      <section className="md-grid wide">
-        {journeyMode ? (
-          /**
-           * TODAY'S MISSIONS ARE TODAY'S JOURNEY DAY.
-           *
-           * A student the unit engine plans has one plan, and the topic planner's daily missions are not part
-           * of it — which is why this card used to offer a member "Build my plan". Their missions are
-           * the tasks of the day their journey is on, each with the XP it pays (foundationJourneyXpService),
-           * worked through in the day player.
-           */
+      <section className="mdb-main">
+        <div className="md-col">
+          <div className={`mdb-goal${goal.met ? ' met' : ''}`}>
+            <span className="mdb-day">{welcomeDay ? `Day ${welcomeDay.day} · before Day 1` : `Day ${heroDay} of ${heroTotal}`}</span>
+            <div className="mdb-goal-main">
+              <div className="mdb-goal-top"><b>{goal.met ? <><Bi name="check-circle-fill" /> Today’s goal reached</> : 'Today’s goal'}</b><span>{goal.earned} / {goal.target} XP</span></div>
+              <div className="md-goal-bar" role="progressbar" aria-valuenow={goalPct} aria-valuemin={0} aria-valuemax={100} aria-label="Today's goal"><i style={{ width: `${barWidth(goalPct)}%` }} /></div>
+            </div>
+          </div>
+          {journeyMode ? (
+            /**
+             * TODAY'S MISSIONS ARE TODAY'S JOURNEY DAY.
+             *
+             * A student the unit engine plans has one plan, and the topic planner's daily missions are not part
+             * of it — which is why this card used to offer a member "Build my plan". Their missions are
+             * the tasks of the day their journey is on, each with the XP it pays (foundationJourneyXpService),
+             * worked through in the day player.
+             */
+            <article className="md-card">
+              <header className="md-card-head">
+                <div>
+                  <h2><Bi name="list-task" /> Today’s missions</h2>
+                  <p>{welcomeDay ? `Day ${welcomeDay.day} · ${welcomeDay.title} · before Day 1` : jDay ? `Day ${jDay.day} of ${jDay.totalDays} · ${jDay.title}` : journey?.available ? `Day ${journey.currentDay ?? 1} of ${journey.totalDays ?? d.programDays ?? 90}` : `Your ${journey?.stageLabel || 'CareerPilot'} journey`}</p>
+                </div>
+                {welcomeDay ? <span className="md-pill">{wDone} of {wItems.length} done</span>
+                  : jDay && <span className="md-pill">{jDone} of {jActs.length} done · +{jEarned} / {jTotalXp} XP</span>}
+              </header>
+              {welcomeDay ? <>
+                <div className="md-missions">
+                  {wItems.map(it => (
+                    <button type="button" key={it.key} className={`md-mission md-jm${it.done ? ' done' : ''}`} onClick={() => !welcomeDay.locked && nav(welcomeHref)} disabled={!!welcomeDay.locked}>
+                      <span className={`md-mission-ic t-${it.kind}`}><Bi name={WELCOME_ICON[it.kind] || 'journal-text'} /></span>
+                      <span className="txt"><b>{it.title}</b><span>{WELCOME_TYPE[it.kind] || it.kind}{it.estimatedMinutes ? ` · ${it.estimatedMinutes} min` : ''}{it.required ? ' · must be completed' : ' · optional'}</span></span>
+                      <span className={`md-check${it.done ? ' on' : ''}`} aria-label={it.done ? 'Done' : 'Not done yet'}>{it.done && <Bi name="check-lg" />}</span>
+                    </button>
+                  ))}
+                  {!wItems.length && <div className="md-empty">This welcome day is still being prepared.</div>}
+                </div>
+                <div className="md-jm-actions">
+                  {welcomeDay.locked
+                    ? <span className="md-empty-note">Today’s welcome is done — Day {welcomeDay.day} opens tomorrow.</span>
+                    : <button className="md-btn primary" onClick={() => nav(welcomeHref)}>{`${wDone ? 'Continue' : 'Start'} Day ${welcomeDay.day}`} <Bi name="arrow-right" /></button>}
+                  <button className="md-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {journey?.totalDays ?? d.programDays ?? 90} days</button>
+                </div>
+              </> : !journey?.available ? (
+                <div className="md-empty">
+                  <p>{journey?.message || 'Your journey appears here once your skill check is complete.'}</p>
+                  {journey?.reason === 'NO_JOURNEY' && <button className="md-btn primary" onClick={() => nav('/careerpilot/skill-assessment')}>Take your skill check</button>}
+                </div>
+              ) : !jDay ? (
+                <div className="md-empty">Loading today’s tasks…</div>
+              ) : <>
+                <div className="md-missions">
+                  {jActs.map(a => (
+                    <button type="button" key={a.id || a.order} className={`md-mission md-jm${a.done ? ' done' : ''}`} onClick={() => nav(dayHref)}>
+                      <span className={`md-mission-ic t-${a.type}`}><Bi name={JOURNEY_ICON[a.type] || 'journal-text'} /></span>
+                      <span className="txt"><b>{a.title}</b><span>{JOURNEY_TYPE[a.type] || a.type}{a.minutes ? ` · ${a.minutes} min` : ''}{a.gating ? ' · must be completed' : ''}</span></span>
+                      {(a.xp ?? 0) > 0 && <span className="xp">+{a.xp} XP</span>}
+                      <span className={`md-check${a.done ? ' on' : ''}`} aria-label={a.done ? 'Done' : 'Not done yet'}>{a.done && <Bi name="check-lg" />}</span>
+                    </button>
+                  ))}
+                  {(jDay.dayBonusXp ?? 0) > 0 && (
+                    <div className={`md-mission md-jm bonus${jDay.status === 'COMPLETED' ? ' done' : ''}`}>
+                      <span className="md-mission-ic"><Bi name="gift-fill" /></span>
+                      <span className="txt"><b>Finish every task today</b><span>Day bonus, on top of each task’s XP</span></span>
+                      <span className="xp">+{jDay.dayBonusXp} XP</span>
+                      <span className={`md-check${jDay.status === 'COMPLETED' ? ' on' : ''}`} aria-hidden="true">{jDay.status === 'COMPLETED' && <Bi name="check-lg" />}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="md-jm-actions">
+                  {journey.enrollmentId && <button className="md-btn primary" onClick={() => nav(dayHref)}>{`${jDone ? 'Continue' : 'Start'} Day ${journey?.currentDay ?? 1}`} <Bi name="arrow-right" /></button>}
+                  <button className="md-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {journey.totalDays ?? d.programDays ?? 90} days</button>
+                </div>
+              </>}
+            </article>
+          ) : (
           <article className="md-card">
             <header className="md-card-head">
               <div>
-                <h2><Bi name="list-task" /> Today’s missions</h2>
-                <p>{welcomeDay ? `Day ${welcomeDay.day} · ${welcomeDay.title} · before Day 1` : jDay ? `Day ${jDay.day} of ${jDay.totalDays} · ${jDay.title}` : journey?.available ? `Day ${journey.currentDay ?? 1} of ${journey.totalDays ?? d.programDays ?? 90}` : `Your ${journey?.stageLabel || 'CareerPilot'} journey`}</p>
+                <h2><Bi name="list-task" /> {pastDay ? `Day ${pastDay.day} missions` : 'Today’s missions'}</h2>
+                <p>{totalMissions ? `${missionsDone} of ${totalMissions} done · +${missionXp} XP for all of them` : 'Your daily missions appear here.'}</p>
               </div>
-              {welcomeDay ? <span className="md-pill">{wDone} of {wItems.length} done</span>
-                : jDay && <span className="md-pill">{jDone} of {jActs.length} done · +{jEarned} / {jTotalXp} XP</span>}
+              <div className="md-day-nav">
+                <button onClick={() => stepDay(-1)} disabled={(pastDay?.day ?? d.day ?? 1) <= 1 || dayBusy} title="Previous day" aria-label="Previous day"><Bi name="chevron-left" /></button>
+                {pastDay ? <button className="today" onClick={() => setPastDay(null)}>Back to today</button> : <span className="md-timer"><Bi name="clock" /> {hoursLeft}</span>}
+                <button onClick={() => stepDay(1)} disabled={!pastDay || dayBusy} title="Next day" aria-label="Next day"><Bi name="chevron-right" /></button>
+              </div>
             </header>
-            {welcomeDay ? <>
-              <div className="md-missions">
-                {wItems.map(it => (
-                  <button type="button" key={it.key} className={`md-mission md-jm${it.done ? ' done' : ''}`} onClick={() => !welcomeDay.locked && nav(welcomeHref)} disabled={!!welcomeDay.locked}>
-                    <span className={`md-mission-ic t-${it.kind}`}><Bi name={WELCOME_ICON[it.kind] || 'journal-text'} /></span>
-                    <span className="txt"><b>{it.title}</b><span>{WELCOME_TYPE[it.kind] || it.kind}{it.estimatedMinutes ? ` · ${it.estimatedMinutes} min` : ''}{it.required ? ' · must be completed' : ' · optional'}</span></span>
-                    <span className={`md-check${it.done ? ' on' : ''}`} aria-label={it.done ? 'Done' : 'Not done yet'}>{it.done && <Bi name="check-lg" />}</span>
-                  </button>
-                ))}
-                {!wItems.length && <div className="md-empty">This welcome day is still being prepared.</div>}
-              </div>
-              <div className="md-jm-actions">
-                {welcomeDay.locked
-                  ? <span className="md-empty-note">Today’s welcome is done — Day {welcomeDay.day} opens tomorrow.</span>
-                  : <button className="md-btn primary" onClick={() => nav(welcomeHref)}>{`${wDone ? 'Continue' : 'Start'} Day ${welcomeDay.day}`} <Bi name="arrow-right" /></button>}
-                <button className="md-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {journey?.totalDays ?? d.programDays ?? 90} days</button>
-              </div>
-            </> : !journey?.available ? (
+            {!totalMissions ? (
               <div className="md-empty">
-                <p>{journey?.message || 'Your journey appears here once your skill check is complete.'}</p>
-                {journey?.reason === 'NO_JOURNEY' && <button className="md-btn primary" onClick={() => nav('/careerpilot/skill-assessment')}>Take your skill check</button>}
+                {data.dailyPlan && !data.dailyPlan.available ? <>
+                  <p>{data.dailyPlan.message}</p>
+                  {data.dailyPlan.reason === 'ROADMAP_REQUIRED' && <button className="md-btn primary" onClick={() => nav('/careerpilot/roadmap')}>{d.programDays ? `Build my ${d.programDays}-day plan` : 'Build my plan'}</button>}
+                </> : 'No missions generated for today.'}
               </div>
-            ) : !jDay ? (
-              <div className="md-empty">Loading today’s tasks…</div>
             ) : <>
               <div className="md-missions">
-                {jActs.map(a => (
-                  <button type="button" key={a.id || a.order} className={`md-mission md-jm${a.done ? ' done' : ''}`} onClick={() => nav(dayHref)}>
-                    <span className={`md-mission-ic t-${a.type}`}><Bi name={JOURNEY_ICON[a.type] || 'journal-text'} /></span>
-                    <span className="txt"><b>{a.title}</b><span>{JOURNEY_TYPE[a.type] || a.type}{a.minutes ? ` · ${a.minutes} min` : ''}{a.gating ? ' · must be completed' : ''}</span></span>
-                    {(a.xp ?? 0) > 0 && <span className="xp">+{a.xp} XP</span>}
-                    <span className={`md-check${a.done ? ' on' : ''}`} aria-label={a.done ? 'Done' : 'Not done yet'}>{a.done && <Bi name="check-lg" />}</span>
-                  </button>
+                {shownMissions.map(m => (
+                  <React.Fragment key={m.key}>
+                    <div className={`md-mission${m.done ? ' done' : ''}`} id={`mission-${m.key}`}>
+                      <span className="md-mission-ic"><Bi name={MISSION_ICON[m.category] || 'circle'} /></span>
+                      <div className="txt"><b>{m.title}</b><span>{m.detail}</span></div>
+                      {m.link && !m.done && <button className="lnk" onClick={() => openMissionLink(m.link!, nav)}>Open <Bi name="arrow-right" /></button>}
+                      {m.needsAnswer && !m.done && <button className="lnk" onClick={() => { setAnswerFor(answerFor === m.key ? null : m.key); setAnswerText(''); setAnswerMsg(''); }}>{answerFor === m.key ? 'Close' : 'Write answer'} <Bi name="arrow-right" /></button>}
+                      <span className="xp">+{m.xp} XP</span>
+                      <button className={`md-check${m.done ? ' on' : ''}`} aria-label={m.done ? 'Done' : 'Mark done'} disabled={m.done || (m.verify === 'interview' && !m.done) || (m.needsAnswer && !m.done)} onClick={() => toggleMission(m.key)}>{m.done && <Bi name="check-lg" />}</button>
+                    </div>
+                    {m.needsAnswer && !m.done && answerFor === m.key && <div className="md-answer">
+                      <textarea value={answerText} autoFocus rows={3} placeholder="Type your answer here…" onChange={e => setAnswerText(e.target.value)} onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()} />
+                      <div className="hint"><Bi name="pencil-square" /> Write it in your own words — pasting is turned off for this one.</div>
+                      <div className="md-answer-row"><button className="md-btn primary sm" onClick={() => saveAnswer(m.key)} disabled={answerBusy}>{answerBusy ? 'Saving…' : `Save & complete +${m.xp} XP`}</button><button className="md-btn sm" onClick={() => { setAnswerFor(null); setAnswerMsg(''); }}>Cancel</button>{answerMsg && <span className="msg">{answerMsg}</span>}</div>
+                    </div>}
+                    {m.done && m.answer && <div className="md-answer saved"><b>Your answer</b><p>{m.answer}</p></div>}
+                    {(m.feedback || (justCoached?.key === m.key && justCoached.feedback)) && <div className="md-coach"><b><Bi name="chat-dots" /> Coach</b><p>{m.feedback || justCoached?.feedback}</p></div>}
+                  </React.Fragment>
                 ))}
-                {(jDay.dayBonusXp ?? 0) > 0 && (
-                  <div className={`md-mission md-jm bonus${jDay.status === 'COMPLETED' ? ' done' : ''}`}>
-                    <span className="md-mission-ic"><Bi name="gift-fill" /></span>
-                    <span className="txt"><b>Finish every task today</b><span>Day bonus, on top of each task’s XP</span></span>
-                    <span className="xp">+{jDay.dayBonusXp} XP</span>
-                    <span className={`md-check${jDay.status === 'COMPLETED' ? ' on' : ''}`} aria-hidden="true">{jDay.status === 'COMPLETED' && <Bi name="check-lg" />}</span>
-                  </div>
-                )}
               </div>
-              <div className="md-jm-actions">
-                {journey.enrollmentId && <button className="md-btn primary" onClick={() => nav(dayHref)}>{`${jDone ? 'Continue' : 'Start'} Day ${journey?.currentDay ?? 1}`} <Bi name="arrow-right" /></button>}
-                <button className="md-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {journey.totalDays ?? d.programDays ?? 90} days</button>
-              </div>
+              {missionMsg && <div className="md-error">{missionMsg}</div>}
+              <button className="md-btn primary block" onClick={startNext}>{nextMission ? (nextMission.link ? 'Start now' : 'Write your answer') : 'All done today — practice anyway'} <Bi name="arrow-right" /></button>
             </>}
           </article>
-        ) : (
-        <article className="md-card">
-          <header className="md-card-head">
-            <div>
-              <h2><Bi name="list-task" /> {pastDay ? `Day ${pastDay.day} missions` : 'Today’s missions'}</h2>
-              <p>{totalMissions ? `${missionsDone} of ${totalMissions} done · +${missionXp} XP for all of them` : 'Your daily missions appear here.'}</p>
+          )}
+
+          <article className="md-card">
+            <header className="md-card-head">
+              <div><h2><Bi name="speedometer2" /> Coder score</h2><p>A 0–1000 score from your assessment, practice, missions, interviews and resume.</p></div>
+            </header>
+            <div className="mdb-score">
+              <div className="md-score-ring" style={{ ['--md-deg' as any]: `${Math.min(1000, score) * 0.36}deg` }}>
+                <div><strong>{score}</strong><span>/ 1000</span></div>
+              </div>
+              <div className="mdb-score-parts">
+                <b className="mdb-score-tag">{scoreTag}</b>
+                <div className="md-parts">
+                  {d.coderScore!.parts.map(p => {
+                    const pct = Math.round((p.earned / p.max) * 100);
+                    return <div className="md-part" key={p.label}>
+                      <div className="top"><span>{p.label}</span><b>{p.earned} / {p.max}</b></div>
+                      <div className="bar"><i style={{ width: `${barWidth(pct)}%` }} /></div>
+                    </div>;
+                  })}
+                </div>
+              </div>
             </div>
-            <div className="md-day-nav">
-              <button onClick={() => stepDay(-1)} disabled={(pastDay?.day ?? d.day ?? 1) <= 1 || dayBusy} title="Previous day" aria-label="Previous day"><Bi name="chevron-left" /></button>
-              {pastDay ? <button className="today" onClick={() => setPastDay(null)}>Back to today</button> : <span className="md-timer"><Bi name="clock" /> {hoursLeft}</span>}
-              <button onClick={() => stepDay(1)} disabled={!pastDay || dayBusy} title="Next day" aria-label="Next day"><Bi name="chevron-right" /></button>
-            </div>
-          </header>
-          {!totalMissions ? (
-            <div className="md-empty">
-              {data.dailyPlan && !data.dailyPlan.available ? <>
-                <p>{data.dailyPlan.message}</p>
-                {data.dailyPlan.reason === 'ROADMAP_REQUIRED' && <button className="md-btn primary" onClick={() => nav('/careerpilot/roadmap')}>{d.programDays ? `Build my ${d.programDays}-day plan` : 'Build my plan'}</button>}
-              </> : 'No missions generated for today.'}
-            </div>
-          ) : <>
-            <div className="md-missions">
-              {shownMissions.map(m => (
-                <React.Fragment key={m.key}>
-                  <div className={`md-mission${m.done ? ' done' : ''}`} id={`mission-${m.key}`}>
-                    <span className="md-mission-ic"><Bi name={MISSION_ICON[m.category] || 'circle'} /></span>
-                    <div className="txt"><b>{m.title}</b><span>{m.detail}</span></div>
-                    {m.link && !m.done && <button className="lnk" onClick={() => openMissionLink(m.link!, nav)}>Open <Bi name="arrow-right" /></button>}
-                    {m.needsAnswer && !m.done && <button className="lnk" onClick={() => { setAnswerFor(answerFor === m.key ? null : m.key); setAnswerText(''); setAnswerMsg(''); }}>{answerFor === m.key ? 'Close' : 'Write answer'} <Bi name="arrow-right" /></button>}
-                    <span className="xp">+{m.xp} XP</span>
-                    <button className={`md-check${m.done ? ' on' : ''}`} aria-label={m.done ? 'Done' : 'Mark done'} disabled={m.done || (m.verify === 'interview' && !m.done) || (m.needsAnswer && !m.done)} onClick={() => toggleMission(m.key)}>{m.done && <Bi name="check-lg" />}</button>
-                  </div>
-                  {m.needsAnswer && !m.done && answerFor === m.key && <div className="md-answer">
-                    <textarea value={answerText} autoFocus rows={3} placeholder="Type your answer here…" onChange={e => setAnswerText(e.target.value)} onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()} />
-                    <div className="hint"><Bi name="pencil-square" /> Write it in your own words — pasting is turned off for this one.</div>
-                    <div className="md-answer-row"><button className="md-btn primary sm" onClick={() => saveAnswer(m.key)} disabled={answerBusy}>{answerBusy ? 'Saving…' : `Save & complete +${m.xp} XP`}</button><button className="md-btn sm" onClick={() => { setAnswerFor(null); setAnswerMsg(''); }}>Cancel</button>{answerMsg && <span className="msg">{answerMsg}</span>}</div>
-                  </div>}
-                  {m.done && m.answer && <div className="md-answer saved"><b>Your answer</b><p>{m.answer}</p></div>}
-                  {(m.feedback || (justCoached?.key === m.key && justCoached.feedback)) && <div className="md-coach"><b><Bi name="chat-dots" /> Coach</b><p>{m.feedback || justCoached?.feedback}</p></div>}
-                </React.Fragment>
-              ))}
-            </div>
-            {missionMsg && <div className="md-error">{missionMsg}</div>}
-            <button className="md-btn primary block" onClick={startNext}>{nextMission ? (nextMission.link ? 'Start now' : 'Write your answer') : 'All done today — practice anyway'} <Bi name="arrow-right" /></button>
-          </>}
-        </article>
-        )}
+          </article>
+
+        </div>
 
         <div className="md-col">
           <article className="md-card">
-            <header className="md-card-head"><div><h2><Bi name="fire" /> Streak</h2><p>{st.streak} {st.streak === 1 ? 'day' : 'days'} in a row</p></div></header>
+            <header className="md-card-head"><div><h2><Bi name="fire" /> Streak</h2><p>{st.streak} {st.streak === 1 ? 'day' : 'days'} in a row · best {st.longestStreak}</p></div></header>
             <div className="md-week">{(d.streakWeek || []).map(w => <div key={w.date}><div className={`dot${w.active ? ' on' : ''}${w.isToday ? ' today' : ''}`}>{w.active && <Bi name="check-lg" />}</div><div className="l">{w.letter}</div></div>)}</div>
             <div className="md-milestone"><span className="ic"><Bi name="gift-fill" /></span><div><b>{streakTarget}-day streak</b><span>{streakTarget - st.streak} {streakTarget - st.streak === 1 ? 'day' : 'days'} to go — keep it up</span></div></div>
           </article>
 
           <article className="md-card">
-            <header className="md-card-head"><div><h2><Bi name="gift" /> Next level</h2><p>Level {lv.nextLevel} · {lv.xpIntoLevel} / {lv.xpForThisLevel} XP</p></div></header>
-            <div className="md-level-bar"><i style={{ width: `${lv.progressPct}%` }} /></div>
-            <div className="md-unlock"><span className="ic"><Bi name="award-fill" /></span><div><small>You will unlock</small><b>{lv.nextTitle}</b></div></div>
+            <header className="md-card-head"><div><h2><Bi name="graph-up-arrow" /> Level progress</h2><p>Level {lv.level} · {lv.title}</p></div></header>
+            <div className="mdb-level-top"><b>{lv.xpToNextLevel.toLocaleString()} XP to go</b><span>{lv.xpIntoLevel} / {lv.xpForThisLevel} XP</span></div>
+            <div className="md-level-bar"><i style={{ width: `${barWidth(lv.progressPct)}%` }} /></div>
+            <ol className="mdb-ladder">{ladder.map(n => <li key={n} className={n < lv.level ? 'done' : n === lv.level ? 'current' : ''}><i /><span>L{n}</span></li>)}</ol>
+            <div className="md-unlock"><span className="ic"><Bi name="award-fill" /></span><div><small>Level {lv.nextLevel} unlocks</small><b>{lv.nextTitle}</b></div></div>
+          </article>
+
+          <article className="md-card">
+            <header className="md-card-head">
+              <div><h2><Bi name="stars" /> Skill meter</h2><p>{(d.skills || []).some((x: any) => x.early) ? 'Your Skill DNA by skill area (early: some areas rest on little evidence yet).' : 'Your Skill DNA by skill area.'}</p></div>
+              <button className="md-link" onClick={() => nav('/careerpilot/skills')}>Full report <Bi name="arrow-right" /></button>
+            </header>
+            <div className="md-radar"><Radar skills={d.skills || []} /></div>
           </article>
         </div>
       </section>
 
-      <section className="md-grid">
-        <article className="md-card">
-          <header className="md-card-head"><div><h2><Bi name="person-workspace" /> Where your score comes from</h2><p>Your coder score of {score}, part by part.</p></div></header>
-          <div className="md-parts">
-            {d.coderScore!.parts.map(p => {
-              const pct = Math.round((p.earned / p.max) * 100);
-              return <div className="md-part" key={p.label}>
-                <div className="top"><span>{p.label}</span><b>{pct}%</b></div>
-                <div className="bar"><i style={{ width: `${barWidth(pct)}%` }} /></div>
-              </div>;
-            })}
+      <article className="md-card">
+        <header className="md-card-head">
+          <div><h2><Bi name="clock-history" /> Recent activity</h2><p>Last 7 days{d.weekly && d.weekly.xpLastWeek > 0 ? ` · ${d.weekly.xpDelta >= 0 ? '+' : ''}${d.weekly.xpDelta} XP vs last week` : ''}</p></div>
+          <div className="md-chips">
+            <span><b>{d.weekly?.submissions ?? 0}</b> submissions</span>
+            <span><b>{d.weekly?.totalAttempts ?? 0}</b> attempts</span>
           </div>
-          <div className="md-hint"><Bi name="lightning-charge-fill" /> Earn {lv.xpToNextLevel.toLocaleString()} XP to reach Level {lv.nextLevel}</div>
-        </article>
+        </header>
+        {!d.recentActivity?.length ? <div className="md-empty">Nothing yet. Complete a mission or solve a problem and it appears here.</div> : <div className={`mdb-activity${hasActivity ? '' : ' one'}`}>
+          {hasActivity && <div className="md-chart-wrap"><AreaChart points={d.activity || []} /></div>}
+          <div className="md-feed">{d.recentActivity.map((a, i) => <div className="md-feed-row" key={i}><span className="ic"><Bi name="activity" /></span><span className="t">{a.label}</span><span className="xp">+{a.xp} XP</span><span className="ago">{a.ago}</span></div>)}</div>
+        </div>}
+      </article>
 
-        <article className="md-card">
+      {progressOn && <section className="mdb-pair">
+        <article className="md-card" id="leaderboard">
           <header className="md-card-head">
-            <div><h2><Bi name="stars" /> Skill meter</h2><p>{(d.skills || []).some((x: any) => x.early) ? 'Your Skill DNA by skill area (early: some areas rest on little evidence yet).' : 'Your Skill DNA by skill area.'}</p></div>
-            <button className="md-link" onClick={() => nav('/careerpilot/skills')}>Full report <Bi name="arrow-right" /></button>
+            <div><h2><Bi name="bar-chart-steps" /> Leaderboard</h2><p>Ranked on CareerPilot XP{rankLine ? ` · ${rankLine}` : ''}</p></div>
+            <button className="md-link" onClick={() => nav('/careerpilot/leaderboard')}>Full board <Bi name="arrow-right" /></button>
           </header>
-          <div className="md-radar"><Radar skills={d.skills || []} /></div>
-        </article>
-      </section>
-
-      <section className="md-grid wide">
-        <article className="md-card">
-          <header className="md-card-head">
-            <div><h2><Bi name="clock-history" /> Recent activity</h2><p>Last 7 days{d.weekly && d.weekly.xpLastWeek > 0 ? ` · ${d.weekly.xpDelta >= 0 ? '+' : ''}${d.weekly.xpDelta} XP vs last week` : ''}</p></div>
-            <div className="md-chips">
-              <span><b>{d.weekly?.submissions ?? 0}</b> submissions</span>
-              <span><b>{d.weekly?.totalAttempts ?? 0}</b> attempts</span>
+          <div className="mdb-tabs">
+            <div role="tablist" aria-label="Who to rank against">
+              {[{ k: 'COLLEGE', l: 'College' }, { k: 'GLOBAL', l: 'Global' }].map(t => <button key={t.k} role="tab" aria-selected={scope === t.k} className={scope === t.k ? 'on' : ''} onClick={() => setScope(t.k)}>{t.l}</button>)}
             </div>
-          </header>
-          {!d.recentActivity?.length ? <div className="md-empty">Nothing yet. Complete a mission or solve a problem and it appears here.</div> : <>
-            {hasActivity && <div className="md-chart-wrap"><AreaChart points={d.activity || []} /></div>}
-            <div className="md-feed">{d.recentActivity.map((a, i) => <div className="md-feed-row" key={i}><span className="ic"><Bi name="activity" /></span><span className="t">{a.label}</span><span className="xp">+{a.xp} XP</span><span className="ago">{a.ago}</span></div>)}</div>
-          </>}
+            <div role="tablist" aria-label="Period">
+              {[{ k: 'ALL_TIME', l: 'All time' }, { k: 'MONTHLY', l: 'Month' }, { k: 'WEEKLY', l: 'Week' }].map(t => <button key={t.k} role="tab" aria-selected={period === t.k} className={period === t.k ? 'on' : ''} onClick={() => setPeriod(t.k)}>{t.l}</button>)}
+            </div>
+          </div>
+          {boardBusy && !board ? <div className="md-empty">Loading the leaderboard…</div>
+            : !board ? <div className="md-empty">The leaderboard could not be loaded.</div>
+            : !board.available ? <div className="md-empty">{(board as any).reason || 'This leaderboard is not available for you yet.'}</div>
+            : <>
+              <div className="mdb-mine"><span>{board.myRank ? <>You are <b>#{board.myRank}</b> of {board.participantCount.toLocaleString()}</> : 'Earn XP to join this board'}</span><b>{board.myXp.toLocaleString()} XP</b></div>
+              <div className="md-lb">{board.entries.slice(0, 5).map((r: ScopedLeaderboardRow) => <div className={`md-lb-row${r.me ? ' me' : ''}`} key={r.studentId}><span className={`rk${r.rank <= 3 ? ` g${r.rank}` : ''}`}>{r.rank}</span><span className="av">{(r.name?.[0] || '?').toUpperCase()}</span><span className="nm">{r.name}{r.me ? ' (You)' : ''}{r.college ? <em>{r.college}</em> : null}</span><b className="xp">{r.xp.toLocaleString()} XP</b></div>)}</div>
+            </>}
         </article>
 
-        <article className="md-card">
-          <header className="md-card-head" id="leaderboard">
-            <div><h2><Bi name="bar-chart-steps" /> Leaderboard</h2><p>{st.cohortRank ? `You are #${st.cohortRank}` : 'Your cohort'}{st.cohortSize > 1 ? ` of ${st.cohortSize} members` : ''}</p></div>
-          </header>
-          {!d.leaderboard?.length ? <div className="md-empty">You're the first member here — the board fills as others join.</div> : <div className="md-lb">{d.leaderboard.map((r, i, arr) => <React.Fragment key={`${r.rank}-${r.name}`}>{i > 0 && r.rank > arr[i - 1].rank + 1 && <div className="md-lb-gap" aria-hidden="true">⋯</div>}<div className={`md-lb-row${r.me ? ' me' : ''}`}><span className={`rk${r.rank <= 3 ? ` g${r.rank}` : ''}`}>{r.rank}</span><span className="av">{(r.name[0] || '?').toUpperCase()}</span><span className="nm">{r.name}{r.me ? ' (You)' : ''}</span><b className="xp">{r.xp.toLocaleString()} XP</b></div></React.Fragment>)}</div>}
+        <article className="md-card" id="badges">
+          <header className="md-card-head"><div><h2><Bi name="award" /> Achievements</h2><p>{earnedBadges} of {(d.badges || []).length} badges earned</p></div>{(d.badges || []).length > 6 && <button className="md-link" onClick={() => setAllBadges(v => !v)}>{allBadges ? 'Show fewer' : 'View all'} <Bi name={allBadges ? 'chevron-up' : 'arrow-right'} /></button>}</header>
+          <div className="md-badges mdb-badges">{shownBadges.map((b: Badge) => <div className={`md-badge${b.earned ? ' earned' : ''}`} key={b.key} title={b.hint}><div className="hex">{b.earned ? <Bi name="star-fill" /> : <Bi name="lock-fill" />}</div><b>{b.label}</b>{b.earned ? <span>Earned</span> : <><span>{Math.round(b.progress * 100)}%</span><div className="pbar"><i style={{ width: `${barWidth(b.progress * 100)}%` }} /></div></>}</div>)}</div>
         </article>
-      </section>
+      </section>}
 
-      <section className="md-grid wide">
-        <article className="md-card">
-          <header className="md-card-head" id="badges"><div><h2><Bi name="award" /> Badge collection</h2><p>{(d.badges || []).filter(b => b.earned).length} earned</p></div><button className="md-link" onClick={() => nav('/careerpilot/achievements')}>View all <Bi name="arrow-right" /></button></header>
-          <div className="md-badges">{(d.badges || []).slice(0, 5).map((b: Badge) => <div className={`md-badge${b.earned ? ' earned' : ''}`} key={b.key} title={b.hint}><div className="hex">{b.earned ? <Bi name="star-fill" /> : <Bi name="lock-fill" />}</div><b>{b.label}</b>{b.earned ? <span>Earned</span> : <><span>{Math.round(b.progress * 100)}%</span><div className="pbar"><i style={{ width: `${Math.round(b.progress * 100)}%` }} /></div></>}</div>)}</div>
-        </article>
+      <section className={`mdb-pair${progressOn ? '' : ' one'}`}>
+        {progressOn && <article className="md-card">
+          <header className="md-card-head"><div><h2><Bi name="lightning-charge" /> Ways to earn XP</h2><p>XP shows your activity, not your skill readiness.</p></div></header>
+          <div className="mdb-earn">
+            {[
+              { ic: 'bullseye', t: 'Daily missions', s: 'Today’s tasks', to: journeyMode && journey?.available ? dayHref : '/careerpilot/plan' },
+              { ic: 'code-square', t: 'Practice', s: 'Solve problems', to: '/careerpilot/practice' },
+              { ic: 'mic', t: 'Mock interviews', s: 'Practise out loud', to: '/careerpilot/interview' },
+              { ic: 'map', t: 'Roadmap', s: 'Learn and improve', to: '/careerpilot/roadmap' },
+            ].map(x => <button key={x.t} onClick={() => nav(x.to)}><span className="ic"><Bi name={x.ic} /></span><b>{x.t}</b><span>{x.s}</span></button>)}
+          </div>
+        </article>}
 
         <article className="md-card">
           <header className="md-card-head"><div><h2><Bi name="trophy" /> Upcoming contests</h2><p>Compete, learn and win.</p></div>{!!d.contests?.length && <button className="md-link" onClick={() => nav('/battles')}>View all <Bi name="arrow-right" /></button>}</header>

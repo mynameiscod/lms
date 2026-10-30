@@ -6,6 +6,7 @@ import { useMember } from './MemberLayout';
 import { copyText } from '../../components/feedback/appFeedback';
 import './opportunities.css';
 import './opportunitiesRedesign.css';
+import { readinessBand } from '../../utils/readinessBand';
 
 type AppStatus = 'applied' | 'shortlisted' | 'selected' | 'rejected' | 'placed';
 
@@ -198,7 +199,7 @@ const Opportunities: React.FC = () => {
   };
 
   const readinessValue = readiness?.available ? readiness.readiness : null;
-  const readinessLabel = readinessValue == null ? 'Keep building evidence' : readinessValue >= 80 ? 'Strong readiness' : readinessValue >= 60 ? 'Getting close' : 'Keep building';
+  const readinessLabel = readinessValue == null ? 'Keep building evidence' : readinessBand(readinessValue).label;
   const gaps = readiness?.available ? (readiness.skills || []).filter((s: any) => s.status === 'PRIORITY_GAP' || s.status === 'NEEDS_WORK').slice(0, 3) : [];
   const interviewCount = applications.filter(a => (a.rounds || []).some(r => r.date && new Date(r.date).getTime() >= Date.now())).length;
   const statusCounts = applications.reduce<Record<string, number>>((acc, a) => { acc[a.status] = (acc[a.status] || 0) + 1; return acc; }, {});

@@ -5,6 +5,7 @@ import passportApi, {
   ClaimStatus,
 } from '../../api/passportApi';
 import './placementReadiness.css';
+import { readinessBand, ReadinessTone } from '../../utils/readinessBand';
 
 const CLAIM_META: Record<ClaimStatus, { label: string; icon: string; tone: string }> = {
   VERIFIED:               { label: 'Backed by evidence', icon: 'bi-patch-check',      tone: 'ok' },
@@ -27,14 +28,10 @@ const PRIORITY_LABEL: Record<string, string> = {
   CRITICAL: 'Do first', IMPORTANT: 'Worth doing', OPTIONAL: 'If you have time',
 };
 
-const band = (n: number) => (n >= 70 ? 'good' : n >= 40 ? 'mid' : 'low');
-const scoreCopy = (n: number | null | undefined) => {
-  if (typeof n !== 'number') return 'Not measured';
-  if (n >= 80) return 'Strong';
-  if (n >= 70) return 'Good';
-  if (n >= 40) return 'Needs focus';
-  return 'Build this next';
-};
+/** Ring and bar colour, by the shared readiness bands. */
+const RING: Record<ReadinessTone, string> = { strong: 'good', close: 'good', building: 'mid', early: 'low' };
+const band = (n: number) => RING[readinessBand(n).tone];
+const scoreCopy = (n: number | null | undefined) => (typeof n === 'number' ? readinessBand(n).label : 'Not measured');
 
 const ScoreRing: React.FC<{ value?: number | null; label: string; icon: string; detail?: string }> = ({ value, label, icon, detail }) => {
   const safe = typeof value === 'number' ? Math.max(0, Math.min(100, value)) : 0;

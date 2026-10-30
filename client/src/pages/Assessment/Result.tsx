@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { assessmentApi, DIMENSION_LABELS } from '../../api/assessmentApi';
 import './assessment.css';
 import CareerPilotFooter from '../../components/CareerPilotFooter';
+import { readinessBand, ReadinessTone } from '../../utils/readinessBand';
 
 interface SubScore { dimension: string; percentage: number; }
 interface ResultData {
@@ -30,14 +31,9 @@ const PRIO_COLORS: Record<string, { bg: string; fg: string }> = {
 
 const PURPLE = '#6650d8', TEAL = '#14a89c', NAVY = '#0a2a5e', INK = '#1f2937', MUTED = '#64748b';
 
-// Warm, honest label for the readiness band.
-const readinessBand = (v: number): { label: string; color: string } => {
-  if (v >= 80) return { label: 'Job-ready', color: '#0a8d7a' };
-  if (v >= 60) return { label: 'Almost there', color: '#14a89c' };
-  if (v >= 40) return { label: 'Getting there', color: '#6650d8' };
-  if (v >= 20) return { label: 'Strong start', color: '#e8830c' };
-  return { label: 'Early days', color: '#e8830c' };
-};
+// The shared readiness band, in this page's colours.
+const BAND_COLOR: Record<ReadinessTone, string> = { strong: '#0a8d7a', close: '#14a89c', building: '#6650d8', early: '#e8830c' };
+const resultBand = (v: number) => { const b = readinessBand(v); return { label: b.label, color: BAND_COLOR[b.tone] }; };
 
 // Circular readiness gauge (conic-gradient ring).
 const Gauge: React.FC<{ value: number }> = ({ value }) => {
@@ -74,7 +70,7 @@ const Result: React.FC = () => {
   const rm = data.roadmap;
   const name = data.candidateName?.split(' ')[0] || 'there';
   const initials = (data.candidateName || 'CB').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-  const band = readinessBand(readiness);
+  const band = resultBand(readiness);
   const role = data.targetRole || rm?.targetRole || 'your target role';
   const existing = data.newAccount === false;
 

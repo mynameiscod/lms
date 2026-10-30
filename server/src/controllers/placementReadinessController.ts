@@ -31,8 +31,9 @@ const userIdOf = (req: Request): string =>
 /**
  * The interview half of the picture, from what the member has actually sat.
  *
- * Reads the most recent completed ROLE interview — the only kind whose areas map to
- * canonical skills. A member who has only done pathway mocks has no interview readiness
+ * Reads the most recent completed ROLE interview — readiness is about now, so the latest
+ * sitting counts, where the Coder Score (an achievement) keeps the best. Role interviews are
+ * the only kind whose areas map to canonical skills. A member who has only done pathway mocks has no interview readiness
  * figure, and is told so rather than shown a zero: never measured and measured badly are
  * different states.
  */
@@ -62,7 +63,18 @@ async function latestInterviewReadiness(tenantId: string, studentId: string) {
    * completed would go and practise the wrong thing entirely — the same reason Module 8
    * reports null rather than 0 for an unassessed skill.
    */
-  if (!dimensions.length) {
+  /**
+   * The figure is the interview's overall score — the same number the Coder Score reads — so it
+   * counts how the member explained and reasoned, not only the technical areas. It used to be
+   * the technical areas alone. An overall of 0 with nothing graded under it is "not scored".
+   */
+  const ev = session.evaluation;
+  const overall = typeof ev?.overallScore === 'number' && Number.isFinite(ev.overallScore)
+    && (ev.overallScore > 0 || (ev.areaScores || []).length > 0)
+    ? Math.round(Math.max(0, Math.min(100, ev.overallScore)))
+    : null;
+
+  if (overall === null && !dimensions.length) {
     return {
       available: false,
       reason: 'INTERVIEW_NOT_SCORED',
@@ -76,7 +88,7 @@ async function latestInterviewReadiness(tenantId: string, studentId: string) {
     interviewId: String(session._id),
     role: session.role,
     completedAt: session.completedAt,
-    readiness: weightedScore(
+    readiness: overall ?? weightedScore(
       dimensions.map(d => ({ key: d.dimension, score: d.score })),
       INTERVIEW_WEIGHTS,
     ),

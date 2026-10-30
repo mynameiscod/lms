@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import passportApi, { DashboardData, RoleReadinessAvailable, SkillDnaRow, MemberSection } from '../../api/passportApi';
 import { useUnlock } from './SectionLock';
 import './dashboardLocked.css';
+import { readinessBand } from '../../utils/readinessBand';
 
 /**
  * The dashboard a student sees before they pay.
@@ -83,7 +84,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
   // "Measured" means MEDIUM or HIGH confidence everywhere — the same count role readiness reports.
   const measuredCount = readiness?.summary.assessedSkills ?? (dna ? dna.filter(s => s.confidence === 'MEDIUM' || s.confidence === 'HIGH').length || null : null);
   const ready = readiness?.readiness ?? null;
-  const readyLabel = ready === null ? 'Still measuring' : readiness?.provisional ? 'Early estimate' : ready >= 80 ? 'Strong alignment' : ready >= 60 ? 'Getting close' : ready >= 40 ? 'Building momentum' : 'Early stage';
+  const readyLabel = ready === null ? 'Still measuring' : readiness?.provisional ? 'Early estimate' : readinessBand(ready).label;
 
   /** This learner's own programme length, from the dashboard endpoint. */
   const days = Number(data.programDays) || 90;

@@ -177,8 +177,34 @@ node dist/scripts/recomputeSkillScores.js --apply    # recompute every member, r
 
 Running it again finds nothing to change.
 
-## Known limits (not yet changed)
+## Placement readiness
 
-- **Placement readiness, interview part:** it uses only the technical interview dimension and the latest interview. The Home Coder Score uses the best interview.
-- **Readiness band labels** (for example 80/60/40 on My result, 80/70/40 on Placement) are set on each screen, not in one server rule. The same readiness can carry a different label on different pages.
-- **XP history:** older XP sources do not write to the XP history, so the history may not add up to the XP total.
+**Where:** Placement readiness page. **Code:** `server/src/controllers/placementReadinessController.ts`. Three figures, shown side by side and never averaged:
+
+| Figure | How it is worked out |
+|---|---|
+| Skill readiness | Role readiness (section 2), unchanged |
+| Resume readiness | The resume review: completeness 15, role alignment 25, skill evidence 20, projects 20, impact 10, ATS 10 |
+| Interview readiness | The **overall score of the latest completed role interview**. The latest counts because this is about readiness now; the Coder Score keeps the best interview because it is an achievement. An interview with nothing graded shows "not scored", never 0%. The technical areas are still shown as a breakdown. |
+
+## Readiness labels
+
+Every readiness figure (role, placement, resume, interview, assessment result) is named by one rule, `client/src/utils/readinessBand.ts`:
+
+| Figure | Label |
+|---|---|
+| 80+ | Strong |
+| 60–79 | Getting close |
+| 40–59 | Building momentum |
+| below 40 | Early stage |
+
+A figure that is not measured yet has no label; the page says so in its own words. Role readiness below 40% coverage shows "Early estimate" instead.
+
+## XP history
+
+Every XP award is written to the XP ledger, including missions, practice, resume scoring and problem delivery, so a member's history adds up to their XP total, and the weekly and monthly leaderboards count all of it. To bring old awards into the ledger, run once per environment:
+
+```
+node dist/scripts/backfillXpLedger.js            # dry run
+node dist/scripts/backfillXpLedger.js --apply    # writes the missing ledger rows
+```

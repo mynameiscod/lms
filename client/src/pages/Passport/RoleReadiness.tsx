@@ -4,6 +4,7 @@ import passportApi, {
   RoleReadinessResponse, RoleReadinessAvailable, RoleReadinessUnavailable,
 } from '../../api/passportApi';
 import './roleReadiness.css';
+import { readinessBand } from '../../utils/readinessBand';
 import { useProgramDays, daysLabel } from './useProgramDays';
 
 const CONFIDENCE_LABEL: Record<string, string> = { HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' };
@@ -73,7 +74,7 @@ const RoleReadiness: React.FC = () => {
   const measured = skills.filter(s => s.status !== 'NOT_ASSESSED');
   const overallEvidence = measured.reduce((sum, s) => sum + (s.evidenceCount || 0), 0);
   const provisional = !!ready.provisional;
-  const readinessLabel = readiness === null ? 'Still measuring' : provisional ? 'Early estimate' : readiness >= 80 ? 'Strong alignment' : readiness >= 60 ? 'Getting close' : readiness >= 40 ? 'Building momentum' : 'Early stage';
+  const readinessLabel = readiness === null ? 'Still measuring' : provisional ? 'Early estimate' : readinessBand(readiness).label;
   const roleName = ready.role?.name;
   const confLabel = CONFIDENCE_LABEL[confidence] || confidence;
 

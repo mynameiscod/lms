@@ -478,3 +478,76 @@ body:has(.main-content > .cp-root), body:has(.cp-root.cp-full) { overflow: hidde
 /* "Unsaved changes" beside Save: the code differs from what was last saved. */
 .cp-unsaved { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #9A5A00; white-space: nowrap; }
 .cp-unsaved i { font-size: 7px; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CAREERPILOT PLAYGROUND, REDESIGNED ON WHITE. No navy chrome: a light header card, one
+   white toolbar (Run is the main button), file tabs under it, a white editor and a light
+   input/output panel, and a light status bar. Appended last, so it wins over the navy frame.
+   ════════════════════════════════════════════════════════════════════════════ */
+.cp-root.cpg { --pgw-line: #E2EAF2; --pgw-soft: #F6F9FC; --pgw-ink: #102A4F; --pgw-muted: #53677D; --pgw-blue: #1752D6;
+  background: #fff; border: 1px solid var(--pgw-line); border-radius: 20px; box-shadow: 0 6px 22px rgba(15, 46, 77, .07); }
+.cp-root.cpg .cpg-head { padding: 18px 22px; background: #fff; border-bottom: 1px solid var(--pgw-line); }
+.cp-root.cpg .cpg-head-ic { background: #EAF1FB; color: var(--pgw-blue); }
+.cp-root.cpg .cpg-head-t b { color: #051D64; font-size: 19px; }
+.cp-root.cpg .cpg-head-t span { color: var(--pgw-muted); }
+.cp-root.cpg .cpg-head-tags span { color: #1B3C77; background: #EEF4FB; border-color: #DFE8F4; }
+
+/* Toolbar */
+.cp-root.cpg .cp-toolbar { background: #fff; border-bottom: 1px solid var(--pgw-line); padding: 12px 18px; gap: 8px; }
+.cp-root.cpg .cp-lang { background: #fff; border: 1.5px solid #C7D8F6; color: var(--pgw-ink); border-radius: 10px; font-weight: 700; }
+.cp-root.cpg .cp-lang:hover { border-color: var(--pgw-blue); background: #F3F7FF; }
+.cp-root.cpg .cp-lang.open { border-color: var(--pgw-blue); box-shadow: 0 0 0 3px rgba(23, 82, 214, .14); }
+.cp-root.cpg .cp-lang .chev { color: var(--pgw-muted); }
+.cp-root.cpg .cp-title-input { color: var(--pgw-ink); background: var(--pgw-soft); border: 1.5px solid var(--pgw-line); border-radius: 10px; min-height: 38px; }
+.cp-root.cpg .cp-title-input:focus { border-color: var(--pgw-blue); background: #fff; }
+.cp-root.cpg .cp-toolbar .cp-btn,
+.cp-root.cpg .cp-toolbar .cp-icon-btn { background: #fff; border: 1.5px solid #C7D8F6; color: var(--pgw-blue); border-radius: 10px; font-weight: 800; box-shadow: 0 4px 12px rgba(23, 82, 214, .06); }
+.cp-root.cpg .cp-toolbar .cp-btn:hover:not(:disabled),
+.cp-root.cpg .cp-toolbar .cp-icon-btn:hover { background: #F3F7FF; border-color: var(--pgw-blue); color: var(--pgw-blue); }
+.cp-root.cpg .cp-toolbar .cp-btn.on { background: #EAF1FB; border-color: var(--pgw-blue); }
+.cp-root.cpg .cp-toolbar .cp-btn.cp-btn-run { background: linear-gradient(135deg, #1976D2, #1752D6); border: 0; color: #fff; box-shadow: 0 10px 22px rgba(23, 82, 214, .30); padding-left: 18px; padding-right: 18px; }
+.cp-root.cpg .cp-toolbar .cp-btn.cp-btn-run:hover:not(:disabled) { background: linear-gradient(135deg, #1976D2, #1752D6); color: #fff; transform: translateY(-1px); }
+.cp-root.cpg .cp-toolbar .cp-btn.primary { background: #fff; color: var(--pgw-blue); border: 1.5px solid #C7D8F6; }
+.cp-root.cpg .cp-toolbar .cp-btn.danger { background: #FFF0F0; border-color: #F5C2C2; color: #B02A2A; }
+.cp-root.cpg .cp-count { background: #EAF1FB; color: var(--pgw-blue); }
+
+/* File tabs, under the toolbar */
+.cp-root.cpg .cp-tabbar { background: var(--pgw-soft); border-bottom: 1px solid var(--pgw-line); padding: 8px 18px 0; gap: 6px; }
+.cp-root.cpg .cp-tab { background: transparent; border: 1px solid transparent; border-bottom: 0; border-radius: 10px 10px 0 0; color: var(--pgw-muted); font-weight: 700; }
+.cp-root.cpg .cp-tab:hover { background: #fff; color: var(--pgw-ink); }
+.cp-root.cpg .cp-tab.active { background: #fff; color: var(--pgw-blue); border-color: var(--pgw-line); box-shadow: 0 -2px 0 var(--pgw-blue) inset; }
+.cp-root.cpg .cp-tab .cp-tab-x { color: #8A9AB0; }
+.cp-root.cpg .cp-tab .cp-tab-x:hover { background: #FFF0F0; color: #C93737; }
+.cp-root.cpg .cp-tab-add { background: #fff; border: 1.5px dashed #C7D8F6; color: var(--pgw-blue); }
+.cp-root.cpg .cp-tab-add:hover { border-style: solid; background: #F3F7FF; color: var(--pgw-blue); }
+
+/* Editor and the right panel */
+.cp-root.cpg .cp-editor-wrap { background: #fff; }
+.cp-root.cpg .cp-vdiv { background: var(--pgw-line); }
+.cp-root.cpg .cp-right { background: #fff; border-left: 1px solid var(--pgw-line); }
+.cp-root.cpg .cp-right-head { background: #fff; border-bottom: 1px solid var(--pgw-line); padding: 12px 18px 0; gap: 22px; }
+.cp-root.cpg .cp-rtab { color: var(--pgw-muted); font-weight: 800; padding-bottom: 10px; border-bottom: 2px solid transparent; }
+.cp-root.cpg .cp-rtab:hover { color: var(--pgw-ink); }
+.cp-root.cpg .cp-rtab.active { color: var(--pgw-blue); border-bottom-color: var(--pgw-blue); }
+.cp-root.cpg .cp-sec { padding: 14px 18px 6px; }
+.cp-root.cpg .cp-sec-label { color: var(--pgw-muted); }
+.cp-root.cpg .cp-stdin { background: var(--pgw-soft); border: 1.5px solid var(--pgw-line); border-radius: 12px; color: var(--pgw-ink); }
+.cp-root.cpg .cp-stdin:focus { background: #fff; border-color: var(--pgw-blue); outline: none; }
+.cp-root.cpg .cp-output { background: var(--pgw-soft); color: var(--pgw-ink); border: 1.5px solid var(--pgw-line); border-radius: 12px; box-shadow: none; }
+.cp-root.cpg .cp-output .muted { color: #7A8BA3; }
+.cp-root.cpg .cp-output .err { color: #C93737; }
+.cp-root.cpg .cp-quick { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cp-root.cpg .cp-qcard { background: #fff; border: 1.5px solid #C7D8F6; color: var(--pgw-blue); border-radius: 10px; font-weight: 800; }
+.cp-root.cpg .cp-qcard i { color: var(--pgw-blue); }
+.cp-root.cpg .cp-qcard:hover:not(:disabled) { background: #F3F7FF; border-color: var(--pgw-blue); }
+
+/* Status bar */
+.cp-root.cpg .cp-status { background: var(--pgw-soft); color: var(--pgw-muted); border-top: 1px solid var(--pgw-line); }
+.cp-root.cpg .cp-status .ok { color: #13784F; }
+.cp-root.cpg .cp-status .run { color: #9A5A00; }
+.cp-root.cpg .cp-status-r { color: var(--pgw-ink); }
+.cp-root.cpg .cp-kbd { color: #7A8BA3; }
+.cp-root.cpg .cp-status span + span:not(.cp-status-r)::before { background: var(--pgw-line); }
+/* Run is the one main button; Save is an outline beside the others. */
+#root .gd .cp-root.cpg .cp-toolbar .cp-btn.primary { background: #fff !important; color: #1752D6 !important; border: 1.5px solid #C7D8F6 !important; box-shadow: 0 4px 12px rgba(23, 82, 214, .06) !important; }
+#root .gd .cp-root.cpg .cp-toolbar .cp-btn.primary i { color: inherit !important; }

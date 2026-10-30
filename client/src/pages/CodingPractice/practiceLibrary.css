@@ -202,8 +202,9 @@
 .plx-next small { width: 100%; font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #167E92; }
 .plx-next b { font-size: 15.5px; color: var(--pl-navy); min-width: 0; overflow-wrap: anywhere; }
 .plx-next .pl-diff { padding: 3px 12px; }
-.plx-actions { margin-top: 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.plx-actions .pl-btn.primary { min-height: 46px; padding: 0 22px; font-size: 15px; }
+.plx-actions { margin-top: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* The two buttons are one pair: same height, padding and type size; only the fill differs. */
+.plx-actions .pl-btn { min-height: 46px; padding: 0 22px; font-size: 15px; justify-content: center; }
 .plx-link { border: 0; background: none; padding: 4px 0; color: #1752D6; font-size: 14px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
 .plx-link:hover { text-decoration: underline; }
 
@@ -232,8 +233,6 @@
   .pl.pl2x { gap: 14px; }
   .plx-hero { padding: 20px 16px; border-radius: 16px; gap: 18px; }
   .plx-actions { flex-direction: column; align-items: stretch; gap: 10px; }
-  .plx-actions .pl-btn.primary { justify-content: center; }
-  .plx-link { justify-content: center; }
   .pl.pl2x .pl-panel { padding: 14px 12px 6px; border-radius: 16px; }
 }
 /* Mid widths (small laptops, landscape tablets): the top card stacks instead of squeezing the

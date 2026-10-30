@@ -105,11 +105,11 @@ export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
             </div>
           ) : null}
           <div className="plx-actions">
-            <button className="pl-btn primary" onClick={start} disabled={!data || (!data.next && !data.rows.length)}>
+            <button className="pl-btn primary" onClick={start} disabled={!data}>
               <i className="fa-solid fa-play" /> {prog?.solved ? 'Continue practising' : 'Start practising'}
             </button>
-            <button type="button" className="plx-link" onClick={() => nav('/careerpilot/mentor')}>
-              <i className="fa-solid fa-robot" /> Stuck? Ask AI Mentor
+            <button type="button" className="pl-btn" onClick={() => nav('/careerpilot/mentor')}>
+              <i className="fa-solid fa-robot" /> Ask AI Mentor
             </button>
           </div>
         </div>

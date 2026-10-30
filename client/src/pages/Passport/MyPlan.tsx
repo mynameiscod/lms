@@ -4,6 +4,7 @@ import passportApi, { SpineOutcome, SpineDay } from '../../api/passportApi';
 import FoundationJourneyPage from './FoundationJourney';
 import './myPlan.css';
 import { useProgramDays, daysLabel } from './useProgramDays';
+import { barWidth } from '../../utils/barWidth';
 
 /**
  * The ninety days, day by day.
@@ -101,7 +102,7 @@ const MyPlan: React.FC = () => {
           <div className="mpl-prep-fig">
             <b>{authored}</b><span>of {total} days written</span>
           </div>
-          <div className="mpl-bar"><i style={{ width: `${Math.max(2, pct)}%` }} /></div>
+          <div className="mpl-bar"><i style={{ width: `${barWidth(pct)}%` }} /></div>
 
           {shortfalls.length > 0 && (
             <ul className="mpl-short">

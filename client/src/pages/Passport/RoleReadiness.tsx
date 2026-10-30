@@ -6,6 +6,7 @@ import passportApi, {
 import './roleReadiness.css';
 import { readinessBand } from '../../utils/readinessBand';
 import { useProgramDays, daysLabel } from './useProgramDays';
+import { barWidth } from '../../utils/barWidth';
 
 const CONFIDENCE_LABEL: Record<string, string> = { HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' };
 const STATUS_COPY: Record<string, { label: string; tone: string }> = {
@@ -211,7 +212,7 @@ const RoleReadiness: React.FC = () => {
                         <em className={`rr-pill ${tone}`}>{STATUS_COPY[s.status]?.label || s.status}</em>
                       </div>
                       <div className={`rr-track ${tone}`}>
-                        <i style={{ width: `${Math.max(2, Math.min(100, current))}%` }} />
+                        <i style={{ width: `${barWidth(current)}%` }} />
                         <b style={{ left: `${target}%` }} aria-hidden="true" />
                       </div>
                     </li>

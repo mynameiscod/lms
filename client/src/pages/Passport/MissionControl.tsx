@@ -9,6 +9,7 @@ import './missionControlUnlock.css';
 import './member.css';
 import './missionsRedesign.css';
 import MemberFooter from './MemberFooter';
+import { barWidth } from '../../utils/barWidth';
 
 const CAT_ICON: Record<string, string> = {
   career_clarity: 'bi-bullseye', aptitude: 'bi-calculator-fill', logical_reasoning: 'bi-puzzle-fill',
@@ -412,7 +413,7 @@ const MissionControl: React.FC = () => {
           <button className="mc-cta" onClick={() => nav(assessmentHref)}><i className="bi bi-rocket-takeoff-fill" />{needsSetup ? 'Finish Setup to Start' : 'Start Free Assessment'}<i className="bi bi-arrow-right" /></button>
           <div className="mc-cta-note"><i className="bi bi-clock" /> Takes about 5 minutes · <i className="bi bi-graph-up-arrow" /> No payment needed</div>
         </div>
-        <div className="mc-right"><div className="mc-scorewrap"><div className="mc-score-head"><h3><i className="bi bi-key-fill" /> Your Career Score can open new doors</h3><p>Measure where you stand and what to improve next.</p></div><div className="mc-score-card"><div className="mc-score-top"><div><div className="lbl">Career Readiness Score</div><div className="num">{scoreNum}<small> / 100</small></div></div><div className="mc-rocket"><i className="bi bi-rocket-takeoff-fill" /></div></div><div className="mc-bar"><i style={{ width: `${Math.max(scoreNum, 4)}%` }} /></div><div className="mc-cats">{CATS.map(c => <div className="mc-cat" key={c.title}><span className={`ic t-${c.tone}`}><i className={`bi ${c.ic}`} /></span><div><b>{c.title}</b><span>{c.desc}</span></div></div>)}</div></div></div></div>
+        <div className="mc-right"><div className="mc-scorewrap"><div className="mc-score-head"><h3><i className="bi bi-key-fill" /> Your Career Score can open new doors</h3><p>Measure where you stand and what to improve next.</p></div><div className="mc-score-card"><div className="mc-score-top"><div><div className="lbl">Career Readiness Score</div><div className="num">{scoreNum}<small> / 100</small></div></div><div className="mc-rocket"><i className="bi bi-rocket-takeoff-fill" /></div></div><div className="mc-bar"><i style={{ width: `${barWidth(scoreNum)}%` }} /></div><div className="mc-cats">{CATS.map(c => <div className="mc-cat" key={c.title}><span className={`ic t-${c.tone}`}><i className={`bi ${c.ic}`} /></span><div><b>{c.title}</b><span>{c.desc}</span></div></div>)}</div></div></div></div>
       </div>
       <div className="mc-why" ref={whyRef}><h2>Why take the Career Readiness Assessment?</h2><div className="mc-why-grid">{WHY.map(w => <div className="mc-why-card" key={w.title}><div className={`ic t-${w.tone}`}><i className={`bi ${w.ic}`} /></div><b>{w.title}</b><span>{w.desc}</span></div>)}</div></div>
       <MemberFooter />

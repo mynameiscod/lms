@@ -4,6 +4,7 @@ import passportApi, { OrientationDay, OrientationItem, OrientationView } from '.
 import './orientation.css';
 import { mediaUrl, MEDIA_PATH } from '../../utils/mediaUrl';
 import { SeekControls, useSeekKeys, savedSpeed, savedQuality, pickQuality, switchSource, QualityPref } from '../MyLearningPlan/VideoPlayer';
+import { barWidth } from '../../utils/barWidth';
 
 /**
  * The welcome, before Day 1.
@@ -523,7 +524,7 @@ const Orientation: React.FC = () => {
               ? `${view.totalDays} short days to set you up. Finish them and your ${''}learning plan opens.`
               : `${view.totalDays} short days we added for new members. Your plan is already open — take these whenever you like.`}
           </p>
-          <div className="ori-bar"><i style={{ width: `${Math.max(3, pct)}%` }} /></div>
+          <div className="ori-bar"><i style={{ width: `${barWidth(pct)}%` }} /></div>
           <small>{view.completedDays} of {view.totalDays} done</small>
         </div>
         {!view.mandatory && (

@@ -4,6 +4,7 @@ import passportApi, { DashboardData, Badge, TodayMissions, FoundationJourney, Fo
 import './dashboard.css';
 import './dashboard-redesign.css';
 import './memberDashboard.css';
+import { barWidth } from '../../utils/barWidth';
 
 const Bi: React.FC<{ name: string; className?: string }> = ({ name, className = '' }) => (
   <i className={`bi bi-${name}${className ? ` ${className}` : ''}`} aria-hidden="true" />
@@ -533,7 +534,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
               const pct = Math.round((p.earned / p.max) * 100);
               return <div className="md-part" key={p.label}>
                 <div className="top"><span>{p.label}</span><b>{pct}%</b></div>
-                <div className="bar"><i style={{ width: `${Math.max(2, pct)}%` }} /></div>
+                <div className="bar"><i style={{ width: `${barWidth(pct)}%` }} /></div>
               </div>;
             })}
           </div>

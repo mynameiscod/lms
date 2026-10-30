@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import passportApi, { SkillDnaRow } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
 import './skillDna.css';
+import { barWidth } from '../../utils/barWidth';
 
 /* Confidence is how much evidence stands behind a score, never how good the student is — so it gets its own words. */
 const CONFIDENCE_COPY: Record<string, string> = {
@@ -194,7 +195,7 @@ const SkillDna: React.FC = () => {
                   <span className={`sdn-skill-ic ${band(s.score)}`}><i className={`bi ${SKILL_ICON(s.skillName)}`} /></span>
                   <div className="sdn-list-main">
                     <div className="sdn-list-top"><b>{s.skillName}</b><strong className={band(s.score)}>{s.score}<em>/100</em></strong></div>
-                    <div className={`sdn-bar ${band(s.score)}`}><i style={{ width: `${Math.max(2, s.score)}%` }} /></div>
+                    <div className={`sdn-bar ${band(s.score)}`}><i style={{ width: `${barWidth(s.score)}%` }} /></div>
                     <div className="sdn-list-meta">
                       <span className={`sdn-conf ${String(s.confidence).toLowerCase()}`}>{CONFIDENCE_COPY[s.confidence] || s.confidence}</span>
                       <em>{s.evidenceCount} evidence · {s.distinctItems} question{s.distinctItems === 1 ? '' : 's'}</em>

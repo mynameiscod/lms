@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import passportApi, { GamificationSummary, ScopedLeaderboardResponse, ScopedLeaderboardRow } from '../../api/passportApi';
 import './gamification.css';
 import './gamificationRedesign.css';
+import { barWidth } from '../../utils/barWidth';
 
 const PERIODS = [{ key: 'ALL_TIME', label: 'All time' }, { key: 'MONTHLY', label: 'This month' }, { key: 'WEEKLY', label: 'This week' }];
 const SCOPES = [{ key: 'COLLEGE', label: 'College' }, { key: 'GLOBAL', label: 'Global' }];
@@ -80,7 +81,7 @@ const Gamification: React.FC = () => {
           <p>Level {summary.level?.level ?? 1} · {summary.xp.toLocaleString()} XP. Keep completing real career work to reach the next level.</p>
           <div className="gam2-xp">
             <div className="gam2-xp-top"><b>Next: Level {summary.level?.nextLevel ?? ((summary.level?.level ?? 1) + 1)} · {summary.level?.nextTitle || 'Next level'}</b><span>{levelProgress}%</span></div>
-            <div className="gam2-xp-bar"><i style={{ width: `${Math.max(2, levelProgress)}%` }} /></div>
+            <div className="gam2-xp-bar"><i style={{ width: `${barWidth(levelProgress)}%` }} /></div>
           </div>
         </div>
       </div>
@@ -94,7 +95,7 @@ const Gamification: React.FC = () => {
             <b>{lvl?.xpToNextLevel !== undefined ? `${lvl.xpToNextLevel.toLocaleString()} XP to go` : `Level ${levelNo} · ${summary.xp.toLocaleString()} XP`}</b>
             <span>To Level {lvl?.nextLevel ?? levelNo + 1} · {lvl?.nextTitle || 'the next title'}</span>
             {lvl?.xpIntoLevel !== undefined && lvl?.xpForThisLevel
-              ? <i className="gam2-togo-bar" aria-hidden="true"><em style={{ width: `${Math.max(3, Math.min(100, Math.round((lvl.xpIntoLevel / lvl.xpForThisLevel) * 100)))}%` }} /></i>
+              ? <i className="gam2-togo-bar" aria-hidden="true"><em style={{ width: `${barWidth((lvl.xpIntoLevel / lvl.xpForThisLevel) * 100)}%` }} /></i>
               : null}
           </div>
         </div>

@@ -32,6 +32,7 @@ import './foundationJourney.css';
 import './foundationRoadmap.css';
 import './foundationMember.css';
 import { useProgramDays } from './useProgramDays';
+import { barWidth } from '../../utils/barWidth';
 
 const GROUP_LABEL: Record<RoadmapGroup['state'], string> = {
   COMPLETED: 'Completed',
@@ -150,7 +151,7 @@ const FoundationRoadmap: React.FC = () => {
           {!preview && (
             <div className="fjm-hero-bar" role="progressbar" aria-valuenow={percentComplete}
                  aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress">
-              <i style={{ width: `${Math.max(1, percentComplete)}%` }} />
+              <i style={{ width: `${barWidth(percentComplete)}%` }} />
             </div>
           )}
         </div>

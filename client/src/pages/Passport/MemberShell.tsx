@@ -12,6 +12,7 @@ import { startActivityBeacon, trackPage } from './activityBeacon';
 import visualizerApi from '../../api/visualizerApi';
 import supportApi from '../../api/supportApi';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
+import { barWidth } from '../../utils/barWidth';
 
 const ICONS: Record<string, string> = {
   home: 'house-door-fill',
@@ -479,7 +480,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                     <b><span className="gd-stat-long">Level </span><span className="gd-stat-short">Lv </span>{lv.level}</b>
                     <small>{lv.title}</small>
                     <span className="gd-stat-bar" aria-hidden>
-                      <i style={{ width: `${Math.max(4, Math.min(100, lv.progressPct))}%` }} />
+                      <i style={{ width: `${barWidth(lv.progressPct)}%` }} />
                     </span>
                   </span>
                   <span className="gd-tip" aria-hidden>Your level rises with XP. {lv.progressPct}% of the way to level {lv.nextLevel}.</span>

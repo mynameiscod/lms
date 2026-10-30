@@ -4,6 +4,7 @@ import { thinkingLabApi, TLChallenge, TLStats, TLRunResult, TLSubmitResult, TLBa
 import { toast } from '../../components/feedback/appFeedback';
 import '../Passport/interviewDashboard.css';
 import './thinkingLab.css';
+import { barWidth } from '../../utils/barWidth';
 
 /*
  * One page, two homes. The LMS mounts it inside its Layout with the colours it always had;
@@ -329,7 +330,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
                   <span>{(stats?.streak || 0) > 0
                     ? `${stats!.streak}-day lab streak · ${stats!.xpTotal} lab XP`
                     : `${stats?.xpTotal ?? 0} lab XP · solve today’s problem to start a streak`}</span>
-                  {setTotal > 0 && <i className="iv2-strip-bar" aria-hidden="true"><em style={{ width: `${Math.max(4, setPct)}%` }} /></i>}
+                  {setTotal > 0 && <i className="iv2-strip-bar" aria-hidden="true"><em style={{ width: `${barWidth(setPct)}%` }} /></i>}
                 </div>
               </div>
               {challenge && (

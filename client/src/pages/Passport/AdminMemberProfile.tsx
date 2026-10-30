@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import passportApi from '../../api/passportApi';
 import './adminMemberProfile.css';
 import MemberActivityCard from './MemberActivity';
+import { barWidth } from '../../utils/barWidth';
 
 /**
  * CareerPilot admin → Members → one member's full profile.
@@ -228,7 +229,7 @@ const AdminMemberProfile: React.FC = () => {
               {skillRows.slice(0, 12).map((s) => (
                 <li key={s.skillKey}>
                   <span className="amp-skill-name">{s.skillName}</span>
-                  <span className="amp-bar"><i style={{ width: `${Math.max(2, s.score || 0)}%` }} className={(s.score || 0) >= 70 ? 'good' : (s.score || 0) >= 40 ? 'mid' : 'low'} /></span>
+                  <span className="amp-bar"><i style={{ width: `${barWidth(s.score)}%` }} className={(s.score || 0) >= 70 ? 'good' : (s.score || 0) >= 40 ? 'mid' : 'low'} /></span>
                   <b>{s.score ?? '—'}</b>
                   <small>{pretty(s.confidence)}</small>
                 </li>

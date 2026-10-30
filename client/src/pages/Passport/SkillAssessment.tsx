@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import './skillAssessment.css';
 import CareerPilotFooter from '../../components/CareerPilotFooter';
 import { useProgramDays, daysLabel } from './useProgramDays';
+import { barWidth } from '../../utils/barWidth';
 
 /**
  * A stage key as the member's own year, for the identity strip.
@@ -89,7 +90,7 @@ const PlacementDone: React.FC<{ result: PlacementResult; topic: string; onBack: 
             {skills.map(k => (
               <li key={k.skillKey}>
                 <span>{label(k.skillKey)}</span>
-                <i><em style={{ width: `${Math.max(3, k.percentage)}%` }} /></i>
+                <i><em style={{ width: `${barWidth(k.percentage)}%` }} /></i>
                 <b>{k.earned}/{k.max}</b>
               </li>
             ))}

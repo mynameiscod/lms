@@ -1,6 +1,6 @@
 .exp-bar-row { display: grid; grid-template-columns: minmax(90px, 160px) 1fr auto; gap: 10px; align-items: center; margin: 6px 0; font-size: 13px; }
 .exp-bar-track { background: rgba(127,127,127,.15); border-radius: 6px; height: 10px; overflow: hidden; }
-.exp-bar-fill { height: 100%; background: #4f46e5; border-radius: 6px; min-width: 2px; }
+.exp-bar-fill { height: 100%; background: #4f46e5; border-radius: 6px; }
 .exp-big { font-size: 28px; font-weight: 700; }
 .exp-trend { display: flex; align-items: flex-end; gap: 12px; height: 180px; padding-top: 20px; }
 .exp-trend-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; min-width: 0; }

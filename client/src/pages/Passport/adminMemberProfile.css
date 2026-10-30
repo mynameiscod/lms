@@ -79,7 +79,7 @@
 .amp-skills small { font-size: 12px; color: #475569; }
 
 .amp-progress { height: 10px; border-radius: 999px; background: #EEF2F7; overflow: hidden; margin-bottom: 14px; }
-.amp-progress span { display: block; height: 100%; background: linear-gradient(90deg, #1B7D91, #1B8A6B); border-radius: 999px; min-width: 2px; }
+.amp-progress span { display: block; height: 100%; background: linear-gradient(90deg, #1B7D91, #1B8A6B); border-radius: 999px; }
 
 .amp-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .amp-answers article { border: 1px solid #EEF2F7; border-radius: 12px; padding: 10px 12px; background: #FAFCFE; min-width: 0; }

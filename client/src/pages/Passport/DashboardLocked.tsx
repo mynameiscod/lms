@@ -5,6 +5,7 @@ import passportApi, { DashboardData, RoleReadinessAvailable, SkillDnaRow, Member
 import { useUnlock } from './SectionLock';
 import './dashboardLocked.css';
 import { readinessBand } from '../../utils/readinessBand';
+import { barWidth } from '../../utils/barWidth';
 
 /**
  * The dashboard a student sees before they pay.
@@ -162,7 +163,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
                 {skillRows.map(s => (
                   <li key={s.key}>
                     <span className="nm">{s.label}</span>
-                    <span className={`br ${band(s.score)}`}><i style={{ width: `${Math.max(2, Math.min(100, s.score))}%` }} /></span>
+                    <span className={`br ${band(s.score)}`}><i style={{ width: `${barWidth(s.score)}%` }} /></span>
                     <span className={`vl ${band(s.score)}`}>{s.score}<em>/100</em></span>
                   </li>
                 ))}
@@ -182,7 +183,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
                   <strong>{ready === null ? '—' : `${ready}%`}</strong>
                   <div><b>{readyLabel}</b><span>{readiness.coverage}% of the role measured · {readiness.summary.assessedSkills}/{readiness.summary.requiredSkills} skills</span></div>
                 </div>
-                <div className="dl2-ready-bar"><i style={{ width: `${Math.max(2, ready ?? 0)}%` }} /></div>
+                <div className="dl2-ready-bar"><i style={{ width: `${barWidth(ready)}%` }} /></div>
                 <div className="dl2-ready-facts">
                   <div className="danger"><b>{readiness.summary.priorityGaps}</b><span>Priority gaps</span></div>
                   <div className="warn"><b>{readiness.summary.needsWork}</b><span>Need work</span></div>

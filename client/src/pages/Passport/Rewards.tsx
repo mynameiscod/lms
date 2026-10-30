@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import passportApi, { RewardCatalogue, RewardCard, RedemptionRow } from '../../api/passportApi';
 import './rewards.css';
 import './rewardsRedesign.css';
+import { barWidth } from '../../utils/barWidth';
 
 const STATUS_LABEL: Record<string, string> = { PENDING: 'Processing', RESERVED: 'Reserved', FULFILLED: 'Fulfilled', CANCELLED: 'Cancelled' };
 const newIntent = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -65,7 +66,7 @@ const Rewards: React.FC = () => {
         <p>Coins you earn from real career work can be spent here. Your XP is never spent — it shows how consistent you are.</p>
         <div className="rwd2-unlock">
           <div className="top"><b>{locked ? `${(min - student.coins).toLocaleString()} coins to unlock redeeming` : 'Redeeming is unlocked'}</b><span>{student.coins.toLocaleString()}{min > 0 ? ` / ${min.toLocaleString()}` : ''} coins</span></div>
-          <div className="bar"><i style={{ width: `${Math.max(unlockPct, 2)}%` }} /></div>
+          <div className="bar"><i style={{ width: `${barWidth(unlockPct)}%` }} /></div>
         </div>
       </div>
       <div className="rwd2-wallet">

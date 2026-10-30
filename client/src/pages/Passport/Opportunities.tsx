@@ -7,6 +7,7 @@ import { copyText } from '../../components/feedback/appFeedback';
 import './opportunities.css';
 import './opportunitiesRedesign.css';
 import { readinessBand } from '../../utils/readinessBand';
+import { barWidth } from '../../utils/barWidth';
 
 type AppStatus = 'applied' | 'shortlisted' | 'selected' | 'rejected' | 'placed';
 
@@ -379,7 +380,7 @@ const Opportunities: React.FC = () => {
           <section className="opp-side-card">
             <div className="opp-side-hd"><h3>Priority Skills</h3><button onClick={() => nav('/careerpilot/skills')}>View Skill DNA</button></div>
             {!gaps.length ? <p className="opp-side-empty">Complete your skill assessment to unlock gap-based guidance.</p> : gaps.map((g: any) => (
-              <div className="opp-skill-row" key={g.skillKey || g.skillLabel}><span>{g.skillName || g.skillLabel || prettySkill(g.skillKey)}</span><b>{g.studentScore == null ? '—' : `${g.studentScore}%`}</b><i className="opp2-skill-bar"><em style={{ width: `${Math.max(3, g.studentScore || 0)}%` }} /></i></div>
+              <div className="opp-skill-row" key={g.skillKey || g.skillLabel}><span>{g.skillName || g.skillLabel || prettySkill(g.skillKey)}</span><b>{g.studentScore == null ? '—' : `${g.studentScore}%`}</b><i className="opp2-skill-bar"><em style={{ width: `${barWidth(g.studentScore)}%` }} /></i></div>
             ))}
           </section>
 

@@ -41,6 +41,7 @@ import './journeyDayMember.css';
 import { useProgramDays } from './useProgramDays';
 import NotesBook, { opensAsBook } from './NotesBook';
 import { keepTaskInView, showLessonIfStacked, showLessonTop, useDayPanes } from './useDayPanes';
+import { barWidth } from '../../utils/barWidth';
 
 /** Content types, in words a first-year recognises. Mirrors the roadmap screen. */
 export const TYPE_LABEL: Record<string, string> = {
@@ -401,7 +402,7 @@ const JourneyDay: React.FC = () => {
                 {totalXp > 0 && <span><i className="bi bi-lightning-charge-fill" /> {earnedXp} / {totalXp} XP</span>}
               </div>
               <div className="jdm-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Day progress">
-                <i style={{ width: `${Math.max(2, pct)}%` }} />
+                <i style={{ width: `${barWidth(pct)}%` }} />
               </div>
             </>
           )}

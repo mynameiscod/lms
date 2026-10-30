@@ -649,7 +649,8 @@
   #root .gd .md-kpis > div > div > *, #root .gd .rr-kpis > div > div > *, #root .gd .sdn-kpis > div > div > *,
   #root .gd .gam-metric > *, #root .gd .clx-kpi > div > * { text-align: center !important; }
   /* The level bar spans the card under the centred text. */
-  #root .gd .md-kpis > div > div > [class*="bar"], #root .gd .md-kpis [class*="md-mini"] { width: 100% !important; align-self: stretch !important; }
+  #root .gd .md-kpis > div > div > [class*="bar"], #root .gd .md-kpis [class*="md-mini"],
+  #root .gd .sdn-kpis .sdn-kpi-bar { width: 100% !important; align-self: stretch !important; }
 }
 @media (max-width: 640px) {
   /* An odd last card (My Progress: Global rank) spans the row instead of sitting half-width alone. */

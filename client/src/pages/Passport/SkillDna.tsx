@@ -151,18 +151,13 @@ const SkillDna: React.FC = () => {
           <p>What your assessment measured, skill by skill. Scores show how you performed; confidence shows how much evidence stands behind each score.</p>
           <div className="sdn-hero-chips">
             <span><i className="bi bi-patch-check" /> Assessment completed</span>
-            <span><i className="bi bi-clipboard-data" /> {activeSkills.length} skills measured</span>
-            {strongest && <span><i className="bi bi-trophy" /> Strongest: {strongest.skillName}</span>}
           </div>
         </div>
-        <div className="sdn-hero-score">
-          <div className="sdn-ring" style={{ ['--sdn-deg' as any]: `${avgScore * 3.6}deg` }}>
-            <div><strong>{avgScore}</strong><span>/100</span></div>
-          </div>
-          <div className="sdn-hero-score-copy">
-            <b>Average observed score</b>
-            <span>Across {activeSkills.length} measured skill{activeSkills.length === 1 ? '' : 's'}</span>
-          </div>
+        {/* The figures, once each, beside the copy. */}
+        <div className="sdn-kpis">
+        <div><span className="ic blue"><i className="bi bi-clipboard-data" /></span><div><small>Skills measured</small><b>{activeSkills.length}</b><span>From your assessment</span></div></div>
+        <div><span className="ic teal"><i className="bi bi-speedometer2" /></span><div><small>Average score</small><b>{avgScore}<em>/100</em></b><span className={`sdn-kpi-bar ${band(avgScore)}`}><i style={{ width: `${barWidth(avgScore)}%` }} /></span></div></div>
+        <div><span className="ic green"><i className="bi bi-trophy" /></span><div><small>Strongest skill</small><b className="sm" title={strongest?.skillName}>{strongest?.skillName || '—'}</b><span>{strongest ? `${strongest.score}/100` : 'Not measured yet'}</span></div></div>
         </div>
       </section>
 

@@ -76,6 +76,11 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
     if (dna?.length) return [...dna].sort((a, b) => b.score - a.score).slice(0, 6).map(s => ({ key: s.skillKey, label: s.skillName, score: s.score }));
     return (data.skills || []).slice(0, 6);
   }, [dna, data.skills]);
+  /** The three lowest measured skills: what a Year-1 plan works on first. */
+  const focusFirst = useMemo(() => {
+    const rows = dna?.length ? dna.map(s => ({ key: s.skillKey, label: s.skillName, score: s.score })) : (data.skills || []);
+    return [...rows].sort((a, b) => a.score - b.score).slice(0, 3);
+  }, [dna, data.skills]);
   // Same rule as the Skill DNA page (skillScore.ts): reliably measured skills only; `early` otherwise.
   const avgInfo = dna?.length ? averageSkillScore(dna) : { score: null, counted: 0, early: false };
   const avg = avgInfo.score;
@@ -171,7 +176,23 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
             ) : <p className="dl2-empty">Your assessment results will appear here shortly.</p>}
           </article>
 
-          {/* Year 1 has no role: role readiness opens in Year 2, so the card is not shown at all. */}
+          {/* Year 1 has no role, so no role readiness: the half beside Skill DNA shows what the plan would
+              work on first (the lowest measured skills) and opens it. */}
+          {data.stage === 'foundation' && <article className="dl2-card dl2-plan">
+            <header className="dl2-card-head">
+              <div><h2>Your plan starts here</h2><p>Your {days}-day plan works on these first.</p></div>
+            </header>
+            {focusFirst.length ? (
+              <ol className="dl2-focus">
+                {focusFirst.map((s, i) => <li key={s.key}><span className="n">{i + 1}</span><b>{s.label}</b><em className={band(s.score)}>{s.score}/100</em></li>)}
+              </ol>
+            ) : <p className="dl2-empty">Your plan is built from your assessment results.</p>}
+            <div className="dl2-plan-foot">
+              <span><i className="bi bi-calendar3" /> {days} days, paced to the time you have</span>
+              <button className="dl2-btn primary" onClick={() => unlock()} disabled={busy}>{label}</button>
+            </div>
+            {!!msg && <p className="dl2-msg">{msg}</p>}
+          </article>}
           {data.stage !== 'foundation' && <article className="dl2-card">
             <header className="dl2-card-head">
               <div><h2>Role readiness</h2><p>{readiness?.role?.name ? `Against ${readiness.role.name}.` : 'Against your target role.'}</p></div>

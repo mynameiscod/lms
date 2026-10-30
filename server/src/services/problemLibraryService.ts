@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import CodingProblem, { CodingProblemTestCase, DSA_TAG, availableTo } from '../models/CodingProblem';
+import CodingProblem, { CodingProblemTestCase, availableTo } from '../models/CodingProblem';
 import ProblemSubmission from '../models/ProblemSubmission';
-import { PbError } from './problemBankService';
+import { PbError, onAudienceChange } from './problemBankService';
 import { Learner, runSamples, gradeAndRecord } from './problemDeliveryService';
 import { globalPracticeClause, onGrantChange } from './contentGrantService';
 
@@ -16,22 +16,23 @@ import { globalPracticeClause, onGrantChange } from './contentGrantService';
  */
 
 /**
- * The problems a member may open here: published, tagged DSA, available to CareerPilot, and either
- * the institute's own or shared with it by the super admin.
+ * The problems a member may open here: published, given to CareerPilot ("Available to" in the
+ * Problem Bank, one by one or in bulk), and either the institute's own or shared with it by the
+ * super admin.
  *
- * DSA ONLY. Everything else in the bank — exam questions above all — reaches a student only when it
- * is assigned (an exam pool, a problem set). Without this rule every new problem would turn up here
- * the moment it was published.
+ * GIVEN TO CAREERPILOT ONLY. A new problem is given to nobody, and an older one reads as LMS only,
+ * so nothing — exam questions above all — turns up here until an admin chooses CareerPilot for it.
  */
 const visible = async (tenantId: string) => {
   const shared = await globalPracticeClause(tenantId);
   return {
-    status: 'published', tags: DSA_TAG,
+    status: 'published',
     $and: [{ $or: [...(shared ? [shared] : []), { scope: 'tenant', tenantId }] }, availableTo('careerpilot')],
   };
 };
-// Totals and filter choices are cached per tenant; a grant change must show at once.
+// Totals and filter choices are cached per tenant; a grant or an "Available to" change must show at once.
 onGrantChange(() => cache.clear());
+onAudienceChange.push(() => cache.clear());
 
 export function assertMayUseLibrary(l: Learner) {
   if (!l.isCareerPilot && !l.isStaff) throw new PbError('The problem library is for CareerPilot members.', 403);

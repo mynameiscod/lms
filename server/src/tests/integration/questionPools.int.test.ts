@@ -32,9 +32,10 @@ const mcq = (a: Actor, question: string, extra: any = {}) => Question.create({
   difficultyLevel: 'easy', ...extra,
 }).then(q => String(q._id));
 
-const problem = async (a: Actor, title: string, publish: boolean) => {
+/** A problem given to the LMS (exam pools are LMS), unless `lms` is false: then it is not assigned yet. */
+const problem = async (a: Actor, title: string, publish: boolean, lms = true) => {
   const r = await createProblem(a, {
-    ...SAMPLE_PROBLEM, title, status: 'draft',
+    ...SAMPLE_PROBLEM, title, status: 'draft', audiences: lms ? ['lms'] : [],
     tests: (SAMPLE_PROBLEM.tests || []).map((t) => ({ ...t, expectedOutput: t.expectedOutput || '2000000000' })),
   } as any);
   const id = String(r.problem._id);
@@ -113,6 +114,10 @@ describe('coding pools', () => {
     expect(r.added).toBe(1);
     expect(r.refused[0].reason).toMatch(/Not published/);
 
+    // A problem not given to the LMS yet is refused too, with the reason.
+    const unassigned = await problem(ME, 'Not assigned', true, false);
+    expect((await pools.addQuestions(ME, pool.id, [unassigned])).refused[0].reason).toBe('Not available to the LMS');
+
     await CodingProblem.updateOne({ _id: live }, { status: 'archived' });
     expect((await pools.getPool(ME, pool.id)).counts.usable).toBe(0);
   });
@@ -120,8 +125,8 @@ describe('coding pools', () => {
   it('imports a CSV of coding problems as published, LMS-only exam questions, refusing incomplete rows', async () => {
     const pool = await pools.createPool(ME, { name: 'Imported coding', kind: 'coding' });
     const csv = csvTemplate({ complete: true })
-      + '"No tests",easy,5,,,,"Print hi",,,,,,,,,,,,,\n'
-      + '"Tagged DSA",medium,10,arrays,DSA,,"Echo the line",,,,,"x","x","y","y",,,"print(input())",,\n';
+      + '"No tests",easy,5,,,,,"Print hi",,,,,,,,,,,,,\n'
+      + '"Tagged DSA",medium,10,arrays,DSA,,careerpilot,"Echo the line",,,,,"x","x","y","y",,,"print(input())",,\n';
     const r = await pools.importFile(ME, pool.id, { filename: 'coding.csv', data: Buffer.from(csv).toString('base64') });
     expect(r.imported).toBe(2);
     expect(r.refused).toHaveLength(1);

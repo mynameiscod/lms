@@ -70,8 +70,12 @@ export interface PbProblem extends PbProblemInput {
 
 export type PbProduct = 'lms' | 'careerpilot';
 export const PB_PRODUCTS: { key: PbProduct; label: string }[] = [{ key: 'careerpilot', label: 'CareerPilot' }, { key: 'lms', label: 'LMS' }];
-/** The CareerPilot practice library lists only problems tagged DSA (any case). */
-export const isDsa = (tags?: string[]) => (tags || []).some((t) => t.trim().toLowerCase() === 'dsa');
+/**
+ * Who a problem is given to. Empty = not assigned yet (new problems start here). A problem written
+ * before the setting existed has none at all and reads as LMS only, as the server reads it.
+ * Given to CareerPilot = in the CareerPilot practice library once published.
+ */
+export const audiencesOf = (p: { audiences?: PbProduct[] | null }): PbProduct[] => (Array.isArray(p.audiences) ? p.audiences : ['lms']);
 
 export interface PbListItem {
   _id: string; scope: 'global' | 'tenant'; number: number; title: string; kind: string; difficulty: PbDifficulty;
@@ -109,6 +113,9 @@ export const problemBankApi = {
     axios.post(`${BASE}/problems/bulk-status`, { ids, status }, h()).then(d) as Promise<{
       status: string; changed: { id: string; title: string }[]; failed: { id: string; title: string; reason: string }[];
     }>,
+  /** Add or take away a product for the ticked problems (`ids`) or every problem the list's filters match (`filter`). */
+  bulkAudience: (body: { product: PbProduct; on: boolean; ids?: string[]; filter?: Record<string, unknown> }) =>
+    axios.post(`${BASE}/problems/bulk-audience`, body, h()).then(d) as Promise<{ product: PbProduct; on: boolean; matched: number; changed: number; skipped: number }>,
   remove: (id: string) => axios.delete(`${BASE}/problems/${id}`, h()).then(d) as Promise<{ archived?: boolean; deleted?: boolean }>,
   duplicate: (id: string, scope: 'tenant' | 'global' = 'tenant') => axios.post(`${BASE}/problems/${id}/duplicate`, { scope }, h()).then(d) as Promise<{ id: string }>,
   promote: (id: string) => axios.post(`${BASE}/problems/${id}/promote`, {}, h()).then(d),
@@ -122,8 +129,8 @@ export const problemBankApi = {
     axios.post(`${BASE}/fill-outputs`, { draft, language, onlyEmpty }, h()).then(d) as Promise<{ tests: PbTest[]; filled: number; failures: { index: number; error: string }[] }>,
   importPreview: (body: { filename?: string; data?: string; text?: string }) =>
     axios.post(`${BASE}/import/preview`, body, h()).then(d) as Promise<{ rows: PbImportRow[]; items: any[] }>,
-  importCommit: (items: any[], scope: 'tenant' | 'global', verify: boolean) =>
-    axios.post(`${BASE}/import/commit`, { items, scope, verify }, h()).then(d) as Promise<{ created: { row: number; id: string; title: string }[]; skipped: { row: number; title: string; reason: string }[] }>,
+  importCommit: (items: any[], scope: 'tenant' | 'global', verify: boolean, audiences: PbProduct[] = []) =>
+    axios.post(`${BASE}/import/commit`, { items, scope, verify, audiences }, h()).then(d) as Promise<{ created: { row: number; id: string; title: string }[]; skipped: { row: number; title: string; reason: string }[] }>,
   templateUrl: (format: 'json' | 'csv') => `${BASE}/import/template?format=${format}`,
   downloadTemplate: async (format: 'json' | 'csv') => {
     const r = await axios.get(`${BASE}/import/template`, { ...h(), params: { format }, responseType: 'blob' });
@@ -147,7 +154,7 @@ export const pbError = (e: any, fallback = 'Something went wrong') => {
 /** A blank problem, as the studio starts one. */
 export const emptyProblem = (): PbProblemInput => ({
   title: '', kind: 'code', statement: '', inputFormat: '', outputFormat: '', constraints: '', hints: [], editorial: '',
-  difficulty: 'easy', marks: 10, topics: [], tags: [], audiences: ['lms', 'careerpilot'], companies: [],
+  difficulty: 'easy', marks: 10, topics: [], tags: [], audiences: [], companies: [],
   languages: [], sqlSetup: '', limits: { timeMs: 2000, memoryMb: 256 }, comparisonMode: 'lenient',
   tests: [{ input: '', expectedOutput: '', isSample: true, weight: 1, explanation: '' }],
 });

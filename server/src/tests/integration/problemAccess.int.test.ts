@@ -11,7 +11,7 @@ import { startMongo, stopMongo, clearCollections } from './mongoHarness';
 jest.setTimeout(180_000);
 
 import CodingProblem from '../../models/CodingProblem';
-import { createProblem, listProblems, setStatus, Actor } from '../../services/problemBankService';
+import { createProblem, listProblems, setStatus, updateProblem, bulkSetAudience, Actor } from '../../services/problemBankService';
 import { SAMPLE_PROBLEM } from '../../services/problemImportService';
 import { saveSet } from '../../services/problemDeliveryService';
 import * as pools from '../../services/questionPoolService';
@@ -36,24 +36,77 @@ afterAll(stopMongo);
 afterEach(clearCollections);
 
 describe('"Available to" on a problem', () => {
-  it('defaults to both products and keeps only known ones', async () => {
-    const both = await make(ME, 'Default');
+  it('starts a new problem as not assigned, and keeps only known products', async () => {
+    const none = await make(ME, 'Default');
     const lms = await make(ME, 'LMS only', { audiences: ['lms', 'nonsense'] });
-    expect((await CodingProblem.findById(both).lean() as any).audiences).toEqual(['lms', 'careerpilot']);
+    expect((await CodingProblem.findById(none).lean() as any).audiences).toEqual([]);
     expect((await CodingProblem.findById(lms).lean() as any).audiences).toEqual(['lms']);
   });
 
-  it('filters the bank list by product and by tag in any case', async () => {
+  it('keeps the setting when an edit does not send it', async () => {
+    const id = await make(ME, 'Kept', { audiences: ['careerpilot'] });
+    const { audiences, ...rest } = (await CodingProblem.findById(id).lean()) as any;
+    await updateProblem(ME, id, { ...SAMPLE_PROBLEM, title: 'Kept, renamed', tests: (SAMPLE_PROBLEM.tests || []).map(t => ({ ...t, expectedOutput: t.expectedOutput || '2000000000' })) } as any);
+    expect((await CodingProblem.findById(id).lean() as any).audiences).toEqual(['careerpilot']);
+    expect(rest.title).toBe('Kept');
+  });
+
+  it('filters the bank list by product, by "not assigned" and by tag in any case', async () => {
     await make(ME, 'Two Sum', { tags: ['DSA'] });
     await make(ME, 'Exam Q', { tags: ['Exam'], audiences: ['lms'] });
     await make(ME, 'CP only', { tags: ['dsa'], audiences: ['careerpilot'] });
-    // A problem written before the field existed counts as both.
-    await CodingProblem.updateOne({ title: 'Two Sum' }, { $unset: { audiences: 1 } });
+    await make(ME, 'Older');
+    // A problem written before the field existed reads as LMS only.
+    await CodingProblem.updateOne({ title: 'Older' }, { $unset: { audiences: 1 } });
     const titles = async (q: any) => (await listProblems(ME, q)).items.map((p: any) => p.title).sort();
-    expect(await titles({ product: 'lms' })).toEqual(['Exam Q', 'Two Sum']);
-    expect(await titles({ product: 'careerpilot' })).toEqual(['CP only', 'Two Sum']);
+    expect(await titles({ product: 'lms' })).toEqual(['Exam Q', 'Older']);
+    expect(await titles({ product: 'careerpilot' })).toEqual(['CP only']);
+    expect(await titles({ product: 'none' })).toEqual(['Two Sum']);
     expect(await titles({ tag: 'DSA' })).toEqual(['CP only', 'Two Sum']);
     expect(await titles({ tag: 'ds' })).toEqual([]);
+  });
+});
+
+describe('giving problems to a product in bulk', () => {
+  const read = async (title: string) => ((await CodingProblem.findOne({ title }).lean()) as any).audiences;
+
+  it('adds and removes a product for ticked problems, keeping what each already had', async () => {
+    const a = await make(ME, 'Arrays 1', { audiences: ['lms'] });
+    const b = await make(ME, 'Arrays 2');
+    const r = await bulkSetAudience(ME, { ids: [a, b], product: 'careerpilot', on: true });
+    expect(r).toMatchObject({ matched: 2, changed: 2, skipped: 0 });
+    expect([...(await read('Arrays 1'))].sort()).toEqual(['careerpilot', 'lms']);
+    expect(await read('Arrays 2')).toEqual(['careerpilot']);
+    await bulkSetAudience(ME, { ids: [a], product: 'lms', on: false });
+    expect(await read('Arrays 1')).toEqual(['careerpilot']);
+  });
+
+  it('reaches every problem the filters match, and an older problem keeps its LMS use', async () => {
+    for (let i = 0; i < 3; i++) await make(ME, `Legacy ${i}`, { tags: ['Arrays'] });
+    await make(ME, 'Untouched', { tags: ['Strings'] });
+    await CodingProblem.updateMany({ title: /^Legacy/ }, { $unset: { audiences: 1 } });
+    const r = await bulkSetAudience(ME, { filter: { tag: 'arrays' }, product: 'careerpilot', on: true });
+    expect(r.matched).toBe(3);
+    for (let i = 0; i < 3; i++) expect([...(await read(`Legacy ${i}`))].sort()).toEqual(['careerpilot', 'lms']);
+    expect(await read('Untouched')).toEqual([]);
+  });
+
+  it("never changes another institute's problems or, for an institute admin, the CodeBegun library", async () => {
+    const OTHER: Actor = { userId: '507f1f77bcf86cd799439a02', tenantId: '507f1f77bcf86cd799439b02', role: 'TENANT_ADMIN' };
+    const theirs = await make(OTHER, 'Theirs');
+    const global = await make(SUPER, 'Global', { scope: 'global' });
+    const mine = await make(ME, 'Mine');
+    const r = await bulkSetAudience(ME, { ids: [theirs, global, mine], product: 'careerpilot', on: true });
+    expect(r).toMatchObject({ matched: 1, changed: 1, skipped: 2 });
+    expect(await read('Theirs')).toEqual([]);
+    expect(await read('Global')).toEqual([]);
+    // The super admin may assign the shared library.
+    expect((await bulkSetAudience(SUPER, { ids: [global], product: 'careerpilot', on: true })).changed).toBe(1);
+  });
+
+  it('refuses a request with no product or no problems', async () => {
+    await expect(bulkSetAudience(ME, { ids: ['x'], product: 'nope' })).rejects.toThrow(/CareerPilot or LMS/);
+    await expect(bulkSetAudience(ME, { product: 'lms' })).rejects.toThrow(/Select problems/);
   });
 });
 

@@ -63,6 +63,7 @@ router.get('/api-clients/:id/preview', adminOnly, apiClients.preview);
 router.get('/problems', ctrl.list);
 router.post('/problems', ctrl.create);
 router.post('/problems/bulk-status', ctrl.bulkStatus);
+router.post('/problems/bulk-audience', ctrl.bulkAudience);
 router.get('/problems/:id', ctrl.get);
 router.put('/problems/:id', ctrl.update);
 router.delete('/problems/:id', ctrl.remove);

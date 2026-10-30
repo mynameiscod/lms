@@ -13,6 +13,7 @@ import { Actor, createProblem, normalizeInput, ProblemInput, queueVerification, 
  *
  * ── SPREADSHEET COLUMNS ─────────────────────────────────────────────────────────────────────
  * title, difficulty, marks, topics, tags, companies (lists separated by | or ,),
+ * available_to (careerpilot, lms, both or none — blank uses the import's own choice),
  * statement, input_format, output_format, constraints, hints (separated by ||), editorial,
  * time_limit_ms, comparison,
  * tests_json — a JSON array [{"input","output","sample","weight"}], OR numbered columns
@@ -36,6 +37,18 @@ const cell = (r: Record<string, any>, k: string) => {
   const v = r[k];
   return v === undefined || v === null ? '' : String(v);
 };
+
+/**
+ * The optional available_to column: careerpilot, lms, both (or "careerpilot|lms"), none. Blank
+ * leaves the row to the import's own choice.
+ */
+function audienceColumn(v: string): { audiences?: string[] } {
+  const t = v.trim().toLowerCase();
+  if (!t) return {};
+  if (t === 'both' || t === 'all') return { audiences: ['lms', 'careerpilot'] };
+  if (t === 'none') return { audiences: [] };
+  return { audiences: splitList(t).map((x) => (x === 'cp' || x === 'career pilot' ? 'careerpilot' : x)) };
+}
 
 function fromSpreadsheetRow(r: Record<string, any>): ProblemInput {
   // Header names are matched case- and space-insensitively.
@@ -73,6 +86,7 @@ function fromSpreadsheetRow(r: Record<string, any>): ProblemInput {
     topics: splitList(row.topics),
     tags: splitList(row.tags),
     companies: splitList(row.companies),
+    ...audienceColumn(cell(row, 'available_to')),
     statement: cell(row, 'statement') || cell(row, 'description'),
     inputFormat: cell(row, 'input_format'),
     outputFormat: cell(row, 'output_format'),
@@ -154,14 +168,17 @@ export function previewImport(items: ProblemInput[]): ImportRow[] {
   });
 }
 
-export async function commitImport(a: Actor, items: ProblemInput[], opts: { scope?: 'global' | 'tenant'; verify?: boolean }) {
+export async function commitImport(a: Actor, items: ProblemInput[], opts: { scope?: 'global' | 'tenant'; verify?: boolean; audiences?: string[] }) {
+  // The import's "Available to" choice, for rows that do not say (an available_to column wins).
+  const chosen = Array.isArray(opts.audiences) ? opts.audiences : [];
   const rows = previewImport(items);
   const created: { row: number; id: string; title: string }[] = [];
   const skipped: { row: number; title: string; reason: string }[] = [];
   for (const r of rows) {
     if (r.errors.length) { skipped.push({ row: r.row, title: r.title, reason: r.errors.join(' ') }); continue; }
     try {
-      const { problem } = await createProblem(a, { ...r.problem, scope: opts.scope || 'tenant', status: 'draft' }, 'import');
+      const audiences = Array.isArray(r.problem.audiences) ? r.problem.audiences : chosen;
+      const { problem } = await createProblem(a, { ...r.problem, audiences, scope: opts.scope || 'tenant', status: 'draft' }, 'import');
       created.push({ row: r.row, id: String(problem._id), title: problem.title });
       if (opts.verify !== false && problem.languages.some((l) => l.solutionCode.trim())) {
         await queueVerification(null, String(problem._id)).catch(() => undefined);
@@ -204,12 +221,12 @@ export const SAMPLE_PROBLEM: ProblemInput = {
  * cannot generate a blank output from the reference solution, as the bank's own import does.
  */
 export function csvTemplate(opts: { complete?: boolean } = {}): string {
-  const headers = ['title', 'difficulty', 'marks', 'topics', 'tags', 'companies', 'statement', 'input_format', 'output_format',
+  const headers = ['title', 'difficulty', 'marks', 'topics', 'tags', 'companies', 'available_to', 'statement', 'input_format', 'output_format',
     'constraints', 'hints', 'sample_input_1', 'sample_output_1', 'test_input_1', 'test_output_1', 'test_input_2', 'test_output_2',
     'starter_python', 'solution_python', 'solution_java'];
   const s = SAMPLE_PROBLEM;
   const java = s.languages![1].solutionCode!;
-  const values = [s.title, s.difficulty, String(s.marks), 'basics|math', 'warm-up', '', s.statement!, s.inputFormat!, s.outputFormat!,
+  const values = [s.title, s.difficulty, String(s.marks), 'basics|math', 'warm-up', '', 'careerpilot', s.statement!, s.inputFormat!, s.outputFormat!,
     s.constraints!, s.hints!.join('||'), '2 3', '5', '-4 10', '6', '1000000000 1000000000', opts.complete ? '2000000000' : '',
     s.languages![0].starterCode!, s.languages![0].solutionCode!, java];
   const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;

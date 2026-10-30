@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { problemBankApi, pbError, PbImportRow } from '../../api/problemBankApi';
+import { PB_PRODUCTS, PbProduct, problemBankApi, pbError, PbImportRow } from '../../api/problemBankApi';
 import { Modal } from './shared';
 
 /** Largest file the import accepts. The server's import routes allow this, base64-encoded. */
@@ -22,6 +22,8 @@ const ImportDialog: React.FC<{ canGlobal: boolean; onClose: () => void; onDone: 
   const [keep, setKeep] = useState<Set<number>>(new Set());
   const [scope, setScope] = useState<'tenant' | 'global'>('tenant');
   const [verify, setVerify] = useState(true);
+  // Who the imported problems are given to. A row's own available_to column wins over this.
+  const [audiences, setAudiences] = useState<PbProduct[]>([]);
   const [result, setResult] = useState<{ created: any[]; skipped: any[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -52,7 +54,7 @@ const ImportDialog: React.FC<{ canGlobal: boolean; onClose: () => void; onDone: 
     setBusy(true); setErr('');
     try {
       const chosen = items.filter((_, i) => keep.has(i + 1));
-      const r = await problemBankApi.importCommit(chosen, scope, verify);
+      const r = await problemBankApi.importCommit(chosen, scope, verify, audiences);
       setResult(r); setStep('done');
     } catch (e) { setErr(pbError(e, 'Import failed.')); }
     setBusy(false);
@@ -127,6 +129,25 @@ const ImportDialog: React.FC<{ canGlobal: boolean; onClose: () => void; onDone: 
             </select>
           )}
           <label className="pb-switch"><input type="checkbox" checked={verify} onChange={(e) => setVerify(e.target.checked)} /> Verify with reference solutions</label>
+        </div>
+        <div className="pb-import-aud">
+          <span className="pb-import-aud-label">Available to</span>
+          <div className="pb-seg" role="group" aria-label="Available to">
+            {PB_PRODUCTS.map(({ key, label }) => {
+              const on = audiences.includes(key);
+              return (
+                <button key={key} type="button" className={on ? 'on' : ''} aria-pressed={on}
+                  onClick={() => setAudiences(on ? audiences.filter((x) => x !== key) : [...audiences, key])}>
+                  <i className={on ? 'fa-solid fa-square-check' : 'fa-regular fa-square'} /> {label}
+                </button>
+              );
+            })}
+          </div>
+          <span className="pb-muted pb-import-aud-help">
+            {audiences.includes('careerpilot') ? 'Published ones go straight into the CareerPilot practice library. ' : ''}
+            {!audiences.length ? 'Not assigned: nobody is given these until you choose. ' : ''}
+            A row with an <b>available_to</b> column keeps its own choice.
+          </span>
         </div>
         <div className="pb-card pb-table-wrap" style={{ maxHeight: 420, overflowY: 'auto' }}>
           <table className="pb-table">

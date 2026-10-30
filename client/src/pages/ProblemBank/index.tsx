@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { isDsa, PB_PRODUCTS, problemBankApi, pbError, PbListItem, PbMeta } from '../../api/problemBankApi';
+import { audiencesOf, PB_PRODUCTS, PbProduct, problemBankApi, pbError, PbListItem, PbMeta } from '../../api/problemBankApi';
 import { DifficultyPill, LANG_SHORT, Menu, ScopePill, StatusPill, VerifyBadge, relTime, useToast } from './shared';
 import ImportDialog from './ImportDialog';
 import AiDialog from './AiDialog';
@@ -47,6 +47,9 @@ const ProblemBank: React.FC = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkFailed, setBulkFailed] = useState<{ id: string; title: string; reason: string }[]>([]);
+  // "Select all N that match": a bulk action then reaches every problem the filters match, not just this page.
+  const [allMatching, setAllMatching] = useState(false);
+  const [audMenu, setAudMenu] = useState(false);
 
   useEffect(() => { const t = setTimeout(() => setDebouncedQ(q), 300); return () => clearTimeout(t); }, [q]);
   useEffect(() => { const t = setTimeout(() => setDebouncedTag(tag.trim()), 300); return () => clearTimeout(t); }, [tag]);
@@ -55,21 +58,25 @@ const ProblemBank: React.FC = () => {
   const loadMeta = useCallback(() => problemBankApi.meta().then(setMeta).catch((e) => setErr(pbError(e, 'Could not load the Problem Bank.'))), []);
   useEffect(() => { loadMeta(); }, [loadMeta]);
 
+  // The list's filters, also sent as-is by "Available to" on all matching problems.
+  const listFilters = useMemo(() => ({
+    q: debouncedQ || undefined, difficulty: difficulty.join(',') || undefined, topic: topic || undefined,
+    language: language || undefined, company: company || undefined, tag: debouncedTag || undefined, product: product || undefined, scope, status: status || undefined,
+    verification: verification || undefined,
+  }), [debouncedQ, difficulty, topic, language, company, debouncedTag, product, scope, status, verification]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await problemBankApi.list({
-        q: debouncedQ || undefined, difficulty: difficulty.join(',') || undefined, topic: topic || undefined,
-        language: language || undefined, company: company || undefined, tag: debouncedTag || undefined, product: product || undefined, scope, status: status || undefined,
-        verification: verification || undefined, sort, page, limit: PAGE,
-      });
+      const r = await problemBankApi.list({ ...listFilters, sort, page, limit: PAGE });
       setRows(r.items); setTotal(r.total); setPages(r.pages); setErr('');
     } catch (e) { setErr(pbError(e, 'Could not load problems.')); }
     setLoading(false);
-  }, [debouncedQ, difficulty, topic, language, company, debouncedTag, product, scope, status, verification, sort, page]);
+  }, [listFilters, sort, page]);
   useEffect(() => { load(); }, [load]);
   // A selection belongs to the rows on screen; a new page or filter starts it again.
-  useEffect(() => { setSelected(new Set()); }, [debouncedQ, difficulty, topic, language, company, debouncedTag, product, scope, status, verification, sort, page]);
+  useEffect(() => { setSelected(new Set()); setAllMatching(false); setAudMenu(false); }, [debouncedQ, difficulty, topic, language, company, debouncedTag, product, scope, status, verification, sort, page]);
+  useEffect(() => { if (!selected.size) setAllMatching(false); }, [selected]);
 
   const refresh = () => { load(); loadMeta(); };
   const topicLabel = useMemo(() => Object.fromEntries((meta?.topics || []).map((t) => [t.key, t.label])), [meta]);
@@ -100,6 +107,27 @@ const ProblemBank: React.FC = () => {
         : `${verb} ${r.changed.length} problem${r.changed.length === 1 ? '' : 's'}.`, r.failed.length > 0 && !r.changed.length);
       setBulkFailed(r.failed);
       setSelected(new Set(r.failed.map((f) => f.id)));
+      refresh();
+    } catch (e) { toast.show(pbError(e), true); }
+    setBulkBusy(false);
+  };
+
+  const bulkAudience = async (product: PbProduct, on: boolean) => {
+    setAudMenu(false);
+    const name = product === 'careerpilot' ? 'CareerPilot' : 'LMS';
+    const count = allMatching ? total : selected.size;
+    const plural = count === 1 ? '' : 's';
+    const what = on ? `Give ${count} problem${plural} to ${name}?` : `Take ${count} problem${plural} away from ${name}?`;
+    const effect = product === 'careerpilot'
+      ? (on ? ' Published ones appear in the CareerPilot practice library straight away.' : ' They leave the CareerPilot practice library.')
+      : (on ? ' They can then be used in LMS problem sets and exams.' : ' They can no longer be added to LMS problem sets and exams.');
+    if (!window.confirm(`${what}${effect} What each problem has for the other product is kept.`)) return;
+    setBulkBusy(true);
+    try {
+      const r = await problemBankApi.bulkAudience({ product, on, ...(allMatching ? { filter: listFilters } : { ids: [...selected] }) });
+      toast.show(`${on ? 'Gave' : 'Took'} ${r.matched} problem${r.matched === 1 ? '' : 's'} ${on ? 'to' : 'away from'} ${name}`
+        + (r.skipped ? ` · ${r.skipped} skipped (not yours to change)` : ''));
+      setSelected(new Set()); setAllMatching(false);
       refresh();
     } catch (e) { toast.show(pbError(e), true); }
     setBulkBusy(false);
@@ -201,7 +229,8 @@ const ProblemBank: React.FC = () => {
           </div>
           <select className="pb-select" value={product} onChange={(e) => setProduct(e.target.value)} aria-label="Available to">
             <option value="">Any product</option>
-            {PB_PRODUCTS.map((x) => <option key={x.key} value={x.key}>Available to {x.label}</option>)}
+            {PB_PRODUCTS.map((x) => <option key={x.key} value={x.key}>Given to {x.label}</option>)}
+            <option value="none">Not assigned</option>
           </select>
           <select className="pb-select" value={scope} onChange={(e) => setScope(e.target.value as any)} aria-label="Owner">
             <option value="all">All owners</option>
@@ -235,13 +264,34 @@ const ProblemBank: React.FC = () => {
 
         {selected.size > 0 && (
           <div className="pb-card pb-bulkbar" role="region" aria-label="Selected problems">
-            <b>{selected.size} selected</b>
+            <div className="pb-bulk-count">
+              <b>{allMatching ? `All ${total} matching problems selected` : `${selected.size} selected`}</b>
+              {!allMatching && allOnPage && total > selected.size && (
+                <button className="pb-linkbtn" onClick={() => setAllMatching(true)}>Select all {total} that match the filters</button>
+              )}
+              {allMatching && <button className="pb-linkbtn" onClick={() => setAllMatching(false)}>Only this page</button>}
+            </div>
             <span className="pb-spacer" />
-            <button className="pb-btn pb-btn-sm pb-btn-primary" disabled={bulkBusy} onClick={() => bulk('published')}>
-              {bulkBusy ? <span className="pb-spinner" /> : <i className="fa-solid fa-upload" />} Publish
-            </button>
-            <button className="pb-btn pb-btn-sm" disabled={bulkBusy} onClick={() => bulk('draft')}><i className="fa-solid fa-eye-slash" /> Move to draft</button>
-            <button className="pb-btn pb-btn-sm pb-btn-ghost" disabled={bulkBusy} onClick={() => { setSelected(new Set()); setBulkFailed([]); }}>Clear</button>
+            <div className="pb-aud-wrap">
+              <button className="pb-btn pb-btn-sm pb-btn-primary" disabled={bulkBusy} aria-haspopup="menu" aria-expanded={audMenu} onClick={() => setAudMenu((x) => !x)}>
+                {bulkBusy ? <span className="pb-spinner" /> : <i className="fa-solid fa-user-check" />} Available to <i className="fa-solid fa-chevron-down" style={{ fontSize: 10 }} />
+              </button>
+              {audMenu && (
+                <div className="pb-aud-menu" role="menu">
+                  <button role="menuitem" onClick={() => bulkAudience('careerpilot', true)}><i className="fa-solid fa-plus" /> Give to CareerPilot</button>
+                  <button role="menuitem" onClick={() => bulkAudience('lms', true)}><i className="fa-solid fa-plus" /> Give to LMS</button>
+                  <hr />
+                  <button role="menuitem" onClick={() => bulkAudience('careerpilot', false)}><i className="fa-solid fa-minus" /> Take away from CareerPilot</button>
+                  <button role="menuitem" onClick={() => bulkAudience('lms', false)}><i className="fa-solid fa-minus" /> Take away from LMS</button>
+                </div>
+              )}
+            </div>
+            {/* Publishing checks each problem one by one, so it works on ticked rows, not on everything that matches. */}
+            {!allMatching && <>
+              <button className="pb-btn pb-btn-sm" disabled={bulkBusy} onClick={() => bulk('published')}><i className="fa-solid fa-upload" /> Publish</button>
+              <button className="pb-btn pb-btn-sm" disabled={bulkBusy} onClick={() => bulk('draft')}><i className="fa-solid fa-eye-slash" /> Move to draft</button>
+            </>}
+            <button className="pb-btn pb-btn-sm pb-btn-ghost" disabled={bulkBusy} onClick={() => { setSelected(new Set()); setBulkFailed([]); setAllMatching(false); }}>Clear</button>
           </div>
         )}
         {bulkFailed.length > 0 && (
@@ -310,9 +360,9 @@ const ProblemBank: React.FC = () => {
                       <td className="pb-title-cell">
                         <div className="t">{p.title}{p.kind === 'sql' && <span className="pb-tag" style={{ marginLeft: 6 }}>SQL</span>}</div>
                         <div className="sub">
-                          {isDsa(p.tags) && (!p.audiences?.length || p.audiences.includes('careerpilot'))
-                            && <span className="pb-tag pb-tag-dsa" title="Open in the CareerPilot practice library"><i className="fa-solid fa-dumbbell" /> DSA practice</span>}
-                          {p.audiences?.length === 1 && <span className="pb-tag pb-tag-product" title="The only product that may assign it">{p.audiences[0] === 'lms' ? 'LMS only' : 'CareerPilot only'}</span>}
+                          {audiencesOf(p).includes('careerpilot') && <span className="pb-tag pb-tag-cp" title="Given to CareerPilot: in the practice library once published"><i className="fa-solid fa-rocket" /> CareerPilot</span>}
+                          {audiencesOf(p).includes('lms') && <span className="pb-tag pb-tag-lms" title="Given to the LMS: usable in problem sets and exams">LMS</span>}
+                          {!audiencesOf(p).length && <span className="pb-tag pb-tag-none" title="Given to no one yet: tick it, then Available to">Not assigned</span>}
                           {p.topics.slice(0, 3).map((t) => <span key={t} className="pb-tag">{topicLabel[t] || t}</span>)}
                           {p.topics.length > 3 && <span className="pb-faint" style={{ fontSize: 12 }}>+{p.topics.length - 3}</span>}
                           {p.companies.slice(0, 2).map((c) => <span key={c} className="pb-tag" style={{ background: '#fdf4ff', color: '#86198f' }}>{c}</span>)}

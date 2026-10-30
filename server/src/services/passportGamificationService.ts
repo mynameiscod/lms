@@ -62,7 +62,8 @@ export function levelFromXp(xp: number): LevelInfo {
 }
 
 // ── Dates ────────────────────────────────────────────────────────────────────
-const dayKey = (d: Date | string) => new Date(d).toISOString().slice(0, 10);
+// India time, like the streak (passportMissionService.ymd): one day boundary for every count.
+const dayKey = (d: Date | string) => new Date(new Date(d).getTime() + 330 * 60 * 1000).toISOString().slice(0, 10);
 
 /** XP earned per day for the last `days` days (oldest → newest), from the XP event log. */
 export function activitySeries(progress: IPassportProgress, days = 7, now = new Date()) {

@@ -36,7 +36,7 @@ const Radar: React.FC<{ skills: { label: string; score: number }[] }> = ({ skill
   // their own: `pad` on each side is where a wrapped name sits, inside the viewBox.
   const size = 290, pad = 46, cx = size / 2 + pad, cy = size / 2 + 6, R = 84;
   const n = skills.length;
-  if (n < 3) return <div className="gd-chart-empty">Not enough category data to draw your skill meter.</div>;
+  if (n < 3) return <div className="gd-chart-empty">Your skill meter fills in as more of your skill areas are measured — at least three are needed to draw it.</div>;
 
   const pt = (i: number, dist: number) => {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
@@ -380,7 +380,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <small>Coder score <span className="md-help" title="A 0–1000 composite of your assessment, practice, missions, interviews and resume.">?</span></small>
             <b>{scoreTag}</b>
             <span>{d.percentileAhead !== null && d.percentileAhead !== undefined
-              ? <>Ahead of <em>{d.percentileAhead}%</em> of CareerPilot members.</>
+              ? <>Ahead of <em>{d.percentileAhead}%</em> of CareerPilot members on XP.</>
               : 'Rankings appear once more members join your cohort.'}</span>
           </div>
         </div>
@@ -542,8 +542,8 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
 
         <article className="md-card">
           <header className="md-card-head">
-            <div><h2><Bi name="stars" /> Skill meter</h2><p>Your six career readiness categories.</p></div>
-            <button className="md-link" onClick={() => nav('/careerpilot/readiness')}>Full report <Bi name="arrow-right" /></button>
+            <div><h2><Bi name="stars" /> Skill meter</h2><p>{(d.skills || []).some((x: any) => x.early) ? 'Your Skill DNA by skill area (early: some areas rest on little evidence yet).' : 'Your Skill DNA by skill area.'}</p></div>
+            <button className="md-link" onClick={() => nav('/careerpilot/skills')}>Full report <Bi name="arrow-right" /></button>
           </header>
           <div className="md-radar"><Radar skills={d.skills || []} /></div>
         </article>

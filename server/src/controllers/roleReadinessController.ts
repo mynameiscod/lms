@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { calculateStudentRoleReadiness, explainReadiness } from '../services/roleReadinessService';
+import User from '../models/User';
 
 /**
  * Reading a student's readiness against their target role.
@@ -48,6 +49,8 @@ const studentShape = (r: any) => {
     role: r.role,
     readiness: r.readiness,
     coverage: r.coverage,
+    provisional: r.provisional,
+    wholeRoleReadiness: r.wholeRoleReadiness,
     confidence: r.confidence,
     summary: r.summary,
     skills: r.skills.map(skill),
@@ -63,6 +66,19 @@ export const getMyRoleReadiness = async (req: Request, res: Response) => {
     const tenantId = tenantOf(req);
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
+
+    /*
+     * Year 1 has no role (setup stores "Not sure" for every first-year), so a member never sees a
+     * role readiness figure in Year 1. It is still worked out internally — the roadmap ranks the
+     * Year-1 skill gaps from it — but it is not shown as "role readiness".
+     */
+    const me = await User.findOne({ _id: studentId, tenantId }).select('passport.stage').lean() as any;
+    if (me?.passport?.stage === 'foundation') {
+      return res.json({
+        available: false, reason: 'YEAR_1',
+        message: 'Role readiness opens in your 2nd year, when you choose the role you are working toward. In Year 1 your Skill DNA shows how your foundations are growing.',
+      });
+    }
 
     const result = await calculateStudentRoleReadiness(tenantId, studentId);
 

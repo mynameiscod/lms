@@ -74,7 +74,8 @@
 .dl2-ready-top span { display: block; margin-top: 3px; font-size: 13.5px; color: var(--muted); }
 .dl2-ready-bar { height: 10px; border-radius: 999px; background: #EDF2F7; margin: 16px 0 18px; overflow: hidden; }
 .dl2-ready-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), var(--teal)); }
-.dl2-ready-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.dl2-ready-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 520px) { .dl2-ready-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .dl2-ready-facts > div { border: 1px solid var(--line); border-top-width: 4px; border-radius: 14px; padding: 14px 10px; text-align: center; }
 .dl2-ready-facts > .danger { border-top-color: var(--red); }
 .dl2-ready-facts > .warn { border-top-color: #E7A43A; }

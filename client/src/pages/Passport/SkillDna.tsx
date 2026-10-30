@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { averageSkillScore, focusOrder } from './skillScore';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { SkillDnaRow } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
@@ -114,11 +115,10 @@ const SkillDna: React.FC = () => {
 
   const activeSkills = useMemo(() => skills.filter(s => s.skillActive !== false), [skills]);
   const ranked = useMemo(() => [...activeSkills].sort((a, b) => b.score - a.score), [activeSkills]);
-  const avgScore = activeSkills.length ? Math.round(activeSkills.reduce((sum, s) => sum + Number(s.score || 0), 0) / activeSkills.length) : 0;
-  /* Where to focus: the lowest scores first, and among equal scores the thinnest evidence. */
-  const focus = useMemo(() => [...activeSkills]
-    .sort((a, b) => a.score - b.score || a.evidenceCount - b.evidenceCount)
-    .slice(0, 3), [activeSkills]);
+  // One rule for "average skill score" on every screen (skillScore.ts): reliably measured skills only.
+  const avgScore = averageSkillScore(activeSkills).score ?? 0;
+  /* Where to focus: the weakest skills we are reasonably sure about first (skillScore.focusOrder). */
+  const focus = useMemo(() => focusOrder(activeSkills).slice(0, 3), [activeSkills]);
   const lowEvidence = activeSkills.filter(s => s.confidence === 'LOW').length;
   const highEvidence = activeSkills.filter(s => s.confidence === 'HIGH').length;
   const evidenceTotal = activeSkills.reduce((sum, s) => sum + (s.evidenceCount || 0), 0);

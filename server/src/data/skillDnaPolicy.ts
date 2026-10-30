@@ -13,7 +13,7 @@
  * NO AI. Nothing asks a model how good somebody is at Java.
  */
 
-export const SKILL_DNA_VERSION = 'SKILL_DNA_V1';
+export const SKILL_DNA_VERSION = 'SKILL_DNA_V2';   // V2 (2026-10-30): latest answer per item; MEDIUM needs 2 items
 
 /**
  * How much an observation counts, by what the question was really testing.
@@ -319,8 +319,31 @@ export function confidenceFor(effectiveWeight: number, distinctItems: number): '
   if (effectiveWeight >= CONFIDENCE_THRESHOLDS.HIGH && distinctItems >= HIGH_CONFIDENCE_MIN_DISTINCT_ITEMS) {
     return 'HIGH';
   }
-  if (effectiveWeight >= CONFIDENCE_THRESHOLDS.MEDIUM) return 'MEDIUM';
+  // MEDIUM needs two different items too: one item answered well (or retaken) is one data point.
+  if (effectiveWeight >= CONFIDENCE_THRESHOLDS.MEDIUM && distinctItems >= MEDIUM_CONFIDENCE_MIN_DISTINCT_ITEMS) return 'MEDIUM';
   return 'LOW';
+}
+
+/** MEDIUM confidence needs at least this many different items (HIGH needs HIGH_CONFIDENCE_MIN_DISTINCT_ITEMS). */
+export const MEDIUM_CONFIDENCE_MIN_DISTINCT_ITEMS = 2;
+
+/**
+ * THE LATEST ANSWER TO AN ITEM IS THE ONE THAT COUNTS.
+ *
+ * Every attempt writes its own evidence rows, so a retaken quiz used to sit beside the first try
+ * and the two were averaged — a member who went from 2/10 to 9/10 on the same questions was told
+ * they were at about 55%, for ever. An item (the same question, assignment or interview question,
+ * named by `itemKey`) now counts once, at its most recent observation. Different items still all
+ * count: a retake that draws new questions adds evidence rather than replacing it.
+ */
+export function latestPerItem<T extends { itemKey: string; observedAt?: Date | string | null }>(rows: T[]): T[] {
+  const latest = new Map<string, T>();
+  const at = (r: T) => (r.observedAt ? new Date(r.observedAt).getTime() : 0);
+  for (const r of rows) {
+    const seen = latest.get(r.itemKey);
+    if (!seen || at(r) >= at(seen)) latest.set(r.itemKey, r);
+  }
+  return [...latest.values()];
 }
 
 /**

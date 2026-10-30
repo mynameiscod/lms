@@ -7,7 +7,7 @@ import { getStageBlueprint } from './stageSkillSetService';
 import { ROLE_NOT_SURE } from './careerDomainService';
 import {
   ROLE_READINESS_VERSION, targetScoreFor, classifyGap, skillRatio, priorityScore,
-  isSufficientlyAssessed, roleConfidence, STATUS_ORDER, GapStatus, ReadinessUnavailable,
+  isSufficientlyAssessed, roleConfidence, STATUS_ORDER, GapStatus, ReadinessUnavailable, READINESS_MIN_COVERAGE,
 } from '../data/roleReadinessPolicy';
 
 /**
@@ -66,6 +66,13 @@ export interface RoleReadinessResult {
   /** Null when nothing is sufficiently assessed — not 0, which would assert unreadiness. */
   readiness: number | null;
   coverage: number;
+  /** Coverage is below READINESS_MIN_COVERAGE: `readiness` is an early estimate, not the headline. */
+  provisional: boolean;
+  /**
+   * Readiness against the WHOLE role: the same ratios over the role's total weight, so an unmeasured
+   * skill counts as 0. Never above `readiness`; equal to it once everything is measured.
+   */
+  wholeRoleReadiness: number;
   confidence: 'LOW' | 'MEDIUM' | 'HIGH';
 
   summary: {
@@ -266,9 +273,16 @@ export async function calculateStudentRoleReadiness(
   });
 
   // ── the two figures ──
-  const counted = skills.filter(s => s.countedInReadiness && s.studentScore !== null);
+  /*
+   * A skill an admin has RETIRED stays on the list, flagged (`skillInactive`), so the admin sees the
+   * blueprint still names it — but it no longer counts toward readiness or coverage. It used to,
+   * so a member was judged on a skill the product no longer teaches or measures.
+   */
+  const live = skills.filter(s => !s.skillInactive || skillByKey.has(s.skillKey) === false);
+  for (const s of skills) if (!live.includes(s)) s.countedInReadiness = false;
+  const counted = live.filter(s => s.countedInReadiness && s.studentScore !== null);
   const countedWeight = counted.reduce((n, s) => n + s.weight, 0);
-  const totalWeight = skills.reduce((n, s) => n + s.weight, 0);
+  const totalWeight = live.reduce((n, s) => n + s.weight, 0);
 
   const readiness = countedWeight > 0
     ? Math.round(
@@ -279,9 +293,13 @@ export async function calculateStudentRoleReadiness(
     : null;
 
   const coverage = totalWeight > 0 ? Math.round((countedWeight / totalWeight) * 100) : 0;
+  const provisional = coverage < READINESS_MIN_COVERAGE;
+  const wholeRoleReadiness = totalWeight > 0
+    ? Math.round((counted.reduce((n, s) => n + skillRatio(s.studentScore!, s.targetScore) * s.weight, 0) / totalWeight) * 100)
+    : 0;
 
-  const essentialTotal = skills.filter(s => s.importance === 'ESSENTIAL').length;
-  const essentialAssessed = skills.filter(s => s.importance === 'ESSENTIAL' && s.countedInReadiness).length;
+  const essentialTotal = live.filter(s => s.importance === 'ESSENTIAL').length;
+  const essentialAssessed = live.filter(s => s.importance === 'ESSENTIAL' && s.countedInReadiness).length;
 
   const confidence = roleConfidence({ coveragePercent: coverage, essentialTotal, essentialAssessed });
 
@@ -302,7 +320,7 @@ export async function calculateStudentRoleReadiness(
     blueprintVersion: blueprint.version,
     blueprintUpdatedAt: blueprint.updatedAt,
 
-    readiness, coverage, confidence,
+    readiness, coverage, confidence, provisional, wholeRoleReadiness,
 
     summary: {
       requiredSkills: skills.length,

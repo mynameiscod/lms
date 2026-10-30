@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { averageSkillScore } from './skillScore';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { DashboardData, RoleReadinessAvailable, SkillDnaRow, MemberSection } from '../../api/passportApi';
 import { useUnlock } from './SectionLock';
@@ -73,13 +74,16 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
     if (dna?.length) return [...dna].sort((a, b) => b.score - a.score).slice(0, 6).map(s => ({ key: s.skillKey, label: s.skillName, score: s.score }));
     return (data.skills || []).slice(0, 6);
   }, [dna, data.skills]);
-  const avg = dna?.length ? Math.round(dna.reduce((t, s) => t + (s.score || 0), 0) / dna.length) : null;
+  // Same rule as the Skill DNA page (skillScore.ts): reliably measured skills only; `early` otherwise.
+  const avgInfo = dna?.length ? averageSkillScore(dna) : { score: null, counted: 0, early: false };
+  const avg = avgInfo.score;
 
   const gaps = readiness?.summary.priorityGaps ?? null;
   const needsWork = readiness?.summary.needsWork ?? null;
-  const measuredCount = readiness?.summary.assessedSkills ?? (dna?.length || data.skills?.length || null);
+  // "Measured" means MEDIUM or HIGH confidence everywhere — the same count role readiness reports.
+  const measuredCount = readiness?.summary.assessedSkills ?? (dna ? dna.filter(s => s.confidence === 'MEDIUM' || s.confidence === 'HIGH').length || null : null);
   const ready = readiness?.readiness ?? null;
-  const readyLabel = ready === null ? 'Still measuring' : ready >= 80 ? 'Strong alignment' : ready >= 60 ? 'Getting close' : ready >= 40 ? 'Building momentum' : 'Early stage';
+  const readyLabel = ready === null ? 'Still measuring' : readiness?.provisional ? 'Early estimate' : ready >= 80 ? 'Strong alignment' : ready >= 60 ? 'Getting close' : ready >= 40 ? 'Building momentum' : 'Early stage';
 
   /** This learner's own programme length, from the dashboard endpoint. */
   const days = Number(data.programDays) || 90;
@@ -127,7 +131,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
             </div>
             <div className="dl2-hero-score-copy">
               <small>{ready !== null ? 'Role readiness' : 'Average skill score'}</small>
-              <b>{ready !== null ? readyLabel : 'From your assessment'}</b>
+              <b>{ready !== null ? readyLabel : avgInfo.early ? 'Early estimate' : 'From your assessment'}</b>
               <button onClick={() => nav(ready !== null ? '/careerpilot/readiness' : '/careerpilot/skills')}>
                 See details <i className="bi bi-arrow-right" />
               </button>
@@ -165,7 +169,8 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
             ) : <p className="dl2-empty">Your assessment results will appear here shortly.</p>}
           </article>
 
-          <article className="dl2-card">
+          {/* Year 1 has no role: role readiness opens in Year 2, so the card is not shown at all. */}
+          {data.stage !== 'foundation' && <article className="dl2-card">
             <header className="dl2-card-head">
               <div><h2>Role readiness</h2><p>{readiness?.role?.name ? `Against ${readiness.role.name}.` : 'Against your target role.'}</p></div>
               <button className="dl2-link" onClick={() => nav('/careerpilot/readiness')}>Details <i className="bi bi-arrow-right" /></button>
@@ -181,6 +186,8 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
                   <div className="danger"><b>{readiness.summary.priorityGaps}</b><span>Priority gaps</span></div>
                   <div className="warn"><b>{readiness.summary.needsWork}</b><span>Need work</span></div>
                   <div className="good"><b>{readiness.summary.onTrack + readiness.summary.strong}</b><span>On track</span></div>
+                  {/* So the four add up to the role's skills: the rest are not measured enough to judge. */}
+                  <div><b>{readiness.summary.limitedEvidence + readiness.summary.notAssessed}</b><span>Not measured yet</span></div>
                 </div>
               </div>
             ) : (
@@ -189,7 +196,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
                 <button className="dl2-link" onClick={() => nav('/careerpilot/setup?step=direction')}>Choose my role <i className="bi bi-arrow-right" /></button>
               </div>
             )}
-          </article>
+          </article>}
         </section>
       )}
 

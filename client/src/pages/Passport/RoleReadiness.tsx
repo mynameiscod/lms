@@ -13,7 +13,6 @@ const STATUS_COPY: Record<string, { label: string; tone: string }> = {
   LIMITED_EVIDENCE: { label: 'Limited evidence', tone: 'muted' }, NOT_ASSESSED: { label: 'Not measured', tone: 'muted' },
 };
 /* Order for the skill list: what needs attention first, unmeasured last (they are not failures). */
-const STATUS_ORDER: Record<string, number> = { PRIORITY_GAP: 0, NEEDS_WORK: 1, LIMITED_EVIDENCE: 2, ON_TRACK: 3, STRONG: 4, NOT_ASSESSED: 5 };
 
 const RoleReadiness: React.FC = () => {
   const nav = useNavigate();
@@ -35,8 +34,9 @@ const RoleReadiness: React.FC = () => {
    */
   const { measuredRows, unmeasured } = useMemo(() => {
     const list = data?.available ? ((data as RoleReadinessAvailable).skills || []) : [];
-    const measuredRows = list.filter(s => s.status !== 'NOT_ASSESSED')
-      .sort((a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9) || (b.gapPoints || 0) - (a.gapPoints || 0));
+    // In the server's order (status, then priority: gap × weight × importance) — the same ranking the
+    // roadmap uses. Re-sorting by raw gap points here made this page's "focus" disagree with it.
+    const measuredRows = list.filter(s => s.status !== 'NOT_ASSESSED');
     const unmeasured = list.filter(s => s.status === 'NOT_ASSESSED');
     return { measuredRows, unmeasured };
   }, [data]);
@@ -48,14 +48,16 @@ const RoleReadiness: React.FC = () => {
   if (!data.available) {
     const un = data as RoleReadinessUnavailable;
     const roleMissing = un.reason === 'ROLE_NOT_SELECTED';
+    const year1 = un.reason === 'YEAR_1';
     /* Class names avoid the word "empty": a member-shell rule dashes every [class*="empty"] inside .gd-main,
        which turned this full-height welcome card into a dashed grey box. */
     return (
       <div className="rr rr-blank-wrap">
         <div className="rr-blank">
-          <div className="rr-blank-ic"><i className={`bi bi-${roleMissing ? 'compass' : 'hourglass-split'}`} /></div>
-          <h1>{roleMissing ? 'Choose your target role first' : 'Role readiness is not available yet'}</h1>
+          <div className="rr-blank-ic"><i className={`bi bi-${year1 ? 'mortarboard' : roleMissing ? 'compass' : 'hourglass-split'}`} /></div>
+          <h1>{year1 ? 'Role readiness opens in your 2nd year' : roleMissing ? 'Choose your target role first' : 'Role readiness is not available yet'}</h1>
           <p>{un.message}</p>
+          {year1 && <button className="rr-btn primary" onClick={() => nav('/careerpilot/skills')}>See my Skill DNA <i className="bi bi-arrow-right" /></button>}
           {roleMissing && <button className="rr-btn primary" onClick={() => nav('/careerpilot/setup?step=direction')}>Set my target role <i className="bi bi-arrow-right" /></button>}
         </div>
       </div>
@@ -66,10 +68,12 @@ const RoleReadiness: React.FC = () => {
   const { readiness, coverage, confidence, summary } = ready;
   const skills = ready.skills || [];
   const strengths = skills.filter(s => s.status === 'STRONG' || s.status === 'ON_TRACK').slice(0, 5);
-  const gaps = skills.filter(s => s.status === 'PRIORITY_GAP' || s.status === 'NEEDS_WORK').sort((a, b) => (b.gapPoints || 0) - (a.gapPoints || 0)).slice(0, 5);
+  // The server's top gaps, in its priority order (see measuredRows).
+  const gaps = (ready.topGaps || []).slice(0, 5);
   const measured = skills.filter(s => s.status !== 'NOT_ASSESSED');
   const overallEvidence = measured.reduce((sum, s) => sum + (s.evidenceCount || 0), 0);
-  const readinessLabel = readiness === null ? 'Still measuring' : readiness >= 80 ? 'Strong alignment' : readiness >= 60 ? 'Getting close' : readiness >= 40 ? 'Building momentum' : 'Early stage';
+  const provisional = !!ready.provisional;
+  const readinessLabel = readiness === null ? 'Still measuring' : provisional ? 'Early estimate' : readiness >= 80 ? 'Strong alignment' : readiness >= 60 ? 'Getting close' : readiness >= 40 ? 'Building momentum' : 'Early stage';
   const roleName = ready.role?.name;
   const confLabel = CONFIDENCE_LABEL[confidence] || confidence;
 
@@ -161,7 +165,9 @@ const RoleReadiness: React.FC = () => {
           <div className="rr-hero-score-copy">
             <small>Overall role readiness</small>
             <b>{readinessLabel}</b>
-            <span>Based only on the skills we have measured.</span>
+            <span>{provisional
+              ? <>Only {coverage}% of the role is measured so far. Against the whole role you are at {ready.wholeRoleReadiness ?? 0}%.</>
+              : <>Based on the {coverage}% of the role we have measured.</>}</span>
           </div>
         </div>
       </section>
@@ -175,9 +181,11 @@ const RoleReadiness: React.FC = () => {
 
       {readiness === null
         ? <div className="rr-note warn"><i className="bi bi-info-circle" /><span>We have not measured enough of this role to give a readiness score yet. Complete more assessment activity to strengthen the picture.</span></div>
-        : coverage < 50
-          ? <div className="rr-note"><i className="bi bi-info-circle" /><span>Your readiness is based on <b>{summary.assessedSkills} of {summary.requiredSkills}</b> required skills. More evidence will make it more representative.</span></div>
-          : null}
+        : provisional
+          ? <div className="rr-note warn"><i className="bi bi-info-circle" /><span>This is an <b>early estimate</b>: it rests on <b>{summary.assessedSkills} of {summary.requiredSkills}</b> required skills ({coverage}% of the role). It becomes your readiness score once at least 40% of the role is measured.</span></div>
+          : coverage < 75
+            ? <div className="rr-note"><i className="bi bi-info-circle" /><span>Your readiness is based on <b>{summary.assessedSkills} of {summary.requiredSkills}</b> required skills. More evidence will make it more representative.</span></div>
+            : null}
 
       {/* One two-column layout: the skill bars and the summary on the left, the side cards
           stacked on the right — two separate rows left a tall empty gap beside the short cards. */}
@@ -185,7 +193,7 @@ const RoleReadiness: React.FC = () => {
         <div className="rr-main">
           <article className="rr-card">
             <header className="rr-card-head">
-              <div><h2>Readiness by skill</h2><p>{measuredRows.length} of {summary.requiredSkills} required skills measured, what needs attention first. The marker is the target.</p></div>
+              <div><h2>Readiness by skill</h2><p>{summary.assessedSkills} of {summary.requiredSkills} required skills measured with enough evidence{summary.limitedEvidence ? `, ${summary.limitedEvidence} more with too little to count yet` : ''}. What needs attention comes first; the marker is the target.</p></div>
               <div className="rr-legend"><span><i className="you" /> You</span><span><i className="tgt" /> Target</span></div>
             </header>
             {measuredRows.length ? (

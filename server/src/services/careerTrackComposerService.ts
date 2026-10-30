@@ -47,7 +47,8 @@ export async function composeTrackRoadmap(
   const { track, packs } = resolved;
   const stage = opts.stageKey;
   const days = opts.programDays;
-  const yearTopics = trackTopics(track.specializePacks, packs);
+  // Year 2 is the track's own Year-2 packs; Years 3 and 4 build on its Year-3 packs.
+  const yearTopics = trackTopics(stage === 'build' ? (track.buildPacks || []) : track.specializePacks, packs);
   const placementTopics = stage === 'placement' ? trackTopics(track.placementPacks, packs) : [];
   const topicCodes = [...new Set([...yearTopics, ...placementTopics].map(t => t.topicCode))];
 

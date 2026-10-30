@@ -137,13 +137,13 @@ const AdminContentBuilder: React.FC = () => {
         for (const [k, rs] of all) for (const r of rs) if (!byTopic.has(r.topicCode)) byTopic.set(r.topicCode, { row: r, stage: k });
         const packByKey = new Map(cat.packs.map(p => [p.key, p]));
         const tracksOfTopic = new Map<string, Set<string>>();
-        for (const t of cat.tracks) for (const pk of [...t.specializePacks, ...t.placementPacks]) for (const tp of packByKey.get(pk)?.topics || []) {
+        for (const t of cat.tracks) for (const pk of [...(t.buildPacks || []), ...t.specializePacks, ...t.placementPacks]) for (const tp of packByKey.get(pk)?.topics || []) {
           if (!tracksOfTopic.has(tp.topicCode)) tracksOfTopic.set(tp.topicCode, new Set());
           tracksOfTopic.get(tp.topicCode)!.add(t.name);
         }
         const out: BuilderRow[] = [];
         const seen = new Set<string>();
-        for (const pk of [...track.specializePacks, ...track.placementPacks]) {
+        for (const pk of [...(track.buildPacks || []), ...track.specializePacks, ...track.placementPacks]) {
           const pack = packByKey.get(pk);
           if (!pack) continue;
           for (const tp of pack.topics) {

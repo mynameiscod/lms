@@ -1,10 +1,11 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 /**
- * A career track: a role + language roadmap from Year 3 (e.g. "Java Full Stack + AI").
+ * A career track: a role + language roadmap from Year 2 (e.g. "Java Full Stack + AI").
  * See data/careerTrackPolicy.ts for what it means; the admin manages it on the Career Tracks screen.
  *
- * Year 3 is `specializePacks` in order. Year 4 is the same packs again (revision for a member,
+ * Year 2 is `buildPacks` in order (optional: a track without them leaves Year 2 on the regular
+ * Year-2 roadmap). Year 3 is `specializePacks` in order. Year 4 is the same packs again (revision for a member,
  * essentials for a fresh joiner, sized by `split`) followed by `placementPacks`.
  */
 export interface ICareerTrack extends Document {
@@ -16,6 +17,8 @@ export interface ICareerTrack extends Document {
   /** DRAFT while it is being built; LIVE once students may pick it. */
   status: 'DRAFT' | 'LIVE';
   order: number;
+  /** Year 2's skill packs. Empty = Year-2 members on this track keep the regular Year-2 roadmap. */
+  buildPacks: string[];
   specializePacks: string[];
   placementPacks: string[];
   split: { memberTrackShare: number; freshTrackShare: number };
@@ -34,6 +37,7 @@ const CareerTrackSchema = new Schema<ICareerTrack>(
     description:     { type: String },
     status:          { type: String, enum: ['DRAFT', 'LIVE'], default: 'DRAFT' },
     order:           { type: Number, default: 0 },
+    buildPacks:      { type: [String], default: [] },
     specializePacks: { type: [String], default: [] },
     placementPacks:  { type: [String], default: [] },
     split: {

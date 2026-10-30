@@ -47,13 +47,16 @@ async function demoTrack(tenantId: string): Promise<ResolvedTrack> {
     return ((cur?.topics || []) as any[]).filter(t => modules.test(String(t.moduleCode || ''))).sort((a, b) => (a.order || 0) - (b.order || 0))
       .map(t => ({ topicCode: String(t.topicCode), priority: (t.priority || 'SHOULD') as any }));
   };
+  // Year 2: the first dozen topics of the Year-2 curriculum, as a track's Year-2 pack.
+  const y2 = (await topicsOf('build', /./)).slice(0, 12);
   const packs = new Map<string, PackDef>([
+    ['DEMO_Y2', { key: 'DEMO_Y2', title: 'Demo Year 2', kind: 'SKILL', topics: y2 }],
     ['DEMO_CORE', { key: 'DEMO_CORE', title: 'Demo core', kind: 'SKILL', topics: await topicsOf('specialize', /^S0[2-8]_/) }],
     ['DEMO_BACKEND', { key: 'DEMO_BACKEND', title: 'Demo backend', kind: 'SKILL', topics: await topicsOf('specialize', /^S12_/) }],
     ['DEMO_PLACEMENT', { key: 'DEMO_PLACEMENT', title: 'Demo placement', kind: 'PLACEMENT', topics: await topicsOf('placement', /^P1[5-9]_|^P2[0-3]_/) }],
   ]);
   return {
-    track: { key: 'DEMO_TRACK', name: 'Demo track', language: 'Any', status: 'DRAFT', specializePacks: ['DEMO_CORE', 'DEMO_BACKEND'], placementPacks: ['DEMO_PLACEMENT'], split: { memberTrackShare: 0.15, freshTrackShare: 0.4 } },
+    track: { key: 'DEMO_TRACK', name: 'Demo track', language: 'Any', status: 'DRAFT', buildPacks: ['DEMO_Y2'], specializePacks: ['DEMO_CORE', 'DEMO_BACKEND'], placementPacks: ['DEMO_PLACEMENT'], split: { memberTrackShare: 0.15, freshTrackShare: 0.4 } },
     packs,
   };
 }
@@ -83,10 +86,17 @@ async function run(): Promise<void> {
   console.log(`\n${track.name} (${track.key}) — ${dailyMinutes} min/day`);
   let failures = 0;
 
-  for (const [stage, joiner] of [['specialize', 'FRESH'], ['placement', 'MEMBER'], ['placement', 'FRESH']] as const) {
+  // Year 2 only when the track has Year-2 packs; otherwise its Year-2 members keep the regular roadmap.
+  const runs = [
+    ...((track.buildPacks || []).length ? [['build', 'FRESH'] as const] : []),
+    ['specialize', 'FRESH'] as const, ['placement', 'MEMBER'] as const, ['placement', 'FRESH'] as const,
+  ];
+  if (!(track.buildPacks || []).length) console.log('\nYEAR 2 — no Year-2 packs: Year-2 members keep the regular Year-2 roadmap.');
+  for (const [stage, joiner] of runs) {
     const days = (stage === 'specialize' && flag('days')) || await programDaysFor(tenantId, stage);
-    const mustTopics = trackTopics(stage === 'specialize' ? track.specializePacks : track.placementPacks, packs).filter(t => t.priority === 'MUST').map(t => t.topicCode);
-    console.log(`\n${stage === 'specialize' ? 'YEAR 3' : 'YEAR 4'} ${joiner} — ${days} days`);
+    const stagePacks = stage === 'build' ? (track.buildPacks || []) : stage === 'specialize' ? track.specializePacks : track.placementPacks;
+    const mustTopics = trackTopics(stagePacks, packs).filter(t => t.priority === 'MUST').map(t => t.topicCode);
+    console.log(`\n${stage === 'build' ? 'YEAR 2' : stage === 'specialize' ? 'YEAR 3' : 'YEAR 4'} ${joiner} — ${days} days`);
     const prints: string[] = [];
     for (const [label, score] of PROFILES) {
       const sid = new mongoose.Types.ObjectId();

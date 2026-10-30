@@ -302,7 +302,7 @@ export async function adoptSetupTrack(
   curriculum: { _id: mongoose.Types.ObjectId; trackKey?: string | null } | null,
 ): Promise<boolean> {
   if (!curriculum || curriculum.trackKey) return false;
-  if (!['specialize', 'placement'].includes(String(stageKey || ''))) return false;
+  if (!['build', 'specialize', 'placement'].includes(String(stageKey || ''))) return false;
   if (!mongoose.Types.ObjectId.isValid(studentId)) return false;
   const k = `${tenantId}:${studentId}`;
   if (Date.now() - (adoptAttempts.get(k) || 0) < ADOPT_RETRY_MS) return false;

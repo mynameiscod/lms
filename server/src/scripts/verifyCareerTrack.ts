@@ -27,7 +27,7 @@ import { persistFoundationJourney, deleteFoundationJourney } from '../services/f
 import { StudentProfile } from '../services/curriculumComposerService';
 import { programDaysFor } from '../services/foundationProgramLengthService';
 import { loadTrack, ResolvedTrack } from '../services/careerTrackService';
-import { trackTopics, placementSplit, PackDef } from '../data/careerTrackPolicy';
+import { trackTopics, placementSplit, PackDef, MAX_TRACK_SHARE } from '../data/careerTrackPolicy';
 import { resolveRoadmapV2 } from '../data/roadmapV2Policy';
 import PassportConfig from '../models/PassportConfig';
 import DayPlan from '../models/DayPlan';
@@ -47,16 +47,13 @@ async function demoTrack(tenantId: string): Promise<ResolvedTrack> {
     return ((cur?.topics || []) as any[]).filter(t => modules.test(String(t.moduleCode || ''))).sort((a, b) => (a.order || 0) - (b.order || 0))
       .map(t => ({ topicCode: String(t.topicCode), priority: (t.priority || 'SHOULD') as any }));
   };
-  // Year 2: the first dozen topics of the Year-2 curriculum, as a track's Year-2 pack.
-  const y2 = (await topicsOf('build', /./)).slice(0, 12);
   const packs = new Map<string, PackDef>([
-    ['DEMO_Y2', { key: 'DEMO_Y2', title: 'Demo Year 2', kind: 'SKILL', topics: y2 }],
     ['DEMO_CORE', { key: 'DEMO_CORE', title: 'Demo core', kind: 'SKILL', topics: await topicsOf('specialize', /^S0[2-8]_/) }],
     ['DEMO_BACKEND', { key: 'DEMO_BACKEND', title: 'Demo backend', kind: 'SKILL', topics: await topicsOf('specialize', /^S12_/) }],
     ['DEMO_PLACEMENT', { key: 'DEMO_PLACEMENT', title: 'Demo placement', kind: 'PLACEMENT', topics: await topicsOf('placement', /^P1[5-9]_|^P2[0-3]_/) }],
   ]);
   return {
-    track: { key: 'DEMO_TRACK', name: 'Demo track', language: 'Any', status: 'DRAFT', buildPacks: ['DEMO_Y2'], specializePacks: ['DEMO_CORE', 'DEMO_BACKEND'], placementPacks: ['DEMO_PLACEMENT'], split: { memberTrackShare: 0.15, freshTrackShare: 0.4 } },
+    track: { key: 'DEMO_TRACK', name: 'Demo track', language: 'Any', status: 'DRAFT', specializePacks: ['DEMO_CORE', 'DEMO_BACKEND'], placementPacks: ['DEMO_PLACEMENT'], split: { memberTrackShare: 0.15, freshTrackShare: 0.4 } },
     packs,
   };
 }
@@ -74,7 +71,7 @@ async function run(): Promise<void> {
   const dailyMinutes = flag('minutes') || resolvedV2.dailyMinutes;
   const { revisionDays } = resolvedV2;
   const setting = { dailyMinutes, revisionDays };
-  const allUnits = await CurriculumLearningUnit.find({ tenantId }).select('unitCode topicCode estimatedMinutes skillKeys prerequisiteSkillKeys').lean() as any[];
+  const allUnits = await CurriculumLearningUnit.find({ tenantId }).select('unitCode topicCode unitType status estimatedMinutes skillKeys prerequisiteSkillKeys').lean() as any[];
   const unitOf = new Map(allUnits.map(u => [String(u.unitCode), u]));
   const skills = [...new Set(allUnits.flatMap(u => [...(u.skillKeys || []), ...(u.prerequisiteSkillKeys || [])]).map(String))];
   const profileOf = (score: (k: string) => number | null): StudentProfile => {
@@ -86,16 +83,20 @@ async function run(): Promise<void> {
   console.log(`\n${track.name} (${track.key}) — ${dailyMinutes} min/day`);
   let failures = 0;
 
-  // Year 2 only when the track has Year-2 packs; otherwise its Year-2 members keep the regular roadmap.
+  /*
+   * THE RULES (user, 2026-10-30): a FRESH joiner in Years 2, 3 and 4 gets the FULL track — every lesson,
+   * practice and project; checkpoints may go; debugging only on topics they do not hold — then the
+   * year's curriculum (Years 2, 3) or placement (Year 4, at least 20% of the days). A MEMBER who did
+   * the track the year before gets a short revision of it, then the year's own part.
+   */
   const runs = [
-    ...((track.buildPacks || []).length ? [['build', 'FRESH'] as const] : []),
-    ['specialize', 'FRESH'] as const, ['placement', 'MEMBER'] as const, ['placement', 'FRESH'] as const,
-  ];
-  if (!(track.buildPacks || []).length) console.log('\nYEAR 2 — no Year-2 packs: Year-2 members keep the regular Year-2 roadmap.');
-  for (const [stage, joiner] of runs) {
+    ['build', 'FRESH', null], ['specialize', 'FRESH', null], ['specialize', 'MEMBER', 'build'],
+    ['placement', 'MEMBER', 'specialize'], ['placement', 'FRESH', null],
+  ] as const;
+  const trackTopicSet = new Set(trackTopics(track.specializePacks, packs).map(t => t.topicCode));
+  for (const [stage, joiner, priorStage] of runs) {
     const days = (stage === 'specialize' && flag('days')) || await programDaysFor(tenantId, stage);
-    const stagePacks = stage === 'build' ? (track.buildPacks || []) : stage === 'specialize' ? track.specializePacks : track.placementPacks;
-    const mustTopics = trackTopics(stagePacks, packs).filter(t => t.priority === 'MUST').map(t => t.topicCode);
+    const mustTopics = stage === 'placement' ? trackTopics(track.placementPacks, packs).filter(t => t.priority === 'MUST').map(t => t.topicCode) : [];
     console.log(`\n${stage === 'build' ? 'YEAR 2' : stage === 'specialize' ? 'YEAR 3' : 'YEAR 4'} ${joiner} — ${days} days`);
     const prints: string[] = [];
     for (const [label, score] of PROFILES) {
@@ -104,11 +105,12 @@ async function run(): Promise<void> {
       const problems: string[] = [];
       let summary = '';
       try {
-        if (joiner === 'MEMBER') {
-          const y3: any = await persistFoundationJourney(tenantId, sid, profile, { stageKey: 'specialize', roadmapV2: setting, track: resolved });
-          if (!y3.ok) throw new Error(`the Year-3 history could not be written: ${y3.reason}`);
-          await CurriculumEnrollment.create({ tenantId, curriculumId: y3.curriculumId, curriculumTitle: 'verify', studentId: sid, studentName: 'verify',
-            studentEmail: 'verify@example.com', startDate: new Date(), enrolledBy: 'verifyCareerTrack', completedDays: Array.from({ length: y3.days }, (_, i) => i + 1) });
+        if (priorStage) {
+          // Last year on the track, every day completed.
+          const before: any = await persistFoundationJourney(tenantId, sid, profile, { stageKey: priorStage, roadmapV2: setting, track: resolved });
+          if (!before.ok) throw new Error(`last year's roadmap could not be written: ${before.reason}`);
+          await CurriculumEnrollment.create({ tenantId, curriculumId: before.curriculumId, curriculumTitle: 'verify', studentId: sid, studentName: 'verify',
+            studentEmail: 'verify@example.com', startDate: new Date(), enrolledBy: 'verifyCareerTrack', completedDays: Array.from({ length: before.days }, (_, i) => i + 1) });
         }
         const r: any = await persistFoundationJourney(tenantId, sid, profile, { stageKey: stage, programDays: days, roadmapV2: setting, track: resolved });
         if (!r.ok) { problems.push(`REFUSED: ${String(r.reason).slice(0, 110)}`); throw null; }
@@ -121,7 +123,8 @@ async function run(): Promise<void> {
           const min = (d.unitCodes || []).map(String).reduce((s: number, c: string) => s + Math.ceil((Number(unitOf.get(c)?.estimatedMinutes) || 0) / (daysOf.get(c) || 1)), 0);
           maxMin = Math.max(maxMin, min);
         }
-        if (maxMin > dailyMinutes) problems.push(`LOAD: a day of ${maxMin} min`);
+        // A day may stretch past the study time only to fit the full track; 10 hours is the hard ceiling.
+        if (maxMin > 600) problems.push(`LOAD: a day of ${maxMin} min`);
         for (const [c, k] of daysOf) {
           if (k < 2) continue;
           const at = plans.filter(d => (d.unitCodes || []).map(String).includes(c)).map(d => d.dayNumber);
@@ -130,20 +133,25 @@ async function run(): Promise<void> {
         const topics = new Set(plans.flatMap(d => (d.unitCodes || []).map((c: any) => String(unitOf.get(String(c))?.topicCode || ''))));
         const missing = mustTopics.filter(t => !topics.has(t));
         if (missing.length) problems.push(`MUST: ${missing.length} missing (${missing.slice(0, 3).join(', ')})`);
-        const yearTopicSet = new Set(trackTopics(track.specializePacks, packs).map(t => t.topicCode));
-        const trackPart = stage === 'placement'
-          ? plans.filter(d => (d.unitCodes || []).some((c: any) => yearTopicSet.has(String(unitOf.get(String(c))?.topicCode || '')))).length : 0;
-        if (stage === 'placement') {
-          const budget = placementSplit(days, joiner === 'MEMBER', track.split).trackDays;
-          if (trackPart > budget) problems.push(`SPLIT: track part ${trackPart} days, share allows ${budget}`);
+        const given = new Set(plans.flatMap(d => (d.unitCodes || []).map(String)));
+        const trackPart = plans.filter(d => (d.unitCodes || []).some((c: any) => trackTopicSet.has(String(unitOf.get(String(c))?.topicCode || '')))).length;
+        if (joiner === 'FRESH') {
+          // FULL: every lesson, practice and project of the track (debugging and checkpoints may be skipped).
+          const owed = allUnits.filter(u => u.status === 'PUBLISHED' && trackTopicSet.has(String(u.topicCode)) && ['CONCEPT', 'PRACTICE', 'PROJECT'].includes(String(u.unitType)));
+          const missed = owed.filter(u => !given.has(String(u.unitCode)));
+          if (missed.length) problems.push(`FULL: ${missed.length} of ${owed.length} track lessons/practice missing`);
         }
-        summary = `${String(plans.length).padStart(4)} days | max ${maxMin} min${stage === 'placement' ? ` | track ${trackPart} / placement ${plans.length - trackPart}` : ''}`;
+        if (stage === 'placement') {
+          const budget = joiner === 'MEMBER' ? placementSplit(days, true, track.split).trackDays : Math.floor(days * MAX_TRACK_SHARE);
+          if (trackPart > budget) problems.push(`SPLIT: track part ${trackPart} days, allowed ${budget}`);
+        }
+        summary = `${String(plans.length).padStart(4)} days | max ${maxMin} min | track ${trackPart} / ${stage === 'placement' ? 'placement' : 'curriculum'} ${plans.length - trackPart}`;
         prints.push(plans.map(d => (d.unitCodes || []).join('+')).join('|'));
       } catch (e: any) {
         if (e) problems.push(`THREW ${String(e?.message || e).slice(0, 100)}`);
       } finally {
         await deleteFoundationJourney(tenantId, sid, stage);
-        await deleteFoundationJourney(tenantId, sid, 'specialize');
+        if (priorStage) await deleteFoundationJourney(tenantId, sid, priorStage);
         await CurriculumEnrollment.deleteMany({ tenantId, studentId: sid });
       }
       if (problems.length) failures++;

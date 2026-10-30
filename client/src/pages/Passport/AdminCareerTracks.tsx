@@ -68,12 +68,12 @@ const TrackEditor: React.FC<{
   onSave: (body: Partial<CareerTrackRow>, isNew: boolean) => Promise<void>;
   onDelete: (key: string) => Promise<void>; busy: boolean;
 }> = ({ track, packs, onSave, onDelete, busy }) => {
-  const blank: Partial<CareerTrackRow> = { key: '', name: '', language: '', description: '', buildPacks: [], specializePacks: [], placementPacks: [], split: { memberTrackShare: 0.15, freshTrackShare: 0.4 } };
+  const blank: Partial<CareerTrackRow> = { key: '', name: '', language: '', description: '', specializePacks: [], placementPacks: [], split: { memberTrackShare: 0.15, freshTrackShare: 0.4 } };
   const [f, setF] = useState<Partial<CareerTrackRow>>(track || blank);
   useEffect(() => { setF(track || blank); }, [track]); // eslint-disable-line react-hooks/exhaustive-deps
   const isNew = !track;
   const split = f.split || { memberTrackShare: 0.15, freshTrackShare: 0.4 };
-  const body = { name: f.name, language: f.language, description: f.description, buildPacks: f.buildPacks || [], specializePacks: f.specializePacks, placementPacks: f.placementPacks, split, ...(isNew ? { key: f.key } : {}) };
+  const body = { name: f.name, language: f.language, description: f.description, specializePacks: f.specializePacks, placementPacks: f.placementPacks, split, ...(isNew ? { key: f.key } : {}) };
   return (
     <section className="rv2-card">
       <h2><i className="bi bi-signpost-2" /> {isNew ? 'New track' : track!.name}
@@ -94,9 +94,7 @@ const TrackEditor: React.FC<{
         <label className="rv2-field wide"><span className="rv2-label">Description (shown when a student picks)</span>
           <textarea rows={2} value={f.description || ''} onChange={e => setF({ ...f, description: e.target.value })} />
         </label>
-        <PackOrder label="Year 2 — skill packs, in teaching order (optional: none keeps the regular Year-2 roadmap)" keys={f.buildPacks || []} options={packs.filter(p => p.kind === 'SKILL')}
-          onChange={k => setF({ ...f, buildPacks: k })} />
-        <PackOrder label="Year 3 — skill packs, in teaching order" keys={f.specializePacks || []} options={packs.filter(p => p.kind === 'SKILL')}
+        <PackOrder label="The track — skill packs, in teaching order (Years 2 and 3: in full for a fresh joiner)" keys={f.specializePacks || []} options={packs.filter(p => p.kind === 'SKILL')}
           onChange={k => setF({ ...f, specializePacks: k })} />
         <PackOrder label="Year 4 — placement packs (after the track)" keys={f.placementPacks || []} options={packs.filter(p => p.kind === 'PLACEMENT')}
           onChange={k => setF({ ...f, placementPacks: k })} />
@@ -273,7 +271,7 @@ const AdminCareerTracks: React.FC = () => {
 
   const usedBy = useMemo(() => {
     const m = new Map<string, string[]>();
-    for (const t of cat?.tracks || []) for (const k of [...(t.buildPacks || []), ...t.specializePacks, ...t.placementPacks]) m.set(k, [...(m.get(k) || []), t.name]);
+    for (const t of cat?.tracks || []) for (const k of [...t.specializePacks, ...t.placementPacks]) m.set(k, [...(m.get(k) || []), t.name]);
     return m;
   }, [cat]);
 
@@ -287,8 +285,8 @@ const AdminCareerTracks: React.FC = () => {
         <div>
           <span className="rv2-eyebrow">CareerPilot</span>
           <h1>Career Tracks</h1>
-          <p>From Year 2 a student learns one track — a role and a language, such as Java Full Stack + AI. Year 2 uses the track's
-            Year-2 packs (none set: the regular Year-2 roadmap), Year 3 its Year-3 packs, and Year 4 the same track again, then placement. A track is made of skill packs; a pack is topics, each taught by lessons from any year, so a topic
+          <p>From Year 2 a student learns one track — a role and a language, such as Java Full Stack + AI. A fresh joiner gets the full
+            track (then the year's curriculum, or placement in Year 4); a student who did it the year before revises it, then moves on. A track is made of skill packs; a pack is topics, each taught by lessons from any year, so a topic
             is written once and reused by every track that needs it.</p>
         </div>
         <span className="rv2-status on"><i className="bi bi-circle-fill" /> {cat.tracks.filter(t => t.status === 'LIVE').length} live · {cat.tracks.length} tracks · {cat.packs.length} packs</span>
@@ -307,7 +305,7 @@ const AdminCareerTracks: React.FC = () => {
             {cat.tracks.map(t => (
               <button key={t.key} type="button" className={`ct-item${selTrack === t.key ? ' on' : ''}`} onClick={() => setSelTrack(t.key)}>
                 <b>{t.name}</b>
-                <span>{t.language} · {(t.buildPacks || []).length} Year-2 / {t.specializePacks.length} Year-3 / {t.placementPacks.length} placement packs · {t.students} student(s)</span>
+                <span>{t.language} · {t.specializePacks.length} skill / {t.placementPacks.length} placement packs · {t.students} student(s)</span>
                 <span className={`ct-status ${t.status === 'LIVE' ? 'live' : ''}`}>{t.status === 'LIVE' ? 'Live' : t.problems.length ? `Draft · ${t.problems.length} to fix` : 'Draft · ready'}</span>
               </button>
             ))}

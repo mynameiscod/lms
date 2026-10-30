@@ -662,7 +662,11 @@ export async function composeFoundationJourney(
   const source = opts.source || 'PRODUCTION';
   const programDays = opts.programDays ?? await programDaysFor(tenantId, opts.stageKey);
 
-  /* CAREER TRACK: a Year-3/4 student on a track gets the track, not the stage curriculum. */
+  /*
+   * CAREER TRACK (Years 2–4): the track composer builds the whole year — the track first (in full for
+   * a fresh joiner, revised for a member who did it the year before), then the year's curriculum in
+   * Years 2 and 3, or placement in Year 4. See careerTrackComposerService.
+   */
   if (opts.track) {
     const r = await composeTrackRoadmap(tenantId, profile, opts.track, {
       stageKey: opts.stageKey || 'specialize', programDays,

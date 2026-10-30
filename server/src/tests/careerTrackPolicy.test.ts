@@ -1,5 +1,5 @@
 import {
-  placementSplit, resolveSplit, trackTopics, trackProblems, stageProblems, buildProblems, validateTrackInput, validatePackInput, normaliseKey,
+  placementSplit, resolveSplit, trackTopics, trackProblems, stageProblems, validateTrackInput, validatePackInput, normaliseKey,
   PackDef, DEFAULT_TRACK_SPLIT,
 } from '../data/careerTrackPolicy';
 
@@ -63,18 +63,10 @@ describe('what stops a track from going live', () => {
     expect(stageProblems(t, packs, 'specialize')).toEqual([]);
     expect(stageProblems(t, packs, 'placement').join(' ')).toMatch(/Year 4 placement has no packs/);
   });
-  it('Year 2 uses only its own packs, and a track without them leaves Year 2 on the regular roadmap', () => {
-    const none = { key: 'J', name: 'J', language: 'Java', specializePacks: ['JAVA'], placementPacks: ['JAVA_INTERVIEW'] };
-    expect(stageProblems(none, packs, 'build')).toEqual(['Year 2 has no packs.']);
-    expect(trackProblems(none, packs)).toEqual([]);   // Year 2 is optional for going live
-    const withY2 = { ...none, buildPacks: ['JAVA'] };
-    expect(stageProblems(withY2, packs, 'build')).toEqual([]);
-    expect(buildProblems({ ...none, buildPacks: ['MISSING', 'EMPTY', 'JAVA_INTERVIEW'] }, packs).join(' | '))
-      .toMatch(/Year 2: pack "MISSING" does not exist.*no topics.*placement pack, not a skill pack/);
-  });
-  it('keeps the Year-2 packs an admin saves', () => {
-    const v = validateTrackInput({ key: 'j', name: 'J', language: 'Java', buildPacks: ['java', 'java'], specializePacks: ['JAVA'], placementPacks: [] });
-    expect(v.ok && v.value.buildPacks).toEqual(['JAVA']);
+  it('Year 2 needs the same packs as Year 3: the full track is taught from Year 2', () => {
+    const t = { key: 'J', name: 'J', language: 'Java', specializePacks: ['JAVA'], placementPacks: [] };
+    expect(stageProblems(t, packs, 'build')).toEqual([]);
+    expect(stageProblems({ ...t, specializePacks: [] }, packs, 'build').join(' ')).toMatch(/Year 3 has no packs/);
   });
   it('names a missing pack, an empty pack, a pack of the wrong kind and an empty year', () => {
     const p = trackProblems({ key: 'J', name: 'J', language: 'Java', specializePacks: ['MISSING', 'EMPTY', 'JAVA_INTERVIEW'], placementPacks: [] }, packs);

@@ -1,16 +1,15 @@
 /**
  * Career tracks — role + language roadmaps from Year 2 (e.g. Java Full Stack + AI).
  *
- * THE MODEL. A track is an ordered list of SKILL PACKS for Year 2 (optional), of SKILL PACKS for
- * Year 3 and of PLACEMENT PACKS for Year 4. A pack is an ordered list of topics, each with a priority; the units that teach a topic
+ * THE MODEL. A track is an ordered list of SKILL PACKS (the track itself, taught from Year 2) and
+ * of PLACEMENT PACKS for Year 4. A pack is an ordered list of topics, each with a priority; the units that teach a topic
  * are found by its topicCode in any year's content, so a lesson written once (HTML, SQL, React) is
  * reused by every track whose packs name its topic — never copied.
  *
- * YEAR 2 is the track's Year-2 skill packs, in order, fitted into the admin's days — when the admin
- * has set them. A track with no Year-2 packs leaves its Year-2 members on the regular Year-2
- * roadmap; the track then starts in Year 3, as before.
- *
- * YEAR 3 is the track and nothing else: its skill packs, in order, fitted into the admin's days.
+ * YEARS 2 AND 3 (user decision 2026-10-30): a FRESH joiner gets the FULL track — every lesson and
+ * practice, checkpoints given up only if it cannot fit — then the year's own curriculum in the days
+ * left. A member who did the track the year before gets a short revision of it (memberTrackShare)
+ * and then the year's curriculum. See careerTrackComposerService.
  *
  * YEAR 4 is the same track again, then placement:
  *   - a member who did Year 3 on the track with us gets a SHORT revision of it (weakest first,
@@ -54,8 +53,6 @@ export interface TrackDef {
   key: string;
   name: string;
   language: string;
-  /** Year 2's packs; optional (see YEAR 2 above). */
-  buildPacks?: string[];
   specializePacks: string[];
   placementPacks: string[];
   split?: Partial<TrackSplit> | null;
@@ -132,26 +129,12 @@ export function trackProblems(track: TrackDef, packs: Map<string, PackDef>): str
   return problems;
 }
 
-/** What is wrong with a track's Year-2 packs (none at all is not wrong: Year 2 is optional). */
-export function buildProblems(track: TrackDef, packs: Map<string, PackDef>): string[] {
-  const problems: string[] = [];
-  for (const k of track.buildPacks || []) {
-    const p = packs.get(k);
-    if (!p) problems.push(`Year 2: pack "${k}" does not exist.`);
-    else if (p.kind !== 'SKILL') problems.push(`Year 2: pack "${p.title}" is a ${p.kind.toLowerCase()} pack, not a skill pack.`);
-    else if (!p.topics.length) problems.push(`Year 2: pack "${p.title}" has no topics.`);
-  }
-  return problems;
-}
-
 /**
- * What stops a track from building THIS year's roadmap: Year 2 needs its own packs (and has none
- * → the regular Year-2 roadmap); Year 3 needs only its skill packs; Year 4 needs both, since it is
- * the track again and then placement. Going live still needs Year 3 and Year 4 (`trackProblems`) —
- * this is what lets a track's Year 3 be piloted before its placement packs exist.
+ * What stops a track from building THIS year's roadmap: Years 2 and 3 need only its skill packs;
+ * Year 4 needs both, since it is the track again and then placement. Going live still needs both
+ * (`trackProblems`) — this is what lets a track be piloted before its placement packs exist.
  */
 export function stageProblems(track: TrackDef, packs: Map<string, PackDef>, stage: string): string[] {
-  if (stage === 'build') return (track.buildPacks || []).length ? buildProblems(track, packs) : ['Year 2 has no packs.'];
   const all = trackProblems(track, packs);
   return stage === 'placement' ? all : all.filter(p => p.startsWith('Year 3'));
 }
@@ -161,7 +144,7 @@ export const normaliseKey = (raw: unknown): string =>
   String(raw || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 
 /** Check an admin's track before it is stored. Refused rather than repaired. */
-export function validateTrackInput(input: any): { ok: true; value: TrackDef & { buildPacks: string[]; split: TrackSplit } } | { ok: false; errors: string[] } {
+export function validateTrackInput(input: any): { ok: true; value: TrackDef & { split: TrackSplit } } | { ok: false; errors: string[] } {
   const errors: string[] = [];
   const key = normaliseKey(input?.key);
   if (!key) errors.push('A track needs a key, e.g. JAVA_FULLSTACK_AI.');
@@ -174,7 +157,6 @@ export function validateTrackInput(input: any): { ok: true; value: TrackDef & { 
     if (!Array.isArray(v)) { errors.push(`${label} must be a list of pack keys.`); return []; }
     return [...new Set(v.map(normaliseKey).filter(Boolean))];
   };
-  const buildPacks = list(input?.buildPacks, 'Year-2 packs');
   const specializePacks = list(input?.specializePacks, 'Year-3 packs');
   const placementPacks = list(input?.placementPacks, 'Year-4 placement packs');
   for (const [k, label] of [['memberTrackShare', 'Member track share'], ['freshTrackShare', 'Fresh joiner track share']] as const) {
@@ -184,7 +166,7 @@ export function validateTrackInput(input: any): { ok: true; value: TrackDef & { 
     }
   }
   if (errors.length) return { ok: false, errors };
-  return { ok: true, value: { key, name, language, buildPacks, specializePacks, placementPacks, split: resolveSplit(input?.split) } };
+  return { ok: true, value: { key, name, language, specializePacks, placementPacks, split: resolveSplit(input?.split) } };
 }
 
 /** Check an admin's pack before it is stored. */

@@ -4317,8 +4317,6 @@ export interface PackTopicRow { topicCode: string; title?: string | null; priori
 export interface SkillPackRow { key: string; title: string; kind: 'SKILL' | 'PLACEMENT'; description: string; topics: PackTopicRow[] }
 export interface CareerTrackRow {
   key: string; name: string; language: string; description: string; status: 'DRAFT' | 'LIVE'; order: number;
-  /** Year 2's skill packs; empty = Year-2 members keep the regular Year-2 roadmap. */
-  buildPacks: string[];
   specializePacks: string[]; placementPacks: string[];
   split: { memberTrackShare: number; freshTrackShare: number };
   problems: string[]; students: number;

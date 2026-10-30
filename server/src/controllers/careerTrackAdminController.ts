@@ -9,7 +9,7 @@ import LearningCurriculum from '../models/LearningCurriculum';
 import Quiz from '../models/Quiz';
 import User from '../models/User';
 import {
-  validateTrackInput, validatePackInput, trackProblems, buildProblems, normaliseKey, resolveSplit,
+  validateTrackInput, validatePackInput, trackProblems, normaliseKey, resolveSplit,
 } from '../data/careerTrackPolicy';
 import { loadPacks, liveTracks, setStudentTrack } from '../services/careerTrackService';
 import { rebuildRoadmap } from '../services/roadmapRebuildService';
@@ -68,11 +68,8 @@ export const listTracks = async (req: Request, res: Response) => {
     res.json({
       tracks: tracks.map(t => ({
         key: t.key, name: t.name, language: t.language, description: t.description || '', status: t.status, order: t.order || 0,
-        buildPacks: t.buildPacks || [], specializePacks: t.specializePacks || [], placementPacks: t.placementPacks || [], split: resolveSplit(t.split),
-        problems: [
-          ...buildProblems({ key: t.key, name: t.name, language: t.language, buildPacks: t.buildPacks || [], specializePacks: [], placementPacks: [] }, packs),
-          ...trackProblems({ key: t.key, name: t.name, language: t.language, specializePacks: t.specializePacks || [], placementPacks: t.placementPacks || [] }, packs),
-        ],
+        specializePacks: t.specializePacks || [], placementPacks: t.placementPacks || [], split: resolveSplit(t.split),
+        problems: trackProblems({ key: t.key, name: t.name, language: t.language, specializePacks: t.specializePacks || [], placementPacks: t.placementPacks || [] }, packs),
         students: studentsOn.get(String(t.key)) || 0,
       })),
       packs: packRows.map(p => ({ key: p.key, title: p.title, kind: p.kind, description: p.description || '', topics: p.topics || [] })),
@@ -103,13 +100,11 @@ export const updateTrack = async (req: Request, res: Response) => {
     if (!v.ok) return res.status(400).json({ message: 'The track was not saved.', errors: (v as { ok: false; errors: string[] }).errors });
     const status = req.body?.status === 'LIVE' || req.body?.status === 'DRAFT' ? req.body.status : current.status;
     if (status === 'LIVE') {
-      // Year 2 is optional, but Year-2 packs that are set must be sound before students meet them.
-      const loaded = await loadPacks(tenantId);
-      const problems = [...buildProblems(v.value, loaded), ...trackProblems(v.value, loaded)];
+      const problems = trackProblems(v.value, await loadPacks(tenantId));
       if (problems.length) return res.status(400).json({ message: 'This track cannot go live yet.', errors: problems });
     }
     await CareerTrack.updateOne({ tenantId, key }, { $set: {
-      name: v.value.name, language: v.value.language, buildPacks: v.value.buildPacks, specializePacks: v.value.specializePacks, placementPacks: v.value.placementPacks,
+      name: v.value.name, language: v.value.language, specializePacks: v.value.specializePacks, placementPacks: v.value.placementPacks,
       split: v.value.split, status, description: req.body?.description ?? current.description ?? '',
       order: req.body?.order !== undefined ? Number(req.body.order) || 0 : current.order, updatedBy: actorOf(req),
     } });
@@ -158,7 +153,7 @@ export const deletePack = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
     const key = normaliseKey(req.params.key);
-    const users = await CareerTrack.find({ tenantId, $or: [{ buildPacks: key }, { specializePacks: key }, { placementPacks: key }] }).select('name').lean() as any[];
+    const users = await CareerTrack.find({ tenantId, $or: [{ specializePacks: key }, { placementPacks: key }] }).select('name').lean() as any[];
     if (users.length) return res.status(409).json({ message: `Used by ${users.map(u => u.name).join(', ')}. Take it out of those tracks first.` });
     await SkillPack.deleteOne({ tenantId, key });
     return listTracks(req, res);

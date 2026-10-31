@@ -5,6 +5,7 @@ import './orientation.css';
 import { mediaUrl, MEDIA_PATH } from '../../utils/mediaUrl';
 import { SeekControls, useSeekKeys, savedSpeed, savedQuality, pickQuality, switchSource, QualityPref } from '../MyLearningPlan/VideoPlayer';
 import { barWidth } from '../../utils/barWidth';
+import { useUndoZoom } from '../../utils/useUndoZoom';
 
 /**
  * The welcome, before Day 1.
@@ -33,6 +34,8 @@ export const mins = (n: number) => (n >= 60 ? `${Math.floor(n / 60)}h ${n % 60}m
 const Recorder: React.FC<{
   day: number; item: OrientationItem; onSaved: (v: OrientationView) => void;
 }> = ({ day, item, onSaved }) => {
+  const playRef = useRef<HTMLVideoElement>(null);
+  useUndoZoom(playRef, !!item.done);
   const [state, setState] = useState<'idle' | 'recording' | 'saving'>('idle');
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState('');
@@ -82,7 +85,7 @@ const Recorder: React.FC<{
   return (
     <div className="ori-rec">
       {item.done && state === 'idle' && (
-        <video className="ori-rec-play" controls src={passportApi.orientationRecordingUrl(day, item.key)} />
+        <video ref={playRef} className="ori-rec-play" controls src={passportApi.orientationRecordingUrl(day, item.key)} />
       )}
       <div className="ori-rec-actions">
         {state === 'recording' ? (
@@ -187,6 +190,8 @@ const VideoItem: React.FC<{
   day: number; item: OrientationItem; onSaved: (v: OrientationView) => void;
 }> = ({ day, item, onSaved }) => {
   const ref = useRef<HTMLVideoElement>(null);
+  // The app zoom skews the browser's own timeline (the played part stopped short of the thumb).
+  useUndoZoom(ref, !!item.url);
   const watched = useRef(0);
   const lastTime = useRef(0);
   const saving = useRef(false);

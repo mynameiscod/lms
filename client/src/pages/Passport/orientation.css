@@ -162,7 +162,8 @@
 }
 .ori-tick { color: #23845E; font-size: 18px; }
 
-.ori-video, .ori-rec-play { width: 100%; max-width: 720px; margin-top: 14px; border-radius: 12px; background: #000; display: block; }
+/* The player and the notes fill the lesson column, like the day player's. */
+.ori-video, .ori-rec-play { width: 100%; max-width: none; margin-top: 14px; border-radius: 12px; background: #000; display: block; }
 .ori-image { max-width: 100%; margin-top: 14px; border-radius: 12px; border: 1px solid var(--line); }
 .ori-missing {
   margin: 14px 0 0; padding: 14px 16px; border-radius: 12px;
@@ -174,7 +175,7 @@
 }
 
 /* ── Notes ── */
-.ori-notes { margin-top: 14px; color: #2C3A4F; font-size: 14px; line-height: 1.65; max-width: 760px; }
+.ori-notes { margin-top: 14px; color: #2C3A4F; font-size: 14px; line-height: 1.65; max-width: none; }
 .ori-notes p { margin: 0 0 12px; }
 .ori-notes b { color: var(--navy); }
 .ori-notes code { background: #F1F5F9; padding: 1px 6px; border-radius: 5px; font-size: 13px; }

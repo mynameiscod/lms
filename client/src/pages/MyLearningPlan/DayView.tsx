@@ -109,11 +109,12 @@ export function QAViewer({ content }: { content: any }) {
  */
 const laidOut = (description: string) => String(description || '').includes('\n') && !String(description).includes('```');
 
-const repeatsTitle = (title: string, description: string) => {
-  const t = String(title || '').trim().replace(/…$/, '');
-  const d = String(description || '').trim();
-  return !!t && (d === t || d.startsWith(t));
-};
+/**
+ * What a learner reads: the question. A practice question's title is an author's label (or, from a
+ * spreadsheet, the question cut to 120 characters), so showing it above the question printed the
+ * same words twice. The title is shown only by an old question that has no description.
+ */
+const questionText = (q: any) => (String(q.description || '').trim() ? q.description : q.title);
 
 export function PracticeViewer({ content }: { content: any }) {
   /** One chosen option per question; a question with several right answers takes several. */
@@ -128,8 +129,8 @@ export function PracticeViewer({ content }: { content: any }) {
       {questions.map((q: any, qi: number) => (
         <div key={qi} style={{ border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '8px' }}>
-            <div style={{ fontWeight: 700, fontSize: '14px', color: '#0f172a', flex: 1 }}>
-              Q{qi + 1}. <InlineNotes text={repeatsTitle(q.title, q.description) && String(q.description).length <= 240 ? q.description : q.title} />
+            <div style={{ fontWeight: 800, fontSize: '13px', color: '#475569', flex: 1, letterSpacing: '.02em' }}>
+              Question {qi + 1}
             </div>
             <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
               <span style={{
@@ -145,11 +146,12 @@ export function PracticeViewer({ content }: { content: any }) {
             </div>
           </div>
 
-          {q.description && !(repeatsTitle(q.title, q.description) && String(q.description).length <= 240) && (
-            <div style={{ marginBottom: '12px' }}>
-              {laidOut(q.description)
-                ? <div style={{ fontSize: '14px', color: '#334155', lineHeight: 1.6 }}><InlineNotes text={q.description} /></div>
-                : <NotesContent text={q.description} compact />}
+          {/* The question itself — the only text a learner needs before the options. */}
+          {!!String(questionText(q) || '').trim() && (
+            <div style={{ marginBottom: '12px', fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>
+              {laidOut(questionText(q))
+                ? <div style={{ lineHeight: 1.6 }}><InlineNotes text={questionText(q)} /></div>
+                : <NotesContent text={questionText(q)} compact />}
             </div>
           )}
 

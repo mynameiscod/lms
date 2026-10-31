@@ -6,6 +6,8 @@
  *
  *   type         mcq | theory. Left blank: mcq when options are filled in, theory when not.
  *   question     The question, as the learner reads it. Markdown works (`code`, **bold**).
+ *                A sheet with "title" and "description" columns instead reads the description as the
+ *                question and keeps the title as the question's label (it is not shown to learners).
  *   option_a..f  An MCQ's choices — at least two. Empty columns are skipped.
  *   correct      The right letter(s): A, or several as "A|C" (also "A;C", "A C" or "AC").
  *   explanation  MCQ: why the answer is right. Theory: what a good answer covers.
@@ -80,7 +82,9 @@ export const textCell = (v: string) => (/\r|\n/.test(v) ? v.replace(/\r\n?/g, '\
 
 const NAMES = {
   type: ['type', 'questiontype', 'kind'],
-  question: ['question', 'questiontext', 'questions', 'q', 'mcq', 'problem', 'statement', 'title'],
+  question: ['question', 'questiontext', 'questions', 'q', 'mcq', 'problem', 'statement'],
+  description: ['description', 'questiondescription', 'details', 'body', 'prompt'],
+  title: ['title', 'questiontitle', 'name', 'label'],
   correct: ['correct', 'correctanswer', 'answer', 'correctoption', 'ans', 'key', 'answerkey', 'rightanswer'],
   explanation: ['explanation', 'answerexplanation', 'solution', 'reason', 'rationale', 'modelanswer'],
   difficulty: ['difficulty', 'level'],
@@ -97,7 +101,7 @@ export function importPracticeCsv(text: string): CsvImportResult {
   const header = rows[0].map(norm);
   const colOf = (names: string[]) => { for (const n of names) { const k = header.indexOf(n); if (k >= 0) return k; } return -1; };
   const col = (name: keyof typeof NAMES) => colOf(NAMES[name]);
-  if (col('question') < 0) {
+  if (col('question') < 0 && col('description') < 0 && col('title') < 0) {
     return { questions, errors: [{ row: 1, message: 'No "question" column. Start from the template - its first row names the columns.' }] };
   }
   const optionCols = LETTERS.map((l, i) => colOf(optionNames(l.toLowerCase(), i)));
@@ -111,7 +115,9 @@ export function importPracticeCsv(text: string): CsvImportResult {
     seen++;
     if (seen > MAX_ROWS) { if (seen === MAX_ROWS + 1) errors.push({ row: rowNo, message: `Only ${MAX_ROWS} questions can be imported at once; the rest were skipped.` }); return; }
 
-    const question = get('question');
+    // The question a learner reads: the question column, else a description, else the title.
+    const question = get('question') || get('description') || get('title');
+    const label = get('title');
     const options = optionCols.map((k, j) => ({ letter: LETTERS[j], text: k >= 0 ? textCell(String(r[k] ?? '')).trim() : '' })).filter(o => o.text);
     const typeRaw = get('type').toLowerCase();
     const type: 'mcq' | 'theory' | '' = typeRaw === '' ? (options.length ? 'mcq' : 'theory')
@@ -155,7 +161,7 @@ export function importPracticeCsv(text: string): CsvImportResult {
 
     questions.push({
       type: type as 'mcq' | 'theory',
-      title: question.length > 120 ? `${question.slice(0, 117)}…` : question,
+      title: label && label !== question ? label.slice(0, 200) : question.length > 120 ? `${question.slice(0, 117)}…` : question,
       description: question,
       ...(type === 'mcq' ? { options: options.map(o => ({ text: o.text, isCorrect: correct.includes(o.letter) })) } : {}),
       ...(explanation ? { explanation } : {}),

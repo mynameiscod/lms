@@ -292,19 +292,18 @@ export const BADGE_TRIGGERS: Record<string, BadgeConditionType[]> = {
 
 // ── leaderboards ────────────────────────────────────────────────────────────
 
-export type LeaderboardScope = 'COLLEGE' | 'GLOBAL' | 'DISTRICT' | 'STATE';
+export type LeaderboardScope = 'COLLEGE' | 'GLOBAL';
 export type LeaderboardPeriod = 'WEEKLY' | 'MONTHLY' | 'ALL_TIME';
 
-export const LEADERBOARD_SCOPES: LeaderboardScope[] = ['COLLEGE', 'GLOBAL', 'DISTRICT', 'STATE'];
+export const LEADERBOARD_SCOPES: LeaderboardScope[] = ['COLLEGE', 'GLOBAL'];
 export const LEADERBOARD_PERIODS: LeaderboardPeriod[] = ['WEEKLY', 'MONTHLY', 'ALL_TIME'];
 
 /**
- * Scopes this build can answer truthfully.
+ * The two ranks a member can hold.
  *
- * DISTRICT and STATE are absent from the data, not from the code. There is no district field
- * anywhere in the repository, and state exists only as free text a student typed. Ranking on
- * either would mean inventing a location or fragmenting one place into six spellings, so
- * both report `available: false` and no rank at all — never rank 0, which reads as "last".
+ * GLOBAL: every CareerPilot member in every tenant, by XP — shown to everybody, no opt-in.
+ * COLLEGE: the members of the student's own tenant, when that tenant is a college.
+ * District and state ranks were removed (2026-10-31): there is no reliable location to rank on.
  */
 export const SUPPORTED_SCOPES: LeaderboardScope[] = ['COLLEGE', 'GLOBAL'];
 export const isScopeSupported = (s: string): boolean =>
@@ -312,9 +311,7 @@ export const isScopeSupported = (s: string): boolean =>
 
 /** Why a scope cannot be shown, in words a student can act on. */
 export const SCOPE_UNAVAILABLE_REASON: Record<string, string> = {
-  DISTRICT: 'District ranking needs verified location, which we do not collect yet.',
-  STATE: 'State ranking needs verified location, which we do not collect yet.',
-  COLLEGE: 'College ranking is available once your account belongs to a college.',
+  COLLEGE: 'College ranking is shown when your institution is a college on CareerPilot.',
 };
 
 export const DEFAULT_TOP_N = 50;

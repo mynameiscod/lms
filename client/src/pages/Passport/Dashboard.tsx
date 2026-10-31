@@ -167,7 +167,8 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const [coins, setCoins] = useState<number | null>(null);
   const [board, setBoard] = useState<ScopedLeaderboardResponse | null>(null);
   const [boardBusy, setBoardBusy] = useState(false);
-  const [scope, setScope] = useState('COLLEGE');
+  // Global is every member's board; College joins it only for a college tenant (set once ranks load).
+  const [scope, setScope] = useState('GLOBAL');
   const [period, setPeriod] = useState('ALL_TIME');
   const [allBadges, setAllBadges] = useState(false);
   useEffect(() => {
@@ -175,7 +176,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
       if (g.status === 'fulfilled') {
         setProg(g.value);
         // Open on a board this member is on: with no college the college board is only a note.
-        if (!g.value?.ranks?.college?.available && g.value?.ranks?.global?.available) setScope('GLOBAL');
+        if (g.value?.ranks?.college?.available) setScope('COLLEGE');
       }
       if (r.status === 'fulfilled') setCoins(Number(r.value?.student?.coins ?? r.value?.student?.coinBalance ?? 0));
     });
@@ -346,7 +347,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
       <section className="mdb-stats" aria-label="Your figures">
         <div><span className="ic amber"><Bi name="fire" /></span><div><small>Streak</small><b>{st.streak}<em> {st.streak === 1 ? 'day' : 'days'}</em></b><span>Best {st.longestStreak} {st.longestStreak === 1 ? 'day' : 'days'}</span></div></div>
         <div><span className="ic blue"><Bi name="award-fill" /></span><div><small>Level {lv.level}</small><b className="sm">{lv.title}</b><span className="md-mini-bar"><i style={{ width: `${barWidth(lv.progressPct)}%` }} /></span><span>{lv.xpToNextLevel.toLocaleString()} XP to level {lv.nextLevel}</span></div></div>
-        <div><span className="ic teal"><Bi name="lightning-charge-fill" /></span><div><small>Total XP</small><b>{lv.xp.toLocaleString()}</b><span>{d.percentileAhead !== null && d.percentileAhead !== undefined ? `Ahead of ${d.percentileAhead}% on XP` : 'Activity earned'}</span></div></div>
+        <div><span className="ic teal"><Bi name="lightning-charge-fill" /></span><div><small>Total XP</small><b>{lv.xp.toLocaleString()}</b><span>{d.globalRank ? `Global #${d.globalRank.rank.toLocaleString()} of ${d.globalRank.participants.toLocaleString()} students` : d.percentileAhead !== null && d.percentileAhead !== undefined ? `Ahead of ${d.percentileAhead}% on XP` : 'Activity earned'}</span></div></div>
         {progressOn && <div><span className="ic gold"><Bi name="coin" /></span><div><small>Coins</small><b>{coins === null ? '—' : coins.toLocaleString()}</b>{prog?.conversion
           ? <button className="md-link" onClick={() => nav('/careerpilot/coins')} title={`${prog.conversion.xpPerCoin.toLocaleString()} XP = 1 coin`}>{prog.conversion.coinsAvailable > 0
             ? <>Convert XP to {prog.conversion.coinsAvailable.toLocaleString()} {prog.conversion.coinsAvailable === 1 ? 'coin' : 'coins'} <Bi name="arrow-right" /></>
@@ -552,7 +553,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
           </header>
           <div className="mdb-tabs">
             <div role="tablist" aria-label="Who to rank against">
-              {[{ k: 'COLLEGE', l: 'College' }, { k: 'GLOBAL', l: 'Global' }].map(t => <button key={t.k} role="tab" aria-selected={scope === t.k} className={scope === t.k ? 'on' : ''} onClick={() => setScope(t.k)}>{t.l}</button>)}
+              {[{ k: 'COLLEGE', l: 'College' }, { k: 'GLOBAL', l: 'Global' }].filter(t => t.k === 'GLOBAL' || ranks.college?.available).map(t => <button key={t.k} role="tab" aria-selected={scope === t.k} className={scope === t.k ? 'on' : ''} onClick={() => setScope(t.k)}>{t.l}</button>)}
             </div>
             <div role="tablist" aria-label="Period">
               {[{ k: 'ALL_TIME', l: 'All time' }, { k: 'MONTHLY', l: 'Month' }, { k: 'WEEKLY', l: 'Week' }].map(t => <button key={t.k} role="tab" aria-selected={period === t.k} className={period === t.k ? 'on' : ''} onClick={() => setPeriod(t.k)}>{t.l}</button>)}

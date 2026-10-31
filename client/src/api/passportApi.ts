@@ -730,8 +730,8 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/me/gamification/xp-history`, { headers: auth(), params: { limit } });
     return data;
   },
-  getMyLeaderboard: async (scope: string, period: string): Promise<ScopedLeaderboardResponse> => {
-    const { data } = await axios.get(`${BASE}/me/leaderboard`, { headers: auth(), params: { scope, period } });
+  getMyLeaderboard: async (scope: string, period: string, limit?: number): Promise<ScopedLeaderboardResponse> => {
+    const { data } = await axios.get(`${BASE}/me/leaderboard`, { headers: auth(), params: { scope, period, ...(limit ? { limit } : {}) } });
     return data;
   },
   /** Admin: XP rules, badges and leaderboard settings. */
@@ -1529,10 +1529,6 @@ export const passportApi = {
   },
 
   // ── Leaderboard ──
-  getLeaderboard: async (limit = 50): Promise<LeaderboardResponse> => {
-    const { data } = await axios.get(`${BASE}/leaderboard`, { headers: auth(), params: { limit } });
-    return data;
-  },
 
   // ── My profile ──
   getMyProfile: async (): Promise<{ profile: MemberProfile }> => {
@@ -1950,6 +1946,8 @@ export interface DashboardData {
   level?: LevelInfo;
   coderScore?: { score: number; parts: { label: string; earned: number; max: number }[] };
   percentileAhead?: number | null;
+  /** Rank among every CareerPilot member, by XP. */
+  globalRank?: { rank: number; participants: number } | null;
   /** The skill meter: Skill DNA by skill area (early = only low-confidence evidence in that area). */
   skills?: { key: string; label: string; score: number; early?: boolean }[];
   careerScore?: number | null;

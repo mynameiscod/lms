@@ -177,7 +177,6 @@ export const getAdminGamification = async (req: Request, res: Response) => {
       })),
       taskXpMax: TASK_XP_MAX,
       supportedScopes: ['COLLEGE', 'GLOBAL'],
-      unsupportedScopes: ['DISTRICT', 'STATE'],
     });
   } catch (e: any) {
     console.error('[gamification] admin:', e?.message || e);
@@ -248,7 +247,7 @@ export const updateLeaderboardSettings = async (req: Request, res: Response) => 
     const b = req.body || {};
     const patch: any = { updatedBy: String((req as any).user?.id || '') };
 
-    for (const flag of ['collegeEnabled', 'globalEnabled', 'weeklyEnabled', 'monthlyEnabled', 'allTimeEnabled']) {
+    for (const flag of ['collegeEnabled', 'weeklyEnabled', 'monthlyEnabled', 'allTimeEnabled']) {
       if (b[flag] !== undefined) patch[`leaderboard.${flag}`] = !!b[flag];
     }
     if (b.topN !== undefined) {

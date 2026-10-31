@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import PassportProgress from '../models/PassportProgress';
 import User from '../models/User';
 import Tenant from '../models/Tenant';
-import { XpLedger, GamificationConfig } from '../models/GamificationModels';
+import { XpLedger } from '../models/GamificationModels';
+import { careerPilotMemberFilter } from './careerPilotPopulation';
 import {
   LeaderboardScope, LeaderboardPeriod, isScopeSupported, SCOPE_UNAVAILABLE_REASON,
   DEFAULT_TOP_N, MAX_TOP_N, LEADERBOARD_EXCLUDED_ROLES,
@@ -17,11 +18,9 @@ import {
  * the most public evidence of it. Coins do not rank either — they are money-adjacent, and
  * a leaderboard is not a rich list.
  *
- * IT DOES NOT LIE ABOUT LOCATION. District and state ranking are not implemented because
- * the data does not exist: there is no district field anywhere in this repository, and state
- * is free text a student typed. Both report `available: false` rather than a plausible
- * number, and rank is null rather than 0 — a zero reads as "last", which is a worse answer
- * than "we cannot tell you".
+ * TWO RANKS, NO MORE. Global ranks every CareerPilot member in every tenant; college ranks the
+ * members of one college tenant. District and state ranks were removed (2026-10-31): there is
+ * no reliable location data to rank on.
  *
  * IT DOES NOT LOAD THE WORLD. Ranks come from aggregation and a count, never from pulling
  * every participant into Node and sorting — which is what the previous tenant-only board did
@@ -70,47 +69,61 @@ export function periodStart(period: LeaderboardPeriod, now: Date): Date | null {
 }
 
 /**
- * Which tenants a scope covers.
+ * Which tenants a scope covers. 'ALL' means every tenant.
  *
  * COLLEGE is the student's own tenant, and only when that tenant IS a college — grouping by
  * the free-text college name on a profile would split one institution into every spelling
  * anybody typed, which is worse than no ranking at all.
  *
- * GLOBAL covers tenants that have opted IN. Nobody's students are entered into a
- * cross-tenant board by default.
+ * GLOBAL is every CareerPilot member in every tenant (product decision, 2026-10-31: the global
+ * rank is shown to every member, so there is no opt-in).
  */
-async function tenantsFor(scope: LeaderboardScope, tenantId: string): Promise<string[] | null> {
+async function tenantsFor(scope: LeaderboardScope, tenantId: string): Promise<string[] | 'ALL' | null> {
   if (scope === 'COLLEGE') {
     const tenant: any = await Tenant.findById(tenantId).select('type isActive').lean();
     if (!tenant || tenant.type !== 'college') return null;
     return [tenantId];
   }
-
-  const opted = await GamificationConfig
-    .find({ 'leaderboard.globalEnabled': true }).select('tenantId').lean() as any[];
-  const ids = opted.map(c => c.tenantId);
-  // A tenant that has not opted in cannot see a global board either — participation is
-  // mutual, not a one-way window into everybody else's students.
-  return ids.includes(tenantId) ? ids : null;
+  return 'ALL';
 }
 
+/** The tenant clause for a ranking query: none for GLOBAL. */
+const tenantMatch = (tenantIds: string[] | 'ALL'): Record<string, any> =>
+  (tenantIds === 'ALL' ? {} : { tenantId: { $in: tenantIds } });
+
 /**
- * The eligibility filter, in one place.
+ * Who is ranked, in one place: CareerPilot members who are students.
  *
- * Students only: admins, instructors and staff hold accounts with progress records too, and
- * a member of staff sitting at rank 3 makes the whole board look rigged.
+ * A CareerPilot member is anyone ever enrolled, free or paid (careerPilotMemberFilter). A plain LMS
+ * student of the same tenant is not — and nor are admins, instructors and staff, whose accounts hold
+ * progress records too; a member of staff at rank 3 makes the whole board look rigged.
  */
+const memberMatch = (prefix = ''): Record<string, any> => {
+  const f = careerPilotMemberFilter();
+  return {
+    [`${prefix}role`]: { $nin: LEADERBOARD_EXCLUDED_ROLES },
+    [`${prefix}isActive`]: { $ne: false },
+    $or: (f.$or as any[]).map(c => Object.fromEntries(Object.entries(c).map(([k, v]) => [`${prefix}${k}`, v]))),
+  };
+};
+
 const eligibleUserStage = () => ([
   {
     $lookup: {
       from: 'users', localField: 'studentId', foreignField: '_id',
       as: 'user',
-      pipeline: [{ $project: { firstName: 1, lastName: 1, role: 1, isActive: 1, tenantId: 1 } }],
+      pipeline: [{ $project: { role: 1, isActive: 1, tenantId: 1, 'passport.product': 1, 'passport.active': 1, 'passport.activatedAt': 1, 'passport.verifiedAt': 1 } }],
     },
   },
   { $unwind: '$user' },
-  { $match: { 'user.role': { $nin: LEADERBOARD_EXCLUDED_ROLES }, 'user.isActive': { $ne: false } } },
+  { $match: memberMatch('user.') },
 ]);
+
+/** Is this caller someone the board ranks? An admin looking at the board has no rank. */
+async function isRanked(tenantId: string, studentId: string): Promise<boolean> {
+  if (!mongoose.Types.ObjectId.isValid(studentId)) return false;
+  return !!(await User.exists({ _id: studentId, tenantId, ...memberMatch() } as any));
+}
 
 /**
  * One page of a leaderboard, plus where the caller stands.
@@ -138,12 +151,10 @@ export async function getLeaderboard(input: {
   }
 
   const tenantIds = await tenantsFor(input.scope, input.tenantId);
-  if (!tenantIds || !tenantIds.length) {
+  if (!tenantIds || (tenantIds !== 'ALL' && !tenantIds.length)) {
     return {
       available: false, scope: input.scope, period: input.period, myRank: null,
-      reason: input.scope === 'COLLEGE'
-        ? SCOPE_UNAVAILABLE_REASON.COLLEGE
-        : 'Global ranking is switched off for your institution.',
+      reason: SCOPE_UNAVAILABLE_REASON[input.scope] || 'That ranking is not available.',
     };
   }
 
@@ -156,14 +167,16 @@ export async function getLeaderboard(input: {
     ? await myPeriodXp(input.tenantId, input.studentId, since)
     : await myAllTimeXp(input.tenantId, input.studentId);
 
-  const [participantCount, ahead] = await Promise.all([
-    countParticipants(tenantIds, since),
+  const [participantCount, ahead, ranked] = await Promise.all([
+    countParticipants(tenantIds),
     // Competition ranking: everyone strictly ahead, plus one. Two students on the same XP
-    // therefore share a rank and the next student is pushed down — 1, 1, 3.
-    myXp > 0 ? countAhead(tenantIds, since, myXp) : Promise.resolve(-1),
+    // therefore share a rank and the next student is pushed down — 1, 1, 3. A member with no
+    // XP yet is ranked too, level with everybody else on none.
+    countAhead(tenantIds, since, myXp),
+    isRanked(input.tenantId, input.studentId),
   ]);
 
-  const names = await namesFor(rows.map(r => r.studentId));
+  const names = await namesFor(rows.map(r => r.studentId), input.scope === 'GLOBAL' ? input.tenantId : null);
 
   let lastXp: number | null = null;
   let lastRank = 0;
@@ -186,15 +199,15 @@ export async function getLeaderboard(input: {
     scope: input.scope,
     period: input.period,
     entries,
-    myRank: myXp > 0 ? ahead + 1 : null,
+    myRank: ranked ? ahead + 1 : null,
     myXp,
     participantCount,
   };
 }
 
-async function allTimeRanking(tenantIds: string[], limit: number) {
+async function allTimeRanking(tenantIds: string[] | 'ALL', limit: number) {
   return PassportProgress.aggregate([
-    { $match: { tenantId: { $in: tenantIds }, xp: { $gt: 0 } } },
+    { $match: { ...tenantMatch(tenantIds), xp: { $gt: 0 } } },
     { $sort: { xp: -1, studentId: 1 } },
     ...eligibleUserStage(),
     { $limit: limit },
@@ -202,9 +215,9 @@ async function allTimeRanking(tenantIds: string[], limit: number) {
   ]);
 }
 
-async function periodRanking(tenantIds: string[], since: Date, limit: number) {
+async function periodRanking(tenantIds: string[] | 'ALL', since: Date, limit: number) {
   return XpLedger.aggregate([
-    { $match: { tenantId: { $in: tenantIds }, at: { $gte: since } } },
+    { $match: { ...tenantMatch(tenantIds), at: { $gte: since } } },
     { $group: { _id: '$studentId', xp: { $sum: '$amount' } } },
     { $match: { xp: { $gt: 0 } } },
     { $sort: { xp: -1, _id: 1 } },
@@ -228,18 +241,18 @@ const myPeriodXp = async (tenantId: string, studentId: string, since: Date): Pro
   return row?.xp || 0;
 };
 
-/** How many students are strictly ahead — one number, not a page of rows. */
-async function countAhead(tenantIds: string[], since: Date | null, myXp: number): Promise<number> {
+/** How many ranked students are strictly ahead — one number, not a page of rows. */
+async function countAhead(tenantIds: string[] | 'ALL', since: Date | null, myXp: number): Promise<number> {
   if (!since) {
     const [row] = await PassportProgress.aggregate([
-      { $match: { tenantId: { $in: tenantIds }, xp: { $gt: myXp } } },
+      { $match: { ...tenantMatch(tenantIds), xp: { $gt: myXp } } },
       ...eligibleUserStage(),
       { $count: 'n' },
     ]);
     return row?.n || 0;
   }
   const [row] = await XpLedger.aggregate([
-    { $match: { tenantId: { $in: tenantIds }, at: { $gte: since } } },
+    { $match: { ...tenantMatch(tenantIds), at: { $gte: since } } },
     { $group: { _id: '$studentId', xp: { $sum: '$amount' } } },
     { $match: { xp: { $gt: myXp } } },
     { $set: { studentId: '$_id' } },
@@ -249,24 +262,15 @@ async function countAhead(tenantIds: string[], since: Date | null, myXp: number)
   return row?.n || 0;
 }
 
-async function countParticipants(tenantIds: string[], since: Date | null): Promise<number> {
-  if (!since) {
-    const [row] = await PassportProgress.aggregate([
-      { $match: { tenantId: { $in: tenantIds }, xp: { $gt: 0 } } },
-      ...eligibleUserStage(),
-      { $count: 'n' },
-    ]);
-    return row?.n || 0;
-  }
-  const [row] = await XpLedger.aggregate([
-    { $match: { tenantId: { $in: tenantIds }, at: { $gte: since } } },
-    { $group: { _id: '$studentId', xp: { $sum: '$amount' } } },
-    { $match: { xp: { $gt: 0 } } },
-    { $set: { studentId: '$_id' } },
-    ...eligibleUserStage(),
-    { $count: 'n' },
-  ]);
-  return row?.n || 0;
+/**
+ * Everybody the board ranks — every CareerPilot member in scope, with or without XP.
+ *
+ * "#12 of 340 students" means 340 registered members, not 340 who happened to earn something.
+ * User.tenantId is an ObjectId, so the tenant ids are cast for this one query.
+ */
+async function countParticipants(tenantIds: string[] | 'ALL'): Promise<number> {
+  const tenant = tenantIds === 'ALL' ? {} : { tenantId: { $in: tenantIds.map(toId) } };
+  return User.countDocuments({ ...tenant, ...memberMatch() } as any);
 }
 
 /**
@@ -275,7 +279,7 @@ async function countParticipants(tenantIds: string[], since: Date | null): Promi
  * A name and, where the tenant is a college, its name. No email, no phone, no scores, no
  * readiness — a leaderboard is a public surface and everything on it is published.
  */
-async function namesFor(ids: any[]): Promise<Map<string, { name: string; college: string | null }>> {
+async function namesFor(ids: any[], viewerTenantId: string | null = null): Promise<Map<string, { name: string; college: string | null }>> {
   if (!ids.length) return new Map();
   const users = await User.find({ _id: { $in: ids } })
     .select('firstName lastName tenantId').lean() as any[];
@@ -286,10 +290,23 @@ async function namesFor(ids: any[]): Promise<Map<string, { name: string; college
     : [];
   const collegeOf = new Map(tenants.map(t => [String(t._id), t.name]));
 
+  // On the global board a member of another institution shows as "Asha R." — enough to recognise a
+  // name, not enough to look somebody up. Classmates keep their full name.
+  const display = (u: any) => {
+    const first = String(u.firstName || '').trim();
+    // A placeholder surname ("-", ".") is no surname.
+    const rawLast = String(u.lastName || '').trim();
+    const last = /[\p{L}\p{N}]/u.test(rawLast) ? rawLast : '';
+    if (viewerTenantId && String(u.tenantId) !== String(viewerTenantId)) {
+      return first ? `${first}${last ? ` ${last[0].toUpperCase()}.` : ''}` : 'Member';
+    }
+    return `${first} ${last}`.trim() || 'Member';
+  };
+
   return new Map(users.map(u => [
     String(u._id),
     {
-      name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Member',
+      name: display(u),
       college: collegeOf.get(String(u.tenantId)) || null,
     },
   ]));
@@ -297,7 +314,7 @@ async function namesFor(ids: any[]): Promise<Map<string, { name: string; college
 
 /** Every scope, with the ones that cannot be answered marked honestly. */
 export async function rankSummary(tenantId: string, studentId: string, now: Date = new Date()) {
-  const scopes: LeaderboardScope[] = ['COLLEGE', 'GLOBAL', 'DISTRICT', 'STATE'];
+  const scopes: LeaderboardScope[] = ['COLLEGE', 'GLOBAL'];
   const out: Record<string, any> = {};
 
   for (const scope of scopes) {

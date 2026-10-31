@@ -688,7 +688,7 @@ router.delete('/members/:userId',      MANAGE_FOR.cpMembers, ctrl.deleteMember);
 
 // Coins — the member's balance, and the admin's dials. Earning rules are data, so
 // switching an event on or changing what it pays needs no deploy.
-router.get('/leaderboard',          MEMBER, dashboard.getLeaderboard);
+// The leaderboard is /me/leaderboard (college and global); the old tenant-only board was removed.
 
 // Daily tech news. The member sees only what an admin has published; the AI writes
 // drafts and never publishes on its own.

@@ -268,8 +268,6 @@ export interface IGamificationConfig extends Document {
 
   leaderboard: {
     collegeEnabled: boolean;
-    /** Opting IN to cross-tenant ranking. Default false — nobody is entered without saying so. */
-    globalEnabled: boolean;
     weeklyEnabled: boolean;
     monthlyEnabled: boolean;
     allTimeEnabled: boolean;
@@ -318,7 +316,6 @@ const GamificationConfigSchema = new Schema<IGamificationConfig>(
 
     leaderboard: {
       collegeEnabled:  { type: Boolean, default: true },
-      globalEnabled:   { type: Boolean, default: false },
       weeklyEnabled:   { type: Boolean, default: true },
       monthlyEnabled:  { type: Boolean, default: true },
       allTimeEnabled:  { type: Boolean, default: true },

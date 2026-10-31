@@ -54,6 +54,45 @@ XpRuleSchema.index({ tenantId: 1, eventKey: 1 }, { unique: true });
 
 export const XpRule = mongoose.model<IXpRule>('XpRule', XpRuleSchema);
 
+// ── per-task XP overrides ───────────────────────────────────────────────────
+
+/**
+ * What one specific journey task is worth, set by an admin in the Content Builder.
+ *
+ * Keyed on the SOURCE — the library content or the quiz/assignment — not on a day. A roadmap day
+ * holds a snapshot of its tasks, so a price stored on the day would reach nobody already planned;
+ * a price stored on the source is read at award time and reaches every open day at once. A source
+ * shared by several years or tracks is priced once, for all of them, like every other edit to it.
+ */
+export interface IXpTaskOverride extends Document {
+  tenantId: string;
+  /** 'content' for library content; 'module' for a quiz, assignment or code task. */
+  refKind: 'content' | 'module';
+  refId: string;
+  xp: number;
+  /** For the admin list only — the title when it was priced. */
+  title?: string;
+  updatedBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const XpTaskOverrideSchema = new Schema<IXpTaskOverride>(
+  {
+    tenantId:  { type: String, required: true, index: true },
+    refKind:   { type: String, enum: ['content', 'module'], required: true },
+    refId:     { type: String, required: true },
+    xp:        { type: Number, required: true, min: 0 },
+    title:     { type: String },
+    updatedBy: { type: String },
+  },
+  { timestamps: true },
+);
+
+XpTaskOverrideSchema.index({ tenantId: 1, refKind: 1, refId: 1 }, { unique: true });
+
+export const XpTaskOverride = mongoose.model<IXpTaskOverride>('XpTaskOverride', XpTaskOverrideSchema);
+
 // ── XP ledger ───────────────────────────────────────────────────────────────
 
 export interface IXpLedger extends Document {
@@ -262,6 +301,12 @@ export interface IGamificationConfig extends Document {
     effectiveFrom?: Date;
   };
 
+  /**
+   * What each type of journey task is worth, by type key (TASK_XP_TYPES). A type absent here pays
+   * its shipped default, so a tenant that never opens the screen keeps today's prices.
+   */
+  taskXp?: Record<string, number>;
+
   updatedBy?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -288,6 +333,8 @@ const GamificationConfigSchema = new Schema<IGamificationConfig>(
       capPaise:          { type: Number, default: 0, min: 0 },
       effectiveFrom:     { type: Date },
     },
+
+    taskXp: { type: Schema.Types.Mixed, default: undefined },
 
     updatedBy: { type: String },
   },

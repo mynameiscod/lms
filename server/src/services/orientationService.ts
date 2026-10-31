@@ -373,7 +373,7 @@ export async function completeOrientationDay(
       tenantId, studentId, eventKey: ORIENTATION_XP_EVENT,
       sourceType: 'orientation', sourceId: `day-${day.dayNumber}`,
     });
-    xpAwarded = (award as any)?.xpAwarded ?? 0;
+    xpAwarded = award?.awarded ?? 0;
   } catch (e: any) {
     // XP is a reward, not the record. A member who finished a day has finished it.
     console.error('[orientation] XP award failed:', e?.message || e);

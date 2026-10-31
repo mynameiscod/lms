@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import passportApi, { careerTrackApi, CareerTrackCatalogue, CurriculumLearningUnit, DirectionCoverageReport, MegaCurriculumTopicRow, UnitStudentPreview } from '../../api/passportApi';
+import passportApi, { careerTrackApi, CareerTrackCatalogue, CurriculumLearningUnit, DirectionCoverageReport, MegaCurriculumTopicRow, TaskPrices, UnitStudentPreview } from '../../api/passportApi';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import './adminContentBuilder.css';
 import { mediaUrl, mediaPathFor } from '../../utils/mediaUrl';
@@ -22,13 +22,31 @@ import { PracticeQuestionInput } from './practiceCsv';
  * composer code the day player runs, so what an admin approves here is what a member gets.
  */
 
-/** The XP table the journey pays, mirrored so a unit can show its worth before anybody takes it. */
-const XP_BY_TYPE: Record<string, number> = {
-  video: 5, notes: 5, worked_example: 5, interactive_lesson: 5, interactive_activity: 5,
-  practice_theory: 10, tech_qa: 10, behavioral_qa: 10, aptitude: 10,
-  practice_coding: 15, quiz: 20, assignment: 30,
+/**
+ * What a task pays, read from the server's price list (XP & Rewards) — the same one the day player pays
+ * from, so the "+N XP" here is what a member is shown and paid. Mirrors xpPricingService.xpForTask.
+ */
+const taskXpKey = (it: any): string | null => {
+  const kind = it.kind || 'content';
+  if (kind === 'content') return it.contentId ? `content:${it.contentId}` : null;
+  return it.sourceId ? `module:${it.sourceId}` : null;
 };
-const DAY_BONUS_XP = 25;
+const typeXp = (it: any, p: TaskPrices): number => {
+  const kind = it.kind || 'content';
+  if (kind === 'mockInterview') return 0;
+  const type = it.contentType || it.type || '';
+  if (type in p.byType) return p.byType[type];
+  if (kind === 'codeSnippet') return p.byType.practice_coding ?? 5;
+  if (kind in p.byType) return p.byType[kind];
+  return 5;
+};
+const taskXp = (it: any, p: TaskPrices | null): number => {
+  if (!p) return 0;
+  if (!p.tasksEnabled || (it.kind || 'content') === 'mockInterview') return 0;
+  const key = taskXpKey(it);
+  if (key && key in p.overrides) return p.overrides[key];
+  return typeXp(it, p);
+};
 
 type DrawerKind = 'video' | 'notes' | 'tech_qa' | 'practice_theory' | null;
 
@@ -107,6 +125,12 @@ const AdminContentBuilder: React.FC = () => {
    * switch - would never be read again.
    */
   const [previewNonce, setPreviewNonce] = useState(0);
+  const [prices, setPrices] = useState<TaskPrices | null>(null);
+  /** The task whose XP is being edited, and the figure typed so far. */
+  const [xpEdit, setXpEdit] = useState<{ key: string; value: string } | null>(null);
+  const [xpSaving, setXpSaving] = useState(false);
+
+  useEffect(() => { passportApi.getTaskPrices().then(setPrices).catch(() => { /* chips stay hidden; the builder still works */ }); }, []);
 
   const stageRows = useCallback(async (key: string) => {
     if (!stageCache.current[key]) stageCache.current[key] = (await passportApi.megaCurriculum(key)).rows || [];
@@ -275,7 +299,7 @@ const AdminContentBuilder: React.FC = () => {
     }
     setSavingOrder(false);
   };
-  const unitXp = items.reduce((t, it) => t + (XP_BY_TYPE[it.contentType] ?? XP_BY_TYPE[it.kind] ?? 5), 0);
+  const unitXp = items.reduce((t, it) => t + taskXp(it, prices), 0);
   const minutes = items.reduce((t, it) => t + (Number(it.estimatedDuration) || 0), 0);
 
   /* setParams({ unit }) wiped `stage` from the URL, so picking a unit sent the next load to Year 1. */
@@ -287,6 +311,41 @@ const AdminContentBuilder: React.FC = () => {
     setErr('');
   };
   const say = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2600); };
+
+  /** One task's XP, wherever it appears. Reaches members' open days at once (read when paid, not copied). */
+  const saveTaskXp = async (it: any) => {
+    const key = taskXpKey(it);
+    if (!key || !xpEdit || !prices) return;
+    const xp = Number(xpEdit.value);
+    if (xpEdit.value === '' || !Number.isFinite(xp) || xp < 0 || xp > prices.max) { say(`Enter a whole number from 0 to ${prices.max}.`); return; }
+    const [refKind, refId] = key.split(':') as ['content' | 'module', string];
+    setXpSaving(true);
+    try {
+      const r = await passportApi.setTaskXpOverride(refKind, refId, Math.round(xp), it.contentTitle);
+      setPrices(p => (p ? { ...p, overrides: { ...p.overrides, [key]: r.xp } } : p));
+      setXpEdit(null);
+      say(`Saved: ${r.xp} XP for this task, everywhere it is used.`);
+    } catch (e: any) {
+      say(e?.response?.data?.message || 'Could not save that XP.');
+    }
+    setXpSaving(false);
+  };
+
+  const resetTaskXp = async (it: any) => {
+    const key = taskXpKey(it);
+    if (!key || !prices) return;
+    const [refKind, refId] = key.split(':') as ['content' | 'module', string];
+    setXpSaving(true);
+    try {
+      await passportApi.clearTaskXpOverride(refKind, refId);
+      setPrices(p => { if (!p) return p; const o = { ...p.overrides }; delete o[key]; return { ...p, overrides: o }; });
+      setXpEdit(null);
+      say('Back to the price for its type.');
+    } catch (e: any) {
+      say(e?.response?.data?.message || 'Could not reset that XP.');
+    }
+    setXpSaving(false);
+  };
 
   /** Create the row, bind it to this unit and publish it — the three steps an author always wants together. */
   const addContent = async (body: any, file: File | null = null) => {
@@ -447,7 +506,7 @@ const AdminContentBuilder: React.FC = () => {
 
     {/* Which year's days are being built. Foundation alone until Build existed. */}
     <div className="acb-tabs">
-      {[...(stages.length ? stages : [{ key: 'foundation', label: 'Foundation', who: '' }]), { key: TRACK_TAB, label: 'Career Tracks', who: 'Year 3 & 4 role tracks' }].map(t => (
+      {[...(stages.length ? stages : [{ key: 'foundation', label: 'Foundation', who: '' }]), { key: TRACK_TAB, label: 'Career Tracks', who: 'Years 2, 3 & 4 role tracks' }].map(t => (
         <button key={t.key} type="button" className={t.key === stage ? 'on' : ''}
                 onClick={() => setStage(t.key)} disabled={loading}>
           {t.label}
@@ -524,7 +583,7 @@ const AdminContentBuilder: React.FC = () => {
                 <span className={`acb-chip s-${(unit.status || 'DRAFT').toLowerCase()}`}>{unit.status || 'DRAFT'}</span>
                 <span className="acb-chip"><i className="bi bi-list-task" /> {items.length} task{items.length === 1 ? '' : 's'}</span>
                 <span className="acb-chip"><i className="bi bi-clock" /> {minutes} min</span>
-                <span className="acb-chip"><i className="bi bi-lightning-charge-fill" /> {unitXp} XP + {DAY_BONUS_XP} bonus</span>
+                <span className="acb-chip"><i className="bi bi-lightning-charge-fill" /> {unitXp} XP{prices?.dayBonus ? ` + ${prices.dayBonus} bonus` : ''}</span>
               </div>
             </div>
             <div className="acb-unit-actions">
@@ -561,7 +620,10 @@ const AdminContentBuilder: React.FC = () => {
               ? <div className="acb-blank"><i className="bi bi-journal-plus" /> Nothing on this day yet. Add a video, notes or practice above.</div>
               : <ol className="acb-items">
                 {items.map((it, i) => {
-                  const xp = XP_BY_TYPE[it.contentType] ?? XP_BY_TYPE[it.kind] ?? 5;
+                  const xp = taskXp(it, prices);
+                  const xpKey = taskXpKey(it);
+                  const own = !!(xpKey && prices && xpKey in prices.overrides);
+                  const editingXp = !!xpKey && xpEdit?.key === xpKey;
                   return <li key={`${it.contentId || it.sourceId || i}`}>
                     <span className="acb-i-n">{i + 1}</span>
                     <span className="acb-i-ic"><i className={`bi ${ICON_FOR[it.contentType] || 'bi-dot'}`} /></span>
@@ -569,7 +631,21 @@ const AdminContentBuilder: React.FC = () => {
                       <b>{it.contentTitle}</b>
                       <small>{prettyType(it.contentType)} · {it.estimatedDuration || 0} min{it.isGating ? ' · must be completed' : ''}</small>
                     </span>
-                    <span className="acb-i-xp">+{xp} XP</span>
+                    {editingXp
+                      ? <form className="acb-i-xpedit" onSubmit={e => { e.preventDefault(); saveTaskXp(it); }}>
+                        <input type="number" min={0} max={prices?.max || 1000} step={1} autoFocus aria-label="XP for this task"
+                          value={xpEdit!.value} onChange={e => setXpEdit({ key: xpKey!, value: e.target.value })}
+                          onKeyDown={e => { if (e.key === 'Escape') setXpEdit(null); }} />
+                        <button type="submit" className="acb-i-act ok" disabled={xpSaving} title="Save"><i className="bi bi-check-lg" /></button>
+                        {own && <button type="button" className="acb-i-act" disabled={xpSaving} onClick={() => resetTaskXp(it)}
+                          title={`Back to the ${prettyType(it.contentType)} price (${typeXp(it, prices!)} XP)`}><i className="bi bi-arrow-counterclockwise" /></button>}
+                        <button type="button" className="acb-i-act" onClick={() => setXpEdit(null)} title="Cancel"><i className="bi bi-x" /></button>
+                      </form>
+                      : <button type="button" className={`acb-i-xp${own ? ' own' : ''}`} disabled={!xpKey || !prices}
+                          onClick={() => setXpEdit({ key: xpKey!, value: String(xp) })}
+                          title={own ? 'XP set for this task. Click to change.' : `${prettyType(it.contentType)} price. Click to set this task's XP.`}>
+                          +{xp} XP{own && <i className="bi bi-pin-angle-fill" aria-label="set for this task" />}
+                        </button>}
                     {/* Move within the CONTENT only. A checkpoint sits last and holds the day
                         open until it is done; one a student could meet before the lesson would
                         measure nobody, so quizzes and assignments have no arrows. */}

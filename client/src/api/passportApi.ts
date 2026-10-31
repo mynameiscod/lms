@@ -702,9 +702,27 @@ export const passportApi = {
     return data;
   },
   /** Admin: XP rules, badges and leaderboard settings. */
-  getAdminGamification: async (): Promise<any> => {
+  getAdminGamification: async (): Promise<AdminGamification> => {
     const { data } = await axios.get(`${BASE}/gamification/admin`, { headers: auth() });
     return data;
+  },
+  /** Admin: what each type of journey task pays. */
+  updateTaskXp: async (byType: Record<string, number>): Promise<{ taskTypes: TaskXpType[] }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/task-xp`, { byType }, { headers: auth() });
+    return data;
+  },
+  /** The XP price list the day player pays from — the Content Builder's "+N XP". */
+  getTaskPrices: async (): Promise<TaskPrices> => {
+    const { data } = await axios.get(`${BASE}/gamification/task-prices`, { headers: auth() });
+    return data;
+  },
+  /** What one task pays, wherever it appears. */
+  setTaskXpOverride: async (refKind: 'content' | 'module', refId: string, xp: number, title?: string): Promise<{ key: string; xp: number }> => {
+    const { data } = await axios.put(`${BASE}/gamification/task-prices/override`, { refKind, refId, xp, title }, { headers: auth() });
+    return data;
+  },
+  clearTaskXpOverride: async (refKind: 'content' | 'module', refId: string): Promise<void> => {
+    await axios.delete(`${BASE}/gamification/task-prices/override`, { headers: auth(), params: { refKind, refId } });
   },
   updateXpRule: async (eventKey: string, patch: any): Promise<any> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/rules/${eventKey}`, patch, { headers: auth() });
@@ -2368,6 +2386,31 @@ export interface VideoScriptInput {
 }
 export interface VideoScript extends VideoScriptInput {
   _id: string; unitCode: string; updatedAt: string; updatedBy?: string; createdBy?: string;
+}
+
+export interface TaskXpType { key: string; label: string; defaultXp: number; xp: number }
+
+export interface TaskPrices {
+  byType: Record<string, number>;
+  /** 'content:<id>' | 'module:<id>' → XP. */
+  overrides: Record<string, number>;
+  dayBonus: number;
+  tasksEnabled: boolean;
+  max: number;
+}
+
+export interface XpRuleRow {
+  eventKey: string; enabled: boolean; xp: number; dailyLimit: number; streakQualifying: boolean;
+}
+
+export interface AdminGamification {
+  rules: XpRuleRow[];
+  badges: any[];
+  settings: any;
+  events: { key: string; name: string; description: string; defaultXp: number }[];
+  taskTypes: TaskXpType[];
+  taskOverrides: { refKind: 'content' | 'module'; refId: string; xp: number; title: string; updatedAt: string }[];
+  taskXpMax: number;
 }
 
 export interface UnitStudentPreview {

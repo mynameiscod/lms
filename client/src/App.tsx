@@ -121,6 +121,7 @@ const PassportAdminStudents = lazy(() => import('./pages/Passport/AdminStudents'
 const PassportAdminStudentRoadmap = lazy(() => import('./pages/Passport/AdminStudentRoadmap'));
 const PassportAdminStageSkills = lazy(() => import('./pages/Passport/AdminStageSkills'));
 const PassportAdminCoins = lazy(() => import('./pages/Passport/AdminCoins'));
+const PassportAdminXpRewards = lazy(() => import('./pages/Passport/AdminXpRewards'));
 const PassportAdminFunnel = lazy(() => import('./pages/Passport/AdminFunnel'));
 const PassportAdminCurriculum = lazy(() => import('./pages/Passport/AdminCurriculum'));
 const PassportAdminPathwayRules = lazy(() => import('./pages/Passport/AdminPathwayRules'));
@@ -690,6 +691,9 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/news" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_setup']}><Layout><PassportAdminNews /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/passport/xp-rewards" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_setup']}><Layout><PassportAdminXpRewards /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/coins" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_setup']}><Layout><PassportAdminCoins /></Layout></ProtectedRoute>

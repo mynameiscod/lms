@@ -239,6 +239,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Content Builder', path: '/admin/passport/content-builder', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport', 'manage_passport_content'] },
     { label: 'Orientation', path: '/admin/passport/orientation', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-flag-checkered', permissions: ['manage_passport', 'manage_passport_content'] },
     { label: 'Mega Curriculum', path: '/admin/passport/mega-curriculum', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-calendar-days', permissions: ['manage_passport', 'manage_passport_content'] },
+    { label: 'XP & Rewards', path: '/admin/passport/xp-rewards', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-gift', permissions: ['manage_passport', 'manage_passport_setup'] },
     { label: 'CareerPilot Coins', path: '/admin/passport/coins', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-coins', permissions: ['manage_passport', 'manage_passport_setup'] },
     { label: 'CareerPilot Journey', path: '/admin/passport/journey', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-route', permissions: ['view_passport_funnel', 'manage_passport_members'] },
     { label: 'CareerPilot Drop-off', path: '/admin/passport/funnel', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-line', permissions: ['view_passport_funnel', 'manage_passport_members'] },
@@ -528,7 +529,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       'CareerPilot Assessment', 'Assessment Coverage', 'Paper Designer', 'CareerPilot Pathways', 'CareerPilot Pathway Rules',
       'CareerPilot Missions', 'Content Builder', 'Orientation', 'Learning Studio', 'Mega Curriculum', 'Concept Bank', 'Company Questions', 'CareerPilot News',
       // Run and watch
-      'CareerPilot Members', 'Career Stage Tagging', 'CareerPilot Coins', 'CareerPilot Journey', 'CareerPilot Drop-off', 'Activity',
+      'CareerPilot Members', 'Career Stage Tagging', 'XP & Rewards', 'CareerPilot Coins', 'CareerPilot Journey', 'CareerPilot Drop-off', 'Activity',
     ] },
     { title: 'PLATFORM',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management', 'Platform Settings'] },
   ];

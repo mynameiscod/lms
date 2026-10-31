@@ -140,6 +140,38 @@ export const XP_EVENTS: XpEventDefinition[] = [
   // the one path in this product that must stay boring.
 ];
 
+/**
+ * What one task of a journey day is worth, by its type — the shipped defaults.
+ *
+ * An admin changes these per tenant (GamificationConfig.taskXp) and can set any single task's worth
+ * on top (XpTaskOverride). The day player, Home's goal and the Content Builder all price a task through
+ * xpPricingService, so the figure a member is shown is the figure the ledger pays.
+ *
+ * Mock interviews are absent on purpose: MOCK_INTERVIEW_COMPLETED already pays them.
+ */
+export interface TaskXpType { key: string; label: string; defaultXp: number }
+
+export const TASK_XP_TYPES: TaskXpType[] = [
+  { key: 'video', label: 'Video', defaultXp: 5 },
+  { key: 'notes', label: 'Notes', defaultXp: 5 },
+  { key: 'worked_example', label: 'Worked example', defaultXp: 5 },
+  { key: 'interactive_lesson', label: 'Interactive lesson', defaultXp: 5 },
+  { key: 'interactive_activity', label: 'Interactive activity', defaultXp: 5 },
+  { key: 'practice_theory', label: 'Practice', defaultXp: 10 },
+  { key: 'tech_qa', label: 'Technical Q&A', defaultXp: 10 },
+  { key: 'behavioral_qa', label: 'Behavioural Q&A', defaultXp: 10 },
+  { key: 'aptitude', label: 'Aptitude', defaultXp: 10 },
+  { key: 'practice_coding', label: 'Coding practice', defaultXp: 15 },
+  { key: 'quiz', label: 'Checkpoint (quiz)', defaultXp: 20 },
+  { key: 'assignment', label: 'Assignment / project', defaultXp: 30 },
+];
+
+/** Any task whose type is not listed above — a new content type pays this until an admin prices it. */
+export const TASK_XP_FALLBACK = 5;
+
+/** Highest XP an admin may set for one task or task type — a typo of 5000 should not pay out. */
+export const TASK_XP_MAX = 1000;
+
 export const XP_EVENT_KEYS = XP_EVENTS.map(e => e.key);
 export const xpEvent = (key: string): XpEventDefinition | undefined =>
   XP_EVENTS.find(e => e.key === key);

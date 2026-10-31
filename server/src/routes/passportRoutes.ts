@@ -370,6 +370,11 @@ router.get('/gamification/admin',                       MANAGE_FOR.cpSetup, gami
 router.put('/gamification/admin/rules/:eventKey',       MANAGE_FOR.cpSetup, gamification.updateXpRule);
 router.put('/gamification/admin/badges/:key',           MANAGE_FOR.cpSetup, gamification.updateBadge);
 router.put('/gamification/admin/leaderboard',           MANAGE_FOR.cpSetup, gamification.updateLeaderboardSettings);
+router.put('/gamification/admin/task-xp',               MANAGE_FOR.cpSetup, gamification.updateTaskXp);
+// One task's XP is set where the task is built, so content editors may price it too.
+router.get('/gamification/task-prices',                 MANAGE_FOR.cpContent, gamification.getTaskPrices);
+router.put('/gamification/task-prices/override',        MANAGE_FOR.cpContent, gamification.setTaskOverride);
+router.delete('/gamification/task-prices/override',     MANAGE_FOR.cpContent, gamification.clearTaskOverride);
 
 // Reward budget is a financial control: admin-only, and invisible to members.
 router.get('/gamification/admin/reward-budget',          MANAGE_FOR.cpSetup, rewardBudget.getRewardBudget);

@@ -6,6 +6,7 @@ import { membershipActive } from '../services/passportEntitlementService';
 import {
   getCoinConfig, ensureCoinRules, getAccount, listLedger, earnableRules, invalidateCoinCache,
 } from '../services/coinService';
+import { conversionStatus, convertXp } from '../services/xpConversionService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -24,12 +25,13 @@ export const myCoins = async (req: Request, res: Response) => {
     const tenantId = tenantOf(req);
     const studentId = userIdOf(req);
 
-    const [cfg, account, ledger, earn, user] = await Promise.all([
+    const [cfg, account, ledger, earn, user, conversion] = await Promise.all([
       getCoinConfig(tenantId),
       getAccount(tenantId, studentId),
       listLedger(tenantId, studentId, 50),
       earnableRules(tenantId),
       User.findById(studentId).select('passport').lean() as any,
+      conversionStatus(tenantId, studentId),
     ]);
 
     const paid = membershipActive(user?.passport);
@@ -46,6 +48,8 @@ export const myCoins = async (req: Request, res: Response) => {
       monthlyEarnCap: cfg.monthlyEarnCap,
       expiryMonths: cfg.expiryMonths,
       earnRules: earn,
+      /** XP → coins: the rate, and what this member can convert now. */
+      conversion,
       history: ledger.map((l: any) => ({
         at: l.createdAt, coins: l.coins, eventKey: l.eventKey,
         note: l.note || '', balanceAfter: l.balanceAfter,
@@ -54,6 +58,33 @@ export const myCoins = async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[coins] myCoins:', e);
     res.status(500).json({ message: e.message || 'Could not load your coins' });
+  }
+};
+
+/**
+ * POST /passport/coins/convert — turn XP into coins. Body: { coins? } (omitted: as many as possible).
+ *
+ * The member's XP, level and rank do not move; only what is left to convert does.
+ */
+export const convertMyXp = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = userIdOf(req);
+    const asked = req.body?.coins === undefined ? undefined : Number(req.body.coins);
+    const r = await convertXp(tenantId, studentId, asked);
+    if (!r.ok) {
+      const message = {
+        disabled: 'Converting XP to coins is not switched on yet.',
+        nothing_to_convert: `You need ${r.status.xpPerCoin.toLocaleString('en-IN')} XP for one coin. Keep going!`,
+        earn_cap: 'You have reached this month’s coin limit. Your XP stays here for next month.',
+        busy: 'Another conversion just finished. Please try again.',
+      }[r.refused || 'busy'];
+      return res.status(r.refused === 'busy' ? 409 : 400).json({ message, refused: r.refused, conversion: r.status, balance: r.balance });
+    }
+    res.json({ coins: r.coins, xpUsed: r.xpUsed, balance: r.balance, conversion: r.status });
+  } catch (e: any) {
+    console.error('[coins] convert:', e?.message || e);
+    res.status(500).json({ message: 'Could not convert your XP. Nothing was taken.' });
   }
 };
 
@@ -134,6 +165,19 @@ export const saveConfig = async (req: Request, res: Response) => {
     }
     if (typeof body.enabled === 'boolean') patch.enabled = body.enabled;
     if (typeof body.freeMembersAccrue === 'boolean') patch.freeMembersAccrue = body.freeMembersAccrue;
+    if (body.xpPerCoin !== undefined) {
+      const v = Number(body.xpPerCoin);
+      if (!Number.isFinite(v) || v < 1 || v > 1_000_000) return res.status(400).json({ message: 'XP per coin must be a whole number from 1 to 1,000,000.' });
+      patch.xpPerCoin = Math.round(v);
+    }
+    if (typeof body.xpConversionEnabled === 'boolean') {
+      patch.xpConversionEnabled = body.xpConversionEnabled;
+      // The first switch-on fixes the start: XP earned before it never converts.
+      if (body.xpConversionEnabled) {
+        const current: any = await CoinConfig.findOne({ tenantId }).select('xpConversionStartsAt').lean();
+        if (!current?.xpConversionStartsAt) patch.xpConversionStartsAt = new Date();
+      }
+    }
 
     // A zero rate would divide by zero in every cost projection.
     if (patch.coinsPerRupee !== undefined && patch.coinsPerRupee < 1) {

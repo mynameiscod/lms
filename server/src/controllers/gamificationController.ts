@@ -10,6 +10,7 @@ import { ensureGamificationDefaults } from '../services/gamificationEngine';
 import { getLeaderboard, rankSummary } from '../services/leaderboardService';
 import { levelFromXp } from '../services/passportGamificationService';
 import { liveStreak } from '../services/passportXpService';
+import { conversionStatus } from '../services/xpConversionService';
 import {
   TASK_XP_TYPES, TASK_XP_MAX,
   XP_EVENTS, LEADERBOARD_PERIODS, LeaderboardScope, LeaderboardPeriod,
@@ -44,11 +45,13 @@ export const getMyGamification = async (req: Request, res: Response) => {
     // 3-5 use. An admin's edits and anything they disabled are never touched.
     await ensureGamificationDefaults(tenantId);
 
-    const [progress, earned, definitions, ranks] = await Promise.all([
+    const [progress, earned, definitions, ranks, conversion] = await Promise.all([
       PassportProgress.findOne({ tenantId, studentId }).select('xp streak longestStreak lastCompletedDate').lean() as any,
       StudentBadge.find({ tenantId, studentId }).sort({ awardedAt: -1 }).lean() as any,
       BadgeDefinition.find({ tenantId, active: true }).sort({ displayOrder: 1 }).lean() as any,
       rankSummary(tenantId, studentId),
+      // Decoration: Home's coin tile says what XP can become. A failure here never costs the page.
+      conversionStatus(tenantId, studentId).catch(() => null),
     ]);
 
     const xp = progress?.xp || 0;
@@ -69,6 +72,11 @@ export const getMyGamification = async (req: Request, res: Response) => {
       })),
       earnedCount: held.size,
       ranks,
+      /** XP → coins, when switched on: the rate and what this member could convert now. */
+      conversion: conversion?.enabled ? {
+        xpPerCoin: conversion.xpPerCoin, availableXp: conversion.availableXp,
+        coinsAvailable: conversion.coinsAvailable, xpToNextCoin: conversion.xpToNextCoin,
+      } : null,
     });
   } catch (e: any) {
     console.error('[gamification] me:', e?.message || e);

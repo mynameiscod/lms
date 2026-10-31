@@ -1511,6 +1511,11 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/coins`, { headers: auth() });
     return data;
   },
+  /** Turn XP into coins. `coins` omitted: as many as possible. XP, level and rank never go down. */
+  convertXpToCoins: async (coins?: number): Promise<{ coins: number; xpUsed: number; balance: number; conversion: XpConversionStatus }> => {
+    const { data } = await axios.post(`${BASE}/coins/convert`, coins === undefined ? {} : { coins }, { headers: auth() });
+    return data;
+  },
   getCoinAdmin: async (): Promise<CoinAdminResponse> => {
     const { data } = await axios.get(`${BASE}/coins/admin`, { headers: auth() });
     return data;
@@ -2816,6 +2821,13 @@ export interface CoinConfig {
   annualRealCostBudgetInr: number; expiryMonths: number; minRedemption: number;
   referrerCoins: number; refereeCoins: number; referralMonthlyCap: number;
   freeMembersAccrue: boolean;
+  xpConversionEnabled: boolean; xpPerCoin: number; xpConversionStartsAt: string | null;
+}
+/** XP → coins: the rate, and what a member can convert now. */
+export interface XpConversionStatus {
+  enabled: boolean; xpPerCoin: number; startsAt: string | null;
+  earnedXp: number; convertedXp: number; availableXp: number;
+  coinsAvailable: number; monthlyRoom: number | null; xpToNextCoin: number;
 }
 export interface CoinRule {
   eventKey: string; label: string; coins: number;
@@ -2826,6 +2838,7 @@ export interface CoinsResponse {
   enabled: boolean; balance: number; lifetimeEarned: number; lifetimeSpent: number;
   redeemable: boolean; minRedemption: number; monthlyEarnCap: number; expiryMonths: number;
   earnRules: { eventKey: string; label: string; coins: number; dailyCap: number }[];
+  conversion?: XpConversionStatus;
   history: CoinHistoryRow[];
 }
 export interface CoinLedgerRow { at: string; coins: number; eventKey: string; note: string; balanceAfter: number; member: string; }
@@ -3921,6 +3934,8 @@ export interface GamificationSummary {
   badges: GamificationBadgeView[];
   earnedCount: number;
   ranks: Record<string, RankView>;
+  /** XP → coins, when an admin switched it on. */
+  conversion?: { xpPerCoin: number; availableXp: number; coinsAvailable: number; xpToNextCoin: number } | null;
 }
 
 export interface XpHistoryEntry {

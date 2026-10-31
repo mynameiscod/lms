@@ -120,3 +120,29 @@
   .xr-actions .xr-btn { flex: 1; }
   .xr-tabs { align-self: stretch; overflow-x: auto; flex-wrap: nowrap; }
 }
+
+/* XP → coins */
+.xr-type-in.bad { border-color: #E9A6A6; }
+.xr-conv { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.xr-conv-rate, .xr-conv-ex { display: flex; flex-direction: column; gap: 9px; padding: 16px; border-radius: 14px; background: var(--soft); border: 1px solid var(--line); min-width: 0; }
+.xr-conv-rate > span:first-child, .xr-conv-ex > span { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #7B8798; }
+.xr-conv-eq { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.xr-conv-eq > b { font-size: 20px; color: var(--muted); }
+.xr-conv-coin { display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 14px; border-radius: 10px; background: #FFF4E0; color: #8A5A00; font-size: 15px; font-weight: 800; }
+.xr-conv-ex ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+.xr-conv-ex li { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.xr-conv-ex li i { color: #9AA8BA; font-size: 12px; }
+.xr-conv-ex li span { color: #8A5A00; font-weight: 800; }
+.xr-facts { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.xr-facts li { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: #33445E; line-height: 1.5; }
+.xr-facts li > i { color: var(--teal); margin-top: 2px; }
+.xr-facts a, .xr-err a { color: var(--primary); font-weight: 700; }
+@media (max-width: 760px) {
+  .xr-conv { grid-template-columns: 1fr; }
+}
+
+/* The app's global input styles add a border, margin and padding; inside the unit box the input is bare. */
+.xr .xr-type-in { align-items: stretch; }
+.xr .xr-type-in input { border: 0 !important; box-shadow: none !important; margin: 0; border-radius: 0; background: transparent; line-height: normal; min-height: 0; }
+.xr .xr-type-in em { display: flex; align-items: center; }
+.xr-facts li > span { min-width: 0; }

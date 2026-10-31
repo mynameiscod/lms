@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import passportApi, { AdminGamification, XpRuleRow } from '../../api/passportApi';
+import passportApi, { AdminGamification, CoinConfig, XpRuleRow } from '../../api/passportApi';
 import './adminXpRewards.css';
 
 /**
@@ -13,9 +13,10 @@ import './adminXpRewards.css';
  * A change applies to XP earned from now on. XP already paid is never re-priced.
  */
 
-type Tab = 'xp';
+type Tab = 'xp' | 'coins';
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'xp', label: 'XP', icon: 'bi-lightning-charge-fill' },
+  { key: 'coins', label: 'XP to coins', icon: 'bi-arrow-left-right' },
 ];
 
 /** The task-XP rule is priced per task, below; its own amount is only a fallback nobody should edit. */
@@ -45,7 +46,113 @@ const AdminXpRewards: React.FC = () => {
     </nav>}
 
     {tab === 'xp' && <XpTab />}
+    {tab === 'coins' && <ConversionTab />}
   </div>;
+};
+
+/**
+ * XP → coins: switch it on and set the rate. Members convert on their Coins page, when they choose.
+ *
+ * The first switch-on fixes the start date on the server; XP earned before it never converts.
+ */
+const ConversionTab: React.FC = () => {
+  const [cfg, setCfg] = useState<CoinConfig | null>(null);
+  const [enabled, setEnabled] = useState(false);
+  const [rate, setRate] = useState('100');
+  const [err, setErr] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    try {
+      const d = await passportApi.getCoinAdmin();
+      setCfg(d.config);
+      setEnabled(!!d.config.xpConversionEnabled);
+      setRate(String(d.config.xpPerCoin || 100));
+      setErr('');
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Could not load the coin settings.');
+    }
+  };
+  useEffect(() => { load(); }, []);
+
+  const r = Number(rate);
+  const rateOk = rate !== '' && Number.isInteger(r) && r >= 1 && r <= 1_000_000;
+  const dirty = !!cfg && (enabled !== !!cfg.xpConversionEnabled || String(cfg.xpPerCoin || 100) !== rate);
+
+  const save = async () => {
+    if (!rateOk) return;
+    setBusy(true); setErr('');
+    try {
+      await passportApi.saveCoinConfig({ xpConversionEnabled: enabled, xpPerCoin: r } as any);
+      await load();
+      setMsg(enabled ? 'Saved. Members can convert XP on their Coins page.' : 'Saved. Converting is switched off.');
+      window.setTimeout(() => setMsg(''), 3200);
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Could not save.');
+    }
+    setBusy(false);
+  };
+
+  if (!cfg) return err ? <div className="xr-err"><i className="bi bi-exclamation-circle" /> {err}</div> : <div className="xr-load">Loading…</div>;
+
+  const startsAt = cfg.xpConversionStartsAt ? new Date(cfg.xpConversionStartsAt) : null;
+  const examples = [100, 500, 1000, 5000];
+
+  return <>
+    {err && <div className="xr-err"><i className="bi bi-exclamation-circle" /> {err}</div>}
+    {msg && <div className="xr-ok" role="status"><i className="bi bi-check-circle-fill" /> {msg}</div>}
+    {!cfg.enabled && <div className="xr-err"><i className="bi bi-exclamation-triangle" /> Coins are switched off for this tenant, so members cannot convert. Switch coins on in <a href="/admin/passport/coins">CareerPilot Coins</a>.</div>}
+
+    <section className="xr-card">
+      <div className="xr-card-hd">
+        <div>
+          <h2>Let members turn XP into coins</h2>
+          <p>Members choose when to convert, on their Coins page. Their XP, level and rank never go down — only the XP left to convert does.</p>
+        </div>
+        <label className="xr-switch">
+          <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
+          <span>{enabled ? 'On' : 'Off'}</span>
+        </label>
+      </div>
+
+      <div className="xr-conv">
+        <label className="xr-conv-rate">
+          <span>Exchange rate</span>
+          <span className="xr-conv-eq">
+            <span className={`xr-type-in wide${rateOk ? '' : ' bad'}`}>
+              <input type="number" min={1} step={1} value={rate} inputMode="numeric" onChange={e => setRate(e.target.value)} aria-label="XP for one coin" />
+              <em>XP</em>
+            </span>
+            <b>=</b>
+            <span className="xr-conv-coin"><i className="bi bi-coin" /> 1 coin</span>
+          </span>
+          {!rateOk && <small className="xr-hint bad">A whole number from 1 to 1,000,000.</small>}
+        </label>
+
+        <div className="xr-conv-ex">
+          <span>What XP buys at this rate</span>
+          <ul>
+            {examples.map(x => <li key={x}><b>{x.toLocaleString('en-IN')} XP</b><i className="bi bi-arrow-right" /><span>{rateOk ? `${Math.floor(x / r).toLocaleString('en-IN')} ${Math.floor(x / r) === 1 ? 'coin' : 'coins'}` : '—'}</span></li>)}
+          </ul>
+        </div>
+      </div>
+
+      <ul className="xr-facts">
+        <li><i className="bi bi-calendar-check" /><span>{startsAt
+          ? <>Counting XP earned since <b>{startsAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</b>, when converting was first switched on.</>
+          : <>XP earned before you switch this on never converts — counting starts at that moment.</>}</span></li>
+        <li><i className="bi bi-speedometer2" /><span>{cfg.monthlyEarnCap > 0
+          ? <>A member can get at most <b>{cfg.monthlyEarnCap.toLocaleString('en-IN')} coins a month</b> (conversions included). Leftover XP waits for next month.</>
+          : <>No monthly coin limit is set.</>}{' '}<a href="/admin/passport/coins">Change in CareerPilot Coins</a></span></li>
+        <li><i className="bi bi-arrow-repeat" /><span>Changing the rate applies to XP converted from then on. Coins already given are kept.</span></li>
+      </ul>
+
+      <div className="xr-actions">
+        <button type="button" className="xr-btn primary" disabled={busy || !dirty || !rateOk} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+      </div>
+    </section>
+  </>;
 };
 
 const XpTab: React.FC = () => {

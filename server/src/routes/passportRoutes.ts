@@ -767,6 +767,7 @@ router.post('/news/admin',           MANAGE_FOR.cpSetup, news.create);
 router.put('/news/admin/:id',        MANAGE_FOR.cpSetup, news.update);
 router.delete('/news/admin/:id',     MANAGE_FOR.cpSetup, news.remove);
 router.get('/coins',                MEMBER, coins.myCoins);
+router.post('/coins/convert',       MEMBER, rateLimit('redemption'), coins.convertMyXp);
 router.get('/coins/admin',          MANAGE_FOR.cpSetup, coins.getAdmin);
 router.put('/coins/admin/config',   MANAGE_FOR.cpSetup, coins.saveConfig);
 router.put('/coins/admin/rules',    MANAGE_FOR.cpSetup, coins.saveRules);

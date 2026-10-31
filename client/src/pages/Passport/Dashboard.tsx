@@ -347,7 +347,11 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
         <div><span className="ic amber"><Bi name="fire" /></span><div><small>Streak</small><b>{st.streak}<em> {st.streak === 1 ? 'day' : 'days'}</em></b><span>Best {st.longestStreak} {st.longestStreak === 1 ? 'day' : 'days'}</span></div></div>
         <div><span className="ic blue"><Bi name="award-fill" /></span><div><small>Level {lv.level}</small><b className="sm">{lv.title}</b><span className="md-mini-bar"><i style={{ width: `${barWidth(lv.progressPct)}%` }} /></span><span>{lv.xpToNextLevel.toLocaleString()} XP to level {lv.nextLevel}</span></div></div>
         <div><span className="ic teal"><Bi name="lightning-charge-fill" /></span><div><small>Total XP</small><b>{lv.xp.toLocaleString()}</b><span>{d.percentileAhead !== null && d.percentileAhead !== undefined ? `Ahead of ${d.percentileAhead}% on XP` : 'Activity earned'}</span></div></div>
-        {progressOn && <div><span className="ic gold"><Bi name="coin" /></span><div><small>Coins</small><b>{coins === null ? '—' : coins.toLocaleString()}</b><button className="md-link" onClick={() => nav('/careerpilot/rewards')}>Rewards store <Bi name="arrow-right" /></button></div></div>}
+        {progressOn && <div><span className="ic gold"><Bi name="coin" /></span><div><small>Coins</small><b>{coins === null ? '—' : coins.toLocaleString()}</b>{prog?.conversion
+          ? <button className="md-link" onClick={() => nav('/careerpilot/coins')} title={`${prog.conversion.xpPerCoin.toLocaleString()} XP = 1 coin`}>{prog.conversion.coinsAvailable > 0
+            ? <>Convert XP to {prog.conversion.coinsAvailable.toLocaleString()} {prog.conversion.coinsAvailable === 1 ? 'coin' : 'coins'} <Bi name="arrow-right" /></>
+            : <>{prog.conversion.xpToNextCoin.toLocaleString()} XP to next coin <Bi name="arrow-right" /></>}</button>
+          : <button className="md-link" onClick={() => nav('/careerpilot/rewards')}>Rewards store <Bi name="arrow-right" /></button>}</div></div>}
         <div><span className="ic teal"><Bi name="code-slash" /></span><div><small>Problems solved</small><b>{st.solved}<em> / {st.totalProblems}</em></b><span>{st.accuracy ? `${st.accuracy.pct}% accuracy` : 'No attempts yet'}</span></div></div>
         <div><span className="ic violet"><Bi name="mic-fill" /></span><div><small>Mock interviews</small><b>{st.interviews}</b><span>{st.bestInterview !== null ? `Best ${st.bestInterview}%` : 'Not attempted yet'}</span></div></div>
       </section>

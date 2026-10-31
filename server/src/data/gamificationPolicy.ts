@@ -3,8 +3,9 @@
  *
  * XP IS NOT MONEY, AND IS NOT A CAPABILITY SCORE. It measures engagement: showing up,
  * finishing what the roadmap asked, sitting the assessment. It drives levels, badges and
- * leaderboards, and it is deliberately non-redeemable. Coins are the redeemable currency
- * and already have their own proven engine; the two never convert into one another.
+ * leaderboards, and it is never spent. Coins are the redeemable currency with their own
+ * engine. When an admin switches it on, a member may convert XP earned since then into coins
+ * (xpConversionService) — at the admin's rate, without their XP, level or rank going down.
  *
  * NOTHING HERE CAN MOVE A SKILL. No value in this file feeds Skill DNA, readiness or the
  * roadmap planner. A student who farms XP all week is exactly as ready for their target

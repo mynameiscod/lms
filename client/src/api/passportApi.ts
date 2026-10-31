@@ -739,6 +739,11 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/gamification/admin`, { headers: auth() });
     return data;
   },
+  /** Admin: this month's figures for the XP & Rewards header. */
+  getXpRewardsOverview: async (): Promise<XpRewardsOverview> => {
+    const { data } = await axios.get(`${BASE}/gamification/admin/overview`, { headers: auth() });
+    return data;
+  },
   /** Admin: what each type of journey task pays. */
   updateTaskXp: async (byType: Record<string, number>): Promise<{ taskTypes: TaskXpType[] }> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/task-xp`, { byType }, { headers: auth() });
@@ -2424,6 +2429,14 @@ export interface VideoScriptInput {
 }
 export interface VideoScript extends VideoScriptInput {
   _id: string; unitCode: string; updatedAt: string; updatedBy?: string; createdBy?: string;
+}
+
+export interface XpRewardsOverview {
+  xpThisMonth: { total: number; members: number } | null;
+  conversion: { enabled: boolean; xpPerCoin: number; coinsThisMonth: number; members: number } | null;
+  waiting: number | null;
+  liveRewards: number | null;
+  store: { open: boolean; budgetRupees: number; leftRupees: number } | null;
 }
 
 export interface TaskXpType { key: string; label: string; defaultXp: number; xp: number }

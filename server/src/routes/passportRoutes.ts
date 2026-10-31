@@ -367,6 +367,7 @@ router.get('/me/gamification/xp-history', MEMBER, gamification.getMyXpHistory);
 router.get('/me/leaderboard',             MEMBER, gamification.getMyLeaderboard);
 
 router.get('/gamification/admin',                       MANAGE_FOR.cpSetup, gamification.getAdminGamification);
+router.get('/gamification/admin/overview',              MANAGE_FOR.cpSetup, gamification.getAdminOverview);
 router.put('/gamification/admin/rules/:eventKey',       MANAGE_FOR.cpSetup, gamification.updateXpRule);
 router.put('/gamification/admin/badges/:key',           MANAGE_FOR.cpSetup, gamification.updateBadge);
 router.put('/gamification/admin/leaderboard',           MANAGE_FOR.cpSetup, gamification.updateLeaderboardSettings);

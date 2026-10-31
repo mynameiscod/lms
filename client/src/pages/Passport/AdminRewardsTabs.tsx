@@ -20,6 +20,29 @@ const day = (d?: string | null) => (d ? new Date(d).toLocaleDateString('en-IN', 
 const toKey = (name: string) => name.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace(/^(\d)/, 'R_$1').slice(0, 40) || 'REWARD';
 const imgSrc = (url?: string) => (!url ? '' : /^(https?:|\/)/.test(url) ? url : mediaPathFor(url));
 
+/** Appears only with unsaved changes, pinned to the bottom of the screen so Save is always in reach. */
+export const SaveBar: React.FC<{ dirty: boolean; count: number; busy: boolean; disabled?: boolean; onDiscard: () => void; onSave: () => void }> = ({ dirty, count, busy, disabled, onDiscard, onSave }) => (
+  !dirty ? null : <div className="xr-savebar" role="region" aria-label="Unsaved changes">
+    <span><i className="bi bi-pencil-fill" /> {count > 1 ? `${count} unsaved changes` : 'Unsaved changes'}</span>
+    <div>
+      <button type="button" className="xr-btn" disabled={busy} onClick={onDiscard}>Discard</button>
+      <button type="button" className="xr-btn primary" disabled={busy || disabled} onClick={onSave}>{busy ? 'Saving…' : 'Save changes'}</button>
+    </div>
+  </div>
+);
+
+/** Warn before leaving the page with unsaved edits. */
+export function useLeaveWarning(dirty: boolean) {
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', h);
+    return () => window.removeEventListener('beforeunload', h);
+  }, [dirty]);
+}
+
+export const Skeleton: React.FC = () => <div className="xr-skel" aria-label="Loading"><span /><span /><span /></div>;
+
 const Notice: React.FC<{ kind?: 'err' | 'ok' | 'warn'; children: React.ReactNode }> = ({ kind = 'err', children }) => (
   <div className={kind === 'ok' ? 'xr-ok' : kind === 'warn' ? 'xr-warn' : 'xr-err'} role={kind === 'ok' ? 'status' : undefined}>
     <i className={`bi ${kind === 'ok' ? 'bi-check-circle-fill' : kind === 'warn' ? 'bi-exclamation-triangle-fill' : 'bi-exclamation-circle'}`} /> <span>{children}</span>
@@ -35,7 +58,7 @@ const BLANK: AdminReward = {
   minimumXp: 0, minimumLevel: 0, availableFrom: null, availableUntil: null, displayOrder: 100,
 };
 
-export const RewardsTab: React.FC<{ goTo: (tab: string) => void }> = ({ goTo }) => {
+export const RewardsTab: React.FC<{ goTo: (tab: string) => void; onSaved?: () => void }> = ({ goTo, onSaved }) => {
   const [rewards, setRewards] = useState<AdminReward[] | null>(null);
   const [allowance, setAllowance] = useState<number | null>(null);
   const [minRedemption, setMinRedemption] = useState(0);
@@ -44,6 +67,8 @@ export const RewardsTab: React.FC<{ goTo: (tab: string) => void }> = ({ goTo }) 
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState('');
+  const [show, setShow] = useState<'all' | 'live' | 'hidden'>('all');
+  const [find, setFind] = useState('');
 
   const load = async () => {
     try {
@@ -66,6 +91,7 @@ export const RewardsTab: React.FC<{ goTo: (tab: string) => void }> = ({ goTo }) 
     try {
       await passportApi.adminUpdateReward(r.key, { active: !r.active });
       setRewards(rs => rs && rs.map(x => (x.key === r.key ? { ...x, active: !r.active } : x)));
+      onSaved?.();
       flash(r.active ? `${r.name} is hidden from the store.` : `${r.name} is live in the store.`);
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not change that reward.');
@@ -73,9 +99,13 @@ export const RewardsTab: React.FC<{ goTo: (tab: string) => void }> = ({ goTo }) 
     setBusy('');
   };
 
-  if (!rewards) return err ? <Notice>{err}</Notice> : <div className="xr-load">Loading…</div>;
+  if (!rewards) return err ? <Notice>{err}</Notice> : <Skeleton />;
 
   const live = rewards.filter(r => r.active).length;
+  const q = find.trim().toLowerCase();
+  const shown = rewards
+    .filter(r => (show === 'all' ? true : show === 'live' ? r.active : !r.active))
+    .filter(r => !q || r.name.toLowerCase().includes(q) || (r.description || '').toLowerCase().includes(q));
 
   return <>
     {err && <Notice>{err}</Notice>}
@@ -94,6 +124,17 @@ export const RewardsTab: React.FC<{ goTo: (tab: string) => void }> = ({ goTo }) 
         <button type="button" className="xr-btn primary" onClick={() => setEditing({ reward: { ...BLANK }, isNew: true })}><i className="bi bi-plus-lg" /> New reward</button>
       </div>
 
+      {!!rewards.length && <div className="xr-toolbar">
+        <div className="xr-seg" role="tablist" aria-label="Show">
+          {([['all', 'All', rewards.length], ['live', 'Live', live], ['hidden', 'Hidden', rewards.length - live]] as const).map(([k, l, c]) => (
+            <button key={k} type="button" role="tab" aria-selected={show === k} className={show === k ? 'on' : ''} onClick={() => setShow(k)}>{l}<span className="xr-n">{c}</span></button>
+          ))}
+        </div>
+        <label className="xr-search"><i className="bi bi-search" /><input value={find} onChange={e => setFind(e.target.value)} placeholder="Find a reward" aria-label="Find a reward" /></label>
+      </div>}
+
+      {rewards.length > 0 && !shown.length && <div className="xr-blank"><i className="bi bi-search" /> No reward matches.</div>}
+
       {!rewards.length
         ? <div className="xr-empty">
           <i className="bi bi-gift" />
@@ -102,7 +143,7 @@ export const RewardsTab: React.FC<{ goTo: (tab: string) => void }> = ({ goTo }) 
           <button type="button" className="xr-btn primary" onClick={() => setEditing({ reward: { ...BLANK }, isNew: true })}><i className="bi bi-plus-lg" /> New reward</button>
         </div>
         : <div className="xr-rw-grid">
-          {rewards.map(r => {
+          {shown.map(r => {
             const costInr = r.budgetCostPaise / 100;
             const overAllowance = allowance !== null && costInr > allowance;
             const left = r.stockMode === 'LIMITED' ? r.stockAvailable : null;
@@ -138,7 +179,7 @@ export const RewardsTab: React.FC<{ goTo: (tab: string) => void }> = ({ goTo }) 
 
     {editing && <RewardEditor initial={editing.reward} isNew={editing.isNew} allowance={allowance}
       onClose={() => setEditing(null)}
-      onSaved={async (name, isNew) => { setEditing(null); await load(); flash(isNew ? `${name} added. It is hidden until you make it live.` : `${name} saved.`); }} />}
+      onSaved={async (name, isNew) => { setEditing(null); await load(); onSaved?.(); flash(isNew ? `${name} added. It is hidden until you make it live.` : `${name} saved.`); }} />}
   </>;
 };
 
@@ -316,7 +357,7 @@ const STATUS: { key: string; label: string }[] = [
 ];
 const STATUS_LABEL: Record<string, string> = { PENDING: 'Processing', RESERVED: 'To fulfil', FULFILLED: 'Fulfilled', CANCELLED: 'Cancelled' };
 
-export const RedemptionsTab: React.FC<{ onCount?: (n: number) => void }> = ({ onCount }) => {
+export const RedemptionsTab: React.FC<{ onChanged?: () => void }> = ({ onChanged }) => {
   const [status, setStatus] = useState('RESERVED');
   const [rows, setRows] = useState<AdminRedemption[] | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -327,12 +368,12 @@ export const RedemptionsTab: React.FC<{ onCount?: (n: number) => void }> = ({ on
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
+  const [find, setFind] = useState('');
 
   const load = async (s = status) => {
     try {
       const [r, st] = await Promise.all([passportApi.adminRedemptions(s || undefined), passportApi.adminStrandedRedemptions().catch(() => ({ stranded: [] }))]);
       setRows(r.redemptions); setCounts(r.counts || {}); setTotal(r.total); setStranded(st.stranded || []);
-      onCount?.(r.counts?.RESERVED || 0);
       setErr('');
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not load redemptions.');
@@ -355,10 +396,16 @@ export const RedemptionsTab: React.FC<{ onCount?: (n: number) => void }> = ({ on
       }
       setAct(null); setText('');
       await load();
+      onChanged?.();
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not update that redemption.');
     }
     setBusy(false);
+  };
+
+  const visible = (list: AdminRedemption[]) => {
+    const q = find.trim().toLowerCase();
+    return !q ? list : list.filter(r => [r.studentSnapshot?.displayName, r.studentSnapshot?.collegeName, r.rewardName].some(x => (x || '').toLowerCase().includes(q)));
   };
 
   const recover = async (row: AdminRedemption) => {
@@ -394,10 +441,13 @@ export const RedemptionsTab: React.FC<{ onCount?: (n: number) => void }> = ({ on
         </button>)}
       </div>
 
-      {!rows ? <div className="xr-load">Loading…</div> : !rows.length
+      {!!rows?.length && <label className="xr-search"><i className="bi bi-search" /><input value={find} onChange={e => setFind(e.target.value)} placeholder="Find a member or reward" aria-label="Find a member or reward" /></label>}
+      {!rows ? <Skeleton /> : !rows.length
         ? <div className="xr-blank"><i className="bi bi-inbox" /> {status === 'RESERVED' ? 'Nothing waiting. New redemptions appear here.' : 'No redemptions here yet.'}</div>
+        : !visible(rows).length ? <div className="xr-blank"><i className="bi bi-search" /> Nobody matches “{find}”.</div>
         : <ul className="xr-rd">
-          {rows.map(row => (
+          <li className="xr-rd-hd" aria-hidden><span>Member</span><span>Reward</span><span>Status</span><span /></li>
+          {visible(rows).map(row => (
             <li key={row._id}>
               <span className="xr-rd-who">
                 <b>{row.studentSnapshot?.displayName || 'Member'}</b>
@@ -443,7 +493,7 @@ export const RedemptionsTab: React.FC<{ onCount?: (n: number) => void }> = ({ on
 
 // ── Budget ──────────────────────────────────────────────────────────────────
 
-export const BudgetTab: React.FC = () => {
+export const BudgetTab: React.FC<{ onSaved?: () => void }> = ({ onSaved }) => {
   const [view, setView] = useState<RewardBudgetView | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [mode, setMode] = useState<'MANUAL' | 'PERCENTAGE'>('MANUAL');
@@ -482,6 +532,7 @@ export const BudgetTab: React.FC = () => {
         effectiveFrom: from || (enabled ? new Date().toISOString().slice(0, 10) : null),
       });
       apply(v);
+      onSaved?.();
       setMsg(enabled ? 'Saved. The store is open.' : 'Saved. The store is closed.');
       window.setTimeout(() => setMsg(''), 3200);
     } catch (e: any) {
@@ -490,7 +541,13 @@ export const BudgetTab: React.FC = () => {
     setBusy(false);
   };
 
-  if (!view) return err ? <Notice>{err}</Notice> : <div className="xr-load">Loading…</div>;
+  const p = view?.policy;
+  const dirty = !!p && (enabled !== !!p.enabled || mode !== (p.mode || 'MANUAL')
+    || manual !== String((p.manualBudgetPaise || 0) / 100) || pct !== String((p.basisPoints || 0) / 100)
+    || cap !== String((p.capPaise || 0) / 100) || from !== (p.effectiveFrom ? new Date(p.effectiveFrom).toISOString().slice(0, 10) : ''));
+  useLeaveWarning(dirty);
+
+  if (!view) return err ? <Notice>{err}</Notice> : <Skeleton />;
   const s = view.summary;
   const used = s.display.effectiveBudget > 0 ? Math.min(100, Math.round(((s.display.reserved + s.display.redeemed) / s.display.effectiveBudget) * 100)) : 0;
   const month = (() => { const [y, m] = s.period.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }); })();
@@ -551,9 +608,8 @@ export const BudgetTab: React.FC = () => {
         </label>
       </div>
 
-      <div className="xr-actions">
-        <button type="button" className="xr-btn primary" disabled={busy || bad} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
-      </div>
     </section>
+
+    <SaveBar dirty={dirty} count={1} busy={busy} disabled={bad} onDiscard={() => apply(view)} onSave={save} />
   </>;
 };

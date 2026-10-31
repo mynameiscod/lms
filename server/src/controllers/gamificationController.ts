@@ -11,6 +11,12 @@ import { getLeaderboard, rankSummary } from '../services/leaderboardService';
 import { levelFromXp } from '../services/passportGamificationService';
 import { liveStreak } from '../services/passportXpService';
 import { conversionStatus } from '../services/xpConversionService';
+import { CoinLedger } from '../models/CoinModels';
+import { RewardDefinition, RewardRedemption } from '../models/RewardModels';
+import { budgetSummary, periodKey } from '../services/rewardBudgetService';
+import { getCoinConfig } from '../services/coinService';
+import { XP_CONVERSION_EVENT } from '../services/xpConversionService';
+import { paiseToRupees } from '../data/rewardPolicy';
 import {
   TASK_XP_TYPES, TASK_XP_MAX,
   XP_EVENTS, LEADERBOARD_PERIODS, LeaderboardScope, LeaderboardPeriod,
@@ -356,6 +362,58 @@ export const clearTaskOverride = async (req: Request, res: Response) => {
     res.json({ ok: true });
   } catch (e: any) {
     res.status(500).json({ message: 'Could not reset that task XP.' });
+  }
+};
+
+/**
+ * GET /passport/gamification/admin/overview — the XP & Rewards page's figures, this month.
+ *
+ * Read-only sums over the ledgers; each figure is independent, so one failing shows as null
+ * rather than taking the page's header down.
+ */
+export const getAdminOverview = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const safe = <T,>(p: Promise<T>) => p.catch(() => null);
+
+    const [xp, converted, waiting, liveRewards, budget, coinCfg] = await Promise.all([
+      safe(XpLedger.aggregate([
+        { $match: { tenantId, at: { $gte: monthStart }, amount: { $gt: 0 } } },
+        { $group: { _id: null, total: { $sum: '$amount' }, members: { $addToSet: '$studentId' } } },
+        { $project: { total: 1, members: { $size: '$members' } } },
+      ])),
+      safe(CoinLedger.aggregate([
+        { $match: { tenantId, eventKey: XP_CONVERSION_EVENT, createdAt: { $gte: monthStart } } },
+        { $group: { _id: null, coins: { $sum: '$coins' }, members: { $addToSet: '$studentId' } } },
+        { $project: { coins: 1, members: { $size: '$members' } } },
+      ])),
+      safe(RewardRedemption.countDocuments({ tenantId, status: 'RESERVED' })),
+      safe(RewardDefinition.countDocuments({ tenantId, active: true })),
+      safe(budgetSummary(tenantId, periodKey(now))),
+      safe(getCoinConfig(tenantId)),
+    ]);
+
+    res.json({
+      xpThisMonth: xp ? { total: (xp as any[])[0]?.total || 0, members: (xp as any[])[0]?.members || 0 } : null,
+      conversion: coinCfg ? {
+        enabled: !!(coinCfg.enabled && coinCfg.xpConversionEnabled),
+        xpPerCoin: coinCfg.xpPerCoin || 100,
+        coinsThisMonth: (converted as any[] | null)?.[0]?.coins || 0,
+        members: (converted as any[] | null)?.[0]?.members || 0,
+      } : null,
+      waiting,
+      liveRewards,
+      store: budget ? {
+        open: !!budget.enabled,
+        budgetRupees: paiseToRupees(budget.effectiveBudgetPaise),
+        leftRupees: paiseToRupees(budget.availablePaise),
+      } : null,
+    });
+  } catch (e: any) {
+    console.error('[gamification] overview:', e?.message || e);
+    res.status(500).json({ message: 'Could not load the overview.' });
   }
 };
 

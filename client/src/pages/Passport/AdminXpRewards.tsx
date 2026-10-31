@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import passportApi, { AdminGamification, CoinConfig, XpRuleRow } from '../../api/passportApi';
+import { RewardsTab, RedemptionsTab, BudgetTab } from './AdminRewardsTabs';
 import './adminXpRewards.css';
 
 /**
@@ -13,10 +14,13 @@ import './adminXpRewards.css';
  * A change applies to XP earned from now on. XP already paid is never re-priced.
  */
 
-type Tab = 'xp' | 'coins';
+type Tab = 'xp' | 'coins' | 'rewards' | 'redemptions' | 'budget';
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'xp', label: 'XP', icon: 'bi-lightning-charge-fill' },
   { key: 'coins', label: 'XP to coins', icon: 'bi-arrow-left-right' },
+  { key: 'rewards', label: 'Rewards', icon: 'bi-gift-fill' },
+  { key: 'redemptions', label: 'Redemptions', icon: 'bi-inbox-fill' },
+  { key: 'budget', label: 'Budget', icon: 'bi-wallet2' },
 ];
 
 /** The task-XP rule is priced per task, below; its own amount is only a fallback nobody should edit. */
@@ -26,27 +30,37 @@ const DAY_EVENT = 'FOUNDATION_DAY_COMPLETED';
 const AdminXpRewards: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const tab = (TABS.some(t => t.key === params.get('tab')) ? params.get('tab') : 'xp') as Tab;
+  const goTo = (t: string) => setParams(p => { const n = new URLSearchParams(p); n.set('tab', t); return n; });
+  /** Redemptions waiting to be fulfilled — the one number on this page that asks for action. */
+  const [waiting, setWaiting] = useState(0);
+  useEffect(() => {
+    passportApi.adminRedemptions('RESERVED').then(r => setWaiting(r.counts?.RESERVED || 0)).catch(() => { /* no badge */ });
+  }, []);
 
   return <div className="xr">
     <header className="xr-head">
       <div>
         <span className="xr-eyebrow">CareerPilot</span>
         <h1>XP &amp; Rewards</h1>
-        <p>Set what members earn for their work. Changes apply to XP earned from now on.</p>
+        <p>What members earn for their work, and what they can spend it on.</p>
       </div>
     </header>
 
     {TABS.length > 1 && <nav className="xr-tabs" aria-label="Sections">
       {TABS.map(t => (
         <button key={t.key} type="button" className={t.key === tab ? 'on' : ''}
-          onClick={() => setParams(p => { const n = new URLSearchParams(p); n.set('tab', t.key); return n; })}>
+          onClick={() => goTo(t.key)}>
           <i className={`bi ${t.icon}`} /> {t.label}
+          {t.key === 'redemptions' && waiting > 0 && <span className="xr-count" aria-label={`${waiting} waiting`}>{waiting}</span>}
         </button>
       ))}
     </nav>}
 
     {tab === 'xp' && <XpTab />}
     {tab === 'coins' && <ConversionTab />}
+    {tab === 'rewards' && <RewardsTab goTo={goTo} />}
+    {tab === 'redemptions' && <RedemptionsTab onCount={setWaiting} />}
+    {tab === 'budget' && <BudgetTab />}
   </div>;
 };
 

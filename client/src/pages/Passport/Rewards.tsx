@@ -4,6 +4,9 @@ import passportApi, { RewardCatalogue, RewardCard, RedemptionRow } from '../../a
 import './rewards.css';
 import './rewardsRedesign.css';
 import { barWidth } from '../../utils/barWidth';
+import { mediaPathFor } from '../../utils/mediaUrl';
+
+const imgSrc = (url?: string) => (!url ? '' : /^(https?:|\/)/.test(url) ? url : mediaPathFor(url));
 
 const STATUS_LABEL: Record<string, string> = { PENDING: 'Processing', RESERVED: 'Reserved', FULFILLED: 'Fulfilled', CANCELLED: 'Cancelled' };
 const newIntent = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -92,7 +95,7 @@ const Rewards: React.FC = () => {
         <button className="rwd-btn primary" onClick={() => nav('/careerpilot')}><i className="bi bi-lightning-charge-fill" /> Earn coins now</button>
       </div> :
       <div className="rwd-grid">{data.rewards.map((r, idx) => { const e = r.eligibility; const out = e.reasons.includes('OUT_OF_STOCK'); const progress = Math.min(100, Math.round((student.coins / Math.max(r.coinCost, 1)) * 100)); return <article className={`rwd-card${e.eligible ? '' : ' locked'}`} key={r.key}>
-        <div className={`rwd-art art-${idx % 4}`}><i className={`bi ${r.iconKey || 'bi-gift'}`} />{!e.eligible && <span className="lock"><i className="bi bi-lock-fill" /></span>}</div>
+        <div className={`rwd-art art-${idx % 4}${r.imageUrl ? ' has-img' : ''}`}>{r.imageUrl ? <img src={imgSrc(r.imageUrl)} alt="" /> : <i className={`bi ${r.iconKey || 'bi-gift'}`} />}{!e.eligible && <span className="lock"><i className="bi bi-lock-fill" /></span>}</div>
         <b>{r.name}</b>{r.description && <p>{r.description}</p>}<div className="cost"><strong>{r.coinCost.toLocaleString()}</strong> Coins</div>
         <div className="rwd-progress"><span style={{ width: `${progress}%` }} /></div><small className="rwd-progress-txt">{Math.min(student.coins, r.coinCost).toLocaleString()} / {r.coinCost.toLocaleString()} Coins</small>
         {r.stockMode === 'LIMITED' && r.stockAvailable !== null && r.stockAvailable > 0 && <em className="stock">{r.stockAvailable} left</em>}
@@ -109,7 +112,7 @@ const Rewards: React.FC = () => {
 
     <aside className="rwd2-side">
       {closest && <section className="rwd2-panel"><h3>Closest reward</h3><div className="closest"><span><i className={`bi ${closest.iconKey || 'bi-gift-fill'}`} /></span><div><b>{closest.name}</b><small>{closest.coinCost.toLocaleString()} coins</small></div></div><div className="bar"><i style={{ width: `${Math.min(100, (student.coins / Math.max(closest.coinCost, 1)) * 100)}%` }} /></div><div className="row"><span>{Math.min(100, Math.round((student.coins / Math.max(closest.coinCost, 1)) * 100))}% there</span><b>{student.coins.toLocaleString()} / {closest.coinCost.toLocaleString()}</b></div><button disabled={!closest.eligibility.eligible} onClick={() => closest.eligibility.eligible && setConfirming(closest)}>Redeem</button></section>}
-      <section className="rwd2-panel"><h3>How to earn more</h3>{EARN.map(w => <button className="rwd2-way" key={w.to} onClick={() => nav(w.to)}><span><i className={`bi ${w.icon}`} /></span><div><b>{w.title}</b><small>{w.sub}</small></div><i className="bi bi-chevron-right go" /></button>)}</section>
+      <section className="rwd2-panel"><h3>How to earn more</h3>{data.conversion && <button className="rwd2-way convert" onClick={() => nav('/careerpilot/coins')}><span><i className="bi bi-lightning-charge-fill" /></span><div><b>{data.conversion.coinsAvailable > 0 ? `Convert your XP to ${data.conversion.coinsAvailable.toLocaleString()} ${data.conversion.coinsAvailable === 1 ? 'coin' : 'coins'}` : 'Convert XP into coins'}</b><small>{data.conversion.xpPerCoin.toLocaleString()} XP = 1 coin · your XP never goes down</small></div><i className="bi bi-chevron-right go" /></button>}{EARN.map(w => <button className="rwd2-way" key={w.to} onClick={() => nav(w.to)}><span><i className={`bi ${w.icon}`} /></span><div><b>{w.title}</b><small>{w.sub}</small></div><i className="bi bi-chevron-right go" /></button>)}</section>
       {!!history.length && <section className="rwd2-panel history"><h3>Redemption history</h3>{history.slice(0, 5).map(h => <div className="hist-row" key={h.id}><div className="hist-icon"><i className="bi bi-gift" /></div><span><b>{h.rewardName}</b><small>{new Date(h.requestedAt).toLocaleDateString()}</small></span><div><strong>-{h.coinCost.toLocaleString()} Coins</strong><em className={`s-${h.status.toLowerCase()}`}>{STATUS_LABEL[h.status] || h.status}{h.status === 'CANCELLED' && h.refunded > 0 ? ' · refunded' : ''}</em></div></div>)}</section>}
     </aside></div>
 

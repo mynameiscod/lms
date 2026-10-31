@@ -686,6 +686,39 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/me/redemptions`, { headers: auth() });
     return data;
   },
+  /** Admin: the reward catalogue. */
+  adminRewards: async (): Promise<{ rewards: AdminReward[]; policy: { minRedemption: number; expiryMonths: number } }> => {
+    const { data } = await axios.get(`${BASE}/rewards/admin`, { headers: auth() });
+    return data;
+  },
+  adminCreateReward: async (r: Partial<AdminReward>): Promise<{ reward: AdminReward }> => {
+    const { data } = await axios.post(`${BASE}/rewards/admin`, r, { headers: auth() });
+    return data;
+  },
+  adminUpdateReward: async (key: string, patch: Partial<AdminReward>): Promise<{ reward: AdminReward }> => {
+    const { data } = await axios.put(`${BASE}/rewards/admin/${encodeURIComponent(key)}`, patch, { headers: auth() });
+    return data;
+  },
+  adminRedemptions: async (status?: string, skip = 0): Promise<{ redemptions: AdminRedemption[]; total: number; counts: Record<string, number> }> => {
+    const { data } = await axios.get(`${BASE}/rewards/admin/redemptions`, { headers: auth(), params: { ...(status ? { status } : {}), skip, limit: 50 } });
+    return data;
+  },
+  adminFulfilRedemption: async (id: string, fulfillmentReference?: string, notes?: string): Promise<{ redemption: AdminRedemption }> => {
+    const { data } = await axios.post(`${BASE}/rewards/admin/redemptions/${id}/fulfill`, { fulfillmentReference, notes }, { headers: auth() });
+    return data;
+  },
+  adminCancelRedemption: async (id: string, reason?: string): Promise<{ redemption: AdminRedemption }> => {
+    const { data } = await axios.post(`${BASE}/rewards/admin/redemptions/${id}/cancel`, { reason }, { headers: auth() });
+    return data;
+  },
+  adminStrandedRedemptions: async (): Promise<{ stranded: AdminRedemption[] }> => {
+    const { data } = await axios.get(`${BASE}/rewards/admin/stranded`, { headers: auth() });
+    return data;
+  },
+  adminRecoverRedemption: async (id: string): Promise<{ ok: boolean; refused?: string }> => {
+    const { data } = await axios.post(`${BASE}/rewards/admin/redemptions/${id}/recover`, {}, { headers: auth() });
+    return data;
+  },
 
   // ── Gamification (Module 11) ──
   /** XP, level, streak, badges and ranks. Read-only: no client can award anything. */
@@ -736,11 +769,11 @@ export const passportApi = {
     const { data } = await axios.put(`${BASE}/gamification/admin/leaderboard`, patch, { headers: auth() });
     return data;
   },
-  getRewardBudget: async (period?: string): Promise<any> => {
+  getRewardBudget: async (period?: string): Promise<RewardBudgetView> => {
     const { data } = await axios.get(`${BASE}/gamification/admin/reward-budget`, { headers: auth(), params: period ? { period } : {} });
     return data;
   },
-  updateRewardBudget: async (patch: any): Promise<any> => {
+  updateRewardBudget: async (patch: any): Promise<RewardBudgetView> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/reward-budget`, patch, { headers: auth() });
     return data;
   },
@@ -4003,6 +4036,41 @@ export interface RewardCatalogue {
     level: number;
     canSpend: boolean;
   };
+  /** XP → coins, when switched on: lets the store say "convert your XP". */
+  conversion?: { xpPerCoin: number; coinsAvailable: number; xpToNextCoin: number } | null;
+}
+
+/** A reward as the admin edits it. Costs: coins to the member, paise to the business. */
+export interface AdminReward {
+  _id?: string;
+  key: string; name: string; description: string;
+  type: 'PHYSICAL' | 'DISCOUNT' | 'ACCESS' | 'COUPON' | 'RECOGNITION';
+  iconKey: string; imageUrl?: string; instructions?: string;
+  coinCost: number; budgetCostPaise: number;
+  active: boolean; studentVisible: boolean;
+  stockMode: 'UNLIMITED' | 'LIMITED'; stockAvailable: number; stockReserved?: number; stockFulfilled?: number;
+  perStudentLimit: number; totalRedemptionLimit: number; totalRedeemed?: number;
+  minimumXp: number; minimumLevel: number;
+  availableFrom?: string | null; availableUntil?: string | null;
+  displayOrder: number;
+}
+
+export interface AdminRedemption {
+  _id: string; studentId: string; rewardKey: string; rewardName: string; rewardType: string;
+  coinCost: number; budgetCostPaise: number;
+  status: 'PENDING' | 'RESERVED' | 'FULFILLED' | 'CANCELLED';
+  requestedAt: string; reservedAt?: string; fulfilledAt?: string; cancelledAt?: string;
+  fulfillmentReference?: string; adminNotes?: string; cancelReason?: string;
+  studentSnapshot?: { displayName?: string; collegeName?: string };
+}
+
+export interface RewardBudgetView {
+  summary: {
+    enabled: boolean; mode: 'MANUAL' | 'PERCENTAGE'; period: string;
+    basisPoints: number; effectiveFrom: string | null; studentsRewarded: number;
+    display: { revenueBase: number; calculatedBudget: number; cap: number; effectiveBudget: number; reserved: number; redeemed: number; available: number; averageReward: number };
+  };
+  policy: { enabled: boolean; mode: 'MANUAL' | 'PERCENTAGE'; manualBudgetPaise: number; basisPoints: number; capPaise: number; effectiveFrom?: string | null };
 }
 
 export interface RedemptionRow {

@@ -5,6 +5,7 @@ import {
 } from '../services/rewardEligibilityService';
 import { redeemReward } from '../services/rewardRedemptionService';
 import { refusalMessage } from '../data/rewardPolicy';
+import { conversionStatus } from '../services/xpConversionService';
 
 /**
  * The student's side of rewards.
@@ -35,7 +36,11 @@ export const getRewardCatalogue = async (req: Request, res: Response) => {
 
     // ONE context for the whole catalogue. Twenty rewards must not mean twenty balance
     // lookups, twenty badge queries and twenty budget reads.
-    const ctx = await loadStudentRewardContext(tenantId, studentId);
+    const [ctx, conversion] = await Promise.all([
+      loadStudentRewardContext(tenantId, studentId),
+      // Decoration: "short of coins? convert your XP". Never costs the store a load.
+      conversionStatus(tenantId, studentId).catch(() => null),
+    ]);
 
     res.json({
       rewards: rewards.map(r => {
@@ -72,6 +77,9 @@ export const getRewardCatalogue = async (req: Request, res: Response) => {
         level: ctx.level,
         canSpend: ctx.canSpend,
       },
+      conversion: conversion?.enabled ? {
+        xpPerCoin: conversion.xpPerCoin, coinsAvailable: conversion.coinsAvailable, xpToNextCoin: conversion.xpToNextCoin,
+      } : null,
     });
   } catch (e: any) {
     console.error('[rewards] catalogue:', e?.message || e);

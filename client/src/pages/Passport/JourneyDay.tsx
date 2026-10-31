@@ -41,7 +41,6 @@ import './journeyDayMember.css';
 import { useProgramDays } from './useProgramDays';
 import NotesBook, { opensAsBook } from './NotesBook';
 import { keepTaskInView, showLessonIfStacked, showLessonTop, useDayPanes } from './useDayPanes';
-import { barWidth } from '../../utils/barWidth';
 
 /** Content types, in words a first-year recognises. Mirrors the roadmap screen. */
 export const TYPE_LABEL: Record<string, string> = {
@@ -387,67 +386,74 @@ const JourneyDay: React.FC = () => {
 
   return (
     <div className="jd-page jdm">
-      {/* The day, in the logo navy: where it sits in the ninety, how far through it the member is, and what it pays. */}
-      <section className="jdm-hero">
-        <div className="jdm-hero-copy">
-          <button type="button" className="jdm-crumb" onClick={() => nav('/careerpilot/roadmap')}>
+      {/* The day at a glance, in the logo navy: where it sits in the programme, how far through it the
+          member is (one segment per task, and a ring), what it has paid so far, and the bonus still on
+          the table — which is also the shortest way back into the work. */}
+      <section className="jdh">
+        <div className="jdh-top">
+          <button type="button" className="jdh-crumb" onClick={() => nav('/careerpilot/roadmap')}>
             <i className="bi bi-arrow-left" aria-hidden /> My Roadmap
           </button>
-          <span className="jdm-eyebrow">Day {dayNumber} of {totalDays}</span>
-          <h1>{dayTitle || `Day ${dayNumber}`}</h1>
+          <div className="jdh-nav" role="group" aria-label="Change day">
+            <button type="button" disabled={dayNumber <= 1} onClick={() => nav(`/careerpilot/journey/day/${dayNumber - 1}`)} aria-label="Previous day" title="Previous day">
+              <i className="bi bi-chevron-left" aria-hidden />
+            </button>
+            <span>Day <b>{dayNumber}</b> <em>of {totalDays}</em></span>
+            <button type="button" disabled={dayNumber >= totalDays} onClick={() => nav(`/careerpilot/journey/day/${dayNumber + 1}`)} aria-label="Next day" title="Next day">
+              <i className="bi bi-chevron-right" aria-hidden />
+            </button>
+          </div>
+        </div>
+
+        <div className="jdh-main">
+          <div className="jdh-copy">
+            <span className={`jdh-eyebrow${dayDone ? ' done' : ''}`}><i className={`bi ${dayDone ? 'bi-patch-check-fill' : 'bi-calendar2-check'}`} aria-hidden /> {dayDone ? 'Day complete' : 'Your learning day'}</span>
+            <h1>{dayTitle || `Day ${dayNumber}`}</h1>
+            {items.length > 0 && <>
+              <ol className="jdh-segs" aria-label={`${doneCount} of ${items.length} tasks done`}>
+                {items.map((it, i) => (
+                  <li key={it._id || it.contentId || it.sourceId || i} className={it.isCompleted ? 'done' : i === selIdx ? 'current' : ''}
+                    title={`Task ${i + 1}${it.isCompleted ? ' · done' : ''}`} />
+                ))}
+              </ol>
+              <p className="jdh-sub">
+                {dayDone ? <><i className="bi bi-check-circle-fill" aria-hidden /> Every task on this day is done</>
+                  : <><b>{doneCount} of {items.length}</b> tasks done · {tasksLeft} to go</>}
+              </p>
+            </>}
+          </div>
+
           {items.length > 0 && (
-            <>
-              <div className="jdm-chips">
-                <span><i className="bi bi-check2-circle" /> {doneCount} of {items.length} tasks done</span>
-                {totalXp > 0 && <span><i className="bi bi-lightning-charge-fill" /> {earnedXp} / {totalXp} XP</span>}
-              </div>
-              <div className="jdm-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Day progress">
-                <i style={{ width: `${barWidth(pct)}%` }} />
-              </div>
-            </>
+            <div className="jdh-ring" role="img" aria-label={`${pct}% of today's tasks done`}>
+              <svg viewBox="0 0 120 120" aria-hidden>
+                <circle className="trk" cx="60" cy="60" r="52" />
+                <circle className="val" cx="60" cy="60" r="52" style={{ strokeDashoffset: `${326.73 * (1 - pct / 100)}` }} />
+              </svg>
+              <div><b>{doneCount}<small>/{items.length}</small></b><span>tasks</span></div>
+            </div>
           )}
         </div>
-        {/* Today's momentum: the tasks finished, each task as a mark on the day, and the day bonus
-            still on the table — all from the day this member is actually working. */}
+
         {items.length > 0 && (
-          <div className="jdm-momentum">
-            <span className="jdm-eyebrow">Today’s momentum</span>
-            <div className={`jdm-tasks${doneCount > 0 ? ' on' : ''}`}>
-              <span className="ic"><i className="bi bi-check2-circle" aria-hidden /></span>
-              <div>
-                <b>{doneCount} of {items.length} tasks done</b>
-                <span>{tasksLeft > 0 ? `${tasksLeft} still to work through` : 'Every task on this day is finished'}</span>
+          <div className="jdh-stats">
+            {totalXp > 0 && (
+              <div className="jdh-stat">
+                <span className="ic xp"><i className="bi bi-lightning-charge-fill" aria-hidden /></span>
+                <div><small>XP this day</small><b>{earnedXp} <em>/ {totalXp}</em></b></div>
               </div>
-              <i className="jdm-tasks-art" aria-hidden="true"><em /><em /><em /></i>
-            </div>
-            <ol className="jdm-steps2" aria-hidden="true">
-              {items.map((it, i) => (
-                <li key={it._id || it.contentId || it.sourceId || i} className={it.isCompleted ? 'done' : i === selIdx ? 'current' : ''}>
-                  <i /><span>{i + 1}</span>
-                </li>
-              ))}
-            </ol>
+            )}
             {dayBonusXp > 0 && (
-              <button type="button" className="jdm-challenge" onClick={workOnNext}>
+              <button type="button" className={`jdh-stat bonus${dayDone ? ' won' : ''}`} onClick={workOnNext}>
                 <span className="ic"><i className={`bi ${dayDone ? 'bi-check-circle-fill' : 'bi-gift-fill'}`} aria-hidden /></span>
                 <div>
-                  <b>{dayDone ? 'Day bonus earned' : 'Day bonus'}</b>
-                  <span>{dayDone ? `All ${items.length} tasks finished today` : `Finish all ${items.length} tasks today (${tasksLeft} to go)`}</span>
-                  <em>{dayDone ? 'Earned' : 'Reward'}: +{dayBonusXp} bonus XP</em>
+                  <small>{dayDone ? 'Day bonus earned' : 'Day bonus'}</small>
+                  <b>+{dayBonusXp} XP <em>{dayDone ? 'added to your total' : `finish all ${items.length} tasks · ${tasksLeft} to go`}</em></b>
                 </div>
-                <i className="bi bi-chevron-right" aria-hidden />
+                {!dayDone && <span className="go">Next task <i className="bi bi-arrow-right" aria-hidden /></span>}
               </button>
             )}
           </div>
         )}
-        <div className="jdm-daynav">
-          <button type="button" disabled={dayNumber <= 1} onClick={() => nav(`/careerpilot/journey/day/${dayNumber - 1}`)}>
-            <i className="bi bi-chevron-left" aria-hidden /> Previous day
-          </button>
-          <button type="button" disabled={dayNumber >= totalDays} onClick={() => nav(`/careerpilot/journey/day/${dayNumber + 1}`)}>
-            Next day <i className="bi bi-chevron-right" aria-hidden />
-          </button>
-        </div>
       </section>
 
       {!!flash && <div className="jdm-flash" role="status"><i className="bi bi-stars" /> {flash}</div>}

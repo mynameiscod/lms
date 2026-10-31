@@ -99,6 +99,26 @@ export const POLICIES = {
     message: 'Too many code requests for this account.',
   },
   /**
+   * Website course-page OTP. Each send costs a WhatsApp message, so it is counted per mobile
+   * number (a lecture hall shares one address); the verify is counted per request, being the
+   * guess at a 6-digit code. The IP policy below is only the backstop against a script walking
+   * a list of numbers.
+   */
+  websiteOtpSend: {
+    max: 8, windowMs: 30 * 60_000,
+    keyBy: req => mobileSubject((req.body || {}).phone ?? (req.body || {}).mobile),
+    message: 'Too many code requests for this number. Please try again later.',
+  },
+  websiteOtpVerify: {
+    max: 15, windowMs: 30 * 60_000,
+    keyBy: req => { const t = String((req.body || {}).requestId ?? '').trim(); return t ? `req:${t}` : null; },
+    message: 'Too many attempts. Please request a new code.',
+  },
+  websiteIp: {
+    max: 60, windowMs: 60 * 60_000,
+    message: 'Too many requests from this network. Please try again later.',
+  },
+  /**
    * The activity beacon. Cheap per call, but every browser sends them continuously.
    *
    * COUNTED BY VISITOR, NOT BY ADDRESS. This is the case the address would get wrong: a whole

@@ -2,6 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import multer, { MulterError } from 'multer';
 import fs from 'fs';
 import path from 'path';
+import { rateLimit } from '../middleware/rateLimit';
+import { sendWebsiteOtp, verifyWebsiteOtp, submitCourseLead } from '../controllers/publicWebsiteController';
 import { submitPublicLeadForm, getPublicFormConfig, submitWebsiteLead } from '../controllers/publicLeadController';
 import { registerForWeeklyQuizFromWebsite, getQuizByToken, startQuizSession, submitQuizByToken, quizHeartbeat } from '../controllers/publicQuizController';
 
@@ -48,6 +50,11 @@ router.post('/form/:tenantSlug', multipart, submitPublicLeadForm);
 // Simple hot-lead capture for website contact/enquiry forms (no config needed)
 // POST /api/v1/public/:tenantSlug/website-lead
 router.post('/:tenantSlug/website-lead', multipart, submitWebsiteLead);
+
+// Course landing pages (FDE): verify the phone by WhatsApp OTP, then submit the lead.
+router.post('/:tenantSlug/otp/send', rateLimit('websiteIp'), rateLimit('websiteOtpSend'), sendWebsiteOtp);
+router.post('/:tenantSlug/otp/verify', rateLimit('websiteIp'), rateLimit('websiteOtpVerify'), verifyWebsiteOtp);
+router.post('/:tenantSlug/course-lead', rateLimit('websiteIp'), submitCourseLead);
 
 // Register for the current weekly/featured public quiz (called from external website)
 // POST /api/v1/public/:tenantSlug/weekly-quiz-register

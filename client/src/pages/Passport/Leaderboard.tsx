@@ -85,9 +85,15 @@ const Leaderboard: React.FC = () => {
             </div>
           </div>
 
-          {ok && <div className="lbx-mine">
-            <span>{ok.myRank ? <>You are <b>#{n(ok.myRank)}</b> of {n(ok.participantCount)} students</> : <>{n(ok.participantCount)} students on this board</>}</span>
-            <b>{n(ok.myXp)} XP{period !== 'ALL_TIME' ? ` ${period === 'WEEKLY' ? 'this week' : 'this month'}` : ''}</b>
+          {/* Where the member stands on THIS board and period — it moves with the filters above. */}
+          {ok && <div className="lbx-you">
+            <span className="ic"><i className={`bi ${scope === 'COLLEGE' ? 'bi-building' : 'bi-globe2'}`} /></span>
+            <div className="rh-t">
+              <small>Your {scope === 'COLLEGE' ? 'college' : 'global'} rank · {PERIODS.find(p => p.k === period)?.l}</small>
+              <b>{ok.myRank ? `#${n(ok.myRank)}` : '—'}</b>
+              <span>of {n(ok.participantCount)} students{scope === 'GLOBAL' ? ' across CareerPilot' : ' in your college'}</span>
+            </div>
+            <div className="xp"><b>{n(ok.myXp)}</b><small>XP{period === 'ALL_TIME' ? '' : period === 'MONTHLY' ? ' this month' : ' this week'}</small></div>
           </div>}
 
           {busy && !board ? <div className="lbx-empty">Loading the leaderboard…</div>

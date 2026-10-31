@@ -552,9 +552,12 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <button className="md-link" onClick={() => nav('/careerpilot/leaderboard')}>Full board <Bi name="arrow-right" /></button>
           </header>
           <div className="mdb-tabs">
-            <div role="tablist" aria-label="Who to rank against">
-              {[{ k: 'COLLEGE', l: 'College' }, { k: 'GLOBAL', l: 'Global' }].filter(t => t.k === 'GLOBAL' || ranks.college?.available).map(t => <button key={t.k} role="tab" aria-selected={scope === t.k} className={scope === t.k ? 'on' : ''} onClick={() => setScope(t.k)}>{t.l}</button>)}
-            </div>
+            {/* Two boards to choose from only in a college; otherwise the one board is a label, not a lone button. */}
+            {ranks.college?.available
+              ? <div role="tablist" aria-label="Who to rank against">
+                {[{ k: 'COLLEGE', l: 'College' }, { k: 'GLOBAL', l: 'Global' }].map(t => <button key={t.k} role="tab" aria-selected={scope === t.k} className={scope === t.k ? 'on' : ''} onClick={() => setScope(t.k)}>{t.l}</button>)}
+              </div>
+              : <span className="mdb-scope"><Bi name="globe2" /> Every CareerPilot student</span>}
             <div role="tablist" aria-label="Period">
               {[{ k: 'ALL_TIME', l: 'All time' }, { k: 'MONTHLY', l: 'Month' }, { k: 'WEEKLY', l: 'Week' }].map(t => <button key={t.k} role="tab" aria-selected={period === t.k} className={period === t.k ? 'on' : ''} onClick={() => setPeriod(t.k)}>{t.l}</button>)}
             </div>
@@ -563,7 +566,13 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             : !board ? <div className="md-empty">The leaderboard could not be loaded.</div>
             : !board.available ? <div className="md-empty">{(board as any).reason || 'This leaderboard is not available for you yet.'}</div>
             : <>
-              <div className="mdb-mine"><span>{board.myRank ? <>You are <b>#{board.myRank}</b> of {board.participantCount.toLocaleString()}</> : 'Earn XP to join this board'}</span><b>{board.myXp.toLocaleString()} XP</b></div>
+              <div className="mdb-rankhero">
+                <span className="ic"><Bi name={scope === 'COLLEGE' ? 'building' : 'globe2'} /></span>
+                <div className="rh-t"><small>Your {scope === 'COLLEGE' ? 'college' : 'global'} rank · {({ ALL_TIME: 'All time', MONTHLY: 'This month', WEEKLY: 'This week' } as Record<string, string>)[period]}</small>
+                  <b>{board.myRank ? `#${board.myRank.toLocaleString()}` : '—'}</b>
+                  <span>of {board.participantCount.toLocaleString()} students</span></div>
+                <div className="xp"><b>{board.myXp.toLocaleString()}</b><small>XP{period === 'ALL_TIME' ? '' : period === 'MONTHLY' ? ' this month' : ' this week'}</small></div>
+              </div>
               <div className="md-lb">{board.entries.slice(0, 5).map((r: ScopedLeaderboardRow) => <div className={`md-lb-row${r.me ? ' me' : ''}`} key={r.studentId}><span className={`rk${r.rank <= 3 ? ` g${r.rank}` : ''}`}>{r.rank}</span><span className="av">{(r.name?.[0] || '?').toUpperCase()}</span><span className="nm">{r.name}{r.me ? ' (You)' : ''}{r.college ? <em>{r.college}</em> : null}</span><b className="xp">{r.xp.toLocaleString()} XP</b></div>)}</div>
             </>}
         </article>

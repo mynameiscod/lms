@@ -66,3 +66,24 @@
   .lbx-row { grid-template-columns: 46px 34px minmax(0, 1fr) auto; gap: 9px; padding: 10px 6px; }
   .lbx-row .av { width: 32px; height: 32px; }
 }
+
+/* The member's own rank on the chosen board and period, highlighted at the top of the list. */
+.lbx-you { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; padding: 18px 20px; border-radius: 17px; background: linear-gradient(120deg, #051D64 0%, #0B3B7E 60%, #0E6F83 100%); color: #fff; box-shadow: 0 12px 28px rgba(5, 29, 100, .2); }
+.lbx-you .ic { flex: none; width: 52px; height: 52px; border-radius: 15px; display: grid; place-items: center; background: rgba(255, 255, 255, .14); font-size: 23px; }
+.lbx-you .rh-t { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.lbx-you .rh-t small { font-size: 11.5px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; color: #BFD3EE; }
+.lbx-you .rh-t b { font-size: 36px; line-height: 1.1; letter-spacing: -.02em; }
+.lbx-you .rh-t span { font-size: 13.5px; color: #D7E4F5; }
+.lbx-you .xp { text-align: right; display: flex; flex-direction: column; }
+.lbx-you .xp b { font-size: 24px; color: #FFD27A; }
+.lbx-you .xp small { font-size: 12px; color: #D7E4F5; }
+@media (max-width: 700px) {
+  .lbx-you { padding: 14px; gap: 12px; }
+  .lbx-you .ic { width: 42px; height: 42px; font-size: 19px; }
+  .lbx-you .rh-t b { font-size: 28px; }
+  .lbx-you .xp b { font-size: 19px; }
+}
+/* Same guard as the dashboard banner: the member shell mutes small text with !important. */
+.lbx-you .rh-t small { color: #BFD3EE !important; }
+.lbx-you .rh-t span { color: #D7E4F5 !important; }
+.lbx-you .xp small { color: #D7E4F5 !important; }

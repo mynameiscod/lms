@@ -2,6 +2,7 @@ import axios from 'axios';
 import { attributionForSubmit } from '../utils/careerPilotAttribution';
 import { loadRazorpay } from './paymentApi';
 import { visitorId, sessionId } from '../pages/Passport/activityBeacon';
+import { celebrateMembership } from '../components/Celebration/celebrate';
 
 const BASE = (process.env.REACT_APP_API_URL || '/api/v1') + '/passport';
 /**
@@ -1702,6 +1703,13 @@ export const passportApi = {
 
   // Membership checkout (₹499). Opens Razorpay and resolves true on successful activation.
   membershipCheckout: async (): Promise<{ ok: boolean; message?: string; testMode?: boolean }> => {
+    // Every caller's success is celebrated here, once, whichever screen the member paid from.
+    const r = await passportApi.membershipCheckoutRaw();
+    if (r.ok) celebrateMembership();
+    return r;
+  },
+
+  membershipCheckoutRaw: async (): Promise<{ ok: boolean; message?: string; testMode?: boolean }> => {
     /**
      * The order is requested BEFORE Razorpay's script is loaded, because in test mode there is
      * no Razorpay: loading it first would fail the whole checkout on a connection that is only
@@ -1744,7 +1752,7 @@ export const passportApi = {
     const base = apiRoot.startsWith('http') ? apiRoot : window.location.origin + apiRoot;
     // `origin`: come back to the address the member is on, not the server's configured one —
     // on a LAN dev machine that one goes stale with every new IP (server checks it is trusted).
-    const callbackUrl = `${base}/payments/return?to=${encodeURIComponent('/careerpilot')}&origin=${encodeURIComponent(window.location.origin)}`;
+    const callbackUrl = `${base}/payments/return?to=${encodeURIComponent('/careerpilot?paid=1')}&origin=${encodeURIComponent(window.location.origin)}`;
     return new Promise((resolve) => {
       const rzp = new (window as any).Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency,

@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMember } from './MemberLayout';
 import './assessment.css';
 import MemberFooter from './MemberFooter';
+import { celebrate } from '../../components/Celebration/celebrate';
 
 /**
  * Career Readiness Assessment — the free deterministic entry point (CareerPilot).
@@ -142,6 +143,17 @@ const Assessment: React.FC = () => {
         .map(([questionId, chosen]) => ({ questionId, chosen }));
       const { result: r } = await passportApi.submitAssessment(payload);
       setResult(r);
+      // Only a paper just handed in is celebrated; reopening an old result is not (it loads above).
+      const top = (r?.strengths || [])[0];
+      celebrate({
+        kind: 'assessment',
+        title: user?.firstName ? `Great work, ${user.firstName}!` : 'Great work!',
+        message: top ? `You finished your skill assessment. Your strongest area: ${top}.` : 'You finished your skill assessment. Your results are ready.',
+        stats: [
+          { value: Math.round(Number(r?.careerScore) || 0), label: 'Career score' },
+          { value: (r?.categoryScores || []).length, label: 'Skill areas measured' },
+        ].filter(s => s.value > 0),
+      });
     } catch (e: any) { setError(e?.response?.data?.message || 'Submit failed. Try again.'); }
     setSubmitting(false);
   };

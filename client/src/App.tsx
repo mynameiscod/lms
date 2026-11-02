@@ -13,6 +13,7 @@ import { Spinner } from './components/common';
 
 import { captureCareerPilotAttribution } from './utils/careerPilotAttribution';
 import AdminLogPanel from './components/AdminLogPanel';
+import CelebrationHost from './components/Celebration/CelebrationHost';
 
 /*
  * ── EVERY PAGE IS ITS OWN CHUNK ─────────────────────────────────────────────────────────
@@ -2860,6 +2861,7 @@ const App: React.FC = () => {
                 <HotLeadToast />
                 <AppRoutes />
                 <AdminLogGate />
+                <CelebrationHost />
               </BrowserRouter>
             </SocketProvider>
             </BatchModulesProvider>

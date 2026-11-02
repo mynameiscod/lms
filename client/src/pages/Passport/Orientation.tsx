@@ -6,6 +6,7 @@ import { mediaUrl, MEDIA_PATH } from '../../utils/mediaUrl';
 import { SeekControls, useSeekKeys, savedSpeed, savedQuality, pickQuality, switchSource, QualityPref } from '../MyLearningPlan/VideoPlayer';
 import { barWidth } from '../../utils/barWidth';
 import { useUndoZoom } from '../../utils/useUndoZoom';
+import { celebrate } from '../../components/Celebration/celebrate';
 
 /**
  * The welcome, before Day 1.
@@ -417,6 +418,16 @@ export const OrientationDayPanel: React.FC<{
     if (r?.orientation) onChanged(r.orientation);
     /* Refused while something required is unfinished: the server names what, and so does this. */
     if (!r?.ok) { setOutstanding(r?.outstanding || []); return; }
+    const welcomeOver = !!r.orientation?.complete;
+    celebrate({
+      kind: 'day',
+      once: `welcome:${day.dayNumber}`,
+      title: welcomeOver ? 'Welcome complete!' : `Welcome day ${day.day} done!`,
+      message: welcomeOver
+        ? 'You finished every welcome day. Day 1 of your roadmap is next.'
+        : 'Nicely done. Your next welcome day is the next step.',
+      stats: [{ value: day.items.length, label: day.items.length === 1 ? 'Task done' : 'Tasks done' }].filter(x => x.value > 0),
+    });
     onFinished?.({ nextDay: r.orientation?.nextDay ?? null, complete: !!r.orientation?.complete });
   };
 

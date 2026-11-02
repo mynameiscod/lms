@@ -127,6 +127,23 @@ const sectionFor = (pathname: string): string => {
   return alias ? alias[1] : p;
 };
 
+/**
+ * "Good Morning" / "Good Afternoon" / "Good Evening" from the member's own clock, re-read every
+ * minute so a page left open across noon or evening changes with it.
+ */
+const greetingFor = (h: number) =>
+  h >= 5 && h < 12 ? { text: 'Good Morning', emoji: '👋' }
+    : h >= 12 && h < 17 ? { text: 'Good Afternoon', emoji: '☀️' }
+    : { text: 'Good Evening', emoji: '🌙' };
+const useGreeting = () => {
+  const [hour, setHour] = useState(() => new Date().getHours());
+  useEffect(() => {
+    const t = window.setInterval(() => setHour(new Date().getHours()), 60000);
+    return () => clearInterval(t);
+  }, []);
+  return greetingFor(hour);
+};
+
 const MemberShell: React.FC<Props> = ({ children, data }) => {
   const nav = useNavigate();
   const loc = useLocation();
@@ -234,6 +251,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const path = loc.pathname;
   const navSection = sectionFor(path);
   const firstName = d?.firstName || user?.firstName || 'there';
+  const greeting = useGreeting();
   const initial = (firstName[0] || 'C').toUpperCase();
   /*
    * The member's photo, wherever an avatar is drawn. It is uploaded on My profile, which puts
@@ -445,7 +463,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         <div className="gd-topbar">
           <div className="gd-topbar-l">
             {/* Only over the working dashboard: the locked one (PassportHome's other branch) greets in its own hero. */}
-            {path === '/careerpilot' && d?.active && d?.hasAssessment && <div className="gd-hello"><h1>My Dashboard</h1><p>Hey {firstName}! Your day, your scores and your progress in one place.</p></div>}
+            {path === '/careerpilot' && d?.active && d?.hasAssessment && <div className="gd-hello"><h1>{greeting.text}{firstName !== 'there' ? ', ' : ''}<span style={{ whiteSpace: 'nowrap' }}>{firstName !== 'there' ? firstName : ''}! <span aria-hidden>{greeting.emoji}</span></span></h1><p>Stay consistent, keep learning, and move closer to your dream career.</p></div>}
           </div>
           <div className="gd-topbar-r">
             {/*

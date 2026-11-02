@@ -1,108 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import passportApi, { DashboardData, Badge, TodayMissions, FoundationJourney, FoundationJourneyDay, OrientationDay, GamificationSummary, ScopedLeaderboardResponse, ScopedLeaderboardRow } from '../../api/passportApi';
+import passportApi, { DashboardData, Badge, FoundationJourney, FoundationJourneyDay, OrientationDay, GamificationSummary, ScopedLeaderboardResponse } from '../../api/passportApi';
+import { thinkingLabApi, TLStats } from '../../api/thinkingLabApi';
+import { communicationApi, CommProgress } from '../../api/communicationApi';
 import './dashboard.css';
 import './dashboard-redesign.css';
-import './memberDashboard.css';
-import './myDashboard.css';
+import './dashboardHome.css';
 import { barWidth } from '../../utils/barWidth';
 
 const Bi: React.FC<{ name: string; className?: string }> = ({ name, className = '' }) => (
   <i className={`bi bi-${name}${className ? ` ${className}` : ''}`} aria-hidden="true" />
 );
-
-/**
- * A skill name broken into at most two lines of about `max` characters, on word boundaries.
- *
- * The radar's labels used to be one line each, and a name like "Data Structures & Algorithms"
- * ran past the card on a phone — the SVG is `overflow: visible`, so nothing clipped it. Two
- * short lines fit inside the side margin the chart now reserves; anything longer than that is
- * ellipsised on the second line rather than spilling.
- */
-const wrapLabel = (label: string, max = 13): string[] => {
-  const lines: string[] = [];
-  let cur = '';
-  for (const w of label.split(/\s+/).filter(Boolean)) {
-    if (!cur) cur = w;
-    else if ((cur + ' ' + w).length <= max) cur += ' ' + w;
-    else { lines.push(cur); cur = w; }
-  }
-  if (cur) lines.push(cur);
-  if (lines.length <= 2) return lines;
-  const second = lines.slice(1).join(' ');
-  return [lines[0], second.length > max ? `${second.slice(0, max - 1).trimEnd()}…` : second];
-};
-
-const Radar: React.FC<{ skills: { label: string; score: number }[] }> = ({ skills }) => {
-  // The chart is drawn inside a wider box so the labels at the left and right have room of
-  // their own: `pad` on each side is where a wrapped name sits, inside the viewBox.
-  const size = 290, pad = 46, cx = size / 2 + pad, cy = size / 2 + 6, R = 84;
-  const n = skills.length;
-  if (n < 3) return <div className="gd-chart-empty">Your skill meter fills in as more of your skill areas are measured — at least three are needed to draw it.</div>;
-
-  const pt = (i: number, dist: number) => {
-    const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
-    return [cx + Math.cos(a) * dist, cy + Math.sin(a) * dist];
-  };
-  const poly = (dist: (i: number) => number) => skills.map((_, i) => pt(i, dist(i)).join(',')).join(' ');
-
-  return (
-    <svg className="gd-radar" width="100%" viewBox={`0 0 ${size + pad * 2} ${size}`} role="img" aria-label="Skill meter">
-      <title>{skills.map(s => `${s.label}: ${s.score}`).join(', ')}</title>
-      {[0.25, 0.5, 0.75, 1].map(f => (
-        <polygon key={f} points={poly(() => R * f)} fill="none" stroke="#e4edf4" strokeWidth={1} />
-      ))}
-      {skills.map((_, i) => {
-        const [x, y] = pt(i, R);
-        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#e4edf4" strokeWidth={1} />;
-      })}
-      <polygon points={poly(i => R * Math.max(0.02, (skills[i].score || 0) / 100))} fill="rgba(53,154,173,.25)" stroke="#359AAD" strokeWidth={2} />
-      {skills.map((s, i) => {
-        const [x, y] = pt(i, R * Math.max(0.02, (s.score || 0) / 100));
-        return <circle key={i} cx={x} cy={y} r={3.5} fill="#087f91" />;
-      })}
-      {skills.map((s, i) => {
-        const [x, y] = pt(i, R + 16);
-        const anchor = Math.abs(x - cx) < 6 ? 'middle' : x > cx ? 'start' : 'end';
-        const lines = wrapLabel(s.label);
-        // The label block grows away from the chart: upward above it, downward below it, and
-        // centred on the point at the sides.
-        const top = y < cy - 6 ? y - lines.length * 12 : y > cy + 6 ? y + 4 : y - (lines.length * 12) / 2;
-        return (
-          <g key={s.label}>
-            <text x={x} y={top} textAnchor={anchor}>
-              {lines.map((l, k) => <tspan key={k} x={x} dy={k === 0 ? 0 : 12}>{l}</tspan>)}
-            </text>
-            <text x={x} y={top + lines.length * 12} textAnchor={anchor} className="v">{s.score}</text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-};
-
-const AreaChart: React.FC<{ points: { label: string; xp: number }[] }> = ({ points }) => {
-  const w = 560, h = 190, padL = 32, padB = 26, padT = 12;
-  const max = Math.max(50, ...points.map(p => p.xp));
-  const stepX = (w - padL - 10) / Math.max(1, points.length - 1);
-  const y = (v: number) => padT + (1 - v / max) * (h - padT - padB);
-  const xs = points.map((_, i) => padL + i * stepX);
-  const line = points.map((p, i) => `${xs[i]},${y(p.xp)}`).join(' ');
-  return (
-    <svg className="gd-chart md-chart" viewBox={`0 0 ${w} ${h}`}>
-      {[0, 0.5, 1].map(f => (
-        <g key={f}>
-          <line x1={padL} x2={w - 6} y1={y(max * f)} y2={y(max * f)} stroke="#edf2f6" strokeWidth={1} />
-          <text x={4} y={y(max * f) + 4}>{Math.round(max * f)}</text>
-        </g>
-      ))}
-      <polygon points={`${padL},${h - padB} ${line} ${xs[xs.length - 1]},${h - padB}`} fill="rgba(53,154,173,.12)" />
-      <polyline points={line} fill="none" stroke="#359AAD" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-      {points.map((p, i) => <circle key={i} cx={xs[i]} cy={y(p.xp)} r={4} fill="#359AAD" />)}
-      {points.map((p, i) => <text key={p.label + i} x={xs[i]} y={h - 7} textAnchor="middle">{p.label}</text>)}
-    </svg>
-  );
-};
 
 const MISSION_ICON: Record<string, string> = {
   career_clarity: 'bullseye',
@@ -127,6 +35,28 @@ const JOURNEY_ICON: Record<string, string> = {
 const WELCOME_TYPE: Record<string, string> = { video: 'Video', notes: 'Notes', image: 'Image', checklist: 'Checklist', recording: 'Recording' };
 const WELCOME_ICON: Record<string, string> = { video: 'play-circle', notes: 'journal-text', image: 'image', checklist: 'check2-square', recording: 'mic' };
 
+/* Each badge as an icon of its own (the server's are emoji, which render differently on every device). */
+const BADGE_ICON: Record<string, string> = {
+  problem_solver: 'check2-circle', dsa_explorer: 'diagram-3-fill', algo_wizard: 'magic', speed_demon: 'lightning-charge-fill',
+  consistency: 'calendar2-check-fill', interview_ready: 'mic-fill', ats_ready: 'file-earmark-check-fill', code_master: 'trophy-fill',
+};
+/* Skill rows take their icon from the skill's name; anything unrecognised gets a neutral mark. */
+const skillIcon = (label: string) => {
+  const l = label.toLowerCase();
+  if (/data struct|algorithm|dsa/.test(l)) return 'diagram-3';
+  if (/program|coding|code|java|python|javascript/.test(l)) return 'code-slash';
+  if (/web|html|css|front/.test(l)) return 'window';
+  if (/data ?base|sql/.test(l)) return 'database';
+  if (/communicat|english|speak/.test(l)) return 'chat-dots';
+  if (/aptitude|quant|math/.test(l)) return 'calculator';
+  if (/reason|logic/.test(l)) return 'puzzle';
+  if (/system|design|architect/.test(l)) return 'boxes';
+  if (/cloud|devops/.test(l)) return 'cloud';
+  if (/security|cyber/.test(l)) return 'shield-lock';
+  if (/ai|machine|ml|data sci|analytic/.test(l)) return 'cpu';
+  return 'stars';
+};
+
 interface Props {
   data: DashboardData;
   reload: () => void;
@@ -144,24 +74,89 @@ const openMissionLink = (link: string, nav: (to: string) => void) => {
   else nav(link);
 };
 
+/** "Top 12%" from a rank among N — at least 1%, so the leader does not read "Top 0%". */
+const topPct = (rank: number | null | undefined, of: number | null | undefined) =>
+  rank && of ? Math.max(1, Math.ceil((rank / of) * 100)) : null;
+
+/** The hero's mountain: a winding path to a flag, in the brand teal and navy. Decorative. */
+const Summit: React.FC = () => (
+  <svg className="dbx-summit" viewBox="0 0 360 200" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="dbxPeak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#3FB3C4" /><stop offset="1" stopColor="#167E91" /></linearGradient>
+      <linearGradient id="dbxPeak2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#7FD3E0" /><stop offset="1" stopColor="#3FA4B6" /></linearGradient>
+      <linearGradient id="dbxBack" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#C9EAF0" /><stop offset="1" stopColor="#E6F6F9" /></linearGradient>
+    </defs>
+    <ellipse cx="70" cy="58" rx="34" ry="11" fill="#fff" opacity=".9" />
+    <ellipse cx="300" cy="44" rx="28" ry="9" fill="#fff" opacity=".85" />
+    <path d="M0 200 L70 120 L120 160 L170 100 L215 150 L262 112 L360 200 Z" fill="url(#dbxBack)" />
+    <path d="M40 200 L188 34 L336 200 Z" fill="url(#dbxPeak)" />
+    <path d="M188 34 L336 200 L250 200 Z" fill="#0E6577" opacity=".35" />
+    <path d="M188 34 L166 72 L178 66 L188 80 L198 64 L212 72 Z" fill="#F3FBFD" />
+    <path d="M96 200 L150 150 L186 178 L222 140 L290 200 Z" fill="url(#dbxPeak2)" opacity=".9" />
+    <path d="M200 200 C 168 182, 236 168, 200 150 S 170 120, 196 104 S 214 86, 190 76" fill="none" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" opacity=".9" />
+    <path d="M200 200 C 168 182, 236 168, 200 150 S 170 120, 196 104 S 214 86, 190 76" fill="none" stroke="#F5B83D" strokeWidth="2" strokeDasharray="5 6" strokeLinecap="round" />
+    <line x1="188" y1="36" x2="188" y2="6" stroke="#051D64" strokeWidth="3" strokeLinecap="round" />
+    <path d="M189 7 L214 13 L189 20 Z" fill="#F5B83D" />
+  </svg>
+);
+
+/**
+ * The gold wreath around the global rank: a branch of paired leaves up each side of an arc that
+ * opens at the top, computed rather than hand-placed so the leaves sit evenly. Decorative.
+ */
+const LEAF_ANGLES = [116, 134, 152, 170, 188, 206, 224, 240]; // degrees round the centre, bottom-left to top-left
+const Laurel: React.FC = () => {
+  // Wide enough between the branches for the rank and its caption.
+  const cx = 66, cy = 54, r = 48;
+  const at = (deg: number, dist: number) => {
+    const a = (deg * Math.PI) / 180;
+    return [cx + dist * Math.cos(a), cy + dist * Math.sin(a)];
+  };
+  const [sx, sy] = at(100, r);
+  const [ex, ey] = at(246, r);
+  return (
+    <svg className="dbx-laurel" viewBox="0 0 132 112" aria-hidden="true" focusable="false">
+      {[0, 1].map(side => (
+        <g key={side} transform={side ? 'translate(132 0) scale(-1 1)' : undefined}>
+          <path d={`M ${sx} ${sy} A ${r} ${r} 0 0 1 ${ex} ${ey}`} fill="none" stroke="#D9A21B" strokeWidth="2.2" strokeLinecap="round" />
+          {LEAF_ANGLES.map((deg, i) => {
+            // Each pair leans up the branch: one leaf outside the arc, one inside.
+            const [ox, oy] = at(deg, r + 6);
+            const [ix, iy] = at(deg, r - 6);
+            const along = deg + 90 - 180; // the branch's direction at this point, pointing upward
+            return (
+              <g key={deg}>
+                <ellipse cx={ox} cy={oy} rx="3.4" ry="8" transform={`rotate(${along + 35} ${ox} ${oy})`} fill={i % 2 ? '#F5B83D' : '#E8A317'} />
+                <ellipse cx={ix} cy={iy} rx="3" ry="7" transform={`rotate(${along - 35} ${ix} ${iy})`} fill={i % 2 ? '#FFCF5C' : '#F5B83D'} />
+              </g>
+            );
+          })}
+        </g>
+      ))}
+    </svg>
+  );
+};
+
 const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const nav = useNavigate();
   const [d, setD] = useState<DashboardData>(data);
-  const [pastDay, setPastDay] = useState<TodayMissions | null>(null);
-  const [dayBusy, setDayBusy] = useState(false);
   const [answerFor, setAnswerFor] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
   const [answerBusy, setAnswerBusy] = useState(false);
   const [answerMsg, setAnswerMsg] = useState('');
   const [justCoached, setJustCoached] = useState<{ key: string; feedback: string } | null>(null);
   const [missionMsg, setMissionMsg] = useState('');
+  /** Today's plan shows three tasks; "View more" opens the rest in place. */
+  const [allTasks, setAllTasks] = useState(false);
+
+  const hidden = new Set<string>(((d as any).hidden || []) as string[]);
+  const lockedSections = new Set<string>((d.locked || []).map(l => l.section));
 
   /**
    * MY DASHBOARD IS HOME AND MY PROGRESS IN ONE.
    *
-   * My Progress was its own page: level, coins, ranks, badges, the scoped leaderboard. Its figures come
-   * from the same server summaries it read, loaded beside the member payload; a failure leaves those
-   * cards out rather than the dashboard.
+   * Level, coins, ranks and badges come from the same server summaries My Progress read, loaded
+   * beside the member payload; a failure leaves those cards out rather than the dashboard.
    */
   const [prog, setProg] = useState<GamificationSummary | null>(null);
   const [coins, setCoins] = useState<number | null>(null);
@@ -170,14 +165,9 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   // Global is every member's board; College joins it only for a college tenant (set once ranks load).
   const [scope, setScope] = useState('GLOBAL');
   const [period, setPeriod] = useState('ALL_TIME');
-  const [allBadges, setAllBadges] = useState(false);
   useEffect(() => {
     Promise.allSettled([passportApi.getMyGamification(), passportApi.getRewards()]).then(([g, r]) => {
-      if (g.status === 'fulfilled') {
-        setProg(g.value);
-        // Open on a board this member is on: with no college the college board is only a note.
-        if (g.value?.ranks?.college?.available) setScope('COLLEGE');
-      }
+      if (g.status === 'fulfilled') setProg(g.value);
       if (r.status === 'fulfilled') setCoins(Number(r.value?.student?.coins ?? r.value?.student?.coinBalance ?? 0));
     });
   }, [data]);
@@ -191,10 +181,20 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
     return () => { live = false; };
   }, [scope, period]);
 
+  /* The labs' own figures, only for labs this member can open: a hidden or locked lab is not asked. */
+  const thinkingOpen = !hidden.has('thinkingLab') && !lockedSections.has('thinkingLab');
+  const commOpen = !hidden.has('communication') && !lockedSections.has('communication');
+  const [tl, setTl] = useState<TLStats | null>(null);
+  const [comm, setComm] = useState<CommProgress | null>(null);
+  useEffect(() => {
+    if (thinkingOpen) thinkingLabApi.stats().then(setTl).catch(() => setTl(null));
+    if (commOpen) communicationApi.progress().then(setComm).catch(() => setComm(null));
+  }, [thinkingOpen, commOpen, data]);
+
   useEffect(() => { setD(data); }, [data]);
   /**
-   * The Foundation journey, when the unit engine plans this student: its current day IS today's missions.
-   * Re-read whenever the member payload reloads (a return to the tab, a finished mission), so the ticks and
+   * The Foundation journey, when the unit engine plans this student: its current day IS today's plan.
+   * Re-read whenever the member payload reloads (a return to the tab, a finished task), so the ticks and
    * XP follow work done in the day player.
    */
   const [journey, setJourney] = useState<FoundationJourney | null>(null);
@@ -202,8 +202,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   /**
    * TODAY IS A WELCOME DAY WHILE THE WELCOME IS OWED.
    *
-   * Day 1 stays shut until 0.1–0.5 are done, so asking for it was refused and this card sat on
-   * "Loading today's tasks…". The welcome day the member is on is today's missions instead.
+   * Day 1 stays shut until 0.1–0.5 are done, so the welcome day the member is on is today's plan instead.
    */
   const [welcomeDay, setWelcomeDay] = useState<OrientationDay | null>(null);
   useEffect(() => {
@@ -226,9 +225,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
           const day = await passportApi.myFoundationJourneyDay(j.currentDay);
           if (!live) return;
           setJDay(day);
-          // Reading the day just paid XP for work finished elsewhere (a checkpoint, a lesson): the member payload —
-          // the XP pill, today's goal bar, the rail's Daily Goal — was loaded before that, so reload it. The next read
-          // pays nothing, so this cannot loop.
+          // Reading the day just paid XP for work finished elsewhere: reload the member payload once (the next read pays nothing).
           if ((day.xpJustPaid || 0) > 0) reload();
         }
       } catch { /* Home still renders; the topic missions stand in */ }
@@ -241,23 +238,11 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
     return () => window.removeEventListener('focus', onFocus);
   }, [reload]);
 
-  const stepDay = async (delta: number) => {
-    const current = pastDay?.day ?? d.day ?? 1;
-    const want = current + delta;
-    if (want < 1) return;
-    setDayBusy(true);
-    try {
-      const r = await passportApi.getToday(want);
-      setPastDay(r.isPast ? r : null);
-    } catch { /* preserve current view */ }
-    setDayBusy(false);
-  };
-
-  const toggleMission = async (key: string, answer?: string) => {
+  const toggleMission = async (key: string) => {
     setMissionMsg('');
-    if (!answer) setD(p => ({ ...p, missions: p.missions?.map(m => m.key === key ? { ...m, done: true } : m) }));
+    setD(p => ({ ...p, missions: p.missions?.map(m => m.key === key ? { ...m, done: true } : m) }));
     try {
-      await passportApi.completeMission(key, answer);
+      await passportApi.completeMission(key);
     } catch (e: any) {
       setMissionMsg(e?.response?.data?.message || 'Could not complete that mission.');
     } finally { reload(); }
@@ -278,337 +263,418 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
     setAnswerBusy(false);
   };
 
-  const hoursLeft = useMemo(() => {
-    const now = new Date();
-    const end = new Date(now); end.setHours(23, 59, 59, 999);
-    const mins = Math.max(0, Math.round((end.getTime() - now.getTime()) / 60000));
-    return `${Math.floor(mins / 60)}h : ${String(mins % 60).padStart(2, '0')}m left`;
-  }, []);
-
   const st = d.stats!;
   const lv = d.level!;
-  const goal = d.dailyGoal!;
-  const shownMissions = pastDay ? (pastDay.missions || []) : (d.missions || []);
-  const nextMission = shownMissions.find(m => !m.done) || null;
-  const totalMissions = shownMissions.length;
-  const hasActivity = (d.activity || []).some(a => a.xp > 0);
-
-  const startNext = () => {
-    if (!nextMission) { nav('/careerpilot/practice'); return; }
-    if (nextMission.link) { nav(nextMission.link); return; }
-    setAnswerFor(nextMission.key);
-    setAnswerText('');
-    setAnswerMsg('');
-    requestAnimationFrame(() => document.getElementById(`mission-${nextMission.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-  };
+  const missions = d.missions || [];
+  const nextMission = missions.find(m => !m.done) || null;
+  const progressOn = !hidden.has('progress');
 
   const journeyMode = journey?.engine === 'UNIT';
-  /* The hero's "Day N of M" is the member's own programme (130 for a Specialize journey), not the
-     old 90-day stats default: the journey when there is one, else the plan length the rail uses. */
-  const heroTotal = (journey?.available && journey.totalDays) || d.programDays || st.totalDays;
-  const heroDay = journey?.available ? (journey.currentDay ?? 1) : st.day;
+  /* "Day N of M" is the member's own programme (130 for a Specialize journey), not the old 90-day default. */
+  const planTotal = (journey?.available && journey.totalDays) || d.programDays || st.totalDays;
+  const planDay = journey?.available ? (journey.currentDay ?? 1) : st.day;
   const welcomeHref = welcomeDay ? `/careerpilot/journey/welcome/${welcomeDay.dayNumber}` : '';
   const wItems = welcomeDay?.items || [];
-  const wDone = wItems.filter(i => i.done).length;
   const jActs = jDay?.activities || [];
-  const jDone = jActs.filter(a => a.done).length;
-  const jTotalXp = jActs.reduce((t, a) => t + (a.xp || 0), 0) + (jDay?.dayBonusXp || 0);
-  const jEarned = jActs.reduce((t, a) => t + (a.done ? a.xp || 0 : 0), 0) + (jDay?.status === 'COMPLETED' ? jDay?.dayBonusXp || 0 : 0);
   const dayHref = `/careerpilot/journey/day/${journey?.currentDay ?? 1}`;
-  const score = d.coderScore!.score;
-  const scoreTag = score >= 750 ? 'Excellent' : score >= 500 ? 'On track' : 'Just getting started';
-  const goalPct = Math.min(100, Math.round(goal.target ? (goal.earned / goal.target) * 100 : 0));
-
-  const streakTarget = st.streak < 7 ? 7 : st.streak < 21 ? 21 : st.streak < 30 ? 30 : 100;
-  const missionXp = shownMissions.reduce((s, m) => s + m.xp, 0);
-  const missionsDone = shownMissions.filter(m => m.done).length;
-  // The institute's "My Progress" switch (Student Features) still hides the progress half here.
-  const progressOn = !((d as any).hidden || []).includes('progress');
-  const ranks = prog?.ranks || {};
-  const earnedBadges = (d.badges || []).filter(b => b.earned).length;
-  const shownBadges = allBadges ? (d.badges || []) : (d.badges || []).slice(0, 6);
-  const ladderFrom = Math.max(1, lv.level - 1);
-  const ladder = [0, 1, 2, 3].map(i => ladderFrom + i);
-  // Only the ranks the member actually holds; "College —" read like a broken figure.
-  const rankLine = ([['College', ranks.college], ['Global', ranks.global]] as const)
-    .filter(([, r]) => r?.available && r.rank)
-    .map(([label, r]) => `${label} #${r!.rank}${r!.participants ? ` of ${r!.participants.toLocaleString()}` : ''}`)
-    .join(' · ');
+  const score = d.coderScore?.score ?? 0;
+  const weekly = d.weekly;
 
   /**
-   * MY DASHBOARD, IN THE ORDER A STUDENT USES IT.
+   * TODAY'S PLAN, AS ONE LIST WHATEVER PLANS THE MEMBER.
    *
-   * The figures first (one row for everything Home and My Progress counted), then what to do today beside
-   * how they are moving, then how they compare and what they have earned, and the long view last. Every
-   * figure is one these two pages already showed — the redesign moves and groups them, it invents none.
+   * A welcome day, a journey day and the topic planner's missions each become the same rows. A journey
+   * or welcome row opens its day; a topic mission keeps its own Open / Write answer / tick, as before.
    */
-  return (
-    <div className="md mdb">
-      <section className="mdb-stats" aria-label="Your figures">
-        <div><span className="ic amber"><Bi name="fire" /></span><div><small>Streak</small><b>{st.streak}<em> {st.streak === 1 ? 'day' : 'days'}</em></b><span>Best {st.longestStreak} {st.longestStreak === 1 ? 'day' : 'days'}</span></div></div>
-        <div><span className="ic blue"><Bi name="award-fill" /></span><div><small>Level {lv.level}</small><b className="sm">{lv.title}</b><span className="md-mini-bar"><i style={{ width: `${barWidth(lv.progressPct)}%` }} /></span><span>{lv.xpToNextLevel.toLocaleString()} XP to level {lv.nextLevel}</span></div></div>
-        <div><span className="ic teal"><Bi name="lightning-charge-fill" /></span><div><small>Total XP</small><b>{lv.xp.toLocaleString()}</b><span>{d.globalRank ? `Global #${d.globalRank.rank.toLocaleString()} of ${d.globalRank.participants.toLocaleString()} students` : d.percentileAhead !== null && d.percentileAhead !== undefined ? `Ahead of ${d.percentileAhead}% on XP` : 'Activity earned'}</span></div></div>
-        {progressOn && <div><span className="ic gold"><Bi name="coin" /></span><div><small>Coins</small><b>{coins === null ? '—' : coins.toLocaleString()}</b>{prog?.conversion
-          ? <button className="md-link" onClick={() => nav('/careerpilot/coins')} title={`${prog.conversion.xpPerCoin.toLocaleString()} XP = 1 coin`}>{prog.conversion.coinsAvailable > 0
-            ? <>Convert XP to {prog.conversion.coinsAvailable.toLocaleString()} {prog.conversion.coinsAvailable === 1 ? 'coin' : 'coins'} <Bi name="arrow-right" /></>
-            : <>{prog.conversion.xpToNextCoin.toLocaleString()} XP to next coin <Bi name="arrow-right" /></>}</button>
-          : <button className="md-link" onClick={() => nav('/careerpilot/rewards')}>Rewards store <Bi name="arrow-right" /></button>}</div></div>}
-        <div><span className="ic teal"><Bi name="code-slash" /></span><div><small>Problems solved</small><b>{st.solved}<em> / {st.totalProblems}</em></b><span>{st.accuracy ? `${st.accuracy.pct}% accuracy` : 'No attempts yet'}</span></div></div>
-        <div><span className="ic violet"><Bi name="mic-fill" /></span><div><small>Mock interviews</small><b>{st.interviews}</b><span>{st.bestInterview !== null ? `Best ${st.bestInterview}%` : 'Not attempted yet'}</span></div></div>
-      </section>
+  type Row = { key: string; icon: string; tone: string; title: string; sub: string; xp: number; done: boolean; open?: () => void; mission?: typeof missions[number] };
+  let rows: Row[] = [];
+  let planEarned = 0; let planXp = 0;
+  let planLabel = `Day ${planDay} of ${planTotal}`;
+  let continueTo: (() => void) | null = null;
+  let planEmpty: React.ReactNode = null;
+  if (journeyMode && welcomeDay) {
+    planLabel = `Day ${welcomeDay.day} · before Day 1`;
+    rows = wItems.map(it => ({
+      key: it.key, icon: WELCOME_ICON[it.kind] || 'journal-text', tone: it.kind, title: it.title,
+      sub: `${WELCOME_TYPE[it.kind] || it.kind}${it.estimatedMinutes ? ` · ${it.estimatedMinutes} min` : ''}${it.required ? '' : ' · optional'}`,
+      xp: 0, done: !!it.done, open: welcomeDay.locked ? undefined : () => nav(welcomeHref),
+    }));
+    if (!welcomeDay.locked) continueTo = () => nav(welcomeHref);
+    else planEmpty = <>Today’s welcome is done. Day {welcomeDay.day} opens tomorrow.</>;
+  } else if (journeyMode) {
+    if (!journey?.available) {
+      planEmpty = <>
+        {journey?.message || 'Your plan appears here once your skill check is complete.'}
+        {journey?.reason === 'NO_JOURNEY' && <button className="dbx-btn primary sm" onClick={() => nav('/careerpilot/skill-assessment')}>Take your skill check</button>}
+      </>;
+    } else if (jDay) {
+      planLabel = `Day ${jDay.day} of ${jDay.totalDays}`;
+      rows = jActs.map(a => ({
+        key: String(a.id || a.order), icon: JOURNEY_ICON[a.type] || 'journal-text', tone: a.type, title: a.title,
+        sub: `${JOURNEY_TYPE[a.type] || a.type}${a.minutes ? ` · ${a.minutes} min` : ''}`,
+        xp: a.xp || 0, done: !!a.done, open: () => nav(dayHref),
+      }));
+      planXp = rows.reduce((t, r) => t + r.xp, 0) + (jDay.dayBonusXp || 0);
+      planEarned = rows.reduce((t, r) => t + (r.done ? r.xp : 0), 0) + (jDay.status === 'COMPLETED' ? jDay.dayBonusXp || 0 : 0);
+      if (journey.enrollmentId) continueTo = () => nav(dayHref);
+    }
+  } else {
+    rows = missions.map(m => ({
+      key: m.key, icon: MISSION_ICON[m.category] || 'circle', tone: m.category, title: m.title, sub: m.detail,
+      xp: m.xp, done: m.done, mission: m,
+    }));
+    planXp = rows.reduce((t, r) => t + r.xp, 0);
+    planEarned = rows.reduce((t, r) => t + (r.done ? r.xp : 0), 0);
+    if (nextMission) continueTo = () => (nextMission.link ? openMissionLink(nextMission.link, nav) : setAnswerFor(nextMission.key));
+    if (!rows.length) {
+      planEmpty = d.dailyPlan && !d.dailyPlan.available ? <>
+        {d.dailyPlan.message}
+        {d.dailyPlan.reason === 'ROADMAP_REQUIRED' && <button className="dbx-btn primary sm" onClick={() => nav('/careerpilot/roadmap')}>{d.programDays ? `Build my ${d.programDays}-day plan` : 'Build my plan'}</button>}
+      </> : 'No tasks planned for today.';
+    }
+  }
+  if (!planXp && d.dailyGoal) { planXp = d.dailyGoal.target; planEarned = d.dailyGoal.earned; }
+  const rowsDone = rows.filter(r => r.done).length;
+  const shownRows = allTasks ? rows : rows.slice(0, 3);
+  const moreRows = rows.length - shownRows.length;
+  const heroGo = continueTo || (() => nav('/careerpilot/roadmap'));
+  const heroLabel = rows.length && rowsDone === rows.length ? 'See your roadmap' : rowsDone ? 'Continue Today’s Plan' : 'Start Today’s Plan';
 
-      <section className="mdb-main">
-        <div className="md-col">
-          <div className={`mdb-goal${goal.met ? ' met' : ''}`}>
-            <span className="mdb-day">{welcomeDay ? `Day ${welcomeDay.day} · before Day 1` : `Day ${heroDay} of ${heroTotal}`}</span>
-            <div className="mdb-goal-main">
-              <div className="mdb-goal-top"><b>{goal.met ? <><Bi name="check-circle-fill" /> Today’s goal reached</> : 'Today’s goal'}</b><span>{goal.earned} / {goal.target} XP</span></div>
-              <div className="md-goal-bar" role="progressbar" aria-valuenow={goalPct} aria-valuemin={0} aria-valuemax={100} aria-label="Today's goal"><i style={{ width: `${barWidth(goalPct)}%` }} /></div>
+  /* XP this week against last week, as the Total XP card's trend. */
+  const xpTrend = !weekly || !weekly.xpThisWeek ? null
+    : weekly.xpLastWeek > 0 ? `${weekly.xpDelta >= 0 ? '+' : ''}${Math.round((weekly.xpDelta / weekly.xpLastWeek) * 100)}%`
+    : `+${weekly.xpThisWeek}`;
+  const xpTrendUp = !weekly || weekly.xpDelta >= 0;
+
+  const streakTarget = st.streak < 7 ? 7 : st.streak < 21 ? 21 : st.streak < 30 ? 30 : 100;
+  /* Badges: earned first, then the nearest to earning. */
+  const badges = [...(d.badges || [])].sort((a, b) => Number(b.earned) - Number(a.earned) || b.progress - a.progress);
+  const earnedBadges = badges.filter(b => b.earned).length;
+  const skills = [...(d.skills || [])].sort((a, b) => b.score - a.score).slice(0, 5);
+
+  const ranks = prog?.ranks || {};
+  const collegeOn = !!ranks.college?.available;
+  const boardOk = !!board && board.available;
+  const myRank = boardOk ? board.myRank : null;
+  const of = boardOk ? board.participantCount : 0;
+  const mainTop = topPct(myRank, of);
+  /* The second figure is the OTHER board: the college for a college member, else how many are ranked. */
+  const other = scope === 'GLOBAL' ? ranks.college : ranks.global;
+  const otherTop = other?.available ? topPct(other.rank, other.participants) : null;
+
+  const labs = [
+    {
+      key: 'thinkingLab', section: 'thinkingLab', icon: 'lightbulb', tone: 'blue', title: 'Thinking Lab', sub: 'Learning & problem solving',
+      to: '/careerpilot/thinking-lab',
+      pct: null as number | null,
+      note: !tl ? 'Solve today’s challenge' : tl.solvedTotal ? `${tl.solvedTotal} solved${tl.streak ? ` · ${tl.streak}-day streak` : ''}` : 'Solve your first challenge',
+    },
+    {
+      key: 'communication', section: 'communication', icon: 'chat-square-text', tone: 'violet', title: 'Communication Lab', sub: 'Speak · Present · Interview',
+      to: '/careerpilot/communication',
+      pct: comm && comm.timeline?.length ? Math.round(comm.latest) : null,
+      note: comm && comm.timeline?.length ? 'Latest score' : 'Record your first answer',
+    },
+    { key: 'aptitude', section: '', icon: 'calculator', tone: 'teal', title: 'Aptitude', sub: 'Quant · DI · Arithmetic', to: '/careerpilot/aptitude', pct: null, note: 'Coming soon', soon: true },
+    { key: 'reasoning', section: '', icon: 'puzzle', tone: 'amber', title: 'Reasoning', sub: 'Logical · Analytical · Verbal', to: '/careerpilot/reasoning', pct: null, note: 'Coming soon', soon: true },
+  ].filter(l => !hidden.has(l.key));
+
+  const contest = d.contests?.[0];
+
+  return (
+    <div className="dbx">
+      <div className="dbx-grid">
+        <div className="dbx-main">
+          {/* ── Hero ── */}
+          <section className="dbx-hero">
+            <div className="dbx-hero-copy">
+              <h2 className="dbx-hero-h">Your Placement Journey <span>Starts Here <span className="rocket" aria-hidden="true">🚀</span></span></h2>
+              <div className="dbx-hero-sub">Practice <i>•</i> Build <i>•</i> Interview <i>•</i> Get Placed</div>
+              <button className="dbx-btn primary lg" onClick={heroGo}>{heroLabel} <Bi name="arrow-right" /></button>
             </div>
-          </div>
-          {journeyMode ? (
-            /**
-             * TODAY'S MISSIONS ARE TODAY'S JOURNEY DAY.
-             *
-             * A student the unit engine plans has one plan, and the topic planner's daily missions are not part
-             * of it — which is why this card used to offer a member "Build my plan". Their missions are
-             * the tasks of the day their journey is on, each with the XP it pays (foundationJourneyXpService),
-             * worked through in the day player.
-             */
-            <article className="md-card">
-              <header className="md-card-head">
+            <Summit />
+            <ul className="dbx-hero-list">
+              {['Build strong skills', 'Improve communication', 'Practise real interviews', 'Track your placement readiness'].map(t => (
+                <li key={t}><Bi name="check-circle-fill" /> {t}</li>
+              ))}
+            </ul>
+          </section>
+
+          {/* ── Figures ── */}
+          <section className="dbx-stats" aria-label="Your figures">
+            <div className="dbx-stat">
+              <span className="ic teal"><Bi name="lightning-charge-fill" /></span>
+              <div className="tx">
+                <span className="n">{lv.xp.toLocaleString('en-IN')}</span>
+                <span className="l">Total XP</span>
+                {xpTrend && <span className={`trend${xpTrendUp ? '' : ' down'}`} title="This week against last week"><Bi name={xpTrendUp ? 'arrow-up' : 'arrow-down'} /> {xpTrend} this week</span>}
+              </div>
+            </div>
+            {progressOn && (
+              <div className="dbx-stat">
+                <span className="ic gold"><Bi name="coin" /></span>
+                <div className="tx">
+                  <span className="n">{coins === null ? '—' : coins.toLocaleString('en-IN')}</span>
+                  <span className="l">Coins</span>
+                  {prog?.conversion && prog.conversion.coinsAvailable > 0
+                    ? <button className="lnk" onClick={() => nav('/careerpilot/coins')}>Convert XP <Bi name="arrow-right" /></button>
+                    : <button className="lnk" onClick={() => nav('/careerpilot/rewards')}>Rewards Store <Bi name="arrow-right" /></button>}
+                </div>
+              </div>
+            )}
+            <div className="dbx-stat">
+              <span className="ic blue"><Bi name="code-slash" /></span>
+              <div className="tx">
+                <span className="n">{st.solved}<em> / {st.totalProblems}</em></span>
+                <span className="l">Problems Solved</span>
+                {st.solvedToday > 0 ? <span className="trend"><Bi name="arrow-up" /> +{st.solvedToday} today</span>
+                  : st.accuracy ? <span className="meta">{st.accuracy.pct}% accuracy</span> : null}
+              </div>
+            </div>
+            <div className="dbx-stat">
+              <span className="ic violet"><Bi name="mic-fill" /></span>
+              <div className="tx">
+                <span className="n">{st.interviews}</span>
+                <span className="l">Mock Interviews</span>
+                {st.bestInterview !== null && <span className="meta">Best {st.bestInterview}%</span>}
+              </div>
+            </div>
+            <button className="dbx-stat as-btn" onClick={() => nav('/careerpilot/readiness')} title="A 0–1000 score from your assessment, practice, missions, interviews and resume">
+              <span className="ic navy"><Bi name="bar-chart-fill" /></span>
+              <div className="tx">
+                <span className="n">{score}<em> / 1000</em></span>
+                <span className="l">Coder Score <Bi name="info-circle" /></span>
+                <span className="bar"><i style={{ width: `${barWidth(score / 10)}%` }} /></span>
+              </div>
+            </button>
+          </section>
+
+          {/* ── Today's plan + skill progress ── */}
+          <section className="dbx-pair">
+            <article className="dbx-card dbx-plan">
+              <header className="dbx-head">
                 <div>
-                  <h2><Bi name="list-task" /> Today’s missions</h2>
-                  <p>{welcomeDay ? `Day ${welcomeDay.day} · ${welcomeDay.title} · before Day 1` : jDay ? `Day ${jDay.day} of ${jDay.totalDays} · ${jDay.title}` : journey?.available ? `Day ${journey.currentDay ?? 1} of ${journey.totalDays ?? d.programDays ?? 90}` : `Your ${journey?.stageLabel || 'CareerPilot'} journey`}</p>
+                  <h2><Bi name="calendar-check" className="hd-ic" /> Today’s Plan <span className="dbx-day">({planLabel})</span></h2>
+                  <span className="dbx-sub">Complete these tasks to stay on track.</span>
                 </div>
-                {welcomeDay ? <span className="md-pill">{wDone} of {wItems.length} done</span>
-                  : jDay && <span className="md-pill">{jDone} of {jActs.length} done · +{jEarned} / {jTotalXp} XP</span>}
+                {planXp > 0 && <span className="dbx-xp-pill">{planEarned} / {planXp} XP</span>}
               </header>
-              {welcomeDay ? <>
-                <div className="md-missions">
-                  {wItems.map(it => (
-                    <button type="button" key={it.key} className={`md-mission md-jm${it.done ? ' done' : ''}`} onClick={() => !welcomeDay.locked && nav(welcomeHref)} disabled={!!welcomeDay.locked}>
-                      <span className={`md-mission-ic t-${it.kind}`}><Bi name={WELCOME_ICON[it.kind] || 'journal-text'} /></span>
-                      <span className="txt"><b>{it.title}</b><span>{WELCOME_TYPE[it.kind] || it.kind}{it.estimatedMinutes ? ` · ${it.estimatedMinutes} min` : ''}{it.required ? ' · must be completed' : ' · optional'}</span></span>
-                      <span className={`md-check${it.done ? ' on' : ''}`} aria-label={it.done ? 'Done' : 'Not done yet'}>{it.done && <Bi name="check-lg" />}</span>
-                    </button>
-                  ))}
-                  {!wItems.length && <div className="md-empty">This welcome day is still being prepared.</div>}
-                </div>
-                <div className="md-jm-actions">
-                  {welcomeDay.locked
-                    ? <span className="md-empty-note">Today’s welcome is done — Day {welcomeDay.day} opens tomorrow.</span>
-                    : <button className="md-btn primary" onClick={() => nav(welcomeHref)}>{`${wDone ? 'Continue' : 'Start'} Day ${welcomeDay.day}`} <Bi name="arrow-right" /></button>}
-                  <button className="md-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {journey?.totalDays ?? d.programDays ?? 90} days</button>
-                </div>
-              </> : !journey?.available ? (
-                <div className="md-empty">
-                  <p>{journey?.message || 'Your journey appears here once your skill check is complete.'}</p>
-                  {journey?.reason === 'NO_JOURNEY' && <button className="md-btn primary" onClick={() => nav('/careerpilot/skill-assessment')}>Take your skill check</button>}
-                </div>
-              ) : !jDay ? (
-                <div className="md-empty">Loading today’s tasks…</div>
-              ) : <>
-                <div className="md-missions">
-                  {jActs.map(a => (
-                    <button type="button" key={a.id || a.order} className={`md-mission md-jm${a.done ? ' done' : ''}`} onClick={() => nav(dayHref)}>
-                      <span className={`md-mission-ic t-${a.type}`}><Bi name={JOURNEY_ICON[a.type] || 'journal-text'} /></span>
-                      <span className="txt"><b>{a.title}</b><span>{JOURNEY_TYPE[a.type] || a.type}{a.minutes ? ` · ${a.minutes} min` : ''}{a.gating ? ' · must be completed' : ''}</span></span>
-                      {(a.xp ?? 0) > 0 && <span className="xp">+{a.xp} XP</span>}
-                      <span className={`md-check${a.done ? ' on' : ''}`} aria-label={a.done ? 'Done' : 'Not done yet'}>{a.done && <Bi name="check-lg" />}</span>
-                    </button>
-                  ))}
-                  {(jDay.dayBonusXp ?? 0) > 0 && (
-                    <div className={`md-mission md-jm bonus${jDay.status === 'COMPLETED' ? ' done' : ''}`}>
-                      <span className="md-mission-ic"><Bi name="gift-fill" /></span>
-                      <span className="txt"><b>Finish every task today</b><span>Day bonus, on top of each task’s XP</span></span>
-                      <span className="xp">+{jDay.dayBonusXp} XP</span>
-                      <span className={`md-check${jDay.status === 'COMPLETED' ? ' on' : ''}`} aria-hidden="true">{jDay.status === 'COMPLETED' && <Bi name="check-lg" />}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="md-jm-actions">
-                  {journey.enrollmentId && <button className="md-btn primary" onClick={() => nav(dayHref)}>{`${jDone ? 'Continue' : 'Start'} Day ${journey?.currentDay ?? 1}`} <Bi name="arrow-right" /></button>}
-                  <button className="md-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {journey.totalDays ?? d.programDays ?? 90} days</button>
-                </div>
-              </>}
+              {planEmpty && !rows.length ? <div className="dbx-empty">{planEmpty}</div> : (
+                <>
+                  <ul className="dbx-tasks">
+                    {shownRows.map(r => {
+                      const m = r.mission;
+                      return (
+                        <li key={r.key} className={r.done ? 'done' : ''}>
+                          <div className="dbx-task" role={r.open ? 'button' : undefined} tabIndex={r.open ? 0 : undefined}
+                            onClick={r.open} onKeyDown={e => { if (r.open && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); r.open(); } }}>
+                            <span className={`dbx-task-ic t-${r.tone}`}><Bi name={r.icon} /></span>
+                            <span className="dbx-task-tx"><b>{r.title}</b><span>{r.sub}</span></span>
+                            {m && m.link && !m.done && <button className="lnk" onClick={e => { e.stopPropagation(); openMissionLink(m.link!, nav); }}>Open</button>}
+                            {m && m.needsAnswer && !m.done && <button className="lnk" onClick={e => { e.stopPropagation(); setAnswerFor(answerFor === m.key ? null : m.key); setAnswerText(''); setAnswerMsg(''); }}>{answerFor === m.key ? 'Close' : 'Answer'}</button>}
+                            {r.xp > 0 && <span className="xp">+{r.xp} XP</span>}
+                            {m ? (
+                              <button className={`dbx-check${m.done ? ' on' : ''}`} aria-label={m.done ? 'Done' : 'Mark done'}
+                                disabled={m.done || m.verify === 'interview' || !!m.needsAnswer}
+                                onClick={e => { e.stopPropagation(); toggleMission(m.key); }}>{m.done && <Bi name="check-lg" />}</button>
+                            ) : (
+                              <span className={`dbx-check${r.done ? ' on' : ''}`} aria-label={r.done ? 'Done' : 'Not done yet'}>{r.done && <Bi name="check-lg" />}</span>
+                            )}
+                          </div>
+                          {m && m.needsAnswer && !m.done && answerFor === m.key && (
+                            <div className="dbx-answer">
+                              <textarea value={answerText} autoFocus rows={3} placeholder="Type your answer here…" onChange={e => setAnswerText(e.target.value)} onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()} />
+                              <span className="hint"><Bi name="pencil-square" /> Write it in your own words. Pasting is turned off for this one.</span>
+                              <div className="row">
+                                <button className="dbx-btn primary sm" onClick={() => saveAnswer(m.key)} disabled={answerBusy}>{answerBusy ? 'Saving…' : `Save & complete +${m.xp} XP`}</button>
+                                <button className="dbx-btn sm" onClick={() => { setAnswerFor(null); setAnswerMsg(''); }}>Cancel</button>
+                                {answerMsg && <span className="msg">{answerMsg}</span>}
+                              </div>
+                            </div>
+                          )}
+                          {m && (m.feedback || (justCoached?.key === m.key && justCoached.feedback)) && (
+                            <div className="dbx-coach"><b><Bi name="chat-dots" /> Coach</b> {m.feedback || justCoached?.feedback}</div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {missionMsg && <div className="dbx-error">{missionMsg}</div>}
+                  <footer className="dbx-plan-foot">
+                    <span>{moreRows > 0 ? `+${moreRows} more ${moreRows === 1 ? 'task' : 'tasks'} for today` : `${rowsDone} of ${rows.length} done`}</span>
+                    {rows.length > 3
+                      ? <button className="dbx-btn soft sm" onClick={() => setAllTasks(v => !v)}>{allTasks ? 'Show fewer' : 'View More'} <Bi name={allTasks ? 'chevron-up' : 'arrow-right'} /></button>
+                      : continueTo && rowsDone < rows.length ? <button className="dbx-btn soft sm" onClick={continueTo}>Open today <Bi name="arrow-right" /></button> : null}
+                  </footer>
+                </>
+              )}
             </article>
-          ) : (
-          <article className="md-card">
-            <header className="md-card-head">
-              <div>
-                <h2><Bi name="list-task" /> {pastDay ? `Day ${pastDay.day} missions` : 'Today’s missions'}</h2>
-                <p>{totalMissions ? `${missionsDone} of ${totalMissions} done · +${missionXp} XP for all of them` : 'Your daily missions appear here.'}</p>
+
+            <article className="dbx-card">
+              <header className="dbx-head">
+                <div>
+                  <h2><Bi name="stars" className="hd-ic" /> Your Skill Progress</h2>
+                  <span className="dbx-sub">Track your readiness across key areas.</span>
+                </div>
+                <button className="dbx-link" onClick={() => nav('/careerpilot/skills')}>Full Report <Bi name="arrow-right" /></button>
+              </header>
+              {!skills.length ? <div className="dbx-empty">Your skills appear here after your skill check.</div> : (
+                <ul className="dbx-skills">
+                  {skills.map(s => (
+                    <li key={s.key}>
+                      <span className="ic"><Bi name={skillIcon(s.label)} /></span>
+                      <span className="nm" title={s.label}>{s.label}{s.early && <em title="Based on little evidence so far"> · early</em>}</span>
+                      <span className="bar"><i style={{ width: `${barWidth(s.score)}%` }} /></span>
+                      <span className="pc">{Math.round(s.score)}%</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {skills.length > 0 && skills.length < 3 && (
+                <div className="dbx-skills-note"><Bi name="info-circle" /> More skill areas appear here as your skill checks, practice and interviews measure them.</div>
+              )}
+            </article>
+          </section>
+
+          {/* ── Labs ── */}
+          {!!labs.length && (
+            <section className="dbx-labs">
+              {labs.map(l => {
+                const locked = !!l.section && lockedSections.has(l.section);
+                return (
+                  <button key={l.key} className={`dbx-lab tone-${l.tone}`} onClick={() => nav(l.to)}>
+                    <span className="top">
+                      <span className="ic"><Bi name={l.icon} /></span>
+                      <span className="tx"><b>{l.title}</b><span>{l.sub}</span></span>
+                    </span>
+                    <span className="bottom">
+                      {l.pct !== null && !locked
+                        ? <><span className="bar"><i style={{ width: `${barWidth(l.pct)}%` }} /></span><span className="pc">{l.pct}%</span></>
+                        : <span className={`note${(l as any).soon ? ' soon' : ''}`}>{locked ? <><Bi name="lock-fill" /> Part of membership</> : l.note}</span>}
+                      <span className="go"><Bi name="arrow-right" /></span>
+                    </span>
+                  </button>
+                );
+              })}
+            </section>
+          )}
+        </div>
+
+        <aside className="dbx-side">
+          {/* ── Streak ── */}
+          <article className="dbx-card dbx-streak">
+            <div className="dbx-streak-top">
+              <span className="flame"><Bi name="fire" /></span>
+              <div className="tx">
+                <b>{st.streak} Day Streak <Bi name="info-circle" className="info" /></b>
+                <span>{st.streak ? 'Keep the momentum!' : 'Learn today to start one.'}</span>
               </div>
-              <div className="md-day-nav">
-                <button onClick={() => stepDay(-1)} disabled={(pastDay?.day ?? d.day ?? 1) <= 1 || dayBusy} title="Previous day" aria-label="Previous day"><Bi name="chevron-left" /></button>
-                {pastDay ? <button className="today" onClick={() => setPastDay(null)}>Back to today</button> : <span className="md-timer"><Bi name="clock" /> {hoursLeft}</span>}
-                <button onClick={() => stepDay(1)} disabled={!pastDay || dayBusy} title="Next day" aria-label="Next day"><Bi name="chevron-right" /></button>
-              </div>
-            </header>
-            {!totalMissions ? (
-              <div className="md-empty">
-                {data.dailyPlan && !data.dailyPlan.available ? <>
-                  <p>{data.dailyPlan.message}</p>
-                  {data.dailyPlan.reason === 'ROADMAP_REQUIRED' && <button className="md-btn primary" onClick={() => nav('/careerpilot/roadmap')}>{d.programDays ? `Build my ${d.programDays}-day plan` : 'Build my plan'}</button>}
-                </> : 'No missions generated for today.'}
-              </div>
-            ) : <>
-              <div className="md-missions">
-                {shownMissions.map(m => (
-                  <React.Fragment key={m.key}>
-                    <div className={`md-mission${m.done ? ' done' : ''}`} id={`mission-${m.key}`}>
-                      <span className="md-mission-ic"><Bi name={MISSION_ICON[m.category] || 'circle'} /></span>
-                      <div className="txt"><b>{m.title}</b><span>{m.detail}</span></div>
-                      {m.link && !m.done && <button className="lnk" onClick={() => openMissionLink(m.link!, nav)}>Open <Bi name="arrow-right" /></button>}
-                      {m.needsAnswer && !m.done && <button className="lnk" onClick={() => { setAnswerFor(answerFor === m.key ? null : m.key); setAnswerText(''); setAnswerMsg(''); }}>{answerFor === m.key ? 'Close' : 'Write answer'} <Bi name="arrow-right" /></button>}
-                      <span className="xp">+{m.xp} XP</span>
-                      <button className={`md-check${m.done ? ' on' : ''}`} aria-label={m.done ? 'Done' : 'Mark done'} disabled={m.done || (m.verify === 'interview' && !m.done) || (m.needsAnswer && !m.done)} onClick={() => toggleMission(m.key)}>{m.done && <Bi name="check-lg" />}</button>
-                    </div>
-                    {m.needsAnswer && !m.done && answerFor === m.key && <div className="md-answer">
-                      <textarea value={answerText} autoFocus rows={3} placeholder="Type your answer here…" onChange={e => setAnswerText(e.target.value)} onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()} />
-                      <div className="hint"><Bi name="pencil-square" /> Write it in your own words — pasting is turned off for this one.</div>
-                      <div className="md-answer-row"><button className="md-btn primary sm" onClick={() => saveAnswer(m.key)} disabled={answerBusy}>{answerBusy ? 'Saving…' : `Save & complete +${m.xp} XP`}</button><button className="md-btn sm" onClick={() => { setAnswerFor(null); setAnswerMsg(''); }}>Cancel</button>{answerMsg && <span className="msg">{answerMsg}</span>}</div>
-                    </div>}
-                    {m.done && m.answer && <div className="md-answer saved"><b>Your answer</b><p>{m.answer}</p></div>}
-                    {(m.feedback || (justCoached?.key === m.key && justCoached.feedback)) && <div className="md-coach"><b><Bi name="chat-dots" /> Coach</b><p>{m.feedback || justCoached?.feedback}</p></div>}
-                  </React.Fragment>
+              <span className="gift" title={`${streakTarget}-day streak: ${streakTarget - st.streak} ${streakTarget - st.streak === 1 ? 'day' : 'days'} to go`}><Bi name="gift-fill" /></span>
+            </div>
+            <div className="dbx-week">
+              {(d.streakWeek || []).map(w => (
+                <div key={w.date} className={`${w.active ? 'on' : ''}${w.isToday ? ' today' : ''}`}>
+                  <span className="dot">{w.active && <Bi name="check-lg" />}</span>
+                  <span className="l">{w.letter}</span>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          {/* ── Level ── */}
+          <article className="dbx-card dbx-level">
+            <div className="dbx-level-top">
+              <span className="medal"><Bi name="award-fill" /></span>
+              <div className="tx"><b>Level {lv.level}</b><span>{lv.title}</span></div>
+              <span className="xp"><b>{lv.xpIntoLevel.toLocaleString('en-IN')}</b> / {lv.xpForThisLevel.toLocaleString('en-IN')} XP</span>
+            </div>
+            <div className="dbx-level-bar" role="progressbar" aria-valuenow={lv.progressPct} aria-valuemin={0} aria-valuemax={100} aria-label={`Level ${lv.level} progress`}><i style={{ width: `${barWidth(lv.progressPct)}%` }} /></div>
+            <span className="dbx-sub">{lv.xpToNextLevel.toLocaleString('en-IN')} XP to reach Level {lv.nextLevel}</span>
+          </article>
+
+          {/* ── Achievements ── */}
+          {progressOn && (
+            <article className="dbx-card">
+              <header className="dbx-head">
+                <div><h2><Bi name="trophy-fill" className="hd-ic gold" /> Achievements</h2><span className="dbx-sub">{earnedBadges} of {badges.length} earned</span></div>
+                <button className="dbx-link" onClick={() => nav('/careerpilot/achievements')}>View All <Bi name="arrow-right" /></button>
+              </header>
+              <div className="dbx-badges">
+                {badges.slice(0, 5).map((b: Badge) => (
+                  <div key={b.key} className={`dbx-badge${b.earned ? ' earned' : ''}`} title={b.earned ? `${b.label}: earned` : `${b.label}: ${b.hint} (${Math.round(b.progress * 100)}%)`}>
+                    <span className="hex" style={b.earned ? { ['--bc' as any]: b.color } : undefined}><Bi name={b.earned ? BADGE_ICON[b.key] || 'star-fill' : 'lock-fill'} /></span>
+                    <b>{b.label}</b>
+                  </div>
                 ))}
               </div>
-              {missionMsg && <div className="md-error">{missionMsg}</div>}
-              <button className="md-btn primary block" onClick={startNext}>{nextMission ? (nextMission.link ? 'Start now' : 'Write your answer') : 'All done today — practice anyway'} <Bi name="arrow-right" /></button>
-            </>}
-          </article>
+            </article>
           )}
 
-          <article className="md-card">
-            <header className="md-card-head">
-              <div><h2><Bi name="speedometer2" /> Coder score</h2><p>A 0–1000 score from your assessment, practice, missions, interviews and resume.</p></div>
-            </header>
-            <div className="mdb-score">
-              <div className="md-score-ring" style={{ ['--md-deg' as any]: `${Math.min(1000, score) * 0.36}deg` }}>
-                <div><strong>{score}</strong><span>/ 1000</span></div>
-              </div>
-              <div className="mdb-score-parts">
-                <b className="mdb-score-tag">{scoreTag}</b>
-                <div className="md-parts">
-                  {d.coderScore!.parts.map(p => {
-                    const pct = Math.round((p.earned / p.max) * 100);
-                    return <div className="md-part" key={p.label}>
-                      <div className="top"><span>{p.label}</span><b>{p.earned} / {p.max}</b></div>
-                      <div className="bar"><i style={{ width: `${barWidth(pct)}%` }} /></div>
-                    </div>;
-                  })}
+          {/* ── Global rank ── */}
+          {progressOn && (
+            <article className="dbx-card dbx-rank" id="leaderboard">
+              <header className="dbx-head">
+                <div><h2><Bi name="bar-chart-fill" className="hd-ic" /> {scope === 'COLLEGE' ? 'College Rank' : 'Global Rank'}</h2></div>
+                <div className="dbx-seg" role="tablist" aria-label="Period">
+                  {[{ k: 'ALL_TIME', l: 'All Time' }, { k: 'MONTHLY', l: 'Month' }, { k: 'WEEKLY', l: 'Week' }].map(t => (
+                    <button key={t.k} role="tab" aria-selected={period === t.k} className={period === t.k ? 'on' : ''} onClick={() => setPeriod(t.k)}>{t.l}</button>
+                  ))}
                 </div>
-              </div>
-            </div>
-          </article>
+              </header>
+              {collegeOn && (
+                <div className="dbx-seg scope" role="tablist" aria-label="Who to rank against">
+                  {[{ k: 'GLOBAL', l: 'Global' }, { k: 'COLLEGE', l: 'College' }].map(t => (
+                    <button key={t.k} role="tab" aria-selected={scope === t.k} className={scope === t.k ? 'on' : ''} onClick={() => setScope(t.k)}>{t.l}</button>
+                  ))}
+                </div>
+              )}
+              {boardBusy && !board ? <div className="dbx-empty">Loading your rank…</div>
+                : !board ? <div className="dbx-empty">Your rank could not be loaded.</div>
+                : !board.available ? <div className="dbx-empty">{(board as any).reason || 'Ranks are not available for you yet.'}</div>
+                : (
+                  <div className="dbx-rank-body">
+                    <button className="dbx-wreath" onClick={() => nav('/careerpilot/leaderboard')} title="See the full board">
+                      <Laurel />
+                      <span className="num">{myRank ? `#${myRank.toLocaleString('en-IN')}` : '—'}</span>
+                      <span className="cap">rank</span>
+                    </button>
+                    <div className="dbx-rank-fig">
+                      <span className="ic"><Bi name="trophy-fill" /></span>
+                      <b>{mainTop ? `Top ${mainTop}%` : 'Not ranked yet'}</b>
+                      <span>of {of.toLocaleString('en-IN')} {scope === 'COLLEGE' ? 'in your college' : 'learners'}</span>
+                    </div>
+                    <div className="dbx-rank-fig">
+                      <span className="ic"><Bi name={scope === 'GLOBAL' && collegeOn ? 'building' : 'people-fill'} /></span>
+                      {otherTop
+                        ? <><b>Top {otherTop}%</b><span>{scope === 'GLOBAL' ? 'in your college' : 'of all learners'}</span></>
+                        : <><b>{board.myXp.toLocaleString('en-IN')} XP</b><span>{period === 'ALL_TIME' ? 'all time' : period === 'MONTHLY' ? 'this month' : 'this week'}</span></>}
+                    </div>
+                  </div>
+                )}
+            </article>
+          )}
 
-        </div>
-
-        <div className="md-col">
-          <article className="md-card">
-            <header className="md-card-head"><div><h2><Bi name="fire" /> Streak</h2><p>{st.streak} {st.streak === 1 ? 'day' : 'days'} in a row · best {st.longestStreak}</p></div></header>
-            <div className="md-week">{(d.streakWeek || []).map(w => <div key={w.date}><div className={`dot${w.active ? ' on' : ''}${w.isToday ? ' today' : ''}`}>{w.active && <Bi name="check-lg" />}</div><div className="l">{w.letter}</div></div>)}</div>
-            <div className="md-milestone"><span className="ic"><Bi name="gift-fill" /></span><div><b>{streakTarget}-day streak</b><span>{streakTarget - st.streak} {streakTarget - st.streak === 1 ? 'day' : 'days'} to go — keep it up</span></div></div>
-          </article>
-
-          <article className="md-card">
-            <header className="md-card-head"><div><h2><Bi name="graph-up-arrow" /> Level progress</h2><p>Level {lv.level} · {lv.title}</p></div></header>
-            <div className="mdb-level-top"><b>{lv.xpToNextLevel.toLocaleString()} XP to go</b><span>{lv.xpIntoLevel} / {lv.xpForThisLevel} XP</span></div>
-            <div className="md-level-bar"><i style={{ width: `${barWidth(lv.progressPct)}%` }} /></div>
-            <ol className="mdb-ladder">{ladder.map(n => <li key={n} className={n < lv.level ? 'done' : n === lv.level ? 'current' : ''}><i /><span>L{n}</span></li>)}</ol>
-            <div className="md-unlock"><span className="ic"><Bi name="award-fill" /></span><div><small>Level {lv.nextLevel} unlocks</small><b>{lv.nextTitle}</b></div></div>
-          </article>
-
-          <article className="md-card">
-            <header className="md-card-head">
-              <div><h2><Bi name="stars" /> Skill meter</h2><p>{(d.skills || []).some((x: any) => x.early) ? 'Your Skill DNA by skill area (early: some areas rest on little evidence yet).' : 'Your Skill DNA by skill area.'}</p></div>
-              <button className="md-link" onClick={() => nav('/careerpilot/skills')}>Full report <Bi name="arrow-right" /></button>
+          {/* ── Upcoming event ── */}
+          <article className="dbx-card dbx-event">
+            <header className="dbx-head">
+              <div><h2><Bi name="calendar-event" className="hd-ic" /> Upcoming Event</h2></div>
+              <button className="dbx-link" onClick={() => nav('/battles')}>View All <Bi name="arrow-right" /></button>
             </header>
-            <div className="md-radar"><Radar skills={d.skills || []} /></div>
+            {!contest ? (
+              <div className="dbx-empty sm">No events scheduled right now. New contests appear here.</div>
+            ) : (
+              <div className="dbx-event-row">
+                <span className="ic"><Bi name="trophy-fill" /></span>
+                <div className="tx">
+                  <b>{contest.title}</b>
+                  <span><Bi name="calendar3" /> {new Date(contest.startAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}{contest.prize ? ` · Prize ${contest.prize}` : ''}</span>
+                </div>
+                <button className="dbx-btn primary sm" onClick={() => nav(contest.slug ? `/battles/${contest.slug}` : '/battles')}>Register</button>
+              </div>
+            )}
           </article>
-        </div>
-      </section>
-
-      <article className="md-card">
-        <header className="md-card-head">
-          <div><h2><Bi name="clock-history" /> Recent activity</h2><p>Last 7 days{d.weekly && d.weekly.xpLastWeek > 0 ? ` · ${d.weekly.xpDelta >= 0 ? '+' : ''}${d.weekly.xpDelta} XP vs last week` : ''}</p></div>
-          <div className="md-chips">
-            <span><b>{d.weekly?.submissions ?? 0}</b> submissions</span>
-            <span><b>{d.weekly?.totalAttempts ?? 0}</b> attempts</span>
-          </div>
-        </header>
-        {!d.recentActivity?.length ? <div className="md-empty">Nothing yet. Complete a mission or solve a problem and it appears here.</div> : <div className={`mdb-activity${hasActivity ? '' : ' one'}`}>
-          {hasActivity && <div className="md-chart-wrap"><AreaChart points={d.activity || []} /></div>}
-          <div className="md-feed">{d.recentActivity.map((a, i) => <div className="md-feed-row" key={i}><span className="ic"><Bi name="activity" /></span><span className="t">{a.label}</span><span className="xp">+{a.xp} XP</span><span className="ago">{a.ago}</span></div>)}</div>
-        </div>}
-      </article>
-
-      {progressOn && <section className="mdb-pair">
-        <article className="md-card" id="leaderboard">
-          <header className="md-card-head">
-            <div><h2><Bi name="bar-chart-steps" /> Leaderboard</h2><p>Ranked on CareerPilot XP{rankLine ? ` · ${rankLine}` : ''}</p></div>
-            <button className="md-link" onClick={() => nav('/careerpilot/leaderboard')}>Full board <Bi name="arrow-right" /></button>
-          </header>
-          <div className="mdb-tabs">
-            {/* Two boards to choose from only in a college; otherwise the one board is a label, not a lone button. */}
-            {ranks.college?.available
-              ? <div role="tablist" aria-label="Who to rank against">
-                {[{ k: 'COLLEGE', l: 'College' }, { k: 'GLOBAL', l: 'Global' }].map(t => <button key={t.k} role="tab" aria-selected={scope === t.k} className={scope === t.k ? 'on' : ''} onClick={() => setScope(t.k)}>{t.l}</button>)}
-              </div>
-              : <span className="mdb-scope"><Bi name="globe2" /> Every CareerPilot student</span>}
-            <div role="tablist" aria-label="Period">
-              {[{ k: 'ALL_TIME', l: 'All time' }, { k: 'MONTHLY', l: 'Month' }, { k: 'WEEKLY', l: 'Week' }].map(t => <button key={t.k} role="tab" aria-selected={period === t.k} className={period === t.k ? 'on' : ''} onClick={() => setPeriod(t.k)}>{t.l}</button>)}
-            </div>
-          </div>
-          {boardBusy && !board ? <div className="md-empty">Loading the leaderboard…</div>
-            : !board ? <div className="md-empty">The leaderboard could not be loaded.</div>
-            : !board.available ? <div className="md-empty">{(board as any).reason || 'This leaderboard is not available for you yet.'}</div>
-            : <>
-              <div className="mdb-rankhero">
-                <span className="ic"><Bi name={scope === 'COLLEGE' ? 'building' : 'globe2'} /></span>
-                <div className="rh-t"><small>Your {scope === 'COLLEGE' ? 'college' : 'global'} rank · {({ ALL_TIME: 'All time', MONTHLY: 'This month', WEEKLY: 'This week' } as Record<string, string>)[period]}</small>
-                  <b>{board.myRank ? `#${board.myRank.toLocaleString()}` : '—'}</b>
-                  <span>of {board.participantCount.toLocaleString()} students</span></div>
-                <div className="xp"><b>{board.myXp.toLocaleString()}</b><small>XP{period === 'ALL_TIME' ? '' : period === 'MONTHLY' ? ' this month' : ' this week'}</small></div>
-              </div>
-              <div className="md-lb">{board.entries.slice(0, 5).map((r: ScopedLeaderboardRow) => <div className={`md-lb-row${r.me ? ' me' : ''}`} key={r.studentId}><span className={`rk${r.rank <= 3 ? ` g${r.rank}` : ''}`}>{r.rank}</span><span className="av">{(r.name?.[0] || '?').toUpperCase()}</span><span className="nm">{r.name}{r.me ? ' (You)' : ''}{r.college ? <em>{r.college}</em> : null}</span><b className="xp">{r.xp.toLocaleString()} XP</b></div>)}</div>
-            </>}
-        </article>
-
-        <article className="md-card" id="badges">
-          <header className="md-card-head"><div><h2><Bi name="award" /> Achievements</h2><p>{earnedBadges} of {(d.badges || []).length} badges earned</p></div>{(d.badges || []).length > 6 && <button className="md-link" onClick={() => setAllBadges(v => !v)}>{allBadges ? 'Show fewer' : 'View all'} <Bi name={allBadges ? 'chevron-up' : 'arrow-right'} /></button>}</header>
-          <div className="md-badges mdb-badges">{shownBadges.map((b: Badge) => <div className={`md-badge${b.earned ? ' earned' : ''}`} key={b.key} title={b.hint}><div className="hex">{b.earned ? <Bi name="star-fill" /> : <Bi name="lock-fill" />}</div><b>{b.label}</b>{b.earned ? <span>Earned</span> : <><span>{Math.round(b.progress * 100)}%</span><div className="pbar"><i style={{ width: `${barWidth(b.progress * 100)}%` }} /></div></>}</div>)}</div>
-        </article>
-      </section>}
-
-      <section className={`mdb-pair${progressOn ? '' : ' one'}`}>
-        {progressOn && <article className="md-card">
-          <header className="md-card-head"><div><h2><Bi name="lightning-charge" /> Ways to earn XP</h2><p>XP shows your activity, not your skill readiness.</p></div></header>
-          <div className="mdb-earn">
-            {[
-              { ic: 'bullseye', t: 'Daily missions', s: 'Today’s tasks', to: journeyMode && journey?.available ? dayHref : '/careerpilot/plan' },
-              { ic: 'code-square', t: 'Practice', s: 'Solve problems', to: '/careerpilot/practice' },
-              { ic: 'mic', t: 'Mock interviews', s: 'Practise out loud', to: '/careerpilot/interview' },
-              { ic: 'map', t: 'Roadmap', s: 'Learn and improve', to: '/careerpilot/roadmap' },
-            ].map(x => <button key={x.t} onClick={() => nav(x.to)}><span className="ic"><Bi name={x.ic} /></span><b>{x.t}</b><span>{x.s}</span></button>)}
-          </div>
-        </article>}
-
-        <article className="md-card">
-          <header className="md-card-head"><div><h2><Bi name="trophy" /> Upcoming contests</h2><p>Compete, learn and win.</p></div>{!!d.contests?.length && <button className="md-link" onClick={() => nav('/battles')}>View all <Bi name="arrow-right" /></button>}</header>
-          {!d.contests?.length
-            ? <div className="md-empty"><span className="big"><Bi name="calendar-event" /></span><b>No contests scheduled right now.</b><span>You'll see upcoming contests here.</span><button className="md-btn sm" onClick={() => nav('/battles')}>Explore contests</button></div>
-            : <div className="md-contests">{d.contests.slice(0, 2).map((c, i) => <div className="md-contest" key={c.id}><span className="ic"><Bi name="trophy-fill" /></span><div className="info"><b>{c.title}{i === 0 && <em>Featured</em>}</b><span><Bi name="calendar3" /> {new Date(c.startAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}{c.prize ? ` · Prize ${c.prize}` : ''}</span></div><button className="md-btn primary sm" onClick={() => nav(c.slug ? `/battles/${c.slug}` : '/battles')}>Register</button></div>)}</div>}
-        </article>
-      </section>
-
-      <section className="md-path">
-        <div className="md-path-lead"><span className="ic"><Bi name="compass" /></span><div><small>Your career path</small><b>{d.pathwayLabel}</b></div></div>
-        <div className="md-steps">{(d.journey || []).map((p, i) => <div className={`md-step${p.done ? ' done' : p.current ? ' current' : ' locked'}`} key={p.key}><div className="dot">{p.done ? <Bi name="check-lg" /> : p.current ? i + 1 : <Bi name="lock-fill" />}</div><div className="cap">{p.label.replace(/^Phase \d+ · /, '')}<span>{p.done ? 'Completed' : p.current ? 'In progress' : 'Locked'}</span></div></div>)}</div>
-        <div className="md-path-end"><span className="ic"><Bi name={st.completedDays >= st.totalDays ? 'check-circle-fill' : 'flag-fill'} /></span><small>Placement ready</small></div>
-      </section>
+        </aside>
+      </div>
     </div>
   );
 };

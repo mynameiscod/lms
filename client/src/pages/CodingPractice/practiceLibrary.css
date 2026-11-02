@@ -248,3 +248,8 @@
   .pl.pl2x .pl-row .pl-chips > .pl-chip:nth-child(n+2) { display: none; }
   .pl.pl2x .pl-row .pl-chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* A CareerPilot trial: how many problems it shows. */
+.plx-trial { display: flex; align-items: baseline; gap: 8px; margin: 10px 0 0 !important; padding: 9px 12px; border-radius: 11px; background: #FFF6E2; border: 1px solid #F3DFB2; color: #6B4A00 !important; font-size: 13.5px !important; line-height: 1.45; }
+.plx-trial i { color: #B26F00; }
+.plx-trial b { color: #051D64; }

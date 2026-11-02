@@ -611,7 +611,9 @@ export const getMyJourney = async (req: Request, res: Response) => {
       lockedReason: gateHolds(d.dayNumber) && isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? 'FOUNDATION_GATE'
         : isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? undefined
           : !calendarAllowsDay(d.dayNumber, stripPacedFrom) ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
-    })).map(d => (d.lockedReason === 'FOUNDATION_GATE' ? { ...d, locked: true } : d));
+    })).map(d => (d.lockedReason === 'FOUNDATION_GATE' ? { ...d, locked: true } : d))
+      /* A trial's days past its limit say so, whatever else holds them. */
+      .map(d => (access.trialDays && d.day > access.trialDays && d.status !== 'COMPLETED' ? { ...d, locked: true, lockedReason: 'TRIAL_LIMIT' as any } : d));
 
     /* Each phase's size and progress, for the "Revision · Bridge · Year" bands. */
     const phases = isV2
@@ -639,6 +641,8 @@ export const getMyJourney = async (req: Request, res: Response) => {
       startedAt: enrollment?.startDate || null,
       engine,
       access: 'FULL',
+      /** A trial opens days 1..trialDays only; the strip marks the rest TRIAL_LIMIT. */
+      ...(access.trialDays ? { trialDays: access.trialDays } : {}),
       /** Where a day is actually worked through: the learning-plan day player. */
       enrollmentId: enrollment?._id ? String(enrollment._id) : null,
       days: strip,
@@ -680,6 +684,9 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
     // Beyond the preview, a day is refused on the server — not merely hidden on the screen.
     const access = await foundationAccess(tenantId, studentId);
     if (membershipRefusesDay(dayNumber, access)) {
+      if (access.trialDays && dayNumber > access.trialDays) {
+        return res.status(403).json({ reason: 'TRIAL_LIMIT', trialDays: access.trialDays, message: `Your trial includes the first ${access.trialDays} days. Take membership to open day ${dayNumber}.` });
+      }
       return res.status(403).json({ reason: 'MEMBERSHIP_REQUIRED', message: `Take membership to open day ${dayNumber} of your roadmap.` });
     }
 

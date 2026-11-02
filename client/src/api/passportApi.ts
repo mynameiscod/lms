@@ -237,6 +237,31 @@ export const passportApi = {
     const { data } = await axios.delete(`${BASE}/members/${userId}/grant`, { headers: auth() });
     return data;
   },
+  /** Trial plans: what a trial opens and for how long (CareerPilot → Trial plans). */
+  listTrialPlans: async (): Promise<{ plans: TrialPlan[]; catalogue: TrialCatalogueItem[]; maxDays: number }> => {
+    const { data } = await axios.get(`${BASE}/trial-plans`, { headers: auth() });
+    return data;
+  },
+  saveTrialPlan: async (id: string | null, body: Omit<TrialPlan, 'id' | 'running' | 'updatedAt'>): Promise<{ plan: TrialPlan }> => {
+    const { data } = id
+      ? await axios.put(`${BASE}/trial-plans/${id}`, body, { headers: auth() })
+      : await axios.post(`${BASE}/trial-plans`, body, { headers: auth() });
+    return data;
+  },
+  deleteTrialPlan: async (id: string): Promise<void> => {
+    await axios.delete(`${BASE}/trial-plans/${id}`, { headers: auth() });
+  },
+  startTrial: async (userId: string, planId: string, reason: string): Promise<{ trial: TrialStatus | null }> => {
+    const { data } = await axios.post(`${BASE}/members/${userId}/trial`, { planId, reason }, { headers: auth() });
+    return data;
+  },
+  endTrial: async (userId: string): Promise<void> => {
+    await axios.delete(`${BASE}/members/${userId}/trial`, { headers: auth() });
+  },
+  memberTrial: async (userId: string): Promise<{ trial: TrialStatus | null; last: any }> => {
+    const { data } = await axios.get(`${BASE}/members/${userId}/trial`, { headers: auth() });
+    return data;
+  },
   deleteMember: async (userId: string): Promise<any> => {
     const { data } = await axios.delete(`${BASE}/members/${userId}`, { headers: auth() });
     return data;
@@ -2019,7 +2044,18 @@ export interface DashboardData {
   locked?: LockedSection[];
   /** Menu items the institute's admin has switched off for CareerPilot students (Student Features page). */
   hidden?: string[];
+  /** A running trial: limited access for a set time. Null for everyone else. */
+  trial?: TrialStatus | null;
 }
+
+/** A trial as the member and the admin see it (server: trialService.trialStatus). */
+export interface TrialStatus {
+  planName: string; startedAt: string; endsAt: string; daysLeft: number;
+  items: { key: string; label: string; icon: string; on: boolean; limit: number | null; used: number | null; unit: string | null }[];
+}
+export interface TrialItemSetting { on: boolean; limit: number | null }
+export interface TrialPlan { id: string; name: string; description: string; days: number; items: Record<string, TrialItemSetting>; active: boolean; running: number; updatedAt?: string }
+export interface TrialCatalogueItem { key: string; label: string; icon: string; unit: string | null; hint: string | null }
 
 /** One day of the ninety. A unit of curriculum, not a calendar date. */
 export interface SpineDay {

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { trialAllowsAnother } from '../services/trialService';
 import crypto from 'crypto';
 import fs from 'fs';
 import mongoose from 'mongoose';
@@ -48,6 +49,9 @@ export const submitCoach = async (req: Request, res: Response) => {
     if (!bunny.isBunnyStorageConfigured()) { cleanup(file.path); return res.status(400).json({ message: 'Recording storage is not configured (Bunny Storage).' }); }
     const area = String(req.body?.area || '') as Area;
     if (!AREAS.includes(area)) { cleanup(file.path); return res.status(400).json({ message: 'Unknown practice area' }); }
+    // A trial counts each recording sent for feedback.
+    const trialStop = await trialAllowsAnother(tenantId, studentId, 'communication');
+    if (trialStop && !trialStop.ok) { cleanup(file.path); return res.status(trialStop.status).json(trialStop.body); }
     if (inflight.has(lock)) { cleanup(file.path); return res.status(409).json({ message: 'Your last recording is still being analysed. Please wait a moment.' }); }
     inflight.add(lock); locked = true;
 

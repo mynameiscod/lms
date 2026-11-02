@@ -1,13 +1,25 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import passportApi from '../../api/passportApi';
+import passportApi, { TrialCatalogueItem, TrialPlan } from '../../api/passportApi';
+import { describeItem } from './AdminTrialPlans';
 import './adminStudents.css';
+import './adminXpRewards.css';
+import './adminTrials.css';
 import { personName } from '../../utils/personName';
 // Several shared classes (pm-btn, pm-msg and this page's own) live in the member stylesheet; import
 // it here so the page is styled the same on a fresh load as after visiting a member page.
 import './member.css';
 
-type Filter = 'all' | 'member' | 'free' | 'comp' | 'off';
+type Filter = 'all' | 'member' | 'free' | 'comp' | 'trial' | 'off';
+
+/** Paid or granted access that is still running. */
+const fullAccess = (r: any) => !!r.passport?.active && (!r.passport?.expiresAt || new Date(r.passport.expiresAt).getTime() > Date.now());
+/** A trial running now (passport.trial; see the server's data/trialPolicy.ts). */
+const onTrial = (r: any) => {
+  const t = r.passport?.trial;
+  return !!t?.startedAt && !t.endedAt && new Date(t.endsAt).getTime() > Date.now() && !fullAccess(r);
+};
+const trialDaysLeft = (r: any) => Math.max(0, Math.ceil((new Date(r.passport.trial.endsAt).getTime() - Date.now()) / 86400000));
 const PAGE = 25;
 /** A member's display name: no stray "-" placeholder, and the email when there is no name at all. */
 const nameOf = (r: any) => personName(r, 'Unnamed member');
@@ -28,6 +40,13 @@ const PassportAdminStudents: React.FC = () => {
   const [page, setPage] = useState(1);
   const [menuFor, setMenuFor] = useState('');
   const [showActivate, setShowActivate] = useState(false);
+  /** The member being given a trial, and the plans to choose from. */
+  const [trialFor, setTrialFor] = useState<any | null>(null);
+  const [trialPlans, setTrialPlans] = useState<{ plans: TrialPlan[]; catalogue: TrialCatalogueItem[] } | null>(null);
+  const [trialPick, setTrialPick] = useState('');
+  const [trialReason, setTrialReason] = useState('');
+  const [trialErr, setTrialErr] = useState('');
+  const [trialBusy, setTrialBusy] = useState(false);
 
   // The row menu closes on any click outside it.
   useEffect(() => {
@@ -148,6 +167,35 @@ const PassportAdminStudents: React.FC = () => {
     } catch (e: any) { setMsg(e?.response?.data?.message || 'Could not revoke access'); }
   };
 
+  const openTrial = async (r: any) => {
+    setTrialFor(r); setTrialErr(''); setTrialReason('');
+    try {
+      const d = await passportApi.listTrialPlans();
+      setTrialPlans(d);
+      setTrialPick(d.plans.find(p => p.active)?.id || '');
+    } catch (e: any) { setTrialErr(e?.response?.data?.message || 'Could not load the trial plans.'); }
+  };
+
+  const startTrial = async () => {
+    if (!trialFor || !trialPick) return;
+    if (!trialReason.trim()) { setTrialErr('Give a reason, e.g. "college demo".'); return; }
+    setTrialBusy(true); setTrialErr('');
+    try {
+      const res = await passportApi.startTrial(trialFor._id, trialPick, trialReason.trim());
+      setMsg(`✅ Trial started for ${trialFor.firstName || 'this member'}${res.trial ? `, until ${new Date(res.trial.endsAt).toLocaleDateString('en-IN')}` : ''}.`);
+      setTrialFor(null);
+      await load();
+    } catch (e: any) { setTrialErr(e?.response?.data?.message || 'Could not start the trial.'); }
+    setTrialBusy(false);
+  };
+
+  const endTrial = async (r: any) => {
+    if (!window.confirm(`End ${r.firstName || 'this member'}'s trial now?\n\nEverything locks again. They keep everything they did.`)) return;
+    setMsg('');
+    try { await passportApi.endTrial(r._id); setMsg('✅ Trial ended.'); await load(); }
+    catch (e: any) { setMsg(e?.response?.data?.message || 'Could not end the trial.'); }
+  };
+
   const removeMember = async (r: any) => {
     // The server refuses this for anyone who has paid or been assessed and returns the
     // reason, so the UI does not duplicate that rule — it just shows what came back.
@@ -162,6 +210,7 @@ const PassportAdminStudents: React.FC = () => {
     member: rows.filter(r => r.passport?.active && !r.passport?.grant?.at).length,
     free: rows.filter(r => !r.passport?.active).length,
     comp: rows.filter(r => r.passport?.grant?.at).length,
+    trial: rows.filter(onTrial).length,
     off: rows.filter(r => r.isActive === false).length,
   }), [rows]);
   const shown = useMemo(() => rows.filter(r =>
@@ -169,6 +218,7 @@ const PassportAdminStudents: React.FC = () => {
       : filter === 'member' ? r.passport?.active && !r.passport?.grant?.at
       : filter === 'free' ? !r.passport?.active
       : filter === 'comp' ? !!r.passport?.grant?.at
+      : filter === 'trial' ? onTrial(r)
       : r.isActive === false), [rows, filter]);
   const pages = Math.max(1, Math.ceil(shown.length / PAGE));
   const pageRows = shown.slice((Math.min(page, pages) - 1) * PAGE, Math.min(page, pages) * PAGE);
@@ -184,6 +234,7 @@ const PassportAdminStudents: React.FC = () => {
           <p>Everyone who has signed up for CareerPilot: their membership, their roadmap, what they wrote and their mock interviews.</p>
         </div>
         <div className="cpm-head-actions">
+          <button className="cpx-btn" onClick={() => nav('/admin/passport/trial-plans')}><i className="bi bi-hourglass-split" /> Trial plans</button>
           <button className="cpx-btn" onClick={() => setShowActivate(v => !v)}><i className="bi bi-patch-check" /> Activate by ID</button>
           <button className="cpx-btn primary" onClick={() => setAdding(true)}><i className="bi bi-person-plus" /> Add member</button>
         </div>
@@ -225,7 +276,7 @@ const PassportAdminStudents: React.FC = () => {
           <input placeholder="Search by name or email" value={search} onChange={e => setSearch(e.target.value)} aria-label="Search members" />
         </div>
         <div className="cpm-filters" role="tablist" aria-label="Filter members">
-          {([['all', 'All'], ['member', 'Members'], ['free', 'Free'], ['comp', 'Complimentary'], ['off', 'Deactivated']] as [Filter, string][]).map(([k, label]) => (
+          {([['all', 'All'], ['member', 'Members'], ['free', 'Free'], ['comp', 'Complimentary'], ['trial', 'On trial'], ['off', 'Deactivated']] as [Filter, string][]).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={filter === k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>
               {label} <em>{counts[k]}</em>
             </button>
@@ -264,6 +315,12 @@ const PassportAdminStudents: React.FC = () => {
                         Complimentary
                       </span>
                     )}
+                    {onTrial(r) && (
+                      <span className="cpm-pill trial"
+                        title={`${r.passport.trial.planName || 'Trial'}: ${r.passport.trial.reason || ''} — by ${r.passport.trial.byName || 'admin'}`}>
+                        Trial · {trialDaysLeft(r)} {trialDaysLeft(r) === 1 ? 'day' : 'days'} left
+                      </span>
+                    )}
                     {r.isActive === false && <span className="cpm-pill off">Deactivated</span>}
                   </td>
                   <td data-label="Activated" className="cpm-date">{fmt(r.passport?.activatedAt)}</td>
@@ -289,6 +346,9 @@ const PassportAdminStudents: React.FC = () => {
                               {r.passport?.grant?.at
                                 ? <button role="menuitem" onClick={() => { setMenuFor(''); revokeAccess(r); }}><i className="bi bi-x-octagon" /> Revoke access</button>
                                 : <button role="menuitem" onClick={() => { setMenuFor(''); grantAccess(r); }}><i className="bi bi-gift" /> Grant access</button>}
+                              {onTrial(r)
+                                ? <button role="menuitem" onClick={() => { setMenuFor(''); endTrial(r); }}><i className="bi bi-hourglass-bottom" /> End trial</button>
+                                : !fullAccess(r) && <button role="menuitem" onClick={() => { setMenuFor(''); openTrial(r); }}><i className="bi bi-hourglass-split" /> Start trial</button>}
                               <button role="menuitem" onClick={() => { setMenuFor(''); toggleActive(r); }}><i className={`bi ${r.isActive === false ? 'bi-arrow-counterclockwise' : 'bi-pause-circle'}`} /> {r.isActive === false ? 'Restore' : 'Deactivate'}</button>
                               <button role="menuitem" className="danger" onClick={() => { setMenuFor(''); removeMember(r); }}><i className="bi bi-trash" /> Delete</button>
                             </span>
@@ -417,6 +477,46 @@ const PassportAdminStudents: React.FC = () => {
           <span>Page {Math.min(page, pages)} of {pages} · {shown.length} members</span>
           <button className="cpx-btn" disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Next <i className="bi bi-chevron-right" /></button>
         </nav>
+      )}
+      {trialFor && (
+        <div className="xr tp-wrap">
+          <div className="xr-drawer-bg center" onMouseDown={e => { if (e.target === e.currentTarget && !trialBusy) setTrialFor(null); }}>
+            <div className="xr-modal tp-dlg" role="dialog" aria-modal="true" aria-label="Start a trial">
+              <h3>Start a trial for {nameOf(trialFor)}</h3>
+              {!trialPlans ? <p>{trialErr || 'Loading the plans…'}</p>
+                : !trialPlans.plans.some(p => p.active) ? <>
+                  <p>There are no trial plans yet. Make one first: it says how many days the trial runs and what it opens.</p>
+                  <div className="xr-modal-ft">
+                    <button type="button" className="xr-btn" onClick={() => setTrialFor(null)}>Close</button>
+                    <button type="button" className="xr-btn primary" onClick={() => nav('/admin/passport/trial-plans')}>Make a trial plan</button>
+                  </div>
+                </> : <>
+                  <p>It starts now. When it ends, everything locks again and they keep what they did.</p>
+                  <label className="xr-f"><span className="xr-lbl">Plan</span>
+                    <select value={trialPick} onChange={e => setTrialPick(e.target.value)}>
+                      {trialPlans.plans.filter(p => p.active).map(p => <option key={p.id} value={p.id}>{p.name} ({p.days} {p.days === 1 ? 'day' : 'days'})</option>)}
+                    </select>
+                  </label>
+                  {(() => {
+                    const plan = trialPlans.plans.find(p => p.id === trialPick);
+                    return plan && <div className="tp-dlg-plan"><ul className="tp-items">
+                      {trialPlans.catalogue.filter(c => plan.items?.[c.key]?.on).map(c => (
+                        <li key={c.key} className="on"><i className={`bi ${c.icon}`} /><span>{c.label}</span><b>{describeItem(c, plan.items[c.key])}</b></li>
+                      ))}
+                    </ul></div>;
+                  })()}
+                  <label className="xr-f"><span className="xr-lbl">Reason <em>shown to staff later</em></span>
+                    <input value={trialReason} maxLength={200} placeholder="College demo" onChange={e => setTrialReason(e.target.value)} />
+                  </label>
+                  {trialErr && <div className="xr-err"><i className="bi bi-exclamation-circle" /> <span>{trialErr}</span></div>}
+                  <div className="xr-modal-ft">
+                    <button type="button" className="xr-btn" disabled={trialBusy} onClick={() => setTrialFor(null)}>Cancel</button>
+                    <button type="button" className="xr-btn primary" disabled={trialBusy || !trialPick} onClick={startTrial}>{trialBusy ? 'Starting…' : 'Start trial'}</button>
+                  </div>
+                </>}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

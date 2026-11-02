@@ -97,6 +97,9 @@ export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
           <span className="plx-eyebrow">Practice Lab</span>
           <h1>Turn problems into <span>progress</span></h1>
           <p>Real coding problems with tests that run your code. Pick by topic, company or difficulty, or carry on from where you stopped.</p>
+          {data?.trial && (
+            <p className="plx-trial"><i className="bi bi-hourglass-split" /> Your trial includes <b>{data.trial.problems}</b> of the {data.trial.libraryTotal.toLocaleString('en-IN')} problems. Membership opens all of them.</p>
+          )}
           {data?.next ? (
             <div className="plx-next">
               <small>{prog?.solved ? 'Up next for you' : 'Start with'}</small>

@@ -4,6 +4,9 @@ import ProblemSubmission from '../models/ProblemSubmission';
 import { PbError, onAudienceChange } from './problemBankService';
 import { Learner, runSamples, gradeAndRecord } from './problemDeliveryService';
 import { globalPracticeClause, onGrantChange } from './contentGrantService';
+import User from '../models/User';
+import { passportOf } from './trialService';
+import { trialItem } from '../data/trialPolicy';
 
 /**
  * The practice library: every published Problem Bank problem a CareerPilot member may choose to
@@ -37,6 +40,31 @@ onAudienceChange.push(() => cache.clear());
 export function assertMayUseLibrary(l: Learner) {
   if (!l.isCareerPilot && !l.isStaff) throw new PbError('The problem library is for CareerPilot members.', 403);
 }
+
+/**
+ * A member on a TRIAL sees only the trial's problems: the first N of the library in its usual
+ * order, fixed the first time they open Practice so the set does not shift under them. Null = no
+ * trial limit (a member, a non-member, or a trial with practice unlimited); [] = practice is off.
+ * If the library had fewer than N then, later problems are added until there are N.
+ */
+async function trialScope(l: Learner): Promise<string[] | null> {
+  if (!l.isCareerPilot || l.isStaff) return null;
+  const passport = await passportOf(l.userId);
+  const s = trialItem(passport, 'practice');
+  if (!s || (s.on && s.limit === null)) return null;
+  if (!s.on) return [];
+  let ids: string[] = (passport.trial.practiceIds || []).map(String);
+  if (ids.length < s.limit!) {
+    const more: any[] = await CodingProblem.find({ $and: [(await visible(l.tenantId)), { _id: { $nin: ids } }] })
+      .sort({ number: 1, _id: 1 }).limit(s.limit! - ids.length).select('_id').lean();
+    if (more.length) {
+      ids = [...ids, ...more.map((r) => String(r._id))];
+      await User.updateOne({ _id: l.userId }, { $set: { 'passport.trial.practiceIds': ids.map((i) => new mongoose.Types.ObjectId(i)) } });
+    }
+  }
+  return ids;
+}
+const inScope = (scope: string[] | null) => (scope ? [{ _id: { $in: scope.map((i) => new mongoose.Types.ObjectId(i)) } }] : []);
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const csv = (v: unknown) => String(v ?? '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -103,9 +131,9 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
   assertMayUseLibrary(l);
   const limit = Math.min(100, Math.max(1, Math.round(Number(q.limit)) || 25));
   const page = Math.max(1, Math.round(Number(q.page)) || 1);
-  const mine = await myResults(l.userId);
+  const [mine, scope] = await Promise.all([myResults(l.userId), trialScope(l)]);
 
-  const and: any[] = [(await visible(l.tenantId))];
+  const and: any[] = [(await visible(l.tenantId)), ...inScope(scope)];
   const diffs = csv(q.difficulty).filter((d) => (DIFFS as readonly string[]).includes(d));
   if (diffs.length) and.push({ difficulty: { $in: diffs } });
   if (csv(q.topic).length) and.push({ topics: { $in: csv(q.topic) } });
@@ -145,11 +173,18 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
     CodingProblem.countDocuments(match),
     libraryTotals(l.tenantId),
   ]);
+  // On a trial, progress is measured against the trial's own problems, not the whole library.
+  const totalsShown = scope ? await (async () => {
+    const r: any[] = await CodingProblem.aggregate([{ $match: { $and: [(await visible(l.tenantId)), ...inScope(scope)] } }, { $group: { _id: '$difficulty', n: { $sum: 1 } } }]);
+    const byDifficulty: Record<string, number> = { easy: 0, medium: 0, hard: 0 };
+    for (const x of r) byDifficulty[x._id] = x.n;
+    return { total: r.reduce((n, x) => n + x.n, 0), byDifficulty };
+  })() : totals;
 
   // Progress is measured against the whole library, whatever the filters on the page.
   const solvedByDiff: Record<string, number> = { easy: 0, medium: 0, hard: 0 };
   if (mine.solved.length) {
-    const rowsSolved: any[] = await CodingProblem.aggregate([{ $match: { $and: [(await visible(l.tenantId)), { _id: { $in: mine.solved } }] } }, { $group: { _id: '$difficulty', n: { $sum: 1 } } }]);
+    const rowsSolved: any[] = await CodingProblem.aggregate([{ $match: { $and: [(await visible(l.tenantId)), ...inScope(scope), { _id: { $in: mine.solved } }] } }, { $group: { _id: '$difficulty', n: { $sum: 1 } } }]);
     for (const r of rowsSolved) solvedByDiff[r._id] = r.n;
   }
   const solvedTotal = solvedByDiff.easy + solvedByDiff.medium + solvedByDiff.hard;
@@ -157,7 +192,7 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
   // "Next up": the easiest problem not solved yet.
   let next: any = null;
   for (const d of DIFFS) {
-    next = await CodingProblem.findOne({ $and: [(await visible(l.tenantId)), { difficulty: d }, { _id: { $nin: mine.solved } }] }).sort({ number: 1, _id: 1 }).select('number title difficulty').lean();
+    next = await CodingProblem.findOne({ $and: [(await visible(l.tenantId)), ...inScope(scope), { difficulty: d }, { _id: { $nin: mine.solved } }] }).sort({ number: 1, _id: 1 }).select('number title difficulty').lean();
     if (next) break;
   }
 
@@ -172,10 +207,12 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
     })),
     total, page, limit, pages: Math.max(1, Math.ceil(total / limit)),
     progress: {
-      solved: solvedTotal, total: totals.total,
-      byDifficulty: Object.fromEntries(DIFFS.map((d) => [d, { solved: solvedByDiff[d], total: totals.byDifficulty[d] || 0 }])),
+      solved: solvedTotal, total: totalsShown.total,
+      byDifficulty: Object.fromEntries(DIFFS.map((d) => [d, { solved: solvedByDiff[d], total: totalsShown.byDifficulty[d] || 0 }])),
     },
     next: next ? { _id: String(next._id), number: next.number, title: next.title, difficulty: next.difficulty } : null,
+    /** On a trial: how many problems it shows, out of the whole library. */
+    trial: scope ? { problems: scope.length, libraryTotal: totals.total } : null,
   };
 }
 
@@ -185,6 +222,10 @@ async function loadProblem(l: Learner, id: string) {
   if (!mongoose.isValidObjectId(id)) throw new PbError('Problem not found', 404);
   const p = await CodingProblem.findOne({ _id: id, ...(await visible(l.tenantId)) });
   if (!p) throw new PbError('This problem is not available.', 404);
+  const scope = await trialScope(l);
+  if (scope && !scope.includes(String(p._id))) {
+    throw new PbError(scope.length ? 'This problem is not part of your trial. Take membership to open every problem.' : 'Practice is not part of your trial. Take membership to use it.', 403);
+  }
   return p;
 }
 
@@ -192,12 +233,13 @@ async function loadProblem(l: Learner, id: string) {
 export async function libraryProblem(l: Learner, id: string) {
   assertMayUseLibrary(l);
   const p = await loadProblem(l, id);
+  const scope = await trialScope(l);
   const [samples, subs, prev, next, totals] = await Promise.all([
     CodingProblemTestCase.find({ problemId: p._id, isSample: true }).sort({ order: 1 }).select('input expectedOutput explanation').lean(),
     ProblemSubmission.find({ userId: l.userId, problemId: p._id }).sort({ createdAt: -1 }).limit(30)
       .select('language code verdict passed total score maxScore timeMs late createdAt compileError').lean(),
-    CodingProblem.findOne({ $and: [(await visible(l.tenantId)), { $or: [{ number: { $lt: p.number } }, { number: p.number, _id: { $lt: p._id } }] }] }).sort({ number: -1, _id: -1 }).select('_id').lean(),
-    CodingProblem.findOne({ $and: [(await visible(l.tenantId)), { $or: [{ number: { $gt: p.number } }, { number: p.number, _id: { $gt: p._id } }] }] }).sort({ number: 1, _id: 1 }).select('_id').lean(),
+    CodingProblem.findOne({ $and: [(await visible(l.tenantId)), ...inScope(scope), { $or: [{ number: { $lt: p.number } }, { number: p.number, _id: { $lt: p._id } }] }] }).sort({ number: -1, _id: -1 }).select('_id').lean(),
+    CodingProblem.findOne({ $and: [(await visible(l.tenantId)), ...inScope(scope), { $or: [{ number: { $gt: p.number } }, { number: p.number, _id: { $gt: p._id } }] }] }).sort({ number: 1, _id: 1 }).select('_id').lean(),
     libraryTotals(l.tenantId),
   ]);
   return {

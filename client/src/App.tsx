@@ -119,6 +119,7 @@ const LeaveRequests = lazy(() => import('./pages/LeaveRequests'));
 const CodePlayground = lazy(() => import('./pages/CodePlayground'));
 const PassportAdminConfig = lazy(() => import('./pages/Passport/AdminConfig'));
 const PassportAdminStudents = lazy(() => import('./pages/Passport/AdminStudents'));
+const PassportAdminTrialPlans = lazy(() => import('./pages/Passport/AdminTrialPlans'));
 const PassportAdminStudentRoadmap = lazy(() => import('./pages/Passport/AdminStudentRoadmap'));
 const PassportAdminStageSkills = lazy(() => import('./pages/Passport/AdminStageSkills'));
 const PassportAdminCoins = lazy(() => import('./pages/Passport/AdminCoins'));
@@ -674,6 +675,10 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_members']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
+      } />
+      {/* Trial plans: a few days of limited access, given to chosen students from Members. */}
+      <Route path="/admin/passport/trial-plans" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']} requiredPermissions={['manage_passport', 'manage_passport_members']}><Layout><PassportAdminTrialPlans /></Layout></ProtectedRoute>
       } />
       {/* Why THIS member got THESE missions. The endpoint existed with no screen calling
           it, so the only way to answer that question was a database query. */}

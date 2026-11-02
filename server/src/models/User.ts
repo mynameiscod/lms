@@ -248,6 +248,27 @@ const UserSchema: Schema = new Schema(
         /** What was asked for, kept beside expiresAt so a shortened grant is visible. */
         days:      { type: Number },
       },
+      /**
+       * A TRIAL: limited access for a set time (data/trialPolicy.ts). Not a membership — `active`
+       * is never set by it. `items` is a copy of the plan when it was given, so editing the plan
+       * later does not change a trial already running.
+       */
+      trial: {
+        planId:      { type: Schema.Types.ObjectId, ref: 'TrialPlan' },
+        planName:    { type: String },
+        startedAt:   { type: Date },
+        endsAt:      { type: Date },
+        /** Set when an admin ends it early. */
+        endedAt:     { type: Date },
+        /** Set when the member paid while on it — what the trial report counts. */
+        convertedAt: { type: Date },
+        items:       { type: Schema.Types.Mixed },
+        /** The practice problems this trial shows, fixed the first time they open Practice. */
+        practiceIds: [{ type: Schema.Types.ObjectId }],
+        by:          { type: Schema.Types.ObjectId, ref: 'User' },
+        byName:      { type: String },
+        reason:      { type: String },
+      },
       // Drop-off tracking. Signing up and proving you own the number are different
       // events, and until now only the first left a trace — so someone who never
       // entered their OTP looked identical to someone who verified and then stalled.

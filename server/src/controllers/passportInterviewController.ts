@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { trialAllowsAnother, trialStatus } from '../services/trialService';
 import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
 import PassportAttempt from '../models/PassportAttempt';
@@ -184,6 +185,12 @@ export const list = async (req: Request, res: Response) => {
       // What the member has been given and what is left of it. The screen builds one card
       // per round from this, so an admin's plan is visible to the student it was written for.
       entitlement,
+      /** On a trial: how many interviews it includes and how many have been started. */
+      trial: await (async () => {
+        const t = await trialStatus(tenantId, studentId, user?.passport || null).catch(() => null);
+        const it = t?.items.find(i => i.key === 'interview');
+        return it && it.limit !== null ? { limit: it.limit, used: it.used ?? 0 } : null;
+      })(),
     });
   } catch (e: any) {
     console.error('[passport] interview list:', e);
@@ -405,6 +412,10 @@ export const start = async (req: Request, res: Response) => {
         },
       });
     }
+
+    // A trial counts every interview started — the intro too — and stops at its limit.
+    const trialStop = await trialAllowsAnother(tenantId, studentId, 'interview', user?.passport || null);
+    if (trialStop && !trialStop.ok) return res.status(trialStop.status).json(trialStop.body);
 
     /**
      * A round replaces the shape, and for HR and communication it replaces the topics too.

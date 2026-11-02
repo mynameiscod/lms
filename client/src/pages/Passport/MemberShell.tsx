@@ -8,6 +8,7 @@ import './member.css';
 import SetPasswordDialog from './SetPasswordDialog';
 import ShareCardDialog from './ShareCardDialog';
 import { useUnlock } from './useUnlock';
+import TrialBanner from './TrialBanner';
 import { startActivityBeacon, trackPage } from './activityBeacon';
 import visualizerApi from '../../api/visualizerApi';
 import supportApi from '../../api/supportApi';
@@ -429,8 +430,12 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
 
         {lockedSet.size > 0 && (
           <div className="gd-unlock">
-            <div className="gd-unlock-hd"><i className="bi bi-lock-fill" /> {lockedSet.size} {lockedSet.size === 1 ? 'feature is' : 'features are'} locked</div>
-            <p>Membership opens your full roadmap, daily practice, mock interviews and everything else marked with a lock.</p>
+            <div className="gd-unlock-hd"><i className={`bi ${d?.trial ? 'bi-hourglass-split' : 'bi-lock-fill'}`} /> {d?.trial
+              ? `Trial · ${d.trial.daysLeft} ${d.trial.daysLeft === 1 ? 'day' : 'days'} left`
+              : `${lockedSet.size} ${lockedSet.size === 1 ? 'feature is' : 'features are'} locked`}</div>
+            <p>{d?.trial
+              ? 'Your trial opens part of CareerPilot. Membership opens everything marked with a lock, with no limits.'
+              : 'Membership opens your full roadmap, daily practice, mock interviews and everything else marked with a lock.'}</p>
             <button className="gd-unlock-cta" onClick={() => unlock()} disabled={unlockBusy}>{unlockLabel}</button>
             {unlockMsg && <span className="gd-unlock-msg">{unlockMsg}</span>}
           </div>
@@ -527,6 +532,9 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         </div>}
         {shareOpen && d && <ShareCardDialog data={d} onClose={() => setShareOpen(false)} />}
         {pwdOpen && <SetPasswordDialog onClose={() => setPwdOpen(false)} onDone={() => { setPwdOpen(false); setPwdDone(true); }} />}
+
+        {/* A member on a trial always sees what is left of it. */}
+        {d?.trial && <TrialBanner trial={d.trial} />}
 
         {children}
       </main>

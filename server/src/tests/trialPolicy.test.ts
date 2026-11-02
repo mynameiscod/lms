@@ -81,6 +81,38 @@ describe('members and free sign-ups are unchanged', () => {
   });
 });
 
+describe('the four kinds of CareerPilot student, side by side', () => {
+  const PAID_KEYS = ['roadmap_full', 'practice', 'resume', 'ai_mentor'];
+  const free = { active: false };
+  const paid = { active: true, product: 'career_passport', expiresAt: new Date(now.getTime() + 300 * DAY) };
+  const complimentary = { active: true, product: 'career_passport_grant', expiresAt: new Date(now.getTime() + 30 * DAY), grant: { reason: 'demo', days: 30 } };
+  const onTrial = trial();
+
+  it('free: only the free features', () => {
+    expect(PAID_KEYS.map(k => isEntitled(ENT, free, k, now))).toEqual([false, false, false, false]);
+    expect(hasMemberAccess(free as any, now)).toBe(false);
+  });
+  it('membership: everything', () => {
+    expect(PAID_KEYS.map(k => isEntitled(ENT, paid, k, now))).toEqual([true, true, true, true]);
+  });
+  it('complimentary: everything, exactly like membership', () => {
+    expect(PAID_KEYS.map(k => isEntitled(ENT, complimentary, k, now))).toEqual([true, true, true, true]);
+    expect(trialItem(complimentary, 'practice', now)).toBeNull();
+  });
+  it('trial: only what the plan opens', () => {
+    expect(PAID_KEYS.map(k => isEntitled(ENT, onTrial, k, now))).toEqual([true, true, false, false]);
+  });
+  it('an expired membership or complimentary access locks as before', () => {
+    const lapsed = { active: true, expiresAt: new Date(now.getTime() - DAY) };
+    expect(PAID_KEYS.map(k => isEntitled(ENT, lapsed, k, now))).toEqual([false, false, false, false]);
+  });
+  it('complimentary given to someone on a trial wins: everything opens', () => {
+    const both = { ...complimentary, ...trial() };
+    expect(PAID_KEYS.map(k => isEntitled(ENT, both, k, now))).toEqual([true, true, true, true]);
+    expect(trialActive(both, now)).toBe(false);
+  });
+});
+
 describe('plan items from the admin form', () => {
   it('keeps a limit only where one counts something', () => {
     const r = cleanTrialItems({ practice: { on: true, limit: '10' }, resume: { on: true, limit: 5 } });

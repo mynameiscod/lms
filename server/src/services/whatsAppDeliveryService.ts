@@ -100,9 +100,33 @@ export async function applyDeliveryStatuses(statuses: MetaStatus[]): Promise<num
   return updated;
 }
 
+/**
+ * The last 24 hours at a glance: how many messages went out, how many failed, and why, so an admin
+ * sees a problem (a dead token, an unapproved template, a spike of unreachable numbers) without
+ * scrolling the list.
+ */
+export async function deliverySummary(tenantId: string) {
+  const since = new Date(Date.now() - 24 * 3600 * 1000);
+  const match = { tenantId: new mongoose.Types.ObjectId(tenantId), createdAt: { $gte: since } };
+  const [total, failedRows] = await Promise.all([
+    WhatsAppMessageLog.countDocuments(match),
+    WhatsAppMessageLog.aggregate([
+      { $match: { ...match, status: 'failed' } },
+      { $group: { _id: { code: '$errorCode', title: '$errorTitle', detail: '$errorDetail' }, count: { $sum: 1 }, last: { $max: '$createdAt' } } },
+      { $sort: { count: -1 } }, { $limit: 5 },
+    ]),
+  ]);
+  const reasons = failedRows.map((r: any) => ({
+    code: r._id.code, count: r.count, last: r.last,
+    reason: explainWaError(r._id.code, r._id.title || r._id.detail),
+  }));
+  return { total, failed: reasons.reduce((n: number, r: any) => n + r.count, 0), reasons };
+}
+
 /** Recent sends for the Templates screen, newest first, with a plain-English reason on failures. */
-export async function listMessages(tenantId: string, q: { phone?: string; templateId?: string; limit?: number }) {
+export async function listMessages(tenantId: string, q: { phone?: string; templateId?: string; limit?: number; status?: string }) {
   const filter: any = { tenantId };
+  if (q.status === 'failed') filter.status = 'failed';
   if (q.templateId && mongoose.Types.ObjectId.isValid(q.templateId)) filter.templateId = q.templateId;
   if (q.phone) {
     const digits = String(q.phone).replace(/\D/g, '').slice(-10);

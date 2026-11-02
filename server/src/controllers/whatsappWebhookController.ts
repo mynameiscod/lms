@@ -262,7 +262,11 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
 
       // Delivery reports (sent / delivered / read / failed) — applied to the delivery log by wamid.
       if (value.statuses && value.statuses.length > 0) {
-        console.log('📊 Status update:', value.statuses[0].status, 'for', value.statuses[0].recipient_id);
+        for (const st of value.statuses as any[]) {
+          const err = st.errors?.[0];
+          console.log('📊 Status update:', st.status, 'for', st.recipient_id,
+            st.status === 'failed' ? `— code ${err?.code ?? '?'}: ${err?.title || err?.message || 'no reason given'}` : '');
+        }
         await applyDeliveryStatuses(value.statuses as any)
           .catch((e) => console.error('[WA] delivery status update failed:', e?.message));
         await applyChatStatuses(value.statuses as any)

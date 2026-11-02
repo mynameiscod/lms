@@ -57,6 +57,15 @@ describe('explainWaError', () => {
   });
 });
 
+describe('recordSend for a send Meta refused', () => {
+  it('is logged as failed with Meta’s error, so a refused OTP is not invisible', async () => {
+    const { default: Log } = await import('../models/WhatsAppMessageLog');
+    await recordSend({ tenantId: '69c7723868202a8e4616ef3d', to: '919542789417', templateName: 'cb_otp (OTP)', source: 'system',
+      result: { ok: false, errorCode: 132001, error: 'Template name does not exist' } });
+    expect((Log as any).create).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'failed', errorCode: 132001, to: '919542789417' }));
+  });
+});
+
 describe('recordSend', () => {
   it('keeps the wamid of an accepted send so its delivery report can find it', async () => {
     await recordSend({ tenantId: '69c7723868202a8e4616ef3d', to: '919743545311', templateName: 't', source: 'test', result: { ok: true, messageId: 'wamid.X' } });

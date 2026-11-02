@@ -36,12 +36,12 @@ import InteractiveActivityViewer from '../MyLearningPlan/InteractiveActivityView
 import SectionLock from './SectionLock';
 import { useMember } from './MemberLayout';
 import { withReturn } from '../../utils/careerpilotReturn';
+import { celebrate } from '../../components/Celebration/celebrate';
 import './journeyDay.css';
 import './journeyDayMember.css';
 import { useProgramDays } from './useProgramDays';
 import NotesBook, { opensAsBook } from './NotesBook';
 import { keepTaskInView, showLessonIfStacked, showLessonTop, useDayPanes } from './useDayPanes';
-import { barWidth } from '../../utils/barWidth';
 
 /** Content types, in words a first-year recognises. Mirrors the roadmap screen. */
 export const TYPE_LABEL: Record<string, string> = {
@@ -139,6 +139,9 @@ export const ItemBody: React.FC<{ item: any; onLaunch: (path: string) => void }>
 const JourneyDay: React.FC = () => {
   const { day: dayParam } = useParams();
   const programDays = useProgramDays();
+  // Read by load() without making it a dependency: the days arriving must not reload the day.
+  const programDaysRef = useRef(programDays);
+  programDaysRef.current = programDays;
   const nav = useNavigate();
   const dayNumber = Math.max(1, parseInt(String(dayParam || '1'), 10) || 1);
 
@@ -175,6 +178,26 @@ const JourneyDay: React.FC = () => {
     showLessonTop(gridRef.current);
     keepTaskInView(gridRef.current);
   }, [selIdx]);
+
+  /**
+   * The day's party. Played once per day per enrollment (`once`), so reopening a finished day,
+   * or the reload after the last tick, does not replay it.
+   */
+  const celebrateDay = useCallback((enrollmentId: string, list: any[], bonus: number, total: number) => {
+    const xp = list.reduce((t, it) => t + (Number(it.xp) || 0), 0) + bonus;
+    celebrate({
+      kind: 'day',
+      once: `day:${enrollmentId}:${dayNumber}`,
+      title: `Day ${dayNumber} done!`,
+      message: dayNumber < total
+        ? `Every task on today's mission is finished. Day ${dayNumber + 1} is next. Keep the streak going.`
+        : 'That was the last day of your journey. Brilliant work.',
+      stats: [
+        { value: xp, label: 'XP earned today', prefix: '+' },
+        { value: list.length, label: list.length === 1 ? 'Task done' : 'Tasks done' },
+      ].filter(s => s.value > 0),
+    });
+  }, [dayNumber]);
 
   const load = useCallback(async () => {
     setLoading(true); setError(''); setLocked(false); setDayLock(''); setLockToWelcome(false); setGate(null);
@@ -233,6 +256,10 @@ const JourneyDay: React.FC = () => {
       setDayBonusXp(Number(plan?.dayBonusXp) || 0);
       // Opening the day settled XP for work finished elsewhere (e.g. the checkpoint just taken): refresh the top bar.
       if ((Number(plan?.xpJustPaid) || 0) > 0) reloadMember();
+      // XP paid on opening AND the day now complete: the last task was finished elsewhere (the checkpoint).
+      if (plan?.isDayCompleted && (Number(plan?.xpJustPaid) || 0) > 0 && Array.isArray(plan?.items)) {
+        celebrateDay(String(j.enrollmentId), plan.items, Number(plan?.dayBonusXp) || 0, j?.totalDays ?? programDaysRef.current ?? 90);
+      }
       // Coming back from a checkpoint lands on the task it was opened from (?task=), so the member
       // returns to where they were rather than to whatever is unfinished now. Otherwise open the
       // first unfinished task rather than always the first.
@@ -251,7 +278,7 @@ const JourneyDay: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [dayNumber, reloadMember, params]);
+  }, [dayNumber, reloadMember, params, celebrateDay]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -277,6 +304,9 @@ const JourneyDay: React.FC = () => {
       const finishedDay = Array.isArray(r?.completedDays) && r.completedDays.map(Number).includes(dayNumber);
       const earned = (Number(selected?.xp) || 0) + (finishedDay && !dayDone ? dayBonusXp : 0);
       if (finishedDay) setDayDone(true);
+      if (finishedDay && !dayDone) {
+        celebrateDay(enrollmentId, items.map((it, i) => (i === selIdx ? { ...it, isCompleted: true } : it)), dayBonusXp, totalDays);
+      }
       if (earned > 0) { setFlash(`+${earned} XP earned`); window.setTimeout(() => setFlash(''), 3200); }
       // The top bar's XP, level and streak come from the member payload; refresh it so they move now.
       reloadMember();
@@ -387,67 +417,74 @@ const JourneyDay: React.FC = () => {
 
   return (
     <div className="jd-page jdm">
-      {/* The day, in the logo navy: where it sits in the ninety, how far through it the member is, and what it pays. */}
-      <section className="jdm-hero">
-        <div className="jdm-hero-copy">
-          <button type="button" className="jdm-crumb" onClick={() => nav('/careerpilot/roadmap')}>
+      {/* The day at a glance, in the logo navy: where it sits in the programme, how far through it the
+          member is (one segment per task, and a ring), what it has paid so far, and the bonus still on
+          the table — which is also the shortest way back into the work. */}
+      <section className="jdh">
+        <div className="jdh-top">
+          <button type="button" className="jdh-crumb" onClick={() => nav('/careerpilot/roadmap')}>
             <i className="bi bi-arrow-left" aria-hidden /> My Roadmap
           </button>
-          <span className="jdm-eyebrow">Day {dayNumber} of {totalDays}</span>
-          <h1>{dayTitle || `Day ${dayNumber}`}</h1>
+          <div className="jdh-nav" role="group" aria-label="Change day">
+            <button type="button" disabled={dayNumber <= 1} onClick={() => nav(`/careerpilot/journey/day/${dayNumber - 1}`)} aria-label="Previous day" title="Previous day">
+              <i className="bi bi-chevron-left" aria-hidden />
+            </button>
+            <span>Day <b>{dayNumber}</b> <em>of {totalDays}</em></span>
+            <button type="button" disabled={dayNumber >= totalDays} onClick={() => nav(`/careerpilot/journey/day/${dayNumber + 1}`)} aria-label="Next day" title="Next day">
+              <i className="bi bi-chevron-right" aria-hidden />
+            </button>
+          </div>
+        </div>
+
+        <div className="jdh-main">
+          <div className="jdh-copy">
+            <span className={`jdh-eyebrow${dayDone ? ' done' : ''}`}><i className={`bi ${dayDone ? 'bi-patch-check-fill' : 'bi-calendar2-check'}`} aria-hidden /> {dayDone ? 'Day complete' : 'Your learning day'}</span>
+            <h1>{dayTitle || `Day ${dayNumber}`}</h1>
+            {items.length > 0 && <>
+              <ol className="jdh-segs" aria-label={`${doneCount} of ${items.length} tasks done`}>
+                {items.map((it, i) => (
+                  <li key={it._id || it.contentId || it.sourceId || i} className={it.isCompleted ? 'done' : i === selIdx ? 'current' : ''}
+                    title={`Task ${i + 1}${it.isCompleted ? ' · done' : ''}`} />
+                ))}
+              </ol>
+              <p className="jdh-sub">
+                {dayDone ? <><i className="bi bi-check-circle-fill" aria-hidden /> Every task on this day is done</>
+                  : <><b>{doneCount} of {items.length}</b> tasks done · {tasksLeft} to go</>}
+              </p>
+            </>}
+          </div>
+
           {items.length > 0 && (
-            <>
-              <div className="jdm-chips">
-                <span><i className="bi bi-check2-circle" /> {doneCount} of {items.length} tasks done</span>
-                {totalXp > 0 && <span><i className="bi bi-lightning-charge-fill" /> {earnedXp} / {totalXp} XP</span>}
-              </div>
-              <div className="jdm-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Day progress">
-                <i style={{ width: `${barWidth(pct)}%` }} />
-              </div>
-            </>
+            <div className="jdh-ring" role="img" aria-label={`${pct}% of today's tasks done`}>
+              <svg viewBox="0 0 120 120" aria-hidden>
+                <circle className="trk" cx="60" cy="60" r="52" />
+                <circle className="val" cx="60" cy="60" r="52" style={{ strokeDashoffset: `${326.73 * (1 - pct / 100)}` }} />
+              </svg>
+              <div><b>{doneCount}<small>/{items.length}</small></b><span>tasks</span></div>
+            </div>
           )}
         </div>
-        {/* Today's momentum: the tasks finished, each task as a mark on the day, and the day bonus
-            still on the table — all from the day this member is actually working. */}
+
         {items.length > 0 && (
-          <div className="jdm-momentum">
-            <span className="jdm-eyebrow">Today’s momentum</span>
-            <div className={`jdm-tasks${doneCount > 0 ? ' on' : ''}`}>
-              <span className="ic"><i className="bi bi-check2-circle" aria-hidden /></span>
-              <div>
-                <b>{doneCount} of {items.length} tasks done</b>
-                <span>{tasksLeft > 0 ? `${tasksLeft} still to work through` : 'Every task on this day is finished'}</span>
+          <div className="jdh-stats">
+            {totalXp > 0 && (
+              <div className="jdh-stat">
+                <span className="ic xp"><i className="bi bi-lightning-charge-fill" aria-hidden /></span>
+                <div><small>XP this day</small><b>{earnedXp} <em>/ {totalXp}</em></b></div>
               </div>
-              <i className="jdm-tasks-art" aria-hidden="true"><em /><em /><em /></i>
-            </div>
-            <ol className="jdm-steps2" aria-hidden="true">
-              {items.map((it, i) => (
-                <li key={it._id || it.contentId || it.sourceId || i} className={it.isCompleted ? 'done' : i === selIdx ? 'current' : ''}>
-                  <i /><span>{i + 1}</span>
-                </li>
-              ))}
-            </ol>
+            )}
             {dayBonusXp > 0 && (
-              <button type="button" className="jdm-challenge" onClick={workOnNext}>
+              <button type="button" className={`jdh-stat bonus${dayDone ? ' won' : ''}`} onClick={workOnNext}>
                 <span className="ic"><i className={`bi ${dayDone ? 'bi-check-circle-fill' : 'bi-gift-fill'}`} aria-hidden /></span>
                 <div>
-                  <b>{dayDone ? 'Day bonus earned' : 'Day bonus'}</b>
-                  <span>{dayDone ? `All ${items.length} tasks finished today` : `Finish all ${items.length} tasks today (${tasksLeft} to go)`}</span>
-                  <em>{dayDone ? 'Earned' : 'Reward'}: +{dayBonusXp} bonus XP</em>
+                  <small>{dayDone ? 'Day bonus earned' : 'Day bonus'}</small>
+                  <b>+{dayBonusXp} XP <em>{dayDone ? 'added to your total' : `finish all ${items.length} tasks · ${tasksLeft} to go`}</em></b>
                 </div>
-                <i className="bi bi-chevron-right" aria-hidden />
+                {!dayDone && <span className="go">Next task <i className="bi bi-arrow-right" aria-hidden /></span>}
               </button>
             )}
           </div>
         )}
-        <div className="jdm-daynav">
-          <button type="button" disabled={dayNumber <= 1} onClick={() => nav(`/careerpilot/journey/day/${dayNumber - 1}`)}>
-            <i className="bi bi-chevron-left" aria-hidden /> Previous day
-          </button>
-          <button type="button" disabled={dayNumber >= totalDays} onClick={() => nav(`/careerpilot/journey/day/${dayNumber + 1}`)}>
-            Next day <i className="bi bi-chevron-right" aria-hidden />
-          </button>
-        </div>
       </section>
 
       {!!flash && <div className="jdm-flash" role="status"><i className="bi bi-stars" /> {flash}</div>}

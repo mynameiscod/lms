@@ -70,4 +70,18 @@ describe('practice question CSV', () => {
     expect(r.questions[0].description).toBe('What prints?\nfor i in range(2):\n    print(i)');
     expect(r.questions[0].options![1]).toEqual({ text: '0\n1', isCorrect: true });
   });
+
+  it('reads a sheet with separate title and description columns: the description is the question', () => {
+    const csv = [
+      'title,description,option_a,option_b,correct,explanation',
+      'Resolve a merge conflict,"A merge stops because of a conflict in booking.txt. What should be done next?","git add booking.txt then git commit","Delete the repository",A,Staging marks it resolved.',
+    ].join('\r\n');
+    const r = importPracticeCsv(csv);
+    expect(r.errors).toEqual([]);
+    expect(r.questions[0]).toMatchObject({
+      title: 'Resolve a merge conflict',
+      description: 'A merge stops because of a conflict in booking.txt. What should be done next?',
+      explanation: 'Staging marks it resolved.',
+    });
+  });
 });

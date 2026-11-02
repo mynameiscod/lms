@@ -367,9 +367,15 @@ router.get('/me/gamification/xp-history', MEMBER, gamification.getMyXpHistory);
 router.get('/me/leaderboard',             MEMBER, gamification.getMyLeaderboard);
 
 router.get('/gamification/admin',                       MANAGE_FOR.cpSetup, gamification.getAdminGamification);
+router.get('/gamification/admin/overview',              MANAGE_FOR.cpSetup, gamification.getAdminOverview);
 router.put('/gamification/admin/rules/:eventKey',       MANAGE_FOR.cpSetup, gamification.updateXpRule);
 router.put('/gamification/admin/badges/:key',           MANAGE_FOR.cpSetup, gamification.updateBadge);
 router.put('/gamification/admin/leaderboard',           MANAGE_FOR.cpSetup, gamification.updateLeaderboardSettings);
+router.put('/gamification/admin/task-xp',               MANAGE_FOR.cpSetup, gamification.updateTaskXp);
+// One task's XP is set where the task is built, so content editors may price it too.
+router.get('/gamification/task-prices',                 MANAGE_FOR.cpContent, gamification.getTaskPrices);
+router.put('/gamification/task-prices/override',        MANAGE_FOR.cpContent, gamification.setTaskOverride);
+router.delete('/gamification/task-prices/override',     MANAGE_FOR.cpContent, gamification.clearTaskOverride);
 
 // Reward budget is a financial control: admin-only, and invisible to members.
 router.get('/gamification/admin/reward-budget',          MANAGE_FOR.cpSetup, rewardBudget.getRewardBudget);
@@ -682,7 +688,7 @@ router.delete('/members/:userId',      MANAGE_FOR.cpMembers, ctrl.deleteMember);
 
 // Coins — the member's balance, and the admin's dials. Earning rules are data, so
 // switching an event on or changing what it pays needs no deploy.
-router.get('/leaderboard',          MEMBER, dashboard.getLeaderboard);
+// The leaderboard is /me/leaderboard (college and global); the old tenant-only board was removed.
 
 // Daily tech news. The member sees only what an admin has published; the AI writes
 // drafts and never publishes on its own.
@@ -762,6 +768,7 @@ router.post('/news/admin',           MANAGE_FOR.cpSetup, news.create);
 router.put('/news/admin/:id',        MANAGE_FOR.cpSetup, news.update);
 router.delete('/news/admin/:id',     MANAGE_FOR.cpSetup, news.remove);
 router.get('/coins',                MEMBER, coins.myCoins);
+router.post('/coins/convert',       MEMBER, rateLimit('redemption'), coins.convertMyXp);
 router.get('/coins/admin',          MANAGE_FOR.cpSetup, coins.getAdmin);
 router.put('/coins/admin/config',   MANAGE_FOR.cpSetup, coins.saveConfig);
 router.put('/coins/admin/rules',    MANAGE_FOR.cpSetup, coins.saveRules);

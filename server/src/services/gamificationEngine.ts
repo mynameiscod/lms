@@ -23,7 +23,8 @@ import {
  * distinction the whole product rests on.
  *
  * XP IS NOT MONEY. It never touches CoinAccount, CoinLedger or the reward budget. Coins
- * remain the redeemable currency with their own engine; there is deliberately no conversion.
+ * remain the redeemable currency with their own engine. A member may choose to convert XP
+ * into coins (xpConversionService), which reads this ledger and never changes it.
  *
  * DETERMINISTIC. No AI, no randomness. The same event on the same day is worth the same to
  * every student with the same configuration.

@@ -2,6 +2,7 @@ import axios from 'axios';
 import { attributionForSubmit } from '../utils/careerPilotAttribution';
 import { loadRazorpay } from './paymentApi';
 import { visitorId, sessionId } from '../pages/Passport/activityBeacon';
+import { celebrateMembership } from '../components/Celebration/celebrate';
 
 const BASE = (process.env.REACT_APP_API_URL || '/api/v1') + '/passport';
 /**
@@ -686,6 +687,39 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/me/redemptions`, { headers: auth() });
     return data;
   },
+  /** Admin: the reward catalogue. */
+  adminRewards: async (): Promise<{ rewards: AdminReward[]; policy: { minRedemption: number; expiryMonths: number } }> => {
+    const { data } = await axios.get(`${BASE}/rewards/admin`, { headers: auth() });
+    return data;
+  },
+  adminCreateReward: async (r: Partial<AdminReward>): Promise<{ reward: AdminReward }> => {
+    const { data } = await axios.post(`${BASE}/rewards/admin`, r, { headers: auth() });
+    return data;
+  },
+  adminUpdateReward: async (key: string, patch: Partial<AdminReward>): Promise<{ reward: AdminReward }> => {
+    const { data } = await axios.put(`${BASE}/rewards/admin/${encodeURIComponent(key)}`, patch, { headers: auth() });
+    return data;
+  },
+  adminRedemptions: async (status?: string, skip = 0): Promise<{ redemptions: AdminRedemption[]; total: number; counts: Record<string, number> }> => {
+    const { data } = await axios.get(`${BASE}/rewards/admin/redemptions`, { headers: auth(), params: { ...(status ? { status } : {}), skip, limit: 50 } });
+    return data;
+  },
+  adminFulfilRedemption: async (id: string, fulfillmentReference?: string, notes?: string): Promise<{ redemption: AdminRedemption }> => {
+    const { data } = await axios.post(`${BASE}/rewards/admin/redemptions/${id}/fulfill`, { fulfillmentReference, notes }, { headers: auth() });
+    return data;
+  },
+  adminCancelRedemption: async (id: string, reason?: string): Promise<{ redemption: AdminRedemption }> => {
+    const { data } = await axios.post(`${BASE}/rewards/admin/redemptions/${id}/cancel`, { reason }, { headers: auth() });
+    return data;
+  },
+  adminStrandedRedemptions: async (): Promise<{ stranded: AdminRedemption[] }> => {
+    const { data } = await axios.get(`${BASE}/rewards/admin/stranded`, { headers: auth() });
+    return data;
+  },
+  adminRecoverRedemption: async (id: string): Promise<{ ok: boolean; refused?: string }> => {
+    const { data } = await axios.post(`${BASE}/rewards/admin/redemptions/${id}/recover`, {}, { headers: auth() });
+    return data;
+  },
 
   // ── Gamification (Module 11) ──
   /** XP, level, streak, badges and ranks. Read-only: no client can award anything. */
@@ -697,14 +731,37 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/me/gamification/xp-history`, { headers: auth(), params: { limit } });
     return data;
   },
-  getMyLeaderboard: async (scope: string, period: string): Promise<ScopedLeaderboardResponse> => {
-    const { data } = await axios.get(`${BASE}/me/leaderboard`, { headers: auth(), params: { scope, period } });
+  getMyLeaderboard: async (scope: string, period: string, limit?: number): Promise<ScopedLeaderboardResponse> => {
+    const { data } = await axios.get(`${BASE}/me/leaderboard`, { headers: auth(), params: { scope, period, ...(limit ? { limit } : {}) } });
     return data;
   },
   /** Admin: XP rules, badges and leaderboard settings. */
-  getAdminGamification: async (): Promise<any> => {
+  getAdminGamification: async (): Promise<AdminGamification> => {
     const { data } = await axios.get(`${BASE}/gamification/admin`, { headers: auth() });
     return data;
+  },
+  /** Admin: this month's figures for the XP & Rewards header. */
+  getXpRewardsOverview: async (): Promise<XpRewardsOverview> => {
+    const { data } = await axios.get(`${BASE}/gamification/admin/overview`, { headers: auth() });
+    return data;
+  },
+  /** Admin: what each type of journey task pays. */
+  updateTaskXp: async (byType: Record<string, number>): Promise<{ taskTypes: TaskXpType[] }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/task-xp`, { byType }, { headers: auth() });
+    return data;
+  },
+  /** The XP price list the day player pays from — the Content Builder's "+N XP". */
+  getTaskPrices: async (): Promise<TaskPrices> => {
+    const { data } = await axios.get(`${BASE}/gamification/task-prices`, { headers: auth() });
+    return data;
+  },
+  /** What one task pays, wherever it appears. */
+  setTaskXpOverride: async (refKind: 'content' | 'module', refId: string, xp: number, title?: string): Promise<{ key: string; xp: number }> => {
+    const { data } = await axios.put(`${BASE}/gamification/task-prices/override`, { refKind, refId, xp, title }, { headers: auth() });
+    return data;
+  },
+  clearTaskXpOverride: async (refKind: 'content' | 'module', refId: string): Promise<void> => {
+    await axios.delete(`${BASE}/gamification/task-prices/override`, { headers: auth(), params: { refKind, refId } });
   },
   updateXpRule: async (eventKey: string, patch: any): Promise<any> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/rules/${eventKey}`, patch, { headers: auth() });
@@ -718,11 +775,11 @@ export const passportApi = {
     const { data } = await axios.put(`${BASE}/gamification/admin/leaderboard`, patch, { headers: auth() });
     return data;
   },
-  getRewardBudget: async (period?: string): Promise<any> => {
+  getRewardBudget: async (period?: string): Promise<RewardBudgetView> => {
     const { data } = await axios.get(`${BASE}/gamification/admin/reward-budget`, { headers: auth(), params: period ? { period } : {} });
     return data;
   },
-  updateRewardBudget: async (patch: any): Promise<any> => {
+  updateRewardBudget: async (patch: any): Promise<RewardBudgetView> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/reward-budget`, patch, { headers: auth() });
     return data;
   },
@@ -1473,10 +1530,6 @@ export const passportApi = {
   },
 
   // ── Leaderboard ──
-  getLeaderboard: async (limit = 50): Promise<LeaderboardResponse> => {
-    const { data } = await axios.get(`${BASE}/leaderboard`, { headers: auth(), params: { limit } });
-    return data;
-  },
 
   // ── My profile ──
   getMyProfile: async (): Promise<{ profile: MemberProfile }> => {
@@ -1491,6 +1544,11 @@ export const passportApi = {
   // ── Coins ──
   getCoins: async (): Promise<CoinsResponse> => {
     const { data } = await axios.get(`${BASE}/coins`, { headers: auth() });
+    return data;
+  },
+  /** Turn XP into coins. `coins` omitted: as many as possible. XP, level and rank never go down. */
+  convertXpToCoins: async (coins?: number): Promise<{ coins: number; xpUsed: number; balance: number; conversion: XpConversionStatus }> => {
+    const { data } = await axios.post(`${BASE}/coins/convert`, coins === undefined ? {} : { coins }, { headers: auth() });
     return data;
   },
   getCoinAdmin: async (): Promise<CoinAdminResponse> => {
@@ -1645,6 +1703,13 @@ export const passportApi = {
 
   // Membership checkout (₹499). Opens Razorpay and resolves true on successful activation.
   membershipCheckout: async (): Promise<{ ok: boolean; message?: string; testMode?: boolean }> => {
+    // Every caller's success is celebrated here, once, whichever screen the member paid from.
+    const r = await passportApi.membershipCheckoutRaw();
+    if (r.ok) celebrateMembership();
+    return r;
+  },
+
+  membershipCheckoutRaw: async (): Promise<{ ok: boolean; message?: string; testMode?: boolean }> => {
     /**
      * The order is requested BEFORE Razorpay's script is loaded, because in test mode there is
      * no Razorpay: loading it first would fail the whole checkout on a connection that is only
@@ -1687,7 +1752,7 @@ export const passportApi = {
     const base = apiRoot.startsWith('http') ? apiRoot : window.location.origin + apiRoot;
     // `origin`: come back to the address the member is on, not the server's configured one —
     // on a LAN dev machine that one goes stale with every new IP (server checks it is trusted).
-    const callbackUrl = `${base}/payments/return?to=${encodeURIComponent('/careerpilot')}&origin=${encodeURIComponent(window.location.origin)}`;
+    const callbackUrl = `${base}/payments/return?to=${encodeURIComponent('/careerpilot?paid=1')}&origin=${encodeURIComponent(window.location.origin)}`;
     return new Promise((resolve) => {
       const rzp = new (window as any).Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency,
@@ -1889,6 +1954,8 @@ export interface DashboardData {
   level?: LevelInfo;
   coderScore?: { score: number; parts: { label: string; earned: number; max: number }[] };
   percentileAhead?: number | null;
+  /** Rank among every CareerPilot member, by XP. */
+  globalRank?: { rank: number; participants: number } | null;
   /** The skill meter: Skill DNA by skill area (early = only low-confidence evidence in that area). */
   skills?: { key: string; label: string; score: number; early?: boolean }[];
   careerScore?: number | null;
@@ -2370,6 +2437,39 @@ export interface VideoScript extends VideoScriptInput {
   _id: string; unitCode: string; updatedAt: string; updatedBy?: string; createdBy?: string;
 }
 
+export interface XpRewardsOverview {
+  xpThisMonth: { total: number; members: number } | null;
+  conversion: { enabled: boolean; xpPerCoin: number; coinsThisMonth: number; members: number } | null;
+  waiting: number | null;
+  liveRewards: number | null;
+  store: { open: boolean; budgetRupees: number; leftRupees: number } | null;
+}
+
+export interface TaskXpType { key: string; label: string; defaultXp: number; xp: number }
+
+export interface TaskPrices {
+  byType: Record<string, number>;
+  /** 'content:<id>' | 'module:<id>' → XP. */
+  overrides: Record<string, number>;
+  dayBonus: number;
+  tasksEnabled: boolean;
+  max: number;
+}
+
+export interface XpRuleRow {
+  eventKey: string; enabled: boolean; xp: number; dailyLimit: number; streakQualifying: boolean;
+}
+
+export interface AdminGamification {
+  rules: XpRuleRow[];
+  badges: any[];
+  settings: any;
+  events: { key: string; name: string; description: string; defaultXp: number }[];
+  taskTypes: TaskXpType[];
+  taskOverrides: { refKind: 'content' | 'module'; refId: string; xp: number; title: string; updatedAt: string }[];
+  taskXpMax: number;
+}
+
 export interface UnitStudentPreview {
   preview: true;
   unit: { unitCode: string; title: string; description: string; learningOutcomes: string[]; unitType: string; status: string };
@@ -2773,6 +2873,13 @@ export interface CoinConfig {
   annualRealCostBudgetInr: number; expiryMonths: number; minRedemption: number;
   referrerCoins: number; refereeCoins: number; referralMonthlyCap: number;
   freeMembersAccrue: boolean;
+  xpConversionEnabled: boolean; xpPerCoin: number; xpConversionStartsAt: string | null;
+}
+/** XP → coins: the rate, and what a member can convert now. */
+export interface XpConversionStatus {
+  enabled: boolean; xpPerCoin: number; startsAt: string | null;
+  earnedXp: number; convertedXp: number; availableXp: number;
+  coinsAvailable: number; monthlyRoom: number | null; xpToNextCoin: number;
 }
 export interface CoinRule {
   eventKey: string; label: string; coins: number;
@@ -2783,6 +2890,7 @@ export interface CoinsResponse {
   enabled: boolean; balance: number; lifetimeEarned: number; lifetimeSpent: number;
   redeemable: boolean; minRedemption: number; monthlyEarnCap: number; expiryMonths: number;
   earnRules: { eventKey: string; label: string; coins: number; dailyCap: number }[];
+  conversion?: XpConversionStatus;
   history: CoinHistoryRow[];
 }
 export interface CoinLedgerRow { at: string; coins: number; eventKey: string; note: string; balanceAfter: number; member: string; }
@@ -3878,6 +3986,8 @@ export interface GamificationSummary {
   badges: GamificationBadgeView[];
   earnedCount: number;
   ranks: Record<string, RankView>;
+  /** XP → coins, when an admin switched it on. */
+  conversion?: { xpPerCoin: number; availableXp: number; coinsAvailable: number; xpToNextCoin: number } | null;
 }
 
 export interface XpHistoryEntry {
@@ -3945,6 +4055,41 @@ export interface RewardCatalogue {
     level: number;
     canSpend: boolean;
   };
+  /** XP → coins, when switched on: lets the store say "convert your XP". */
+  conversion?: { xpPerCoin: number; coinsAvailable: number; xpToNextCoin: number } | null;
+}
+
+/** A reward as the admin edits it. Costs: coins to the member, paise to the business. */
+export interface AdminReward {
+  _id?: string;
+  key: string; name: string; description: string;
+  type: 'PHYSICAL' | 'DISCOUNT' | 'ACCESS' | 'COUPON' | 'RECOGNITION';
+  iconKey: string; imageUrl?: string; instructions?: string;
+  coinCost: number; budgetCostPaise: number;
+  active: boolean; studentVisible: boolean;
+  stockMode: 'UNLIMITED' | 'LIMITED'; stockAvailable: number; stockReserved?: number; stockFulfilled?: number;
+  perStudentLimit: number; totalRedemptionLimit: number; totalRedeemed?: number;
+  minimumXp: number; minimumLevel: number;
+  availableFrom?: string | null; availableUntil?: string | null;
+  displayOrder: number;
+}
+
+export interface AdminRedemption {
+  _id: string; studentId: string; rewardKey: string; rewardName: string; rewardType: string;
+  coinCost: number; budgetCostPaise: number;
+  status: 'PENDING' | 'RESERVED' | 'FULFILLED' | 'CANCELLED';
+  requestedAt: string; reservedAt?: string; fulfilledAt?: string; cancelledAt?: string;
+  fulfillmentReference?: string; adminNotes?: string; cancelReason?: string;
+  studentSnapshot?: { displayName?: string; collegeName?: string };
+}
+
+export interface RewardBudgetView {
+  summary: {
+    enabled: boolean; mode: 'MANUAL' | 'PERCENTAGE'; period: string;
+    basisPoints: number; effectiveFrom: string | null; studentsRewarded: number;
+    display: { revenueBase: number; calculatedBudget: number; cap: number; effectiveBudget: number; reserved: number; redeemed: number; available: number; averageReward: number };
+  };
+  policy: { enabled: boolean; mode: 'MANUAL' | 'PERCENTAGE'; manualBudgetPaise: number; basisPoints: number; capPaise: number; effectiveFrom?: string | null };
 }
 
 export interface RedemptionRow {

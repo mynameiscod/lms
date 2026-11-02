@@ -5,6 +5,8 @@ import './orientation.css';
 import { mediaUrl, MEDIA_PATH } from '../../utils/mediaUrl';
 import { SeekControls, useSeekKeys, savedSpeed, savedQuality, pickQuality, switchSource, QualityPref } from '../MyLearningPlan/VideoPlayer';
 import { barWidth } from '../../utils/barWidth';
+import { useUndoZoom } from '../../utils/useUndoZoom';
+import { celebrate } from '../../components/Celebration/celebrate';
 
 /**
  * The welcome, before Day 1.
@@ -33,6 +35,8 @@ export const mins = (n: number) => (n >= 60 ? `${Math.floor(n / 60)}h ${n % 60}m
 const Recorder: React.FC<{
   day: number; item: OrientationItem; onSaved: (v: OrientationView) => void;
 }> = ({ day, item, onSaved }) => {
+  const playRef = useRef<HTMLVideoElement>(null);
+  useUndoZoom(playRef, !!item.done);
   const [state, setState] = useState<'idle' | 'recording' | 'saving'>('idle');
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState('');
@@ -82,7 +86,7 @@ const Recorder: React.FC<{
   return (
     <div className="ori-rec">
       {item.done && state === 'idle' && (
-        <video className="ori-rec-play" controls src={passportApi.orientationRecordingUrl(day, item.key)} />
+        <video ref={playRef} className="ori-rec-play" controls src={passportApi.orientationRecordingUrl(day, item.key)} />
       )}
       <div className="ori-rec-actions">
         {state === 'recording' ? (
@@ -187,6 +191,8 @@ const VideoItem: React.FC<{
   day: number; item: OrientationItem; onSaved: (v: OrientationView) => void;
 }> = ({ day, item, onSaved }) => {
   const ref = useRef<HTMLVideoElement>(null);
+  // The app zoom skews the browser's own timeline (the played part stopped short of the thumb).
+  useUndoZoom(ref, !!item.url);
   const watched = useRef(0);
   const lastTime = useRef(0);
   const saving = useRef(false);
@@ -412,6 +418,16 @@ export const OrientationDayPanel: React.FC<{
     if (r?.orientation) onChanged(r.orientation);
     /* Refused while something required is unfinished: the server names what, and so does this. */
     if (!r?.ok) { setOutstanding(r?.outstanding || []); return; }
+    const welcomeOver = !!r.orientation?.complete;
+    celebrate({
+      kind: 'day',
+      once: `welcome:${day.dayNumber}`,
+      title: welcomeOver ? 'Welcome complete!' : `Welcome day ${day.day} done!`,
+      message: welcomeOver
+        ? 'You finished every welcome day. Day 1 of your roadmap is next.'
+        : 'Nicely done. Your next welcome day is the next step.',
+      stats: [{ value: day.items.length, label: day.items.length === 1 ? 'Task done' : 'Tasks done' }].filter(x => x.value > 0),
+    });
     onFinished?.({ nextDay: r.orientation?.nextDay ?? null, complete: !!r.orientation?.complete });
   };
 

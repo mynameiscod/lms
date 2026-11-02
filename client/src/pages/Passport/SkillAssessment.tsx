@@ -11,6 +11,7 @@ import './skillAssessment.css';
 import CareerPilotFooter from '../../components/CareerPilotFooter';
 import { useProgramDays, daysLabel } from './useProgramDays';
 import { barWidth } from '../../utils/barWidth';
+import { celebrate } from '../../components/Celebration/celebrate';
 
 /**
  * A stage key as the member's own year, for the identity strip.
@@ -450,7 +451,20 @@ const SkillAssessment: React.FC = () => {
        * paper gets marked against a subset of what the student actually did.
        */
       if (hasPending(pending.current)) await flush();
-      setDone(await passportApi.submitPersonalizedAssessment(payload));
+      const finished = await passportApi.submitPersonalizedAssessment(payload);
+      setDone(finished);
+      // A placement check is a short check inside a day, not the assessment: it keeps its own screen.
+      if (!finished?.placementCheck) {
+        celebrate({
+          kind: 'assessment',
+          title: 'Assessment complete!',
+          message: 'Every answer counts. Your Skill DNA now shows where you stand, skill by skill.',
+          stats: [
+            { value: Number(finished?.result?.graded) || 0, label: 'Questions measured' },
+            { value: Number(finished?.skillDna?.skillsAffected) || 0, label: 'Skills updated' },
+          ].filter(s => s.value > 0),
+        });
+      }
       /* Submitted: the draft has nothing left to protect. */
       clearDraft(paper.id);
       // The member payload was loaded before this paper existed; without a refresh the home screen goes on saying

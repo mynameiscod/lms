@@ -45,7 +45,8 @@ import { buildFoundationProfile } from '../services/foundationProfileService';
 import { composeFoundationJourney, loadAssets, activitiesFor, packComposedDays, dayTitle } from '../services/foundationJourneyService';
 import { applyFoundationTrigger, directionChoiceFor } from '../services/foundationJourneyTriggerService';
 import { resolveModuleStatuses, itemDone } from './enrollmentPlanController';
-import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
+import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished } from '../services/foundationJourneyXpService';
+import { loadXpPricing } from '../services/xpPricingService';
 import { orientationBlocksLearning, orientationRoadmap, pacingClockFor } from '../services/orientationService';
 import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService';
 import { roadmapV2SettingFor } from '../services/roadmapV2SettingService';
@@ -782,6 +783,8 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
     // its tasks simply show as not yet done, and the next read settles the XP.
     let moduleStatus: Record<string, { attempted: boolean; status: string; score: number | null }> = {};
     let xpJustPaid = 0;
+    // The admin's prices — the same list the ledger pays from, so the figures shown are the figures paid.
+    const pricing = await loadXpPricing(tenantId);
     try {
       moduleStatus = enrollment ? await resolveModuleStatuses(studentId, items) : {};
       const dayComplete = items.length > 0 && items.every((it: any) => itemDone(it, plan.dayNumber, completedItems, moduleStatus));
@@ -810,9 +813,9 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
         .map((it: any) => ({
           ...activityFor(it),
           done: journeyItemFinished(it, plan.dayNumber, completedItems, moduleStatus),
-          xp: xpForJourneyItem(it),
+          xp: xpForJourneyItem(it, pricing),
         })),
-      dayBonusXp: FOUNDATION_DAY_BONUS_XP,
+      dayBonusXp: pricing.dayBonus,
       /** XP this read settled (work finished elsewhere since the last read) — the page refreshes XP and goal on it. */
       xpJustPaid,
     });

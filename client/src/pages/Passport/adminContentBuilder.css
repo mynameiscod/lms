@@ -275,3 +275,20 @@
   .acb-items li .acb-i-t { flex: 1 1 calc(100% - 90px); }
   .acb-items li .acb-i-xp { margin-left: 32px; margin-right: auto; }
 }
+
+/* ── A task's XP ──────────────────────────────────────────────────────────────────────────
+   The chip is a button: clicking it prices this one task. A pin marks a task priced on its own
+   rather than by its type; the inline form keeps the row's height so nothing below jumps. */
+button.acb-i-xp { border: 1px solid transparent; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+button.acb-i-xp:hover:not(:disabled) { border-color: #9BD9BE; }
+button.acb-i-xp:disabled { cursor: default; }
+button.acb-i-xp.own { color: #0E5E8A; background: #E7F3FB; }
+button.acb-i-xp.own:hover:not(:disabled) { border-color: #9CCBE8; }
+button.acb-i-xp i { font-size: 11px; }
+.acb-i-xpedit { flex: none; display: inline-flex; align-items: center; gap: 6px; }
+.acb-i-xpedit input { width: 76px; height: 34px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 10px; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.acb-i-xpedit input:focus { outline: 2px solid #BFD3F2; border-color: var(--primary); }
+.acb-i-act.ok { color: #17885D; border-color: #9BD9BE; }
+@media (max-width: 480px) {
+  .acb-items li .acb-i-xpedit { margin-left: 32px; margin-right: auto; }
+}

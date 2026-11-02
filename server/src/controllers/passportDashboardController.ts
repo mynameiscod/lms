@@ -20,6 +20,7 @@ import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
 import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import * as g from '../services/passportGamificationService';
 import { journeyDayGoal, journeyCompletion } from '../services/foundationJourneyXpService';
+import { getLeaderboard as getScopedLeaderboard } from '../services/leaderboardService';
 import { calculateStudentRoleReadiness } from '../services/roleReadinessService';
 import { skillDnaByArea } from '../services/skillDnaService';
 import { programDaysFor } from '../services/foundationProgramLengthService';
@@ -27,45 +28,6 @@ import { membershipPriceFor } from '../services/membershipPricingService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
-
-/** GET /passport/leaderboard — the full board, not the podium. */
-export const getLeaderboard = async (req: Request, res: Response) => {
-  try {
-    const tenantId = tenantOf(req);
-    const studentId = userIdOf(req);
-    const limit = Math.min(200, Math.max(10, Number(req.query.limit) || 50));
-
-    const board = await PassportProgress.find({ tenantId })
-      .select('studentId xp streak lastCompletedDate').sort({ xp: -1 }).limit(500).lean();
-    const users = await User.find({ _id: { $in: board.map((b: any) => b.studentId) } })
-      .select('firstName lastName passport.city').lean();
-    const byId = new Map(users.map((u: any) => [String(u._id), u]));
-
-    const ranked = board.map((b: any, i: number) => {
-      const u: any = byId.get(String(b.studentId));
-      return {
-        rank: i + 1,
-        name: u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Member' : 'Member',
-        city: u?.passport?.city || '',
-        xp: b.xp, streak: liveStreak(b),
-        me: String(b.studentId) === studentId,
-      };
-    });
-
-    const mine = ranked.find(r => r.me) || null;
-    res.json({
-      total: ranked.length,
-      rows: ranked.slice(0, limit),
-      me: mine,
-      percentile: mine && ranked.length > 1
-        ? Math.max(1, Math.round((mine.rank / ranked.length) * 100))
-        : null,
-    });
-  } catch (e: any) {
-    console.error('[passport] leaderboard:', e);
-    res.status(500).json({ message: e.message || 'Could not load the leaderboard' });
-  }
-};
 
 /**
  * GET /passport/dashboard — everything the gamified member home renders, in one call.
@@ -261,20 +223,16 @@ export const getDashboard = async (req: Request, res: Response) => {
     const legacySolved = (progress.solvedProblems || []).length;
     const solvedCount = library.solved + legacySolved;
 
-    const board = await PassportProgress.find({ tenantId })
-      .select('studentId xp').sort({ xp: -1 }).limit(200).lean();
-    const boardIds = board.map(b => b.studentId);
-    const boardUsers = await User.find({ _id: { $in: boardIds } }).select('firstName lastName').lean();
-    const nameOf = new Map(boardUsers.map((u: any) => [String(u._id), `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Member']));
-    const ranked = board.map((b, i) => ({
-      rank: i + 1,
-      name: nameOf.get(String(b.studentId)) || 'Member',
-      xp: b.xp,
-      me: String(b.studentId) === studentId,
-    }));
-    const myRow = ranked.find(r => r.me);
-    const leaderboard = ranked.slice(0, 3);
-    if (myRow && !leaderboard.some(r => r.me)) leaderboard.push(myRow);
+    // The global rank: every CareerPilot member in every tenant, by XP — the rank the rail and Home show.
+    const global = await getScopedLeaderboard({ tenantId, studentId, scope: 'GLOBAL', period: 'ALL_TIME', limit: 3 })
+      .catch(() => null);
+    const globalRank = global && global.available && global.myRank
+      ? { rank: global.myRank, participants: global.participantCount } : null;
+    const leaderboard = global && global.available
+      ? global.entries.map(e => ({ rank: e.rank, name: e.name, xp: e.xp, me: e.me })) : [];
+    if (globalRank && !leaderboard.some(r => r.me)) {
+      leaderboard.push({ rank: globalRank.rank, name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'You', xp: progress.xp || 0, me: true });
+    }
 
     const contests = await TechBattle.find({ tenantId, status: 'live', startAt: { $gt: now } })
       .select('title prize startAt slug').sort({ startAt: 1 }).limit(3).lean();
@@ -329,7 +287,10 @@ export const getDashboard = async (req: Request, res: Response) => {
 
       level,
       coderScore: score,
-      percentileAhead: g.percentileAhead(progress.xp, board.map(b => b.xp)),
+      // Share of the other members this one is ahead of, on the global board.
+      percentileAhead: globalRank && globalRank.participants > 1
+        ? Math.round(((globalRank.participants - globalRank.rank) / (globalRank.participants - 1)) * 100) : null,
+      globalRank,
 
       // The skill meter: Skill DNA by skill area. A member with no Skill DNA keeps their questionnaire categories.
       skills: dnaAreas.length
@@ -356,8 +317,8 @@ export const getDashboard = async (req: Request, res: Response) => {
         interviews: interviews.length,
         bestInterview,
         resumeScore: resume?.score?.total ?? null,
-        cohortRank: ranked.find(r => r.me)?.rank ?? null,
-        cohortSize: ranked.length,
+        cohortRank: globalRank?.rank ?? null,
+        cohortSize: globalRank?.participants ?? 0,
       },
       weekly: g.weeklyStats(progress, now),
       recentActivity: g.recentActivity(progress, 6, now),

@@ -3,8 +3,9 @@
  *
  * XP IS NOT MONEY, AND IS NOT A CAPABILITY SCORE. It measures engagement: showing up,
  * finishing what the roadmap asked, sitting the assessment. It drives levels, badges and
- * leaderboards, and it is deliberately non-redeemable. Coins are the redeemable currency
- * and already have their own proven engine; the two never convert into one another.
+ * leaderboards, and it is never spent. Coins are the redeemable currency with their own
+ * engine. When an admin switches it on, a member may convert XP earned since then into coins
+ * (xpConversionService) — at the admin's rate, without their XP, level or rank going down.
  *
  * NOTHING HERE CAN MOVE A SKILL. No value in this file feeds Skill DNA, readiness or the
  * roadmap planner. A student who farms XP all week is exactly as ready for their target
@@ -140,6 +141,38 @@ export const XP_EVENTS: XpEventDefinition[] = [
   // the one path in this product that must stay boring.
 ];
 
+/**
+ * What one task of a journey day is worth, by its type — the shipped defaults.
+ *
+ * An admin changes these per tenant (GamificationConfig.taskXp) and can set any single task's worth
+ * on top (XpTaskOverride). The day player, Home's goal and the Content Builder all price a task through
+ * xpPricingService, so the figure a member is shown is the figure the ledger pays.
+ *
+ * Mock interviews are absent on purpose: MOCK_INTERVIEW_COMPLETED already pays them.
+ */
+export interface TaskXpType { key: string; label: string; defaultXp: number }
+
+export const TASK_XP_TYPES: TaskXpType[] = [
+  { key: 'video', label: 'Video', defaultXp: 5 },
+  { key: 'notes', label: 'Notes', defaultXp: 5 },
+  { key: 'worked_example', label: 'Worked example', defaultXp: 5 },
+  { key: 'interactive_lesson', label: 'Interactive lesson', defaultXp: 5 },
+  { key: 'interactive_activity', label: 'Interactive activity', defaultXp: 5 },
+  { key: 'practice_theory', label: 'Practice', defaultXp: 10 },
+  { key: 'tech_qa', label: 'Technical Q&A', defaultXp: 10 },
+  { key: 'behavioral_qa', label: 'Behavioural Q&A', defaultXp: 10 },
+  { key: 'aptitude', label: 'Aptitude', defaultXp: 10 },
+  { key: 'practice_coding', label: 'Coding practice', defaultXp: 15 },
+  { key: 'quiz', label: 'Checkpoint (quiz)', defaultXp: 20 },
+  { key: 'assignment', label: 'Assignment / project', defaultXp: 30 },
+];
+
+/** Any task whose type is not listed above — a new content type pays this until an admin prices it. */
+export const TASK_XP_FALLBACK = 5;
+
+/** Highest XP an admin may set for one task or task type — a typo of 5000 should not pay out. */
+export const TASK_XP_MAX = 1000;
+
 export const XP_EVENT_KEYS = XP_EVENTS.map(e => e.key);
 export const xpEvent = (key: string): XpEventDefinition | undefined =>
   XP_EVENTS.find(e => e.key === key);
@@ -259,19 +292,18 @@ export const BADGE_TRIGGERS: Record<string, BadgeConditionType[]> = {
 
 // ── leaderboards ────────────────────────────────────────────────────────────
 
-export type LeaderboardScope = 'COLLEGE' | 'GLOBAL' | 'DISTRICT' | 'STATE';
+export type LeaderboardScope = 'COLLEGE' | 'GLOBAL';
 export type LeaderboardPeriod = 'WEEKLY' | 'MONTHLY' | 'ALL_TIME';
 
-export const LEADERBOARD_SCOPES: LeaderboardScope[] = ['COLLEGE', 'GLOBAL', 'DISTRICT', 'STATE'];
+export const LEADERBOARD_SCOPES: LeaderboardScope[] = ['COLLEGE', 'GLOBAL'];
 export const LEADERBOARD_PERIODS: LeaderboardPeriod[] = ['WEEKLY', 'MONTHLY', 'ALL_TIME'];
 
 /**
- * Scopes this build can answer truthfully.
+ * The two ranks a member can hold.
  *
- * DISTRICT and STATE are absent from the data, not from the code. There is no district field
- * anywhere in the repository, and state exists only as free text a student typed. Ranking on
- * either would mean inventing a location or fragmenting one place into six spellings, so
- * both report `available: false` and no rank at all — never rank 0, which reads as "last".
+ * GLOBAL: every CareerPilot member in every tenant, by XP — shown to everybody, no opt-in.
+ * COLLEGE: the members of the student's own tenant, when that tenant is a college.
+ * District and state ranks were removed (2026-10-31): there is no reliable location to rank on.
  */
 export const SUPPORTED_SCOPES: LeaderboardScope[] = ['COLLEGE', 'GLOBAL'];
 export const isScopeSupported = (s: string): boolean =>
@@ -279,9 +311,7 @@ export const isScopeSupported = (s: string): boolean =>
 
 /** Why a scope cannot be shown, in words a student can act on. */
 export const SCOPE_UNAVAILABLE_REASON: Record<string, string> = {
-  DISTRICT: 'District ranking needs verified location, which we do not collect yet.',
-  STATE: 'State ranking needs verified location, which we do not collect yet.',
-  COLLEGE: 'College ranking is available once your account belongs to a college.',
+  COLLEGE: 'College ranking is shown when your institution is a college on CareerPilot.',
 };
 
 export const DEFAULT_TOP_N = 50;

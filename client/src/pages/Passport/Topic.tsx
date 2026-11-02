@@ -135,10 +135,11 @@ const PracticeBlock: React.FC<{ item: TopicItem }> = ({ item }) => {
       {questions.map((q, i) => (
         <li key={i}>
           <div className="tp-q-head">
-            <span className="tp-q-title">{q.title}</span>
+            {/* The question is the description; the title is an author's label and repeated it. */}
+            <span className="tp-q-title">Question {i + 1}</span>
             <span className={`tp-q-diff ${q.difficulty}`}>{q.difficulty}</span>
           </div>
-          <p className="tp-q-body">{q.description}</p>
+          <p className="tp-q-body">{q.description || q.title}</p>
           {!!(q.options || []).length && (
             <ul className="tp-options">
               {q.options.map((o, j) => <li key={j}>{o.text}</li>)}

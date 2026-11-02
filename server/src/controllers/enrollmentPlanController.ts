@@ -27,7 +27,8 @@ import { isJourneyDayOpen, calendarAllowsDay } from '../data/journeyDayLadder';
 import { pacingClockFor, orientationBlocksLearning } from '../services/orientationService';
 import { opensAt as programmeDayOpensAt, programmeDayOfLearning } from '../data/dailyPacingPolicy';
 import { studentContentRow } from '../services/studentContentView';
-import { reconcileJourneyDayXp, xpForJourneyItem, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
+import { reconcileJourneyDayXp, xpForJourneyItem } from '../services/foundationJourneyXpService';
+import { loadXpPricing, XpPricing } from '../services/xpPricingService';
 import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService';
 
 /**
@@ -994,6 +995,8 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     let populatedItems: any[] = [];
     let dayJustCompleted = false;
     let xpJustPaid = 0;
+    // The tenant's XP prices — Foundation journey only; other enrollments pay no CareerPilot XP.
+    let journeyPricing: XpPricing | null = null;
 
     /**
      * A LOCKED DAY IS NOT SERVED, AND IS NOT COMPLETED BY BEING LOOKED AT.
@@ -1018,7 +1021,8 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       const moduleStatus = await resolveModuleStatuses(sId, dayItems);
 
       // What each task pays in CareerPilot XP — Foundation journey only; other enrollments have no such rule.
-      const journeyXpFor = (it: any) => ((enrollment as any).enrolledBy === 'foundation-journey' ? xpForJourneyItem(it) : undefined);
+      if ((enrollment as any).enrolledBy === 'foundation-journey') journeyPricing = await loadXpPricing(String(tId));
+      const journeyXpFor = (it: any) => (journeyPricing ? xpForJourneyItem(it, journeyPricing) : undefined);
       populatedItems = dayItems.map((item: any) => {
         const kind = item.kind || 'content';
         if (kind === 'content') {
@@ -1088,7 +1092,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       topic: topic || null,
       items: populatedItems,
       isDayCompleted,
-      dayBonusXp: (enrollment as any).enrolledBy === 'foundation-journey' ? FOUNDATION_DAY_BONUS_XP : undefined,
+      dayBonusXp: journeyPricing ? journeyPricing.dayBonus : undefined,
       xpJustPaid,
       isLocked,
       lockReason,

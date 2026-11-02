@@ -246,7 +246,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const st = d?.stats;
   const lv = d?.level;
   const goal = d?.dailyGoal;
-  const myRank = d?.leaderboard?.find(r => r.me)?.rank;
+  // The global rank — every CareerPilot member, by XP.
+  const myRank = d?.globalRank?.rank ?? d?.leaderboard?.find(r => r.me)?.rank;
 
   /**
    * Which parts of the product this member cannot open yet.
@@ -310,7 +311,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const userMenu = (
     <div className="gd-user-menu">
       <div className="hd"><span className="av" aria-hidden>{avatar}</span><div><b>{d?.name || firstName}</b>{lv && <span>Level {lv.level} · {lv.title}</span>}</div></div>
-      {st && <div className="stats"><div><b>{st.xp.toLocaleString()}</b><span>XP</span></div><div><b>{st.streak}</b><span>Streak</span></div><div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div></div>}
+      {st && <div className="stats"><div><b>{st.xp.toLocaleString()}</b><span>XP</span></div><div><b>{st.streak}</b><span>Streak</span></div><div title={d?.globalRank ? `#${d.globalRank.rank} of ${d.globalRank.participants.toLocaleString()} CareerPilot students` : undefined}><b>{myRank ? `#${myRank}` : '—'}</b><span>Global rank</span></div></div>}
       <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}><i className="bi bi-person" aria-hidden /> My profile</button>
       <button onClick={() => { setUserOpen(false); nav('/careerpilot/readiness'); }}><i className="bi bi-bar-chart" aria-hidden /> My result</button>
       <button onClick={share} disabled={!d?.shareSlug}><i className="bi bi-share" aria-hidden /> Share my CareerPilot card</button>

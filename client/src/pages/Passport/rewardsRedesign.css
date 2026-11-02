@@ -152,3 +152,8 @@
 /* "Every redemption is verified" footnote. */
 #root .gd .rwd2 .rwd2-secure, .rwd2 .rwd2-secure { color: #2F3F56 !important; }
 .rwd2 .rwd2-hero .rwd2-secure i { color: #1B7D91; }
+
+/* A reward with a picture shows it edge to edge; converting XP is the first way to earn more. */
+.rwd-art.has-img { overflow: hidden; background: #F4F7FB; }
+.rwd-art.has-img img { width: 100%; height: 100%; object-fit: cover; }
+.rwd2-way.convert > span { background: #FFB000; color: #fff; }

@@ -8,6 +8,11 @@ import mongoose, { Document, Schema } from 'mongoose';
  * balance goes down. Merging them would mean redeeming a reward drops your rank, which
  * punishes exactly the behaviour the whole system exists to encourage.
  *
+ * A member may CONVERT XP into coins (xpConversionService) when an admin switches it on:
+ * N XP buys one coin. Converting never lowers their XP — it spends a separate "convertible"
+ * allowance (XP earned since conversion started, less what they already converted), so level
+ * and rank are untouched.
+ *
  * Four collections:
  *   CoinConfig  — one per tenant: the economy's dials
  *   CoinRule    — one per earning event: how much, capped how
@@ -50,6 +55,15 @@ export interface ICoinConfig extends Document {
    * unredeemed coins are not real — and turns the balance into a conversion lever.
    */
   freeMembersAccrue: boolean;
+  /** Members may turn XP into coins. Off until an admin switches it on. */
+  xpConversionEnabled: boolean;
+  /** XP that buys one coin. */
+  xpPerCoin: number;
+  /**
+   * Only XP earned from this moment converts. Set the first time conversion is switched on, so
+   * enabling it never turns months of history into coins a business suddenly owes.
+   */
+  xpConversionStartsAt?: Date | null;
   updatedAt: Date;
 }
 
@@ -65,6 +79,9 @@ const CoinConfigSchema = new Schema<ICoinConfig>({
   refereeCoins:            { type: Number, default: 4000 },
   referralMonthlyCap:      { type: Number, default: 10 },
   freeMembersAccrue:       { type: Boolean, default: true },
+  xpConversionEnabled:     { type: Boolean, default: false },
+  xpPerCoin:               { type: Number, default: 100, min: 1 },
+  xpConversionStartsAt:    { type: Date, default: null },
 }, { timestamps: true });
 
 export const CoinConfig = mongoose.model<ICoinConfig>('CoinConfig', CoinConfigSchema);
@@ -172,6 +189,8 @@ export interface ICoinAccount extends Document {
   /** Real cost consumed this budget year, in rupees — what the 3% guard actually meters. */
   realCostThisYearInr: number;
   budgetYearStart: Date;
+  /** XP this member has already turned into coins. Never reduces their XP; only what is left to convert. */
+  xpConverted: number;
   updatedAt: Date;
 }
 
@@ -183,6 +202,7 @@ const CoinAccountSchema = new Schema<ICoinAccount>({
   lifetimeSpent:  { type: Number, default: 0 },
   realCostThisYearInr: { type: Number, default: 0 },
   budgetYearStart: { type: Date, default: Date.now },
+  xpConverted: { type: Number, default: 0 },
 }, { timestamps: true });
 
 CoinAccountSchema.index({ tenantId: 1, studentId: 1 }, { unique: true });

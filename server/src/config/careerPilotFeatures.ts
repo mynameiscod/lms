@@ -48,7 +48,7 @@ export const CP_FEATURES: CpFeature[] = [
   { key: 'cpPractice', side: 'member', label: 'CareerPilot: Member practice & interviews', desc: 'Practice problems, mock tests, mock interviews, company prep',
     gate: ['/practice', '/mock-test', '/interview', '/company-prep'] },
   { key: 'cpRewards', side: 'member', label: 'CareerPilot: Member coins & rewards', desc: 'Coins, rewards, gamification and the leaderboard',
-    gate: ['/me/rewards', '/me/gamification', '/leaderboard', '/coins'] },
+    gate: ['/me/rewards', '/me/redemptions', '/me/gamification', '/leaderboard', '/coins'] },
 ];
 
 export const CP_FEATURE_KEYS = CP_FEATURES.map((f) => f.key);

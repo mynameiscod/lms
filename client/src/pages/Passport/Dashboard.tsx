@@ -167,7 +167,8 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const [coins, setCoins] = useState<number | null>(null);
   const [board, setBoard] = useState<ScopedLeaderboardResponse | null>(null);
   const [boardBusy, setBoardBusy] = useState(false);
-  const [scope, setScope] = useState('COLLEGE');
+  // Global is every member's board; College joins it only for a college tenant (set once ranks load).
+  const [scope, setScope] = useState('GLOBAL');
   const [period, setPeriod] = useState('ALL_TIME');
   const [allBadges, setAllBadges] = useState(false);
   useEffect(() => {
@@ -175,7 +176,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
       if (g.status === 'fulfilled') {
         setProg(g.value);
         // Open on a board this member is on: with no college the college board is only a note.
-        if (!g.value?.ranks?.college?.available && g.value?.ranks?.global?.available) setScope('GLOBAL');
+        if (g.value?.ranks?.college?.available) setScope('COLLEGE');
       }
       if (r.status === 'fulfilled') setCoins(Number(r.value?.student?.coins ?? r.value?.student?.coinBalance ?? 0));
     });
@@ -346,8 +347,12 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
       <section className="mdb-stats" aria-label="Your figures">
         <div><span className="ic amber"><Bi name="fire" /></span><div><small>Streak</small><b>{st.streak}<em> {st.streak === 1 ? 'day' : 'days'}</em></b><span>Best {st.longestStreak} {st.longestStreak === 1 ? 'day' : 'days'}</span></div></div>
         <div><span className="ic blue"><Bi name="award-fill" /></span><div><small>Level {lv.level}</small><b className="sm">{lv.title}</b><span className="md-mini-bar"><i style={{ width: `${barWidth(lv.progressPct)}%` }} /></span><span>{lv.xpToNextLevel.toLocaleString()} XP to level {lv.nextLevel}</span></div></div>
-        <div><span className="ic teal"><Bi name="lightning-charge-fill" /></span><div><small>Total XP</small><b>{lv.xp.toLocaleString()}</b><span>{d.percentileAhead !== null && d.percentileAhead !== undefined ? `Ahead of ${d.percentileAhead}% on XP` : 'Activity earned'}</span></div></div>
-        {progressOn && <div><span className="ic gold"><Bi name="coin" /></span><div><small>Coins</small><b>{coins === null ? '—' : coins.toLocaleString()}</b><button className="md-link" onClick={() => nav('/careerpilot/rewards')}>Rewards store <Bi name="arrow-right" /></button></div></div>}
+        <div><span className="ic teal"><Bi name="lightning-charge-fill" /></span><div><small>Total XP</small><b>{lv.xp.toLocaleString()}</b><span>{d.globalRank ? `Global #${d.globalRank.rank.toLocaleString()} of ${d.globalRank.participants.toLocaleString()} students` : d.percentileAhead !== null && d.percentileAhead !== undefined ? `Ahead of ${d.percentileAhead}% on XP` : 'Activity earned'}</span></div></div>
+        {progressOn && <div><span className="ic gold"><Bi name="coin" /></span><div><small>Coins</small><b>{coins === null ? '—' : coins.toLocaleString()}</b>{prog?.conversion
+          ? <button className="md-link" onClick={() => nav('/careerpilot/coins')} title={`${prog.conversion.xpPerCoin.toLocaleString()} XP = 1 coin`}>{prog.conversion.coinsAvailable > 0
+            ? <>Convert XP to {prog.conversion.coinsAvailable.toLocaleString()} {prog.conversion.coinsAvailable === 1 ? 'coin' : 'coins'} <Bi name="arrow-right" /></>
+            : <>{prog.conversion.xpToNextCoin.toLocaleString()} XP to next coin <Bi name="arrow-right" /></>}</button>
+          : <button className="md-link" onClick={() => nav('/careerpilot/rewards')}>Rewards store <Bi name="arrow-right" /></button>}</div></div>}
         <div><span className="ic teal"><Bi name="code-slash" /></span><div><small>Problems solved</small><b>{st.solved}<em> / {st.totalProblems}</em></b><span>{st.accuracy ? `${st.accuracy.pct}% accuracy` : 'No attempts yet'}</span></div></div>
         <div><span className="ic violet"><Bi name="mic-fill" /></span><div><small>Mock interviews</small><b>{st.interviews}</b><span>{st.bestInterview !== null ? `Best ${st.bestInterview}%` : 'Not attempted yet'}</span></div></div>
       </section>
@@ -547,9 +552,12 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <button className="md-link" onClick={() => nav('/careerpilot/leaderboard')}>Full board <Bi name="arrow-right" /></button>
           </header>
           <div className="mdb-tabs">
-            <div role="tablist" aria-label="Who to rank against">
-              {[{ k: 'COLLEGE', l: 'College' }, { k: 'GLOBAL', l: 'Global' }].map(t => <button key={t.k} role="tab" aria-selected={scope === t.k} className={scope === t.k ? 'on' : ''} onClick={() => setScope(t.k)}>{t.l}</button>)}
-            </div>
+            {/* Two boards to choose from only in a college; otherwise the one board is a label, not a lone button. */}
+            {ranks.college?.available
+              ? <div role="tablist" aria-label="Who to rank against">
+                {[{ k: 'COLLEGE', l: 'College' }, { k: 'GLOBAL', l: 'Global' }].map(t => <button key={t.k} role="tab" aria-selected={scope === t.k} className={scope === t.k ? 'on' : ''} onClick={() => setScope(t.k)}>{t.l}</button>)}
+              </div>
+              : <span className="mdb-scope"><Bi name="globe2" /> Every CareerPilot student</span>}
             <div role="tablist" aria-label="Period">
               {[{ k: 'ALL_TIME', l: 'All time' }, { k: 'MONTHLY', l: 'Month' }, { k: 'WEEKLY', l: 'Week' }].map(t => <button key={t.k} role="tab" aria-selected={period === t.k} className={period === t.k ? 'on' : ''} onClick={() => setPeriod(t.k)}>{t.l}</button>)}
             </div>
@@ -558,7 +566,13 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             : !board ? <div className="md-empty">The leaderboard could not be loaded.</div>
             : !board.available ? <div className="md-empty">{(board as any).reason || 'This leaderboard is not available for you yet.'}</div>
             : <>
-              <div className="mdb-mine"><span>{board.myRank ? <>You are <b>#{board.myRank}</b> of {board.participantCount.toLocaleString()}</> : 'Earn XP to join this board'}</span><b>{board.myXp.toLocaleString()} XP</b></div>
+              <div className="mdb-rankhero">
+                <span className="ic"><Bi name={scope === 'COLLEGE' ? 'building' : 'globe2'} /></span>
+                <div className="rh-t"><small>Your {scope === 'COLLEGE' ? 'college' : 'global'} rank · {({ ALL_TIME: 'All time', MONTHLY: 'This month', WEEKLY: 'This week' } as Record<string, string>)[period]}</small>
+                  <b>{board.myRank ? `#${board.myRank.toLocaleString()}` : '—'}</b>
+                  <span>of {board.participantCount.toLocaleString()} students</span></div>
+                <div className="xp"><b>{board.myXp.toLocaleString()}</b><small>XP{period === 'ALL_TIME' ? '' : period === 'MONTHLY' ? ' this month' : ' this week'}</small></div>
+              </div>
               <div className="md-lb">{board.entries.slice(0, 5).map((r: ScopedLeaderboardRow) => <div className={`md-lb-row${r.me ? ' me' : ''}`} key={r.studentId}><span className={`rk${r.rank <= 3 ? ` g${r.rank}` : ''}`}>{r.rank}</span><span className="av">{(r.name?.[0] || '?').toUpperCase()}</span><span className="nm">{r.name}{r.me ? ' (You)' : ''}{r.college ? <em>{r.college}</em> : null}</span><b className="xp">{r.xp.toLocaleString()} XP</b></div>)}</div>
             </>}
         </article>

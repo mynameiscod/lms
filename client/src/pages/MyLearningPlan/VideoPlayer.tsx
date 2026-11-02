@@ -3,6 +3,7 @@ import { trackAction, trackNow } from '../Passport/activityBeacon';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import { youtubeIdOf, vimeoIdOf } from '../../components/content/videoUrl';
 import './videoControls.css';
+import { useUndoZoom } from '../../utils/useUndoZoom';
 
 /**
  * Lesson video playback for students.
@@ -454,6 +455,9 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
     setSpeed(s);
     if (videoRef.current) videoRef.current.playbackRate = s;
   }, []);
+
+  // The app zoom skews the browser's own timeline: undo it on the player.
+  useUndoZoom(videoRef);
 
   return (
     <div onKeyDown={onKeyDown} tabIndex={0} style={{ outline: 'none' }}>

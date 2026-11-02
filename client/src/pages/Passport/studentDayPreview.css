@@ -16,3 +16,30 @@
 }
 /* No app navbar above the preview: the panes stick just under the preview bar. */
 .sdp-back .jdm .jd-grid { --jd-top: 14px; }
+
+/* ── A checkpoint, read-only (CheckpointPreview) ───────────────────────────────────────── */
+.sdp-cp { display: flex; flex-direction: column; gap: 14px; }
+.sdp-cp-load { color: #5D6E88; font-size: 14px; }
+.sdp-cp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.sdp-cp-stats > div { padding: 12px 14px; border-radius: 13px; background: #F4F8FC; border: 1px solid #E2EAF2; }
+.sdp-cp-stats small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #7B8798; }
+.sdp-cp-stats b { display: block; margin-top: 2px; font-size: 20px; color: #051D64; }
+.sdp-cp-rules { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.sdp-cp-rules li { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #42536B; }
+.sdp-cp-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 12px; background: #EEF6FF; border: 1px solid #D6E8F2; font-size: 13px; color: #1B3C77; line-height: 1.45; }
+.sdp-cp-qs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.sdp-cp-q { padding: 14px 16px; border-radius: 14px; border: 1px solid #E2EAF2; background: #fff; }
+.sdp-cp-qhd { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.sdp-cp-qhd .n { padding: 2px 9px; border-radius: 999px; background: #051D64; color: #fff; font-size: 12px; font-weight: 800; }
+.sdp-cp-qhd .t { font-size: 12px; font-weight: 700; color: #5D6E88; }
+.sdp-cp-qhd .m { margin-left: auto; font-size: 12px; font-weight: 800; color: #17885D; }
+.sdp-cp-text { font-size: 14.5px; color: #10213C; line-height: 1.55; }
+.sdp-cp-opts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.sdp-cp-opts li { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 11px; border: 1px solid #E2EAF2; background: #FAFCFE; font-size: 14px; color: #10213C; }
+.sdp-cp-opts .box { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #B6C4D4; }
+.sdp-cp-opts .box.sq { border-radius: 4px; }
+.sdp-cp-opts .l { flex: none; width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: #EAF1FB; color: #1B3C77; font-size: 12px; font-weight: 800; }
+.sdp-cp-field { margin-top: 10px; padding: 14px; border-radius: 11px; border: 1px dashed #C9D8E5; background: #FAFCFE; font-size: 13px; color: #7B8798; }
+.sdp-cp-field.code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #0F1B33; color: #9FB3D1; border-color: #0F1B33; }
+.sdp-cp-edit { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 11px; border: 1px solid #C9D8E5; background: #fff; color: #051D64; font-size: 13.5px; font-weight: 700; text-decoration: none; }
+.sdp-cp-edit:hover { background: #F4F8FC; }

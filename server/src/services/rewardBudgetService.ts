@@ -93,7 +93,7 @@ export async function getConfig(tenantId: string) {
   return cfg || {
     tenantId,
     leaderboard: {
-      collegeEnabled: true, globalEnabled: false,
+      collegeEnabled: true,
       weeklyEnabled: true, monthlyEnabled: true, allTimeEnabled: true, topN: 50,
     },
     // Rewards are OFF until somebody turns them on. A gamification layer that starts

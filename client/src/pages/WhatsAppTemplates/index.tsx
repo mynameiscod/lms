@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  waTemplateApi, errMsg, WaTemplate, WaTemplateInput, WaPurpose, WaCompat, WaBroadcast, WaButton, WaCategory, WaMessage,
+  waTemplateApi, errMsg, WaTemplate, WaTemplateInput, WaPurpose, WaCompat, WaBroadcast, WaButton, WaCategory, WaMessage, WaDeliverySummary,
   WaLeadFilter, WaLeadFilterOptions, WaLeadAudience,
 } from '../../api/whatsAppTemplateApi';
 
@@ -566,20 +566,42 @@ const DeliveryLog: React.FC = () => {
   const [rows, setRows] = useState<WaMessage[]>([]);
   const [phone, setPhone] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const [failedOnly, setFailedOnly] = useState(false);
+  const [summary, setSummary] = useState<WaDeliverySummary | null>(null);
   useEffect(() => {
     let alive = true;
-    const load = () => waTemplateApi.messages({ phone: phone.trim() || undefined, limit: 100 })
-      .then((r) => { if (alive) { setRows(r); setLoaded(true); } }).catch(() => { if (alive) setLoaded(true); });
+    const load = () => {
+      waTemplateApi.messages({ phone: phone.trim() || undefined, limit: 100, status: failedOnly ? 'failed' : undefined })
+        .then((r) => { if (alive) { setRows(r); setLoaded(true); } }).catch(() => { if (alive) setLoaded(true); });
+      waTemplateApi.messagesSummary().then((s) => { if (alive) setSummary(s); }).catch(() => undefined);
+    };
     load();
     const id = setInterval(load, 5000);
     return () => { alive = false; clearInterval(id); };
-  }, [phone]);
+  }, [phone, failedOnly]);
   const stale = (m: WaMessage) => m.status === 'accepted' && Date.now() - new Date(m.createdAt).getTime() > 5 * 60 * 1000;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {summary && summary.total > 0 && (
+        <div style={{ ...card, borderColor: summary.failed ? C.red : C.border, background: summary.failed ? C.redBg : undefined }}>
+          <div style={{ fontWeight: 700, color: summary.failed ? C.red : C.green }}>
+            {summary.failed
+              ? `${summary.failed} of ${summary.total} messages failed in the last 24 hours`
+              : `All ${summary.total} messages in the last 24 hours went through`}
+          </div>
+          {summary.reasons.map((r, i) => (
+            <div key={i} style={{ ...hint, marginTop: 4 }}>
+              <b>{r.count}×</b> {r.reason}{r.code ? ` (code ${r.code})` : ''}
+            </div>
+          ))}
+        </div>
+      )}
       <div style={{ ...card, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <input style={{ ...input, maxWidth: 260 }} placeholder="Search by phone, e.g. 9743545311" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        <span style={hint}>Updates every few seconds. "Delivered"/"Read" mean it reached the phone.</span>
+        <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, cursor: 'pointer' }}>
+          <input type="checkbox" checked={failedOnly} onChange={(e) => setFailedOnly(e.target.checked)} /> Failed only
+        </label>
+        <span style={hint}>Updates every few seconds. "Delivered"/"Read" mean it reached the phone. Login and sign-up codes (OTP) are listed here too.</span>
       </div>
       {!loaded ? <div style={{ ...card, color: C.muted }}>Loading…</div> : !rows.length ? (
         <div style={{ ...card, textAlign: 'center', color: C.muted, padding: 40 }}>No messages{phone ? ' to this number' : ''} yet. Sends are logged from now on.</div>

@@ -96,8 +96,15 @@ export const waTemplateApi = {
   batches: () => axios.get(`${BASE}/batches`, h()).then(d) as Promise<{ _id: string; name: string }[]>,
   leadFilters: () => axios.get(`${BASE}/lead-filters`, h()).then(d) as Promise<WaLeadFilterOptions>,
   leadAudience: (id: string, f: WaLeadFilter) => axios.post(`${BASE}/${id}/lead-audience`, f, h()).then(d) as Promise<WaLeadAudience>,
-  messages: (q: { phone?: string; templateId?: string; limit?: number } = {}) =>
+  messages: (q: { phone?: string; templateId?: string; limit?: number; status?: 'failed' } = {}) =>
     axios.get(`${BASE}/messages`, { ...h(), params: q }).then(d) as Promise<WaMessage[]>,
+  messagesSummary: () => axios.get(`${BASE}/messages/summary`, h()).then(d) as Promise<WaDeliverySummary>,
 };
+
+/** The last 24 hours of sends: totals and the most common failure reasons. */
+export interface WaDeliverySummary {
+  total: number; failed: number;
+  reasons: { code?: number; count: number; last: string; reason: string }[];
+}
 
 export const errMsg = (e: any, fallback = 'Something went wrong') => e?.response?.data?.message || e?.message || fallback;

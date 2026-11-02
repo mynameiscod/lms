@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import Batch from '../models/Batch';
 import * as settings from '../services/settingsService';
 import * as svc from '../services/whatsAppTemplateService';
-import { listMessages, explainWaError } from '../services/whatsAppDeliveryService';
+import { listMessages, deliverySummary, explainWaError } from '../services/whatsAppDeliveryService';
 import { WA_TEMPLATE_PURPOSES } from '../config/whatsappTemplatePurposes';
 
 const tId = (req: Request) => (req as any).tenantId as string;
@@ -93,8 +93,12 @@ export const sendTest = wrap(async (req, res) => {
 
 /** GET /whatsapp-templates/messages?phone=&templateId=&limit= — recent sends and what became of them. */
 export const messages = wrap(async (req, res) => {
-  const { phone, templateId, limit } = req.query as any;
-  res.json({ success: true, data: await listMessages(tId(req), { phone, templateId, limit: Number(limit) || 50 }) });
+  const { phone, templateId, limit, status } = req.query as any;
+  res.json({ success: true, data: await listMessages(tId(req), { phone, templateId, limit: Number(limit) || 50, status }) });
+});
+
+export const messagesSummary = wrap(async (req, res) => {
+  res.json({ success: true, data: await deliverySummary(tId(req)) });
 });
 
 export const broadcast = wrap(async (req, res) => {

@@ -767,8 +767,27 @@ export const passportApi = {
     const { data } = await axios.put(`${BASE}/gamification/admin/rules/${eventKey}`, patch, { headers: auth() });
     return data;
   },
-  updateBadgeDefinition: async (key: string, patch: any): Promise<any> => {
+  updateBadgeDefinition: async (key: string, patch: Partial<BadgeInput>): Promise<{ badges: AdminBadgeRow[] }> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/badges/${key}`, patch, { headers: auth() });
+    return data;
+  },
+  createBadgeDefinition: async (body: BadgeInput): Promise<{ badges: AdminBadgeRow[] }> => {
+    const { data } = await axios.post(`${BASE}/gamification/admin/badges`, body, { headers: auth() });
+    return data;
+  },
+  /** Only a badge nobody has earned; the server refuses the rest. */
+  deleteBadgeDefinition: async (key: string): Promise<{ badges: AdminBadgeRow[] }> => {
+    const { data } = await axios.delete(`${BASE}/gamification/admin/badges/${key}`, { headers: auth() });
+    return data;
+  },
+  /** The order members see the badges in. */
+  reorderBadgeDefinitions: async (keys: string[]): Promise<{ badges: AdminBadgeRow[] }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/badges-order`, { keys }, { headers: auth() });
+    return data;
+  },
+  /** Level names, level 1 first; [] goes back to the shipped names. */
+  saveLevelNames: async (names: string[]): Promise<{ levels: LevelLadder }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/levels`, { names }, { headers: auth() });
     return data;
   },
   updateLeaderboardSettings: async (patch: any): Promise<any> => {
@@ -1925,7 +1944,8 @@ export interface LevelInfo {
   xpIntoLevel: number; xpForThisLevel: number; xpToNextLevel: number;
   nextLevel: number; nextTitle: string; progressPct: number;
 }
-export interface Badge { key: string; label: string; icon: string; color: string; hint: string; earned: boolean; progress: number; }
+/** A member's badge. `icon` is a Bootstrap Icons class ("bi-mic-fill"). */
+export interface Badge { key: string; label: string; icon: string; color: string; hint: string; earned: boolean; progress: number; earnedAt?: string | null }
 export interface DashboardData {
   /**
    * The daily plan's own outcome, including WHY it is unavailable. The dashboard used to
@@ -2460,9 +2480,25 @@ export interface XpRuleRow {
   eventKey: string; enabled: boolean; xp: number; dailyLimit: number; streakQualifying: boolean;
 }
 
+/** A badge as the admin defines it: its look, and the rule that earns it. */
+export interface AdminBadgeRow {
+  key: string; name: string; description: string; iconKey: string; color: string; active: boolean;
+  conditionType: string; threshold: number; eventKey: string | null; displayOrder: number;
+  /** The rule in words — what members see when the description is empty. */
+  rule: string;
+  /** How many members hold it. */
+  earnedBy: number;
+}
+export interface BadgeCondition { type: string; label: string; unit: string; max?: number; needsEvent?: boolean }
+export interface BadgeInput { name: string; description: string; iconKey: string; color: string; conditionType: string; threshold: number; eventKey?: string | null; active?: boolean }
+/** What each level is called, level 1 first, and the XP that reaches each. */
+export interface LevelLadder { names: string[]; defaults: string[]; custom: boolean; max: number; nameMax: number; xpToReach: number[] }
+
 export interface AdminGamification {
   rules: XpRuleRow[];
-  badges: any[];
+  badges: AdminBadgeRow[];
+  badgeConditions: BadgeCondition[];
+  levels: LevelLadder;
   settings: any;
   events: { key: string; name: string; description: string; defaultXp: number }[];
   taskTypes: TaskXpType[];

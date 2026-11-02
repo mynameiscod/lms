@@ -48,7 +48,8 @@
 .mc-unlock2-btn:disabled{opacity:.78;cursor:default}
 .mc-unlock2-links{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px}
 .mc-unlock2-link{border:0;background:none;padding:0;color:var(--mcu-border);font-weight:750;font-size:12px;cursor:pointer}
-.mc-unlock2-link:hover{text-decoration:underline}
+.mc-unlock2-link{padding:4px 8px;margin:-4px -8px;border-radius:8px;transition:background-color .15s}
+.mc-unlock2-link:hover{background:rgba(5,29,100,.07);text-decoration:none}
 .mc-unlock2-paymsg{margin-top:12px;max-width:500px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:10px 12px;font-size:12px;color:#fff}
 
 .mc-unlock2-visual{min-height:315px;display:flex;align-items:flex-end;justify-content:center}

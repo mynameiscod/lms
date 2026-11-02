@@ -6,6 +6,7 @@
 // tile — where we have no data, the caller gets null/0 and the UI says so.
 
 import { IPassportProgress } from '../models/PassportProgress';
+import { DEFAULT_LEVEL_NAMES } from '../data/gamificationPolicy';
 
 // ── Levels ───────────────────────────────────────────────────────────────────
 // Cumulative XP to REACH level n = 50 * n * (n-1).
@@ -14,15 +15,14 @@ import { IPassportProgress } from '../models/PassportProgress';
 // top of the ladder stays meaningful.
 export const xpToReachLevel = (level: number): number => 50 * level * (level - 1);
 
-const TITLES: { min: number; title: string }[] = [
-  { min: 1,  title: 'Career Explorer' },
-  { min: 3,  title: 'Rookie Coder' },
-  { min: 5,  title: 'Skill Builder' },
-  { min: 8,  title: 'Skill Coder' },
-  { min: 12, title: 'Code Athlete' },
-  { min: 16, title: 'Code Master' },
-  { min: 20, title: 'Placement Legend' },
-];
+/**
+ * What a level is called: the tenant's names (levelNameService) or the shipped ones. Level n is
+ * names[n-1]; a level past the end of the list keeps the last name.
+ */
+export const levelName = (level: number, names: string[] = DEFAULT_LEVEL_NAMES): string => {
+  const list = names.length ? names : DEFAULT_LEVEL_NAMES;
+  return list[Math.min(Math.max(1, level), list.length) - 1];
+};
 
 export interface LevelInfo {
   level: number;
@@ -36,7 +36,7 @@ export interface LevelInfo {
   progressPct: number;
 }
 
-export function levelFromXp(xp: number): LevelInfo {
+export function levelFromXp(xp: number, names?: string[]): LevelInfo {
   const safeXp = Math.max(0, xp || 0);
   let level = 1;
   while (xpToReachLevel(level + 1) <= safeXp && level < 100) level++;
@@ -46,7 +46,7 @@ export function levelFromXp(xp: number): LevelInfo {
   const span = Math.max(1, ceil - floor);
   const into = safeXp - floor;
 
-  const titleFor = (l: number) => [...TITLES].reverse().find(t => l >= t.min)?.title || TITLES[0].title;
+  const titleFor = (l: number) => levelName(l, names);
 
   return {
     level,
@@ -169,48 +169,7 @@ export function coderScore(input: {
   return { score: parts.reduce((s, p) => s + p.earned, 0), parts };
 }
 
-// ── Badges ───────────────────────────────────────────────────────────────────
-export interface Badge {
-  key: string;
-  label: string;
-  icon: string;
-  color: string;
-  hint: string;
-  earned: boolean;
-  progress: number;   // 0–1 toward earning it
-}
-
-export function badges(input: {
-  solvedCount: number;
-  codingSolved: number;
-  totalCoding: number;
-  streak: number;
-  longestStreak: number;
-  completedDays: number;
-  interviewsCompleted: number;
-  resumeScore: number | null;
-  careerScore: number | null;
-}): Badge[] {
-  const mk = (
-    key: string, label: string, icon: string, color: string, hint: string,
-    have: number, need: number,
-  ): Badge => ({
-    key, label, icon, color, hint,
-    earned: have >= need,
-    progress: need > 0 ? Math.min(1, have / need) : 0,
-  });
-
-  return [
-    mk('problem_solver', 'Problem Solver', '⭐', '#16a34a', 'Solve your first practice problem', input.solvedCount, 1),
-    mk('dsa_explorer',   'DSA Explorer',   '🧊', '#2563eb', 'Solve 5 coding problems', input.codingSolved, 5),
-    mk('algo_wizard',    'Algo Wizard',    '🪄', '#f59e0b', `Solve ${PRACTICE_TARGET} coding problems`, input.codingSolved, PRACTICE_TARGET),
-    mk('speed_demon',    'Speed Demon',    '⚡', '#ef4444', 'Hit a 7-day streak', input.longestStreak, 7),
-    mk('consistency',    'Consistency King', '📅', '#8b5cf6', 'Complete 30 mission days', input.completedDays, 30),
-    mk('interview_ready','Interview Ready', '🎙️', '#0891b2', 'Finish a mock interview', input.interviewsCompleted, 1),
-    mk('ats_ready',      'ATS Ready',      '📄', '#0f766e', 'Score 75+ on your resume', input.resumeScore ?? 0, 75),
-    mk('code_master',    'Code Master',    '👑', '#64748b', 'Reach a 30-day streak', input.longestStreak, 30),
-  ];
-}
+// Badges live in badgeService: an admin defines them now (XP & Rewards → Badges).
 
 // ── Recent activity feed ─────────────────────────────────────────────────────
 const SOURCE_META: Record<string, { label: string; icon: string; color: string }> = {

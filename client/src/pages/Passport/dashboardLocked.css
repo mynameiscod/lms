@@ -18,8 +18,8 @@
 .dl2-btn.light { width: 100%; background: #fff; color: var(--navy); box-shadow: 0 10px 24px rgba(0, 0, 0, .18); }
 .dl2-btn.light:hover:not(:disabled) { background: #EAF3FD; }
 .dl2-btn:disabled { opacity: .75; cursor: default; }
-.dl2-link { border: 0; background: none; padding: 0; color: var(--primary); font-size: 14px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.dl2-link:hover { text-decoration: underline; }
+.dl2-link { border: 0; background: none; padding: 6px 11px; margin: -6px -11px; border-radius: 10px; color: var(--primary); font-size: 14px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; transition: background-color .15s; }
+.dl2-link:hover { background: #EAF0FF; text-decoration: none; }
 
 /* Hero */
 .dl2-hero {

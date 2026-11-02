@@ -196,6 +196,8 @@ export interface IBadgeDefinition extends Document {
   name: string;
   description: string;
   iconKey: string;
+  /** The badge's colour once earned, as #rrggbb. */
+  color: string;
   active: boolean;
   conditionType: BadgeConditionType;
   conditionConfig: { threshold: number; eventKey?: string };
@@ -212,6 +214,7 @@ const BadgeDefinitionSchema = new Schema<IBadgeDefinition>(
     name:        { type: String, required: true, trim: true, maxlength: 60 },
     description: { type: String, default: '', trim: true, maxlength: 300 },
     iconKey:     { type: String, default: 'bi-award-fill' },
+    color:       { type: String, default: '#f59e0b' },
     active:      { type: Boolean, default: true },
     conditionType:   { type: String, required: true },
     conditionConfig: {
@@ -305,6 +308,11 @@ export interface IGamificationConfig extends Document {
    */
   taskXp?: Record<string, number>;
 
+  /** What each level is called, level 1 first. Empty = the shipped names (DEFAULT_LEVEL_NAMES). */
+  levelNames?: string[];
+  /** Which shipped badge set this tenant has been migrated to (BADGE_SET_VERSION). */
+  badgeSetVersion?: number;
+
   updatedBy?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -332,6 +340,8 @@ const GamificationConfigSchema = new Schema<IGamificationConfig>(
     },
 
     taskXp: { type: Schema.Types.Mixed, default: undefined },
+    levelNames: { type: [String], default: undefined },
+    badgeSetVersion: { type: Number, default: 0 },
 
     updatedBy: { type: String },
   },

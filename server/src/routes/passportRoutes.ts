@@ -370,6 +370,10 @@ router.get('/gamification/admin',                       MANAGE_FOR.cpSetup, gami
 router.get('/gamification/admin/overview',              MANAGE_FOR.cpSetup, gamification.getAdminOverview);
 router.put('/gamification/admin/rules/:eventKey',       MANAGE_FOR.cpSetup, gamification.updateXpRule);
 router.put('/gamification/admin/badges/:key',           MANAGE_FOR.cpSetup, gamification.updateBadge);
+router.post('/gamification/admin/badges',               MANAGE_FOR.cpSetup, gamification.createBadge);
+router.delete('/gamification/admin/badges/:key',        MANAGE_FOR.cpSetup, gamification.deleteBadge);
+router.put('/gamification/admin/badges-order',          MANAGE_FOR.cpSetup, gamification.reorderBadges);
+router.put('/gamification/admin/levels',                MANAGE_FOR.cpSetup, gamification.updateLevelNames);
 router.put('/gamification/admin/leaderboard',           MANAGE_FOR.cpSetup, gamification.updateLeaderboardSettings);
 router.put('/gamification/admin/task-xp',               MANAGE_FOR.cpSetup, gamification.updateTaskXp);
 // One task's XP is set where the task is built, so content editors may price it too.

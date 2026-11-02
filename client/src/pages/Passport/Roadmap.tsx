@@ -295,7 +295,7 @@ const Roadmap: React.FC = () => {
           <h3>Upcoming Milestones</h3>
           {milestones.map(m => (
             <div className="rq-mile" key={m.key}>
-              <span className="ic" style={{ background: `${m.color}1f`, color: m.color }}>{m.icon}</span>
+              <span className="ic" style={{ background: `${m.color}1f`, color: m.color }}><i className={`bi ${m.icon}`} aria-hidden /></span>
               <div className="tx"><b>{m.label}</b><span>{m.hint}</span></div>
               <span className="pc">{Math.round(m.progress * 100)}%</span>
             </div>

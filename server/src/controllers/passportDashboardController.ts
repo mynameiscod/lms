@@ -19,6 +19,9 @@ import { getTodaysPlan, toMemberMissions } from '../services/dailyMissionOrchest
 import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
 import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import * as g from '../services/passportGamificationService';
+import { levelNamesFor } from '../services/levelNameService';
+import { memberBadges } from '../services/badgeService';
+import { ensureGamificationDefaults } from '../services/gamificationEngine';
 import { journeyDayGoal, journeyCompletion } from '../services/foundationJourneyXpService';
 import { getLeaderboard as getScopedLeaderboard } from '../services/leaderboardService';
 import { calculateStudentRoleReadiness } from '../services/roleReadinessService';
@@ -237,7 +240,7 @@ export const getDashboard = async (req: Request, res: Response) => {
     const contests = await TechBattle.find({ tenantId, status: 'live', startAt: { $gt: now } })
       .select('title prize startAt slug').sort({ startAt: 1 }).limit(3).lean();
 
-    const level = g.levelFromXp(progress.xp);
+    const level = g.levelFromXp(progress.xp, await levelNamesFor(tenantId));
     /*
      * THE ASSESSMENT PART reads the current readiness-based Career Score (careerScoreService, written
      * when at least 40% of the role is measured). Below that, the whole-role readiness — the same
@@ -336,17 +339,18 @@ export const getDashboard = async (req: Request, res: Response) => {
       streakWeek: g.streakWeek(progress, now),
       activity: g.activitySeries(progress, 7, now),
 
-      badges: g.badges({
-        solvedCount,
-        codingSolved: solvedCount,
-        totalCoding: g.PRACTICE_TARGET,
-        streak: liveStreak(progress, now),
-        longestStreak: progress.longestStreak,
-        completedDays: journey ? journey.completedDays : roadmap.completedDays,
-        interviewsCompleted: interviews.length,
-        resumeScore: resume?.score?.total ?? null,
-        careerScore: assessmentScore,
-      }),
+      // The admin's badges (XP & Rewards → Badges), judged on the figures counted above.
+      badges: await (async () => {
+        await ensureGamificationDefaults(tenantId);
+        return memberBadges(tenantId, studentId, {
+          XP_TOTAL: progress.xp || 0,
+          PROBLEMS_SOLVED: solvedCount,
+          STREAK: Math.max(liveStreak(progress, now), progress.longestStreak || 0),
+          DAYS_COMPLETED: journey ? journey.completedDays : roadmap.completedDays,
+          MOCK_INTERVIEWS: interviews.length,
+          RESUME_SCORE: resume?.score?.total ?? 0,
+        });
+      })().catch((e: any) => { console.error('[passport] badges:', e?.message || e); return []; }),
 
       journey: roadmap.phases.map(p => ({
         key: p.key, label: p.label, fromDay: p.fromDay, toDay: p.toDay,

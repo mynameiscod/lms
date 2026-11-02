@@ -36,10 +36,6 @@ const WELCOME_TYPE: Record<string, string> = { video: 'Video', notes: 'Notes', i
 const WELCOME_ICON: Record<string, string> = { video: 'play-circle', notes: 'journal-text', image: 'image', checklist: 'check2-square', recording: 'mic' };
 
 /* Each badge as an icon of its own (the server's are emoji, which render differently on every device). */
-const BADGE_ICON: Record<string, string> = {
-  problem_solver: 'check2-circle', dsa_explorer: 'diagram-3-fill', algo_wizard: 'magic', speed_demon: 'lightning-charge-fill',
-  consistency: 'calendar2-check-fill', interview_ready: 'mic-fill', ats_ready: 'file-earmark-check-fill', code_master: 'trophy-fill',
-};
 /* Skill rows take their icon from the skill's name; anything unrecognised gets a neutral mark. */
 const skillIcon = (label: string) => {
   const l = label.toLowerCase();
@@ -602,7 +598,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
               <div className="dbx-badges">
                 {badges.slice(0, 5).map((b: Badge) => (
                   <div key={b.key} className={`dbx-badge${b.earned ? ' earned' : ''}`} title={b.earned ? `${b.label}: earned` : `${b.label}: ${b.hint} (${Math.round(b.progress * 100)}%)`}>
-                    <span className="hex" style={b.earned ? { ['--bc' as any]: b.color } : undefined}><Bi name={b.earned ? BADGE_ICON[b.key] || 'star-fill' : 'lock-fill'} /></span>
+                    <span className="hex" style={b.earned ? { ['--bc' as any]: b.color } : undefined}><Bi name={b.earned ? (b.icon || 'bi-award-fill').replace(/^bi-/, '') : 'lock-fill'} /></span>
                     <b>{b.label}</b>
                   </div>
                 ))}

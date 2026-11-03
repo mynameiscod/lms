@@ -35,10 +35,15 @@ const chain = (value: any): any => {
 
 const matches = (doc: any, q: any): boolean =>
   Object.entries(q).every(([k, v]: [string, any]) => {
+    if (k === '$or') return (v as any[]).some(sub => matches(doc, sub));
+    // A dotted path ('questionIds.0') reads into the document, as Mongo does.
+    if (k.includes('.')) doc = { [k]: k.split('.').reduce((o: any, part) => (o == null ? undefined : o[part]), doc) };
     if (v && typeof v === 'object' && '$in' in v) {
       return (v.$in as any[]).map(String).includes(String(doc[k]));
     }
     if (v && typeof v === 'object' && '$gt' in v) return Number(doc[k]) > Number(v.$gt);
+    if (v && typeof v === 'object' && '$ne' in v) return String(doc[k]) !== String(v.$ne);
+    if (v && typeof v === 'object' && '$exists' in v) return (doc[k] !== undefined) === v.$exists;
     if (v === null || v === undefined) return doc[k] === null || doc[k] === undefined;
     return String(doc[k]) === String(v);
   });
@@ -204,7 +209,7 @@ describe('a rewritten day is a whole day', () => {
       { _id: 'draft-notes', tenantId: TENANT, isPublished: false, unitCode: 'NEW_PROJECT', type: 'worked_example', title: 'Draft' },
     );
     assignments.push({ _id: 'assign-1', tenant: TENANT, unitCode: 'NEW_PROJECT', title: 'Build it' });
-    quizzes.push({ _id: 'quiz-1', tenantId: TENANT, unitCode: 'NEW_CHECK', title: 'Checkpoint', totalTime: 20 });
+    quizzes.push({ _id: 'quiz-1', tenantId: TENANT, unitCode: 'NEW_CHECK', title: 'Checkpoint', totalTime: 20, totalQuestions: 5 });
     nextComposition = {
       ok: true,
       units: [

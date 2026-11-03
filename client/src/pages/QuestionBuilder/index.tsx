@@ -63,7 +63,8 @@ const QuestionBuilder: React.FC = () => {
     const { name, value } = e.target;
     setForm(prev => ({
       ...prev,
-      [name]: name === 'marks' || name === 'difficulty' ? Number(value) : value
+      // Difficulty is a word ('easy'); turning it into a number made every save fail.
+      [name]: name === 'marks' ? Number(value) : value
     }));
   };
 

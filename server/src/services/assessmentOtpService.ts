@@ -8,6 +8,7 @@ import { getDecryptedTokens } from '../controllers/leadSourceConfigController';
 import WhatsAppTemplate from '../models/WhatsAppTemplate';
 import { buildSendComponents } from './whatsAppTemplateShape';
 import { recordOutbound, renderTemplateBody } from './whatsAppChatStore';
+import { recordSend } from './whatsAppDeliveryService';
 
 /**
  * OTP service for assessment registration — sends a 6-digit code over WhatsApp
@@ -141,11 +142,24 @@ async function sendWhatsAppOtp(phone: string, code: string, message: string, cre
       messaging_product: 'whatsapp', to, type: 'template',
       template: { name, language: { code: lang }, components },
     });
+    await logOtpSend(tenantId, to, `${name} (OTP)`, r);
     if (r.ok) return true;
   }
 
   // Fallback: plain text — only delivers if the user messaged us in the last 24h
-  return (await waPost(creds, { messaging_product: 'whatsapp', to, type: 'text', text: { body: message } })).ok;
+  const t = await waPost(creds, { messaging_product: 'whatsapp', to, type: 'text', text: { body: message } });
+  await logOtpSend(tenantId, to, '(OTP text fallback)', t);
+  return t.ok;
+}
+
+/**
+ * Put an OTP send in the delivery log (Templates → Delivery) so a code that never arrived can be
+ * explained. Meta's "accepted" only means queued; the later delivered/failed report finds this row
+ * by its message id. The code itself is never stored, only who it went to and what became of it.
+ */
+async function logOtpSend(tenantId: string | undefined, to: string, templateName: string, result: { ok: boolean; messageId?: string; error?: string; errorCode?: number }) {
+  if (!tenantId) return;
+  await recordSend({ tenantId, to, templateName, source: 'system', result });
 }
 
 /** Normalize a phone to WhatsApp's `to` format (digits, default India country code). */

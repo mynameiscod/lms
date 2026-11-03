@@ -21,6 +21,7 @@ router.put('/usage/:purpose', ctrl.assign);
 
 router.get('/broadcasts', ctrl.broadcasts);
 router.get('/messages', ctrl.messages);
+router.get('/messages/summary', ctrl.messagesSummary);
 router.get('/batches', ctrl.batches);
 router.get('/lead-filters', ctrl.leadFilters);
 

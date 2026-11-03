@@ -89,7 +89,7 @@ export const waTemplateApi = {
   usage: () => axios.get(`${BASE}/usage`, h()).then(d) as Promise<WaPurpose[]>,
   compatibility: () => axios.get(`${BASE}/usage/compatibility`, h()).then(d) as Promise<Record<string, Record<string, WaCompat>>>,
   assign: (purpose: string, templateId: string | null) => axios.put(`${BASE}/usage/${purpose}`, { templateId }, h()).then(d) as Promise<{ ok: boolean; warnings: string[] }>,
-  sendTest: (id: string, phone: string, values: string[], buttonParam?: string) => axios.post(`${BASE}/${id}/test`, { phone, values, buttonParam }, h()),
+  sendTest: (id: string, phone: string, values: string[], buttonParam?: string, force?: boolean) => axios.post(`${BASE}/${id}/test`, { phone, values, buttonParam, force: force === true }, h()),
   broadcast: (id: string, body: { phones?: string; batchId?: string; leads?: WaLeadFilter; values: string[]; buttonParam?: string }) =>
     axios.post(`${BASE}/${id}/broadcast`, body, h()).then(d) as Promise<WaBroadcast>,
   broadcasts: () => axios.get(`${BASE}/broadcasts`, h()).then(d) as Promise<WaBroadcast[]>,

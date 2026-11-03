@@ -67,7 +67,12 @@ export interface MemberTrial {
   convertedAt?: Date | string | null;
   items?: TrialItems;
   practiceIds?: any[];
+  /** The plan named its problems: practiceIds is exactly those. */
+  practicePicked?: boolean;
 }
+
+/** How many problems one plan may name. */
+export const TRIAL_MAX_PICKED = 500;
 
 const paidNow = (passport: any, now: Date) =>
   !!passport?.active && (!passport?.expiresAt || new Date(passport.expiresAt).getTime() >= now.getTime());

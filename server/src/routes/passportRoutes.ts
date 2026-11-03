@@ -691,6 +691,7 @@ router.post('/members/:userId/grant',    MANAGE_FOR.cpMembers, ctrl.grantMembers
 router.delete('/members/:userId/grant',  MANAGE_FOR.cpMembers, ctrl.revokeMembership);
 // Trials: limited access for a chosen student (data/trialPolicy.ts).
 router.get('/trial-plans',               MANAGE_FOR.cpMembers, trials.listPlans);
+router.get('/trial-plans/problems',      MANAGE_FOR.cpMembers, trials.searchProblems);
 router.post('/trial-plans',              MANAGE_FOR.cpMembers, trials.createPlan);
 router.put('/trial-plans/:id',           MANAGE_FOR.cpMembers, trials.updatePlan);
 router.delete('/trial-plans/:id',        MANAGE_FOR.cpMembers, trials.deletePlan);

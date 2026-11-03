@@ -3,9 +3,10 @@ import mongoose from 'mongoose';
 import TrialPlan from '../models/TrialPlan';
 import User from '../models/User';
 import PassportProgress from '../models/PassportProgress';
-import { TRIAL_ITEMS, TRIAL_MAX_DAYS, cleanTrialItems, trialActive } from '../data/trialPolicy';
+import { TRIAL_ITEMS, TRIAL_MAX_DAYS, TRIAL_MAX_PICKED, cleanTrialItems, trialActive } from '../data/trialPolicy';
 import { membershipActive } from '../services/passportEntitlementService';
 import { trialStatus } from '../services/trialService';
+import { searchLibraryForAdmin, libraryProblemsByIds } from '../services/problemLibraryService';
 
 /**
  * CareerPilot → Trial plans, and giving one to a chosen student.
@@ -20,10 +21,30 @@ const actorOf = (req: Request) => {
   return { id: a.id || a._id, name: [a.firstName, a.lastName].filter(Boolean).join(' ') || a.email || 'admin' };
 };
 
-const planRow = (p: any, running = 0) => ({
+const planRow = (p: any, running = 0, problems: any[] = []) => ({
   id: String(p._id), name: p.name, description: p.description || '', days: p.days,
   items: p.items || {}, active: !!p.active, running, updatedAt: p.updatedAt,
+  /** The problems the plan names, as admins see them; empty = the first N of the library. */
+  practiceProblems: problems,
 });
+
+/** Each plan's named problems, looked up in one go. */
+async function problemsOf(tenantId: string, plans: any[]): Promise<Map<string, any[]>> {
+  const all = plans.flatMap(p => (p.practiceProblemIds || []).map(String));
+  const rows = all.length ? await libraryProblemsByIds(tenantId, all) : [];
+  const byId = new Map(rows.map(r => [r.id, r]));
+  return new Map(plans.map(p => [String(p._id), (p.practiceProblemIds || []).map(String).filter((i: string) => byId.has(i)).map((i: string) => byId.get(i))]));
+}
+
+/** GET /passport/trial-plans/problems?q= — library problems an admin can put in a plan. */
+export const searchProblems = async (req: Request, res: Response) => {
+  try {
+    res.json({ problems: await searchLibraryForAdmin(tenantOf(req), String(req.query.q || '')) });
+  } catch (e: any) {
+    console.error('[trial] problems:', e?.message || e);
+    res.status(500).json({ message: 'Could not search the problems.' });
+  }
+};
 
 /** Who is on a trial of each plan right now. */
 async function runningByPlan(tenantId: string): Promise<Map<string, number>> {
@@ -44,8 +65,10 @@ export const listPlans = async (req: Request, res: Response) => {
       TrialPlan.find({ tenantId }).sort({ createdAt: 1 }).lean(),
       runningByPlan(tenantId),
     ]);
+    const problems = await problemsOf(tenantId, plans as any[]);
     res.json({
-      plans: (plans as any[]).map(p => planRow(p, running.get(String(p._id)) || 0)),
+      plans: (plans as any[]).map(p => planRow(p, running.get(String(p._id)) || 0, problems.get(String(p._id)))),
+      maxPicked: TRIAL_MAX_PICKED,
       catalogue: TRIAL_ITEMS.map(i => ({ key: i.key, label: i.label, icon: i.icon, unit: i.limit?.unit || null, hint: i.limit?.hint || null })),
       maxDays: TRIAL_MAX_DAYS,
     });
@@ -55,7 +78,11 @@ export const listPlans = async (req: Request, res: Response) => {
   }
 };
 
-function cleanPlan(b: any): { plan: any } | { error: string } {
+/**
+ * A plan from the admin's form. When it names practice problems, each must be one members can
+ * open now, and the practice limit becomes how many were named.
+ */
+async function cleanPlan(tenantId: string, b: any): Promise<{ plan: any } | { error: string }> {
   const name = String(b?.name || '').trim().slice(0, 60);
   if (!name) return { error: 'Give the plan a name.' };
   const days = Number(b?.days);
@@ -63,16 +90,29 @@ function cleanPlan(b: any): { plan: any } | { error: string } {
   const items = cleanTrialItems(b?.items);
   if ('error' in items) return { error: items.error };
   if (!Object.values(items.items).some(s => s?.on)) return { error: 'Switch on at least one thing the trial opens.' };
-  return { plan: { name, description: String(b?.description || '').trim().slice(0, 300), days, items: items.items, active: b?.active !== false } };
+
+  const asked: string[] = Array.isArray(b?.practiceProblemIds) ? [...new Set<string>(b.practiceProblemIds.map(String))] : [];
+  let practiceProblemIds: mongoose.Types.ObjectId[] = [];
+  if (items.items.practice?.on && asked.length) {
+    if (asked.length > TRIAL_MAX_PICKED) return { error: `A plan can name up to ${TRIAL_MAX_PICKED} problems.` };
+    const found = await libraryProblemsByIds(tenantId, asked);
+    if (found.length !== asked.length) {
+      return { error: 'Some chosen problems are no longer in the CareerPilot practice library. Remove them and save again.' };
+    }
+    practiceProblemIds = found.map(p => new mongoose.Types.ObjectId(p.id));
+    items.items.practice = { on: true, limit: found.length };
+  }
+  return { plan: { name, description: String(b?.description || '').trim().slice(0, 300), days, items: items.items, practiceProblemIds, active: b?.active !== false } };
 }
 
 /** POST /passport/trial-plans */
 export const createPlan = async (req: Request, res: Response) => {
   try {
-    const c = cleanPlan(req.body);
+    const tenantId = tenantOf(req);
+    const c = await cleanPlan(tenantId, req.body);
     if ('error' in c) return res.status(400).json({ message: c.error });
-    const p = await TrialPlan.create({ tenantId: tenantOf(req), ...c.plan, updatedBy: String(actorOf(req).id || '') });
-    res.status(201).json({ plan: planRow(p.toObject()) });
+    const p = await TrialPlan.create({ tenantId, ...c.plan, updatedBy: String(actorOf(req).id || '') });
+    res.status(201).json({ plan: planRow(p.toObject(), 0, (await problemsOf(tenantId, [p.toObject()])).get(String(p._id))) });
   } catch (e: any) {
     console.error('[trial] create:', e?.message || e);
     res.status(500).json({ message: 'Could not save the plan.' });
@@ -82,13 +122,14 @@ export const createPlan = async (req: Request, res: Response) => {
 /** PUT /passport/trial-plans/:id — changes new trials only; running ones keep their copy. */
 export const updatePlan = async (req: Request, res: Response) => {
   try {
-    const c = cleanPlan(req.body);
+    const tenantId = tenantOf(req);
+    const c = await cleanPlan(tenantId, req.body);
     if ('error' in c) return res.status(400).json({ message: c.error });
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Plan not found.' });
-    const p = await TrialPlan.findOneAndUpdate({ _id: req.params.id, tenantId: tenantOf(req) },
+    const p = await TrialPlan.findOneAndUpdate({ _id: req.params.id, tenantId },
       { $set: { ...c.plan, updatedBy: String(actorOf(req).id || '') } }, { new: true }).lean();
     if (!p) return res.status(404).json({ message: 'Plan not found.' });
-    res.json({ plan: planRow(p) });
+    res.json({ plan: planRow(p, 0, (await problemsOf(tenantId, [p])).get(String((p as any)._id))) });
   } catch (e: any) {
     console.error('[trial] update:', e?.message || e);
     res.status(500).json({ message: 'Could not save the plan.' });
@@ -138,7 +179,10 @@ export const startTrial = async (req: Request, res: Response) => {
     const actor = actorOf(req);
     await User.updateOne({ _id: userId, tenantId }, { $set: { 'passport.trial': {
       planId: plan._id, planName: plan.name, startedAt: now, endsAt: new Date(now.getTime() + plan.days * 86400000),
-      items: plan.items, practiceIds: [], by: actor.id, byName: actor.name, reason,
+      items: plan.items, by: actor.id, byName: actor.name, reason,
+      // Named problems are fixed now; otherwise the first N are chosen when Practice is first opened.
+      practiceIds: plan.items?.practice?.on ? (plan.practiceProblemIds || []) : [],
+      practicePicked: !!(plan.items?.practice?.on && plan.practiceProblemIds?.length),
     } } });
 
     // The same start-up a granted membership gets: a progress row, and the journey if classes are on.

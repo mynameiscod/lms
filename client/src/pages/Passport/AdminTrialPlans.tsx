@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import passportApi, { TrialCatalogueItem, TrialItemSetting, TrialPlan } from '../../api/passportApi';
+import passportApi, { TrialCatalogueItem, TrialItemSetting, TrialPlan, TrialProblem } from '../../api/passportApi';
 import { Skeleton } from './AdminRewardsTabs';
 import './adminXpRewards.css';
 import './adminTrials.css';
@@ -13,7 +13,11 @@ import './adminTrials.css';
  * Editing a plan changes trials given from then on; a trial already running keeps its copy.
  */
 
-type Draft = { id: string | null; name: string; description: string; days: string; active: boolean; items: Record<string, { on: boolean; limit: string }> };
+type Draft = {
+  id: string | null; name: string; description: string; days: string; active: boolean; items: Record<string, { on: boolean; limit: string }>;
+  /** Practice shows the problems the admin chose, instead of the first N of the library. */
+  pickMode: boolean; picked: TrialProblem[];
+};
 
 const toDraft = (p: TrialPlan | null, cat: TrialCatalogueItem[]): Draft => ({
   id: p?.id || null,
@@ -21,6 +25,8 @@ const toDraft = (p: TrialPlan | null, cat: TrialCatalogueItem[]): Draft => ({
   description: p?.description || '',
   days: String(p?.days || 7),
   active: p ? p.active : true,
+  pickMode: !!p?.practiceProblems?.length,
+  picked: p?.practiceProblems || [],
   items: Object.fromEntries(cat.map(c => {
     const s = p?.items?.[c.key];
     // A new plan starts with the core of CareerPilot on and small limits, so it is a taste, not the whole thing.
@@ -29,9 +35,10 @@ const toDraft = (p: TrialPlan | null, cat: TrialCatalogueItem[]): Draft => ({
   })),
 });
 
-/** "First 3 days", "10 problems", "On". */
-export const describeItem = (c: { key: string; unit: string | null }, s: TrialItemSetting | undefined): string => {
+/** "First 3 days", "10 problems", "4 chosen problems", "On". */
+export const describeItem = (c: { key: string; unit: string | null }, s: TrialItemSetting | undefined, picked = 0): string => {
   if (!s?.on) return 'Off';
+  if (c.key === 'practice' && picked) return `${picked} chosen ${picked === 1 ? 'problem' : 'problems'}`;
   if (!c.unit || s.limit === null) return c.unit ? 'No limit' : 'On';
   if (c.key === 'journey') return `First ${s.limit} ${s.limit === 1 ? 'day' : 'days'}`;
   return `${s.limit} ${s.limit === 1 ? c.unit.replace(/s$/, '') : c.unit}`;
@@ -41,6 +48,7 @@ const AdminTrialPlans: React.FC = () => {
   const [plans, setPlans] = useState<TrialPlan[] | null>(null);
   const [cat, setCat] = useState<TrialCatalogueItem[]>([]);
   const [maxDays, setMaxDays] = useState(90);
+  const [maxPicked, setMaxPicked] = useState(500);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [confirmDel, setConfirmDel] = useState<TrialPlan | null>(null);
   const [err, setErr] = useState('');
@@ -48,7 +56,7 @@ const AdminTrialPlans: React.FC = () => {
   const [busy, setBusy] = useState(false);
 
   const load = () => passportApi.listTrialPlans()
-    .then(d => { setPlans(d.plans); setCat(d.catalogue); setMaxDays(d.maxDays); setErr(''); })
+    .then(d => { setPlans(d.plans); setCat(d.catalogue); setMaxDays(d.maxDays); setMaxPicked(d.maxPicked || 500); setErr(''); })
     .catch(e => setErr(e?.response?.data?.message || 'Could not load the trial plans.'));
   useEffect(() => { load(); }, []);
   const flash = (m: string) => { setMsg(m); window.setTimeout(() => setMsg(''), 3600); };
@@ -101,7 +109,7 @@ const AdminTrialPlans: React.FC = () => {
                 {cat.map(c => {
                   const s = p.items?.[c.key];
                   return <li key={c.key} className={s?.on ? 'on' : ''}>
-                    <i className={`bi ${s?.on ? c.icon : 'bi-lock'}`} /><span>{c.label}</span><b>{describeItem(c, s)}</b>
+                    <i className={`bi ${s?.on ? c.icon : 'bi-lock'}`} /><span>{c.label}</span><b>{describeItem(c, s, p.practiceProblems?.length || 0)}</b>
                   </li>;
                 })}
               </ul>
@@ -113,7 +121,7 @@ const AdminTrialPlans: React.FC = () => {
           ))}
         </div>}
 
-    {draft && <PlanEditor draft={draft} cat={cat} maxDays={maxDays} onClose={() => setDraft(null)}
+    {draft && <PlanEditor draft={draft} cat={cat} maxDays={maxDays} maxPicked={maxPicked} onClose={() => setDraft(null)}
       onSaved={async name => { setDraft(null); flash(`“${name}” saved.`); await load(); }} />}
 
     {confirmDel && <div className="xr-drawer-bg center" onMouseDown={e => { if (e.target === e.currentTarget && !busy) setConfirmDel(null); }}>
@@ -131,7 +139,7 @@ const AdminTrialPlans: React.FC = () => {
   </div>;
 };
 
-const PlanEditor: React.FC<{ draft: Draft; cat: TrialCatalogueItem[]; maxDays: number; onClose: () => void; onSaved: (name: string) => void }> = ({ draft, cat, maxDays, onClose, onSaved }) => {
+const PlanEditor: React.FC<{ draft: Draft; cat: TrialCatalogueItem[]; maxDays: number; maxPicked: number; onClose: () => void; onSaved: (name: string) => void }> = ({ draft, cat, maxDays, maxPicked, onClose, onSaved }) => {
   const [d, setD] = useState<Draft>(draft);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -147,9 +155,12 @@ const PlanEditor: React.FC<{ draft: Draft; cat: TrialCatalogueItem[]; maxDays: n
   const daysOk = Number.isInteger(days) && days >= 1 && days <= maxDays;
   const limitOk = (v: string) => v === '' || (Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 10000);
   const anyOn = Object.values(d.items).some(s => s.on);
+  const picking = !!d.items.practice?.on && d.pickMode;
   const problem = !d.name.trim() ? 'Give the plan a name.'
     : !daysOk ? `A trial runs for 1 to ${maxDays} days.`
-    : cat.some(c => c.unit && d.items[c.key]?.on && !limitOk(d.items[c.key].limit)) ? 'Limits are whole numbers from 1, or empty for no limit.'
+    : cat.some(c => c.unit && d.items[c.key]?.on && !(c.key === 'practice' && picking) && !limitOk(d.items[c.key].limit)) ? 'Limits are whole numbers from 1, or empty for no limit.'
+    : picking && !d.picked.length ? 'Choose at least one practice problem, or switch to the first problems of the library.'
+    : picking && d.picked.length > maxPicked ? `A plan can name up to ${maxPicked} problems.`
     : !anyOn ? 'Switch on at least one thing the trial opens.' : '';
 
   const save = async () => {
@@ -160,8 +171,10 @@ const PlanEditor: React.FC<{ draft: Draft; cat: TrialCatalogueItem[]; maxDays: n
         name: d.name.trim(), description: d.description.trim(), days, active: d.active,
         items: Object.fromEntries(cat.map(c => {
           const s = d.items[c.key];
+          if (c.key === 'practice' && picking) return [c.key, { on: true, limit: d.picked.length }];
           return [c.key, { on: s.on, limit: c.unit && s.on && s.limit !== '' ? Number(s.limit) : null }];
         })),
+        practiceProblemIds: picking ? d.picked.map(x => x.id) : [],
       });
       onSaved(d.name.trim());
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not save the plan.'); }
@@ -196,12 +209,14 @@ const PlanEditor: React.FC<{ draft: Draft; cat: TrialCatalogueItem[]; maxDays: n
           <ul className="tp-edit">
             {cat.map(c => {
               const s = d.items[c.key];
-              const bad = c.unit && s.on && !limitOk(s.limit);
+              const chosen = c.key === 'practice' && picking;
+              const bad = c.unit && s.on && !chosen && !limitOk(s.limit);
               return <li key={c.key} className={`${s.on ? 'on' : ''}${bad ? ' bad' : ''}`}>
                 <span className="tp-edit-ic"><i className={`bi ${c.icon}`} /></span>
-                <span className="tp-edit-tx"><b>{c.label}</b>{c.hint && <small>{c.hint}</small>}</span>
+                <span className="tp-edit-tx"><b>{c.label}</b>{c.hint && <small>{chosen ? 'Their Practice page shows exactly the problems you choose below.' : c.hint}</small>}</span>
                 <span className="tp-edit-ctl">
-                  {c.unit && s.on && (
+                  {chosen && <b className="tp-count">{d.picked.length} chosen</b>}
+                  {c.unit && s.on && !chosen && (
                     <span className={`xr-type-in${bad ? ' bad' : ''}`} title="Leave empty for no limit">
                       <input type="number" min={1} inputMode="numeric" placeholder="No limit" value={s.limit} onChange={e => setItem(c.key, { limit: e.target.value })} aria-label={`${c.label} limit`} />
                       <em>{c.key === 'journey' ? 'days' : c.unit}</em>
@@ -209,6 +224,13 @@ const PlanEditor: React.FC<{ draft: Draft; cat: TrialCatalogueItem[]; maxDays: n
                   )}
                   <label className="xr-switch sm"><input type="checkbox" checked={s.on} onChange={e => setItem(c.key, { on: e.target.checked })} aria-label={`${c.label} in the trial`} /><span>{s.on ? 'On' : 'Off'}</span></label>
                 </span>
+                {c.key === 'practice' && s.on && <div className="tp-pick">
+                  <div className="tp-seg" role="radiogroup" aria-label="Which practice problems">
+                    <button type="button" role="radio" aria-checked={!d.pickMode} className={!d.pickMode ? 'on' : ''} onClick={() => setD(x => ({ ...x, pickMode: false }))}>First problems of the library</button>
+                    <button type="button" role="radio" aria-checked={d.pickMode} className={d.pickMode ? 'on' : ''} onClick={() => setD(x => ({ ...x, pickMode: true }))}>Problems I choose</button>
+                  </div>
+                  {d.pickMode && <ProblemPicker picked={d.picked} max={maxPicked} onChange={picked => setD(x => ({ ...x, picked }))} />}
+                </div>}
               </li>;
             })}
           </ul>
@@ -224,6 +246,63 @@ const PlanEditor: React.FC<{ draft: Draft; cat: TrialCatalogueItem[]; maxDays: n
         <button type="button" className="xr-btn primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : d.id ? 'Save' : 'Create plan'}</button>
       </footer>
     </aside>
+  </div>;
+};
+
+const DIFF_LABEL: Record<string, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+
+/** Search the CareerPilot practice library and build the plan's list of problems. */
+const ProblemPicker: React.FC<{ picked: TrialProblem[]; max: number; onChange: (p: TrialProblem[]) => void }> = ({ picked, max, onChange }) => {
+  const [q, setQ] = useState('');
+  const [found, setFound] = useState<TrialProblem[] | null>(null);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    let live = true;
+    const t = window.setTimeout(() => {
+      passportApi.searchTrialProblems(q.trim())
+        .then(r => { if (live) { setFound(r); setErr(''); } })
+        .catch(e => { if (live) setErr(e?.response?.data?.message || 'Could not search the problems.'); });
+    }, q ? 250 : 0);
+    return () => { live = false; window.clearTimeout(t); };
+  }, [q]);
+  const has = new Set(picked.map(p => p.id));
+  const full = picked.length >= max;
+  const row = (p: TrialProblem) => <>
+    <span className="tp-pn">#{p.number}</span>
+    <span className="tp-pt" title={p.title}>{p.title}</span>
+    <span className={`tp-pd ${p.difficulty}`}>{DIFF_LABEL[p.difficulty] || p.difficulty}</span>
+  </>;
+
+  return <div className="tp-picker">
+    <div className="tp-pk-col">
+      <span className="xr-lbl">Find problems</span>
+      <span className="xr-search tp-pk-search"><i className="bi bi-search" />
+        <input value={q} maxLength={80} placeholder="Title, topic or number" onChange={e => setQ(e.target.value)} aria-label="Search practice problems" />
+      </span>
+      {err ? <p className="tp-pk-note bad">{err}</p>
+        : !found ? <p className="tp-pk-note">Loading…</p>
+        : !found.length ? <p className="tp-pk-note">{q ? 'No problem matches.' : 'No problems are given to CareerPilot yet. Give them in the Problem Bank → Available to.'}</p>
+        : <ul className="tp-pk-list">
+          {found.map(p => <li key={p.id}>
+            {row(p)}
+            <button type="button" className="tp-pk-btn" disabled={has.has(p.id) || full} onClick={() => onChange([...picked, p])}
+              aria-label={has.has(p.id) ? `${p.title} is chosen` : `Add ${p.title}`} title={full && !has.has(p.id) ? `Up to ${max} problems` : undefined}>
+              <i className={`bi ${has.has(p.id) ? 'bi-check-lg' : 'bi-plus-lg'}`} />
+            </button>
+          </li>)}
+        </ul>}
+    </div>
+    <div className="tp-pk-col">
+      <span className="xr-lbl tp-pk-hd">In this trial <em>{picked.length} {picked.length === 1 ? 'problem' : 'problems'}</em>
+        {picked.length > 0 && <button type="button" className="tp-pk-clear" onClick={() => onChange([])}>Clear</button>}</span>
+      {!picked.length ? <p className="tp-pk-note">Add problems from the search. Only these show on the student's Practice page.</p>
+        : <ol className="tp-pk-list chosen">
+          {picked.map(p => <li key={p.id}>
+            {row(p)}
+            <button type="button" className="tp-pk-btn rm" onClick={() => onChange(picked.filter(x => x.id !== p.id))} aria-label={`Remove ${p.title}`}><i className="bi bi-x-lg" /></button>
+          </li>)}
+        </ol>}
+    </div>
   </div>;
 };
 

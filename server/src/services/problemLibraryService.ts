@@ -46,11 +46,13 @@ export function assertMayUseLibrary(l: Learner) {
  * order, fixed the first time they open Practice so the set does not shift under them. Null = no
  * trial limit (a member, a non-member, or a trial with practice unlimited); [] = practice is off.
  * If the library had fewer than N then, later problems are added until there are N.
+ * When the plan named its own problems (practicePicked), the trial shows exactly those.
  */
 async function trialScope(l: Learner): Promise<string[] | null> {
   if (!l.isCareerPilot || l.isStaff) return null;
   const passport = await passportOf(l.userId);
   const s = trialItem(passport, 'practice');
+  if (s?.on && passport.trial.practicePicked) return (passport.trial.practiceIds || []).map(String);
   if (!s || (s.on && s.limit === null)) return null;
   if (!s.on) return [];
   let ids: string[] = (passport.trial.practiceIds || []).map(String);
@@ -267,6 +269,34 @@ export async function submitLibrary(l: Learner, id: string, body: { language: st
   assertMayUseLibrary(l);
   const p = await loadProblem(l, id);
   return gradeAndRecord(l, p, p.marks || 0, { refType: 'practice-library' }, body);
+}
+
+// ── For admins choosing a trial's problems ───────────────────────────────────────────────────
+
+const pickRow = (p: any) => ({ id: String(p._id), number: p.number, title: p.title, difficulty: p.difficulty });
+
+/** Library problems matching a title or number, the same ones a member could open. */
+export async function searchLibraryForAdmin(tenantId: string, q: string, limit = 30) {
+  const text = String(q || '').trim().slice(0, 80);
+  const and: any[] = [(await visible(tenantId))];
+  if (text) {
+    const or: any[] = [{ title: new RegExp(escapeRe(text), 'i') }, { topics: new RegExp(escapeRe(text), 'i') }];
+    if (/^#?\d{1,9}$/.test(text)) or.push({ number: Number(text.replace('#', '')) });
+    and.push({ $or: or });
+  }
+  const rows: any[] = await CodingProblem.find({ $and: and }).sort({ number: 1, _id: 1 }).limit(Math.min(50, limit))
+    .select('number title difficulty').lean();
+  return rows.map(pickRow);
+}
+
+/** These problems, in the order given, keeping only ones members can still open. */
+export async function libraryProblemsByIds(tenantId: string, ids: any[]) {
+  const valid = [...new Set(ids.map(String))].filter((i) => mongoose.isValidObjectId(i));
+  if (!valid.length) return [];
+  const rows: any[] = await CodingProblem.find({ $and: [(await visible(tenantId)), { _id: { $in: valid.map((i) => new mongoose.Types.ObjectId(i)) } }] })
+    .select('number title difficulty').lean();
+  const byId = new Map(rows.map((r) => [String(r._id), r]));
+  return valid.filter((i) => byId.has(i)).map((i) => pickRow(byId.get(i)));
 }
 
 /** For the CareerPilot dashboard: how many library problems this member has solved, out of how many exist. */

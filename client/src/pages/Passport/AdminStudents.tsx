@@ -501,7 +501,7 @@ const PassportAdminStudents: React.FC = () => {
                     const plan = trialPlans.plans.find(p => p.id === trialPick);
                     return plan && <div className="tp-dlg-plan"><ul className="tp-items">
                       {trialPlans.catalogue.filter(c => plan.items?.[c.key]?.on).map(c => (
-                        <li key={c.key} className="on"><i className={`bi ${c.icon}`} /><span>{c.label}</span><b>{describeItem(c, plan.items[c.key])}</b></li>
+                        <li key={c.key} className="on"><i className={`bi ${c.icon}`} /><span>{c.label}</span><b>{describeItem(c, plan.items[c.key], plan.practiceProblems?.length || 0)}</b></li>
                       ))}
                     </ul></div>;
                   })()}

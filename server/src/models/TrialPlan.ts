@@ -12,6 +12,8 @@ export interface ITrialPlan extends Document {
   description: string;
   days: number;
   items: TrialItems;
+  /** Practice problems the admin chose. Empty = the first N of the library (items.practice.limit). */
+  practiceProblemIds: mongoose.Types.ObjectId[];
   active: boolean;
   updatedBy?: string;
   createdAt: Date;
@@ -25,6 +27,7 @@ const TrialPlanSchema = new Schema<ITrialPlan>(
     description: { type: String, default: '', trim: true, maxlength: 300 },
     days:        { type: Number, required: true, min: 1 },
     items:       { type: Schema.Types.Mixed, default: {} },
+    practiceProblemIds: [{ type: Schema.Types.ObjectId, ref: 'CodingProblem' }],
     active:      { type: Boolean, default: true },
     updatedBy:   { type: String },
   },

@@ -238,11 +238,16 @@ export const passportApi = {
     return data;
   },
   /** Trial plans: what a trial opens and for how long (CareerPilot → Trial plans). */
-  listTrialPlans: async (): Promise<{ plans: TrialPlan[]; catalogue: TrialCatalogueItem[]; maxDays: number }> => {
+  listTrialPlans: async (): Promise<{ plans: TrialPlan[]; catalogue: TrialCatalogueItem[]; maxDays: number; maxPicked: number }> => {
     const { data } = await axios.get(`${BASE}/trial-plans`, { headers: auth() });
     return data;
   },
-  saveTrialPlan: async (id: string | null, body: Omit<TrialPlan, 'id' | 'running' | 'updatedAt'>): Promise<{ plan: TrialPlan }> => {
+  /** Practice-library problems an admin can name in a plan. */
+  searchTrialProblems: async (q: string): Promise<TrialProblem[]> => {
+    const { data } = await axios.get(`${BASE}/trial-plans/problems`, { params: { q }, headers: auth() });
+    return data.problems || [];
+  },
+  saveTrialPlan: async (id: string | null, body: Omit<TrialPlan, 'id' | 'running' | 'updatedAt' | 'practiceProblems'> & { practiceProblemIds: string[] }): Promise<{ plan: TrialPlan }> => {
     const { data } = id
       ? await axios.put(`${BASE}/trial-plans/${id}`, body, { headers: auth() })
       : await axios.post(`${BASE}/trial-plans`, body, { headers: auth() });
@@ -2054,7 +2059,8 @@ export interface TrialStatus {
   items: { key: string; label: string; icon: string; on: boolean; limit: number | null; used: number | null; unit: string | null }[];
 }
 export interface TrialItemSetting { on: boolean; limit: number | null }
-export interface TrialPlan { id: string; name: string; description: string; days: number; items: Record<string, TrialItemSetting>; active: boolean; running: number; updatedAt?: string }
+export interface TrialProblem { id: string; number: number; title: string; difficulty: string }
+export interface TrialPlan { id: string; name: string; description: string; days: number; items: Record<string, TrialItemSetting>; active: boolean; running: number; updatedAt?: string; practiceProblems: TrialProblem[] }
 export interface TrialCatalogueItem { key: string; label: string; icon: string; unit: string | null; hint: string | null }
 
 /** One day of the ninety. A unit of curriculum, not a calendar date. */

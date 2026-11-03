@@ -265,7 +265,9 @@ const UserSchema: Schema = new Schema(
         items:       { type: Schema.Types.Mixed },
         /** The practice problems this trial shows, fixed the first time they open Practice. */
         practiceIds: [{ type: Schema.Types.ObjectId }],
-        by:          { type: Schema.Types.ObjectId, ref: 'User' },
+        /** True when the plan named its problems: practiceIds is then exactly those, never topped up. */
+        practicePicked: { type: Boolean },
+        by:         { type: Schema.Types.ObjectId, ref: 'User' },
         byName:      { type: String },
         reason:      { type: String },
       },

@@ -56,9 +56,10 @@ const SectionLock: React.FC<Props> = ({ section, title, blurb, facts, children, 
   return (
     <div className={`slk slk-${variant}`}>
       <div className="slk-card">
-        <span className="slk-badge"><i className="bi bi-lock-fill" /> Membership</span>
+        <span className="slk-badge"><i className="bi bi-lock-fill" /> {data?.trial ? 'Not in your trial' : 'Membership'}</span>
 
         <h2>{title || lock?.title || 'Part of membership'}</h2>
+        {data?.trial && <p className="slk-blurb"><b>Your trial doesn’t include this.</b> Membership opens it, along with everything else.</p>}
         <p className="slk-blurb">{blurb || lock?.blurb || ''}</p>
 
         {!!facts?.length && (

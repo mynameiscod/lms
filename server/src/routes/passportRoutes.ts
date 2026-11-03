@@ -19,6 +19,7 @@ import * as missions from '../controllers/passportMissionController';
 import * as roadmap from '../controllers/passportRoadmapController';
 import * as practice from '../controllers/passportPracticeController';
 import * as interview from '../controllers/passportInterviewController';
+import * as trials from '../controllers/trialController';
 import * as interviewPlans from '../controllers/interviewPlanController';
 import * as activity from '../controllers/careerPilotActivityController';
 import * as learningUnits from '../controllers/conceptLearningUnitController';
@@ -370,6 +371,10 @@ router.get('/gamification/admin',                       MANAGE_FOR.cpSetup, gami
 router.get('/gamification/admin/overview',              MANAGE_FOR.cpSetup, gamification.getAdminOverview);
 router.put('/gamification/admin/rules/:eventKey',       MANAGE_FOR.cpSetup, gamification.updateXpRule);
 router.put('/gamification/admin/badges/:key',           MANAGE_FOR.cpSetup, gamification.updateBadge);
+router.post('/gamification/admin/badges',               MANAGE_FOR.cpSetup, gamification.createBadge);
+router.delete('/gamification/admin/badges/:key',        MANAGE_FOR.cpSetup, gamification.deleteBadge);
+router.put('/gamification/admin/badges-order',          MANAGE_FOR.cpSetup, gamification.reorderBadges);
+router.put('/gamification/admin/levels',                MANAGE_FOR.cpSetup, gamification.updateLevelNames);
 router.put('/gamification/admin/leaderboard',           MANAGE_FOR.cpSetup, gamification.updateLeaderboardSettings);
 router.put('/gamification/admin/task-xp',               MANAGE_FOR.cpSetup, gamification.updateTaskXp);
 // One task's XP is set where the task is built, so content editors may price it too.
@@ -684,6 +689,15 @@ router.post('/members/:userId/active', MANAGE_FOR.cpMembers, ctrl.setMemberActiv
  */
 router.post('/members/:userId/grant',    MANAGE_FOR.cpMembers, ctrl.grantMembership);
 router.delete('/members/:userId/grant',  MANAGE_FOR.cpMembers, ctrl.revokeMembership);
+// Trials: limited access for a chosen student (data/trialPolicy.ts).
+router.get('/trial-plans',               MANAGE_FOR.cpMembers, trials.listPlans);
+router.get('/trial-plans/problems',      MANAGE_FOR.cpMembers, trials.searchProblems);
+router.post('/trial-plans',              MANAGE_FOR.cpMembers, trials.createPlan);
+router.put('/trial-plans/:id',           MANAGE_FOR.cpMembers, trials.updatePlan);
+router.delete('/trial-plans/:id',        MANAGE_FOR.cpMembers, trials.deletePlan);
+router.get('/members/:userId/trial',     MANAGE_FOR.cpMembers, trials.memberTrial);
+router.post('/members/:userId/trial',    MANAGE_FOR.cpMembers, trials.startTrial);
+router.delete('/members/:userId/trial',  MANAGE_FOR.cpMembers, trials.endTrial);
 router.delete('/members/:userId',      MANAGE_FOR.cpMembers, ctrl.deleteMember);
 
 // Coins — the member's balance, and the admin's dials. Earning rules are data, so

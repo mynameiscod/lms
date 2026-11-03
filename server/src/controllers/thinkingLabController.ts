@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { trialAllowsAnother } from '../services/trialService';
 import mongoose from 'mongoose';
 import fs from 'fs';
 import ThinkingProblem, { audienceFilter, PROBLEM_AUDIENCES } from '../models/ThinkingProblem';
@@ -142,6 +143,11 @@ async function memberToday(req: Request, res: Response, u: any, d: string) {
   const bank = await memberBank(tId(req));
   let ch: any = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });
   if (!ch) {
+    // A trial counts each new challenge; at its limit no new one is handed out.
+    const trialStop = await trialAllowsAnother(tId(req), uId(req), 'thinkingLab');
+    if (trialStop && !trialStop.ok) {
+      return res.json({ challenge: null, empty: true, reason: 'trial_limit', locked: true, message: trialStop.body.message });
+    }
     const given: any[] = await DailyChallenge.find({ tenantId: tId(req), studentId: uId(req) }).select('problemId').lean();
     const pickId = pickMemberProblem(bank, given.map(g => String(g.problemId)));
     const p: any = pickId ? await ThinkingProblem.findOne({ _id: pickId, tenantId: tId(req), active: true }).lean() : null;

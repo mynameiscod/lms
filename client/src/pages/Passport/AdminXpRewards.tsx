@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import passportApi, { AdminGamification, CoinConfig, XpRewardsOverview, XpRuleRow } from '../../api/passportApi';
 import { RewardsTab, RedemptionsTab, BudgetTab, SaveBar, Skeleton, useLeaveWarning } from './AdminRewardsTabs';
+import { BadgesTab, LevelsTab } from './AdminBadgesLevels';
 import './adminXpRewards.css';
 
 /**
@@ -14,9 +15,11 @@ import './adminXpRewards.css';
  * A change applies to XP earned from now on. XP already paid is never re-priced.
  */
 
-type Tab = 'xp' | 'coins' | 'rewards' | 'redemptions' | 'budget';
+type Tab = 'xp' | 'badges' | 'levels' | 'coins' | 'rewards' | 'redemptions' | 'budget';
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'xp', label: 'XP', icon: 'bi-lightning-charge-fill' },
+  { key: 'badges', label: 'Badges', icon: 'bi-award-fill' },
+  { key: 'levels', label: 'Levels', icon: 'bi-bar-chart-steps' },
   { key: 'coins', label: 'XP to coins', icon: 'bi-arrow-left-right' },
   { key: 'rewards', label: 'Rewards', icon: 'bi-gift-fill' },
   { key: 'redemptions', label: 'Redemptions', icon: 'bi-inbox-fill' },
@@ -103,6 +106,8 @@ const AdminXpRewards: React.FC = () => {
     </nav>
 
     {tab === 'xp' && <XpTab onSaved={loadOverview} />}
+    {tab === 'badges' && <BadgesTab />}
+    {tab === 'levels' && <LevelsTab />}
     {tab === 'coins' && <ConversionTab onSaved={loadOverview} />}
     {tab === 'rewards' && <RewardsTab goTo={goTo} onSaved={loadOverview} />}
     {tab === 'redemptions' && <RedemptionsTab onChanged={loadOverview} />}

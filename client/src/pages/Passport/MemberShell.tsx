@@ -8,6 +8,7 @@ import './member.css';
 import SetPasswordDialog from './SetPasswordDialog';
 import ShareCardDialog from './ShareCardDialog';
 import { useUnlock } from './useUnlock';
+import TrialBanner from './TrialBanner';
 import { startActivityBeacon, trackPage } from './activityBeacon';
 import visualizerApi from '../../api/visualizerApi';
 import supportApi from '../../api/supportApi';
@@ -127,6 +128,23 @@ const sectionFor = (pathname: string): string => {
   return alias ? alias[1] : p;
 };
 
+/**
+ * "Good Morning" / "Good Afternoon" / "Good Evening" from the member's own clock, re-read every
+ * minute so a page left open across noon or evening changes with it.
+ */
+const greetingFor = (h: number) =>
+  h >= 5 && h < 12 ? { text: 'Good Morning', emoji: '👋' }
+    : h >= 12 && h < 17 ? { text: 'Good Afternoon', emoji: '☀️' }
+    : { text: 'Good Evening', emoji: '🌙' };
+const useGreeting = () => {
+  const [hour, setHour] = useState(() => new Date().getHours());
+  useEffect(() => {
+    const t = window.setInterval(() => setHour(new Date().getHours()), 60000);
+    return () => clearInterval(t);
+  }, []);
+  return greetingFor(hour);
+};
+
 const MemberShell: React.FC<Props> = ({ children, data }) => {
   const nav = useNavigate();
   const loc = useLocation();
@@ -234,6 +252,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const path = loc.pathname;
   const navSection = sectionFor(path);
   const firstName = d?.firstName || user?.firstName || 'there';
+  const greeting = useGreeting();
   const initial = (firstName[0] || 'C').toUpperCase();
   /*
    * The member's photo, wherever an avatar is drawn. It is uploaded on My profile, which puts
@@ -411,8 +430,12 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
 
         {lockedSet.size > 0 && (
           <div className="gd-unlock">
-            <div className="gd-unlock-hd"><i className="bi bi-lock-fill" /> {lockedSet.size} {lockedSet.size === 1 ? 'feature is' : 'features are'} locked</div>
-            <p>Membership opens your full roadmap, daily practice, mock interviews and everything else marked with a lock.</p>
+            <div className="gd-unlock-hd"><i className={`bi ${d?.trial ? 'bi-hourglass-split' : 'bi-lock-fill'}`} /> {d?.trial
+              ? `Trial · ${d.trial.daysLeft} ${d.trial.daysLeft === 1 ? 'day' : 'days'} left`
+              : `${lockedSet.size} ${lockedSet.size === 1 ? 'feature is' : 'features are'} locked`}</div>
+            <p>{d?.trial
+              ? 'Your trial opens part of CareerPilot. Membership opens everything marked with a lock, with no limits.'
+              : 'Membership opens your full roadmap, daily practice, mock interviews and everything else marked with a lock.'}</p>
             <button className="gd-unlock-cta" onClick={() => unlock()} disabled={unlockBusy}>{unlockLabel}</button>
             {unlockMsg && <span className="gd-unlock-msg">{unlockMsg}</span>}
           </div>
@@ -445,7 +468,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         <div className="gd-topbar">
           <div className="gd-topbar-l">
             {/* Only over the working dashboard: the locked one (PassportHome's other branch) greets in its own hero. */}
-            {path === '/careerpilot' && d?.active && d?.hasAssessment && <div className="gd-hello"><h1>My Dashboard</h1><p>Hey {firstName}! Your day, your scores and your progress in one place.</p></div>}
+            {path === '/careerpilot' && d?.active && d?.hasAssessment && <div className="gd-hello"><h1>{greeting.text}{firstName !== 'there' ? ', ' : ''}<span style={{ whiteSpace: 'nowrap' }}>{firstName !== 'there' ? firstName : ''}! <span aria-hidden>{greeting.emoji}</span></span></h1><p>Stay consistent, keep learning, and move closer to your dream career.</p></div>}
           </div>
           <div className="gd-topbar-r">
             {/*
@@ -509,6 +532,9 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         </div>}
         {shareOpen && d && <ShareCardDialog data={d} onClose={() => setShareOpen(false)} />}
         {pwdOpen && <SetPasswordDialog onClose={() => setPwdOpen(false)} onDone={() => { setPwdOpen(false); setPwdDone(true); }} />}
+
+        {/* A member on a trial always sees what is left of it. */}
+        {d?.trial && <TrialBanner trial={d.trial} />}
 
         {children}
       </main>

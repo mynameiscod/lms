@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { trialActive } from '../data/trialPolicy';
 import ProblemSet, { IProblemSet, SET_AUDIENCE_TYPES } from '../models/ProblemSet';
 import ProblemSubmission from '../models/ProblemSubmission';
 import CodingProblem, { CodingProblemTestCase, ProblemProduct, isAvailableTo } from '../models/CodingProblem';
@@ -29,18 +30,22 @@ export interface Learner {
   batchId: string;
   isLms: boolean;
   isCareerPilot: boolean;
+  /** On a trial, not a membership: the library (trial-limited) yes, sets sent to all members no. */
+  isTrialOnly?: boolean;
   isStaff: boolean;
 }
 
 export async function loadLearner(userId: string, tenantId: string): Promise<Learner> {
-  const u: any = await User.findById(userId).select(LEARNER_AUDIENCE_FIELDS).lean();
+  const u: any = await User.findById(userId).select(`${LEARNER_AUDIENCE_FIELDS} passport.trial`).lean();
   if (!u) throw new PbError('Account not found', 401);
   // One definition shared with the Code Visualizer and content audience gating (learnerAudience.ts).
   const aud = learnerAudienceOf(u);
   return {
     userId: String(userId), tenantId, role: u.role, batchId: u.batchId ? String(u.batchId) : '',
     isLms: aud.lms,
-    isCareerPilot: aud.careerpilot,
+    // A running trial counts too; problemLibraryService then limits it to the trial's own problems.
+    isCareerPilot: aud.careerpilot || trialActive(u.passport),
+    isTrialOnly: !aud.careerpilot && trialActive(u.passport),
     isStaff: STAFF.has(u.role),
   };
 }
@@ -51,14 +56,14 @@ export function inAudience(set: Pick<IProblemSet, 'audience'>, l: Learner): bool
     (a.type === 'user' && a.id === l.userId)
     || (a.type === 'batch' && !!l.batchId && a.id === l.batchId)
     || (a.type === 'all_lms' && l.isLms)
-    || (a.type === 'all_careerpilot' && l.isCareerPilot));
+    || (a.type === 'all_careerpilot' && l.isCareerPilot && !l.isTrialOnly));
 }
 
 function learnerFilter(l: Learner): any {
   const or: any[] = [{ audience: { $elemMatch: { type: 'user', id: l.userId } } }];
   if (l.batchId) or.push({ audience: { $elemMatch: { type: 'batch', id: l.batchId } } });
   if (l.isLms) or.push({ 'audience.type': 'all_lms' });
-  if (l.isCareerPilot) or.push({ 'audience.type': 'all_careerpilot' });
+  if (l.isCareerPilot && !l.isTrialOnly) or.push({ 'audience.type': 'all_careerpilot' });
   return {
     tenantId: l.tenantId,
     status: { $in: ['published', 'closed'] },

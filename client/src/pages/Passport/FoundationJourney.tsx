@@ -392,8 +392,18 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
  * Shows only what the roadmap already knows about the day (its number, title and topic). The day's
  * content is not fetched for it, and the server would refuse it if it were.
  */
-const LockedDay: React.FC<{ day: number; title?: string | null; topic?: string | null; currentDay: number; onBack: () => void; welcomeLabel?: string | null }> =
-  ({ day, title, topic, currentDay, onBack, welcomeLabel }) => (
+const LockedDay: React.FC<{ day: number; title?: string | null; topic?: string | null; currentDay: number; onBack: () => void; welcomeLabel?: string | null; trialDays?: number }> =
+  ({ day, title, topic, currentDay, onBack, welcomeLabel, trialDays }) => (trialDays && day > trialDays ? (
+    <div className="fj-locked" role="status">
+      <span className="fj-locked-icon" aria-hidden><i className="bi bi-hourglass-split" /></span>
+      <span className="fj-status s-locked">Not in your trial</span>
+      <h2>Day {day}{title ? ` · ${title}` : ''}</h2>
+      {topic && <p className="fj-locked-topic">{topic}</p>}
+      <p className="fj-locked-title">Your trial includes days 1 to {trialDays}</p>
+      <p className="fj-locked-text">Membership opens the rest of your journey. Everything you have done so far stays yours.</p>
+      <button type="button" className="fj-start" onClick={onBack}>Back to today (Day {welcomeLabel || currentDay})</button>
+    </div>
+  ) : (
     <div className="fj-locked" role="status">
       <span className="fj-locked-icon" aria-hidden><i className="bi bi-lock-fill" /></span>
       <span className="fj-status s-locked">Locked</span>
@@ -406,7 +416,7 @@ const LockedDay: React.FC<{ day: number; title?: string | null; topic?: string |
         : 'Complete your current learning day to continue your journey.'}</p>
       <button type="button" className="fj-start" onClick={onBack}>Back to today (Day {welcomeLabel || currentDay})</button>
     </div>
-  );
+  ));
 
 /**
  * "Already know this? Test out of it."
@@ -629,7 +639,7 @@ const FoundationJourneyPage: React.FC = () => {
       .catch((e: any) => {
         if (cancelled) return;
         const body = e?.response?.data;
-        if (e?.response?.status === 403 && body?.reason === 'DAY_LOCKED') {
+        if (e?.response?.status === 403 && (body?.reason === 'DAY_LOCKED' || body?.reason === 'TRIAL_LIMIT')) {
           setLockedDay({ day: openDay, title: body?.title || summary?.title, topic: summary?.topic });
         } else {
           setDayError(body?.message || 'This day could not be loaded.');
@@ -914,6 +924,7 @@ const FoundationJourneyPage: React.FC = () => {
             day={lockedDay.day} title={lockedDay.title} topic={lockedDay.topic}
             currentDay={currentDay}
             welcomeLabel={welcomeFirst && welcomeOutstanding ? welcomeOutstanding.day : null}
+            trialDays={(journey as any)?.trialDays}
             onBack={() => (welcomeFirst && welcomeOutstanding
               ? nav(`/careerpilot/journey/welcome/${welcomeOutstanding.dayNumber}`)
               : selectDay(currentDay))}

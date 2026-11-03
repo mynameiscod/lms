@@ -1,0 +1,33 @@
+/* The trial strip above member pages (TrialBanner.tsx). */
+.trb { margin: 0 0 16px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(135deg, #FFF8E8, #FFFFFF 70%); border: 1px solid #F3DFB2; box-shadow: 0 3px 12px rgba(178, 111, 0, .07); }
+.trb.last { background: linear-gradient(135deg, #FFF1EE, #FFFFFF 70%); border-color: #F3C9C0; }
+.trb-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.trb-ic { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: #FFE6B0; color: #8A5A00; font-size: 18px; }
+.trb.last .trb-ic { background: #FFD9D0; color: #A33A1E; }
+.trb-tx { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.trb-tx b { font-size: 15px; font-weight: 800; color: #051D64; }
+.trb-tx span { font-size: 13px; color: #5D6E88; line-height: 1.45; }
+.trb-act { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.trb-more { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 8px 11px; border-radius: 10px; color: #1747B8; font-weight: 800; font-size: 13.5px; cursor: pointer; transition: background-color .15s; }
+.trb-more:hover { background: #EAF0FF; }
+.trb-go { border: 0; border-radius: 11px; padding: 10px 16px; background: #051D64; color: #fff; font-weight: 800; font-size: 13.5px; cursor: pointer; white-space: nowrap; transition: background-color .15s; }
+.trb-go:hover:not(:disabled) { background: #0A2A7A; }
+.trb-go:disabled { opacity: .6; cursor: default; }
+.trb-more:focus-visible, .trb-go:focus-visible { outline: 2px solid #8DB4EA; outline-offset: 2px; }
+.trb-msg { margin: 8px 0 0; font-size: 13px; color: #A33A1E; }
+.trb-detail { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #EBD7A8; }
+.trb-items { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px 14px; }
+.trb-items li { display: flex; align-items: center; gap: 9px; padding: 8px 11px; border-radius: 11px; background: #fff; border: 1px solid #F1E4C4; font-size: 13.5px; color: #26364F; min-width: 0; }
+.trb-items li i { color: #1F7D8E; flex: none; }
+.trb-items li span { flex: 1; min-width: 0; font-weight: 700; }
+.trb-items li b { font-weight: 800; font-size: 12.5px; color: #051D64; text-align: right; }
+.trb-items li.full { background: #FFF4F1; border-color: #F3C9C0; }
+.trb-items li.full b { color: #A33A1E; }
+.trb-out { display: flex; gap: 8px; align-items: baseline; margin: 10px 2px 0; font-size: 12.5px; line-height: 1.5; color: #6B7A90; }
+.trb-out i { color: #A9B7C8; }
+.trb-out b { color: #33445E; }
+@media (max-width: 560px) {
+  .trb-act { width: 100%; }
+  .trb-act > button { flex: 1; justify-content: center; }
+  .trb-items { grid-template-columns: 1fr; }
+}

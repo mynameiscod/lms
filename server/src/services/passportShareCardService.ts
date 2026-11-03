@@ -19,6 +19,7 @@ import { buildRoadmap } from './passportRoadmapService';
 import { PRACTICE_BANK } from './passportPracticeService';
 import { CAREER_STAGES, memberAxes } from './careerStageService';
 import * as g from './passportGamificationService';
+import { levelNamesFor } from './levelNameService';
 import { LEVELS } from './passportScoringService';
 
 /**
@@ -148,7 +149,7 @@ export async function buildShareCard(user: any): Promise<ShareCard> {
       .map((s: any) => [s.key, s.name]),
   );
 
-  const lv = g.levelFromXp(xp);
+  const lv = g.levelFromXp(xp, await levelNamesFor(tenantId));
   const pathwayLabel = attempt?.pathwayLabel
     || (content.pathways || []).find((pw: any) => pw.key === p.pathway)?.label
     || null;

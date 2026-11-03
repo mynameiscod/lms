@@ -198,23 +198,43 @@ export const streakMilestoneFor = (streak: number) =>
   STREAK_MILESTONES.find(m => m.days === streak);
 
 /**
- * How a badge decides whether it has been earned.
+ * How a badge decides whether it has been earned — the rule an admin picks for it.
  *
- * Four condition types, each backed by a number this product actually measures. A badge
- * whose metric we cannot compute honestly is not seeded — an achievement that silently never
- * unlocks is worse than one that does not exist.
+ * Each type is backed by a number this product actually measures. A badge whose metric we
+ * cannot compute honestly is not offered — an achievement that silently never unlocks is
+ * worse than one that does not exist.
  */
 export type BadgeConditionType =
   | 'XP_TOTAL'
   | 'STREAK'
   | 'EVENT_COUNT'
-  | 'ROADMAP_PERCENT';
+  | 'ROADMAP_PERCENT'
+  | 'PROBLEMS_SOLVED'
+  | 'MOCK_INTERVIEWS'
+  | 'DAYS_COMPLETED'
+  | 'RESUME_SCORE';
+
+/** The rules an admin can choose from, in words, for the badge editor. */
+export const BADGE_CONDITIONS: { type: BadgeConditionType; label: string; unit: string; max?: number; needsEvent?: boolean }[] = [
+  { type: 'PROBLEMS_SOLVED', label: 'Practice problems solved',      unit: 'problems' },
+  { type: 'MOCK_INTERVIEWS', label: 'Mock interviews finished',      unit: 'interviews' },
+  { type: 'DAYS_COMPLETED',  label: 'Journey days completed',        unit: 'days' },
+  { type: 'STREAK',          label: 'Day streak reached',            unit: 'days in a row' },
+  { type: 'XP_TOTAL',        label: 'Total XP earned',               unit: 'XP' },
+  { type: 'RESUME_SCORE',    label: 'Resume score',                  unit: 'points (out of 100)', max: 100 },
+  { type: 'ROADMAP_PERCENT', label: 'Roadmap completed',             unit: '%', max: 100 },
+  { type: 'EVENT_COUNT',     label: 'Times an XP event happened',    unit: 'times', needsEvent: true },
+];
+export const isBadgeCondition = (t: string): t is BadgeConditionType =>
+  BADGE_CONDITIONS.some(c => c.type === t);
 
 export interface BadgeSeed {
   key: string;
   name: string;
   description: string;
+  /** A Bootstrap Icons class, which the product already uses; no new icon dependency. */
   iconKey: string;
+  color: string;
   conditionType: BadgeConditionType;
   /** Threshold, plus an event key for EVENT_COUNT. */
   conditionConfig: { threshold: number; eventKey?: string };
@@ -222,73 +242,65 @@ export interface BadgeSeed {
 }
 
 /**
- * The shipped badge set — small, and every one of them reachable.
+ * The shipped badge set: the eight the member dashboard has always shown, now editable.
  *
- * Bootstrap Icons, which the product already uses; no new icon dependency.
+ * Every one is reachable. An admin can rename, recolour, re-rule, switch off or add to them.
  */
 export const BADGE_SEEDS: BadgeSeed[] = [
-  {
-    key: 'FIRST_MISSION', name: 'First step',
-    description: 'Completed your first roadmap mission.',
-    iconKey: 'bi-flag-fill', conditionType: 'EVENT_COUNT',
-    conditionConfig: { threshold: 1, eventKey: 'CAREER_MISSION_COMPLETED' }, displayOrder: 10,
-  },
-  {
-    key: 'FIRST_ASSESSMENT', name: 'Measured',
-    description: 'Completed your first skill assessment.',
-    iconKey: 'bi-clipboard-check-fill', conditionType: 'EVENT_COUNT',
-    conditionConfig: { threshold: 1, eventKey: 'PERSONALIZED_ASSESSMENT_COMPLETED' }, displayOrder: 20,
-  },
-  {
-    key: 'STREAK_7', name: 'One week strong',
-    description: 'Seven days in a row.',
-    iconKey: 'bi-fire', conditionType: 'STREAK',
-    conditionConfig: { threshold: 7 }, displayOrder: 30,
-  },
-  {
-    key: 'STREAK_30', name: 'Thirty days',
-    description: 'A full month without missing.',
-    iconKey: 'bi-fire', conditionType: 'STREAK',
-    conditionConfig: { threshold: 30 }, displayOrder: 40,
-  },
-  {
-    key: 'XP_1000', name: '1,000 XP',
-    description: 'Earned your first thousand experience points.',
-    iconKey: 'bi-star-fill', conditionType: 'XP_TOTAL',
-    conditionConfig: { threshold: 1000 }, displayOrder: 50,
-  },
-  {
-    key: 'XP_5000', name: '5,000 XP',
-    description: 'Five thousand points of consistent work.',
-    iconKey: 'bi-stars', conditionType: 'XP_TOTAL',
-    conditionConfig: { threshold: 5000 }, displayOrder: 60,
-  },
-  {
-    key: 'ROADMAP_25', name: 'Quarter way',
-    description: 'A quarter of your roadmap’s planned time completed.',
-    iconKey: 'bi-signpost-2-fill', conditionType: 'ROADMAP_PERCENT',
-    conditionConfig: { threshold: 25 }, displayOrder: 70,
-  },
-  {
-    key: 'ROADMAP_50', name: 'Halfway',
-    description: 'Half of your roadmap’s planned time completed.',
-    iconKey: 'bi-signpost-split-fill', conditionType: 'ROADMAP_PERCENT',
-    conditionConfig: { threshold: 50 }, displayOrder: 80,
-  },
-  {
-    key: 'ROADMAP_COMPLETE', name: 'Plan complete',
-    description: 'Finished the work your roadmap planned.',
-    iconKey: 'bi-trophy-fill', conditionType: 'ROADMAP_PERCENT',
-    conditionConfig: { threshold: 100 }, displayOrder: 90,
-  },
+  { key: 'PROBLEM_SOLVER', name: 'Problem Solver', description: 'Solve your first practice problem',
+    iconKey: 'bi-check2-circle', color: '#16a34a', conditionType: 'PROBLEMS_SOLVED', conditionConfig: { threshold: 1 }, displayOrder: 10 },
+  { key: 'DSA_EXPLORER', name: 'DSA Explorer', description: 'Solve 5 coding problems',
+    iconKey: 'bi-diagram-3-fill', color: '#2563eb', conditionType: 'PROBLEMS_SOLVED', conditionConfig: { threshold: 5 }, displayOrder: 20 },
+  { key: 'ALGO_WIZARD', name: 'Algo Wizard', description: 'Solve 100 coding problems',
+    iconKey: 'bi-magic', color: '#f59e0b', conditionType: 'PROBLEMS_SOLVED', conditionConfig: { threshold: 100 }, displayOrder: 30 },
+  { key: 'SPEED_DEMON', name: 'Speed Demon', description: 'Hit a 7-day streak',
+    iconKey: 'bi-lightning-charge-fill', color: '#ef4444', conditionType: 'STREAK', conditionConfig: { threshold: 7 }, displayOrder: 40 },
+  { key: 'CONSISTENCY_KING', name: 'Consistency King', description: 'Complete 30 journey days',
+    iconKey: 'bi-calendar2-check-fill', color: '#8b5cf6', conditionType: 'DAYS_COMPLETED', conditionConfig: { threshold: 30 }, displayOrder: 50 },
+  { key: 'INTERVIEW_READY', name: 'Interview Ready', description: 'Finish a mock interview',
+    iconKey: 'bi-mic-fill', color: '#0891b2', conditionType: 'MOCK_INTERVIEWS', conditionConfig: { threshold: 1 }, displayOrder: 60 },
+  { key: 'ATS_READY', name: 'ATS Ready', description: 'Score 75+ on your resume',
+    iconKey: 'bi-file-earmark-check-fill', color: '#0f766e', conditionType: 'RESUME_SCORE', conditionConfig: { threshold: 75 }, displayOrder: 70 },
+  { key: 'CODE_MASTER', name: 'Code Master', description: 'Reach a 30-day streak',
+    iconKey: 'bi-trophy-fill', color: '#64748b', conditionType: 'STREAK', conditionConfig: { threshold: 30 }, displayOrder: 80 },
 ];
+
+/**
+ * The first shipped set, which members never saw: the dashboard drew its own eight instead.
+ * Switched OFF once per tenant when the set above arrives (an admin can switch any back on),
+ * so members do not suddenly face seventeen badges, two of them duplicates.
+ */
+export const LEGACY_BADGE_KEYS = [
+  'FIRST_MISSION', 'FIRST_ASSESSMENT', 'STREAK_7', 'STREAK_30', 'XP_1000', 'XP_5000',
+  'ROADMAP_25', 'ROADMAP_50', 'ROADMAP_COMPLETE',
+];
+/** Bumped when the shipped badge set changes in a way a tenant must be migrated for. */
+export const BADGE_SET_VERSION = 2;
 
 /** Which badge conditions are worth re-checking after a given kind of event (§130). */
 export const BADGE_TRIGGERS: Record<string, BadgeConditionType[]> = {
-  XP: ['XP_TOTAL', 'EVENT_COUNT'],
+  XP: ['XP_TOTAL', 'EVENT_COUNT', 'PROBLEMS_SOLVED', 'MOCK_INTERVIEWS', 'DAYS_COMPLETED', 'RESUME_SCORE'],
   STREAK: ['STREAK'],
   ROADMAP: ['ROADMAP_PERCENT'],
 };
+
+// ── levels ──────────────────────────────────────────────────────────────────
+
+/**
+ * The name each level carries, level 1 first. Levels past the end keep the last name.
+ * An admin replaces these per tenant; these are what shipped.
+ */
+export const DEFAULT_LEVEL_NAMES = [
+  'Career Explorer', 'Career Explorer',
+  'Rookie Coder', 'Rookie Coder',
+  'Skill Builder', 'Skill Builder', 'Skill Builder',
+  'Skill Coder', 'Skill Coder', 'Skill Coder', 'Skill Coder',
+  'Code Athlete', 'Code Athlete', 'Code Athlete', 'Code Athlete',
+  'Code Master', 'Code Master', 'Code Master', 'Code Master',
+  'Placement Legend',
+];
+export const MAX_NAMED_LEVELS = 50;
+export const LEVEL_NAME_MAX = 40;
 
 // ── leaderboards ────────────────────────────────────────────────────────────
 

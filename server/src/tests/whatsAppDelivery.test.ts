@@ -53,6 +53,7 @@ describe('explainWaError', () => {
   it('turns the marketing limit into something an admin can act on', () => {
     expect(explainWaError(131049)).toMatch(/marketing/i);
     expect(explainWaError(131026)).toMatch(/not on WhatsApp/);
+    expect(explainWaError(131042)).toMatch(/Billing & payments/);
     expect(explainWaError(999999, 'raw meta text')).toBe('raw meta text');
   });
 });

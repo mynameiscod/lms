@@ -1,10 +1,10 @@
-/* Pool exams — the lobby (.exl) and the exam room (.exr). CodeBegun colours: navy #051D64 primary,
-   teal #359AAD accent. #root is zoomed to 0.75 on desktop (--app-zoom), so full-screen heights divide
+/* Pool exams — the lobby (.exl) and the exam room (.exr). CodeBegun colours: navy var(--cb-navy-900) primary,
+   teal var(--cb-teal-500) accent. #root is zoomed to 0.75 on desktop (--app-zoom), so full-screen heights divide
    by it; media queries are in real pixels, and below 1024px the zoom is off. */
 .exl, .exr, .exr-full {
-  --x-navy: #051D64; --x-navy-hover: #0A2A7A; --x-navy-2: #0B2D72; --x-teal: #359AAD; --x-teal-deep: #1B7D91;
-  --x-teal-soft: #E6F5F8; --x-bg: #F4F8FC; --x-ink: #102A4F; --x-text: #33475B; --x-muted: #64748B;
-  --x-line: #E2EAF2; --x-line-strong: #C9D8E5; --x-green: #17885D; --x-green-soft: #EAF8F1;
+  --x-navy: var(--cb-navy-900); --x-navy-hover: var(--cb-navy-800); --x-navy-2: #0B2D72; --x-teal: var(--cb-teal-500); --x-teal-deep: var(--cb-teal-700);
+  --x-teal-soft: #E6F5F8; --x-bg: #F4F8FC; --x-ink: var(--cb-ink); --x-text: #33475B; --x-muted: var(--cb-slate);
+  --x-line: var(--cb-line); --x-line-strong: #C9D8E5; --x-green: #17885D; --x-green-soft: #EAF8F1;
   --x-amber: #B86B00; --x-amber-soft: #FFF7E8; --x-red: #C93737; --x-red-soft: #FFF0F0;
   --x-font: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-family: var(--x-font);
@@ -45,11 +45,11 @@
 .exl-back:hover { color: var(--x-navy); }
 .exl-hero {
   display: flex; align-items: center; gap: 24px; padding: 28px 32px; border-radius: 20px; color: #fff;
-  background: radial-gradient(120% 140% at 100% 0%, rgba(53,154,173,.35) 0%, rgba(53,154,173,0) 55%), linear-gradient(135deg, #051D64 0%, #0B2D72 55%, #123A8C 100%);
+  background: radial-gradient(120% 140% at 100% 0%, rgba(53,154,173,.35) 0%, rgba(53,154,173,0) 55%), linear-gradient(135deg, var(--cb-navy-900) 0%, var(--cb-navy-800) 55%, #123A8C 100%);
   box-shadow: 0 10px 30px rgba(5,29,100,.18);
 }
 .exl-hero-copy { flex: 1; min-width: 0; }
-.exl-eyebrow { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; background: rgba(255,255,255,.14); padding: 4px 10px; border-radius: 999px; }
+.exl-eyebrow { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; font-weight: 700; letter-spacing: 0; text-transform: none; background: rgba(255,255,255,.14); padding: 4px 10px; border-radius: 999px; }
 .exl-hero h1 { margin: 10px 0 0; font-size: 28px; line-height: 1.2; font-weight: 800; color: #fff; overflow-wrap: anywhere; }
 .exl-window { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 14px; color: rgba(255,255,255,.85); }
 .exl-window span { display: inline-flex; gap: 6px; align-items: center; }
@@ -72,7 +72,7 @@
 .exl-sections small { color: var(--x-muted); font-size: 13px; }
 .exl-kind { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; font-size: 17px; flex-shrink: 0; }
 .exl-kind.mcq { background: #EEF3FB; color: var(--x-navy); }
-.exl-kind.coding { background: #F3EEFF; color: #6D28D9; }
+.exl-kind.coding { background: #F3EEFF; color: var(--cb-navy-600); }
 .exl-marks { font-weight: 700; color: var(--x-ink); font-size: 14px; white-space: nowrap; }
 .exl-rich { color: var(--x-text); font-size: 14.5px; line-height: 1.65; overflow-wrap: anywhere; }
 .exl-rich img { max-width: 100%; height: auto; }
@@ -118,7 +118,7 @@
 
 .exr-bar {
   display: flex; align-items: center; gap: 16px; padding: 10px 20px; flex-shrink: 0; z-index: 20;
-  background: linear-gradient(90deg, #051D64 0%, #0B2D72 100%); color: #fff; box-shadow: 0 2px 10px rgba(5,29,100,.2);
+  background: linear-gradient(90deg, var(--cb-navy-900) 0%, var(--cb-navy-800) 100%); color: #fff; box-shadow: 0 2px 10px rgba(5,29,100,.2);
 }
 .exr-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .exr-title b { font-size: 16px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -139,7 +139,7 @@
 .exr-nav { background: #fff; border-right: 1px solid var(--x-line); overflow-y: auto; padding: 18px 16px; }
 .exr-nav-toggle { display: none; }
 .exr-nav-sec + .exr-nav-sec { margin-top: 18px; }
-.exr-nav-head { font-size: 12px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; color: var(--x-muted); margin-bottom: 10px; }
+.exr-nav-head { font-size: 12px; font-weight: 750; letter-spacing: 0; text-transform: none; color: var(--x-muted); margin-bottom: 10px; }
 .exr-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; }
 .exr-chip {
   position: relative; height: 40px; min-width: 40px; border-radius: 10px; border: 1.5px solid var(--x-line-strong); background: #fff;

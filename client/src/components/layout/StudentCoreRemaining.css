@@ -8,22 +8,22 @@
  */
 
 .student-core-remaining-surface {
-  --cb-primary: #005897;
+  --cb-primary: var(--cb-navy-600);
   --cb-primary-700: #004b81;
-  --cb-secondary: #1976d2;
+  --cb-secondary: var(--cb-navy-600);
   --cb-secondary-soft: #eaf3fd;
   --cb-bg: #f4f8fc;
   --cb-card: #ffffff;
-  --cb-text: #1e293b;
-  --cb-heading: #102a4f;
-  --cb-muted: #64748b;
+  --cb-text: var(--cb-ink);
+  --cb-heading: var(--cb-ink);
+  --cb-muted: var(--cb-slate);
   --cb-muted-2: #8a98aa;
   --cb-border: #e4eaf1;
   --cb-green: #16a36a;
   --cb-green-soft: #eaf8f1;
-  --cb-amber: #d97706;
+  --cb-amber: var(--cb-marigold-500);
   --cb-amber-soft: #fff5e5;
-  --cb-red: #dc2626;
+  --cb-red: var(--cb-danger);
   --cb-red-soft: #fff0f0;
   --cb-radius: 16px;
   --cb-radius-sm: 10px;
@@ -33,7 +33,7 @@
   min-width: 0;
   background: var(--cb-bg) !important;
   color: var(--cb-text);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--cb-font-sans);
 }
 
 .student-core-remaining-layout .layout-body,
@@ -56,7 +56,7 @@
 .student-core-remaining-surface h3,
 .student-core-remaining-surface h4 {
   color: var(--cb-heading) !important;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-family: var(--cb-font-sans) !important;
 }
 
 .student-core-remaining-surface h1 {
@@ -147,7 +147,7 @@
 
 .student-core-remaining-surface table thead th {
   color: #748396 !important;
-  background: #f8fafc !important;
+  background: var(--cb-ground) !important;
   font-size: 11px;
   font-weight: 750;
   letter-spacing: 0.035em;
@@ -179,10 +179,10 @@
 }
 
 .student-core-remaining-surface[data-student-core-route="playground"] .cp-root {
-  --cp-primary: #005897;
-  --cp-blue: #1976d2;
+  --cp-primary: var(--cb-navy-600);
+  --cp-blue: var(--cb-navy-600);
   --cp-border: #26364a;
-  font-family: Inter, system-ui, sans-serif !important;
+  font-family: var(--cb-font-sans) !important;
 }
 
 .student-core-remaining-surface[data-student-core-route="playground"] .cp-top,
@@ -199,7 +199,7 @@
 }
 
 .student-core-remaining-surface[data-student-core-route="playground"] :where(.monaco-editor, pre, code) {
-  font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace !important;
+  font-family: var(--cb-font-mono) !important;
 }
 
 /* ── Route: Project Builder ─────────────────────────────────────────────── */
@@ -230,7 +230,7 @@
 }
 
 .student-core-remaining-surface[data-student-core-route="project-builder"] [style*="background: rgb(238, 242, 255)"],
-.student-core-remaining-surface[data-student-core-route="project-builder"] [style*="#eef2ff"] {
+.student-core-remaining-surface[data-student-core-route="project-builder"] [style*="var(--cb-navy-50)"] {
   background: #eaf5f8 !important;
   color: var(--cb-primary) !important;
 }
@@ -480,9 +480,9 @@
 .live-interview-page,
 .live-interview,
 .interview-live-page {
-  --cb-primary: #005897;
-  --cb-secondary: #1976d2;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --cb-primary: var(--cb-navy-600);
+  --cb-secondary: var(--cb-navy-600);
+  font-family: var(--cb-font-sans);
 }
 
 .live-interview-page :where(button[class*="primary"], button[class*="start"]),

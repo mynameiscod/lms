@@ -3,7 +3,7 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
+  background: linear-gradient(135deg, var(--cb-navy-600) 0%, #003d6b 100%);
   padding: 20px;
 }
 
@@ -34,17 +34,17 @@
   text-align: center;
   margin-top: 24px;
   padding-top: 24px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--cb-line-soft);
 }
 
 .auth-footer p {
   margin: 0;
-  color: #6b7280;
+  color: var(--cb-slate);
   font-size: 14px;
 }
 
 .auth-link {
-  color: #005897;
+  color: var(--cb-navy-600);
   text-decoration: none;
   font-weight: 600;
 }

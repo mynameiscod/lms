@@ -1,0 +1,905 @@
+/**
+ * CodeBegun Java-first DSA curriculum — seed content for DsaModule (see models/DsaModule.ts).
+ *
+ * 22 modules in learning order. Modules with `lesson` filled are complete lessons; the rest are
+ * outlines that already link real Problem Bank topics (and Visualizer items where they exist), so
+ * a learner can practise every module today while lessons are written.
+ *
+ * Rules for content here:
+ *   - Java examples are complete classes that compile as written.
+ *   - `visualizerSlugs` must exist in services/visualizer/visualizerSeed.ts.
+ *   - `problemTopics` must be keys in config/problemBankTaxonomy.ts (PB_TOPICS).
+ *   - `widgets` must be keys in the client's CONCEPT_WIDGETS registry.
+ *   - The unit test dsaCurriculum.test.ts checks all of the above.
+ *
+ * Bump DSA_SEED_VERSION when content changes: re-seeding refreshes modules nobody has edited.
+ */
+import { DsaModuleStage, DsaTextBlock, DsaJavaExample, DsaComplexityRow, DsaQA, DsaAssignment } from '../models/DsaModule';
+
+export const DSA_SEED_VERSION = 1;
+
+export interface DsaSeedModule {
+  slug: string;
+  order: number;
+  title: string;
+  summary: string;
+  stage: DsaModuleStage;
+  prerequisites: string[];
+  problemTopics: string[];
+  visualizerSlugs?: string[];
+  widgets?: string[];
+  overview?: string;
+  objectives?: string[];
+  concepts?: DsaTextBlock[];
+  internals?: DsaTextBlock[];
+  javaExamples?: DsaJavaExample[];
+  complexity?: DsaComplexityRow[];
+  mistakes?: string[];
+  edgeCases?: string[];
+  assignments?: DsaAssignment[];
+  interviewQuestions?: DsaQA[];
+}
+
+export const DSA_CURRICULUM: DsaSeedModule[] = [
+  /* ═════════════════════════════ 1. Foundations and complexity ═════════════════════════════ */
+  {
+    slug: 'foundations-complexity', order: 1, stage: 'foundations',
+    title: 'Programming Foundations and Complexity',
+    summary: 'How a Java program runs, how memory is laid out, and how Big-O describes growth.',
+    prerequisites: [],
+    problemTopics: ['basics', 'patterns', 'math'],
+    visualizerSlugs: ['time-complexity', 'space-complexity'],
+    overview: 'Every data structure in this course is built from a few Java building blocks: primitive variables, references, arrays, loops and methods. This module makes those exact, then introduces the one tool used to compare every algorithm that follows: counting how the number of steps grows as the input grows.',
+    objectives: [
+      'Explain the difference between a primitive value and a reference in Java.',
+      'Trace a loop by hand and count how many times its body runs.',
+      'Give the Big-O time and space of a short program and justify it.',
+      'Recognise O(1), O(log n), O(n), O(n log n) and O(n²) from the shape of the code.',
+    ],
+    concepts: [
+      { title: 'Primitives and references', body: 'An int, long, double, char or boolean variable holds its value directly. Everything else — arrays, Strings, objects — is held by reference: the variable stores where the object lives on the heap. Assigning a reference copies the address, not the object, so two variables can point at the same array.' },
+      { title: 'The call stack', body: 'Each method call gets a stack frame holding its parameters and local variables. When the method returns, the frame is removed. Recursion later in the course is just many frames of the same method on this stack.' },
+      { title: 'Counting steps, not seconds', body: 'Seconds depend on the machine. Instead, count basic steps — a comparison, an assignment, an array read — as a function of the input size n, then keep only the fastest-growing term. 3n + 5 steps is O(n); n²/2 + n is O(n²).' },
+      { title: 'Space complexity', body: 'Count the extra memory the algorithm creates, not the input itself. A few int variables is O(1). A new array the size of the input is O(n). A recursive call that goes n levels deep uses O(n) stack space.' },
+    ],
+    internals: [
+      { title: 'Where Java puts things', body: 'Local primitives and references live in the current stack frame. Arrays and objects created with new live on the heap and are freed by the garbage collector once nothing references them. int[] numbers = new int[5] puts five zero-filled ints on the heap and one reference in the frame.' },
+    ],
+    javaExamples: [
+      {
+        title: 'Counting loop iterations',
+        explanation: 'The single loop runs n times; the nested loops run n × n times. Printing the counters shows the growth that Big-O describes.',
+        code: `public class StepCounter {
+    public static void main(String[] args) {
+        int n = 8;
+        int singleLoopSteps = 0;
+        for (int i = 0; i < n; i++) {
+            singleLoopSteps++;
+        }
+        int nestedLoopSteps = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                nestedLoopSteps++;
+            }
+        }
+        int halvingSteps = 0;
+        for (int size = n; size > 1; size = size / 2) {
+            halvingSteps++;
+        }
+        System.out.println("O(n): " + singleLoopSteps);
+        System.out.println("O(n^2): " + nestedLoopSteps);
+        System.out.println("O(log n): " + halvingSteps);
+    }
+}`,
+        input: 'n = 8',
+        output: 'O(n): 8\nO(n^2): 64\nO(log n): 3',
+      },
+      {
+        title: 'References share one array',
+        explanation: 'copy and original point at the same heap array, so a write through one is visible through the other. clone() makes a real copy.',
+        code: `public class ReferenceDemo {
+    public static void main(String[] args) {
+        int[] original = {1, 2, 3};
+        int[] copy = original;
+        copy[0] = 99;
+        System.out.println(original[0]);
+
+        int[] realCopy = original.clone();
+        realCopy[1] = 42;
+        System.out.println(original[1]);
+    }
+}`,
+        output: '99\n2',
+      },
+    ],
+    complexity: [
+      { operation: 'Read or write one array slot', time: 'O(1)', space: 'O(1)' },
+      { operation: 'One loop over n items', time: 'O(n)', space: 'O(1)' },
+      { operation: 'Two nested loops over n items', time: 'O(n²)', space: 'O(1)' },
+      { operation: 'Halve the range each step', time: 'O(log n)', space: 'O(1)' },
+    ],
+    mistakes: [
+      'Counting seconds from one run instead of counting steps against n.',
+      'Keeping constants: O(2n) and O(n + 10) are both O(n).',
+      'Forgetting the extra array you created when stating space complexity.',
+      'Assuming int[] b = a copies the array; it copies the reference.',
+    ],
+    edgeCases: ['n = 0 and n = 1: loops that never run still count as O(1) work.', 'int overflow: n × n above about 46,340 does not fit in an int.'],
+    assignments: [
+      { title: 'Step table', brief: 'Write a Java program that prints the step counts for O(n), O(n log n) and O(n²) loops for n = 10, 100 and 1,000, then explain the table in three sentences.' },
+      { title: 'Spot the complexity', brief: 'For five short methods your instructor gives you, write the time and space complexity with a one-line reason each.' },
+    ],
+    interviewQuestions: [
+      { question: 'What is the time complexity of a loop that doubles i each iteration up to n?', answer: 'O(log n): i takes the values 1, 2, 4, … so the loop runs about log₂n times.' },
+      { question: 'Why do we drop constants in Big-O?', answer: 'Big-O describes growth as n becomes large; a constant factor does not change the shape of that growth.' },
+      { question: 'What is the space complexity of a recursive factorial?', answer: 'O(n): each call adds a stack frame and n calls are on the stack at the deepest point.' },
+      { question: 'Primitive vs reference: what does == compare?', answer: 'For primitives, the values. For references, whether both point at the same object — use equals() to compare contents.' },
+    ],
+  },
+
+  /* ═════════════════════════════ 2. Arrays ═════════════════════════════ */
+  {
+    slug: 'arrays', order: 2, stage: 'linear',
+    title: 'Arrays',
+    summary: 'Fixed-size, contiguous storage with O(1) access by index — the base of most other structures.',
+    prerequisites: ['foundations-complexity'],
+    problemTopics: ['array', 'matrix', 'prefix-sum'],
+    visualizerSlugs: ['find-maximum', 'reverse-array'],
+    overview: 'An array stores elements of one type in consecutive memory slots, so the address of element i is calculated directly. That makes reading and writing by index O(1), and inserting or removing in the middle O(n) because everything after it has to move. Most interview problems on arrays are about choosing a traversal that avoids that O(n) shifting.',
+    objectives: [
+      'Declare, fill and traverse one- and two-dimensional arrays in Java.',
+      'Explain why index access is O(1) and middle insertion is O(n).',
+      'Write a single-pass algorithm that tracks a running value (max, sum, count).',
+      'Build a prefix-sum array and use it to answer range sums in O(1).',
+    ],
+    concepts: [
+      { title: 'Indexing and bounds', body: 'Valid indexes run from 0 to length − 1. Reading arr[arr.length] throws ArrayIndexOutOfBoundsException. arr.length is a field, not a method.' },
+      { title: 'Single-pass traversal', body: 'Many problems need only one pass: keep a running answer (the largest so far, the total so far) and update it as you visit each element. One pass is O(n) time and O(1) space.' },
+      { title: 'Shifting', body: 'To insert at index k you must move every element from k to the end one place right. To delete, move them one place left. Both are O(n) in the worst case.' },
+      { title: 'Prefix sums', body: 'prefix[i] stores the sum of arr[0..i−1]. The sum of any range arr[l..r] is then prefix[r + 1] − prefix[l], answered in O(1) after O(n) preparation.' },
+    ],
+    internals: [
+      { title: 'Contiguous memory', body: 'For an int[], element i lives at base address + i × 4 bytes. The JVM computes that address in one step, which is why access does not depend on the array size. Java arrays also store their length and are zero-initialised when created with new.' },
+      { title: '2D arrays are arrays of arrays', body: 'int[][] grid = new int[3][4] is an array of 3 references, each pointing to its own int[4]. Rows can even have different lengths (jagged arrays).' },
+    ],
+    javaExamples: [
+      {
+        title: 'Running maximum and sum in one pass',
+        explanation: 'One loop updates both answers. Starting max at numbers[0] avoids a wrong answer for all-negative input.',
+        code: `public class ArrayStats {
+    public static void main(String[] args) {
+        int[] numbers = {4, -2, 9, 7, -5, 3};
+        int largest = numbers[0];
+        int total = 0;
+        for (int i = 0; i < numbers.length; i++) {
+            if (numbers[i] > largest) {
+                largest = numbers[i];
+            }
+            total += numbers[i];
+        }
+        System.out.println("Largest: " + largest);
+        System.out.println("Sum: " + total);
+    }
+}`,
+        input: '{4, -2, 9, 7, -5, 3}',
+        output: 'Largest: 9\nSum: 16',
+      },
+      {
+        title: 'Insert at an index by shifting',
+        explanation: 'Elements from the end down to the insert position move one slot right, then the new value drops into the gap.',
+        code: `import java.util.Arrays;
+
+public class ArrayInsert {
+    public static int[] insertAt(int[] source, int index, int value) {
+        int[] result = new int[source.length + 1];
+        for (int i = 0; i < index; i++) {
+            result[i] = source[i];
+        }
+        result[index] = value;
+        for (int i = index; i < source.length; i++) {
+            result[i + 1] = source[i];
+        }
+        return result;
+    }
+
+    public static void main(String[] args) {
+        int[] values = {10, 20, 40, 50};
+        System.out.println(Arrays.toString(insertAt(values, 2, 30)));
+    }
+}`,
+        output: '[10, 20, 30, 40, 50]',
+      },
+      {
+        title: 'Prefix sums for range queries',
+        explanation: 'After one O(n) pass, every range sum is a single subtraction.',
+        code: `public class PrefixSum {
+    public static void main(String[] args) {
+        int[] values = {3, 1, 4, 1, 5, 9};
+        int[] prefix = new int[values.length + 1];
+        for (int i = 0; i < values.length; i++) {
+            prefix[i + 1] = prefix[i] + values[i];
+        }
+        int left = 1;
+        int right = 4;
+        System.out.println(prefix[right + 1] - prefix[left]);
+    }
+}`,
+        input: 'sum of values[1..4]',
+        output: '11',
+      },
+    ],
+    complexity: [
+      { operation: 'Access by index', time: 'O(1)', space: 'O(1)' },
+      { operation: 'Search unsorted', time: 'O(n)', space: 'O(1)' },
+      { operation: 'Insert / delete at end (with spare capacity)', time: 'O(1)', space: 'O(1)' },
+      { operation: 'Insert / delete in the middle', time: 'O(n)', space: 'O(1)', note: 'Shifting' },
+      { operation: 'Build prefix sums', time: 'O(n)', space: 'O(n)', note: 'Then each range sum is O(1)' },
+    ],
+    mistakes: [
+      'Looping with i <= arr.length instead of i < arr.length.',
+      'Starting a maximum at 0, which is wrong when every value is negative.',
+      'Modifying an array while iterating it with an enhanced for loop and expecting indexes.',
+      'Forgetting that Arrays.sort changes the original array.',
+    ],
+    edgeCases: ['Empty array: decide what to return before indexing numbers[0].', 'Single element.', 'All equal values.', 'Very large sums: use long.'],
+    assignments: [
+      { title: 'Rotate in place', brief: 'Rotate an int array right by k positions using O(1) extra space (hint: three reversals). Print the array after each reversal.' },
+      { title: 'Range-sum service', brief: 'Read an array and q queries (l, r). Answer every query with a prefix-sum array and compare the run time with a naive loop for 100,000 queries.' },
+    ],
+    interviewQuestions: [
+      { question: 'Why is array access O(1)?', answer: 'The address of element i is base + i × element size, computed in one step, regardless of length.' },
+      { question: 'Array vs ArrayList?', answer: 'An array has fixed size and can hold primitives. ArrayList grows automatically (amortised O(1) add at the end) and holds objects, so ints are boxed.' },
+      { question: 'How do you find the second largest element in one pass?', answer: 'Track largest and secondLargest; when a value beats largest, the old largest becomes secondLargest.' },
+      { question: 'What does a prefix-sum array trade?', answer: 'O(n) extra space and O(n) preparation for O(1) range-sum queries.' },
+    ],
+  },
+
+  /* ═════════════════════════════ 3. Strings ═════════════════════════════ */
+  {
+    slug: 'strings', order: 3, stage: 'linear',
+    title: 'Strings',
+    summary: 'Immutable character sequences, StringBuilder, and the character-counting patterns behind most string problems.',
+    prerequisites: ['arrays'],
+    problemTopics: ['string', 'string-matching'],
+    visualizerSlugs: ['reverse-string', 'palindrome-check'],
+    overview: 'A Java String is an immutable sequence of chars. Every "change" — concatenation, replace, toUpperCase — creates a new String. That is safe but can be slow inside loops, which is why StringBuilder exists. Most string problems reduce to array techniques on the characters: two pointers from both ends, or a frequency count of each character.',
+    objectives: [
+      'Explain String immutability and when to use StringBuilder.',
+      'Compare strings correctly with equals() and compareTo().',
+      'Use a 26-slot count array to solve anagram and frequency problems in O(n).',
+      'Apply two pointers to reverse and palindrome problems.',
+    ],
+    concepts: [
+      { title: 'Immutability', body: 'A String object never changes. s = s + "x" builds a new String and points s at it. Inside a loop of n iterations that is O(n²) work in total, because each new string copies the old one.' },
+      { title: 'StringBuilder', body: 'StringBuilder keeps a growable char buffer. append is amortised O(1), so building a string of n characters is O(n). Call toString() once at the end.' },
+      { title: 'Equality', body: '== checks whether two references point at the same object. equals() compares characters. Always use equals() for content, and equalsIgnoreCase() when case should not matter.' },
+      { title: 'Character counting', body: 'For lowercase letters, int[] count = new int[26] and count[c - \'a\']++ records how often each letter appears. Two strings are anagrams exactly when their count arrays are equal.' },
+    ],
+    internals: [
+      { title: 'The string pool', body: 'String literals are stored once in the string pool, so two identical literals may share one object — which is why == sometimes appears to work and then fails for strings built at run time. Never rely on it.' },
+    ],
+    javaExamples: [
+      {
+        title: 'Build a string efficiently',
+        explanation: 'StringBuilder avoids creating a new String on every iteration.',
+        code: `public class BuildString {
+    public static void main(String[] args) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 1; i <= 5; i++) {
+            builder.append(i);
+            if (i < 5) {
+                builder.append(',');
+            }
+        }
+        System.out.println(builder.toString());
+    }
+}`,
+        output: '1,2,3,4,5',
+      },
+      {
+        title: 'Anagram check with a count array',
+        explanation: 'One pass adds counts for the first word and subtracts for the second; any non-zero slot means they differ.',
+        code: `public class AnagramCheck {
+    public static boolean isAnagram(String first, String second) {
+        if (first.length() != second.length()) {
+            return false;
+        }
+        int[] count = new int[26];
+        for (int i = 0; i < first.length(); i++) {
+            count[first.charAt(i) - 'a']++;
+            count[second.charAt(i) - 'a']--;
+        }
+        for (int value : count) {
+            if (value != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(isAnagram("listen", "silent"));
+        System.out.println(isAnagram("rat", "car"));
+    }
+}`,
+        input: '"listen", "silent" and "rat", "car"',
+        output: 'true\nfalse',
+      },
+    ],
+    complexity: [
+      { operation: 'charAt(i), length()', time: 'O(1)', space: 'O(1)' },
+      { operation: 'Concatenate with + in a loop of n', time: 'O(n²)', space: 'O(n)' },
+      { operation: 'StringBuilder append n times', time: 'O(n)', space: 'O(n)' },
+      { operation: 'equals / compareTo', time: 'O(n)', space: 'O(1)' },
+      { operation: 'Frequency count of n chars', time: 'O(n)', space: 'O(1)', note: 'Fixed 26 slots' },
+    ],
+    mistakes: [
+      'Comparing strings with == instead of equals().',
+      'Concatenating inside a loop instead of using StringBuilder.',
+      'Using a 26-slot array when the input can contain uppercase letters, digits or spaces.',
+      'Forgetting that substring(begin, end) excludes end.',
+    ],
+    edgeCases: ['Empty string.', 'Different lengths in comparison problems.', 'Uppercase vs lowercase.', 'Spaces and punctuation in palindrome checks.'],
+    assignments: [
+      { title: 'Word frequency', brief: 'Read a sentence, split it into words, and print each word with its count, most frequent first.' },
+      { title: 'Compress a string', brief: 'Turn "aaabccdddd" into "a3b1c2d4" with a single pass and a StringBuilder. Return the original when the result is not shorter.' },
+    ],
+    interviewQuestions: [
+      { question: 'Why are Java Strings immutable?', answer: 'Safety and sharing: strings can be cached in the pool, used as HashMap keys and shared across threads without copying.' },
+      { question: 'StringBuilder vs StringBuffer?', answer: 'Same API; StringBuffer is synchronized and therefore slower. Use StringBuilder unless several threads share it.' },
+      { question: 'How do you check if two strings are rotations of each other?', answer: 'They have equal length and the second is a substring of first + first.' },
+      { question: 'What is the time complexity of checking a palindrome?', answer: 'O(n) time, O(1) space with two pointers from both ends.' },
+    ],
+  },
+
+  /* ═════════════════════════════ 4. Searching ═════════════════════════════ */
+  {
+    slug: 'searching', order: 4, stage: 'algorithms',
+    title: 'Searching Algorithms',
+    summary: 'Linear search for any array, binary search for sorted ones — and binary search on the answer.',
+    prerequisites: ['arrays'],
+    problemTopics: ['binary-search'],
+    visualizerSlugs: ['linear-search', 'binary-search'],
+    overview: 'Searching asks where a value is, or whether it exists. Without any order, you must check every element: O(n). When the data is sorted, binary search halves the remaining range at every step: O(log n). The same halving idea also solves problems where you search for the smallest answer that satisfies a condition.',
+    objectives: [
+      'Implement linear search and return the index or −1.',
+      'Implement iterative binary search without off-by-one errors.',
+      'Find the first and last position of a value with modified binary search.',
+      'Recognise "binary search on the answer" problems.',
+    ],
+    concepts: [
+      { title: 'Linear search', body: 'Check each element in order until the target is found. Works on any array, sorted or not. Best case O(1), worst case O(n).' },
+      { title: 'Binary search', body: 'Keep low and high bounds of where the target could be. Compare with the middle element: if equal, done; if the middle is smaller, the target is to the right; otherwise to the left. Each step discards half.' },
+      { title: 'Safe midpoint', body: 'mid = low + (high − low) / 2 avoids the int overflow that (low + high) / 2 can cause when both are near Integer.MAX_VALUE.' },
+      { title: 'Boundaries', body: 'To find the first occurrence, keep searching left after a match (high = mid − 1) and remember the match. To find the last, keep searching right.' },
+    ],
+    internals: [
+      { title: 'Why log n', body: 'After k steps the range has n / 2ᵏ elements. The search ends when that reaches 1, so k = log₂n. A million sorted items need at most 20 comparisons.' },
+    ],
+    javaExamples: [
+      {
+        title: 'Iterative binary search',
+        explanation: 'The loop runs while the range [low, high] is not empty. Returns the index or −1.',
+        code: `public class BinarySearch {
+    public static int search(int[] sorted, int target) {
+        int low = 0;
+        int high = sorted.length - 1;
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
+            if (sorted[mid] == target) {
+                return mid;
+            } else if (sorted[mid] < target) {
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return -1;
+    }
+
+    public static void main(String[] args) {
+        int[] values = {2, 5, 8, 12, 16, 23, 38, 56};
+        System.out.println(search(values, 23));
+        System.out.println(search(values, 7));
+    }
+}`,
+        input: 'target 23, then 7',
+        output: '5\n-1',
+      },
+      {
+        title: 'First occurrence of a repeated value',
+        explanation: 'On a match, record it and keep looking left for an earlier one.',
+        code: `public class FirstOccurrence {
+    public static int firstIndex(int[] sorted, int target) {
+        int low = 0;
+        int high = sorted.length - 1;
+        int answer = -1;
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
+            if (sorted[mid] == target) {
+                answer = mid;
+                high = mid - 1;
+            } else if (sorted[mid] < target) {
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return answer;
+    }
+
+    public static void main(String[] args) {
+        int[] values = {1, 3, 3, 3, 7, 9};
+        System.out.println(firstIndex(values, 3));
+    }
+}`,
+        output: '1',
+      },
+    ],
+    complexity: [
+      { operation: 'Linear search', time: 'O(n)', space: 'O(1)' },
+      { operation: 'Binary search (iterative)', time: 'O(log n)', space: 'O(1)' },
+      { operation: 'Binary search (recursive)', time: 'O(log n)', space: 'O(log n)', note: 'Stack frames' },
+    ],
+    mistakes: [
+      'Using binary search on unsorted data.',
+      'while (low < high) with high = mid − 1, which skips the last candidate.',
+      'Setting low = mid instead of mid + 1, causing an infinite loop.',
+      'Computing (low + high) / 2 with values near Integer.MAX_VALUE.',
+    ],
+    edgeCases: ['Empty array.', 'Target smaller than every element or larger than every element.', 'Duplicates when the first or last index is required.'],
+    assignments: [
+      { title: 'Search insert position', brief: 'Return the index where a target is, or where it would be inserted to keep the array sorted. Test with targets below, inside and above the array.' },
+      { title: 'Square root by binary search', brief: 'Return the integer square root of n without Math.sqrt by binary searching on the answer between 0 and n.' },
+    ],
+    interviewQuestions: [
+      { question: 'When can you not use binary search?', answer: 'When the data has no order (or monotonic condition) that tells you which half to discard.' },
+      { question: 'What is binary search on the answer?', answer: 'Searching a range of possible answers for the smallest one that satisfies a check that is false then true, like the minimum capacity to ship packages in d days.' },
+      { question: 'How many comparisons for 1,000,000 sorted elements?', answer: 'At most about 20, because 2²⁰ ≈ 1,048,576.' },
+    ],
+  },
+
+  /* ═════════════════════════════ 5. Sorting ═════════════════════════════ */
+  {
+    slug: 'sorting', order: 5, stage: 'algorithms',
+    title: 'Sorting Algorithms',
+    summary: 'The O(n²) sorts you can trace by hand, the O(n log n) sorts Java actually uses, and what stability means.',
+    prerequisites: ['arrays', 'foundations-complexity'],
+    problemTopics: ['sorting'],
+    visualizerSlugs: ['bubble-sort', 'selection-sort', 'insertion-sort'],
+    overview: 'Sorting puts elements in order so that searching, de-duplicating and pairing become easy. The simple sorts — bubble, selection, insertion — are O(n²) and teach how comparisons and swaps add up. Merge sort and quicksort reach O(n log n) by dividing the problem. In real Java code you call Arrays.sort or Collections.sort, and you need to know what they guarantee.',
+    objectives: [
+      'Trace bubble, selection and insertion sort step by step.',
+      'Explain merge sort and why it is O(n log n).',
+      'Define stability and say which sorts are stable.',
+      'Sort objects with Comparable and Comparator.',
+    ],
+    concepts: [
+      { title: 'Bubble sort', body: 'Repeatedly compare neighbours and swap them when out of order. After pass k, the k largest values are in their final places at the end.' },
+      { title: 'Selection sort', body: 'For each position, find the smallest remaining value and swap it in. Always n(n−1)/2 comparisons but at most n − 1 swaps.' },
+      { title: 'Insertion sort', body: 'Grow a sorted prefix: take the next value and shift larger values right until its place is found. Fast on nearly sorted data and used inside real library sorts for small ranges.' },
+      { title: 'Merge sort', body: 'Split the array in half, sort each half recursively, then merge the two sorted halves in O(n). log n levels × O(n) per level = O(n log n). Needs O(n) extra space.' },
+      { title: 'Stability', body: 'A sort is stable when equal elements keep their original order. It matters when sorting records by one field after another. Insertion and merge sort are stable; selection sort and typical quicksort are not.' },
+    ],
+    internals: [
+      { title: 'What Java uses', body: 'Arrays.sort on primitives uses a dual-pivot quicksort (fast, not stable, O(n log n) on average). Arrays.sort on objects and Collections.sort use TimSort — a merge/insertion hybrid that is stable and very fast on partly sorted data.' },
+    ],
+    javaExamples: [
+      {
+        title: 'Merge sort',
+        explanation: 'mergeSort splits until single elements remain; merge combines two sorted ranges using a temporary array.',
+        code: `import java.util.Arrays;
+
+public class MergeSort {
+    public static void mergeSort(int[] values, int left, int right) {
+        if (left >= right) {
+            return;
+        }
+        int middle = left + (right - left) / 2;
+        mergeSort(values, left, middle);
+        mergeSort(values, middle + 1, right);
+        merge(values, left, middle, right);
+    }
+
+    private static void merge(int[] values, int left, int middle, int right) {
+        int[] merged = new int[right - left + 1];
+        int i = left;
+        int j = middle + 1;
+        int k = 0;
+        while (i <= middle && j <= right) {
+            if (values[i] <= values[j]) {
+                merged[k++] = values[i++];
+            } else {
+                merged[k++] = values[j++];
+            }
+        }
+        while (i <= middle) {
+            merged[k++] = values[i++];
+        }
+        while (j <= right) {
+            merged[k++] = values[j++];
+        }
+        for (int m = 0; m < merged.length; m++) {
+            values[left + m] = merged[m];
+        }
+    }
+
+    public static void main(String[] args) {
+        int[] values = {38, 27, 43, 3, 9, 82, 10};
+        mergeSort(values, 0, values.length - 1);
+        System.out.println(Arrays.toString(values));
+    }
+}`,
+        output: '[3, 9, 10, 27, 38, 43, 82]',
+      },
+      {
+        title: 'Sorting objects with a Comparator',
+        explanation: 'Sort students by marks (highest first), then by name. List.sort uses TimSort, so it is stable.',
+        code: `import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+public class SortStudents {
+    static class Student {
+        final String name;
+        final int marks;
+
+        Student(String name, int marks) {
+            this.name = name;
+            this.marks = marks;
+        }
+    }
+
+    public static void main(String[] args) {
+        List<Student> students = new ArrayList<>();
+        students.add(new Student("Ravi", 82));
+        students.add(new Student("Anu", 91));
+        students.add(new Student("Kiran", 82));
+
+        students.sort(Comparator.comparingInt((Student s) -> s.marks).reversed()
+                .thenComparing(s -> s.name));
+
+        for (Student s : students) {
+            System.out.println(s.name + " " + s.marks);
+        }
+    }
+}`,
+        output: 'Anu 91\nKiran 82\nRavi 82',
+      },
+    ],
+    complexity: [
+      { operation: 'Bubble sort', time: 'O(n²)', space: 'O(1)', note: 'Stable' },
+      { operation: 'Selection sort', time: 'O(n²)', space: 'O(1)', note: 'Not stable' },
+      { operation: 'Insertion sort', time: 'O(n²), O(n) if nearly sorted', space: 'O(1)', note: 'Stable' },
+      { operation: 'Merge sort', time: 'O(n log n)', space: 'O(n)', note: 'Stable' },
+      { operation: 'Quicksort', time: 'O(n log n) average, O(n²) worst', space: 'O(log n)', note: 'Not stable' },
+    ],
+    mistakes: [
+      'Inner loop of bubble sort running to n − 1 every pass instead of n − 1 − i.',
+      'Using < instead of <= in merge, which breaks stability.',
+      'Writing a Comparator with subtraction (a − b), which can overflow.',
+      'Assuming Arrays.sort on int[] is stable — stability is meaningless for primitives but matters for objects.',
+    ],
+    edgeCases: ['Already sorted input.', 'Reverse-sorted input.', 'All equal elements.', 'Arrays of length 0 and 1.'],
+    assignments: [
+      { title: 'Count the work', brief: 'Instrument bubble, selection and insertion sort to count comparisons and swaps. Run them on sorted, reversed and random arrays of size 1,000 and explain the results.' },
+      { title: 'Leaderboard', brief: 'Sort a list of players by score descending, then by time ascending, then by name, using one Comparator chain.' },
+    ],
+    interviewQuestions: [
+      { question: 'Which sort would you choose for nearly sorted data?', answer: 'Insertion sort (or TimSort, which exploits existing runs): close to O(n).' },
+      { question: 'Why is merge sort O(n log n)?', answer: 'There are log n levels of splitting and each level does O(n) merging work.' },
+      { question: 'What makes quicksort O(n²) in the worst case?', answer: 'Consistently bad pivots, such as always the first element on already sorted data, giving partitions of size n − 1 and 0.' },
+      { question: 'What is a stable sort and why does it matter?', answer: 'Equal keys keep their input order. It allows multi-key sorting by sorting on the secondary key first, then the primary.' },
+    ],
+  },
+
+  /* ═════════════════════════════ 6. Two pointers and sliding window (outline) ═════════════════════════════ */
+  {
+    slug: 'two-pointers-sliding-window', order: 6, stage: 'techniques',
+    title: 'Two Pointers and Sliding Window',
+    summary: 'Move two indexes through an array to replace nested loops with a single pass.',
+    prerequisites: ['arrays', 'sorting'],
+    problemTopics: ['two-pointers', 'sliding-window'],
+    visualizerSlugs: ['pair-target-sum', 'reverse-array'],
+  },
+
+  /* ═════════════════════════════ 7. Hashing (outline) ═════════════════════════════ */
+  {
+    slug: 'hashing', order: 7, stage: 'techniques',
+    title: 'Hashing',
+    summary: 'HashMap and HashSet: average O(1) lookup, counting and de-duplication.',
+    prerequisites: ['arrays', 'strings'],
+    problemTopics: ['hash-table'],
+  },
+
+  /* ═════════════════════════════ 8. Linked lists ═════════════════════════════ */
+  {
+    slug: 'linked-lists', order: 8, stage: 'linear',
+    title: 'Linked Lists',
+    summary: 'Nodes joined by references: O(1) insertion at a known position, O(n) access by index.',
+    prerequisites: ['foundations-complexity', 'arrays'],
+    problemTopics: ['linked-list'],
+    widgets: ['linked_list'],
+    overview: 'A linked list stores each element in its own node object, and every node holds a reference to the next one. Nothing is contiguous, so there is no index arithmetic: reaching the k-th element means walking k links. In exchange, inserting or removing a node once you are standing next to it is O(1) — only references change, nothing shifts. Linked lists are also the best practice in Java for thinking clearly about references.',
+    objectives: [
+      'Write a Node class and build a singly linked list by hand.',
+      'Insert at the head, insert at the tail and delete by value.',
+      'Reverse a linked list iteratively by re-pointing next references.',
+      'Use slow and fast pointers to find the middle and detect a cycle.',
+    ],
+    concepts: [
+      { title: 'Nodes and head', body: 'Each node has a value and a next reference. The list is known only through head, the reference to the first node. The last node\'s next is null.' },
+      { title: 'Traversal', body: 'Start with current = head and repeat current = current.next until current is null. Every operation that needs a position starts with this walk, which is why access by index is O(n).' },
+      { title: 'Insertion and deletion', body: 'To insert after node p: newNode.next = p.next; p.next = newNode. To delete the node after p: p.next = p.next.next. Order matters — re-point the new node before breaking the old link.' },
+      { title: 'Dummy head', body: 'A dummy node placed before the real head removes the special case of inserting or deleting at the front. Return dummy.next at the end.' },
+      { title: 'Slow and fast pointers', body: 'Move slow one step and fast two steps. When fast reaches the end, slow is at the middle. If the list has a cycle, fast eventually meets slow inside it.' },
+    ],
+    internals: [
+      { title: 'Memory layout', body: 'Each node is a separate object on the heap, typically 16–24 bytes of object header and fields plus the value. Nodes can be anywhere in memory, so walking a list jumps around and is slower in practice than scanning an array, even when both are O(n).' },
+      { title: 'java.util.LinkedList', body: 'Java\'s LinkedList is doubly linked (each node has next and prev) and keeps references to both head and tail, so adding or removing at either end is O(1). get(i) still walks from the nearer end: O(n).' },
+    ],
+    javaExamples: [
+      {
+        title: 'A singly linked list from scratch',
+        explanation: 'addFirst and addLast build the list; remove deletes the first node with a given value; print walks the links.',
+        code: `public class SinglyLinkedList {
+    static class Node {
+        int value;
+        Node next;
+
+        Node(int value) {
+            this.value = value;
+        }
+    }
+
+    private Node head;
+
+    public void addFirst(int value) {
+        Node node = new Node(value);
+        node.next = head;
+        head = node;
+    }
+
+    public void addLast(int value) {
+        Node node = new Node(value);
+        if (head == null) {
+            head = node;
+            return;
+        }
+        Node current = head;
+        while (current.next != null) {
+            current = current.next;
+        }
+        current.next = node;
+    }
+
+    public boolean remove(int value) {
+        Node dummy = new Node(0);
+        dummy.next = head;
+        Node previous = dummy;
+        while (previous.next != null) {
+            if (previous.next.value == value) {
+                previous.next = previous.next.next;
+                head = dummy.next;
+                return true;
+            }
+            previous = previous.next;
+        }
+        return false;
+    }
+
+    public void print() {
+        StringBuilder out = new StringBuilder();
+        for (Node current = head; current != null; current = current.next) {
+            out.append(current.value).append(" -> ");
+        }
+        System.out.println(out.append("null"));
+    }
+
+    public static void main(String[] args) {
+        SinglyLinkedList list = new SinglyLinkedList();
+        list.addLast(20);
+        list.addLast(30);
+        list.addFirst(10);
+        list.print();
+        list.remove(20);
+        list.print();
+    }
+}`,
+        output: '10 -> 20 -> 30 -> null\n10 -> 30 -> null',
+      },
+      {
+        title: 'Reverse a linked list',
+        explanation: 'Walk once, turning each next reference around. previous ends up as the new head.',
+        code: `public class ReverseList {
+    static class Node {
+        int value;
+        Node next;
+
+        Node(int value, Node next) {
+            this.value = value;
+            this.next = next;
+        }
+    }
+
+    public static Node reverse(Node head) {
+        Node previous = null;
+        Node current = head;
+        while (current != null) {
+            Node nextNode = current.next;
+            current.next = previous;
+            previous = current;
+            current = nextNode;
+        }
+        return previous;
+    }
+
+    public static void main(String[] args) {
+        Node head = new Node(1, new Node(2, new Node(3, null)));
+        for (Node n = reverse(head); n != null; n = n.next) {
+            System.out.print(n.value + " ");
+        }
+    }
+}`,
+        input: '1 -> 2 -> 3',
+        output: '3 2 1',
+      },
+      {
+        title: 'Middle node with slow and fast pointers',
+        explanation: 'fast moves twice as fast, so when it runs out slow is halfway.',
+        code: `public class MiddleNode {
+    static class Node {
+        int value;
+        Node next;
+
+        Node(int value, Node next) {
+            this.value = value;
+            this.next = next;
+        }
+    }
+
+    public static Node middle(Node head) {
+        Node slow = head;
+        Node fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+        return slow;
+    }
+
+    public static void main(String[] args) {
+        Node head = new Node(1, new Node(2, new Node(3, new Node(4, new Node(5, null)))));
+        System.out.println(middle(head).value);
+    }
+}`,
+        input: '1 -> 2 -> 3 -> 4 -> 5',
+        output: '3',
+      },
+    ],
+    complexity: [
+      { operation: 'Access k-th element', time: 'O(n)', space: 'O(1)' },
+      { operation: 'Insert / delete at head', time: 'O(1)', space: 'O(1)' },
+      { operation: 'Insert at tail (no tail reference)', time: 'O(n)', space: 'O(1)', note: 'O(1) with a tail reference' },
+      { operation: 'Delete by value', time: 'O(n)', space: 'O(1)', note: 'The search dominates' },
+      { operation: 'Reverse', time: 'O(n)', space: 'O(1)' },
+    ],
+    mistakes: [
+      'Losing the rest of the list by overwriting current.next before saving it.',
+      'Forgetting the empty-list case: head == null.',
+      'Not updating head when the first node is deleted (a dummy node avoids this).',
+      'Checking fast.next.next without first checking fast.next != null.',
+    ],
+    edgeCases: ['Empty list.', 'One node.', 'Deleting the head or the tail.', 'Value not present.', 'Lists with a cycle when a method assumes the end is reachable.'],
+    assignments: [
+      { title: 'Build your own LinkedList', brief: 'Implement addFirst, addLast, removeFirst, removeLast, get(index), size() and reverse() on a singly linked list with a tail reference. Write a main method that tests every method, including the empty list.' },
+      { title: 'Merge two sorted lists', brief: 'Given two sorted linked lists, return one sorted list by re-linking the existing nodes (no new nodes except a dummy head).' },
+    ],
+    interviewQuestions: [
+      { question: 'Array vs linked list: when would you choose a linked list?', answer: 'When you insert and remove at known positions far more often than you access by index, and you do not need cache-friendly scanning.' },
+      { question: 'How do you detect a cycle in O(1) space?', answer: 'Floyd\'s algorithm: slow moves one step, fast two; if they ever meet, there is a cycle.' },
+      { question: 'How do you find the k-th node from the end in one pass?', answer: 'Move a lead pointer k steps ahead, then move both pointers together until the lead reaches null.' },
+      { question: 'What is the time complexity of LinkedList.get(i) in Java?', answer: 'O(n): it walks from whichever end is nearer.' },
+    ],
+  },
+
+  /* ═════════════════════════════ 9–22 (outlines) ═════════════════════════════ */
+  {
+    slug: 'stacks', order: 9, stage: 'linear',
+    title: 'Stacks',
+    summary: 'Last in, first out: matching brackets, undo, and the monotonic stack pattern.',
+    prerequisites: ['arrays', 'linked-lists'],
+    problemTopics: ['stack', 'monotonic-stack'],
+  },
+  {
+    slug: 'queues-deques', order: 10, stage: 'linear',
+    title: 'Queues and Deques',
+    summary: 'First in, first out, plus double-ended queues for sliding-window maximums.',
+    prerequisites: ['arrays', 'linked-lists'],
+    problemTopics: ['queue'],
+  },
+  {
+    slug: 'recursion', order: 11, stage: 'foundations',
+    title: 'Recursion',
+    summary: 'A method that solves a smaller version of its own problem, and the stack frames it creates.',
+    prerequisites: ['foundations-complexity'],
+    problemTopics: ['recursion', 'divide-and-conquer'],
+  },
+  {
+    slug: 'backtracking', order: 12, stage: 'algorithms',
+    title: 'Backtracking',
+    summary: 'Build a solution step by step and undo a choice the moment it cannot work.',
+    prerequisites: ['recursion'],
+    problemTopics: ['backtracking'],
+  },
+  {
+    slug: 'binary-trees', order: 13, stage: 'nonlinear',
+    title: 'Binary Trees',
+    summary: 'Nodes with up to two children: traversals, height, and level-order search.',
+    prerequisites: ['recursion', 'queues-deques'],
+    problemTopics: ['binary-tree', 'tree'],
+  },
+  {
+    slug: 'binary-search-trees', order: 14, stage: 'nonlinear',
+    title: 'Binary Search Trees',
+    summary: 'Left smaller, right larger: ordered search, insert and delete in O(h).',
+    prerequisites: ['binary-trees'],
+    problemTopics: ['bst'],
+  },
+  {
+    slug: 'heaps-priority-queues', order: 15, stage: 'nonlinear',
+    title: 'Heaps and Priority Queues',
+    summary: 'Always reach the smallest (or largest) item in O(1) and remove it in O(log n).',
+    prerequisites: ['binary-trees', 'arrays'],
+    problemTopics: ['heap'],
+  },
+  {
+    slug: 'graphs', order: 16, stage: 'nonlinear',
+    title: 'Graphs',
+    summary: 'Vertices and edges: adjacency lists, BFS, DFS and connected components.',
+    prerequisites: ['queues-deques', 'recursion', 'hashing'],
+    problemTopics: ['graph', 'bfs', 'dfs', 'union-find'],
+  },
+  {
+    slug: 'greedy', order: 17, stage: 'algorithms',
+    title: 'Greedy Algorithms',
+    summary: 'Take the best-looking choice at each step — and learn to prove when that works.',
+    prerequisites: ['sorting', 'heaps-priority-queues'],
+    problemTopics: ['greedy'],
+  },
+  {
+    slug: 'dynamic-programming', order: 18, stage: 'algorithms',
+    title: 'Dynamic Programming',
+    summary: 'Solve each sub-problem once and reuse it: memoisation and tables.',
+    prerequisites: ['recursion', 'arrays'],
+    problemTopics: ['dynamic-programming', 'memoization'],
+  },
+  {
+    slug: 'tries', order: 19, stage: 'nonlinear',
+    title: 'Tries',
+    summary: 'A tree of characters for prefix search and autocomplete.',
+    prerequisites: ['strings', 'binary-trees'],
+    problemTopics: ['trie'],
+  },
+  {
+    slug: 'bit-manipulation', order: 20, stage: 'techniques',
+    title: 'Bit Manipulation',
+    summary: 'AND, OR, XOR and shifts for flags, subsets and O(1) tricks.',
+    prerequisites: ['foundations-complexity'],
+    problemTopics: ['bit-manipulation'],
+  },
+  {
+    slug: 'advanced-graphs', order: 21, stage: 'algorithms',
+    title: 'Advanced Graph Algorithms',
+    summary: 'Shortest paths, topological sort, union-find and minimum spanning trees.',
+    prerequisites: ['graphs', 'heaps-priority-queues'],
+    problemTopics: ['shortest-path', 'topological-sort', 'union-find'],
+  },
+  {
+    slug: 'interview-patterns', order: 22, stage: 'interview',
+    title: 'Interview Problem Patterns',
+    summary: 'Recognise the pattern behind a new problem: prefix sums, windows, two pointers, BFS, DP and more.',
+    prerequisites: ['two-pointers-sliding-window', 'hashing', 'graphs', 'dynamic-programming'],
+    problemTopics: ['prefix-sum', 'sliding-window', 'two-pointers', 'design', 'matrix', 'simulation'],
+  },
+];

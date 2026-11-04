@@ -11,6 +11,9 @@ import { captureCareerPilotAttribution } from './utils/careerPilotAttribution';
 import { installClientMonitor } from './utils/clientMonitor';
 import AppErrorBoundary from './components/AppErrorBoundary';
 
+// Paint the right surface from the first frame; AppRoutes keeps it current (members, navigation).
+document.documentElement.dataset.surface = /^\/(careerpilot|passport)(\/|$)/.test(window.location.pathname) ? 'careerpilot' : 'lms';
+
 /**
  * DEVELOPMENT ONLY: keep opaque cross-origin errors off the dev-server overlay.
  *

@@ -24,12 +24,12 @@ const CT_LABEL: Record<string, string> = {
 };
 
 const KIND_META: Record<string, { icon: string; color: string; verb: string }> = {
-  content:       { icon: '🎬', color: '#7c3aed', verb: 'Open' },
-  video:         { icon: '🎬', color: '#7c3aed', verb: 'Open' },
-  quiz:          { icon: '❓', color: '#7c3aed', verb: 'Start Quiz' },
-  assignment:    { icon: '📋', color: '#2563eb', verb: 'Open Assignment' },
-  codeSnippet:   { icon: '⌨️', color: '#0ea5e9', verb: 'Solve' },
-  mockInterview: { icon: '🎤', color: '#f59e0b', verb: 'Review' },
+  content:       { icon: '🎬', color: '#359AAD', verb: 'Open' },
+  video:         { icon: '🎬', color: '#359AAD', verb: 'Open' },
+  quiz:          { icon: '❓', color: '#359AAD', verb: 'Start quiz' },
+  assignment:    { icon: '📋', color: '#359AAD', verb: 'Open assignment' },
+  codeSnippet:   { icon: '⌨️', color: '#359AAD', verb: 'Solve' },
+  mockInterview: { icon: '🎤', color: '#E9A23B', verb: 'Review' },
 };
 
 const isToday = (s: string) => { const d = new Date(s); const n = new Date(); return d.toDateString() === n.toDateString(); };
@@ -49,10 +49,13 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
 
   const planItems: any[] = todayPlan?.items || [];
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
   const cards = [
-    { icon: '✓', bg: '#22c55e', label: 'Assignments Done', value: stats.completedAssignments ?? 0, sub: `of ${stats.totalAssignments ?? 0} total · ${stats.pendingAssignments ?? 0} pending`, badge: todaySubs > 0 ? `+${todaySubs} today` : 'On track', badgeCls: 'good' },
-    { icon: '⏰', bg: '#f59e0b', label: 'Pending Tasks', value: totalPending, sub: `${dueTomorrow} due tomorrow · ${dueThisWeek} this week`, badge: 'Due soon', badgeCls: 'warn' },
-    { icon: '★', bg: '#7c3aed', label: 'Quiz Avg Score', value: `${quizAvg}%`, sub: `${stats.completedQuizzes ?? 0} quizzes taken · ${quizAvg >= 50 ? 'Good' : 'Needs work'}`, badge: quizAvg >= 50 ? 'Good' : 'Needs work', badgeCls: quizAvg >= 50 ? 'good' : 'purple' },
+    { icon: '✓', bg: '#22c55e', label: 'Assignments done', value: stats.completedAssignments ?? 0, sub: `of ${stats.totalAssignments ?? 0} total · ${stats.pendingAssignments ?? 0} pending`, badge: todaySubs > 0 ? `+${todaySubs} today` : 'On track', badgeCls: 'good' },
+    { icon: '⏰', bg: '#f59e0b', label: 'Pending tasks', value: totalPending, sub: `${dueTomorrow} due tomorrow · ${dueThisWeek} this week`, badge: 'Due soon', badgeCls: 'warn' },
+    { icon: '★', bg: '#7c3aed', label: 'Quiz avg score', value: `${quizAvg}%`, sub: `${stats.completedQuizzes ?? 0} quizzes taken · ${quizAvg >= 50 ? 'Good' : 'Needs work'}`, badge: quizAvg >= 50 ? 'Good' : 'Needs work', badgeCls: quizAvg >= 50 ? 'good' : 'purple' },
     { icon: '📈', bg: '#2563eb', label: 'Attendance', value: `${attPct}%`, sub: `${present} Present · ${absent} Absent · ${totalAtt} Total`, badge: attLabel, badgeCls: 'blue' },
   ];
 
@@ -61,8 +64,8 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
       <GamePanel />
 
       <div className="sd2-welcome">
-        <h1>Welcome back, {firstName}! 👋</h1>
-        <p>Let's continue your learning journey. Stay consistent and achieve your goals.</p>
+        <p>Here is what's planned for you today.</p>
+        <h1>{greeting}, {firstName}</h1>
       </div>
 
       {/* Daily Practice Pass — today's required tasks and placement standing, above everything else */}
@@ -98,7 +101,7 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
           {/* Today's Plan */}
           <div className="sd2-card">
             <div className="sd2-card-head">
-              <span className="sd2-card-title">Today's Plan</span>
+              <span className="sd2-card-title">Today's plan</span>
               {todayPlan && <span className="sd2-day-label">Day {todayPlan.dayNumber} · {todayPlan.dayDate ? new Date(todayPlan.dayDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}</span>}
             </div>
             <div className="sd2-plan">
@@ -107,7 +110,7 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
               ) : planItems.map((it, idx) => {
                 const kind = it.kind || 'content';
                 const physical = kind === 'mockInterview' && (it.sourceModel === 'physical' || it.moduleStatus === 'in_person');
-                const m = physical ? { icon: '🧑‍💼', color: '#f59e0b', verb: 'View Schedule' } : (KIND_META[kind] || KIND_META.content);
+                const m = physical ? { icon: '🧑‍💼', color: '#E9A23B', verb: 'View schedule' } : (KIND_META[kind] || KIND_META.content);
                 const title = it.content?.title || it.contentTitle || 'Activity';
                 const typeLabel = physical ? 'Mock Interview · In-person'
                   : kind === 'content' ? (CT_LABEL[it.contentType] || 'Lesson')
@@ -117,10 +120,10 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
                 const go = () => navigate(kind === 'content' ? `/my-learning/${todayPlan.enrollmentId}/day/${todayPlan.dayNumber}` : (it.launchPath || '/my-tasks'));
                 return (
                   <div className="sd2-prow" key={idx}>
-                    <span className="sd2-prow-dot" style={it.isCompleted ? { background: '#22c55e', borderColor: '#22c55e' } : { borderColor: m.color }}>
-                      {it.isCompleted ? <span style={{ color: '#fff', fontSize: 9 }}>✓</span> : null}
+                    <span className="sd2-prow-dot" aria-label={it.isCompleted ? 'Done' : 'Not done'} style={it.isCompleted ? { background: '#359AAD', borderColor: '#359AAD' } : { borderColor: m.color }}>
+                      {it.isCompleted ? <span aria-hidden="true" style={{ color: '#fff', fontSize: 11 }}>✓</span> : null}
                     </span>
-                    <div className="sd2-prow-ic" style={{ background: `${m.color}15` }}>{m.icon}</div>
+                    <div className="sd2-prow-ic" aria-hidden="true" style={{ background: `${m.color}15` }}>{m.icon}</div>
                     <div className="sd2-prow-main">
                       <div className="sd2-prow-title">{title}</div>
                       <div className="sd2-prow-meta">
@@ -131,8 +134,8 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
                       </div>
                     </div>
                     {it.isCompleted
-                      ? <span className="sd2-done2">✓ Done</span>
-                      : <button className="sd2-act2" style={{ color: m.color, borderColor: `${m.color}55` }} onClick={go}>{m.verb} →</button>}
+                      ? <span className="sd2-done2">Done</span>
+                      : <button type="button" className="sd2-act2" onClick={go}>{m.verb}</button>}
                   </div>
                 );
               })}
@@ -142,8 +145,8 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
           {/* Recent Activity */}
           <div className="sd2-card">
             <div className="sd2-card-head">
-              <span className="sd2-card-title">🗂 Recent Activity</span>
-              <button className="sd2-link" onClick={() => navigate('/my-tasks')}>View all</button>
+              <span className="sd2-card-title">Recent activity</span>
+              <button type="button" className="sd2-link" onClick={() => navigate('/my-tasks')}>View all</button>
             </div>
             <div className="sd2-acts">
               {(data?.recentActivity || []).length === 0 ? (
@@ -165,20 +168,20 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
           {/* Upcoming Deadlines */}
           <div className="sd2-card">
             <div className="sd2-card-head">
-              <span className="sd2-card-title">Upcoming Deadlines</span>
-              <button className="sd2-link" onClick={() => navigate('/my-tasks')}>View all</button>
+              <span className="sd2-card-title">Upcoming deadlines</span>
+              <button type="button" className="sd2-link" onClick={() => navigate('/my-tasks')}>View all</button>
             </div>
             <div className="sd2-deads">
               {allDeadlines.length === 0 ? (
-                <div className="sd2-empty">Nothing due soon. 🎉</div>
+                <div className="sd2-empty">Nothing due soon.</div>
               ) : allDeadlines.map((d, i) => (
                 <div className="sd2-dead" key={i}>
-                  <span className="sd2-dead-bar" style={{ background: d.daysLeft <= 1 ? '#ef4444' : d.daysLeft <= 3 ? '#f59e0b' : '#0ea5b7' }} />
+                  <span className="sd2-dead-bar" style={{ background: d.daysLeft <= 1 ? '#C23A2E' : d.daysLeft <= 3 ? '#E9A23B' : '#359AAD' }} />
                   <div className="sd2-dead-main">
                     <div className="sd2-dead-title">{d.title}</div>
                     {d.due && <div className="sd2-dead-due">Due {new Date(d.due).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</div>}
                   </div>
-                  <span className="sd2-dead-badge" style={{ color: d.daysLeft <= 1 ? '#dc2626' : '#b45309', background: d.daysLeft <= 1 ? '#fee2e2' : '#fef3c7' }}>{fmtRel(d.daysLeft)}</span>
+                  <span className="sd2-dead-badge" style={{ color: d.daysLeft <= 1 ? '#9E2C22' : '#7A4F0C', background: d.daysLeft <= 1 ? '#FBEAE8' : '#FDF3E2' }}>{fmtRel(d.daysLeft)}</span>
                 </div>
               ))}
             </div>
@@ -187,7 +190,7 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
       </div>
 
       {/* Pro Tip */}
-      <div className="sd2-tip">💡 <b>Pro Tip</b>&nbsp; Break your tasks into small steps and complete them one by one. You're doing great!</div>
+      <div className="sd2-tip"><b>Tip</b>&nbsp; Break your tasks into small steps and complete them one by one. You're doing great!</div>
     </div>
   );
 };

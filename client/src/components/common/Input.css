@@ -6,58 +6,59 @@
 }
 
 .input-group label {
-  font-weight: 600;
-  color: #1e293b;
-  font-size: 14px;
-  letter-spacing: 0.3px;
+  font-weight: 500;
+  color: var(--cb-ink);
+  font-size: var(--cb-text-sm);
+  letter-spacing: 0;
 }
 
 .required {
-  color: #f43f5e;
+  color: var(--cb-danger-ink);
   margin-left: 4px;
   font-weight: 700;
 }
 
 .input {
-  padding: 12px 14px;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 14px;
+  min-height: var(--cb-control-h);
+  padding: 0 12px;
+  border: 1px solid var(--cb-line-strong);
+  border-radius: var(--cb-radius-sm);
+  font-size: var(--cb-text-base);
   font-family: inherit;
-  transition: all 0.3s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   background: white;
-  color: #1e293b;
+  color: var(--cb-ink);
 }
 
 .input::placeholder {
-  color: #94a3b8;
+  color: var(--cb-slate-2);
 }
 
 .input:focus {
   outline: none;
-  border-color: #005897;
-  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
+  border-color: var(--cb-teal-500);
+  box-shadow: var(--cb-focus);
   background: white;
 }
 
 .input:disabled {
-  background: #f1f5f9;
+  background: var(--cb-line-soft);
   cursor: not-allowed;
-  color: #cbd5e1;
-  border-color: #e2e8f0;
+  color: var(--cb-slate-2);
+  border-color: var(--cb-line);
 }
 
 .input-error {
-  border-color: #f43f5e;
+  border-color: var(--cb-danger);
 }
 
 .input-error:focus {
-  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.1);
+  box-shadow: 0 0 0 3px rgba(194, 58, 46, 0.2);
 }
 
 .error-message {
-  color: #f43f5e;
-  font-size: 12px;
-  margin-top: -4px;
+  color: var(--cb-danger-ink);
+  font-size: var(--cb-text-sm);
+  margin-top: -2px;
   font-weight: 500;
 }

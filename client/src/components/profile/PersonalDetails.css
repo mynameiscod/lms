@@ -1,6 +1,6 @@
 .personal-details {
   background: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--cb-line);
   border-radius: 8px;
   padding: 28px;
   margin-bottom: 24px;
@@ -12,14 +12,14 @@
   align-items: center;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #f0f4ff;
+  border-bottom: 2px solid var(--cb-navy-50);
 }
 
 .section-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--cb-ink);
 }
 
 .section-icon {
@@ -42,14 +42,14 @@
 .form-group label {
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--cb-slate);
   text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 
 .form-group input {
   padding: 10px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--cb-line-strong);
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
@@ -58,20 +58,20 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #005897;
-  background: #f0f4ff;
+  border-color: var(--cb-navy-600);
+  background: var(--cb-navy-50);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .form-group input::placeholder {
-  color: #94a3b8;
+  color: var(--cb-slate-2);
 }
 
 .view-text {
   margin: 0;
   padding: 10px 0;
   font-size: 14px;
-  color: #1e293b;
+  color: var(--cb-ink);
   font-weight: 500;
 }
 

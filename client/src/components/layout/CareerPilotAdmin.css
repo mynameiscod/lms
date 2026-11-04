@@ -101,7 +101,8 @@
    content is drawn larger here (75% × 1.15 ≈ 86%); the sidebar and top bar are unchanged. Below
    1025px the app is not zoomed, so neither is this. */
 @media (min-width: 1025px) {
-  .careerpilot-admin-surface { zoom: 1.15; }
+  /* The LMS shell no longer zooms #root; draw this content at the same 86% it always had. */
+  .careerpilot-admin-surface { zoom: 0.8625; }
 }
 
 /* Inline greys too light to read on white (#94a3b8, #a3acc0, #cbd5e1, #9ca3af, #b6c0cf) — used

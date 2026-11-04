@@ -13,7 +13,7 @@
 .sf-loading {
   text-align: center;
   padding: 60px 20px;
-  color: #6b7280;
+  color: var(--cb-slate);
   font-size: 15px;
 }
 
@@ -28,20 +28,20 @@
 .sf-header-text h1 {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  color: var(--cb-ink);
   margin: 0 0 6px;
 }
 
 .sf-header-text p {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--cb-slate);
   margin: 0;
   line-height: 1.5;
 }
 
 .sf-header-badge {
-  background: #eef2ff;
-  color: #005897;
+  background: var(--cb-navy-50);
+  color: var(--cb-navy-600);
   padding: 6px 14px;
   border-radius: 20px;
   font-size: 13px;
@@ -58,7 +58,7 @@
 
 .sf-feature-card {
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cb-line);
   border-radius: 12px;
   padding: 20px 24px;
   display: flex;
@@ -74,7 +74,7 @@
 }
 
 .sf-feature-card.enabled {
-  border-color: #c7d2fe;
+  border-color: var(--cb-navy-100);
   background: #fafbff;
 }
 
@@ -96,25 +96,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
+  background: var(--cb-line-soft);
   border-radius: 10px;
   flex-shrink: 0;
 }
 
 .sf-feature-card.enabled .sf-feature-icon {
-  background: #eef2ff;
+  background: var(--cb-navy-50);
 }
 
 .sf-feature-text h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--cb-ink);
   margin: 0 0 4px;
 }
 
 .sf-feature-text p {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--cb-slate);
   margin: 0;
   line-height: 1.4;
 }
@@ -135,7 +135,7 @@
 .sf-toggle-slider {
   width: 44px;
   height: 24px;
-  background: #d1d5db;
+  background: var(--cb-line-strong);
   border-radius: 12px;
   position: relative;
   transition: background 0.2s ease;
@@ -155,7 +155,7 @@
 }
 
 .sf-toggle input:checked + .sf-toggle-slider {
-  background: #005897;
+  background: var(--cb-navy-600);
 }
 
 .sf-toggle input:checked + .sf-toggle-slider::after {
@@ -165,12 +165,12 @@
 .sf-toggle-label {
   font-size: 13px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--cb-slate);
   min-width: 48px;
 }
 
 .sf-toggle input:checked ~ .sf-toggle-label {
-  color: #005897;
+  color: var(--cb-navy-600);
 }
 
 /* Actions bar */
@@ -182,7 +182,7 @@
   padding: 20px 24px;
   background: white;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cb-line);
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   position: sticky;
   bottom: 16px;
@@ -191,7 +191,7 @@
 
 .sf-save-btn {
   padding: 10px 28px;
-  background: #005897;
+  background: var(--cb-navy-600);
   color: white;
   border: none;
   border-radius: 8px;
@@ -212,7 +212,7 @@
 
 .sf-saved-msg {
   font-size: 13px;
-  color: #059669;
+  color: var(--cb-success-ink);
   font-weight: 500;
 }
 
@@ -238,7 +238,7 @@
 
 /* ── Module-locked state ─────────────────────────────────────── */
 .sf-module-notice {
-  background: #fffbeb;
+  background: var(--cb-marigold-50);
   border: 1px solid #fde68a;
   border-radius: 10px;
   padding: 0.75rem 1.1rem;
@@ -250,15 +250,15 @@
 .sf-feature-card.sf-locked {
   opacity: 0.65;
   cursor: not-allowed;
-  background: #f9fafb;
-  border-color: #e5e7eb !important;
+  background: var(--cb-ground);
+  border-color: var(--cb-line) !important;
 }
 
 .sf-lock-badge {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #dc2626;
-  background: #fee2e2;
+  color: var(--cb-danger-ink);
+  background: var(--cb-danger-50);
   border-radius: 6px;
   padding: 0.15rem 0.5rem;
   margin-left: 0.4rem;
@@ -272,7 +272,7 @@
 
 /* ── Module-locked state ─────────────────────────────────────── */
 .sf-module-notice {
-  background: #fffbeb;
+  background: var(--cb-marigold-50);
   border: 1px solid #fde68a;
   border-radius: 10px;
   padding: 0.75rem 1.1rem;
@@ -284,15 +284,15 @@
 .sf-feature-card.sf-locked {
   opacity: 0.65;
   cursor: not-allowed;
-  background: #f9fafb;
-  border-color: #e5e7eb !important;
+  background: var(--cb-ground);
+  border-color: var(--cb-line) !important;
 }
 
 .sf-lock-badge {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #dc2626;
-  background: #fee2e2;
+  color: var(--cb-danger-ink);
+  background: var(--cb-danger-50);
   border-radius: 6px;
   padding: 0.15rem 0.5rem;
   margin-left: 0.4rem;
@@ -305,13 +305,13 @@
 }
 
 /* Audience tabs: LMS students / CareerPilot students */
-.sf-tabs { display: flex; gap: 6px; border-bottom: 1px solid #e2e8f0; margin: 14px 0 10px; }
-.sf-tab { border: 0; background: none; padding: 10px 16px; font-size: 15px; font-weight: 700; color: #64748b; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 7px; }
-.sf-tab.on { color: #1d4ed8; border-bottom-color: #2563eb; }
-.sf-dot { width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; display: inline-block; }
-.sf-audience { color: #475569; font-size: 13.5px; margin: 0 0 12px; max-width: 880px; }
-.sf-bulk { display: flex; align-items: center; gap: 8px; color: #94a3b8; font-size: 13px; margin: 4px 0 2px; }
-.sf-link { border: 0; background: none; color: #2563eb; font-weight: 700; cursor: pointer; padding: 0; font-size: 13px; }
-.sf-hint { color: #64748b; font-size: 12.5px; margin-left: 8px; }
-.sf-saved-msg.sf-err { color: #b91c1c; }
-.sf-group-title { font-size: 14px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: .05em; margin: 22px 0 10px; }
+.sf-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--cb-line); margin: 14px 0 10px; }
+.sf-tab { border: 0; background: none; padding: 10px 16px; font-size: 15px; font-weight: 700; color: var(--cb-slate); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 7px; }
+.sf-tab.on { color: var(--cb-navy-600); border-bottom-color: var(--cb-navy-600); }
+.sf-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cb-marigold-500); display: inline-block; }
+.sf-audience { color: var(--cb-slate); font-size: 13.5px; margin: 0 0 12px; max-width: 880px; }
+.sf-bulk { display: flex; align-items: center; gap: 8px; color: var(--cb-slate-2); font-size: 13px; margin: 4px 0 2px; }
+.sf-link { border: 0; background: none; color: var(--cb-navy-600); font-weight: 700; cursor: pointer; padding: 0; font-size: 13px; }
+.sf-hint { color: var(--cb-slate); font-size: 12.5px; margin-left: 8px; }
+.sf-saved-msg.sf-err { color: var(--cb-danger-ink); }
+.sf-group-title { font-size: 14px; font-weight: 700; color: var(--cb-ink-2); text-transform: none; letter-spacing: 0; margin: 22px 0 10px; }

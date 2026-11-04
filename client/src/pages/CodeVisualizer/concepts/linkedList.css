@@ -1,0 +1,49 @@
+/* Linked list widget. Uses the Visualizer's --vz-* variables, so it fits the classic and premium looks. */
+.vz-ll .vz-ll-note { margin: 0 0 12px; font-size: 13px; }
+.vz-ll .vz-ll-note code { font-family: var(--vzp-mono, ui-monospace, Consolas, monospace); }
+.vz-ll-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr); gap: 16px; margin-top: 14px; align-items: start; }
+@media (max-width: 980px) { .vz-ll-layout { grid-template-columns: minmax(0, 1fr); } }
+
+.vz-ll-stage {
+  --ll-bg: var(--st-bg, #0c1b4a); --ll-node: var(--st-surface-2, #10225a); --ll-line: var(--st-line, rgba(150, 172, 255, .2));
+  --ll-ink: var(--st-ink, #eaf0ff); --ll-muted: var(--st-muted, #9fb0de); --ll-ptr: var(--st-pointer, #5ce1f2);
+  background: var(--ll-bg); color: var(--ll-ink); border-radius: 12px; padding: 18px; display: grid; gap: 14px; min-width: 0;
+}
+.vz-ll-row { display: flex; align-items: flex-start; gap: 6px; overflow-x: auto; padding: 8px 2px 4px; min-height: 104px; }
+.vz-ll-cell, .vz-ll-ghost { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: none; }
+.vz-ll-node {
+  display: flex; align-items: stretch; height: 52px; border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--ll-line); background: var(--ll-node); transition: border-color .2s, box-shadow .2s, opacity .2s, transform .2s;
+}
+.vz-ll-node b { display: grid; place-items: center; min-width: 52px; padding: 0 10px; font-size: 18px; font-weight: 600; font-family: var(--vzp-mono, ui-monospace, Consolas, monospace); }
+.vz-ll-next { display: grid; place-items: center; padding: 0 8px; font-size: 11px; color: var(--ll-muted); border-left: 1px dashed var(--ll-line); }
+.vz-ll-node.dummy { opacity: .55; border-style: dashed; }
+.vz-ll-cell.is-new .vz-ll-node { border-color: #34c38f; box-shadow: 0 0 16px rgba(52, 195, 143, .45); }
+.vz-ll-cell.is-visit .vz-ll-node { border-color: #f5b841; box-shadow: 0 0 16px rgba(245, 184, 65, .45); transform: translateY(-3px); }
+.vz-ll-cell.is-removed .vz-ll-node { opacity: .35; border-style: dashed; border-color: #f26d6d; }
+.vz-ll-link { align-self: center; margin-top: -26px; min-width: 26px; text-align: center; font-size: 22px; line-height: 1; color: var(--ll-ptr); transition: color .2s; }
+.vz-ll-link.back { color: #34c38f; }
+.vz-ll-link.none { color: transparent; }
+.vz-ll-null { align-self: center; margin-top: -26px; font-family: var(--vzp-mono, ui-monospace, Consolas, monospace); font-size: 13px; color: var(--ll-muted); white-space: nowrap; padding: 0 4px; }
+.vz-ll-ptrs { display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 22px; }
+.vz-ll-ptr {
+  font-family: var(--vzp-mono, ui-monospace, Consolas, monospace); font-size: 12px; color: var(--ll-ptr);
+  padding: 1px 7px; border-radius: 6px; background: rgba(92, 225, 242, .10); white-space: nowrap;
+}
+.vz-ll-ptr::before { content: '↑ '; }
+.vz-ll-stage .vz-narration { background: rgba(255, 255, 255, .04); border: 1px solid var(--ll-line); color: var(--ll-ink); }
+.vz-ll-stage .vz-narr-text { color: var(--ll-ink); }
+.vz-ll-stage .vz-line-chip { background: rgba(92, 225, 242, .12); color: var(--ll-ptr); }
+.vz-ll-stage .vz-sq-btn { background: transparent; color: var(--ll-ink); border-color: var(--ll-line); font-size: 13px; }
+.vz-ll-stage .vz-step-count { color: var(--ll-muted); }
+.vz-ll-stage .vz-speed select { background: transparent; color: var(--ll-ink); border: 1px solid var(--ll-line); border-radius: 10px; height: 40px; padding: 0 10px; }
+.vz-ll-stage .vz-speed select option { color: #0b1640; }
+.vz-ll-code {
+  margin: 0; padding: 12px 0; border-radius: 12px; background: var(--vz-soft, #f7f8fc); border: 1px solid var(--vz-line, #e7eaf3);
+  font-family: var(--vzp-mono, ui-monospace, Consolas, monospace); font-size: 13px; line-height: 1.75; color: var(--vz-ink, #0f172a); overflow-x: auto;
+}
+.vz-ll-code > div { padding: 0 14px 0 0; white-space: pre; border-left: 3px solid transparent; transition: background-color .15s; }
+.vz-ll-code > div.on { background: rgba(61, 107, 255, .12); border-left-color: var(--vzp-electric, #4f46e5); }
+.vz-ll-code .ln { display: inline-block; width: 34px; text-align: right; padding-right: 12px; color: var(--vz-muted, #64748b); user-select: none; }
+@media (prefers-reduced-motion: reduce) { .vz-ll-node, .vz-ll-link { transition: none; } }
+.vz-ll .vz-seg-btn { text-transform: none; }

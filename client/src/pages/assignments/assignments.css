@@ -990,7 +990,7 @@
      overflow:hidden just clips everything below the fold. #root applies
      `zoom: 0.75`, which shrinks `vh`; divide by 0.75 to fill the real viewport
      (the same compensation #root itself uses for its min-height). */
-  height: calc(100vh / 0.75);
+  height: calc(100vh / var(--app-zoom, 1));
   min-height: 0;
   background: #1e1e2e;
   overflow: hidden;

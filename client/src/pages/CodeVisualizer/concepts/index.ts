@@ -1,6 +1,7 @@
 import React from 'react';
 import TimeComplexity from './TimeComplexity';
 import SpaceComplexity from './SpaceComplexity';
+import LinkedListWidget from './LinkedList';
 
 /**
  * Concept animations, by the `conceptWidget` key an item carries. A new concept is a new
@@ -9,4 +10,5 @@ import SpaceComplexity from './SpaceComplexity';
 export const CONCEPT_WIDGETS: Record<string, { label: string; component: React.FC }> = {
   time_complexity: { label: 'Time complexity — growth race', component: TimeComplexity },
   space_complexity: { label: 'Space complexity — memory boxes', component: SpaceComplexity },
+  linked_list: { label: 'Linked list — insert, delete, reverse', component: LinkedListWidget },
 };

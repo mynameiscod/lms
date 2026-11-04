@@ -7,12 +7,12 @@
 .lead-stages-page h1 {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--cb-ink);
   margin: 0 0 6px 0;
 }
 
 .lead-stages-page .page-desc {
-  color: #6b7280;
+  color: var(--cb-slate);
   font-size: 0.9rem;
   margin: 0 0 24px 0;
 }
@@ -35,7 +35,7 @@
 }
 
 .btn-primary {
-  background: #005897;
+  background: var(--cb-navy-600);
   color: white;
 }
 
@@ -44,21 +44,21 @@
 }
 
 .btn-secondary {
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--cb-line);
+  color: var(--cb-ink-2);
 }
 
 .btn-secondary:hover {
-  background: #d1d5db;
+  background: var(--cb-line-strong);
 }
 
 .btn-danger {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--cb-danger-50);
+  color: var(--cb-danger-ink);
 }
 
 .btn-danger:hover {
-  background: #fecaca;
+  background: var(--cb-danger-50);
 }
 
 .stages-list {
@@ -73,7 +73,7 @@
   gap: 14px;
   padding: 14px 18px;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cb-line);
   border-radius: 10px;
   transition: all 0.2s;
 }
@@ -83,7 +83,7 @@
 }
 
 .stage-order {
-  color: #9ca3af;
+  color: var(--cb-slate-2);
   font-size: 0.8rem;
   font-weight: 600;
   min-width: 24px;
@@ -100,7 +100,7 @@
 .stage-name {
   flex: 1;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--cb-ink);
   font-size: 0.95rem;
 }
 
@@ -108,8 +108,8 @@
   font-size: 0.7rem;
   padding: 2px 8px;
   border-radius: 10px;
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--cb-navy-100);
+  color: var(--cb-navy-600);
   font-weight: 600;
 }
 
@@ -120,26 +120,26 @@
 
 .stage-actions button {
   padding: 5px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cb-line);
   border-radius: 6px;
   background: white;
   cursor: pointer;
   font-size: 0.8rem;
-  color: #374151;
+  color: var(--cb-ink-2);
   transition: all 0.2s;
 }
 
 .stage-actions button:hover {
-  background: #f3f4f6;
+  background: var(--cb-line-soft);
 }
 
 .stage-actions button.delete-btn {
-  color: #dc2626;
-  border-color: #fecaca;
+  color: var(--cb-danger-ink);
+  border-color: var(--cb-danger-50);
 }
 
 .stage-actions button.delete-btn:hover {
-  background: #fee2e2;
+  background: var(--cb-danger-50);
 }
 
 /* Modal */
@@ -165,7 +165,7 @@
 .modal-content h2 {
   margin: 0 0 20px 0;
   font-size: 1.2rem;
-  color: #1f2937;
+  color: var(--cb-ink);
 }
 
 .form-group {
@@ -176,14 +176,14 @@
   display: block;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--cb-ink-2);
   margin-bottom: 6px;
 }
 
 .form-group input {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--cb-line-strong);
   border-radius: 8px;
   font-size: 0.9rem;
   outline: none;
@@ -192,7 +192,7 @@
 }
 
 .form-group input:focus {
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   box-shadow: 0 0 0 3px rgba(0,88,151,0.1);
 }
 
@@ -218,26 +218,26 @@
 }
 
 .alert-success {
-  background: #d1fae5;
+  background: var(--cb-success-50);
   color: #065f46;
   border: 1px solid #a7f3d0;
 }
 
 .alert-error {
-  background: #fee2e2;
+  background: var(--cb-danger-50);
   color: #991b1b;
-  border: 1px solid #fecaca;
+  border: 1px solid var(--cb-danger-50);
 }
 
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #6b7280;
+  color: var(--cb-slate);
 }
 
 .empty-state h3 {
   margin: 0 0 8px 0;
-  color: #374151;
+  color: var(--cb-ink-2);
   font-size: 1.1rem;
 }
 
@@ -249,7 +249,7 @@
 .loading-spinner {
   text-align: center;
   padding: 60px;
-  color: #6b7280;
+  color: var(--cb-slate);
   font-size: 0.95rem;
 }
 
@@ -261,18 +261,18 @@
 
 .move-btns button {
   padding: 2px 6px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cb-line);
   border-radius: 4px;
   background: white;
   cursor: pointer;
   font-size: 0.7rem;
   line-height: 1;
-  color: #6b7280;
+  color: var(--cb-slate);
 }
 
 .move-btns button:hover {
-  background: #f3f4f6;
-  color: #1f2937;
+  background: var(--cb-line-soft);
+  color: var(--cb-ink);
 }
 
 .move-btns button:disabled {

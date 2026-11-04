@@ -490,10 +490,10 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
 
   // ── Admin / staff navigation grouped into logical sections ───────────────────
   const ADMIN_SECTIONS: { title: string; labels: string[] }[] = [
-    { title: 'OVERVIEW',                labels: ['Dashboard', 'Notifications'] },
-    { title: 'PEOPLE',                  labels: ['Users', 'Roles', 'Batches', 'Concerns'] },
-    { title: 'TEACHING',                labels: ['Learning Plans', 'Quizzes', 'Assignments', 'Code Snippets', 'Attendance', 'Live Classes', 'Leave Requests', 'Certificates'] },
-    { title: 'STUDENT LABS',            labels: ['AI Communication Lab', 'Communication Lab — Manage', 'Daily Lab Tracks', 'Speaking Practice', 'Speaking Tasks', 'Code Playground', 'Resource Library', 'Project Library'] },
+    { title: 'Overview',                labels: ['Dashboard', 'Notifications'] },
+    { title: 'People',                  labels: ['Users', 'Roles', 'Batches', 'Concerns'] },
+    { title: 'Teaching',                labels: ['Learning Plans', 'Quizzes', 'Assignments', 'Code Snippets', 'Attendance', 'Live Classes', 'Leave Requests', 'Certificates'] },
+    { title: 'Student labs',            labels: ['AI Communication Lab', 'Communication Lab — Manage', 'Daily Lab Tracks', 'Speaking Practice', 'Speaking Tasks', 'Code Playground', 'Resource Library', 'Project Library'] },
     /**
      * Thinking Lab gets its own heading rather than a line inside STUDENT LABS.
      *
@@ -503,14 +503,14 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
      * when it contains something the viewer may see, so a student sees one entry here
      * and an admin sees both.
      */
-    { title: 'THINKING LAB',            labels: ['Thinking Lab', 'Thinking Lab — Bank'] },
-    { title: 'ASSESSMENTS & INTERVIEWS',labels: ['Skill Assessment', 'Assessment Candidates', 'AI Interviews', 'Scheduled Interviews', 'Interview Q&A Bank'] },
-    { title: 'CAREER',                  labels: ['Resume Builder', 'Career Profiles', 'Project Builder', 'Job Tracker', 'AI Mentor'] },
-    { title: 'CRM & GROWTH',            labels: ['Leads', 'Placement Partnership'] },
-    { title: 'DRIVES & INTERVIEWS',     labels: ['Drives', 'Question Books'] },
-    { title: 'BILLING',                 labels: ['Fees'] },
-    { title: 'EMPLOYEES',               labels: ['Employee Portal', 'Employees', 'Employee Activity', 'Expenses'] },
-    { title: 'EVENTS',                  labels: ['Tech Battles', 'Hackathons'] },
+    { title: 'Thinking lab',            labels: ['Thinking Lab', 'Thinking Lab — Bank'] },
+    { title: 'Assessments & interviews',labels: ['Skill Assessment', 'Assessment Candidates', 'AI Interviews', 'Scheduled Interviews', 'Interview Q&A Bank'] },
+    { title: 'Career',                  labels: ['Resume Builder', 'Career Profiles', 'Project Builder', 'Job Tracker', 'AI Mentor'] },
+    { title: 'CRM & growth',            labels: ['Leads', 'Placement Partnership'] },
+    { title: 'Drives & interviews',     labels: ['Drives', 'Question Books'] },
+    { title: 'Billing',                 labels: ['Fees'] },
+    { title: 'Employees',               labels: ['Employee Portal', 'Employees', 'Employee Activity', 'Expenses'] },
+    { title: 'Events',                  labels: ['Tech Battles', 'Hackathons'] },
     /**
      * Every CareerPilot screen, in the order an admin actually works through them:
      * set the role up, give it skills and evidence, check the paper, then run and watch it.
@@ -520,7 +520,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
      * eleven of these had ended up: the same product split across two places, one of them
      * called "MORE".
      */
-    { title: 'CAREERPILOT', labels: [
+    { title: 'CareerPilot', labels: [
       // Setup — the launch sequence, in order
       'CareerPilot Config', 'CareerPilot Career Roles', 'CareerPilot Skill Graph',
       'CareerPilot Role Blueprint', 'CareerPilot Skill Evidence', 'CareerPilot Assessment Preview',
@@ -531,7 +531,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       // Run and watch
       'CareerPilot Members', 'Career Stage Tagging', 'XP & Rewards', 'CareerPilot Coins', 'CareerPilot Journey', 'CareerPilot Drop-off', 'Activity',
     ] },
-    { title: 'PLATFORM',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management', 'Platform Settings'] },
+    { title: 'Platform',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management', 'Platform Settings'] },
   ];
   const adminSectionLabels = new Set(ADMIN_SECTIONS.flatMap(s => s.labels));
   const adminMiscItems = filteredItems.filter(i => !adminSectionLabels.has(i.label) && !supportItems.includes(i));
@@ -594,55 +594,55 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
           <>
             {homeItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">HOME</span>
+                <span className="nav-section-label">Home</span>
                 <ul>{homeItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {dailyPracticeItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">DAILY PRACTICE</span>
+                <span className="nav-section-label">Daily practice</span>
                 <ul>{dailyPracticeItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {thinkingLabItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">THINKING LAB</span>
+                <span className="nav-section-label">Thinking lab</span>
                 <ul>{thinkingLabItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {learnItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">MY LEARNING</span>
+                <span className="nav-section-label">My learning</span>
                 <ul>{learnItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {careerItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">PREP &amp; CAREER</span>
+                <span className="nav-section-label">Prep &amp; career</span>
                 <ul>{careerItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {placementItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">PLACEMENTS</span>
+                <span className="nav-section-label">Placements</span>
                 <ul>{placementItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {accountItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">MY ACCOUNT</span>
+                <span className="nav-section-label">My account</span>
                 <ul>{accountItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {studentMiscItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">MORE</span>
+                <span className="nav-section-label">More</span>
                 <ul>{studentMiscItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {supportItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">SUPPORT</span>
+                <span className="nav-section-label">Support</span>
                 <ul>{supportItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
@@ -663,13 +663,13 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
             })}
             {adminMiscItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">MORE</span>
+                <span className="nav-section-label">More</span>
                 <ul>{adminMiscItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {supportItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">SUPPORT</span>
+                <span className="nav-section-label">Support</span>
                 <ul>{supportItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}

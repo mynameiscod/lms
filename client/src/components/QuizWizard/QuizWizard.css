@@ -5,7 +5,7 @@
 }
 
 .wizard-header {
-  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
+  background: linear-gradient(135deg, var(--cb-navy-600) 0%, #003d6b 100%);
   color: white;
   padding: 40px;
   margin: -40px -20px 40px -20px;
@@ -104,7 +104,7 @@
 }
 
 .progress-step.active .step-number {
-  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
+  background: linear-gradient(135deg, var(--cb-navy-600) 0%, #003d6b 100%);
   color: white;
   box-shadow: 0 0 0 4px rgba(0, 88, 151, 0.1);
   transform: scale(1.1);
@@ -132,7 +132,7 @@
 }
 
 .progress-step.active .step-label {
-  color: #005897;
+  color: var(--cb-navy-600);
   font-weight: 600;
 }
 
@@ -206,7 +206,7 @@
 .form-group textarea:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
@@ -410,7 +410,7 @@
 }
 
 .wizard-footer .btn-primary {
-  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
+  background: linear-gradient(135deg, var(--cb-navy-600) 0%, #003d6b 100%);
   color: white;
 }
 

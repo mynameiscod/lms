@@ -5,49 +5,40 @@
  * is attached by Layout.tsx for non-student users and deliberately excludes the
  * separate CareerPilot admin product.
  *
- * System language
- *   Brand navy   #051D64
- *   Brand teal   #359AAD
- *   LMS primary  #005897
- *   Action blue  #1976D2
- *   Canvas       #F4F8FC
- *   Card         #FFFFFF
- *   Ink          #102A4F
- *   Muted        #64748B
- *   Border       #E3EAF1
+ * Colours, type, radius and shadow come from src/styles/tokens.css (redesign, 2026-11).
  */
 
 .admin-core-surface {
-  --cb-admin-navy: #051d64;
-  --cb-admin-navy-2: #0b2d72;
-  --cb-admin-teal: #359aad;
-  --cb-admin-primary: #005897;
-  --cb-admin-blue: #1976d2;
-  --cb-admin-bg: #f4f8fc;
-  --cb-admin-card: #ffffff;
-  --cb-admin-heading: #102a4f;
-  --cb-admin-text: #24364b;
-  --cb-admin-muted: #64748b;
-  --cb-admin-muted-2: #8b99aa;
-  --cb-admin-border: #e3eaf1;
-  --cb-admin-border-strong: #d5e0ea;
-  --cb-admin-green: #17885d;
-  --cb-admin-green-soft: #eaf8f1;
-  --cb-admin-amber: #c87808;
-  --cb-admin-amber-soft: #fff6e5;
-  --cb-admin-red: #c93737;
-  --cb-admin-red-soft: #fff0f0;
-  --cb-admin-blue-soft: #eaf3fd;
-  --cb-admin-radius: 16px;
-  --cb-admin-radius-sm: 10px;
-  --cb-admin-shadow: 0 3px 14px rgba(15, 46, 77, 0.055);
-  --cb-admin-shadow-lg: 0 18px 48px rgba(15, 46, 77, 0.14);
+  --cb-admin-navy: var(--cb-navy-900);
+  --cb-admin-navy-2: var(--cb-navy-800);
+  --cb-admin-teal: var(--cb-teal-500);
+  --cb-admin-primary: var(--cb-navy-600);
+  --cb-admin-blue: var(--cb-navy-600);
+  --cb-admin-bg: var(--cb-ground);
+  --cb-admin-card: var(--cb-paper);
+  --cb-admin-heading: var(--cb-ink);
+  --cb-admin-text: var(--cb-ink);
+  --cb-admin-muted: var(--cb-slate);
+  --cb-admin-muted-2: var(--cb-slate-2);
+  --cb-admin-border: var(--cb-line);
+  --cb-admin-border-strong: var(--cb-line-strong);
+  --cb-admin-green: var(--cb-success);
+  --cb-admin-green-soft: var(--cb-success-50);
+  --cb-admin-amber: var(--cb-marigold-700);
+  --cb-admin-amber-soft: var(--cb-marigold-50);
+  --cb-admin-red: var(--cb-danger);
+  --cb-admin-red-soft: var(--cb-danger-50);
+  --cb-admin-blue-soft: var(--cb-navy-50);
+  --cb-admin-radius: var(--cb-radius-md);
+  --cb-admin-radius-sm: var(--cb-radius-sm);
+  --cb-admin-shadow: var(--cb-shadow-1);
+  --cb-admin-shadow-lg: var(--cb-shadow-2);
 
   min-width: 0;
   min-height: calc(100vh - 64px);
   background: var(--cb-admin-bg) !important;
   color: var(--cb-admin-text);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--cb-font-sans);
 }
 
 .admin-core-layout .layout-body,
@@ -84,7 +75,7 @@
 .admin-core-surface h4,
 .admin-core-surface h5,
 .admin-core-surface h6 {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-family: var(--cb-font-sans) !important;
   color: var(--cb-admin-heading) !important;
 }
 
@@ -111,7 +102,7 @@
 .admin-core-surface select,
 .admin-core-surface textarea,
 .admin-core-surface button {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--cb-font-sans);
 }
 
 .admin-core-surface :where(.page-subtitle, .subtitle, .text-muted, .muted, .description, .helper-text) {
@@ -253,8 +244,8 @@
 }
 
 .admin-core-surface :where(.btn-primary, .primary-btn, .primary-button, .save-btn, .submit-btn, .create-btn, .add-btn, .action-primary):hover:not(:disabled) {
-  background: #004b81 !important;
-  border-color: #004b81 !important;
+  background: var(--cb-navy-600) !important;
+  border-color: var(--cb-navy-600) !important;
 }
 
 .admin-core-surface :where(.btn-secondary, .secondary-btn, .secondary-button, .btn-outline-primary) {
@@ -298,14 +289,14 @@
 }
 
 .admin-core-surface table thead th {
-  background: #f7fafc !important;
+  background: var(--cb-ground) !important;
   color: #6b7c90 !important;
   border-color: var(--cb-admin-border) !important;
   font-size: 11px;
   line-height: 1.2;
   font-weight: 760;
-  letter-spacing: 0.045em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -403,7 +394,7 @@
 
 /* ── Code / JSON / diagnostic surfaces ─────────────────────────────────── */
 .admin-core-surface :where(pre, code, .monaco-editor, .code-block, .json-viewer, .log-output) {
-  font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace !important;
+  font-family: var(--cb-font-mono) !important;
 }
 
 .admin-core-surface :where(pre, .code-block, .json-viewer, .log-output) {
@@ -413,11 +404,12 @@
 /* ── Admin navigation shell ─────────────────────────────────────────────── */
 .admin-core-layout .sidebar-link.active,
 .admin-core-layout .submenu-link.active {
-  background: var(--cb-admin-teal) !important;
+  background: var(--cb-navy-600) !important;
+  box-shadow: inset 3px 0 0 var(--cb-teal-500) !important;
 }
 
 .admin-core-layout .nav-section-label {
-  color: #a8b7d0;
+  color: #8FA1CF;
 }
 
 .admin-core-layout .sidebar-link,

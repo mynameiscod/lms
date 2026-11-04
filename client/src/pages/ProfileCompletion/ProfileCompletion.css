@@ -3,9 +3,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
+  background: linear-gradient(135deg, var(--cb-navy-600) 0%, #003d6b 100%);
   padding: 20px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--cb-font-sans);
 }
 
 .profile-card {
@@ -138,7 +138,7 @@
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
@@ -171,7 +171,7 @@
   height: 100px;
   border-radius: 8px;
   object-fit: cover;
-  border: 2px solid #005897;
+  border: 2px solid var(--cb-navy-600);
   box-shadow: 0 4px 12px rgba(0, 88, 151, 0.2);
 }
 
@@ -194,7 +194,7 @@
 }
 
 .submit-btn {
-  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
+  background: linear-gradient(135deg, var(--cb-navy-600) 0%, #003d6b 100%);
   color: white;
 }
 

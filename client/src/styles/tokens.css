@@ -1,0 +1,86 @@
+/*
+ * CodeBegun interface tokens — the one source of colour, type, spacing, radius and shadow.
+ * Approved redesign (2026-11): navy stays the anchor, teal marks progress and focus, marigold marks
+ * only what is due or earned. IBM Plex Sans throughout; IBM Plex Mono for code.
+ *
+ * Rules
+ *  - New CSS uses these variables, never raw hex.
+ *  - Teal 500 never carries white body text (3.3:1). White-on-teal uses Teal 700 (5.5:1).
+ *  - Tenant branding (TenantContext) still sets --bs-primary inline; that wins where it is used.
+ */
+:root {
+  /* Brand */
+  --cb-navy-900: #051D64;
+  --cb-navy-800: #0B2A78;
+  --cb-navy-600: #1B3A8F;
+  --cb-navy-100: #DCE3F5;
+  --cb-navy-50:  #EEF2FB;
+  --cb-teal-500: #359AAD;
+  --cb-teal-700: #1D7385;
+  --cb-teal-800: #145866;
+  --cb-teal-100: #CDE8ED;
+  --cb-teal-50:  #E8F5F7;
+  --cb-marigold-500: #E9A23B;
+  --cb-marigold-700: #7A4F0C;
+  --cb-marigold-50:  #FDF3E2;
+
+  /* Neutrals */
+  --cb-ink:        #101935;
+  --cb-ink-2:      #26314F;
+  --cb-slate:      #4A5571;
+  --cb-slate-2:    #6B7591;
+  --cb-line-strong:#C9D2E3;
+  --cb-line:       #E2E7F0;
+  --cb-line-soft:  #EEF1F6;
+  --cb-ground:     #F6F8FC;
+  --cb-paper:      #FFFFFF;
+
+  /* Status */
+  --cb-success:    #1E8E5A;
+  --cb-success-ink:#146B43;
+  --cb-success-50: #E7F4EE;
+  --cb-danger:     #C23A2E;
+  --cb-danger-ink: #9E2C22;
+  --cb-danger-50:  #FBEAE8;
+  --cb-warning:    var(--cb-marigold-500);
+  --cb-warning-ink:var(--cb-marigold-700);
+  --cb-warning-50: var(--cb-marigold-50);
+
+  /* Type */
+  --cb-font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --cb-font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --cb-text-xs: 12px;
+  --cb-text-sm: 13px;
+  --cb-text-md: 14px;
+  --cb-text-base: 15px;
+  --cb-text-lg: 18px;
+  --cb-text-xl: 24px;
+  --cb-text-2xl: 32px;
+
+  /* Space, radius, elevation */
+  --cb-space-1: 4px;  --cb-space-2: 8px;  --cb-space-3: 12px; --cb-space-4: 16px;
+  --cb-space-5: 20px; --cb-space-6: 24px; --cb-space-8: 32px; --cb-space-10: 40px;
+  --cb-radius-sm: 6px;
+  --cb-radius-md: 10px;
+  --cb-radius-lg: 14px;
+  --cb-radius-pill: 999px;
+  --cb-shadow-1: 0 1px 2px rgba(16, 25, 53, 0.06);
+  --cb-shadow-2: 0 8px 24px rgba(16, 25, 53, 0.10);
+  --cb-focus: 0 0 0 3px rgba(53, 154, 173, 0.45);
+  --cb-control-h: 40px;
+
+}
+
+/* Specific enough (0,1,1) to beat Bootstrap's own :root defaults. */
+html:not([data-surface="careerpilot"]) {
+  /* Bootstrap defaults on the same palette (tenant branding may override --bs-primary inline) */
+  --bs-primary: #051D64;
+  --bs-primary-rgb: 5, 29, 100;
+  --bs-body-font-family: var(--cb-font-sans);
+  --bs-body-color: var(--cb-ink);
+  --bs-body-bg: var(--cb-ground);
+  --bs-border-color: var(--cb-line);
+  --bs-link-color: var(--cb-teal-700);
+  --bs-link-hover-color: var(--cb-teal-800);
+  --bs-border-radius: var(--cb-radius-sm);
+}

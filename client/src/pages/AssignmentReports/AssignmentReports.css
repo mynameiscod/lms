@@ -15,12 +15,12 @@
 .reports-header h1 {
   font-size: 28px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--cb-ink);
   margin: 0 0 4px 0;
 }
 
 .reports-header p {
-  color: #64748b;
+  color: var(--cb-slate);
   margin: 0;
 }
 
@@ -36,14 +36,14 @@
   align-items: center;
   justify-content: center;
   height: 400px;
-  color: #64748b;
+  color: var(--cb-slate);
 }
 
 .reports-loading .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #3b82f6;
+  border: 3px solid var(--cb-line);
+  border-top-color: var(--cb-navy-600);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -72,13 +72,13 @@
 .filter-group label {
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
+  color: var(--cb-slate);
+  text-transform: none;
 }
 
 .filter-group select {
   padding: 8px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--cb-line);
   border-radius: 8px;
   font-size: 14px;
   min-width: 160px;
@@ -88,7 +88,7 @@
 
 .filter-group select:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: var(--cb-navy-600);
 }
 
 /* Tabs */
@@ -96,7 +96,7 @@
   display: flex;
   gap: 8px;
   margin-bottom: 24px;
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 2px solid var(--cb-line);
   padding-bottom: 0;
 }
 
@@ -106,7 +106,7 @@
   border: none;
   font-size: 14px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--cb-slate);
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
@@ -114,12 +114,12 @@
 }
 
 .reports-tabs .tab:hover {
-  color: #3b82f6;
+  color: var(--cb-navy-600);
 }
 
 .reports-tabs .tab.active {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
+  color: var(--cb-navy-600);
+  border-bottom-color: var(--cb-navy-600);
 }
 
 /* Stats Grid */
@@ -152,12 +152,12 @@
 .stat-value {
   font-size: 24px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--cb-ink);
 }
 
 .stat-label {
   font-size: 13px;
-  color: #64748b;
+  color: var(--cb-slate);
 }
 
 /* Charts */
@@ -178,7 +178,7 @@
 .chart-card h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--cb-ink);
   margin: 0 0 16px 0;
 }
 
@@ -197,14 +197,14 @@
 .bar-label {
   width: 80px;
   font-size: 13px;
-  color: #475569;
+  color: var(--cb-slate);
   text-transform: capitalize;
 }
 
 .bar-container {
   flex: 1;
   height: 24px;
-  background: #f1f5f9;
+  background: var(--cb-line-soft);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -219,7 +219,7 @@
   width: 40px;
   font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--cb-ink);
   text-align: right;
 }
 
@@ -238,26 +238,26 @@
   text-align: left;
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  background: #f8fafc;
-  border-bottom: 2px solid #e2e8f0;
+  color: var(--cb-slate);
+  text-transform: none;
+  background: var(--cb-ground);
+  border-bottom: 2px solid var(--cb-line);
 }
 
 .reports-table td {
   padding: 14px 16px;
   font-size: 14px;
-  color: #1e293b;
-  border-bottom: 1px solid #e2e8f0;
+  color: var(--cb-ink);
+  border-bottom: 1px solid var(--cb-line);
 }
 
 .reports-table tr:hover {
-  background: #f8fafc;
+  background: var(--cb-ground);
 }
 
 .reports-table .no-data {
   text-align: center;
-  color: #64748b;
+  color: var(--cb-slate);
   padding: 40px;
 }
 
@@ -277,7 +277,7 @@
 .assignment-points,
 .student-email {
   font-size: 12px;
-  color: #64748b;
+  color: var(--cb-slate);
 }
 
 /* Badges */
@@ -291,29 +291,29 @@
   text-transform: capitalize;
 }
 
-.type-badge.coding { background: #dbeafe; color: #1d4ed8; }
-.type-badge.mcq { background: #ede9fe; color: #6d28d9; }
-.type-badge.theory { background: #d1fae5; color: #047857; }
-.type-badge.project { background: #fef3c7; color: #b45309; }
-.type-badge.sql { background: #cffafe; color: #0e7490; }
+.type-badge.coding { background: var(--cb-navy-100); color: var(--cb-navy-600); }
+.type-badge.mcq { background: var(--cb-navy-100); color: var(--cb-navy-600); }
+.type-badge.theory { background: var(--cb-success-50); color: var(--cb-success-ink); }
+.type-badge.project { background: var(--cb-marigold-50); color: #b45309; }
+.type-badge.sql { background: #cffafe; color: var(--cb-teal-700); }
 
-.difficulty-badge.beginner { background: #d1fae5; color: #047857; }
-.difficulty-badge.easy { background: #dcfce7; color: #15803d; }
-.difficulty-badge.medium { background: #fef3c7; color: #b45309; }
-.difficulty-badge.hard { background: #fee2e2; color: #dc2626; }
-.difficulty-badge.expert { background: #ede9fe; color: #6d28d9; }
+.difficulty-badge.beginner { background: var(--cb-success-50); color: var(--cb-success-ink); }
+.difficulty-badge.easy { background: var(--cb-success-50); color: var(--cb-success-ink); }
+.difficulty-badge.medium { background: var(--cb-marigold-50); color: #b45309; }
+.difficulty-badge.hard { background: var(--cb-danger-50); color: var(--cb-danger-ink); }
+.difficulty-badge.expert { background: var(--cb-navy-100); color: var(--cb-navy-600); }
 
 /* Score */
 .score {
   font-weight: 600;
 }
 
-.score.high { color: #059669; }
-.score.medium { color: #d97706; }
-.score.low { color: #dc2626; }
+.score.high { color: var(--cb-success-ink); }
+.score.medium { color: var(--cb-marigold-700); }
+.score.low { color: var(--cb-danger-ink); }
 
-.on-time { color: #059669; }
-.late { color: #dc2626; }
+.on-time { color: var(--cb-success-ink); }
+.late { color: var(--cb-danger-ink); }
 
 /* Progress */
 .progress-cell {
@@ -325,14 +325,14 @@
 .progress-bar {
   width: 80px;
   height: 8px;
-  background: #e2e8f0;
+  background: var(--cb-line);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: #3b82f6;
+  background: var(--cb-navy-600);
   border-radius: 4px;
 }
 
@@ -348,21 +348,21 @@
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: var(--cb-navy-600);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  background: var(--cb-navy-600);
 }
 
 .btn-secondary {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--cb-line-soft);
+  color: var(--cb-slate);
 }
 
 .btn-secondary:hover {
-  background: #e2e8f0;
+  background: var(--cb-line);
 }
 
 /* Alert */
@@ -376,8 +376,8 @@
 }
 
 .alert-error {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--cb-danger-50);
+  color: var(--cb-danger-ink);
 }
 
 .alert button {

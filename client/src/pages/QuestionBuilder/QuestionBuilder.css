@@ -1,6 +1,6 @@
 .question-builder-page {
   padding: 30px;
-  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
+  background: linear-gradient(135deg, var(--cb-navy-600) 0%, #003d6b 100%);
   min-height: 100vh;
 }
 
@@ -78,7 +78,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
@@ -119,7 +119,7 @@
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: #005897;
+  accent-color: var(--cb-navy-600);
 }
 
 .option-input {
@@ -132,7 +132,7 @@
 
 .option-input:focus {
   outline: none;
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
@@ -187,14 +187,14 @@
   padding: 10px;
   border: 2px solid #e0e0e0;
   border-radius: 6px;
-  font-family: 'Courier New', monospace;
+  font-family: var(--cb-font-mono);
   font-size: 0.9rem;
   resize: vertical;
 }
 
 .test-case-item textarea:focus {
   outline: none;
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
@@ -289,11 +289,11 @@
   grid-template-columns: 50px 1fr 120px 80px 100px 120px;
   gap: 15px;
   padding: 18px 20px;
-  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
+  background: linear-gradient(135deg, var(--cb-navy-600) 0%, #003d6b 100%);
   color: white;
   font-weight: 600;
   font-size: 0.9rem;
-  text-transform: uppercase;
+  text-transform: none;
   align-items: center;
 }
 
@@ -353,7 +353,7 @@
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -378,7 +378,7 @@
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .difficulty-badge.easy {

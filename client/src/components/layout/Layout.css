@@ -2,11 +2,10 @@
   /* #root is intentionally zoomed to 0.75 in index.css. Any child sized to 100vh
      therefore renders at only 75% of the physical viewport. Compensate the app shell
      so it still reaches the real bottom edge of the browser. */
-  min-height: 133.333dvh;
-  min-height: 133.333vh;
+  min-height: calc(100dvh / var(--app-zoom, 1));
   display: flex;
   flex-direction: column;
-  background: #F8FAFC;
+  background: var(--cb-ground);
 }
 
 .layout-body {
@@ -20,9 +19,9 @@
   flex: 1;
   min-width: 0;
   min-height: 0;
-  margin-left: 232px;
+  margin-left: 248px;
   padding: 0;
-  background: #F8FAFC;
+  background: var(--cb-ground);
   transition: margin-left .25s ease;
 }
 
@@ -39,7 +38,7 @@
 
 .sidebar-mobile-overlay {
   position: fixed;
-  inset: 68px 0 0 0;
+  inset: 64px 0 0 0;
   background: rgba(15, 23, 42, 0.45);
   z-index: 199;
   backdrop-filter: blur(2px);
@@ -47,14 +46,14 @@
 
 @media (max-width: 1024px) {
   .main-content {
-    margin-left: 220px;
+    margin-left: 232px;
   }
 }
 
 @media (max-width: 768px) {
   .layout {
-    min-height: 133.333dvh;
-    min-height: 133.333vh;
+    min-height: calc(100dvh / var(--app-zoom, 1));
+    min-height: calc(100vh / var(--app-zoom, 1));
   }
   .main-content,
   .layout.sidebar-collapsed .main-content {

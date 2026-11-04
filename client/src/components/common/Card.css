@@ -1,44 +1,39 @@
+/* Shared Card. Structure comes from a border, not a shadow; no hover lift. */
 .card {
-  background: white;
-  border-radius: 12px;
+  background: var(--cb-paper);
+  border-radius: var(--cb-radius-md);
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-  border: 1px solid #e2e8f0;
-  transition: all 0.4s ease;
-}
-
-.card:hover {
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-  border-color: #cbd5e1;
-  transform: translateY(-2px);
+  box-shadow: none;
+  border: 1px solid var(--cb-line);
 }
 
 .card-header {
   margin-bottom: 20px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--cb-line);
   padding-bottom: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
 
 .card-title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
-  letter-spacing: 0.3px;
+  font-size: var(--cb-text-lg);
+  font-weight: 600;
+  color: var(--cb-ink);
+  letter-spacing: -0.01em;
 }
 
 .card-subtitle {
   margin: 0;
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 500;
+  font-size: var(--cb-text-sm);
+  color: var(--cb-slate);
+  font-weight: 400;
 }
 
 .card-body {
-  color: #475569;
-  font-size: 14px;
+  color: var(--cb-ink-2);
+  font-size: var(--cb-text-md);
   line-height: 1.6;
 }

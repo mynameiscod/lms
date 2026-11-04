@@ -7,6 +7,10 @@ import TracePlayer from './TracePlayer';
 import ProblemBreakdown from './ProblemBreakdown';
 import { CONCEPT_WIDGETS } from './concepts';
 import './CodeVisualizer.css';
+import './premium/vzPremium.css';
+import VzLoader from './premium/VzLoader';
+import VzToolbar, { useVzTheme } from './premium/VzToolbar';
+import vzSound from './premium/vzSound';
 import { confirmDialog } from '../../components/feedback/appFeedback';
 
 /** The same page serves the LMS (/visualizer) and CareerPilot (/careerpilot/visualizer). */
@@ -92,6 +96,10 @@ const Workspace: React.FC = () => {
   const decoRef = useRef<string[]>([]);
   const [frame, setFrame] = useState<Frame | null>(null);
   const { ref: rootRef, size } = useWorkspaceWidth();
+  /* The premium look, sound and page theme are the LMS page only; CareerPilot's copy is unchanged. */
+  const premium = base === '/visualizer';
+  const [theme, setTheme] = useVzTheme();
+  const rootProps = premium ? { 'data-vz-theme': theme } : {};
 
   useEffect(() => {
     let alive = true;
@@ -115,7 +123,28 @@ const Workspace: React.FC = () => {
   }, [fullEditor]);
 
   const frames = useMemo(() => (result?.events?.length ? buildFrames(result.events) : []), [result]);
-  const onFrame = useCallback((f: Frame | null) => setFrame(f), []);
+  /*
+   * Sound follows the step the student is looking at: it is derived from the frame, never from a
+   * timer, and it never changes when or how a frame is shown. Refs keep onFrame's identity stable,
+   * so the player does not re-run its effect.
+   */
+  const soundRef = useRef({ premium, last: -1, prev: null as number | null, ok: false });
+  soundRef.current.premium = premium;
+  soundRef.current.last = frames.length - 1;
+  soundRef.current.ok = !!result?.ok;
+  const onFrame = useCallback((f: Frame | null) => {
+    setFrame(f);
+    const sr = soundRef.current;
+    if (!f) { sr.prev = null; return; }
+    const prev = sr.prev;
+    sr.prev = f.index;
+    if (!sr.premium || prev === null || prev === f.index) return;
+    if (f.index === 0) vzSound.play('reset');
+    else if (f.index === sr.last && sr.ok) vzSound.play('complete');
+    else if (f.written.length > 0) vzSound.play('swap');
+    else if (f.compare.length > 0 || f.event.eventType === 'CONDITION_EVALUATE') vzSound.play('compare');
+    else vzSound.play('step');
+  }, []);
 
   /* Highlight the executing line, and the error line when there is one. */
   useEffect(() => {
@@ -135,7 +164,7 @@ const Workspace: React.FC = () => {
 
   const visualize = async () => {
     if (!code.trim()) return;
-    setRunning(true); setRunError(''); setResult(null); setFrame(null);
+    setRunning(true); setRunError(''); setResult(null); setFrame(null); soundRef.current.prev = null;
     try {
       setResult(await visualizerApi.run(code, item?.language || 'java', item?.stdin || ''));
     } catch (e) {
@@ -158,7 +187,7 @@ const Workspace: React.FC = () => {
       title: 'Reset to the starter code?',
       message: 'Your current code will be replaced with the starter code.',
       confirmLabel: 'Reset code', danger: true,
-    })) onEdit(item.starterCode || '');
+    })) { onEdit(item.starterCode || ''); if (premium) vzSound.play('reset'); }
   };
   const loadSolution = async () => {
     if (item?.solutionCode && await confirmDialog({
@@ -170,12 +199,16 @@ const Workspace: React.FC = () => {
 
   if (loadError) {
     return (
-      <div className="vz-root"><div className="vz-empty">
+      <div className={`vz-root${premium ? ' vzp' : ''}`} {...rootProps}><div className="vz-empty">
         <p>{loadError}</p><Link className="vz-btn" to={base}><i className="fa-solid fa-arrow-left" aria-hidden /> Back to the library</Link>
       </div></div>
     );
   }
-  if (!item) return <div className="vz-root"><div className="vz-empty">Loading…</div></div>;
+  if (!item) {
+    return premium
+      ? <div className="vz-root vzp" {...rootProps}><VzLoader label="Loading this problem" /></div>
+      : <div className="vz-root"><div className="vz-empty">Loading…</div></div>;
+  }
 
   const header = (
     <header className="vz-head-card">
@@ -197,6 +230,7 @@ const Workspace: React.FC = () => {
         {/* The topic is in the breadcrumb and the complexity in its own tab; only the kind is new here. */}
         <div className="vz-tags">
           <span className="vz-tag">{item.kind === 'concept' ? 'Concept' : 'Java'}</span>
+          {premium && <VzToolbar theme={theme} onTheme={setTheme} />}
         </div>
       </div>
     </header>
@@ -205,7 +239,7 @@ const Workspace: React.FC = () => {
   if (item.kind === 'concept') {
     const W = CONCEPT_WIDGETS[item.conceptWidget || ''];
     return (
-      <div className="vz-root">
+      <div className={`vz-root${premium ? ' vzp' : ''}`} {...rootProps}>
         {header}
         {item.body && <div className="vz-card vz-concept-intro">{item.body.split('\n\n').map((p, i) => <p key={i}>{p}</p>)}</div>}
         {W ? <W.component /> : <div className="vz-card vz-muted">This concept's animation is not available yet.</div>}
@@ -232,7 +266,7 @@ const Workspace: React.FC = () => {
   );
 
   return (
-    <div className={`vz-root vz-w-${size}`} ref={rootRef}>
+    <div className={`vz-root vz-w-${size}${premium ? ` vzp${frames.length > 0 ? ' vzp-ran' : ''}` : ''}`} ref={rootRef} {...rootProps}>
       {header}
       <div className="vz-grid">
         {/* ── Problem card ── */}
@@ -328,10 +362,10 @@ const Workspace: React.FC = () => {
               value={code}
               onChange={onEdit}
               onMount={(ed, monaco) => { editorRef.current = ed; monacoRef.current = monaco; }}
-              theme="light"
+              theme={premium && theme === 'dark' ? 'vs-dark' : 'light'}
               options={{
                 minimap: { enabled: false }, fontSize: 13, lineHeight: 22, scrollBeyondLastLine: false,
-                fontFamily: VZ_CODE_FONT, stickyScroll: { enabled: false },
+                fontFamily: premium ? `"IBM Plex Mono", ${VZ_CODE_FONT}` : VZ_CODE_FONT, stickyScroll: { enabled: false },
                 automaticLayout: true, tabSize: 4, renderLineHighlight: 'none', padding: { top: 12 },
                 overviewRulerLanes: 0, lineDecorationsWidth: 14,
               }}

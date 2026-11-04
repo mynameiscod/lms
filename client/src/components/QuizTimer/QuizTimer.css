@@ -70,7 +70,7 @@
 .timer-time {
   font-size: 2rem;
   font-weight: 700;
-  font-family: 'Courier New', monospace;
+  font-family: var(--cb-font-mono);
   color: #333;
 }
 

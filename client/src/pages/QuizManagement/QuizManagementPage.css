@@ -93,7 +93,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
@@ -111,7 +111,7 @@
 .time-input:focus,
 .select-input:focus {
   outline: none;
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
@@ -152,7 +152,7 @@
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #005897;
+  accent-color: var(--cb-navy-600);
 }
 
 .form-actions {
@@ -267,7 +267,7 @@
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .status-badge.pending {
@@ -310,7 +310,7 @@
 .btn-action {
   padding: 0 !important;
   border: none;
-  background: #005897;
+  background: var(--cb-navy-600);
   color: white;
   border-radius: 4px;
   cursor: pointer;

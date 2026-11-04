@@ -431,4 +431,270 @@ export const VISUALIZER_SEED: SeedItem[] = [
     spaceComplexity: 'O(1)',
     complexityNote: 'Each step throws away half of what is left. 10 elements need at most 4 steps; 1,000,000 elements need at most 20.',
   },
+  /* ── Added with the DSA curriculum (2026-11). Each program was run on the live tracer first. ── */
+  {
+    kind: 'problem',
+    title: 'Reverse a String',
+    slug: 'reverse-string',
+    topic: 'Strings',
+    difficulty: 'beginner',
+    order: 60,
+    summary: 'Turn the string into a char array, then swap from both ends toward the middle.',
+    statement: 'Reverse the word "CODE" and print the result.\n\nJava strings cannot be changed in place, so copy the characters into a char array first.',
+    examples: [{ input: '"CODE"', output: 'EDOC' }],
+    constraints: '1 ≤ length ≤ 100.',
+    breakdown: {
+      plainEnglish: 'Swap the first and last letters, then the second and second-last, and keep moving inward until the two ends meet.',
+      input: 'A word.',
+      output: 'The same letters in reverse order.',
+      walkthrough: ['C O D E → swap C and E → E O D C.', 'Move inward: swap O and D → E D O C.', 'left and right have crossed, so stop.'],
+      steps: ['char[] letters = word.toCharArray();', 'left = 0, right = letters.length - 1.', 'While left < right: swap letters[left] and letters[right], then left++ and right--.', 'Print String.valueOf(letters).'],
+      edgeCases: ['A one-letter word: the loop never runs and the word prints unchanged.', 'Even and odd lengths both work: with odd length the middle letter stays where it is.'],
+    },
+    starterCode: `public class Main {
+    public static void main(String[] args) {
+        String word = "CODE";
+        char[] letters = word.toCharArray();
+        // TODO: reverse letters with two pointers
+
+        System.out.println(String.valueOf(letters));
+    }
+}
+`,
+    solutionCode: `public class Main {
+    public static void main(String[] args) {
+        String word = "CODE";
+        char[] letters = word.toCharArray();
+        int left = 0;
+        int right = letters.length - 1;
+        while (left < right) {
+            char temp = letters[left];
+            letters[left] = letters[right];
+            letters[right] = temp;
+            left++;
+            right--;
+        }
+        System.out.println(String.valueOf(letters));
+    }
+}
+`,
+    animation: 'array_cells',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(n)',
+    complexityNote: 'Each letter is touched once: n/2 swaps. The char array is a copy of the string, so extra space is O(n).',
+  },
+  {
+    kind: 'problem',
+    title: 'Palindrome Check',
+    slug: 'palindrome-check',
+    topic: 'Strings',
+    difficulty: 'beginner',
+    order: 70,
+    summary: 'Compare characters from both ends; one mismatch is enough to say no.',
+    statement: 'Print true if "racecar" reads the same forwards and backwards, otherwise print false.',
+    examples: [{ input: '"racecar"', output: 'true' }, { input: '"code"', output: 'false' }],
+    constraints: '1 ≤ length ≤ 100. Lowercase letters only.',
+    breakdown: {
+      plainEnglish: 'Look at the first and last letters. If they differ, it is not a palindrome. If they match, move both inward and check again.',
+      input: 'A word.',
+      output: 'true or false.',
+      walkthrough: ['r == r → move in.', 'a == a → move in.', 'c == c → move in.', 'left reaches right at e → every pair matched → true.'],
+      steps: ['left = 0, right = word.length() - 1, isPalindrome = true.', 'While left < right: if word.charAt(left) != word.charAt(right), set false and break.', 'Otherwise left++, right--.', 'Print isPalindrome.'],
+      edgeCases: ['A single letter is a palindrome.', 'Comparing with == works for char values; for whole Strings use equals().'],
+    },
+    starterCode: `public class Main {
+    public static void main(String[] args) {
+        String word = "racecar";
+        boolean isPalindrome = true;
+        // TODO: compare characters from both ends
+
+        System.out.println(isPalindrome);
+    }
+}
+`,
+    solutionCode: `public class Main {
+    public static void main(String[] args) {
+        String word = "racecar";
+        int left = 0;
+        int right = word.length() - 1;
+        boolean isPalindrome = true;
+        while (left < right) {
+            if (word.charAt(left) != word.charAt(right)) {
+                isPalindrome = false;
+                break;
+            }
+            left++;
+            right--;
+        }
+        System.out.println(isPalindrome);
+    }
+}
+`,
+    animation: 'none',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    complexityNote: 'At most n/2 comparisons and no extra arrays: charAt reads the string directly.',
+  },
+  {
+    kind: 'problem',
+    title: 'Selection Sort',
+    slug: 'selection-sort',
+    topic: 'Sorting',
+    difficulty: 'easy',
+    order: 80,
+    summary: 'Find the smallest remaining value and swap it into the next position.',
+    statement: 'Sort {29, 10, 14, 37, 13} in ascending order using selection sort, then print it.',
+    examples: [{ input: '{29, 10, 14, 37, 13}', output: '10 13 14 29 37' }],
+    constraints: '1 ≤ length ≤ 50.',
+    breakdown: {
+      plainEnglish: 'For each position from the left, search the rest of the array for the smallest value and swap it into that position.',
+      input: 'An unsorted array.',
+      output: 'The array in ascending order.',
+      walkthrough: ['Position 0: smallest of all is 10 → swap with 29.', 'Position 1: smallest of the rest is 13 → swap with 29.', 'Position 2: 14 is already smallest.', 'Position 3: 29 < 37 → swap.'],
+      steps: ['Outer loop i from 0 to n − 2.', 'minIndex = i; inner loop j from i + 1 finds a smaller arr[j].', 'Swap arr[i] and arr[minIndex].'],
+      edgeCases: ['Swapping an element with itself is harmless.', 'Selection sort always does n(n−1)/2 comparisons, even on sorted input.'],
+    },
+    starterCode: `public class Main {
+    public static void main(String[] args) {
+        int[] arr = {29, 10, 14, 37, 13};
+        int n = arr.length;
+        // TODO: selection sort
+
+        for (int i = 0; i < n; i++) {
+            System.out.print(arr[i] + " ");
+        }
+    }
+}
+`,
+    solutionCode: `public class Main {
+    public static void main(String[] args) {
+        int[] arr = {29, 10, 14, 37, 13};
+        int n = arr.length;
+        for (int i = 0; i < n - 1; i++) {
+            int minIndex = i;
+            for (int j = i + 1; j < n; j++) {
+                if (arr[j] < arr[minIndex]) {
+                    minIndex = j;
+                }
+            }
+            int temp = arr[minIndex];
+            arr[minIndex] = arr[i];
+            arr[i] = temp;
+        }
+        for (int i = 0; i < n; i++) {
+            System.out.print(arr[i] + " ");
+        }
+    }
+}
+`,
+    animation: 'array_bars',
+    timeComplexity: 'O(n²)',
+    spaceComplexity: 'O(1)',
+    complexityNote: 'Always n(n−1)/2 comparisons, but at most n − 1 swaps: useful when writes are expensive.',
+  },
+  {
+    kind: 'problem',
+    title: 'Insertion Sort',
+    slug: 'insertion-sort',
+    topic: 'Sorting',
+    difficulty: 'easy',
+    order: 90,
+    summary: 'Take the next value and slide it left into its place among the sorted ones.',
+    statement: 'Sort {9, 4, 7, 1, 5} in ascending order using insertion sort, then print it.',
+    examples: [{ input: '{9, 4, 7, 1, 5}', output: '1 4 5 7 9' }],
+    constraints: '1 ≤ length ≤ 50.',
+    breakdown: {
+      plainEnglish: 'Keep the left part sorted. Take the next value (the key), shift every bigger value one place right, and drop the key into the gap.',
+      input: 'An unsorted array.',
+      output: 'The array in ascending order.',
+      walkthrough: ['key 4: 9 shifts right → 4 9 7 1 5.', 'key 7: 9 shifts right → 4 7 9 1 5.', 'key 1: 9, 7, 4 shift → 1 4 7 9 5.', 'key 5: 9, 7 shift → 1 4 5 7 9.'],
+      steps: ['For i from 1: key = arr[i], j = i − 1.', 'While j ≥ 0 and arr[j] > key: arr[j + 1] = arr[j], j--.', 'arr[j + 1] = key.'],
+      edgeCases: ['Already sorted input: the inner loop never runs, so it is O(n).', 'Equal values are not shifted past each other, so the sort is stable.'],
+    },
+    starterCode: `public class Main {
+    public static void main(String[] args) {
+        int[] arr = {9, 4, 7, 1, 5};
+        // TODO: insertion sort
+
+        for (int i = 0; i < arr.length; i++) {
+            System.out.print(arr[i] + " ");
+        }
+    }
+}
+`,
+    solutionCode: `public class Main {
+    public static void main(String[] args) {
+        int[] arr = {9, 4, 7, 1, 5};
+        for (int i = 1; i < arr.length; i++) {
+            int key = arr[i];
+            int j = i - 1;
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
+            arr[j + 1] = key;
+        }
+        for (int i = 0; i < arr.length; i++) {
+            System.out.print(arr[i] + " ");
+        }
+    }
+}
+`,
+    animation: 'array_bars',
+    timeComplexity: 'O(n²)',
+    spaceComplexity: 'O(1)',
+    complexityNote: 'Worst case (reverse order) is about n²/2 shifts; nearly sorted input is close to O(n).',
+  },
+  {
+    kind: 'problem',
+    title: 'Pair With Target Sum',
+    slug: 'pair-target-sum',
+    topic: 'Two Pointers',
+    difficulty: 'easy',
+    order: 100,
+    summary: 'In a sorted array, move the left or right pointer depending on whether the sum is too small or too big.',
+    statement: 'The array {1, 3, 4, 6, 8, 11} is sorted. Print the indexes of two values that add up to 10.',
+    examples: [{ input: '{1, 3, 4, 6, 8, 11}, target 10', output: '2 3', explanation: 'arr[2] + arr[3] = 4 + 6 = 10' }],
+    constraints: 'The array is sorted in ascending order. Exactly one pair exists.',
+    breakdown: {
+      plainEnglish: 'Start with the smallest and biggest values. If their sum is too small, the left value must grow; if too big, the right value must shrink.',
+      input: 'A sorted array and a target.',
+      output: 'Two indexes.',
+      walkthrough: ['1 + 11 = 12 > 10 → right--.', '1 + 8 = 9 < 10 → left++.', '3 + 8 = 11 > 10 → right--.', '3 + 6 = 9 < 10 → left++.', '4 + 6 = 10 → found 2 and 3.'],
+      steps: ['left = 0, right = n − 1.', 'sum = arr[left] + arr[right].', 'Equal: print and stop. Smaller: left++. Bigger: right--.'],
+      edgeCases: ['Only works because the array is sorted.', 'Stop when left meets right: a value cannot pair with itself.'],
+    },
+    starterCode: `public class Main {
+    public static void main(String[] args) {
+        int[] arr = {1, 3, 4, 6, 8, 11};
+        int target = 10;
+        // TODO: find the pair with two pointers
+    }
+}
+`,
+    solutionCode: `public class Main {
+    public static void main(String[] args) {
+        int[] arr = {1, 3, 4, 6, 8, 11};
+        int target = 10;
+        int left = 0;
+        int right = arr.length - 1;
+        while (left < right) {
+            int sum = arr[left] + arr[right];
+            if (sum == target) {
+                System.out.println(left + " " + right);
+                break;
+            } else if (sum < target) {
+                left++;
+            } else {
+                right--;
+            }
+        }
+    }
+}
+`,
+    animation: 'array_cells',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    complexityNote: 'Each step moves one pointer inward, so at most n − 1 steps, compared with n² for checking every pair.',
+  },
 ];

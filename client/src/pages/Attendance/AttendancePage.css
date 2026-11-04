@@ -6,7 +6,7 @@
   margin: 0 0 20px 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--cb-ink);
   letter-spacing: 0.3px;
 }
 
@@ -15,7 +15,7 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  background: #10b981;
+  background: var(--cb-success);
   color: white;
   padding: 16px 24px;
   border-radius: 8px;
@@ -98,7 +98,7 @@
 
 .batch-selection h2 {
   margin: 0 0 20px 0;
-  color: #1f2937;
+  color: var(--cb-ink);
   font-size: 16px;
   font-weight: 600;
 }
@@ -139,14 +139,14 @@
 
 .date-input:hover,
 .batch-select:hover {
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
 .date-input:focus,
 .batch-select:focus {
   outline: none;
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.2);
 }
 
@@ -157,7 +157,7 @@
 
 .attendance-marking h2 {
   margin: 0 0 20px 0;
-  color: #1f2937;
+  color: var(--cb-ink);
   font-size: 16px;
   font-weight: 600;
 }
@@ -174,7 +174,7 @@
 }
 
 .unsaved-badge {
-  background: #f59e0b;
+  background: var(--cb-marigold-500);
   color: white;
   padding: 4px 10px;
   border-radius: 12px;
@@ -189,11 +189,11 @@
 }
 
 .row-modified {
-  background: #fef3c7 !important;
+  background: var(--cb-marigold-50) !important;
 }
 
 .modified-indicator {
-  color: #f59e0b;
+  color: var(--cb-marigold-700);
   margin-left: 6px;
   font-size: 0.7em;
 }
@@ -205,14 +205,14 @@
 }
 
 .required-star {
-  color: #ef4444;
+  color: var(--cb-danger-ink);
   font-weight: bold;
   font-size: 1.2em;
 }
 
 .required-field {
-  border-color: #ef4444 !important;
-  background: #fef2f2 !important;
+  border-color: var(--cb-danger) !important;
+  background: var(--cb-danger-50) !important;
 }
 
 .date-info {
@@ -220,8 +220,8 @@
   font-size: 0.95em;
   margin: 15px 0 20px 0;
   padding: 12px 14px;
-  background: #f0f4ff;
-  border-left: 4px solid #005897;
+  background: var(--cb-navy-50);
+  border-left: 4px solid var(--cb-navy-600);
   border-radius: 4px;
 }
 
@@ -244,7 +244,7 @@
 
 .attendance-table th {
   background: white;
-  color: #005897;
+  color: var(--cb-navy-600);
   padding: 14px 12px;
   text-align: left;
   font-weight: 600;
@@ -259,7 +259,7 @@
 }
 
 .attendance-table tbody tr:hover {
-  background: #f0f4ff;
+  background: var(--cb-navy-50);
   transition: background 0.2s ease;
 }
 
@@ -290,12 +290,12 @@
 }
 
 .time-input:hover {
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
 }
 
 .time-input:focus {
   outline: none;
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   box-shadow: 0 0 0 2px rgba(0, 88, 151, 0.1);
 }
 
@@ -311,8 +311,8 @@
   border-radius: 4px;
   font-size: 0.8em;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .status-badge.present {
@@ -353,7 +353,7 @@
 }
 
 .quick-btn:hover {
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   transform: translateY(-2px);
   box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
 }
@@ -453,7 +453,7 @@
 }
 
 .attendance-actions .btn-primary {
-  background: #005897;
+  background: var(--cb-navy-600);
   color: white;
   min-width: 180px;
 }
@@ -533,7 +533,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #64748b;
+    color: var(--cb-slate);
   }
 
   .quick-btn:hover {
@@ -542,21 +542,21 @@
   }
 
   .quick-btn.present-btn.active {
-    background: #10b981;
+    background: var(--cb-success);
     color: white;
-    border-color: #10b981;
+    border-color: var(--cb-success);
   }
 
   .quick-btn.absent-btn.active {
-    background: #ef4444;
+    background: var(--cb-danger);
     color: white;
-    border-color: #ef4444;
+    border-color: var(--cb-danger);
   }
 
   .quick-btn.leave-btn.active {
-    background: #f59e0b;
+    background: var(--cb-marigold-500);
     color: white;
-    border-color: #f59e0b;
+    border-color: var(--cb-marigold-500);
   }
 
   .attendance-summary {

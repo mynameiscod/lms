@@ -15,8 +15,8 @@
 .pc-logo img { height: 40px; width: auto; display: block; }
 .pc-nav { display: flex; gap: 24px; margin-left: 6px; }
 .pc-nav a { color: #0b1f56; font-size: 14.5px; font-weight: 600; text-decoration: none; white-space: nowrap; }
-.pc-nav a:hover { color: #1d4ed8; }
-.pc-nav a .caret { font-size: 9px; color: #94a3b8; margin-left: 3px; }
+.pc-nav a:hover { color: var(--cb-navy-600); }
+.pc-nav a .caret { font-size: 9px; color: var(--cb-slate-2); margin-left: 3px; }
 .pc-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
 .pc-apply { background: #0b1f56; color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 11px 20px; border-radius: 10px; white-space: nowrap; }
 .pc-apply:hover { background: #12276e; }

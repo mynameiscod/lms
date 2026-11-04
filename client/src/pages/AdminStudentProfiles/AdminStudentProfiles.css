@@ -1,7 +1,7 @@
 /* Admin Student Profiles Page */
 .asp-page {
   padding: 24px;
-  background: #f8fafc;
+  background: var(--cb-ground);
   min-height: calc(100vh - 80px);
 }
 
@@ -19,12 +19,12 @@
   margin: 0 0 4px 0;
   font-size: 1.7rem;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--cb-ink);
 }
 
 .asp-header-left p {
   margin: 0;
-  color: #64748b;
+  color: var(--cb-slate);
   font-size: 0.9rem;
 }
 
@@ -34,7 +34,7 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  background: #005897;
+  background: var(--cb-navy-600);
   padding: 10px 16px;
   border-radius: 10px;
   color: white;
@@ -55,8 +55,8 @@
   transition: all 0.2s;
 }
 
-.bulk-btn.resume { background: #22c55e; color: white; }
-.bulk-btn.email  { background: #f59e0b; color: white; }
+.bulk-btn.resume { background: var(--cb-success); color: white; }
+.bulk-btn.email  { background: var(--cb-marigold-500); color: white; }
 .bulk-btn.clear  { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); }
 
 .bulk-btn:hover { opacity: 0.85; transform: translateY(-1px); }
@@ -79,7 +79,7 @@
   align-items: center;
   gap: 14px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--cb-line);
 }
 
 .asp-stat-icon {
@@ -89,13 +89,13 @@
 .asp-stat-val {
   font-size: 1.6rem;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--cb-ink);
   line-height: 1;
 }
 
 .asp-stat-lbl {
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--cb-slate);
   font-weight: 500;
   margin-top: 2px;
 }
@@ -135,20 +135,20 @@
   flex: 2;
   min-width: 200px;
   padding: 10px 14px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--cb-line);
   border-radius: 8px;
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.2s;
 }
 
-.asp-search:focus { border-color: #005897; }
+.asp-search:focus { border-color: var(--cb-navy-600); }
 
 .asp-select {
   flex: 1;
   min-width: 140px;
   padding: 10px 12px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--cb-line);
   border-radius: 8px;
   font-size: 0.88rem;
   background: white;
@@ -157,7 +157,7 @@
   transition: border-color 0.2s;
 }
 
-.asp-select:focus { border-color: #005897; }
+.asp-select:focus { border-color: var(--cb-navy-600); }
 
 .asp-sel-btns {
   display: flex;
@@ -166,19 +166,19 @@
 
 .asp-sel-btn {
   padding: 8px 14px;
-  border: 1.5px solid #005897;
+  border: 1.5px solid var(--cb-navy-600);
   border-radius: 6px;
   background: white;
-  color: #005897;
+  color: var(--cb-navy-600);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.asp-sel-btn:hover { background: #005897; color: white; }
-.asp-sel-btn.clear { border-color: #ef4444; color: #ef4444; }
-.asp-sel-btn.clear:hover { background: #ef4444; color: white; }
+.asp-sel-btn:hover { background: var(--cb-navy-600); color: white; }
+.asp-sel-btn.clear { border-color: var(--cb-danger); color: var(--cb-danger-ink); }
+.asp-sel-btn.clear:hover { background: var(--cb-danger); color: white; }
 
 /* Loading */
 .asp-loading {
@@ -199,7 +199,7 @@
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--cb-line);
   cursor: pointer;
   transition: all 0.25s ease;
   position: relative;
@@ -208,11 +208,11 @@
 .asp-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(0, 88, 151, 0.13);
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
 }
 
 .asp-card.selected {
-  border-color: #005897;
+  border-color: var(--cb-navy-600);
   background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
   box-shadow: 0 4px 20px rgba(0, 88, 151, 0.18);
 }
@@ -224,7 +224,7 @@
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #005897;
+  accent-color: var(--cb-navy-600);
 }
 
 .asp-card-top {
@@ -240,7 +240,7 @@
   height: 56px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--cb-line);
 }
 
 .asp-avatar-initials {
@@ -279,14 +279,14 @@
 .asp-card-name {
   font-size: 1rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--cb-ink);
   margin-bottom: 3px;
   padding-left: 2px;
 }
 
 .asp-card-email {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--cb-slate);
   margin-bottom: 4px;
   padding-left: 2px;
   overflow: hidden;
@@ -296,7 +296,7 @@
 
 .asp-card-location {
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: var(--cb-slate-2);
   padding-left: 2px;
   margin-bottom: 10px;
 }
@@ -315,8 +315,8 @@
   font-weight: 600;
 }
 
-.asp-badge.course  { background: #dbeafe; color: #1e40af; }
-.asp-badge.exp     { background: #f0fdf4; color: #166534; }
+.asp-badge.course  { background: var(--cb-navy-100); color: var(--cb-navy-600); }
+.asp-badge.exp     { background: var(--cb-success-50); color: #166534; }
 .asp-badge.status  { background: #fef9c3; color: #854d0e; }
 
 .asp-card-tags {
@@ -329,13 +329,13 @@
 .asp-tag {
   font-size: 0.7rem;
   padding: 2px 8px;
-  background: #f1f5f9;
+  background: var(--cb-line-soft);
   border-radius: 4px;
-  color: #475569;
-  border: 1px solid #e2e8f0;
+  color: var(--cb-slate);
+  border: 1px solid var(--cb-line);
 }
 
-.asp-tag.blue { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.asp-tag.blue { background: var(--cb-navy-50); border-color: var(--cb-navy-100); color: var(--cb-navy-600); }
 
 .asp-tags {
   display: flex;
@@ -363,9 +363,9 @@
   transition: all 0.2s;
 }
 
-.asp-action-btn.view    { background: #005897; color: white; }
-.asp-action-btn.resume  { background: #22c55e; color: white; }
-.asp-action-btn.no-resume { background: #f1f5f9; color: #94a3b8; cursor: default; }
+.asp-action-btn.view    { background: var(--cb-navy-600); color: white; }
+.asp-action-btn.resume  { background: var(--cb-success); color: white; }
+.asp-action-btn.no-resume { background: var(--cb-line-soft); color: var(--cb-slate-2); cursor: default; }
 .asp-action-btn.small   { flex: 0; padding: 6px 10px; }
 
 .asp-action-btn:not(.no-resume):hover { opacity: 0.85; transform: translateY(-1px); }
@@ -379,14 +379,14 @@
   gap: 12px;
   margin-top: 28px;
   padding: 16px 20px;
-  background: #f8fafc;
-  border: 1.5px solid #e2e8f0;
+  background: var(--cb-ground);
+  border: 1.5px solid var(--cb-line);
   border-radius: 12px;
 }
 
 .asp-page-count {
   font-size: 0.88rem;
-  color: #64748b;
+  color: var(--cb-slate);
 }
 
 .asp-page-controls {
@@ -398,10 +398,10 @@
 
 .asp-page-btn {
   padding: 7px 14px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--cb-line);
   border-radius: 8px;
   background: white;
-  color: #374151;
+  color: var(--cb-ink-2);
   font-weight: 600;
   font-size: 0.88rem;
   cursor: pointer;
@@ -409,19 +409,19 @@
   min-width: 38px;
 }
 
-.asp-page-btn:hover:not(:disabled) { background: #005897; color: white; border-color: #005897; }
+.asp-page-btn:hover:not(:disabled) { background: var(--cb-navy-600); color: white; border-color: var(--cb-navy-600); }
 .asp-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.asp-page-btn.active { background: #005897; color: white; border-color: #005897; }
+.asp-page-btn.active { background: var(--cb-navy-600); color: white; border-color: var(--cb-navy-600); }
 
 .asp-page-ellipsis {
   padding: 7px 4px;
-  color: #94a3b8;
+  color: var(--cb-slate-2);
   font-size: 0.88rem;
 }
 
 .asp-page-info {
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--cb-slate);
   font-weight: 500;
 }
 
@@ -467,8 +467,8 @@
   height: 32px;
   border-radius: 50%;
   border: none;
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--cb-line-soft);
+  color: var(--cb-slate);
   font-size: 1rem;
   cursor: pointer;
   display: flex;
@@ -477,14 +477,14 @@
   z-index: 10;
 }
 
-.asp-modal-close:hover { background: #e2e8f0; }
+.asp-modal-close:hover { background: var(--cb-line); }
 
 .asp-modal-header {
   display: flex;
   align-items: center;
   gap: 20px;
   padding: 28px 28px 20px;
-  border-bottom: 1.5px solid #f1f5f9;
+  border-bottom: 1.5px solid var(--cb-line-soft);
 }
 
 .asp-modal-photo {
@@ -492,7 +492,7 @@
   height: 72px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--cb-line);
   flex-shrink: 0;
 }
 
@@ -516,13 +516,13 @@
 .asp-modal-identity h2 {
   margin: 0 0 4px 0;
   font-size: 1.2rem;
-  color: #1e293b;
+  color: var(--cb-ink);
 }
 
 .asp-modal-identity p {
   margin: 2px 0;
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--cb-slate);
 }
 
 .asp-modal-ring {
@@ -555,7 +555,7 @@
   margin: 0 0 14px 0;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #005897;
+  color: var(--cb-navy-600);
   border-bottom: 1.5px solid #e0f2fe;
   padding-bottom: 8px;
 }
@@ -578,15 +578,15 @@
 
 .asp-modal-grid label {
   font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--cb-slate-2);
   font-weight: 700;
 }
 
 .asp-modal-grid span {
   font-size: 0.9rem;
-  color: #1e293b;
+  color: var(--cb-ink);
   font-weight: 500;
 }
 
@@ -606,21 +606,21 @@
   transition: all 0.2s;
 }
 
-.asp-link-btn.resume   { background: #22c55e; color: white; }
+.asp-link-btn.resume   { background: var(--cb-success); color: white; }
 .asp-link-btn.linkedin { background: #0077b5; color: white; }
-.asp-link-btn.github   { background: #1e293b; color: white; }
-.asp-link-btn.portfolio{ background: #8b5cf6; color: white; }
+.asp-link-btn.github   { background: var(--cb-ink); color: white; }
+.asp-link-btn.portfolio{ background: var(--cb-navy-600); color: white; }
 .asp-link-btn:hover    { opacity: 0.85; transform: translateY(-1px); }
 
 .asp-career-goal {
   margin: 0;
-  color: #475569;
+  color: var(--cb-slate);
   font-size: 0.9rem;
   line-height: 1.6;
-  background: #f8fafc;
+  background: var(--cb-ground);
   padding: 12px 16px;
   border-radius: 8px;
-  border-left: 3px solid #005897;
+  border-left: 3px solid var(--cb-navy-600);
 }
 
 /* Email Modal */
@@ -637,14 +637,14 @@
   align-items: center;
   gap: 12px;
   padding: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--cb-line);
   border-radius: 10px;
   background: #fafafa;
 }
 
-.asp-email-name  { font-size: 0.9rem; font-weight: 600; color: #1e293b; }
-.asp-email-addr  { font-size: 0.8rem; color: #64748b; }
-.asp-email-phone { font-size: 0.78rem; color: #94a3b8; }
+.asp-email-name  { font-size: 0.9rem; font-weight: 600; color: var(--cb-ink); }
+.asp-email-addr  { font-size: 0.8rem; color: var(--cb-slate); }
+.asp-email-phone { font-size: 0.78rem; color: var(--cb-slate-2); }
 
 /* Responsive */
 @media (max-width: 768px) {

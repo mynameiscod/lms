@@ -297,8 +297,19 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--ld2-gray-700);
-  margin: 0 0 16px 0;
+  margin: 0;
 }
+
+.ld2-stage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ld2-substage { color: var(--ld2-gray-600); font-weight: 500; }
+.ld2-pending { color: #b45309; font-weight: 600; }
 
 .ld2-stages {
   display: flex;

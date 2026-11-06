@@ -18,6 +18,7 @@ import { sendLeadWelcomeWhatsApp } from '../services/whatsAppWelcomeService';
 import { autoAssignLead } from '../services/leadDistributionService';
 import { pushLeadStageChange } from '../services/googleSheetSyncService';
 import { scheduleDripOnStageEntry } from '../services/whatsAppDripService';
+import { changeStage, LifecycleError, StageChangeResult, enrolledStageFor } from '../services/leadLifecycleService';
 import leadAIService from '../services/leadAIService';
 import { enqueueAICall } from '../services/aiCallQueueService';
 import AICallConfig from '../models/AICallConfig';
@@ -135,6 +136,8 @@ export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiRespo
       Lead.find(filter)
         .select('-activities -aiCallLogs')
         .populate('stageId', 'name color order')
+        .populate('subStageId', 'name color')
+        .populate('reasonId', 'name')
         .populate('assignedTo', 'firstName lastName email')
         .populate('createdBy', 'firstName lastName')
         .sort({ createdAt: -1 })
@@ -375,6 +378,8 @@ export const getLeadById = async (req: AuthenticatedRequest, res: Response<ApiRe
     const scopeFilter = await buildLeadScopeFilter(req);
     const lead = await Lead.findOne({ _id: req.params.leadId, tenantId: req.tenantId, ...scopeFilter })
       .populate('stageId', 'name color order')
+      .populate('subStageId', 'name color')
+      .populate('reasonId', 'name')
       .populate('assignedTo', 'firstName lastName email')
       .populate('createdBy', 'firstName lastName')
       .populate('activities.createdBy', 'firstName lastName');
@@ -585,7 +590,25 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
     const oldAssignedToId = currentLead.assignedTo ? String((currentLead.assignedTo as any)._id) : null;
     const newAssignedToId = assignedTo !== undefined ? (assignedTo || null) : oldAssignedToId;
     const oldStageId = currentLead.stageId ? String(currentLead.stageId) : null;
-    const stageChanged = stageId && stageId !== oldStageId;
+    const stageChanged = stageId && String(stageId) !== oldStageId;
+
+    // A stage change from the edit form goes through the same rules as everywhere else
+    // (tenant check, reason, lost-stage approval, history). Done first so a refused move
+    // leaves the rest of the lead untouched.
+    let stagePending = false;
+    if (stageChanged) {
+      try {
+        const r = await changeStage({
+          tenantId: String(req.tenantId), leadId: String(leadId), stageId: String(stageId),
+          reasonText: notInterestedReason, actor: { id: String(req.user!.id), role: req.user!.role },
+          source: 'edit', scope: scopeFilter,
+        });
+        stagePending = r.status === 'pending_approval';
+      } catch (e: any) {
+        if (e instanceof LifecycleError) return res.status(e.status).json({ success: false, message: e.message });
+        throw e;
+      }
+    }
 
     const lead = await Lead.findOneAndUpdate(
       { _id: leadId, tenantId: req.tenantId, ...scopeFilter },
@@ -595,7 +618,6 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
         ...(phone && { phone }),
         ...(courseInterest && { courseInterest }),
         ...(source && { source }),
-        ...(stageId && { stageId }),
         ...(assignedTo !== undefined && { assignedTo: assignedTo || null }),
         // keep the assignment record in step, so a reassign is never undone by a stale 'assignment.assignedTo'
         ...(assignedTo !== undefined && String(assignedTo || '') !== String(oldAssignedToId || '') && { 'assignment.assignedTo': assignedTo || null, 'assignment.assignedBy': req.user!.id, 'assignment.assignedAt': new Date() }),
@@ -642,143 +664,67 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       });
     }
 
-    // Log stage_change activity when stage was changed via edit form
-    if (stageChanged) {
-      const newStageDoc = await LeadStage.findById(stageId).select('name');
-      const oldStageDoc = oldStageId ? await LeadStage.findById(oldStageId).select('name') : null;
-      const actorUser = await User.findById(req.user!.id).select('firstName lastName');
-      const actorName = actorUser ? `${(actorUser as any).firstName} ${(actorUser as any).lastName}` : 'Someone';
-      await Lead.findByIdAndUpdate(leadId, {
-        $push: {
-          activities: {
-            type: 'status_change', // must match the LeadActivity enum — 'stage_change' is invalid and poisons later lead.save()
-            description: `Stage changed from "${oldStageDoc?.name || 'Unknown'}" to "${newStageDoc?.name || 'Unknown'}" by ${actorName}`,
-            createdBy: req.user!.id,
-            createdAt: new Date(),
-            metadata: { from: oldStageId, to: stageId }
-          }
-        }
-      });
-    }
-
     await auditLog(req, 'UPDATE', `Lead updated: ${lead.name}`, lead._id);
     emitLeadEvent(req, 'lead_updated', lead);
 
-    res.json({ success: true, message: 'Lead updated', data: lead });
+    res.json({
+      success: true,
+      message: stagePending ? 'Lead updated. The stage change is waiting for manager approval.' : 'Lead updated',
+      data: lead,
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to update lead', error: error.message });
   }
 };
 
-// Change lead stage (scope-enforced)
-export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
-  try {
-    const { leadId } = req.params;
-    const { stageId, notInterestedReason, reason } = req.body;
+/** Re-read a lead the way the stage endpoints return it. */
+const populateForStage = (id: any) => Lead.findById(id)
+  .populate('stageId', 'name color order')
+  .populate('subStageId', 'name color')
+  .populate('reasonId', 'name')
+  .populate('assignedTo', 'firstName lastName email')
+  .populate('createdBy', 'firstName lastName');
 
-    if (!stageId) {
-      return res.status(400).json({ success: false, message: 'stageId is required' });
-    }
-
-    // Verify stage exists
-    const newStage = await LeadStage.findOne({ _id: stageId, tenantId: req.tenantId });
-    if (!newStage) {
-      return res.status(404).json({ success: false, message: 'Stage not found' });
-    }
-
-    // A stage flagged requiresReason (or the legacy "Not Interested" stage) needs a reason.
-    const needsReason = !!(newStage as any).requiresReason || newStage.name === 'Not Interested';
-    const givenReason = (notInterestedReason || reason || '').trim();
-    if (needsReason && !givenReason) {
-      return res.status(400).json({ success: false, message: `A reason is required when moving a lead to "${newStage.name}"` });
-    }
-
-    const scopeFilter = await buildLeadScopeFilter(req);
-    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).populate('stageId', 'name');
-    if (!lead) {
-      return res.status(404).json({ success: false, message: 'Lead not found' });
-    }
-
-    // Manager approval gate: non-admin users moving to a lost stage need approval
-    const userRole = req.user!.role;
-    const isAdminUser = ['TENANT_ADMIN', 'SUPER_ADMIN'].includes(userRole);
-    if ((newStage as any).isLostStage && !isAdminUser) {
-      (lead as any).pendingApproval = {
-        stageId: newStage._id,
-        stageName: newStage.name,
-        requestedBy: req.user!.id,
-        requestedAt: new Date(),
-        reason: reason?.trim() || notInterestedReason?.trim() || '',
-      };
-      await lead.save();
-
-      // Notify managers via socket
-      const io = req.app.get('io');
-      if (io) {
-        io.to(`staff_${req.tenantId}`).emit('stage_approval_requested', {
-          leadId: lead._id,
-          leadName: lead.name,
-          requestedStage: newStage.name,
-          requestedBy: req.user!.id,
-          reason: (lead as any).pendingApproval.reason,
-        });
-      }
-      return res.status(202).json({
-        success: true,
-        message: `Stage change to "${newStage.name}" requires manager approval`,
-        data: { pendingApproval: true },
+/** Send a lifecycle result (or error) the way the client expects. */
+async function respondStageChange(req: AuthenticatedRequest, res: Response, result: StageChangeResult, approvedByManager = false) {
+  const lead = result.lead;
+  if (result.status === 'pending_approval') {
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`staff_${req.tenantId}`).emit('stage_approval_requested', {
+        leadId: lead._id, leadName: lead.name, requestedStage: result.toStageName,
+        requestedBy: req.user!.id, reason: lead.pendingApproval?.reason,
       });
     }
-
-    const oldStageId = (lead.stageId as any)?._id;
-    const oldStageName = (lead.stageId as any)?.name || 'Unknown';
-    lead.stageId = newStage._id;
-    // Clear any pending approval when admin applies the stage change
-    (lead as any).pendingApproval = undefined;
-    
-    if (needsReason) {
-      lead.notInterestedReason = givenReason;
-    }
-
-    lead.activities.push({
-      type: 'status_change',
-      // Keep this exact wording: LeadDetailV2 parses it to colour visited stages.
-      description: `Stage changed from "${oldStageName}" to "${newStage.name}"`,
-      createdBy: req.user!.id as any,
-      createdAt: new Date(),
-      metadata: { from: oldStageName, to: newStage.name, ...(givenReason ? { reason: givenReason } : {}) }
-    });
-    await lead.save();
-
-    // Record stage transition for time tracking
-    await recordStageTransition(
-      lead._id as mongoose.Types.ObjectId,
-      oldStageId,
-      newStage._id,
-      newStage.name,
-      req.user!.id as unknown as mongoose.Types.ObjectId,
-      req.tenantId as unknown as mongoose.Types.ObjectId
-    );
-
-    const populated = await Lead.findById(lead._id)
-      .populate('stageId', 'name color order')
-      .populate('assignedTo', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName');
-
-    await auditLog(req, 'STAGE_CHANGE', `Lead "${lead.name}" moved from "${oldStageName}" to "${newStage.name}"`, lead._id, { from: oldStageName, to: newStage.name });
+    return res.status(202).json({ success: true, message: `Stage change to "${result.toStageName}" requires manager approval`, data: { pendingApproval: true } });
+  }
+  const populated = await populateForStage(lead._id);
+  if (result.status === 'moved') {
+    await auditLog(req, 'STAGE_CHANGE', `Lead "${lead.name}" moved from "${result.fromStageName}" to "${result.toStageName}"${approvedByManager ? ' (manager approved)' : ''}`, lead._id, { from: result.fromStageName, to: result.toStageName });
     emitLeadEvent(req, 'lead_stage_changed', populated);
+  }
+  return res.json({ success: true, message: result.status === 'unchanged' ? 'Nothing changed' : 'Lead stage updated', data: populated });
+}
 
-    // Push stage change to Google Sheet if tenant has push-back configured
-    pushLeadStageChange(req.tenantId!, { _id: lead._id, name: lead.name, phone: (lead as any).phone, email: (lead as any).email, assignedTo: (lead as any).assignedTo?.toString() }, oldStageName, newStage.name)
-      .catch(err => console.error('[LEAD] pushLeadStageChange failed:', err));
+const stageError = (res: Response, error: any, fallback: string) =>
+  error instanceof LifecycleError
+    ? res.status(error.status).json({ success: false, message: error.message, ...(error.code ? { code: error.code } : {}) } as any)
+    : res.status(500).json({ success: false, message: fallback, error: error.message });
 
-    // P5: Schedule WhatsApp drip messages for new stage
-    scheduleDripOnStageEntry(req.tenantId!, lead._id.toString(), newStage.name)
-      .catch(err => console.error('[LEAD] scheduleDripOnStageEntry failed:', err));
-
-    res.json({ success: true, message: 'Lead stage updated', data: populated });
+// Change lead stage (scope-enforced). Body: stageId, subStageId?, reasonId?, reasonDetail?,
+// note?, nextFollowUp?, and the legacy typed reason as notInterestedReason / reason.
+export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { stageId, subStageId, reasonId, reasonDetail, note, nextFollowUp, notInterestedReason, reason } = req.body;
+    const result = await changeStage({
+      tenantId: String(req.tenantId), leadId: req.params.leadId, stageId, subStageId, reasonId,
+      reasonText: notInterestedReason || reason, reasonDetail, note, nextFollowUp,
+      actor: { id: String(req.user!.id), role: req.user!.role }, source: 'manual',
+      scope: await buildLeadScopeFilter(req),
+    });
+    return respondStageChange(req, res, result);
   } catch (error: any) {
-    res.status(500).json({ success: false, message: 'Failed to change stage', error: error.message });
+    return stageError(res, error, 'Failed to change stage');
   }
 };
 
@@ -809,52 +755,18 @@ export const approveStageChange = async (req: AuthenticatedRequest, res: Respons
       return res.json({ success: true, message: 'Stage change rejected', data: {} });
     }
 
-    // Apply the approved stage change
-    const newStage = await LeadStage.findOne({ _id: pending.stageId, tenantId: req.tenantId });
-    if (!newStage) return res.status(404).json({ success: false, message: 'Target stage no longer exists' });
-
-    const oldStageId = (lead.stageId as any)?._id;
-    const oldStageName = (lead.stageId as any)?.name || 'Unknown';
-    lead.stageId = newStage._id;
-    (lead as any).pendingApproval = undefined;
-
-    lead.activities.push({
-      type: 'status_change',
-      description: `Stage changed from "${oldStageName}" to "${newStage.name}" (approved by manager)`,
-      createdBy: req.user!.id as any,
-      createdAt: new Date(),
-      metadata: { from: oldStageName, to: newStage.name, approvedBy: req.user!.id },
+    // Apply exactly what the counsellor asked for (sub-stage, reason, note, follow-up).
+    const result = await changeStage({
+      tenantId: String(req.tenantId), leadId: String(lead._id), stageId: String(pending.stageId),
+      subStageId: pending.subStageId ? String(pending.subStageId) : undefined,
+      reasonId: pending.reasonId ? String(pending.reasonId) : undefined,
+      reasonText: pending.reasonId ? undefined : pending.reason,
+      reasonDetail: pending.reasonDetail, note: pending.note, nextFollowUp: pending.nextFollowUp,
+      actor: { id: String(req.user!.id), role: req.user!.role }, source: 'approval',
     });
-    await lead.save();
-
-    await recordStageTransition(
-      lead._id as mongoose.Types.ObjectId,
-      oldStageId,
-      newStage._id,
-      newStage.name,
-      req.user!.id as unknown as mongoose.Types.ObjectId,
-      req.tenantId as unknown as mongoose.Types.ObjectId
-    );
-
-    const populated = await Lead.findById(lead._id)
-      .populate('stageId', 'name color order')
-      .populate('assignedTo', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName');
-
-    await auditLog(req, 'STAGE_CHANGE', `Lead "${lead.name}" moved to "${newStage.name}" (manager approved)`, lead._id, { from: oldStageName, to: newStage.name });
-    emitLeadEvent(req, 'lead_stage_changed', populated);
-
-    // Push stage change to Google Sheet if tenant has push-back configured
-    pushLeadStageChange(req.tenantId!, { _id: lead._id, name: lead.name, phone: (lead as any).phone, email: (lead as any).email, assignedTo: (lead as any).assignedTo?.toString() }, oldStageName, newStage.name)
-      .catch(err => console.error('[LEAD] pushLeadStageChange (approved) failed:', err));
-
-    // P5: Schedule WhatsApp drip messages for approved stage
-    scheduleDripOnStageEntry(req.tenantId!, lead._id.toString(), newStage.name)
-      .catch(err => console.error('[LEAD] scheduleDripOnStageEntry (approved) failed:', err));
-
-    res.json({ success: true, message: `Stage change to "${newStage.name}" approved`, data: populated });
+    return respondStageChange(req, res, result, true);
   } catch (error: any) {
-    res.status(500).json({ success: false, message: 'Failed to approve stage change', error: error.message });
+    return stageError(res, error, 'Failed to approve stage change');
   }
 };
 
@@ -1402,22 +1314,7 @@ export const convertToStudent = async (req: AuthenticatedRequest, res: Response<
       profileComplete: false
     });
 
-    // Update lead with converted student reference and move to "Converted" stage
-    const convertedStage = await LeadStage.findOne({ tenantId: req.tenantId, name: 'Converted' });
-    
     lead.convertedStudentId = student._id;
-    if (convertedStage) {
-      const oldStage = await LeadStage.findById(lead.stageId);
-      lead.stageId = convertedStage._id;
-      lead.activities.push({
-        type: 'status_change',
-        description: `Stage changed from "${oldStage?.name || 'Unknown'}" to "Converted"`,
-        createdBy: req.user!.id as any,
-        createdAt: new Date(),
-        metadata: { from: oldStage?.name, to: 'Converted' }
-      });
-    }
-
     lead.activities.push({
       type: 'note',
       description: `Converted to student: ${student.firstName} ${student.lastName} (${student.email})`,
@@ -1425,8 +1322,16 @@ export const convertToStudent = async (req: AuthenticatedRequest, res: Response<
       createdAt: new Date(),
       metadata: { studentId: student._id }
     });
-
     await lead.save();
+
+    // Move to the institute's "enrolled" stage (by milestone; legacy name "Converted" as fallback).
+    const enrolledStage = await enrolledStageFor(String(req.tenantId));
+    if (enrolledStage && String(enrolledStage._id) !== String(lead.stageId)) {
+      await changeStage({
+        tenantId: String(req.tenantId), leadId: String(lead._id), stageId: String(enrolledStage._id),
+        actor: { id: String(req.user!.id), role: req.user!.role }, source: 'convert',
+      }).catch(err => console.error('[LEAD] convert stage move failed:', err?.message));
+    }
 
     const populated = await Lead.findById(lead._id)
       .populate('stageId', 'name color order')
@@ -1796,6 +1701,94 @@ export const getTeamActivityDetails = async (req: AuthenticatedRequest, res: Res
 
 // GET /leads/sources — distinct source values actually present on leads, so the
 // All-Leads "Source" filter always lists every real source (e.g. google_sheet)
+// ===================== BULK ACTIONS =====================
+
+const BULK_MAX = 500;
+function bulkIds(body: any): string[] | null {
+  const ids = body?.leadIds;
+  if (!Array.isArray(ids) || !ids.length || ids.length > BULK_MAX) return null;
+  const unique = [...new Set(ids.map(String))];
+  return unique.every(id => mongoose.Types.ObjectId.isValid(id)) ? unique : null;
+}
+
+/**
+ * POST /leads/bulk/stage — move many leads to one stage (optional sub-stage/reason/note).
+ * Each lead goes through the lifecycle service, so the same rules apply as for one lead;
+ * a sub-stage is optional here (moving old leads into a new pipeline by hand).
+ */
+export const bulkChangeStage = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const ids = bulkIds(req.body);
+    if (!ids) return res.status(400).json({ success: false, message: `Pick between 1 and ${BULK_MAX} leads` });
+    const { stageId, subStageId, reasonId, reasonDetail, note, reason } = req.body;
+    const scope = await buildLeadScopeFilter(req);
+    const summary = { moved: 0, pendingApproval: 0, unchanged: 0, failed: 0, errors: [] as { leadId: string; message: string }[] };
+    for (const leadId of ids) {
+      try {
+        const r = await changeStage({
+          tenantId: String(req.tenantId), leadId, stageId, subStageId, reasonId, reasonDetail, note, reasonText: reason,
+          actor: { id: String(req.user!.id), role: req.user!.role }, source: 'bulk', scope,
+        });
+        if (r.status === 'moved') summary.moved++;
+        else if (r.status === 'pending_approval') summary.pendingApproval++;
+        else summary.unchanged++;
+      } catch (e: any) {
+        // A rule that fails for one lead (e.g. stage not found) fails for all — stop early.
+        if (e instanceof LifecycleError && e.status !== 404) {
+          return res.status(e.status).json({ success: false, message: e.message, data: summary } as any);
+        }
+        summary.failed++;
+        if (summary.errors.length < 20) summary.errors.push({ leadId, message: e.message });
+      }
+    }
+    await auditLog(req, 'STAGE_CHANGE', `Bulk stage move of ${ids.length} lead(s): ${summary.moved} moved, ${summary.pendingApproval} waiting for approval`, undefined, { stageId, count: ids.length });
+    emitLeadEvent(req, 'leads_bulk_updated', { count: summary.moved });
+    res.json({ success: true, message: `${summary.moved} lead(s) moved`, data: summary });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Bulk stage move failed', error: error.message });
+  }
+};
+
+/** POST /leads/bulk/assign — assign (or unassign with assignedTo: null) many leads. */
+export const bulkAssignLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const ids = bulkIds(req.body);
+    if (!ids) return res.status(400).json({ success: false, message: `Pick between 1 and ${BULK_MAX} leads` });
+    const assignedTo = req.body.assignedTo || null;
+    let assigneeName = 'Unassigned';
+    if (assignedTo) {
+      if (!mongoose.Types.ObjectId.isValid(String(assignedTo))) return res.status(400).json({ success: false, message: 'Invalid counsellor' });
+      const u: any = await User.findOne({ _id: assignedTo, tenantId: req.tenantId, isActive: { $ne: false } }).select('firstName lastName role');
+      if (!u || u.role === 'STUDENT') return res.status(400).json({ success: false, message: 'Pick an active staff member of this institute' });
+      assigneeName = `${u.firstName || ''} ${u.lastName || ''}`.trim();
+    }
+    const actor: any = await User.findById(req.user!.id).select('firstName lastName');
+    const actorName = actor ? `${actor.firstName || ''} ${actor.lastName || ''}`.trim() : 'Someone';
+    const scope = await buildLeadScopeFilter(req);
+    const leads = await Lead.find({ _id: { $in: ids }, tenantId: req.tenantId, ...scope }).select('assignedTo');
+    const now = new Date();
+    let changed = 0;
+    for (const l of leads) {
+      const from = l.assignedTo ? String(l.assignedTo) : null;
+      if (String(from || '') === String(assignedTo || '')) continue;
+      await Lead.updateOne({ _id: l._id, tenantId: req.tenantId }, {
+        $set: { assignedTo, 'assignment.assignedTo': assignedTo, 'assignment.assignedBy': req.user!.id, 'assignment.assignedAt': now },
+        $push: { activities: {
+          type: 'assignment', createdBy: req.user!.id, createdAt: now,
+          description: assignedTo ? `Lead assigned to ${assigneeName} by ${actorName} (bulk)` : `Lead unassigned by ${actorName} (bulk)`,
+          metadata: { from, to: assignedTo, bulk: true },
+        } },
+      });
+      changed++;
+    }
+    await auditLog(req, 'UPDATE', `Bulk assign: ${changed} lead(s) to ${assigneeName}`, undefined, { assignedTo, count: changed });
+    emitLeadEvent(req, 'leads_bulk_updated', { count: changed });
+    res.json({ success: true, message: `${changed} lead(s) assigned to ${assigneeName}`, data: { changed, skipped: ids.length - changed } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Bulk assign failed', error: error.message });
+  }
+};
+
 export const getLeadSources = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const tenantOid = new mongoose.Types.ObjectId(req.tenantId as string);
@@ -1849,25 +1842,27 @@ export const quickUpdateLead = async (req: AuthenticatedRequest, res: Response<A
     const { stageId, nextFollowUp, activityType, activityDescription, callOutcome, notes } = req.body;
 
     const scopeFilter = await buildLeadScopeFilter(req);
-    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter });
-    if (!lead) {
+    const existing = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).select('stageId');
+    if (!existing) {
       return res.status(404).json({ success: false, message: 'Lead not found' });
     }
 
-    // Update stage if provided
-    if (stageId && String(stageId) !== String(lead.stageId)) {
-      const newStage = await LeadStage.findOne({ _id: stageId, tenantId: req.tenantId });
-      if (newStage) {
-        const oldStage = await LeadStage.findById(lead.stageId);
-        lead.stageId = newStage._id;
-        lead.activities.push({
-          type: 'status_change',
-          description: `Stage changed from "${oldStage?.name || 'Unknown'}" to "${newStage.name}"`,
-          createdBy: req.user!.id as any,
-          createdAt: new Date(),
-          metadata: { from: oldStage?.name, to: newStage.name }
+    // Stage goes through the lifecycle rules (reason, approval, history) like everywhere else.
+    if (stageId && String(stageId) !== String(existing.stageId)) {
+      try {
+        await changeStage({
+          tenantId: String(req.tenantId), leadId: String(leadId), stageId: String(stageId),
+          reasonText: req.body.reason, actor: { id: String(req.user!.id), role: req.user!.role },
+          source: 'edit', scope: scopeFilter,
         });
+      } catch (e: any) {
+        if (e instanceof LifecycleError) return res.status(e.status).json({ success: false, message: e.message });
+        throw e;
       }
+    }
+    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter });
+    if (!lead) {
+      return res.status(404).json({ success: false, message: 'Lead not found' });
     }
 
     // Update follow-up
@@ -1889,6 +1884,9 @@ export const quickUpdateLead = async (req: AuthenticatedRequest, res: Response<A
         createdAt: new Date()
       };
       if (activityType === 'call' && callOutcome) {
+        if (!(CALL_OUTCOMES as readonly string[]).includes(callOutcome)) {
+          return res.status(400).json({ success: false, message: `Invalid call outcome. Must be one of: ${CALL_OUTCOMES.join(', ')}` });
+        }
         activityData.callOutcome = callOutcome;
       }
       lead.activities.push(activityData);

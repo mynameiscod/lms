@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { leadApi, leadStageApi } from '../../api';
-import { moveLeadToStage } from '../../utils/leadStageChange';
+import { leadApi, leadPipelineApi } from '../../api';
+import StageChangeDialog from '../../components/leads/StageChangeDialog';
 
 interface KanbanLead {
   _id: string;
@@ -18,7 +18,8 @@ interface KanbanStage {
   name: string;
   color?: string;
   order: number;
-  requiresReason?: boolean;
+  /** Moving here asks for a sub-stage, reason or note. */
+  needsDialog?: boolean;
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -37,19 +38,24 @@ export default function LeadKanbanPage() {
   // Drag state stored in ref to avoid re-renders during drag
   const dragRef = useRef<{ leadId: string; fromStageId: string } | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<{ leadId: string; stageId: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch stages
-      const [stagesRes, leadsRes] = await Promise.all([
-        leadStageApi.getStages(),
+      const [pipelineRes, leadsRes] = await Promise.all([
+        leadPipelineApi.get(),
         leadApi.getLeads({ limit: 500 }),
       ]);
 
-      const stageArr: KanbanStage[] = (stagesRes?.data || stagesRes || []).sort(
-        (a: KanbanStage, b: KanbanStage) => a.order - b.order
-      );
+      const stageArr: KanbanStage[] = (pipelineRes?.data?.stages || [])
+        .filter((s: any) => s.isActive)
+        .map((s: any) => ({
+          _id: s._id, name: s.name, color: s.color, order: s.order,
+          needsDialog: s.subStages.some((ss: any) => ss.isActive) || !!s.requiresReason || !!s.requiresNote || s.name === 'Not Interested',
+        }))
+        .sort((a: KanbanStage, b: KanbanStage) => a.order - b.order);
       setStages(stageArr);
 
       const leadsData = leadsRes?.data || leadsRes;
@@ -86,12 +92,16 @@ export default function LeadKanbanPage() {
     const toStage = stages.find(s => s._id === toStageId);
     if (!toStage) return;
 
+    // A stage that asks for anything (sub-stage, reason, note) opens the dialog instead.
+    if (toStage.needsDialog) {
+      setDialog({ leadId, stageId: toStageId });
+      return;
+    }
+
     setMoving(true);
     try {
-      // Asks for a reason when the stage needs one, and reports a manager-approval hold.
-      const result = await moveLeadToStage(leadId, toStage);
-      if (result === 'cancelled') return;
-      if (result === 'pending_approval') {
+      const res: any = await leadApi.changeStageFull(leadId, { stageId: toStageId });
+      if (res?.data?.pendingApproval) {
         window.alert(`Sent to a manager for approval: "${toStage.name}". The lead stays where it is until approved.`);
         return;
       }
@@ -240,6 +250,17 @@ export default function LeadKanbanPage() {
           })}
         </div>
       )}
+
+      <StageChangeDialog
+        open={!!dialog}
+        onClose={() => setDialog(null)}
+        leadIds={dialog ? [dialog.leadId] : []}
+        initialStageId={dialog?.stageId}
+        onDone={(outcome, message) => {
+          if (outcome === 'pending_approval') window.alert(`${message}. The lead stays where it is until approved.`);
+          load();
+        }}
+      />
     </div>
   );
 }

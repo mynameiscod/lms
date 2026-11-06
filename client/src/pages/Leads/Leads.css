@@ -1046,6 +1046,16 @@
 }
 
 /* Stage select in table */
+.crm-substage {
+  font-size: 0.72rem;
+  color: var(--text-secondary, #6b7280);
+  margin-top: 3px;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .crm-stage-select {
   padding: 6px 28px 6px 10px;
   border: 1px solid var(--border-strong);

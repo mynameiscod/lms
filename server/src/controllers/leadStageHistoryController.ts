@@ -269,7 +269,9 @@ export const recordStageTransition = async (
   newStageId: mongoose.Types.ObjectId,
   newStageName: string,
   userId: mongoose.Types.ObjectId,
-  tenantId: mongoose.Types.ObjectId
+  tenantId: mongoose.Types.ObjectId,
+  /** Optional detail stored on the new history row (sub-stage, reason, note, source). */
+  extra: Record<string, any> = {}
 ): Promise<void> => {
   try {
     const now = new Date();
@@ -299,7 +301,9 @@ export const recordStageTransition = async (
       stageName: newStageName,
       enteredAt: now,
       enteredBy: userId,
-      tenantId
+      tenantId,
+      ...(oldStageId ? { fromStageId: oldStageId } : {}),
+      ...extra
     });
   } catch (error) {
     console.error('Error recording stage transition:', error);

@@ -152,6 +152,8 @@ export interface ILead extends Document {
   subStageId?: mongoose.Types.ObjectId;
   reasonId?: mongoose.Types.ObjectId;
   reasonDetail?: string;
+  stageEnteredAt?: Date;
+  milestones?: Partial<Record<'contactingAt' | 'connectedAt' | 'qualifiedAt' | 'demoAt' | 'seatReservedAt' | 'enrolledAt' | 'nurtureAt' | 'lostAt', Date>>;
   assignedTo?: mongoose.Types.ObjectId;
   nextFollowUp?: Date;
   notes: string;
@@ -216,6 +218,11 @@ export interface ILead extends Document {
     requestedBy: mongoose.Types.ObjectId;
     requestedAt: Date;
     reason?: string;
+    subStageId?: mongoose.Types.ObjectId;
+    reasonId?: mongoose.Types.ObjectId;
+    reasonDetail?: string;
+    note?: string;
+    nextFollowUp?: Date;
   };
   
   // NEW: SLA breach flag
@@ -370,6 +377,13 @@ const LeadSchema: Schema = new Schema(
     subStageId: { type: mongoose.Types.ObjectId, ref: 'LeadSubStage' },
     reasonId: { type: mongoose.Types.ObjectId, ref: 'LeadReason' },
     reasonDetail: { type: String, trim: true, maxlength: 1000 },
+    stageEnteredAt: { type: Date },
+    // First time the lead reached each milestone. Set once, never overwritten — funnel
+    // reports and Meta events count from these, so a reopened lead is not counted twice.
+    milestones: {
+      contactingAt: Date, connectedAt: Date, qualifiedAt: Date, demoAt: Date,
+      seatReservedAt: Date, enrolledAt: Date, nurtureAt: Date, lostAt: Date,
+    },
     assignedTo: {
       type: mongoose.Types.ObjectId,
       ref: 'User'
@@ -587,8 +601,14 @@ const LeadSchema: Schema = new Schema(
       requestedBy: { type: mongoose.Types.ObjectId, ref: 'User' },
       requestedAt: { type: Date },
       reason: { type: String, trim: true },
+      // Full request, so approval applies exactly what the counsellor chose.
+      subStageId: { type: mongoose.Types.ObjectId, ref: 'LeadSubStage' },
+      reasonId: { type: mongoose.Types.ObjectId, ref: 'LeadReason' },
+      reasonDetail: { type: String, trim: true },
+      note: { type: String, trim: true },
+      nextFollowUp: { type: Date },
     },
-    
+
     // NEW: SLA breach
     slaBreach: { type: Boolean, default: false },
     slaBreachAt: { type: Date },

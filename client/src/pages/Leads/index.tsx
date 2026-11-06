@@ -2,6 +2,8 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { leadApi, leadStageApi, userApi, leadFormConfigApi } from '../../api';
+import StageChangeDialog from '../../components/leads/StageChangeDialog';
+import { Modal } from '../../components/common';
 import './Leads.css';
 
 interface Stage { _id: string; name: string; color: string; order: number; }
@@ -16,6 +18,8 @@ const PRIORITY_COLORS: Record<LeadPriority, { bg: string; text: string; label: s
 interface Lead {
   _id: string; name: string; email?: string; phone: string;
   courseInterest: string[]; source: string; stageId: Stage | string;
+  subStageId?: { _id: string; name: string } | null;
+  reasonId?: { _id: string; name: string } | null;
   assignedTo?: { _id: string; firstName: string; lastName: string; email: string } | null;
   nextFollowUp?: string; notes: string;
   createdBy?: { firstName: string; lastName: string }; createdAt: string;
@@ -105,6 +109,15 @@ const LeadsPage: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
+  // Bulk move / assign (server: POST /leads/bulk/stage, /leads/bulk/assign — manage_leads or assign_leads)
+  const canBulk = !!currentUser && (
+    currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'TENANT_ADMIN' ||
+    ((currentUser as any).permissions || []).some((p: string) => ['manage_leads', 'assign_leads'].includes(p))
+  );
+  const [stageDialog, setStageDialog] = useState<{ leadIds: string[]; stageId?: string | null; currentStageId?: string | null; currentSubStageId?: string | null } | null>(null);
+  const [showBulkAssign, setShowBulkAssign] = useState(false);
+  const [bulkAssignTo, setBulkAssignTo] = useState<string | undefined>(undefined);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'kanban'|'table'>('table');
   const [alert, setAlert] = useState<{type:'success'|'error';message:string}|null>(null);
@@ -450,13 +463,22 @@ const LeadsPage: React.FC = () => {
     }
   };
 
-  const handleStageChange = async (leadId:string,newStageId:string) => {
-    const targetStage=stages.find(s=>s._id===newStageId);
-    if(targetStage?.name==='Not Interested'){
-      setPendingLeadId(leadId);setPendingStageId(newStageId);setNotInterestedReason('');setShowReasonModal(true);return;
-    }
-    try{await leadApi.changeStage(leadId,newStageId);loadData();}
-    catch(error:any){showAlertMsg('error',error.message||'Failed to change stage');}
+  // Every stage change goes through the stage → sub-stage → reason dialog.
+  const handleStageChange = (leadId:string,newStageId:string) => {
+    const lead=leads.find(l=>l._id===leadId);
+    setStageDialog({leadIds:[leadId],stageId:newStageId,currentSubStageId:lead?.subStageId?._id||null,
+      currentStageId:typeof lead?.stageId==='object'?(lead.stageId as Stage)._id:(lead?.stageId as string)||null});
+  };
+
+  const handleBulkAssign = async () => {
+    if(bulkAssignTo===undefined)return;
+    setBulkBusy(true);
+    try{
+      const res:any=await leadApi.bulkAssign(Array.from(selectedLeads),bulkAssignTo||null);
+      showAlertMsg('success',res.message||'Leads assigned');
+      setShowBulkAssign(false);setSelectedLeads(new Set());loadData();
+    }catch(error:any){showAlertMsg('error',error.message||'Bulk assign failed');}
+    finally{setBulkBusy(false);}
   };
 
   const handleConfirmNotInterested = async () => {
@@ -957,6 +979,16 @@ const LeadsPage: React.FC = () => {
                   <button className="crm-btn crm-btn-whatsapp" onClick={handleBulkWhatsApp}>
                     &#128172; Send WhatsApp
                   </button>
+                  {canBulk && (
+                    <>
+                      <button className="crm-btn crm-btn-secondary crm-btn-sm" onClick={()=>setStageDialog({leadIds:Array.from(selectedLeads)})}>
+                        Move stage
+                      </button>
+                      <button className="crm-btn crm-btn-secondary crm-btn-sm" onClick={()=>{setBulkAssignTo(undefined);setShowBulkAssign(true);}}>
+                        Assign
+                      </button>
+                    </>
+                  )}
                   <button className="crm-btn crm-btn-secondary crm-btn-sm" onClick={()=>setSelectedLeads(new Set())}>
                     &#10005; Clear
                   </button>
@@ -1065,6 +1097,11 @@ const LeadsPage: React.FC = () => {
                                     style={{borderLeft:`3px solid ${stage.color}`}}>
                                     {stages.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}
                                   </select>
+                                )}
+                                {lead.subStageId?.name&&(
+                                  <div className="crm-substage" title={lead.reasonId?.name||undefined}>
+                                    {lead.subStageId.name}{lead.reasonId?.name?` · ${lead.reasonId.name}`:''}
+                                  </div>
                                 )}
                               </td>
                             );
@@ -1363,6 +1400,38 @@ const LeadsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <StageChangeDialog
+        open={!!stageDialog}
+        onClose={()=>setStageDialog(null)}
+        leadIds={stageDialog?.leadIds||[]}
+        initialStageId={stageDialog?.stageId}
+        currentStageId={stageDialog?.currentStageId}
+        currentSubStageId={stageDialog?.currentSubStageId}
+        onDone={(outcome,message)=>{
+          showAlertMsg('success',message);
+          if(outcome==='bulk')setSelectedLeads(new Set());
+          loadData();
+        }}
+      />
+
+      <Modal isOpen={showBulkAssign} onClose={()=>setShowBulkAssign(false)} title={`Assign ${selectedLeads.size} lead${selectedLeads.size!==1?'s':''}`} size="small">
+        <div className="mb-3">
+          <label className="form-label fw-semibold">Counsellor</label>
+          <select className="form-select" value={bulkAssignTo??''} onChange={e=>setBulkAssignTo(e.target.value)}>
+            <option value="" disabled={bulkAssignTo===undefined}>{bulkAssignTo===undefined?'Pick a counsellor…':'Unassign'}</option>
+            {bulkAssignTo!==undefined&&bulkAssignTo!==''&&<option value="">Unassign</option>}
+            {staff.map((u:any)=><option key={u._id} value={u._id}>{`${u.firstName||''} ${u.lastName||''}`.trim()||u.email}</option>)}
+          </select>
+          {staff.length===0&&<div className="form-text">No staff list available for your role.</div>}
+        </div>
+        <div className="d-flex justify-content-end gap-2">
+          <button className="btn btn-outline-secondary btn-sm" onClick={()=>setShowBulkAssign(false)} disabled={bulkBusy}>Cancel</button>
+          <button className="btn btn-primary btn-sm" onClick={handleBulkAssign} disabled={bulkBusy||bulkAssignTo===undefined}>
+            {bulkBusy?'Assigning…':'Assign'}
+          </button>
+        </div>
+      </Modal>
 
       {showReasonModal&&(
           <div className="lead-modal-overlay" onClick={()=>setShowReasonModal(false)}>

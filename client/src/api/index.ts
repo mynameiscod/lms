@@ -1966,6 +1966,16 @@ export const leadApi = {
       method: 'DELETE'
     });
   },
+  /** Full stage change: stage → sub-stage → reason (+ details, note, next follow-up). 202 = waiting for approval. */
+  changeStageFull: async (leadId: string, payload: { stageId: string; subStageId?: string; reasonId?: string; reasonDetail?: string; reason?: string; note?: string; nextFollowUp?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/stage`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  bulkChangeStage: async (payload: { leadIds: string[]; stageId: string; subStageId?: string; reasonId?: string; reasonDetail?: string; reason?: string; note?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/bulk/stage`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  bulkAssign: async (leadIds: string[], assignedTo: string | null) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/bulk/assign`, { method: 'POST', body: JSON.stringify({ leadIds, assignedTo }) });
+  },
   changeStage: async (leadId: string, stageId: string, notInterestedReason?: string) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/stage`, {
       method: 'PATCH',

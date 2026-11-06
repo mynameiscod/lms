@@ -7,7 +7,7 @@ import { leadArchiveApi, archiveError } from '../../api/leadArchiveApi';
 import ChatPanel from '../../components/WhatsAppChat/ChatPanel';
 import { canChat } from '../../api/whatsAppChatApi';
 import { useAuth } from '../../contexts/AuthContext';
-import { moveLeadToStage } from '../../utils/leadStageChange';
+import StageChangeDialog from '../../components/leads/StageChangeDialog';
 import './LeadDetailV2.css';
 
 interface Lead {
@@ -17,6 +17,10 @@ interface Lead {
   email: string;
   priority: string;
   stage: string;
+  stageId?: { _id: string; name: string } | string;
+  subStageId?: { _id: string; name: string } | null;
+  reasonId?: { _id: string; name: string } | null;
+  pendingApproval?: { stageName?: string } | null;
   source: string;
   sourceDetails?: { adName?: string; adId?: string; adSetName?: string; campaignName?: string; adHeadline?: string };
   assignedTo?: { _id?: string; name?: string; firstName?: string; lastName?: string } | null;
@@ -115,6 +119,7 @@ const LeadDetailV2: React.FC = () => {
   const [convertPassword, setConvertPassword] = useState('Welcome@123');
   const [converting, setConverting] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: string }>({ show: false, message: '', type: 'success' });
+  const [stageDialog, setStageDialog] = useState<{ open: boolean; stageId: string | null }>({ open: false, stageId: null });
 
   useEffect(() => {
     if (leadId) {
@@ -227,22 +232,10 @@ const LeadDetailV2: React.FC = () => {
     }
   };
 
-  const handleStageChange = async (stageName: string) => {
-    try {
-      const stage = stages.find(s => s.name === stageName);
-      if (!stage) return;
-      const result = await moveLeadToStage(leadId!, stage);
-      if (result === 'cancelled') return;
-      if (result === 'pending_approval') {
-        showToast(`Sent to a manager for approval: ${stageName}`);
-        fetchData();
-        return;
-      }
-      setLead(prev => prev ? { ...prev, stage: stageName } : null);
-      showToast(`Stage updated to ${stageName}`);
-    } catch (error: any) {
-      showToast(error?.message || 'Failed to update stage', 'error');
-    }
+  // Every stage change goes through the stage → sub-stage → reason dialog.
+  const handleStageChange = (stageName?: string) => {
+    const stage = stageName ? stages.find(s => s.name === stageName) : null;
+    setStageDialog({ open: true, stageId: stage?._id || null });
   };
 
   const handlePriorityChange = async (priority: string) => {
@@ -547,7 +540,12 @@ const LeadDetailV2: React.FC = () => {
                 <i className="bi bi-flag"></i>
                 <div>
                   <label>Stage</label>
-                  <span>{lead.stage}</span>
+                  <span>
+                    {lead.stage}
+                    {lead.subStageId?.name && <span className="ld2-substage"> › {lead.subStageId.name}</span>}
+                    {lead.reasonId?.name && <span className="ld2-substage"> · {lead.reasonId.name}</span>}
+                    {lead.pendingApproval?.stageName && <span className="ld2-pending"> (waiting for approval: {lead.pendingApproval.stageName})</span>}
+                  </span>
                 </div>
               </div>
               <div className="ld2-summary-item">
@@ -613,7 +611,10 @@ const LeadDetailV2: React.FC = () => {
 
           {/* Stage Pipeline */}
           <div className="ld2-stage-pipeline">
-            <h3>Lead Stage</h3>
+            <div className="ld2-stage-head">
+              <h3>Lead Stage</h3>
+              <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => handleStageChange()}>Change stage</button>
+            </div>
             <div className="ld2-stages">
               {(() => {
                 // Only six stages fit. A lead sitting in a stage outside them (e.g. "With Outpero")
@@ -1194,6 +1195,16 @@ const LeadDetailV2: React.FC = () => {
           </div>
         </div>
       )}
+
+      <StageChangeDialog
+        open={stageDialog.open}
+        onClose={() => setStageDialog({ open: false, stageId: null })}
+        leadIds={[lead._id]}
+        initialStageId={stageDialog.stageId}
+        currentStageId={typeof lead.stageId === 'object' ? lead.stageId?._id : lead.stageId}
+        currentSubStageId={lead.subStageId?._id || null}
+        onDone={(_outcome, message) => { showToast(message); fetchData(); }}
+      />
     </div>
   );
 };

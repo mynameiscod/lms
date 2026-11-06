@@ -9,6 +9,8 @@ import {
   createLead,
   updateLead,
   changeLeadStage,
+  bulkChangeStage,
+  bulkAssignLeads,
   approveStageChange,
   addLeadActivity, logCallClick, logWhatsAppClick, staffHeartbeat, getTeamOverview, getTeamPerson,
   deleteLead,
@@ -84,6 +86,10 @@ router.post('/import', authMiddleware, tenantResolver, roleGuard(['export_leads'
 router.get('/aging', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getAgingLeads);
 router.get('/duplicates', authMiddleware, tenantResolver, roleGuard(['manage_leads']), getDuplicateLeads);
 router.post('/duplicates/merge', authMiddleware, tenantResolver, roleGuard(['manage_leads']), mergeDuplicateLeads);
+
+// Bulk actions (literal paths; POST so they never collide with /:leadId GETs)
+router.post('/bulk/stage', authMiddleware, tenantResolver, roleGuard(['manage_leads', 'assign_leads']), bulkChangeStage);
+router.post('/bulk/assign', authMiddleware, tenantResolver, roleGuard(['manage_leads', 'assign_leads']), bulkAssignLeads);
 
 // CRUD — granular permissions
 router.get('/', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getLeads);

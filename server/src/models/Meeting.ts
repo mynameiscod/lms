@@ -22,6 +22,7 @@ export interface IMeeting extends Document {
   cancellationReason?: string;
   feedback?: string;
   nextAction?: string;
+  remindedAt?: Date;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -56,6 +57,8 @@ const MeetingSchema = new Schema<IMeeting>(
     cancellationReason: { type: String },
     feedback: { type: String, trim: true, maxlength: 2000 },
     nextAction: { type: String, trim: true, maxlength: 500 },
+    // Set when the automation "demo reminder" fired; cleared when the meeting is moved.
+    remindedAt: { type: Date },
     createdBy: { type: String, required: true },
   },
   { timestamps: true }

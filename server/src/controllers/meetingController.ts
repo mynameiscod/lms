@@ -122,6 +122,8 @@ export const updateMeeting = async (req: AuthenticatedRequest, res: any): Promis
 
     if (update.status === 'completed') update.completedAt = new Date();
     if (update.status === 'cancelled' || update.status === 'declined') update.cancelledAt = new Date();
+    // A moved meeting gets its reminder again.
+    if (update.scheduledAt) update.remindedAt = null;
 
     const before = await Meeting.findOne({ _id: req.params.id, tenantId: req.tenantId! }).lean();
     if (!before) {

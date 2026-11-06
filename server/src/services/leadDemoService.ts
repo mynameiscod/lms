@@ -8,6 +8,7 @@
  */
 import mongoose from 'mongoose';
 import Lead from '../models/Lead';
+import { onMeetingNoShow } from './leadAutomationService';
 
 const DEMO_TYPES = ['online_demo', 'campus_visit'];
 const LABEL: Record<string, string> = {
@@ -49,6 +50,7 @@ export async function recordMeetingOutcome(tenantId: string, meeting: any, befor
     ...(Object.keys(rest).length ? { $set: rest } : {}),
     $push: { activities: { type: 'meeting', description, createdBy: actorId, createdAt: now, metadata: { meetingId: String(meeting._id), status: meeting.status, meetingType: meeting.type } } },
   });
+  if (meeting.status === 'no_show' && before.status !== 'no_show') await onMeetingNoShow(tenantId, meeting);
   if (attendedAt) {
     await Lead.updateOne({ ...leadQ, 'milestones.demoAttendedAt': { $exists: false } }, { $set: { 'milestones.demoAttendedAt': attendedAt } });
   }

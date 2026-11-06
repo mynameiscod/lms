@@ -3443,3 +3443,9 @@ export const leadReportApi = {
     return authenticatedFetch(`${API_BASE_URL}/lead-reports/admissions?${q.toString()}`);
   },
 };
+
+// CRM automation rules (server: routes/leadAutomationRoutes.ts)
+export const leadAutomationApi = {
+  get: () => authenticatedFetch(`${API_BASE_URL}/lead-automation`),
+  save: (rules: Record<string, any>) => authenticatedFetch(`${API_BASE_URL}/lead-automation`, { method: 'PUT', body: JSON.stringify({ rules }) }),
+};

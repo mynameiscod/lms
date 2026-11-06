@@ -21,6 +21,7 @@ import { pushLeadStageChange } from '../services/googleSheetSyncService';
 import { scheduleDripOnStageEntry } from '../services/whatsAppDripService';
 import { changeStage, LifecycleError, StageChangeResult, enrolledStageFor } from '../services/leadLifecycleService';
 import { isMilestone, milestoneFromLegacy } from '../config/leadMilestones';
+import { onCallLogged } from '../services/leadAutomationService';
 import leadAIService from '../services/leadAIService';
 import { enqueueAICall } from '../services/aiCallQueueService';
 import AICallConfig from '../models/AICallConfig';
@@ -958,7 +959,10 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
           .populate('stageId', 'name color order')
           .populate('assignedTo', 'firstName lastName email')
           .populate('activities.createdBy', 'firstName lastName');
-        if (done) return res.json({ success: true, message: 'Activity added', data: done });
+        if (done) {
+          if (activityData.callOutcome) onCallLogged(String(req.tenantId), done._id, activityData.callOutcome, (existing.activities as any)[idx]._id).catch(() => {});
+          return res.json({ success: true, message: 'Activity added', data: done });
+        }
       }
     }
     const metricsUpdate: any = { 'telecallerMetrics.lastActionAt': now };
@@ -984,6 +988,11 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
 
     if (!lead) {
       return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+    // Automation: schedule the next try after an unanswered call (if switched on).
+    if (type === 'call' && activityData.callOutcome) {
+      const added: any = lead.activities[lead.activities.length - 1];
+      onCallLogged(String(req.tenantId), lead._id, activityData.callOutcome, added?._id).catch(() => {});
     }
 
     res.json({ success: true, message: 'Activity added', data: lead });

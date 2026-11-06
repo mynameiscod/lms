@@ -45,6 +45,7 @@ import { registerWaChatSocket } from './realtime/whatsAppChatRealtime';
 import { registerSocketAuth, socketUser, mayJoinTenant, mayJoinStaff, mayHostLiveClass } from './realtime/socketAuth';
 import { startOutperoForwardScheduler } from './jobs/outperoForwardCron';
 import { startMetaCrmScheduler } from './jobs/metaCrmCron';
+import { startLeadAutomationScheduler } from './jobs/leadAutomationCron';
 import { startCompanyExpenseScheduler } from './jobs/companyExpenseCron';
 
 const PORT = process.env.PORT || 5000;
@@ -348,6 +349,7 @@ const startServer = async () => {
     } else {
 
     startMetaRecoveryScheduler();
+    startLeadAutomationScheduler(io);
     // Start Google Sheets sync cron (runs every 5 minutes)
     const GSHEET_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
     setInterval(async () => {

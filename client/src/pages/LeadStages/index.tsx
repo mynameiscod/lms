@@ -89,6 +89,7 @@ const LeadStages: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   const stage = useMemo(() => stages.find(s => s._id === stageId) || null, [stages, stageId]);
+  const landingCount = useMemo(() => stages.filter(s => s.isDefault).length, [stages]);
   const sub = useMemo(() => stage?.subStages.find(s => s._id === subId) || null, [stage, subId]);
 
   useEffect(() => {
@@ -232,7 +233,7 @@ const LeadStages: React.FC = () => {
                       <span className={`pl-ms pl-ms-${s.milestoneEffective}`}>{milestoneLabel(s.milestoneEffective)}{!s.milestone && s.milestoneEffective !== 'none' ? ' (guessed)' : ''}</span>
                       <span>{s.leadCount} lead{s.leadCount === 1 ? '' : 's'}</span>
                       <span>{s.subStages.length} sub-stage{s.subStages.length === 1 ? '' : 's'}</span>
-                      {s.isDefault && <span className="pl-tag">New leads land here</span>}
+                      {s.isDefault && <span className="pl-tag" title={landingCount > 1 ? 'Several stages are marked as the landing stage. Open the one new leads should go to and choose “Make this the only landing stage”.' : undefined}>New leads land here{landingCount > 1 ? ' (one of several)' : ''}</span>}
                       {s.usedByOutpero && <span className="pl-tag">Outpero</span>}
                       {!s.isActive && <span className="pl-tag pl-tag-off">Off</span>}
                     </div>
@@ -386,10 +387,11 @@ const LeadStages: React.FC = () => {
             <div className="pl-form-actions">
               {editing.item && (
                 <div className="me-auto d-flex gap-2">
-                  {editing.kind === 'stage' && !(editing.item as Stage).isDefault && (editing.item as Stage).isActive && (
+                  {/* Old setups flagged EVERY stage as a landing stage; offer to make this one the only one. */}
+                  {editing.kind === 'stage' && (editing.item as Stage).isActive && (!(editing.item as Stage).isDefault || landingCount > 1) && (
                     <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy}
-                      onClick={async () => { if (await run(() => leadPipelineApi.setLandingStage(editing.item!._id), 'New leads will now land here')) setEditing(null); }}>
-                      New leads land here
+                      onClick={async () => { if (await run(() => leadPipelineApi.setLandingStage(editing.item!._id), 'New leads will now land here only')) setEditing(null); }}>
+                      {(editing.item as Stage).isDefault ? 'Make this the only landing stage' : 'New leads land here'}
                     </button>
                   )}
                   <button type="button" className="btn btn-outline-danger btn-sm" disabled={busy}

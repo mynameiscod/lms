@@ -116,6 +116,49 @@ export const TRACK_PYTHON: Record<string, TopicSeed> = {
     ...ending('Python Exceptions and Files', 'LOGGING'),
   ] },
 
+  /*
+   * -- DSA in Python (user decision 2026-11-06) --
+   *
+   * The track no longer borrows the years' DSA topics: like DSA in Java and DSA in C#, the data
+   * structures and algorithms interviews ask are taught here, in the track's language, with
+   * Python's own tools (list, deque, dict, set, heapq, bisect, sorted with a key).
+   */
+  JT_PY_DSA_LINEAR: { category: 'UNIVERSAL', units: [
+    u('COMPLEXITY', 'Big-O in Python Terms', 'Counting operations, and what list, deque, dict and set operations each cost, including the hidden O(n) ones.',
+      ['State the time and space cost of Python code and of the built-in operations it uses'], 40, { skillKeys: ['DSA_COMPLEXITY'] }),
+    u('ARRAY_PATTERNS', 'Array and String Patterns: Two Pointers and Sliding Window', 'The two patterns behind most list and string questions, in Python.',
+      ['Solve list and string problems with two pointers and a sliding window in Python'], 50, { after: ['COMPLEXITY'], skillKeys: ['DSA_ARRAYS'] }),
+    u('LINKED_LISTS', 'Linked Lists in Python', 'A Node class, insertion, deletion, reversal, and the fast-and-slow pointer.',
+      ['Implement and manipulate a singly linked list in Python'], 50, { after: ['ARRAY_PATTERNS'], skillKeys: ['DSA_LINKED_LIST'] }),
+    u('STACKS_QUEUES', 'Stacks and Queues with list and deque', 'Balanced brackets, next greater element, and queue-based simulations with collections.deque.',
+      ['Solve stack and queue problems in Python with a list and collections.deque'], 45, { after: ['LINKED_LISTS'], skillKeys: ['DSA_STACK'] }),
+    u('HASHING', 'Hashing Problems with dict, set and Counter', 'Counting, two-sum, grouping anagrams, and the first non-repeating character.',
+      ['Solve lookup and counting problems in Python with dict, set and Counter'], 45, { after: ['STACKS_QUEUES'], skillKeys: ['DSA_HASHING'] }),
+    u('RECURSION', 'Recursion and Backtracking in Python', 'Base cases, the call stack and its limit, and generating subsets and permutations.',
+      ['Write recursive and backtracking solutions in Python and trace them'], 50, { after: ['HASHING'], skillKeys: ['DSA_RECURSION'] }),
+    u('SORTING_SEARCHING', 'Sorting and Binary Search in Python', 'sorted with key functions, merge sort by hand, and binary search with and without bisect.',
+      ['Sort with key functions, implement merge sort, and write a correct binary search in Python'], 50, { after: ['RECURSION'], skillKeys: ['DSA_SORTING'] }),
+    ...ending('DSA in Python: Linear Structures', 'SORTING_SEARCHING', { minutes: [45, 75, 40, 45] }),
+  ] },
+
+  JT_PY_DSA_NONLINEAR: { category: 'UNIVERSAL', units: [
+    u('TREES', 'Binary Trees and Traversals in Python', 'A TreeNode, recursive and iterative traversals, height and level order.',
+      ['Build a binary tree in Python and traverse it in every order'], 50, { skillKeys: ['DSA_TREES'] }),
+    u('BST', 'Binary Search Trees in Python', 'Insert, search, delete and validate a BST, and why Python has no built-in sorted map.',
+      ['Implement BST operations in Python and validate a tree'], 45, { after: ['TREES'], skillKeys: ['DSA_TREES'] }),
+    u('HEAPS', 'Heaps and heapq Problems', 'Top-k, merging sorted lists, and running medians with heapq, and turning a min-heap into a max-heap.',
+      ['Solve top-k and merge problems in Python with heapq'], 45, { after: ['BST'], skillKeys: ['DSA_HEAPS'] }),
+    u('GRAPHS', 'Graphs, BFS and DFS in Python', 'Adjacency lists with dict and defaultdict, BFS for shortest steps, DFS for components and cycles.',
+      ['Represent a graph in Python and solve problems with BFS and DFS'], 50, { after: ['HEAPS'], skillKeys: ['DSA_GRAPHS'] }),
+    u('SHORTEST_PATH', 'Shortest Paths and Topological Sort', 'Dijkstra with heapq, and ordering tasks with dependencies.',
+      ['Implement Dijkstra and a topological sort in Python'], 50, { after: ['GRAPHS'], skillKeys: ['DSA_GRAPHS'] }),
+    u('GREEDY', 'Greedy Algorithms in Python', 'Intervals, activity selection, and how to check a greedy choice is safe.',
+      ['Solve interval and scheduling problems greedily in Python and justify the choice'], 40, { after: ['SHORTEST_PATH'], skillKeys: ['DSA_GREEDY'] }),
+    u('DYNAMIC_PROGRAMMING', 'Dynamic Programming in Python', 'Memoisation with functools.cache and tabulation: climbing stairs, coin change, longest common subsequence.',
+      ['Solve 1D and 2D dynamic-programming problems in Python, top-down and bottom-up'], 55, { after: ['GREEDY'], skillKeys: ['DSA_DP'] }),
+    ...ending('DSA in Python: Trees, Graphs and DP', 'DYNAMIC_PROGRAMMING', { minutes: [45, 75, 40, 45] }),
+  ] },
+
   /* ── Pythonic and modern Python ── */
   JT_PY_MODERN: { category: 'UNIVERSAL', units: [
     u('COMPREHENSIONS', 'Comprehensions and Pythonic Loops', 'List, dict and set comprehensions, enumerate, zip, unpacking, and when a plain loop reads better.',

@@ -485,6 +485,22 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* -------------- DSA IN PYTHON: taught in the track, as DSA in Java and in C# are -------------- */
+  {
+    moduleCode: 'JT_PY_DSA',
+    moduleName: 'Data Structures and Algorithms in Python',
+    displayOrder: 96,
+    blurb: 'The data structures and algorithms interviews ask, implemented and solved in Python.',
+    topics: [
+      t('JT_PY_DSA_LINEAR', 'DSA in Python: Arrays to Sorting',
+        ['DSA_COMPLEXITY', 'DSA_ARRAYS', 'DSA_LINKED_LIST', 'DSA_STACK', 'DSA_HASHING', 'DSA_RECURSION', 'DSA_SORTING'],
+        ['Solve list, string, linked-list, stack, hashing, recursion and sorting problems in Python and state their cost.']),
+      t('JT_PY_DSA_NONLINEAR', 'DSA in Python: Trees to Dynamic Programming',
+        ['DSA_TREES', 'DSA_HEAPS', 'DSA_GRAPHS', 'DSA_GREEDY', 'DSA_DP'],
+        ['Solve tree, heap, graph, greedy and dynamic-programming problems in Python.']),
+    ],
+  },
+
   /* ══════════════ PYTHON — what the years do not teach: modern Python, pytest, Python and MySQL ══════════════ */
   {
     moduleCode: 'JT_PYTHON',

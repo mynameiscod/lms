@@ -125,10 +125,10 @@ export const PACKS: PackDefinition[] = [
     topics: [['T_VARIABLES', 'MUST'], ['T_CONDITIONS', 'MUST'], ['T_LOOPS', 'MUST'], ['T_FUNCTIONS', 'MUST'], ['T_ARRAYS', 'MUST'],
       ['T2_OOP_OBJECTS', 'MUST'], ['T2_OOP_PRINCIPLES', 'MUST'], ['T2_PY_STRUCTURE', 'MUST'], ['T2_PY_ROBUST', 'MUST'],
       ['JT_PY_MODERN', 'MUST'], ['JT_PY_TESTING', 'MUST'], ['T3_ADV_OOP', 'SHOULD']] },
+  /* Taught in the track, as DSA in Java and DSA in C# are, not the years' lessons (user decision 2026-11-06). */
   { key: 'DSA_PYTHON', title: 'DSA in Python', kind: 'SKILL',
-    description: 'The data structures and algorithms interviews ask, in Python — the years’ lessons, in order.',
-    topics: [['T2_DS_LINEAR', 'MUST'], ['T2_DS_KEYED', 'MUST'], ['T2_ALGORITHMS', 'MUST'], ['T2_DSA_INTERVIEW', 'MUST'],
-      ['T3_TREES_BST', 'MUST'], ['T3_GRAPHS', 'MUST'], ['T3_GREEDY_DP', 'MUST'], ['T3_HEAPS', 'SHOULD']] },
+    description: 'The data structures and algorithms interviews ask, implemented and solved in Python.',
+    topics: [['JT_PY_DSA_LINEAR', 'MUST'], ['JT_PY_DSA_NONLINEAR', 'MUST']] },
   { key: 'PYTHON_DATA', title: 'Python and MySQL', kind: 'SKILL',
     description: 'Python reaching MySQL directly — before the Django ORM does it for you.',
     topics: [['JT_PY_MYSQL', 'MUST']] },

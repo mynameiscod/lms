@@ -367,7 +367,7 @@ const LeadDashboard: React.FC = () => {
         </select>
         <div className="ldb-filters-right">
           <button className="ldb-icon-btn" onClick={exportExcel} title="Export to Excel" aria-label="Export to Excel"><i className="bi bi-download" /></button>
-          <button className="ldb-icon-btn" onClick={() => navigate('/leads')} title="Open the full leads list" aria-label="Open the full leads list"><i className="bi bi-list-ul" /></button>
+          <button className="ldb-icon-btn" onClick={() => navigate('/lead-list')} title="Open the full leads list" aria-label="Open the full leads list"><i className="bi bi-list-ul" /></button>
         </div>
       </div>
 

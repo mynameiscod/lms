@@ -2916,6 +2916,8 @@ export const followUpApi = {
     return authenticatedFetch(`${API_BASE_URL}/follow-ups/my?page=${page}&limit=${limit}`);
   },
 
+  /** All follow-ups of one lead (newest first). */
+  getLeadFollowUps: async (leadId: string) => authenticatedFetch(`${API_BASE_URL}/follow-ups/lead/${leadId}`),
   getTodayFollowUps: async () => {
     return authenticatedFetch(`${API_BASE_URL}/follow-ups/today`);
   },

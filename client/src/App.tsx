@@ -2280,7 +2280,7 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
-              <LeadsPage />
+              <LeadDashboardPage />
             </Layout>
           </ProtectedRoute>
         }
@@ -2486,14 +2486,16 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
-        path="/lead-dashboard"
+        path="/lead-list"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
-              <LeadDashboardPage />
+              <LeadsPage />
             </Layout>
           </ProtectedRoute>
         }
+      />
+      <Route path="/lead-dashboard" element={<Navigate to="/leads" replace />}
       />
       <Route
         path="/lead-automation"

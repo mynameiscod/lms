@@ -324,8 +324,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       moduleKey: 'leads',
       permissions: ['manage_leads', 'view_leads', 'create_leads', 'edit_leads', 'manage_event_apis'],
       submenu: [
-        { label: 'Lead Dashboard', path: '/lead-dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-gauge-high', permissions: ['view_leads', 'manage_leads'] },
-        { label: 'All Leads', path: '/leads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-users-viewfinder', permissions: ['manage_leads', 'view_leads'] },
+        { label: 'Lead Dashboard', path: '/leads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-gauge-high', permissions: ['view_leads', 'manage_leads'] },
+        { label: 'All Leads (list)', path: '/lead-list', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-users-viewfinder', permissions: ['manage_leads', 'view_leads'] },
         { label: 'Admissions Dashboard', path: '/admissions-dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-chart-column', permissions: ['view_lead_analytics', 'manage_leads'] },
         { label: 'Follow-up Queue', path: '/follow-up-queue', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-list-check', permissions: ['view_leads', 'edit_leads'] },
         { label: 'Follow-up Calendar', path: '/follow-ups', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-calendar-days', permissions: ['view_leads', 'edit_leads'] },

@@ -41,6 +41,10 @@ import { TRACK_PY_OOP_A_BUNDLES } from './trackContentPyOopA';
 import { TRACK_PY_OOP_B_BUNDLES } from './trackContentPyOopB';
 import { TRACK_PY_PROJECTS_BUNDLES } from './trackContentPyProjects';
 import { TRACK_PY_ERRORS_BUNDLES } from './trackContentPyErrors';
+import { TRACK_PY_DSA_LINEAR_A_BUNDLES } from './trackContentPyDsaLinearA';
+import { TRACK_PY_DSA_LINEAR_B_BUNDLES } from './trackContentPyDsaLinearB';
+import { TRACK_PY_DSA_NONLINEAR_A_BUNDLES } from './trackContentPyDsaNonlinearA';
+import { TRACK_PY_DSA_NONLINEAR_B_BUNDLES } from './trackContentPyDsaNonlinearB';
 import { TRACK_PY_MODERN_BUNDLES } from './trackContentPyModern';
 import { TRACK_PY_TESTING_BUNDLES } from './trackContentPyTesting';
 import { TRACK_PY_MYSQL_BUNDLES } from './trackContentPyMysql';
@@ -255,6 +259,10 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_PY_OOP_B_BUNDLES,
   ...TRACK_PY_PROJECTS_BUNDLES,
   ...TRACK_PY_ERRORS_BUNDLES,
+  ...TRACK_PY_DSA_LINEAR_A_BUNDLES,
+  ...TRACK_PY_DSA_LINEAR_B_BUNDLES,
+  ...TRACK_PY_DSA_NONLINEAR_A_BUNDLES,
+  ...TRACK_PY_DSA_NONLINEAR_B_BUNDLES,
   ...TRACK_PY_MODERN_BUNDLES,
   ...TRACK_PY_TESTING_BUNDLES,
   ...TRACK_PY_MYSQL_BUNDLES,

@@ -205,7 +205,6 @@ const MissionControl: React.FC = () => {
   const price = status?.priceInr ?? 499;
   const scoreNum = result?.careerScore ?? status?.passport?.careerScore ?? 0;
   const levelLabel = result?.level ?? status?.passport?.level ?? '';
-  const pathwayLabel = result?.pathwayLabel ?? status?.passport?.pathway ?? '';
 
   /**
    * Progress is earned by doing the work, not by paying for it, so it is shown in the locked

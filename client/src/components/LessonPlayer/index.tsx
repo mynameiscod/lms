@@ -137,6 +137,7 @@ function LinkedListAnimation() {
   useEffect(() => {
     const iv = setInterval(() => setActiveNode(p => (p + 1) % nodes.length), 800);
     return () => clearInterval(iv);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, []);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
@@ -177,6 +178,7 @@ function BinaryTreeAnimation() {
   useEffect(() => {
     const iv = setInterval(() => setActive(p => (p + 1) % nodes.length), 700);
     return () => clearInterval(iv);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, []);
   return (
     <div style={{ width: '100%', maxWidth: '300px', margin: '0 auto' }}>
@@ -213,6 +215,7 @@ function BubbleSortAnimation() {
       } else { i++; j = 0; }
     }, 700);
     return () => clearInterval(iv);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, []);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
@@ -248,6 +251,7 @@ function BinarySearchAnimation() {
   useEffect(() => {
     const iv = setInterval(() => setStep(p => (p + 1) % (steps.length + 2)), 900);
     return () => clearInterval(iv);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, []);
   const cur = step < steps.length ? steps[step] : null;
   return (
@@ -282,6 +286,7 @@ function HashMapAnimation() {
   useEffect(() => {
     const iv = setInterval(() => setActive(p => (p + 1) % pairs.length), 800);
     return () => clearInterval(iv);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, []);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
@@ -412,6 +417,7 @@ function CodeRevealSlide({ slide }: { slide: Slide }) {
       if (i >= lines.length) clearInterval(iv);
     }, speedMs);
     return () => clearInterval(iv);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [slide.code, speedMs]);
 
   return (

@@ -33,7 +33,7 @@ const BattleExam: React.FC = () => {
   const [idx, setIdx] = useState(0);
   const [endsAt, setEndsAt] = useState(0);
   const [left, setLeft] = useState(0);
-  const [result, setResult] = useState<any>(null);
+  const [, setResult] = useState<any>(null);
   const [now, setNow] = useState(Date.now());
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);

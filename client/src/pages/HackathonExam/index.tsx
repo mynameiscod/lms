@@ -149,7 +149,6 @@ const HackathonExam: React.FC = () => {
 
   /* entry */
   const [slug, setSlug] = useState(routeSlug || search.get('slug') || '');
-  const [teamCode, setTeamCode] = useState('');
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
   const [masked, setMasked] = useState('');

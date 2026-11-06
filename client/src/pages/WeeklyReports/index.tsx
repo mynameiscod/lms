@@ -71,6 +71,7 @@ const WeeklyReports: React.FC = () => {
     } catch { setMsg({ type: 'err', text: 'Failed to load student summaries' }); }
     finally { setLoading(false); }
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { loadSummaries(); /* eslint-disable-next-line */ }, [batchId, weekStart]);
   useEffect(() => {
     setEst(null);

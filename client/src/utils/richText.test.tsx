@@ -67,8 +67,10 @@ describe('nothing authored can become script, markup or an attribute', () => {
   });
 
   it('strips href from a link, so javascript: cannot be reached', () => {
+    // eslint-disable-next-line no-script-url -- this test feeds a javascript: URL to prove it is stripped
     const out = html('<a href="javascript:alert(1)">click</a>');
     expect(out).not.toContain('href');
+    // eslint-disable-next-line no-script-url -- asserting the javascript: scheme is gone
     expect(out).not.toContain('javascript:');
     expect(out).toContain('click');   // the text is kept; only the link is gone
   });

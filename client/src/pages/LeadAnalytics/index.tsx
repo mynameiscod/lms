@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { leadApi, userApi } from '../../api';
 import './LeadAnalytics.css';
 
@@ -61,7 +60,6 @@ const slaBadgeClass = (s: TeamSLA['slaStatus']) =>
 
 // ── Component ────────────────────────────────────────────────────────────────
 const LeadAnalytics: React.FC = () => {
-  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

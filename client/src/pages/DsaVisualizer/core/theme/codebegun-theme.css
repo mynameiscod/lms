@@ -1,0 +1,46 @@
+/*
+ * CodeBegun colour tokens for the DSA Visualizer.
+ * Brand: navy #051D64, teal #359AAD, deep navy #020E32 (from the CodeBegun logo).
+ * Every colour in the visualizer (CSS, canvas and SVG) reads from these variables.
+ * Change a value here and the whole visualizer follows; keep FALLBACK in vizTheme.ts in sync.
+ * Keep the four states distinct: pointer = teal, evaluate = amber, match = green, discard = red.
+ */
+:root {
+  --viz-bg: #F5F8FC;
+  --viz-surface: #FFFFFF;
+  --viz-surface-muted: #EEF3F9;
+  --viz-surface-tint: #F8FAFD;
+  --viz-border: #D6DEEA;
+  --viz-border-strong: #A9B6CC;
+  --viz-text: #0A1A4A;
+  --viz-text-soft: #34405E;
+  --viz-text-muted: #4A5878;
+  --viz-text-subtle: #66728E;
+  --viz-primary: #051D64;
+  --viz-primary-hover: #041650;
+  --viz-on-primary: #FFFFFF;
+  --viz-pointer: #359AAD;
+  --viz-pointer-strong: #1F7F92;
+  --viz-pointer-deep: #13606F;
+  --viz-pointer-soft: #E3F3F6;
+  --viz-pointer-faint: #F1F8FA;
+  --viz-pointer-mid: #A9DCE5;
+  --viz-evaluate: #D97706;
+  --viz-evaluate-bright: #F59E0B;
+  --viz-evaluate-strong: #B45309;
+  --viz-evaluate-soft: #FEF3C7;
+  --viz-evaluate-mid: #FDE68A;
+  --viz-match: #15803D;
+  --viz-match-bright: #16A34A;
+  --viz-match-deep: #166534;
+  --viz-match-soft: #DCFCE7;
+  --viz-match-mid: #BBF7D0;
+  --viz-discard: #DC2626;
+  --viz-discard-soft: #FEE2E2;
+  --viz-discard-faint: #F6E7EA;
+  --viz-accent: #3B4FA8;
+  --viz-accent-strong: #2C3E9E;
+  --viz-accent-soft: #E6E9F7;
+  --viz-accent-mid: #B9C3EE;
+  --viz-code-number: #B45309;
+}

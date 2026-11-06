@@ -6,6 +6,7 @@ describe('careerpilotReturn', () => {
   });
 
   it('ignores anything that is not a CareerPilot path', () => {
+    // eslint-disable-next-line no-script-url -- this test feeds a javascript: URL to prove it is rejected
     for (const bad of ['https://evil.example', '//evil.example/careerpilot/', '/quizzes', '/careerpilot\\..\\x', 'javascript:alert(1)', '']) {
       expect(careerpilotReturn(`?returnTo=${encodeURIComponent(bad)}`)).toBe('');
     }

@@ -117,7 +117,7 @@ const StudentProfileDetail: React.FC = () => {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [loadingReport, setLoadingReport] = useState(false);
-  const [error, setError] = useState('');
+  const [, setError] = useState('');
   const [notes, setNotes] = useState<any[]>([]);
   const [noteText, setNoteText] = useState('');
   const [savingNote, setSavingNote] = useState(false);

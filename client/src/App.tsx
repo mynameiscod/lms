@@ -156,7 +156,6 @@ const PassportSkillAssessment = lazy(() => import('./pages/Passport/SkillAssessm
 const PassportRewards = lazy(() => import('./pages/Passport/Rewards'));
 const AptitudeSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.AptitudeSoon })));
 const ReasoningSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.ReasoningSoon })));
-const PassportPractice = lazy(() => import('./pages/Passport/Practice'));
 const PassportPracticeItem = lazy(() => import('./pages/Passport/PracticeItem'));
 const PassportInterview = lazy(() => import('./pages/Passport/Interview'));
 const PassportResumeCenter = lazy(() => import('./pages/Passport/ResumeCenter'));
@@ -206,6 +205,7 @@ const DsaCurriculum = lazy(() => import('./pages/CodeVisualizer/learn/Curriculum
 const DsaModulePage = lazy(() => import('./pages/CodeVisualizer/learn/ModulePage'));
 const CodeVisualizerWorkspace = lazy(() => import('./pages/CodeVisualizer/Workspace'));
 const CodeVisualizerAdmin = lazy(() => import('./pages/CodeVisualizerAdmin'));
+const DsaVisualizer = lazy(() => import('./pages/DsaVisualizer'));
 const ThinkingLabAdmin = lazy(() => import('./pages/ThinkingLabAdmin'));
 const InterviewQuestionsPage = lazy(() => import('./pages/InterviewQuestions'));
 const InterviewQuestionBankPage = lazy(() => import('./pages/InterviewQuestionBank'));
@@ -1370,6 +1370,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
             <Layout>
               <CodeVisualizer />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* DSA Visualizer (searching, sorting, coding patterns). Static path, so it wins over /visualizer/:slug. */}
+      <Route
+        path="/visualizer/dsa"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <DsaVisualizer />
             </Layout>
           </ProtectedRoute>
         }

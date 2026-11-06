@@ -170,7 +170,6 @@ const AdminAssignmentList: React.FC = () => {
     points: { sortBy: 'totalPoints', sortOrder: 'desc', label: 'Highest Points' },
     title: { sortBy: 'title', sortOrder: 'asc', label: 'Title (A–Z)' },
   };
-  const hasFilters = !!(search || statusFilter || typeFilter || difficultyFilter || batchFilter || languageFilter || techFilter || audienceFilter || createdByFilter);
   const clearFilters = () => {
     setSearch(''); setStatusFilter(''); setTypeFilter(''); setDifficultyFilter('');
     setBatchFilter(''); setLanguageFilter(''); setTechFilter(''); setAudienceFilter(''); setCreatedByFilter(''); setPage(1);
@@ -424,8 +423,6 @@ const AdminAssignmentList: React.FC = () => {
     return { text: `${-diff} day${diff === -1 ? '' : 's'} overdue`, overdue: true };
   };
 
-  const LANGUAGES = ['javascript', 'typescript', 'python', 'java', 'cpp', 'c', 'csharp', 'go', 'rust', 'sql', 'html', 'css'];
-  const LANG_LABEL: Record<string, string> = { javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python', java: 'Java', cpp: 'C++', c: 'C', csharp: 'C#', go: 'Go', rust: 'Rust', sql: 'SQL', html: 'HTML', css: 'CSS' };
 
   const AVATAR_COLORS = ['#6366f1', '#16a34a', '#d97706', '#0ea5e9', '#ec4899', '#7c3aed'];
   const creatorName = (a: Assignment) => {
@@ -442,16 +439,6 @@ const AdminAssignmentList: React.FC = () => {
     );
   };
 
-  // Icon tile shown before an assignment's title, keyed by type.
-  const TYPE_TILE: Record<string, { icon: string; bg: string; color: string }> = {
-    coding: { icon: '</>', bg: '#eef2ff', color: '#6366f1' },
-    mcq: { icon: '✓', bg: '#ecfeff', color: '#0891b2' },
-    theory: { icon: '📖', bg: '#fef3c7', color: '#d97706' },
-    project: { icon: '🗂', bg: '#f0fdf4', color: '#16a34a' },
-    file_upload: { icon: '📎', bg: '#faf5ff', color: '#a855f7' },
-    exam: { icon: '🎯', bg: '#fff1f2', color: '#e11d48' },
-  };
-  const typeTile = (type: string) => TYPE_TILE[type] || { icon: '🌐', bg: '#eff6ff', color: '#2563eb' };
 
   const getStatusBadge = (status: AssignmentStatus) => {
     return <span className={`badge badge-${status}`}>{status}</span>;
@@ -808,7 +795,6 @@ const AdminAssignmentList: React.FC = () => {
         const published = stats?.publishedAssignments ?? 0;
         const draft = stats?.draftAssignments ?? 0;
         const coding = stats?.byType?.find(x => x._id === 'coding')?.count ?? 0;
-        const pct = (n: number) => (t ? Math.round((n / t) * 100 * 10) / 10 : 0);
         void coding;
         const cards = [
           { icon: '📄', tint: '#eef2ff', color: '#6366f1', value: t, label: 'Total Assignments', sub: 'All time' },

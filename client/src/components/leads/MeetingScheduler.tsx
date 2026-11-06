@@ -27,7 +27,6 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [duration, setDuration] = useState('30');
-  const [trainer, setTrainer] = useState('');
   const [location, setLocation] = useState('hyderabad');
   const [notes, setNotes] = useState('');
   const [sendWhatsApp, setSendWhatsApp] = useState(true);

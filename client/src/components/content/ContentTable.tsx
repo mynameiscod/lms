@@ -27,9 +27,9 @@ const ContentTable: React.FC<ContentTableProps> = ({
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'createdAt' | 'title' | 'viewCount'>('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [searchTerm] = useState('');
+  const [sortBy] = useState<'createdAt' | 'title' | 'viewCount'>('createdAt');
+  const [sortOrder] = useState<'asc' | 'desc'>('desc');
 
   const loadContent = useCallback(async () => {
     setLoading(true);

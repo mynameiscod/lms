@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { assignmentApi } from '../../api/assignmentApi';
 import CompletionTab from './CompletionTab';
 import './AssignmentReports.css';
@@ -49,7 +48,6 @@ interface StudentPerformance {
 }
 
 const AssignmentReports: React.FC = () => {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'assignments' | 'students' | 'completion'>('overview');

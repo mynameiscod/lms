@@ -556,7 +556,7 @@ export default function DayView() {
   if (error)   return <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>{error}</div>;
   if (!data)   return null;
 
-  const { enrollment, curriculum, topic, items, isDayCompleted, isLocked, lockReason, aiGenStatus, todayPlanDay } = data;
+  const { enrollment, topic, items, isDayCompleted, isLocked, lockReason, aiGenStatus, todayPlanDay } = data;
   const totalDays = enrollment.totalDays;
   const hasPrev = dayNumber > 1;
   const hasNext = dayNumber < totalDays;

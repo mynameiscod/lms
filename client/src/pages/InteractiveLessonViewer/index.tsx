@@ -645,7 +645,7 @@ export default function InteractiveLessonViewerPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [lesson, setLesson] = useState<InteractiveLesson | null>(null);
-  const [progress, setProgress] = useState<LessonProgress | null>(null);
+  const [, setProgress] = useState<LessonProgress | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [completed, setCompleted] = useState(false);

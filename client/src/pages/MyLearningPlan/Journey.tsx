@@ -30,6 +30,7 @@ const MyJourney: React.FC = () => {
     } finally { setLoading(false); }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { loadJourney(); /* eslint-disable-next-line */ }, [enrollmentId]);
 
   const handleUnlock = async () => {

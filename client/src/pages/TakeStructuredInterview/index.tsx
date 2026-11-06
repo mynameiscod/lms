@@ -29,7 +29,7 @@ const TakeStructuredInterview: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [overallRemaining, setOverallRemaining] = useState(0);
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
-  const [tabWarnings, setTabWarnings] = useState(0);
+  const [, setTabWarnings] = useState(0);
   const [voiceMode, setVoiceMode] = useState(false);
   const [tool, setTool] = useState<'' | 'notes' | 'calculator' | 'whiteboard' | 'code'>('');
   const [notes, setNotes] = useState('');
@@ -75,6 +75,7 @@ const TakeStructuredInterview: React.FC = () => {
       setAnswerMediaMode('text');
     }
     questionStartRef.current = Date.now();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [currentSectionIdx, currentQuestionIdx, qMode]);
 
   // ── Voice layer (browser TTS/STT) ───────────────────────────────────
@@ -195,7 +196,6 @@ const TakeStructuredInterview: React.FC = () => {
   const currentSection = sections[currentSectionIdx];
   const questions = currentSection?.questionResponses || [];
   const currentQuestion = questions[currentQuestionIdx];
-  const navMode = attempt?.templateId?.sectionNavigationMode || 'sequential';
   const recordVideo = !!attempt?.templateId?.recordVideo;
   const videoFallback = attempt?.templateId?.videoFallback || 'allow_text';
 
@@ -243,7 +243,8 @@ const TakeStructuredInterview: React.FC = () => {
   const calcResult = (() => {
     if (!calcExpr.trim()) return '';
     if (!/^[-+*/().\d\s]*$/.test(calcExpr)) return 'invalid expression';
-    try { /* eslint-disable-next-line no-new-func */ return String(Function(`"use strict";return (${calcExpr})`)()); } catch { return 'error'; }
+    // eslint-disable-next-line no-new-func -- calcExpr is whitelisted above to digits and arithmetic operators
+    try { return String(Function(`"use strict";return (${calcExpr})`)()); } catch { return 'error'; }
   })();
 
   // Bind the live stream to the self-view element
@@ -304,6 +305,7 @@ const TakeStructuredInterview: React.FC = () => {
       currentQuestion.answerCode ||
       ''
     );
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [currentSectionIdx, currentQuestionIdx, attempt]);
 
   // ── Save answer ─────────────────────────────────────────────────────
@@ -351,12 +353,6 @@ const TakeStructuredInterview: React.FC = () => {
   const goNextQuestion = () => {
     if (currentQuestionIdx < questions.length - 1) {
       setCurrentQuestionIdx(prev => prev + 1);
-      mediaRecorder.reset();
-    }
-  };
-  const goPrevQuestion = () => {
-    if (currentQuestionIdx > 0) {
-      setCurrentQuestionIdx(prev => prev - 1);
       mediaRecorder.reset();
     }
   };

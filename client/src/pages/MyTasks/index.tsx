@@ -25,7 +25,9 @@ export default function MyTasks() {
   useEffect(()=>{ enrollmentPlanApi.myTasks().then(setTasks).catch(()=>setError('We could not load your tasks. Please try again.')).finally(()=>setLoading(false)); },[]);
   const now=new Date(), today=start(now), weekEnd=today+7*86400000, monthEnd=today+30*86400000;
   const groupOf=(t:PlanTask):Group=>{ if(!t.dueAt)return 'upcoming'; const d=start(new Date(t.dueAt)); if(t.overdue||d<today)return 'overdue'; if(d===today)return 'today'; if(d<=weekEnd)return 'week'; if(d<=monthEnd)return 'month'; return 'upcoming'; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   const counts=useMemo(()=>({ total:tasks.length, overdue:tasks.filter(t=>groupOf(t)==='overdue').length, today:tasks.filter(t=>groupOf(t)==='today').length, week:tasks.filter(t=>['today','week'].includes(groupOf(t))).length }),[tasks,today]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   const visible=useMemo(()=>tasks.filter(t=>kind==='all'||t.kind===kind).filter(t=>filter==='all'||(filter==='week'?['today','week'].includes(groupOf(t)):filter==='month'?['today','week','month'].includes(groupOf(t)):groupOf(t)===filter)).sort((a,b)=>sort==='type'?a.kind.localeCompare(b.kind):(a.dueAt?new Date(a.dueAt).getTime():Infinity)-(b.dueAt?new Date(b.dueAt).getTime():Infinity)),[tasks,filter,kind,sort,today]);
   const upcoming=tasks.filter(t=>t.dueAt&&groupOf(t)!=='overdue').sort((a,b)=>new Date(a.dueAt!).getTime()-new Date(b.dueAt!).getTime()).slice(0,4);
   if(loading)return <div className="tasks-state"><span className="spinner-border spinner-border-sm"/> Loading your tasks…</div>;

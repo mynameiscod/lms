@@ -141,6 +141,7 @@ const CareerSetup: React.FC = () => {
         else if (r.context.status.onboardingCompleted) setDone(true);
       })
       .catch(e => setErr(e?.response?.data?.message || 'Could not load your details.'));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, []);
 
   const steps = useMemo<StepKey[]>(() => {

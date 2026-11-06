@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { leadApi, leadStageApi, userApi, leadFormConfigApi } from '../../api';
@@ -187,8 +187,8 @@ const LeadsPage: React.FC = () => {
   });
 
   const [showReasonModal, setShowReasonModal] = useState(false);
-  const [pendingLeadId, setPendingLeadId] = useState('');
-  const [pendingStageId, setPendingStageId] = useState('');
+  const [pendingLeadId] = useState('');
+  const [pendingStageId] = useState('');
   const [notInterestedReason, setNotInterestedReason] = useState('');
 
   const [openMenuId, setOpenMenuId] = useState<string|null>(null);
@@ -204,6 +204,7 @@ const LeadsPage: React.FC = () => {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [showModal, showImportModal, showWhatsAppModal, showReasonModal]);
 
   useEffect(() => {

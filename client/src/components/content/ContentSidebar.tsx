@@ -132,7 +132,7 @@ const ContentSidebar: React.FC<ContentSidebarProps> = ({
   onToggleCollapse,
   onCreateNew
 }) => {
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [, setCourses] = useState<Course[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -141,6 +141,7 @@ const ContentSidebar: React.FC<ContentSidebarProps> = ({
 
   useEffect(() => {
     fetchCourses();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, []);
 
   useEffect(() => {

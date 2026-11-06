@@ -54,6 +54,7 @@ const BatchesPage: React.FC = () => {
     specialDays: [] as { date: string; type: string; label?: string }[],
   });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {

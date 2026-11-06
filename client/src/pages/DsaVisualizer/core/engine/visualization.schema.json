@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/VisualizationEvent",
+  "$defs": {
+    "VisualizationEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "runId", "sequence", "type", "payload", "durationMs", "highlightIds", "explanation"],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "runId": {"type": "string", "minLength": 1, "maxLength": 128},
+        "sequence": {"type": "integer", "minimum": 0},
+        "type": {"enum": ["compare", "swap", "visitNode", "pipelineStep"]},
+        "payload": {"type": "object"},
+        "durationMs": {"type": "integer", "minimum": 0, "maximum": 5000},
+        "highlightIds": {"type": "array", "maxItems": 1000, "uniqueItems": true, "items": {"type": "string", "maxLength": 128}},
+        "explanation": {"type": "string", "maxLength": 2000}
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "type": {"enum": ["compare", "swap"]},
+            "payload": {
+              "type": "object", "additionalProperties": false,
+              "required": ["leftIndex", "rightIndex"],
+              "properties": {
+                "leftIndex": {"type": "integer", "minimum": 0},
+                "rightIndex": {"type": "integer", "minimum": 0}
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {"const": "visitNode"},
+            "payload": {
+              "type": "object", "additionalProperties": false,
+              "required": ["nodeId", "phase"],
+              "properties": {
+                "nodeId": {"type": "string", "minLength": 1, "maxLength": 128},
+                "phase": {"enum": ["enter", "exit"]}
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {"const": "pipelineStep"},
+            "payload": {
+              "type": "object", "additionalProperties": false,
+              "required": ["stageId", "operation", "status"],
+              "properties": {
+                "stageId": {"type": "string", "minLength": 1, "maxLength": 128},
+                "operation": {"enum": ["loadDataset", "splitData", "transform", "train", "evaluate"]},
+                "status": {"enum": ["started", "completed", "failed"]}
+              }
+            }
+          }
+        }
+      ]
+    },
+    "PlaybackState": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "runId", "status", "cursor", "bufferedEventCount", "totalEventCount", "generationComplete", "speed", "elapsedInEventMs", "errorCode"],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "runId": {"type": "string", "minLength": 1, "maxLength": 128},
+        "status": {"enum": ["idle", "buffering", "paused", "playing", "completed", "error"]},
+        "cursor": {"type": "integer", "minimum": 0},
+        "bufferedEventCount": {"type": "integer", "minimum": 0},
+        "totalEventCount": {"type": ["integer", "null"], "minimum": 0},
+        "generationComplete": {"type": "boolean"},
+        "speed": {"type": "number", "minimum": 0.25, "maximum": 4},
+        "elapsedInEventMs": {"type": "number", "minimum": 0, "maximum": 5000},
+        "errorCode": {"type": ["string", "null"], "maxLength": 128}
+      }
+    }
+  }
+}

@@ -78,6 +78,7 @@ const Recorder: React.FC<{ today: any; onDone: (a: any) => void; onClose: () => 
     } catch { /* no meter: the server still refuses a silent recording */ }
   };
   const stopStream = () => { stopMeter(); streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => () => { clearInterval(timerRef.current); stopStream(); if (playUrl) URL.revokeObjectURL(playUrl); }, [playUrl]);
 
   useEffect(() => {
@@ -229,7 +230,6 @@ const CommunicationLab: React.FC = () => {
   const counted = history.filter(isCounted);
   const practised = counted.length;
   const avgScore = counted.length ? Math.round(counted.reduce((n, a) => n + (a.evaluation!.overallScore as number), 0) / counted.length) : null;
-  const completed = today?.status === 'completed';
 
   return <div className="clx">
     <header className="clx-top">

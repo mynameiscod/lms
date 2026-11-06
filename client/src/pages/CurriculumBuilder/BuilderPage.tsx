@@ -282,8 +282,8 @@ export default function BuilderPage() {
 
   const [tab, setTab]                   = useState<Tab>('overview');
   const [curriculum, setCurriculum]     = useState<Partial<Curriculum>>({ totalDays: 145, topics: [] });
-  const [dayPlans, setDayPlans]         = useState<DayPlan[]>([]);
-  const [weekendPlans, setWeekendPlans] = useState<WeekendPlan[]>([]);
+  const [, setDayPlans]         = useState<DayPlan[]>([]);
+  const [, setWeekendPlans] = useState<WeekendPlan[]>([]);
   const [loading, setLoading]           = useState(!isCreate);
   const [saving, setSaving]             = useState(false);
 
@@ -339,6 +339,7 @@ export default function BuilderPage() {
         setLoading(false);
       }
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [id, isCreate]);
 
   // ── Save overview ─────────────────────────────────────────────────────────

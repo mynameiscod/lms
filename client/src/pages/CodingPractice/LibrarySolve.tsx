@@ -124,8 +124,8 @@ const LibrarySolve: React.FC<{ base: string }> = ({ base }) => {
     <div className="pl">
       <div className="pl-crumbs">
         <i className="fa-solid fa-code" />
-        <a onClick={() => nav(base)}>Practice</a>
-        {topic && <><span>›</span><a onClick={() => nav(`${base}?topic=${encodeURIComponent(topic)}`)}>{topic}</a></>}
+        <a href={base} onClick={e => { e.preventDefault(); nav(base); }}>Practice</a>
+        {topic && <><span>›</span><a href={`${base}?topic=${encodeURIComponent(topic)}`} onClick={e => { e.preventDefault(); nav(`${base}?topic=${encodeURIComponent(topic)}`); }}>{topic}</a></>}
         <span>›</span><span style={{ color: '#0f172a', fontWeight: 600 }}>{p.number}. {p.title}</span>
         <span className="grow" />
         <button className="pl-btn sm" disabled={!p.set.prevId} onClick={() => nav(`${base}/${p.set.prevId}`)}><i className="fa-solid fa-chevron-left" /> Previous</button>

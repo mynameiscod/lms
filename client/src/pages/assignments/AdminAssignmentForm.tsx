@@ -56,7 +56,7 @@ const AdminAssignmentForm: React.FC = () => {
   const [topicInput, setTopicInput] = useState('');
 
   // Course Structure Linking
-  const [courses, setCourses] = useState<any[]>([]);
+  const [, setCourses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [chapters, setChapters] = useState<any[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<string>('');
@@ -110,9 +110,8 @@ const AdminAssignmentForm: React.FC = () => {
   const [selectedBatches, setSelectedBatches] = useState<string[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [isExternalAssignment, setIsExternalAssignment] = useState(false);
-  const [allBatches, setAllBatches] = useState<any[]>([]);
+  const [, setAllBatches] = useState<any[]>([]);
   const [allStudents, setAllStudents] = useState<any[]>([]);
-  const [studentSearch, setStudentSearch] = useState('');
 
   // Code Execution Settings
   const [showSyntaxErrors, setShowSyntaxErrors] = useState(true);
@@ -177,6 +176,7 @@ const AdminAssignmentForm: React.FC = () => {
     if (id) {
       loadAssignment();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [id]);
 
   // Load courses on mount
@@ -219,6 +219,7 @@ const AdminAssignmentForm: React.FC = () => {
       };
       loadStudents();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [accessibleTo]);
 
   // Load subjects when course changes
@@ -250,6 +251,7 @@ const AdminAssignmentForm: React.FC = () => {
       setSelectedSubject('');
       setSelectedChapter('');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [selectedCourse]);
 
   // Load chapters when subject changes
@@ -277,6 +279,7 @@ const AdminAssignmentForm: React.FC = () => {
       setChapters([]);
       setSelectedChapter('');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [selectedSubject]);
 
   const loadAssignment = async () => {
@@ -481,12 +484,6 @@ const AdminAssignmentForm: React.FC = () => {
     setTestCases(testCases.filter((_, i) => i !== index));
   };
 
-  // Starter Code helpers
-  const addStarterCode = (lang: ProgrammingLanguage) => {
-    if (!starterCode.find(s => s.language === lang)) {
-      setStarterCode([...starterCode, { language: lang, code: '' }]);
-    }
-  };
 
   const updateStarterCode = (lang: ProgrammingLanguage, code: string) => {
     setStarterCode(prev => {

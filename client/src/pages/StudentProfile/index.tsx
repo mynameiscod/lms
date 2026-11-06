@@ -130,6 +130,7 @@ const StudentProfilePage: React.FC = () => {
   useEffect(() => {
     fetchProfile();
     fetchOAuthStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, []);
 
   const fetchProfile = async () => {

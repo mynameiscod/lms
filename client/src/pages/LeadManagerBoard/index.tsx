@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { leadApi, leadStageApi, meetingApi } from '../../api';
+import { leadApi, meetingApi } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import './LeadManagerBoard.css';
 
@@ -56,7 +56,7 @@ const LeadManagerBoardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [stages, setStages] = useState<Stage[]>([]);
+  const [, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 

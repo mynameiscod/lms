@@ -46,12 +46,6 @@ type Phase = 'loading' | 'intro' | 'taking' | 'submitting' | 'result' | 'error' 
 
 function pad(n: number) { return String(n).padStart(2, '0'); }
 function formatTime(s: number) { return `${pad(Math.floor(s / 60))}:${pad(s % 60)}`; }
-function formatDuration(s: number): string {
-  if (!s || s <= 0) return '—';
-  const m = Math.floor(s / 60); const r = s % 60;
-  if (m === 0) return `${r}s`;
-  return r > 0 ? `${m}m ${r}s` : `${m}m`;
-}
 function calcCountdown(target: Date): CountdownParts {
   const total = Math.max(0, Math.floor((target.getTime() - Date.now()) / 1000));
   return { days: Math.floor(total / 86400), hours: Math.floor((total % 86400) / 3600), minutes: Math.floor((total % 3600) / 60), seconds: total % 60, totalSeconds: total };
@@ -78,7 +72,7 @@ const QuizSession: React.FC = () => {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [timeLeft, setTimeLeft] = useState(0);
-  const [result, setResult] = useState<ResultData | null>(null);
+  const [, setResult] = useState<ResultData | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [opensAt, setOpensAt] = useState('');
   const [eventTimeIST, setEventTimeIST] = useState('');

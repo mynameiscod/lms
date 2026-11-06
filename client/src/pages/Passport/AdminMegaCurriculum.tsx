@@ -108,8 +108,6 @@ const blankUnit = (
 const suggestCode = (topicCode: string, title: string): string =>
   `${topicCode}_${title}`.toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/_+/g, '_').slice(0, 70);
 
-const asList = (v: string): string[] =>
-  v.split(',').map(x => x.trim()).filter(Boolean);
 
 /**
  * Pick skills from the registry, rather than typing them and hoping.

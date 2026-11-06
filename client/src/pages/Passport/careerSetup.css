@@ -32,7 +32,7 @@
 .cps-topbar {
   height: 76px; background: rgba(255, 255, 255, .95); border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 max(16px, calc((100% - min(2400px, calc(100% - clamp(32px, 7vw, 200px)))) / 2));
+  padding: 0 max(16px, (100% - 2400px) / 2, clamp(16px, 3.5vw, 100px)); /* = (100% - content width) / 2, written without nested calc() so the CSS minifier can parse it */
   position: sticky; top: 0; z-index: 20; backdrop-filter: saturate(1.4) blur(8px);
 }
 .cps-brand { display: flex; align-items: center; }
@@ -179,7 +179,7 @@
 .cps-footer {
   background: #fff; border-top: 1px solid var(--border); color: var(--muted); min-height: 64px;
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; font-size: 13px;
-  padding: 0 max(16px, calc((100% - min(2400px, calc(100% - clamp(32px, 7vw, 200px)))) / 2));
+  padding: 0 max(16px, (100% - 2400px) / 2, clamp(16px, 3.5vw, 100px)); /* = (100% - content width) / 2, written without nested calc() so the CSS minifier can parse it */
 }
 .cps-footer-brand img { height: 36px; width: auto; display: block; }
 .cps-footer-made { text-align: right; }

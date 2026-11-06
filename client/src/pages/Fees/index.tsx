@@ -9,7 +9,7 @@ const PAGE_SIZE = 20;
 
 const FeesPage: React.FC = () => {
   const [rows, setRows] = useState<FeeRow[]>([]);
-  const [summary, setSummary] = useState<FeeSummary | null>(null);
+  const [, setSummary] = useState<FeeSummary | null>(null);
   const [analytics, setAnalytics] = useState<any>(null);
   const [batches, setBatches] = useState<Array<{ _id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);

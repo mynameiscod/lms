@@ -37,6 +37,10 @@ import { TRACK_PLACE_JAVA_FS_BUNDLES } from './trackContentPlaceJavaFs';
 import { TRACK_PY_START_BUNDLES } from './trackContentPyStart';
 import { TRACK_PY_BASICS_A_BUNDLES } from './trackContentPyBasicsA';
 import { TRACK_PY_BASICS_B_BUNDLES } from './trackContentPyBasicsB';
+import { TRACK_PY_OOP_A_BUNDLES } from './trackContentPyOopA';
+import { TRACK_PY_OOP_B_BUNDLES } from './trackContentPyOopB';
+import { TRACK_PY_PROJECTS_BUNDLES } from './trackContentPyProjects';
+import { TRACK_PY_ERRORS_BUNDLES } from './trackContentPyErrors';
 import { TRACK_PY_MODERN_BUNDLES } from './trackContentPyModern';
 import { TRACK_PY_TESTING_BUNDLES } from './trackContentPyTesting';
 import { TRACK_PY_MYSQL_BUNDLES } from './trackContentPyMysql';
@@ -247,6 +251,10 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_PY_START_BUNDLES,
   ...TRACK_PY_BASICS_A_BUNDLES,
   ...TRACK_PY_BASICS_B_BUNDLES,
+  ...TRACK_PY_OOP_A_BUNDLES,
+  ...TRACK_PY_OOP_B_BUNDLES,
+  ...TRACK_PY_PROJECTS_BUNDLES,
+  ...TRACK_PY_ERRORS_BUNDLES,
   ...TRACK_PY_MODERN_BUNDLES,
   ...TRACK_PY_TESTING_BUNDLES,
   ...TRACK_PY_MYSQL_BUNDLES,

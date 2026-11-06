@@ -465,6 +465,20 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ CORE PYTHON — the language from the first program, as Core Java and Core C# are ══════════════ */
+  {
+    moduleCode: 'JT_PY_CORE',
+    moduleName: 'Core Python',
+    displayOrder: 95,
+    blurb: 'Python from the first program: installing it, the interpreter and VS Code, then types, operators, conditions, loops, lists, strings, dictionaries and functions.',
+    topics: [
+      t('JT_PY_START', 'Getting Started with Python', ['PYTHON_BASICS', 'IDE_PROFICIENCY'],
+        ['Install Python, run a script from VS Code and from the terminal, and read and print input the way a coding round expects.']),
+      t('JT_PY_BASICS', 'Python Fundamentals', ['PYTHON_BASICS', 'PYTHON_CONTROL_FLOW', 'PYTHON_LISTS_BASICS', 'PYTHON_COLLECTIONS', 'PYTHON_FUNCTIONS'],
+        ['Write Python with types, operators, conditions, loops, lists, strings, dictionaries and functions, and predict what it prints.']),
+    ],
+  },
+
   /* ══════════════ PYTHON — what the years do not teach: modern Python, pytest, Python and MySQL ══════════════ */
   {
     moduleCode: 'JT_PYTHON',

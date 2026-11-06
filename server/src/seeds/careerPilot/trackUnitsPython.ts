@@ -12,6 +12,48 @@ import { ending } from './trackUnitsWeb';
  * with pytest, and Python talking to MySQL.
  */
 export const TRACK_PYTHON: Record<string, TopicSeed> = {
+  /*
+   * ── Python from the first program (user decision 2026-11-06) ──
+   *
+   * The tracks used to borrow Year 1's variables, conditions, loops, functions and arrays. Year 1
+   * teaches programming to first-years; a track teaches the LANGUAGE, the way Core Java and Core C#
+   * do from their first program. So Python gets its own start and fundamentals here, and Year 1 is
+   * left exactly as it is. QA/SDET keeps the borrowed topics (CORE_PYTHON_QA).
+   */
+  JT_PY_START: { category: 'UNIVERSAL', units: [
+    u('INSTALL', 'Installing Python and Meeting the Interpreter', 'What gets installed, python vs py vs python3, the REPL, and why "python is not recognised" happens.',
+      ['Install Python, check the version from a terminal, and try expressions in the interactive interpreter'], 35, { skillKeys: ['PYTHON_BASICS'] }),
+    u('FIRST_PROGRAM', 'Your First Python Script', 'A .py file, running it, indentation as syntax, comments, and reading a traceback from the bottom up.',
+      ['Write and run a script from the terminal and read the first errors it raises'], 40, { after: ['INSTALL'], skillKeys: ['PYTHON_BASICS'] }),
+    u('VSCODE', 'Working in VS Code', 'The Python extension, choosing the interpreter, running and debugging with breakpoints.',
+      ['Open a project in VS Code, pick the right interpreter, and step through a script with breakpoints'], 40, { after: ['FIRST_PROGRAM'], skillKeys: ['IDE_PROFICIENCY'] }),
+    u('INPUT_OUTPUT', 'Reading Input and Printing Output', 'input(), split and int(), print with sep and end, f-strings — the shape every coding round expects.',
+      ['Read numbers and lines from standard input and print formatted output'], 35, { after: ['VSCODE'], skillKeys: ['PYTHON_BASICS'] }),
+    ...ending('Python Setup', 'INPUT_OUTPUT', { minutes: [35, 45, 30, 35] }),
+  ] },
+
+  JT_PY_BASICS: { category: 'UNIVERSAL', units: [
+    u('TYPES', 'Variables and Built-in Types', 'Names bound to objects, int (no overflow), float, str, bool and None, and dynamic typing.',
+      ['Bind names to values, say each value\'s type, and predict where float precision surprises you'], 40, { skillKeys: ['PYTHON_BASICS'] }),
+    u('CONVERSIONS', 'Type Conversion and Truthiness', 'int(), float(), str() and bool(), the ValueError a bad conversion raises, and what counts as false.',
+      ['Convert between types safely and predict the truth value of any built-in value'], 35, { after: ['TYPES'], skillKeys: ['PYTHON_BASICS'] }),
+    u('OPERATORS', 'Operators and Expressions', '// and % with negatives, **, chained comparisons, and/or returning an operand, and is versus ==.',
+      ['Predict the value of expressions including //, %, **, chained comparisons, and, or and is'], 40, { after: ['CONVERSIONS'], skillKeys: ['PYTHON_BASICS'] }),
+    u('CONDITIONS', 'if, elif, else and match', 'Branches, the conditional expression, and match-case for choosing between shapes of data.',
+      ['Write conditions, conditional expressions and match statements that cover every case'], 40, { after: ['OPERATORS'], skillKeys: ['PYTHON_CONTROL_FLOW'] }),
+    u('LOOPS', 'Loops: for, while, range, break and else', 'Looping over anything iterable, range, enumerate and zip, break and continue, and the loop else.',
+      ['Write and trace for and while loops, including nested ones, and choose the right one'], 45, { after: ['CONDITIONS'], skillKeys: ['PYTHON_CONTROL_FLOW'] }),
+    u('LISTS_TUPLES', 'Lists and Tuples', 'Indexing and slicing, mutating a list, aliasing, the common list methods, tuples and unpacking.',
+      ['Create, slice, change and copy lists, and use tuples and unpacking where they fit'], 45, { after: ['LOOPS'], skillKeys: ['PYTHON_LISTS_BASICS'] }),
+    u('STRINGS', 'Strings and f-strings', 'Immutability, slicing, split, join, strip and replace, and formatting numbers with f-strings.',
+      ['Manipulate strings with the str methods and format output precisely with f-strings'], 45, { after: ['LISTS_TUPLES'], skillKeys: ['PYTHON_BASICS'] }),
+    u('DICTS_SETS', 'Dictionaries and Sets', 'Key lookups, get and setdefault, iterating items, counting with a dict, and set operations.',
+      ['Store, look up, count and group with dictionaries, and remove duplicates and compare collections with sets'], 45, { after: ['STRINGS'], skillKeys: ['PYTHON_COLLECTIONS'] }),
+    u('FUNCTIONS', 'Functions, Arguments and Return Values', 'def and return, default and keyword arguments, the mutable-default trap, *args and **kwargs, and local scope.',
+      ['Write functions with positional, default and keyword arguments and say what each call returns'], 45, { after: ['DICTS_SETS'], skillKeys: ['PYTHON_FUNCTIONS'] }),
+    ...ending('Python Fundamentals', 'FUNCTIONS'),
+  ] },
+
   /* ── Pythonic and modern Python ── */
   JT_PY_MODERN: { category: 'UNIVERSAL', units: [
     u('COMPREHENSIONS', 'Comprehensions and Pythonic Loops', 'List, dict and set comprehensions, enumerate, zip, unpacking, and when a plain loop reads better.',

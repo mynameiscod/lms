@@ -1899,6 +1899,28 @@ export const leadStageApi = {
   }
 };
 
+// Pipeline settings: stages → sub-stages → reasons (server: routes/leadPipelineRoutes.ts)
+const pipelineCall = (path: string, method = 'GET', body?: any) =>
+  authenticatedFetch(`${API_BASE_URL}/lead-pipeline${path}`, { method, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
+
+export const leadPipelineApi = {
+  get: () => pipelineCall(''),
+  createStage: (data: any) => pipelineCall('/stages', 'POST', data),
+  updateStage: (id: string, data: any) => pipelineCall(`/stages/${id}`, 'PUT', data),
+  deleteStage: (id: string) => pipelineCall(`/stages/${id}`, 'DELETE'),
+  reorderStages: (ids: string[]) => pipelineCall('/stages/reorder', 'PUT', { ids }),
+  setLandingStage: (id: string) => pipelineCall(`/stages/${id}/landing`, 'PUT', {}),
+  createSubStage: (data: any) => pipelineCall('/sub-stages', 'POST', data),
+  updateSubStage: (id: string, data: any) => pipelineCall(`/sub-stages/${id}`, 'PUT', data),
+  deleteSubStage: (id: string) => pipelineCall(`/sub-stages/${id}`, 'DELETE'),
+  reorderSubStages: (stageId: string, ids: string[]) => pipelineCall(`/stages/${stageId}/sub-stages/reorder`, 'PUT', { ids }),
+  createReason: (data: any) => pipelineCall('/reasons', 'POST', data),
+  updateReason: (id: string, data: any) => pipelineCall(`/reasons/${id}`, 'PUT', data),
+  deleteReason: (id: string) => pipelineCall(`/reasons/${id}`, 'DELETE'),
+  reorderReasons: (subStageId: string, ids: string[]) => pipelineCall(`/sub-stages/${subStageId}/reasons/reorder`, 'PUT', { ids }),
+  addStarter: () => pipelineCall('/starter', 'POST', {}),
+};
+
 // Lead API
 export const leadApi = {
   getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string; adId?: string; reEnquiry?: boolean }) => {

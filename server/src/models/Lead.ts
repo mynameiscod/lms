@@ -149,6 +149,9 @@ export interface ILead extends Document {
   courseInterest: string[];
   source: string;
   stageId: mongoose.Types.ObjectId;
+  subStageId?: mongoose.Types.ObjectId;
+  reasonId?: mongoose.Types.ObjectId;
+  reasonDetail?: string;
   assignedTo?: mongoose.Types.ObjectId;
   nextFollowUp?: Date;
   notes: string;
@@ -363,6 +366,10 @@ const LeadSchema: Schema = new Schema(
       ref: 'LeadStage',
       required: true
     },
+    // Configurable pipeline (LeadSubStage / LeadReason). Optional: older leads have none.
+    subStageId: { type: mongoose.Types.ObjectId, ref: 'LeadSubStage' },
+    reasonId: { type: mongoose.Types.ObjectId, ref: 'LeadReason' },
+    reasonDetail: { type: String, trim: true, maxlength: 1000 },
     assignedTo: {
       type: mongoose.Types.ObjectId,
       ref: 'User'
@@ -699,6 +706,7 @@ const LeadSchema: Schema = new Schema(
 
 LeadSchema.index({ tenantId: 1, metaSubmissionIds: 1 });
 LeadSchema.index({ tenantId: 1, stageId: 1 });
+LeadSchema.index({ tenantId: 1, subStageId: 1 }, { sparse: true });
 LeadSchema.index({ tenantId: 1, archivedAt: 1, createdAt: -1 });
 LeadSchema.index({ archiveRunId: 1 }, { partialFilterExpression: { archiveRunId: { $exists: true } } });
 LeadSchema.index({ tenantId: 1, assignedTo: 1 });

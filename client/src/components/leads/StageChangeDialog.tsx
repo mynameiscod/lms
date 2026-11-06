@@ -114,7 +114,11 @@ const StageChangeDialog: React.FC<Props> = ({ open, onClose, leadIds, initialSta
         const parts = [`${d.moved || 0} moved`];
         if (d.pendingApproval) parts.push(`${d.pendingApproval} waiting for manager approval`);
         if (d.unchanged) parts.push(`${d.unchanged} already there`);
-        if (d.failed) parts.push(`${d.failed} could not be moved`);
+        if (d.failed) {
+          // Say why, so a stuck group of leads can be fixed instead of guessed at.
+          const why = (d.errors || []).map((x: any) => String(x.message || '')).find(Boolean);
+          parts.push(`${d.failed} could not be moved${why ? ` (${why.slice(0, 160)})` : ''}`);
+        }
         onDone('bulk', `${stage!.name}: ${parts.join(', ')}`);
       } else {
         const res: any = await leadApi.changeStageFull(leadIds[0], payload);

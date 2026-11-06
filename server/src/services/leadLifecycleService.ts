@@ -87,6 +87,24 @@ export function milestoneStamps(existing: Record<string, any> | undefined, miles
   return set;
 }
 
+/**
+ * Write ONLY what this stage change modified, as one atomic update.
+ *
+ * `lead.save()` re-validates the whole document, so a lead carrying old, unrelated bad data
+ * (e.g. a meeting activity saved without `description` by the old createMeeting bug, or an
+ * enum value from an import) could not be moved at all — bulk moves reported those leads as
+ * "could not be moved". Here the fields we changed are validated, and the activities we add
+ * are built by this service, so old entries elsewhere on the lead no longer block a move.
+ */
+async function persistChanges(lead: any): Promise<void> {
+  const paths = (lead.modifiedPaths() as string[]).filter(p => p !== 'activities' && !p.startsWith('activities.'));
+  if (paths.length) await lead.validate(paths);
+  const delta = lead.getChanges();
+  if (delta && Object.keys(delta).length) {
+    await Lead.updateOne({ _id: lead._id, tenantId: lead.tenantId }, delta);
+  }
+}
+
 export async function changeStage(input: StageChangeInput): Promise<StageChangeResult> {
   const { tenantId, actor, source } = input;
   const strict = source === 'manual';
@@ -187,7 +205,7 @@ export async function changeStage(input: StageChangeInput): Promise<StageChangeR
       subStageId: sub?._id, reasonId: reason?._id, reasonDetail: reasonDetail || undefined,
       note: note || undefined, nextFollowUp: followUpAt || undefined,
     };
-    await lead.save();
+    await persistChanges(lead);
     return { status: 'pending_approval', lead, fromStageName: fromStage?.name || 'Unknown', toStageName: stage.name };
   }
 
@@ -231,7 +249,7 @@ export async function changeStage(input: StageChangeInput): Promise<StageChangeR
   });
   if (note) lead.activities.push({ type: 'note', description: note, createdBy: actor.id, createdAt: now });
 
-  await lead.save();
+  await persistChanges(lead);
   // Meta CRM events for milestones reached for the first time (never blocks; off by default).
   enqueueMilestoneEvents(tenantId, lead, Object.keys(stamped), stage);
 

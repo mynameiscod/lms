@@ -9,6 +9,7 @@ import { canChat } from '../../api/whatsAppChatApi';
 import { useAuth } from '../../contexts/AuthContext';
 import StageChangeDialog from '../../components/leads/StageChangeDialog';
 import LeadMeetingsCard from '../../components/leads/LeadMeetingsCard';
+import LeadFeeCard from '../../components/leads/LeadFeeCard';
 import './LeadDetailV2.css';
 
 interface Lead {
@@ -919,6 +920,7 @@ const LeadDetailV2: React.FC = () => {
 
           {/* Sales Call Recordings */}
           <LeadMeetingsCard leadId={lead._id} version={meetingsVersion} onChanged={(m) => { showToast(m); fetchData(); }} onError={(m) => showToast(m, 'error')} />
+          <LeadFeeCard lead={lead} onSaved={(m) => { showToast(m); fetchData(); }} onError={(m) => showToast(m, 'error')} />
           <SalesCallRecordingCard leadId={lead._id} />
         </div>
       </div>

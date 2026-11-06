@@ -20,6 +20,7 @@ import { autoAssignLead } from '../services/leadDistributionService';
 import { pushLeadStageChange } from '../services/googleSheetSyncService';
 import { scheduleDripOnStageEntry } from '../services/whatsAppDripService';
 import { changeStage, LifecycleError, StageChangeResult, enrolledStageFor } from '../services/leadLifecycleService';
+import { isMilestone, milestoneFromLegacy } from '../config/leadMilestones';
 import leadAIService from '../services/leadAIService';
 import { enqueueAICall } from '../services/aiCallQueueService';
 import AICallConfig from '../models/AICallConfig';
@@ -86,10 +87,26 @@ const mergeMatch = (target: Record<string, any>, extra: Record<string, any>) => 
 
 // Build common filter from query params, merged with scope filter
 const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<string, any> = {}) => {
-  const { stageId, source, assignedTo, search, dateFrom, dateTo, priority, hasPendingApproval, adId, reEnquiry } = query;
+  const { stageId, source, assignedTo, search, dateFrom, dateTo, priority, hasPendingApproval, adId, reEnquiry, subStageId, course, campaign, followUp } = query;
   // Archived leads are out of the working lists; Leads → Archive shows them.
   const filter: any = { tenantId, ...scopeFilter, archivedAt: null };
   if (stageId) filter.stageId = stageId;
+  // getLeads resolves ?milestone= into these stage ids (needs a lookup, so it is done there).
+  if (!stageId && Array.isArray(query._milestoneStageIds)) filter.stageId = { $in: query._milestoneStageIds };
+  if (subStageId && mongoose.Types.ObjectId.isValid(String(subStageId))) filter.subStageId = subStageId;
+  const esc = (s: any) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (course) filter.courseInterest = new RegExp(esc(course), 'i');
+  // Inside $and so the search box's own $or cannot overwrite it.
+  if (campaign) mergeMatch(filter, { $and: [{ $or: [{ 'sourceDetails.campaignName': new RegExp(esc(campaign), 'i') }, { 'utmParams.campaign': new RegExp(esc(campaign), 'i') }] }] });
+  if (followUp) {
+    const now = new Date();
+    const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(now); dayEnd.setHours(23, 59, 59, 999);
+    if (followUp === 'overdue') filter.nextFollowUp = { $lt: now };
+    else if (followUp === 'today') filter.nextFollowUp = { $gte: dayStart, $lte: dayEnd };
+    else if (followUp === 'upcoming') filter.nextFollowUp = { $gt: dayEnd };
+    else if (followUp === 'none') filter.nextFollowUp = null;
+  }
   if (source) filter.source = source;
   if (assignedTo) filter.assignedTo = assignedTo;
   if (priority && ['hot', 'warm', 'cold'].includes(priority)) {
@@ -123,13 +140,27 @@ const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<strin
 // Get all leads for tenant with filters + data scope
 export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    const { page = '1', limit = '50' } = req.query;
+    const { page = '1', limit = '50', sort, dir, milestone } = req.query as Record<string, string>;
     const scopeFilter = await buildLeadScopeFilter(req);
-    const filter = buildLeadFilter(req.query, req.tenantId!, scopeFilter);
+    const query: any = { ...req.query };
+    if (milestone && isMilestone(milestone)) {
+      // Stages carrying this milestone (or, for stages saved before milestones, the one it is guessed from).
+      const all = await LeadStage.find({ tenantId: req.tenantId }).select('milestone category isLostStage').lean();
+      query._milestoneStageIds = all.filter((s: any) => milestoneFromLegacy(s) === milestone).map((s: any) => s._id);
+    }
+    const filter = buildLeadFilter(query, req.tenantId!, scopeFilter);
 
-    const pageNum = parseInt(page as string, 10);
-    const limitNum = parseInt(limit as string, 10);
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit as string, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
+    // Whitelisted sorts only. Missing values sort last for "soonest follow-up".
+    const SORTS: Record<string, string> = {
+      createdAt: 'createdAt', name: 'name', nextFollowUp: 'nextFollowUp', lastContactedAt: 'lastContactedAt',
+      stageEnteredAt: 'stageEnteredAt', priority: 'score',
+    };
+    const sortField = SORTS[sort] || 'createdAt';
+    const sortDir = dir === 'asc' ? 1 : -1;
+    const sortSpec: Record<string, 1 | -1> = { [sortField]: sortDir, _id: sortDir };
 
     const [leads, total] = await Promise.all([
       // The timeline and AI-call logs grow with every action and are not shown in the list —
@@ -141,7 +172,7 @@ export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiRespo
         .populate('reasonId', 'name')
         .populate('assignedTo', 'firstName lastName email')
         .populate('createdBy', 'firstName lastName')
-        .sort({ createdAt: -1 })
+        .sort(sortSpec)
         .skip(skip)
         .limit(limitNum)
         .lean(),
@@ -921,6 +952,8 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
         if (activityData.callStatus) $set[`activities.${idx}.callStatus`] = activityData.callStatus;
         if (activityData.recordingUrl) $set[`activities.${idx}.recordingUrl`] = activityData.recordingUrl;
         if (disposition) $set[`activities.${idx}.disposition`] = disposition;
+        $set.lastContactedAt = now;
+        if (activityData.callOutcome) $set.lastCallOutcome = activityData.callOutcome;
         const done = await Lead.findOneAndUpdate({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }, { $set }, { new: true })
           .populate('stageId', 'name color order')
           .populate('assignedTo', 'firstName lastName email')
@@ -932,6 +965,8 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
     if (!existing?.telecallerMetrics?.firstActionAt) {
       metricsUpdate['telecallerMetrics.firstActionAt'] = now;
     }
+    if (['call', 'whatsapp', 'email'].includes(type)) metricsUpdate.lastContactedAt = now;
+    if (type === 'call' && activityData.callOutcome) metricsUpdate.lastCallOutcome = activityData.callOutcome;
 
     const lead = await Lead.findOneAndUpdate(
       { _id: leadId, tenantId: req.tenantId, ...scopeFilter },
@@ -1703,6 +1738,92 @@ export const getTeamActivityDetails = async (req: AuthenticatedRequest, res: Res
 
 // GET /leads/sources — distinct source values actually present on leads, so the
 // All-Leads "Source" filter always lists every real source (e.g. google_sheet)
+// ===================== MILESTONE SUMMARY + FOLLOW-UP QUEUE =====================
+
+/** Stage ids of this institute grouped by milestone (stages saved before milestones are guessed). */
+async function stageIdsByMilestone(tenantId: any): Promise<Record<string, mongoose.Types.ObjectId[]>> {
+  const stages = await LeadStage.find({ tenantId }).select('milestone category isLostStage').lean();
+  const out: Record<string, mongoose.Types.ObjectId[]> = {};
+  for (const s of stages as any[]) (out[milestoneFromLegacy(s)] ||= []).push(s._id);
+  return out;
+}
+
+/**
+ * GET /leads/milestone-summary — how many (scoped, unarchived) leads sit in each milestone right
+ * now, plus follow-up and nurture counts. Same filters as the list (except stage), so the strip
+ * above the table always agrees with it.
+ */
+export const getMilestoneSummary = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const { stageId: _s, milestone: _m, followUp: _f, ...rest } = req.query as any;
+    const base = buildLeadFilter(rest, req.tenantId!, scopeFilter);
+    const byMilestone = await stageIdsByMilestone(req.tenantId);
+    const closed = [...(byMilestone.lost || []), ...(byMilestone.enrolled || [])];
+    const now = new Date();
+    const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(now); dayEnd.setHours(23, 59, 59, 999);
+    const open = { ...base, stageId: { $nin: closed } };
+
+    // countDocuments (not aggregate): Mongoose casts the string ids in the filter (tenant,
+    // assignee, scope) for queries, but not inside an aggregation $match.
+    const msKeys = Object.keys(byMilestone);
+    const [msCounts, total, overdue, dueToday, nurtureDue, unassigned, demoAttended] = await Promise.all([
+      Promise.all(msKeys.map(m => Lead.countDocuments({ ...base, stageId: { $in: byMilestone[m] } }))),
+      Lead.countDocuments(base),
+      Lead.countDocuments({ ...open, nextFollowUp: { $lt: now } }),
+      Lead.countDocuments({ ...open, nextFollowUp: { $gte: dayStart, $lte: dayEnd } }),
+      Lead.countDocuments({ ...base, 'nurture.reactivateAt': { $lte: now } }),
+      Lead.countDocuments({ ...open, assignedTo: null }),
+      Lead.countDocuments({ ...base, 'milestones.demoAttendedAt': { $exists: true } }),
+    ]);
+    const milestones: Record<string, number> = {};
+    msKeys.forEach((m, i) => { if (msCounts[i]) milestones[m] = msCounts[i]; });
+    res.json({ success: true, message: 'ok', data: { total, milestones, overdue, dueToday, nurtureDue, unassigned, demoAttended } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to load summary', error: error.message });
+  }
+};
+
+/**
+ * GET /leads/queue?tab=today|overdue|upcoming|unassigned|nurture&page= — the follow-up queue.
+ * Closed leads (lost / enrolled stages) are left out of every tab except nurture.
+ */
+export const getFollowUpQueue = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const tab = String(req.query.tab || 'today');
+    const page = Math.max(1, parseInt(String(req.query.page || '1'), 10) || 1);
+    const limit = 50;
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const byMilestone = await stageIdsByMilestone(req.tenantId);
+    const closed = [...(byMilestone.lost || []), ...(byMilestone.enrolled || [])];
+    const now = new Date();
+    const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(now); dayEnd.setHours(23, 59, 59, 999);
+    const base: any = { tenantId: req.tenantId, ...scopeFilter, archivedAt: null };
+    let filter: any; let sort: Record<string, 1 | -1>;
+    switch (tab) {
+      case 'overdue': filter = { ...base, stageId: { $nin: closed }, nextFollowUp: { $lt: dayStart } }; sort = { nextFollowUp: 1 }; break;
+      case 'upcoming': filter = { ...base, stageId: { $nin: closed }, nextFollowUp: { $gt: dayEnd } }; sort = { nextFollowUp: 1 }; break;
+      case 'unassigned': filter = { ...base, stageId: { $nin: closed }, assignedTo: null }; sort = { createdAt: 1 }; break;
+      case 'nurture': {
+        const soon = new Date(now.getTime() + 7 * 86_400_000);
+        filter = { ...base, 'nurture.reactivateAt': { $lte: soon } }; sort = { 'nurture.reactivateAt': 1 }; break;
+      }
+      default: filter = { ...base, stageId: { $nin: closed }, nextFollowUp: { $gte: dayStart, $lte: dayEnd } }; sort = { nextFollowUp: 1 };
+    }
+    const [leads, total] = await Promise.all([
+      Lead.find(filter).select('name phone courseInterest source stageId subStageId reasonId assignedTo nextFollowUp lastContactedAt lastCallOutcome nurture createdAt priority')
+        .populate('stageId', 'name color').populate('subStageId', 'name').populate('assignedTo', 'firstName lastName')
+        .sort({ ...sort, _id: 1 }).skip((page - 1) * limit).limit(limit).lean(),
+      Lead.countDocuments(filter),
+    ]);
+    res.json({ success: true, message: 'ok', data: { leads, total, page, totalPages: Math.ceil(total / limit) } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to load the queue', error: error.message });
+  }
+};
+
 // ===================== BULK ACTIONS =====================
 
 const BULK_MAX = 500;

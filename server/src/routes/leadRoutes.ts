@@ -11,6 +11,8 @@ import {
   changeLeadStage,
   bulkChangeStage,
   bulkAssignLeads,
+  getMilestoneSummary,
+  getFollowUpQueue,
   approveStageChange,
   addLeadActivity, logCallClick, logWhatsAppClick, staffHeartbeat, getTeamOverview, getTeamPerson,
   deleteLead,
@@ -86,6 +88,10 @@ router.post('/import', authMiddleware, tenantResolver, roleGuard(['export_leads'
 router.get('/aging', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getAgingLeads);
 router.get('/duplicates', authMiddleware, tenantResolver, roleGuard(['manage_leads']), getDuplicateLeads);
 router.post('/duplicates/merge', authMiddleware, tenantResolver, roleGuard(['manage_leads']), mergeDuplicateLeads);
+
+// Milestone strip + follow-up queue (literal paths, above /:leadId)
+router.get('/milestone-summary', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getMilestoneSummary);
+router.get('/queue', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getFollowUpQueue);
 
 // Bulk actions (literal paths; POST so they never collide with /:leadId GETs)
 router.post('/bulk/stage', authMiddleware, tenantResolver, roleGuard(['manage_leads', 'assign_leads']), bulkChangeStage);

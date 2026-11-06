@@ -1929,8 +1929,11 @@ export const leadPipelineApi = {
 
 // Lead API
 export const leadApi = {
-  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string; adId?: string; reEnquiry?: boolean }) => {
+  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string; adId?: string; reEnquiry?: boolean; milestone?: string; subStageId?: string; followUp?: string; course?: string; campaign?: string; sort?: string; dir?: 'asc' | 'desc' }) => {
     const params = new URLSearchParams();
+    for (const k of ['milestone', 'subStageId', 'followUp', 'course', 'campaign', 'sort', 'dir'] as const) {
+      if (filters?.[k]) params.append(k, String(filters[k]));
+    }
     if (filters?.adId) params.append('adId', filters.adId);
     if (filters?.reEnquiry) params.append('reEnquiry', 'true');
     if (filters?.stageId) params.append('stageId', filters.stageId);
@@ -1948,6 +1951,20 @@ export const leadApi = {
   getLeadById: async (leadId: string) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}`);
   },
+  /** Counts per milestone + follow-up/nurture counts, with the same filters as the list. */
+  getMilestoneSummary: async (filters: Record<string, string | undefined>) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
+    return authenticatedFetch(`${API_BASE_URL}/leads/milestone-summary?${params.toString()}`);
+  },
+  /** Follow-up queue: tab = today | overdue | upcoming | unassigned | nurture */
+  getQueue: async (tab: string, page = 1) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/queue?tab=${encodeURIComponent(tab)}&page=${page}`);
+  },
+  getSavedViews: async () => authenticatedFetch(`${API_BASE_URL}/lead-views`),
+  saveView: async (name: string, filters: Record<string, string>, shared = false) =>
+    authenticatedFetch(`${API_BASE_URL}/lead-views`, { method: 'POST', body: JSON.stringify({ name, filters, shared }) }),
+  deleteView: async (id: string) => authenticatedFetch(`${API_BASE_URL}/lead-views/${id}`, { method: 'DELETE' }),
   getSources: async () => {
     return authenticatedFetch(`${API_BASE_URL}/leads/sources`);
   },

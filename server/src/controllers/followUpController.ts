@@ -253,6 +253,9 @@ export const completeFollowUp = async (req: AuthenticatedRequest, res: Response)
         callDuration: callDuration,
         recordingUrl: recordingUrl
       });
+      if (['call', 'whatsapp', 'email'].includes(activityType)) lead.lastContactedAt = new Date();
+      const logged = (lead.activities as any)[lead.activities.length - 1];
+      if (activityType === 'call' && logged?.callOutcome) lead.lastCallOutcome = logged.callOutcome;
       await refreshNextFollowUp(lead, followUp);
       await lead.save();
     }

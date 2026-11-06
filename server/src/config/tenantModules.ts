@@ -85,7 +85,7 @@ export const API_MODULE_PREFIXES: [string, ModuleKey][] = [
   ['/code-snippets', 'codeAssessments'], ['/coding-practice', 'codeAssessments'], ['/playground', 'codeAssessments'],
   ['/interview-questions', 'mockInterviews'], ['/interview-module', 'mockInterviews'], ['/scheduled-interviews', 'mockInterviews'],
   ['/college/placement', 'placement'], ['/college/alumni', 'placement'], ['/college/crt', 'placement'], ['/placement-partners', 'placement'],
-  ['/leads', 'leads'], ['/lead-stages', 'leads'], ['/lead-pipeline', 'leads'],['/lead-dispositions', 'leads'], ['/lead-form-config', 'leads'],
+  ['/leads', 'leads'], ['/lead-stages', 'leads'], ['/lead-pipeline', 'leads'], ['/lead-views', 'leads'], ['/lead-dispositions', 'leads'], ['/lead-form-config', 'leads'],
   ['/stage-history', 'leads'], ['/follow-ups', 'leads'], ['/lead-priority', 'leads'], ['/qualification', 'leads'],
   ['/sales-content', 'leads'], ['/lead-ai', 'leads'], ['/lost-reasons', 'leads'], ['/google-sheet-integrations', 'leads'],
   ['/lead-scoring', 'leads'], ['/lead-source-config', 'leads'], ['/lead-distribution-config', 'leads'],

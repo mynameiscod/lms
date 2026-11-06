@@ -153,6 +153,8 @@ export interface ILead extends Document {
   reasonId?: mongoose.Types.ObjectId;
   reasonDetail?: string;
   stageEnteredAt?: Date;
+  lastContactedAt?: Date;
+  lastCallOutcome?: string;
   milestones?: Partial<Record<'contactingAt' | 'connectedAt' | 'qualifiedAt' | 'demoAt' | 'demoAttendedAt' | 'seatReservedAt' | 'enrolledAt' | 'nurtureAt' | 'lostAt', Date>>;
   nurture?: { reactivateAt?: Date };
   assignedTo?: mongoose.Types.ObjectId;
@@ -383,6 +385,10 @@ const LeadSchema: Schema = new Schema(
     reasonId: { type: mongoose.Types.ObjectId, ref: 'LeadReason' },
     reasonDetail: { type: String, trim: true, maxlength: 1000 },
     stageEnteredAt: { type: Date },
+    // Kept in step when a call / WhatsApp / email is logged, so the list can show and sort them
+    // without loading every activity.
+    lastContactedAt: { type: Date },
+    lastCallOutcome: { type: String, trim: true },
     // First time the lead reached each milestone. Set once, never overwritten — funnel
     // reports and Meta events count from these, so a reopened lead is not counted twice.
     milestones: {
@@ -736,6 +742,7 @@ LeadSchema.index({ tenantId: 1, metaSubmissionIds: 1 });
 LeadSchema.index({ tenantId: 1, stageId: 1 });
 LeadSchema.index({ tenantId: 1, subStageId: 1 }, { sparse: true });
 LeadSchema.index({ tenantId: 1, 'nurture.reactivateAt': 1 }, { sparse: true });
+LeadSchema.index({ tenantId: 1, lastContactedAt: -1 });
 LeadSchema.index({ tenantId: 1, archivedAt: 1, createdAt: -1 });
 LeadSchema.index({ archiveRunId: 1 }, { partialFilterExpression: { archiveRunId: { $exists: true } } });
 LeadSchema.index({ tenantId: 1, assignedTo: 1 });

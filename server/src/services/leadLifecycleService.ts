@@ -28,6 +28,7 @@ import { recordStageTransition } from '../controllers/leadStageHistoryController
 import { pushLeadStageChange } from './googleSheetSyncService';
 import { scheduleDripOnStageEntry } from './whatsAppDripService';
 import { milestoneFromLegacy, LeadMilestone } from '../config/leadMilestones';
+import { enqueueMilestoneEvents } from './metaCrmEventService';
 
 export type StageChangeSource = 'manual' | 'bulk' | 'approval' | 'outpero' | 'automation' | 'convert' | 'reopen' | 'edit';
 
@@ -187,7 +188,8 @@ export async function changeStage(input: StageChangeInput): Promise<StageChangeR
     // Reopened: the old close stays in history, but the lead no longer reads as lost.
     lead.lostAt = undefined; lead.lostReason = undefined; lead.lostReasonDetail = undefined; lead.lostReasonCategory = undefined;
   }
-  for (const [path, at] of Object.entries(milestoneStamps(lead.milestones?.toObject?.() || lead.milestones, milestone, now))) lead.set(path, at);
+  const stamped = milestoneStamps(lead.milestones?.toObject?.() || lead.milestones, milestone, now);
+  for (const [path, at] of Object.entries(stamped)) lead.set(path, at);
   if (followUpAt) lead.nextFollowUp = followUpAt;
 
   const where = [sub?.name, shownReason, reasonDetail].filter(Boolean).map(s => noQuotes(String(s))).join(' · ');
@@ -209,6 +211,8 @@ export async function changeStage(input: StageChangeInput): Promise<StageChangeR
   if (note) lead.activities.push({ type: 'note', description: note, createdBy: actor.id, createdAt: now });
 
   await lead.save();
+  // Meta CRM events for milestones reached for the first time (never blocks; off by default).
+  enqueueMilestoneEvents(tenantId, lead, Object.keys(stamped), stage);
 
   if (followUpAt) {
     const owner = lead.assignedTo || actor.id;
@@ -253,4 +257,8 @@ export async function stampMilestonesAfterExternalMove(tenantId: string, leadId:
   const set = milestoneStamps(lead.milestones, milestoneFromLegacy(stage), new Date());
   // The old sub-stage/reason belonged to the previous stage, so they are cleared.
   await Lead.updateOne({ _id: leadId, tenantId }, { $set: { ...set, stageEnteredAt: new Date() }, $unset: { subStageId: 1, reasonId: 1, reasonDetail: 1 } });
+  if (Object.keys(set).length) {
+    const fresh: any = await Lead.findOne({ _id: leadId, tenantId }).select('milestones metaSubmissionIds createdAt sourceDetails').lean();
+    if (fresh) enqueueMilestoneEvents(String(tenantId), fresh, Object.keys(set), stage);
+  }
 }

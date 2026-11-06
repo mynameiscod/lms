@@ -39,6 +39,7 @@ export interface ILeadStage extends Document {
   description?: string;
   category: StageCategory;
   milestone?: LeadMilestone;
+  metaEventName?: string;
 
   // NEW: Stage movement rules
   allowedNextStages: mongoose.Types.ObjectId[];
@@ -114,6 +115,9 @@ const LeadStageSchema: Schema = new Schema(
       type: String,
       enum: LEAD_MILESTONES as unknown as string[],
     },
+    // Optional event name sent to Meta (Conversion Leads) when a lead first reaches this
+    // stage's milestone. Blank = the default name for the milestone (metaCrmEventService).
+    metaEventName: { type: String, trim: true, maxlength: 100 },
     
     // NEW: Stage movement rules
     allowedNextStages: [{

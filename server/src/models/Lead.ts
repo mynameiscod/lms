@@ -37,6 +37,10 @@ export interface ISourceDetails {
   /** Click-to-WhatsApp ads: Meta's click id and the headline the person saw. */
   ctwaClid?: string;
   adHeadline?: string;
+  metaCampaignId?: string;
+  metaAdSetId?: string;
+  metaPageId?: string;
+  metaLeadCreatedAt?: Date;
 }
 
 export interface ICostData {
@@ -495,7 +499,12 @@ const LeadSchema: Schema = new Schema(
       landingPage: { type: String, trim: true },
       referrerUrl: { type: String, trim: true },
       ctwaClid: { type: String, trim: true },
-      adHeadline: { type: String, trim: true }
+      adHeadline: { type: String, trim: true },
+      // Meta's own ids (strings) — join keys for ad spend and CRM conversion events.
+      metaCampaignId: { type: String, trim: true },
+      metaAdSetId: { type: String, trim: true },
+      metaPageId: { type: String, trim: true },
+      metaLeadCreatedAt: { type: Date }
     },
     
     // NEW: Cost tracking (admin visibility only)

@@ -263,6 +263,7 @@ const AiSpend = lazy(() => import('./pages/AiSpend'));
 const GoogleSheetIntegrationPage = lazy(() => import('./pages/GoogleSheetIntegration'));
 const LeadScoringSettingsPage = lazy(() => import('./pages/LeadScoringSettings'));
 const LeadSourcesPage = lazy(() => import('./pages/LeadSources'));
+const MetaSyncPage = lazy(() => import('./pages/MetaSync'));
 const AICallConfigPage = lazy(() => import('./pages/AICallConfig'));
 const AllRegistrations = lazy(() => import('./pages/PublicQuizAdmin/AllRegistrations'));
 const RegistrationDetail = lazy(() => import('./pages/PublicQuizAdmin/RegistrationDetail'));
@@ -2376,6 +2377,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <LeadSourcesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/meta-sync"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <MetaSyncPage />
             </Layout>
           </ProtectedRoute>
         }

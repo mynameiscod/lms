@@ -56,3 +56,30 @@ it('builds the funnel from milestones, with clear denominators and cost per lead
   expect(r.cost.costPerEnrolment).toBe(1000);
   expect(r.open.total).toBe(4); // the lost lead is closed
 });
+
+it('compares with the previous period, buckets leads per day and filters by course', async () => {
+  const s = await LeadStage.create({ tenantId: T, name: 'New', order: 0, color: '#000000', milestone: 'new' } as any);
+  const day = 86_400_000; const now = Date.now();
+  const mk = (createdAt: Date, extra: any = {}) => Lead.create({ tenantId: T, name: 'x', phone: String(Math.random()).slice(2, 12), stageId: s._id, createdBy: U, courseInterest: ['Java Full Stack'], createdAt, ...extra } as any);
+  // this period (last 10 days): 4 leads, 2 qualified, 1 enrolled; first contact 2 h and 4 h
+  await mk(new Date(now - 1 * day), { milestones: { qualifiedAt: new Date(), enrolledAt: new Date() }, telecallerMetrics: { firstActionAt: new Date(now - 1 * day + 2 * 3600_000) } });
+  await mk(new Date(now - 2 * day), { milestones: { qualifiedAt: new Date() }, telecallerMetrics: { firstActionAt: new Date(now - 2 * day + 4 * 3600_000) } });
+  await mk(new Date(now - 2 * day));
+  await mk(new Date(now - 3 * day), { courseInterest: ['Python'] });
+  // previous period (10–20 days ago): 2 leads, 1 qualified; first contact 8 h
+  await mk(new Date(now - 12 * day), { milestones: { qualifiedAt: new Date() }, telecallerMetrics: { firstActionAt: new Date(now - 12 * day + 8 * 3600_000) } });
+  await mk(new Date(now - 13 * day));
+
+  const r: any = await admissionsReport({ tenantId: String(T), from: new Date(now - 10 * day), to: new Date(now), scope: {} });
+  expect(r.comparison.previous).toMatchObject({ total: 2, qualified: 1, enrolled: 0 });
+  expect(r.comparison.totalChangePct).toBe(100);
+  expect(r.comparison.qualifiedChangePct).toBe(100);
+  expect(r.comparison.enrolledChangePct).toBeNull(); // nothing to compare with
+  expect(r.comparison.conversionChangePp).toBe(25); // 25% now vs 0% before
+  expect(r.comparison.firstContactChangePct).toBe(-50); // 4 h median now vs 8 h → faster
+  expect(r.trend.unit).toBe('day');
+  expect(r.trend.points.reduce((a: number, p: any) => a + p.count, 0)).toBe(4);
+
+  const java: any = await admissionsReport({ tenantId: String(T), from: new Date(now - 10 * day), to: new Date(now), scope: {}, course: 'java' });
+  expect(java.cohort).toBe(3);
+});

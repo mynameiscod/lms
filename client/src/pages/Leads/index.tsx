@@ -2,6 +2,8 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { leadApi, leadStageApi, userApi, leadFormConfigApi } from '../../api';
+import StageChangeDialog from '../../components/leads/StageChangeDialog';
+import { Modal } from '../../components/common';
 import './Leads.css';
 
 interface Stage { _id: string; name: string; color: string; order: number; }
@@ -16,6 +18,10 @@ const PRIORITY_COLORS: Record<LeadPriority, { bg: string; text: string; label: s
 interface Lead {
   _id: string; name: string; email?: string; phone: string;
   courseInterest: string[]; source: string; stageId: Stage | string;
+  subStageId?: { _id: string; name: string } | null;
+  reasonId?: { _id: string; name: string } | null;
+  lastContactedAt?: string;
+  lastCallOutcome?: string;
   assignedTo?: { _id: string; firstName: string; lastName: string; email: string } | null;
   nextFollowUp?: string; notes: string;
   createdBy?: { firstName: string; lastName: string }; createdAt: string;
@@ -105,6 +111,15 @@ const LeadsPage: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
+  // Bulk move / assign (server: POST /leads/bulk/stage, /leads/bulk/assign — manage_leads or assign_leads)
+  const canBulk = !!currentUser && (
+    currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'TENANT_ADMIN' ||
+    ((currentUser as any).permissions || []).some((p: string) => ['manage_leads', 'assign_leads'].includes(p))
+  );
+  const [stageDialog, setStageDialog] = useState<{ leadIds: string[]; stageId?: string | null; currentStageId?: string | null; currentSubStageId?: string | null } | null>(null);
+  const [showBulkAssign, setShowBulkAssign] = useState(false);
+  const [bulkAssignTo, setBulkAssignTo] = useState<string | undefined>(undefined);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'kanban'|'table'>('table');
   const [alert, setAlert] = useState<{type:'success'|'error';message:string}|null>(null);
@@ -142,6 +157,13 @@ const LeadsPage: React.FC = () => {
   const [dateRange, setDateRange] = useState<'all'|'today'|'week'|'month'|'custom'>(() => getSavedFilter('dateRange', 'all') as 'all'|'today'|'week'|'month'|'custom');
   const [dateFrom, setDateFrom] = useState(() => getSavedFilter('dateFrom'));
   const [dateTo, setDateTo] = useState(() => getSavedFilter('dateTo'));
+  // Slice 4: milestone + follow-up filters, server-side sort, saved views.
+  const [filterMilestone, setFilterMilestone] = useState(() => getSavedFilter('filterMilestone'));
+  const [filterFollowUp, setFilterFollowUp] = useState(() => getSavedFilter('filterFollowUp'));
+  const [sortKey, setSortKey] = useState(() => getSavedFilter('sortKey', 'createdAt'));
+  const [sortDir, setSortDir] = useState<'asc'|'desc'>(() => (getSavedFilter('sortDir', 'desc') === 'asc' ? 'asc' : 'desc'));
+  const [milestoneSummary, setMilestoneSummary] = useState<{ total: number; milestones: Record<string, number>; overdue: number; dueToday: number; nurtureDue: number; unassigned: number } | null>(null);
+  const [savedViews, setSavedViews] = useState<{ _id: string; name: string; filters: Record<string, string>; shared: boolean; mine: boolean }[]>([]);
 
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
@@ -198,9 +220,52 @@ const LeadsPage: React.FC = () => {
   useEffect(() => {
     sessionStorage.setItem(FILTER_KEY, JSON.stringify({
       searchInput, filterStage, filterSource, filterAssignee, filterPriority, filterAd, filterReEnq: filterReEnq ? '1' : '',
-      dateRange, dateFrom, dateTo, activeStageFilter
+      dateRange, dateFrom, dateTo, activeStageFilter, filterMilestone, filterFollowUp, sortKey, sortDir
     }));
-  }, [searchInput, filterStage, filterSource, filterAssignee, filterPriority, filterAd, filterReEnq, dateRange, dateFrom, dateTo, activeStageFilter]);
+  }, [searchInput, filterStage, filterSource, filterAssignee, filterPriority, filterAd, filterReEnq, dateRange, dateFrom, dateTo, activeStageFilter, filterMilestone, filterFollowUp, sortKey, sortDir]);
+
+  // ── Saved views ──
+  const currentViewFilters = (): Record<string, string> => {
+    const out: Record<string, string> = {
+      search: searchInput, stageId: filterStage, source: filterSource, assignedTo: filterAssignee, priority: filterPriority,
+      adId: filterAd, reEnquiry: filterReEnq ? 'true' : '', datePreset: dateRange, dateFrom, dateTo,
+      milestone: filterMilestone, followUp: filterFollowUp, sort: sortKey, dir: sortDir,
+    };
+    Object.keys(out).forEach(k => { if (!out[k]) delete out[k]; });
+    return out;
+  };
+  const loadViews = useCallback(() => {
+    leadApi.getSavedViews().then((r: any) => setSavedViews(r.data || [])).catch(() => setSavedViews([]));
+  }, []);
+  useEffect(() => { loadViews(); }, [loadViews]);
+  const applyView = (id: string) => {
+    const v = savedViews.find(x => x._id === id); if (!v) return;
+    const f = v.filters || {};
+    setSearchInput(f.search || ''); setSearch(f.search || '');
+    setFilterStage(f.stageId || ''); setActiveStageFilter(''); setFilterSource(f.source || ''); setFilterAssignee(f.assignedTo || '');
+    setFilterPriority((f.priority || '') as LeadPriority | ''); setFilterAd(f.adId || ''); setFilterReEnq(f.reEnquiry === 'true');
+    setDateRange((f.datePreset as any) || 'all'); setDateFrom(f.dateFrom || ''); setDateTo(f.dateTo || '');
+    setFilterMilestone(f.milestone || ''); setFilterFollowUp(f.followUp || '');
+    setSortKey(f.sort || 'createdAt'); setSortDir(f.dir === 'asc' ? 'asc' : 'desc'); setPage(1);
+  };
+  const saveCurrentView = async () => {
+    const name = window.prompt('Name this view (e.g. "My overdue hot leads")');
+    if (!name?.trim()) return;
+    const isAdminUser = currentUser?.role === 'TENANT_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+    const shared = isAdminUser ? window.confirm('Share this view with the whole team?') : false;
+    try { await leadApi.saveView(name.trim(), currentViewFilters(), shared); loadViews(); showAlertMsg('success', `View "${name.trim()}" saved`); }
+    catch (e: any) { showAlertMsg('error', e.message || 'Could not save the view'); }
+  };
+  const deleteView = async (id: string) => {
+    const v = savedViews.find(x => x._id === id);
+    if (!v || !window.confirm(`Delete the view "${v.name}"?`)) return;
+    try { await leadApi.deleteView(id); loadViews(); } catch (e: any) { showAlertMsg('error', e.message || 'Could not delete'); }
+  };
+  const toggleSort = (key: string) => {
+    if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(key); setSortDir(key === 'nextFollowUp' || key === 'name' ? 'asc' : 'desc'); }
+    setPage(1);
+  };
 
   // Debounce search input — only fire API call 400ms after user stops typing
   useEffect(() => {
@@ -262,7 +327,8 @@ const LeadsPage: React.FC = () => {
       // All critical fetches in one Promise.all so failures surface instead of silently zeroing stats
       const [stagesRes, leadsRes, stageAnalytics, filteredAnalytics] = await Promise.all([
         leadStageApi.getStages(),
-        leadApi.getLeads({ search, stageId: stageFilter, source: filterSource, assignedTo: filterAssignee, priority: filterPriority || undefined, adId: filterAd || undefined, reEnquiry: filterReEnq, page, limit: 100, ...dateFilt }),
+        leadApi.getLeads({ search, stageId: stageFilter, source: filterSource, assignedTo: filterAssignee, priority: filterPriority || undefined, adId: filterAd || undefined, reEnquiry: filterReEnq, page, limit: 100, ...dateFilt,
+          milestone: stageFilter ? undefined : (filterMilestone || undefined), followUp: filterFollowUp || undefined, sort: sortKey, dir: sortDir }),
         stageAnalyticsP,
         filteredAnalyticsP,
       ]);
@@ -276,7 +342,12 @@ const LeadsPage: React.FC = () => {
       }
 
       // ── Leads (table) ───────────────────────────────────────────────────────
-      setLeads((leadsRes.data?.leads || []).sort((a: Lead, b: Lead) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      // The server sorts (column headers); keep its order.
+      setLeads(leadsRes.data?.leads || []);
+      // Milestone strip: same filters, no stage/milestone/follow-up (each chip shows its own count).
+      leadApi.getMilestoneSummary({ source: filterSource || undefined, assignedTo: filterAssignee || undefined, priority: filterPriority || undefined,
+        search: search || undefined, adId: filterAd || undefined, reEnquiry: filterReEnq ? 'true' : undefined, ...dateFilt })
+        .then((r: any) => setMilestoneSummary(r.data || null)).catch(() => setMilestoneSummary(null));
       setTotalPages(leadsRes.data?.totalPages || 1);
       setFilteredTotal(leadsRes.data?.total ?? null);
 
@@ -346,7 +417,7 @@ const LeadsPage: React.FC = () => {
       isFirstLoad.current = false;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, filterStage, filterSource, filterAssignee, filterPriority, filterAd, filterReEnq, activeStageFilter, page, getDateFilters]);
+  }, [search, filterStage, filterSource, filterAssignee, filterPriority, filterAd, filterReEnq, activeStageFilter, page, getDateFilters, filterMilestone, filterFollowUp, sortKey, sortDir]);
 
   useEffect(()=>{loadData();},[loadData]);
 
@@ -450,13 +521,22 @@ const LeadsPage: React.FC = () => {
     }
   };
 
-  const handleStageChange = async (leadId:string,newStageId:string) => {
-    const targetStage=stages.find(s=>s._id===newStageId);
-    if(targetStage?.name==='Not Interested'){
-      setPendingLeadId(leadId);setPendingStageId(newStageId);setNotInterestedReason('');setShowReasonModal(true);return;
-    }
-    try{await leadApi.changeStage(leadId,newStageId);loadData();}
-    catch(error:any){showAlertMsg('error',error.message||'Failed to change stage');}
+  // Every stage change goes through the stage → sub-stage → reason dialog.
+  const handleStageChange = (leadId:string,newStageId:string) => {
+    const lead=leads.find(l=>l._id===leadId);
+    setStageDialog({leadIds:[leadId],stageId:newStageId,currentSubStageId:lead?.subStageId?._id||null,
+      currentStageId:typeof lead?.stageId==='object'?(lead.stageId as Stage)._id:(lead?.stageId as string)||null});
+  };
+
+  const handleBulkAssign = async () => {
+    if(bulkAssignTo===undefined)return;
+    setBulkBusy(true);
+    try{
+      const res:any=await leadApi.bulkAssign(Array.from(selectedLeads),bulkAssignTo||null);
+      showAlertMsg('success',res.message||'Leads assigned');
+      setShowBulkAssign(false);setSelectedLeads(new Set());loadData();
+    }catch(error:any){showAlertMsg('error',error.message||'Bulk assign failed');}
+    finally{setBulkBusy(false);}
   };
 
   const handleConfirmNotInterested = async () => {
@@ -571,6 +651,13 @@ const LeadsPage: React.FC = () => {
   if(filterReEnq)activeFilters.push({label:'Enquired again',onRemove:()=>setFilterReEnq(false)});
   if(filterPriority)activeFilters.push({label:`Priority: ${PRIORITY_COLORS[filterPriority].label}`,onRemove:()=>setFilterPriority('')});
   if(dateRange!=='all')activeFilters.push({label:`Date: ${dateRange}`,onRemove:()=>{setDateRange('all');setDateFrom('');setDateTo('');}});
+  if(filterMilestone&&!filterStage&&!activeStageFilter)activeFilters.push({label:`Milestone: ${filterMilestone.replace('_',' ')}`,onRemove:()=>setFilterMilestone('')});
+  if(filterFollowUp)activeFilters.push({label:`Follow-up: ${filterFollowUp}`,onRemove:()=>setFilterFollowUp('')});
+
+  // Column → server sort key (only these headers are clickable).
+  const SORT_FOR: Record<string,string> = { lead:'name', followUp:'nextFollowUp', lastContacted:'lastContactedAt', created:'createdAt', age:'createdAt', priority:'priority' };
+  const ageOf = (iso:string) => { const d=Math.floor((Date.now()-new Date(iso).getTime())/86400000); return d<1?'today':d===1?'1 day':`${d} days`; };
+  const OUTCOME_TEXT = (code?:string) => code ? code.replace(/_/g,' ') : '';
 
   if (loading && isFirstLoad.current) {
     return (
@@ -779,7 +866,37 @@ const LeadsPage: React.FC = () => {
             </select>
           )}
           <button type="button" className={`crm-date-preset${filterReEnq?' active':''}`} onClick={()=>setFilterReEnq(v=>!v)} title="Leads that enquired again and have not been worked since">🔁 Enquired again</button>
+          <select className="crm-filter-select" value={filterFollowUp} onChange={e=>{setFilterFollowUp(e.target.value);setPage(1);}} title="Next follow-up">
+            <option value="">Any follow-up</option>
+            <option value="overdue">Follow-up overdue</option>
+            <option value="today">Follow-up today</option>
+            <option value="upcoming">Follow-up upcoming</option>
+            <option value="none">No follow-up set</option>
+          </select>
+          <select className="crm-filter-select" value="" onChange={e=>{const v=e.target.value;if(v==='__save')saveCurrentView();else if(v.startsWith('__del:'))deleteView(v.slice(6));else if(v)applyView(v);}} title="Saved views">
+            <option value="">Saved views…</option>
+            {savedViews.map(v=><option key={v._id} value={v._id}>{v.name}{v.shared?' (team)':''}</option>)}
+            <option value="__save">+ Save current filters as a view</option>
+            {savedViews.filter(v=>v.mine).map(v=><option key={`d${v._id}`} value={`__del:${v._id}`}>Delete “{v.name}”</option>)}
+          </select>
         </div>
+        {milestoneSummary&&(
+          <div className="crm-milestone-strip" role="group" aria-label="Leads by milestone">
+            {([['','All',milestoneSummary.total],['new','New',milestoneSummary.milestones.new],['contacting','Contacting',milestoneSummary.milestones.contacting],
+              ['connected','Connected',milestoneSummary.milestones.connected],['qualified','Qualified',milestoneSummary.milestones.qualified],
+              ['demo','Demo',milestoneSummary.milestones.demo],['seat_reserved','Seat reserved',milestoneSummary.milestones.seat_reserved],
+              ['enrolled','Enrolled',milestoneSummary.milestones.enrolled],['nurture','Nurture',milestoneSummary.milestones.nurture],
+              ['lost','Lost',milestoneSummary.milestones.lost]] as [string,string,number|undefined][]).map(([key,label,n])=>(
+              <button key={key||'all'} type="button" className={`crm-ms-chip crm-ms-${key||'all'}${filterMilestone===key&&!filterStage&&!activeStageFilter?' active':''}`}
+                onClick={()=>{setFilterMilestone(key);setFilterStage('');setActiveStageFilter('');setPage(1);}}>
+                <span>{label}</span><strong>{n||0}</strong>
+              </button>
+            ))}
+            <button type="button" className={`crm-ms-chip crm-ms-overdue${filterFollowUp==='overdue'?' active':''}`} onClick={()=>{setFilterFollowUp(filterFollowUp==='overdue'?'':'overdue');setPage(1);}}>
+              <span>Overdue follow-ups</span><strong>{milestoneSummary.overdue}</strong>
+            </button>
+          </div>
+        )}
         <div className="crm-toolbar-row">
           <span className="crm-date-label">Date:</span>
           <div className="crm-date-presets">
@@ -813,7 +930,7 @@ const LeadsPage: React.FC = () => {
               </span>
             ))}
             <button className="crm-clear-filters"
-              onClick={()=>{setFilterStage('');setFilterSource('');setFilterAssignee('');setFilterPriority('');setFilterAd('');setFilterReEnq(false);setActiveStageFilter('');setDateRange('all');setDateFrom('');setDateTo('');}}>
+              onClick={()=>{setFilterStage('');setFilterSource('');setFilterAssignee('');setFilterPriority('');setFilterAd('');setFilterReEnq(false);setActiveStageFilter('');setDateRange('all');setDateFrom('');setDateTo('');setFilterMilestone('');setFilterFollowUp('');}}>
               Clear all
             </button>
           </div>
@@ -954,6 +1071,16 @@ const LeadsPage: React.FC = () => {
                   <button className="crm-btn crm-btn-whatsapp" onClick={handleBulkWhatsApp}>
                     &#128172; Send WhatsApp
                   </button>
+                  {canBulk && (
+                    <>
+                      <button className="crm-btn crm-btn-secondary crm-btn-sm" onClick={()=>setStageDialog({leadIds:Array.from(selectedLeads)})}>
+                        Move stage
+                      </button>
+                      <button className="crm-btn crm-btn-secondary crm-btn-sm" onClick={()=>{setBulkAssignTo(undefined);setShowBulkAssign(true);}}>
+                        Assign
+                      </button>
+                    </>
+                  )}
                   <button className="crm-btn crm-btn-secondary crm-btn-sm" onClick={()=>setSelectedLeads(new Set())}>
                     &#10005; Clear
                   </button>
@@ -987,6 +1114,16 @@ const LeadsPage: React.FC = () => {
                         }
                         if (col.key === 'actions') {
                           return <th key={col.key}></th>;
+                        }
+                        const sk=SORT_FOR[col.key];
+                        if(sk){
+                          // "Lead age" sorts by created date, oldest first when ascending.
+                          const active=sortKey===sk&&(col.key!=='age'||sortKey==='createdAt');
+                          return (
+                            <th key={col.key} className="crm-th-sort" aria-sort={active?(sortDir==='asc'?'ascending':'descending'):'none'}>
+                              <button type="button" onClick={()=>toggleSort(sk)}>{col.label}{active?(sortDir==='asc'?' ▲':' ▼'):''}</button>
+                            </th>
+                          );
                         }
                         return <th key={col.key}>{col.label}</th>;
                       })}
@@ -1063,6 +1200,11 @@ const LeadsPage: React.FC = () => {
                                     {stages.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}
                                   </select>
                                 )}
+                                {lead.subStageId?.name&&(
+                                  <div className="crm-substage" title={lead.reasonId?.name||undefined}>
+                                    {lead.subStageId.name}{lead.reasonId?.name?` · ${lead.reasonId.name}`:''}
+                                  </div>
+                                )}
                               </td>
                             );
                           case 'source':
@@ -1090,6 +1232,14 @@ const LeadsPage: React.FC = () => {
                                 <span className={`crm-followup-${fuClass}`} dangerouslySetInnerHTML={{__html: fuText}}/>
                               </td>
                             );
+                          case 'lastCall':
+                            return <td key={col.key} className="crm-td-date">{lead.lastCallOutcome?<span className={`crm-outcome crm-outcome-${lead.lastCallOutcome}`}>{OUTCOME_TEXT(lead.lastCallOutcome)}</span>:<span className="crm-unassigned">—</span>}</td>;
+                          case 'lastContacted': {
+                            const at=lead.lastContactedAt||lead.telecallerMetrics?.lastActionAt;
+                            return <td key={col.key} className="crm-td-date">{at?formatShort(at):<span className="crm-unassigned">Never</span>}</td>;
+                          }
+                          case 'age':
+                            return <td key={col.key} className="crm-td-date">{ageOf(lead.createdAt)}</td>;
                           case 'created':
                             return <td key={col.key} className="crm-td-date">{formatShort(lead.createdAt)}</td>;
                           case 'actions':
@@ -1360,6 +1510,38 @@ const LeadsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <StageChangeDialog
+        open={!!stageDialog}
+        onClose={()=>setStageDialog(null)}
+        leadIds={stageDialog?.leadIds||[]}
+        initialStageId={stageDialog?.stageId}
+        currentStageId={stageDialog?.currentStageId}
+        currentSubStageId={stageDialog?.currentSubStageId}
+        onDone={(outcome,message)=>{
+          showAlertMsg('success',message);
+          if(outcome==='bulk')setSelectedLeads(new Set());
+          loadData();
+        }}
+      />
+
+      <Modal isOpen={showBulkAssign} onClose={()=>setShowBulkAssign(false)} title={`Assign ${selectedLeads.size} lead${selectedLeads.size!==1?'s':''}`} size="small">
+        <div className="mb-3">
+          <label className="form-label fw-semibold">Counsellor</label>
+          <select className="form-select" value={bulkAssignTo??''} onChange={e=>setBulkAssignTo(e.target.value)}>
+            <option value="" disabled={bulkAssignTo===undefined}>{bulkAssignTo===undefined?'Pick a counsellor…':'Unassign'}</option>
+            {bulkAssignTo!==undefined&&bulkAssignTo!==''&&<option value="">Unassign</option>}
+            {staff.map((u:any)=><option key={u._id} value={u._id}>{`${u.firstName||''} ${u.lastName||''}`.trim()||u.email}</option>)}
+          </select>
+          {staff.length===0&&<div className="form-text">No staff list available for your role.</div>}
+        </div>
+        <div className="d-flex justify-content-end gap-2">
+          <button className="btn btn-outline-secondary btn-sm" onClick={()=>setShowBulkAssign(false)} disabled={bulkBusy}>Cancel</button>
+          <button className="btn btn-primary btn-sm" onClick={handleBulkAssign} disabled={bulkBusy||bulkAssignTo===undefined}>
+            {bulkBusy?'Assigning…':'Assign'}
+          </button>
+        </div>
+      </Modal>
 
       {showReasonModal&&(
           <div className="lead-modal-overlay" onClick={()=>setShowReasonModal(false)}>

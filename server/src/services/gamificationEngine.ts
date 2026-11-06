@@ -1,12 +1,11 @@
 import PassportProgress from '../models/PassportProgress';
-import CareerRoadmap from '../models/CareerRoadmap';
 import {
-  XpRule, XpLedger, BadgeDefinition, StudentBadge, IXpRule,
+  XpRule, XpLedger, BadgeDefinition, StudentBadge, IXpRule, GamificationConfig,
 } from '../models/GamificationModels';
 import { ymd } from './passportMissionService';
 import {
   XP_EVENTS, xpEvent, XpRefusal, BADGE_TRIGGERS, BadgeConditionType,
-  STREAK_MILESTONES, streakMilestoneFor, BADGE_SEEDS,
+  STREAK_MILESTONES, streakMilestoneFor, BADGE_SEEDS, LEGACY_BADGE_KEYS, BADGE_SET_VERSION,
 } from '../data/gamificationPolicy';
 
 /**
@@ -326,89 +325,18 @@ export async function evaluateBadges(
   const pending = definitions.filter(d => !held.has(d.key));
   if (!pending.length) return [];
 
-  const metrics = await badgeMetrics(tenantId, studentId, pending);
+  // Lazy: badgeService reaches the journey service, which imports this engine.
+  const { badgeMetricsFor, metricKeyOf, awardBadge } = await import('./badgeService');
+  const metrics = await badgeMetricsFor(tenantId, studentId, pending);
   const earned: string[] = [];
 
   for (const def of pending) {
     const value = metrics[metricKeyOf(def)];
     if (value === undefined || value < def.conditionConfig.threshold) continue;
-
-    try {
-      await StudentBadge.create({
-        tenantId, studentId, badgeKey: def.key, awardedAt: now,
-        source: def.conditionType,
-      });
-      earned.push(def.key);
-    } catch (e: any) {
-      // Two evaluations decided at once. The index made the second a no-op, which is the
-      // outcome we wanted — one badge, not two.
-      if (e?.code !== 11000) throw e;
-    }
+    if (await awardBadge(tenantId, studentId, def, now)) earned.push(def.key);
   }
 
   return earned;
-}
-
-const metricKeyOf = (def: any): string =>
-  def.conditionType === 'EVENT_COUNT'
-    ? `EVENT_COUNT:${def.conditionConfig.eventKey}`
-    : def.conditionType;
-
-/** Every number the pending badges need, gathered in as few queries as they require. */
-async function badgeMetrics(
-  tenantId: string, studentId: string, pending: any[],
-): Promise<Record<string, number>> {
-  const out: Record<string, number> = {};
-  const types = new Set(pending.map(d => d.conditionType));
-
-  if (types.has('XP_TOTAL') || types.has('STREAK')) {
-    const p: any = await PassportProgress.findOne({ tenantId, studentId })
-      .select('xp streak').lean();
-    out.XP_TOTAL = p?.xp || 0;
-    out.STREAK = p?.streak || 0;
-  }
-
-  if (types.has('EVENT_COUNT')) {
-    const eventKeys = [...new Set(pending
-      .filter(d => d.conditionType === 'EVENT_COUNT')
-      .map(d => d.conditionConfig.eventKey).filter(Boolean))];
-    if (eventKeys.length) {
-      const counts = await XpLedger.aggregate([
-        { $match: { tenantId, studentId: toId(studentId), eventKey: { $in: eventKeys } } },
-        { $group: { _id: '$eventKey', n: { $sum: 1 } } },
-      ]);
-      for (const key of eventKeys) {
-        out[`EVENT_COUNT:${key}`] = counts.find((c: any) => c._id === key)?.n || 0;
-      }
-    }
-  }
-
-  if (types.has('ROADMAP_PERCENT')) {
-    out.ROADMAP_PERCENT = await roadmapPercent(tenantId, studentId);
-  }
-
-  return out;
-}
-
-/**
- * How much of the active roadmap's planned time has been completed.
- *
- * Read from the completion records Module 10 already writes — this is plan progress, and
- * emphatically not a skill or readiness figure.
- */
-async function roadmapPercent(tenantId: string, studentId: string): Promise<number> {
-  const roadmap: any = await CareerRoadmap.findOne({ tenantId, studentId, status: 'ACTIVE' })
-    .select('capacity').lean();
-  const planned = roadmap?.capacity?.plannedMinutes || 0;
-  if (!planned) return 0;
-
-  const progress: any = await PassportProgress.findOne({ tenantId, studentId })
-    .select('completed').lean();
-  const done = (progress?.completed || [])
-    .filter((c: any) => c.careerpilot)
-    .reduce((n: number, c: any) => n + (c.careerpilot.minutes || 0), 0);
-
-  return Math.min(100, Math.round((done / planned) * 100));
 }
 
 /** Re-check roadmap badges. Called after roadmap progress changes, not on every request. */
@@ -438,11 +366,23 @@ export async function ensureGamificationDefaults(tenantId: string): Promise<{ ru
   const haveBadge = new Set(existingBadges.map(b => b.key));
   const newBadges = BADGE_SEEDS.filter(b => !haveBadge.has(b.key)).map(b => ({
     tenantId, key: b.key, name: b.name, description: b.description,
-    iconKey: b.iconKey, active: true,
+    iconKey: b.iconKey, color: b.color, active: true,
     conditionType: b.conditionType, conditionConfig: b.conditionConfig,
     displayOrder: b.displayOrder,
   }));
   if (newBadges.length) await BadgeDefinition.insertMany(newBadges, { ordered: false }).catch(() => { /* raced */ });
+
+  /*
+   * ONCE PER TENANT: the first shipped set was never shown to members (the dashboard drew its own
+   * eight, which are now the seeds above). Switch it off so members meet the eight they know, not
+   * seventeen. Version-gated, so an admin who switches one back on is never overruled.
+   */
+  const cfg: any = await GamificationConfig.findOne({ tenantId }).select('badgeSetVersion').lean();
+  if ((cfg?.badgeSetVersion || 0) < BADGE_SET_VERSION) {
+    // Off, and to the end of the list, so the admin's list opens with the badges members see.
+    await BadgeDefinition.updateMany({ tenantId, key: { $in: LEGACY_BADGE_KEYS } }, { $set: { active: false }, $inc: { displayOrder: 1000 } });
+    await GamificationConfig.updateOne({ tenantId }, { $set: { badgeSetVersion: BADGE_SET_VERSION } }, { upsert: true });
+  }
 
   return { rules: newRules.length, badges: newBadges.length };
 }

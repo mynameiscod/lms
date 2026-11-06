@@ -227,8 +227,22 @@ export function activitiesFor(unit: Pick<SelectedUnit, 'title'>, assets: UnitAss
   return items;
 }
 
-/** Every asset belonging to the chosen units, fetched once rather than per day. Shared with recomposition. */
-export async function loadAssets(tenantId: string, unitCodes: string[]): Promise<Map<string, UnitAssets>> {
+/**
+ * A checkpoint a student can actually take: switched on, not archived, and holding at least one
+ * question (its own or linked from the bank). An empty or switched-off checkpoint is GATING on the
+ * day, so letting one through would hold the day shut with nothing to answer.
+ */
+export const READY_CHECKPOINT = {
+  isActive: { $ne: false },
+  archivedAt: null,
+  $or: [{ totalQuestions: { $gt: 0 } }, { 'questionIds.0': { $exists: true } }],
+};
+
+/**
+ * Every asset belonging to the chosen units, fetched once rather than per day. Shared with recomposition.
+ * `includeUnready` is for the admin's preview only: it also returns checkpoints not yet on any day.
+ */
+export async function loadAssets(tenantId: string, unitCodes: string[], opts: { includeUnready?: boolean } = {}): Promise<Map<string, UnitAssets>> {
   const tenantOid = mongoose.Types.ObjectId.isValid(tenantId)
     ? new mongoose.Types.ObjectId(tenantId) : null;
 
@@ -236,7 +250,7 @@ export async function loadAssets(tenantId: string, unitCodes: string[]): Promise
     LearningContentLibrary.find({
       tenantId, isPublished: true, unitCode: { $in: unitCodes },
     }).select('_id type title estimatedDuration canonical createdAt unitCode').lean() as any,
-    Quiz.find({ tenantId, unitCode: { $in: unitCodes } })
+    Quiz.find({ tenantId, unitCode: { $in: unitCodes }, ...(opts.includeUnready ? { archivedAt: null } : READY_CHECKPOINT) })
       .select('_id title totalTime unitCode').lean() as any,
     tenantOid
       ? Assignment.find({ tenant: tenantOid, unitCode: { $in: unitCodes } })

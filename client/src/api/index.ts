@@ -1899,10 +1899,41 @@ export const leadStageApi = {
   }
 };
 
+// Pipeline settings: stages → sub-stages → reasons (server: routes/leadPipelineRoutes.ts)
+const pipelineCall = (path: string, method = 'GET', body?: any) =>
+  authenticatedFetch(`${API_BASE_URL}/lead-pipeline${path}`, { method, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
+
+export const leadPipelineApi = {
+  get: () => pipelineCall(''),
+  createStage: (data: any) => pipelineCall('/stages', 'POST', data),
+  updateStage: (id: string, data: any) => pipelineCall(`/stages/${id}`, 'PUT', data),
+  deleteStage: (id: string) => pipelineCall(`/stages/${id}`, 'DELETE'),
+  reorderStages: (ids: string[]) => pipelineCall('/stages/reorder', 'PUT', { ids }),
+  setLandingStage: (id: string) => pipelineCall(`/stages/${id}/landing`, 'PUT', {}),
+  createSubStage: (data: any) => pipelineCall('/sub-stages', 'POST', data),
+  updateSubStage: (id: string, data: any) => pipelineCall(`/sub-stages/${id}`, 'PUT', data),
+  deleteSubStage: (id: string) => pipelineCall(`/sub-stages/${id}`, 'DELETE'),
+  reorderSubStages: (stageId: string, ids: string[]) => pipelineCall(`/stages/${stageId}/sub-stages/reorder`, 'PUT', { ids }),
+  createReason: (data: any) => pipelineCall('/reasons', 'POST', data),
+  updateReason: (id: string, data: any) => pipelineCall(`/reasons/${id}`, 'PUT', data),
+  deleteReason: (id: string) => pipelineCall(`/reasons/${id}`, 'DELETE'),
+  reorderReasons: (subStageId: string, ids: string[]) => pipelineCall(`/sub-stages/${subStageId}/reasons/reorder`, 'PUT', { ids }),
+  addStarter: () => pipelineCall('/starter', 'POST', {}),
+  // Option lists: 'call_outcome' | 'followup_reason'
+  getPicklist: (list: string, activeOnly = false) => pipelineCall(`/picklists/${list}${activeOnly ? '?active=1' : ''}`),
+  createPicklistItem: (list: string, data: any) => pipelineCall(`/picklists/${list}`, 'POST', data),
+  updatePicklistItem: (id: string, data: any) => pipelineCall(`/picklists/items/${id}`, 'PUT', data),
+  deletePicklistItem: (id: string) => pipelineCall(`/picklists/items/${id}`, 'DELETE'),
+  reorderPicklist: (list: string, ids: string[]) => pipelineCall(`/picklists/${list}/reorder`, 'PUT', { ids }),
+};
+
 // Lead API
 export const leadApi = {
-  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string; adId?: string; reEnquiry?: boolean }) => {
+  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string; adId?: string; reEnquiry?: boolean; milestone?: string; subStageId?: string; followUp?: string; course?: string; campaign?: string; sort?: string; dir?: 'asc' | 'desc'; openOnly?: string }) => {
     const params = new URLSearchParams();
+    for (const k of ['milestone', 'subStageId', 'followUp', 'course', 'campaign', 'sort', 'dir', 'openOnly'] as const) {
+      if (filters?.[k]) params.append(k, String(filters[k]));
+    }
     if (filters?.adId) params.append('adId', filters.adId);
     if (filters?.reEnquiry) params.append('reEnquiry', 'true');
     if (filters?.stageId) params.append('stageId', filters.stageId);
@@ -1920,6 +1951,20 @@ export const leadApi = {
   getLeadById: async (leadId: string) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}`);
   },
+  /** Counts per milestone + follow-up/nurture counts, with the same filters as the list. */
+  getMilestoneSummary: async (filters: Record<string, string | undefined>) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
+    return authenticatedFetch(`${API_BASE_URL}/leads/milestone-summary?${params.toString()}`);
+  },
+  /** Follow-up queue: tab = today | overdue | upcoming | unassigned | nurture */
+  getQueue: async (tab: string, page = 1) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/queue?tab=${encodeURIComponent(tab)}&page=${page}`);
+  },
+  getSavedViews: async () => authenticatedFetch(`${API_BASE_URL}/lead-views`),
+  saveView: async (name: string, filters: Record<string, string>, shared = false) =>
+    authenticatedFetch(`${API_BASE_URL}/lead-views`, { method: 'POST', body: JSON.stringify({ name, filters, shared }) }),
+  deleteView: async (id: string) => authenticatedFetch(`${API_BASE_URL}/lead-views/${id}`, { method: 'DELETE' }),
   getSources: async () => {
     return authenticatedFetch(`${API_BASE_URL}/leads/sources`);
   },
@@ -1943,6 +1988,16 @@ export const leadApi = {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}`, {
       method: 'DELETE'
     });
+  },
+  /** Full stage change: stage → sub-stage → reason (+ details, note, next follow-up). 202 = waiting for approval. */
+  changeStageFull: async (leadId: string, payload: { stageId: string; subStageId?: string; reasonId?: string; reasonDetail?: string; reason?: string; note?: string; nextFollowUp?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/stage`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  bulkChangeStage: async (payload: { leadIds: string[]; stageId: string; subStageId?: string; reasonId?: string; reasonDetail?: string; reason?: string; note?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/bulk/stage`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  bulkAssign: async (leadIds: string[], assignedTo: string | null) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/bulk/assign`, { method: 'POST', body: JSON.stringify({ leadIds, assignedTo }) });
   },
   changeStage: async (leadId: string, stageId: string, notInterestedReason?: string) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/stage`, {
@@ -2861,6 +2916,8 @@ export const followUpApi = {
     return authenticatedFetch(`${API_BASE_URL}/follow-ups/my?page=${page}&limit=${limit}`);
   },
 
+  /** All follow-ups of one lead (newest first). */
+  getLeadFollowUps: async (leadId: string) => authenticatedFetch(`${API_BASE_URL}/follow-ups/lead/${leadId}`),
   getTodayFollowUps: async () => {
     return authenticatedFetch(`${API_BASE_URL}/follow-ups/today`);
   },
@@ -2945,6 +3002,8 @@ export const meetingApi = {
     sendEmail: boolean;
     status: string;
     cancellationReason: string;
+    feedback: string;
+    nextAction: string;
   }>) => {
     return authenticatedFetch(`${API_BASE_URL}/meetings/${id}`, {
       method: 'PUT',
@@ -3346,4 +3405,54 @@ export const hmsClassApi = {
     authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/batches/${batchId}`, { method: 'DELETE' }),
   searchPeople: (q: string) =>
     authenticatedFetch(`${API_BASE_URL}/hms-classes/people/search?q=${encodeURIComponent(q)}`),
+};
+
+// Meta CRM conversion events + ad spend sync (server: routes/metaCrmRoutes.ts)
+const metaCrmCall = (path: string, method = 'GET', body?: any) =>
+  authenticatedFetch(`${API_BASE_URL}/meta-crm${path}`, { method, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
+
+export const metaCrmApi = {
+  summary: () => metaCrmCall('/summary'),
+  events: (params: { status?: string; page?: number; limit?: number } = {}) => {
+    const q = new URLSearchParams();
+    if (params.status) q.set('status', params.status);
+    if (params.page) q.set('page', String(params.page));
+    if (params.limit) q.set('limit', String(params.limit));
+    return metaCrmCall(`/events${q.toString() ? `?${q}` : ''}`);
+  },
+  /** One lead's Meta events, oldest first (for the lead page). */
+  leadEvents: (leadId: string) => metaCrmCall(`/lead/${leadId}`),
+  retryFailed: () => metaCrmCall('/retry-failed', 'POST', {}),
+  testSend: (leadId?: string) => metaCrmCall('/test-send', 'POST', leadId ? { leadId } : {}),
+  getSettings: () => metaCrmCall('/settings'),
+  updateSettings: (data: Record<string, any>) => metaCrmCall('/settings', 'PUT', data),
+  syncSpend: (days = 3) => metaCrmCall(`/spend/sync?days=${days}`, 'POST', {}),
+  backfillSpend: (days = 90) => metaCrmCall(`/spend/backfill?days=${days}`, 'POST', {}),
+  spendStatus: () => metaCrmCall('/spend/status'),
+  spendSummary: (from?: string, to?: string) => {
+    const q = new URLSearchParams();
+    if (from) q.set('from', from);
+    if (to) q.set('to', to);
+    return metaCrmCall(`/spend/summary${q.toString() ? `?${q}` : ''}`);
+  },
+};
+
+// Admissions reports (server: routes/leadReportRoutes.ts)
+export const leadReportApi = {
+  /** Lead Dashboard: tiles, funnel, trend, follow-up tasks, tab counts. Omit dates for all time. */
+  dashboard: (from?: string, to?: string) => {
+    const q = new URLSearchParams(); if (from) q.append('from', from); if (to) q.append('to', to);
+    return authenticatedFetch(`${API_BASE_URL}/lead-reports/dashboard?${q.toString()}`);
+  },
+  admissions: (params: { from: string; to: string; assignedTo?: string; source?: string }) => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v) q.append(k, v); });
+    return authenticatedFetch(`${API_BASE_URL}/lead-reports/admissions?${q.toString()}`);
+  },
+};
+
+// CRM automation rules (server: routes/leadAutomationRoutes.ts)
+export const leadAutomationApi = {
+  get: () => authenticatedFetch(`${API_BASE_URL}/lead-automation`),
+  save: (rules: Record<string, any>) => authenticatedFetch(`${API_BASE_URL}/lead-automation`, { method: 'PUT', body: JSON.stringify({ rules }) }),
 };

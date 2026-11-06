@@ -46,6 +46,8 @@
 .cpm-pill.paid { background: #E3F6EC; color: #126B47; }
 .cpm-pill.free { background: #EEF2F7; color: #2F3F56; }
 .cpm-pill.comp { background: #F1EBFF; color: #5B2DB8; cursor: help; }
+.cpm-pill.trial { background: #FFF4E0; color: #8A5A00; cursor: help; }
+.tp-wrap { padding: 0 !important; gap: 0 !important; }
 .cpm-pill.off { background: #FDECEC; color: #B42318; }
 
 .cpm-actions { white-space: nowrap; text-align: right; }

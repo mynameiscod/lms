@@ -38,6 +38,15 @@ import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService
 const foundationJourneyLocked = async (enrollment: any, tId: string, sId: string): Promise<boolean> =>
   enrollment?.enrolledBy === 'foundation-journey' && (await foundationAccess(String(tId), String(sId))).level !== 'FULL';
 
+/** A trial opens the first N days of the journey; past those, a day refuses with TRIAL_LIMIT. */
+const trialRefusesDay = async (enrollment: any, tId: string, sId: string, dayNumber: number) => {
+  if (enrollment?.enrolledBy !== 'foundation-journey' || !Number.isFinite(dayNumber)) return null;
+  const a = await foundationAccess(String(tId), String(sId));
+  return a.trialDays && dayNumber > a.trialDays
+    ? { reason: 'TRIAL_LIMIT', trialDays: a.trialDays, message: `Your trial includes the first ${a.trialDays} days. Take membership to open day ${dayNumber}.` }
+    : null;
+};
+
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
 const userId   = (req: Request): string => (req as any).user?.id || '';
 
@@ -578,6 +587,8 @@ export const markContentComplete = async (req: Request, res: Response) => {
     if (await foundationJourneyLocked(enrollment, tId, sId)) {
       return res.status(403).json({ reason: 'MEMBERSHIP_REQUIRED', message: 'Take membership to work through your roadmap.' });
     }
+    const trialStop = await trialRefusesDay(enrollment, tId, sId, Number(dayNumber));
+    if (trialStop) return res.status(403).json(trialStop);
 
     /**
      * THE SEQUENTIAL LOCK HAS TO BE ENFORCED HERE OR IT IS DECORATION.
@@ -849,6 +860,8 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     if (await foundationJourneyLocked(enrollment, tId, sId)) {
       return res.status(403).json({ reason: 'MEMBERSHIP_REQUIRED', message: 'Take membership to open the days of your roadmap.' });
     }
+    const trialStop = await trialRefusesDay(enrollment, tId, sId, dayNumber);
+    if (trialStop) return res.status(403).json(trialStop);
 
     const curriculum = await LearningCurriculum.findById(enrollment.curriculumId).lean();
     if (!curriculum) return res.status(404).json({ message: 'Curriculum not found' });

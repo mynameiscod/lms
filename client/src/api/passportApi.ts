@@ -237,6 +237,36 @@ export const passportApi = {
     const { data } = await axios.delete(`${BASE}/members/${userId}/grant`, { headers: auth() });
     return data;
   },
+  /** Trial plans: what a trial opens and for how long (CareerPilot → Trial plans). */
+  listTrialPlans: async (): Promise<{ plans: TrialPlan[]; catalogue: TrialCatalogueItem[]; maxDays: number; maxPicked: number }> => {
+    const { data } = await axios.get(`${BASE}/trial-plans`, { headers: auth() });
+    return data;
+  },
+  /** Practice-library problems an admin can name in a plan. */
+  searchTrialProblems: async (q: string): Promise<TrialProblem[]> => {
+    const { data } = await axios.get(`${BASE}/trial-plans/problems`, { params: { q }, headers: auth() });
+    return data.problems || [];
+  },
+  saveTrialPlan: async (id: string | null, body: Omit<TrialPlan, 'id' | 'running' | 'updatedAt' | 'practiceProblems'> & { practiceProblemIds: string[] }): Promise<{ plan: TrialPlan }> => {
+    const { data } = id
+      ? await axios.put(`${BASE}/trial-plans/${id}`, body, { headers: auth() })
+      : await axios.post(`${BASE}/trial-plans`, body, { headers: auth() });
+    return data;
+  },
+  deleteTrialPlan: async (id: string): Promise<void> => {
+    await axios.delete(`${BASE}/trial-plans/${id}`, { headers: auth() });
+  },
+  startTrial: async (userId: string, planId: string, reason: string): Promise<{ trial: TrialStatus | null }> => {
+    const { data } = await axios.post(`${BASE}/members/${userId}/trial`, { planId, reason }, { headers: auth() });
+    return data;
+  },
+  endTrial: async (userId: string): Promise<void> => {
+    await axios.delete(`${BASE}/members/${userId}/trial`, { headers: auth() });
+  },
+  memberTrial: async (userId: string): Promise<{ trial: TrialStatus | null; last: any }> => {
+    const { data } = await axios.get(`${BASE}/members/${userId}/trial`, { headers: auth() });
+    return data;
+  },
   deleteMember: async (userId: string): Promise<any> => {
     const { data } = await axios.delete(`${BASE}/members/${userId}`, { headers: auth() });
     return data;
@@ -767,8 +797,27 @@ export const passportApi = {
     const { data } = await axios.put(`${BASE}/gamification/admin/rules/${eventKey}`, patch, { headers: auth() });
     return data;
   },
-  updateBadgeDefinition: async (key: string, patch: any): Promise<any> => {
+  updateBadgeDefinition: async (key: string, patch: Partial<BadgeInput>): Promise<{ badges: AdminBadgeRow[] }> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/badges/${key}`, patch, { headers: auth() });
+    return data;
+  },
+  createBadgeDefinition: async (body: BadgeInput): Promise<{ badges: AdminBadgeRow[] }> => {
+    const { data } = await axios.post(`${BASE}/gamification/admin/badges`, body, { headers: auth() });
+    return data;
+  },
+  /** Only a badge nobody has earned; the server refuses the rest. */
+  deleteBadgeDefinition: async (key: string): Promise<{ badges: AdminBadgeRow[] }> => {
+    const { data } = await axios.delete(`${BASE}/gamification/admin/badges/${key}`, { headers: auth() });
+    return data;
+  },
+  /** The order members see the badges in. */
+  reorderBadgeDefinitions: async (keys: string[]): Promise<{ badges: AdminBadgeRow[] }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/badges-order`, { keys }, { headers: auth() });
+    return data;
+  },
+  /** Level names, level 1 first; [] goes back to the shipped names. */
+  saveLevelNames: async (names: string[]): Promise<{ levels: LevelLadder }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/levels`, { names }, { headers: auth() });
     return data;
   },
   updateLeaderboardSettings: async (patch: any): Promise<any> => {
@@ -1925,7 +1974,8 @@ export interface LevelInfo {
   xpIntoLevel: number; xpForThisLevel: number; xpToNextLevel: number;
   nextLevel: number; nextTitle: string; progressPct: number;
 }
-export interface Badge { key: string; label: string; icon: string; color: string; hint: string; earned: boolean; progress: number; }
+/** A member's badge. `icon` is a Bootstrap Icons class ("bi-mic-fill"). */
+export interface Badge { key: string; label: string; icon: string; color: string; hint: string; earned: boolean; progress: number; earnedAt?: string | null }
 export interface DashboardData {
   /**
    * The daily plan's own outcome, including WHY it is unavailable. The dashboard used to
@@ -1999,7 +2049,19 @@ export interface DashboardData {
   locked?: LockedSection[];
   /** Menu items the institute's admin has switched off for CareerPilot students (Student Features page). */
   hidden?: string[];
+  /** A running trial: limited access for a set time. Null for everyone else. */
+  trial?: TrialStatus | null;
 }
+
+/** A trial as the member and the admin see it (server: trialService.trialStatus). */
+export interface TrialStatus {
+  planName: string; startedAt: string; endsAt: string; daysLeft: number;
+  items: { key: string; label: string; icon: string; on: boolean; limit: number | null; used: number | null; unit: string | null }[];
+}
+export interface TrialItemSetting { on: boolean; limit: number | null }
+export interface TrialProblem { id: string; number: number; title: string; difficulty: string }
+export interface TrialPlan { id: string; name: string; description: string; days: number; items: Record<string, TrialItemSetting>; active: boolean; running: number; updatedAt?: string; practiceProblems: TrialProblem[] }
+export interface TrialCatalogueItem { key: string; label: string; icon: string; unit: string | null; hint: string | null }
 
 /** One day of the ninety. A unit of curriculum, not a calendar date. */
 export interface SpineDay {
@@ -2460,9 +2522,25 @@ export interface XpRuleRow {
   eventKey: string; enabled: boolean; xp: number; dailyLimit: number; streakQualifying: boolean;
 }
 
+/** A badge as the admin defines it: its look, and the rule that earns it. */
+export interface AdminBadgeRow {
+  key: string; name: string; description: string; iconKey: string; color: string; active: boolean;
+  conditionType: string; threshold: number; eventKey: string | null; displayOrder: number;
+  /** The rule in words — what members see when the description is empty. */
+  rule: string;
+  /** How many members hold it. */
+  earnedBy: number;
+}
+export interface BadgeCondition { type: string; label: string; unit: string; max?: number; needsEvent?: boolean }
+export interface BadgeInput { name: string; description: string; iconKey: string; color: string; conditionType: string; threshold: number; eventKey?: string | null; active?: boolean }
+/** What each level is called, level 1 first, and the XP that reaches each. */
+export interface LevelLadder { names: string[]; defaults: string[]; custom: boolean; max: number; nameMax: number; xpToReach: number[] }
+
 export interface AdminGamification {
   rules: XpRuleRow[];
-  badges: any[];
+  badges: AdminBadgeRow[];
+  badgeConditions: BadgeCondition[];
+  levels: LevelLadder;
   settings: any;
   events: { key: string; name: string; description: string; defaultXp: number }[];
   taskTypes: TaskXpType[];

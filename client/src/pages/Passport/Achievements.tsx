@@ -5,10 +5,8 @@ import PassportShell from './PassportShell';
 /**
  * Every badge, earned and unearned.
  *
- * Reuses the dashboard payload rather than adding an endpoint: badges are computed from
- * eight different sources (problems solved, streak, roadmap days, interviews, resume
- * score, career score), and a second endpoint would be a second copy of that arithmetic
- * to keep in step. The dashboard already returns them.
+ * Reuses the dashboard payload rather than adding an endpoint: the badges are the admin's
+ * (XP & Rewards → Badges), judged there on the figures the dashboard already counts.
  *
  * Unearned badges are shown WITH their progress rather than hidden. A locked badge you
  * can see yourself approaching is the thing that motivates; one you cannot see teaches
@@ -33,7 +31,7 @@ const Achievements: React.FC = () => {
 
   const card = (b: typeof badges[number]) => (
     <div className={`ac-badge${b.earned ? ' on' : ''}`} key={b.key}>
-      <span className="ic" style={b.earned ? { background: b.color } : undefined}>{b.icon}</span>
+      <span className="ic" style={b.earned ? { background: b.color } : undefined}><i className={`bi ${b.earned ? b.icon : 'bi-lock-fill'}`} aria-hidden /></span>
       <div className="tx">
         <b>{b.label}</b>
         <span>{b.hint}</span>

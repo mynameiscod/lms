@@ -9,6 +9,7 @@ import * as razorpay from '../services/razorpayService';
 import { activateMembership } from '../services/passportActivationService';
 import { settlePayment } from './paymentController';
 import { membershipActive, entitlementMap } from '../services/passportEntitlementService';
+import { trialStatus } from '../services/trialService';
 import PassportProgress from '../models/PassportProgress';
 import PassportAttempt from '../models/PassportAttempt';
 import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
@@ -335,6 +336,8 @@ export const getMyStatus = async (req: Request, res: Response) => {
       assessedVia: assessedState.source,
       enabled: passportEnabled(tenantId, cfg),
       active,
+      /** A running trial is NOT `active` (that is a paid or granted membership); it is reported here. */
+      trial: await trialStatus(tenantId, userIdOf(req), user?.passport || null).catch(() => null),
       /**
        * `onboarded` is set to true by SIGNUP, so it answers "did they fill the join form",
        * not "are they ready to be assessed". Every consumer that wanted the second question

@@ -7,7 +7,8 @@ export class QuestionService {
   async createQuestion(
     quizId: string,
     questionData: Partial<IQuestion>,
-    tenantId: string
+    tenantId: string,
+    createdBy: string
   ): Promise<IQuestion> {
     // Get next question number
     const lastQuestion = await Question.findOne({ quizId }).sort({ questionNo: -1 });
@@ -17,6 +18,8 @@ export class QuestionService {
       ...questionData,
       quizId,
       tenantId,
+      // The schema requires it, and nothing set it: every question added from the builder failed.
+      createdBy: questionData.createdBy || createdBy,
       questionNo
     });
 
@@ -29,10 +32,19 @@ export class QuestionService {
       { $group: { _id: null, total: { $sum: '$marks' } } }
     ]);
 
+    /*
+     * A day's checkpoint is created switched off, because an empty quiz must not reach a student.
+     * Its first question is what makes it ready, so that is when it switches on — otherwise the
+     * author fills it in and still nobody sees it.
+     */
+    const quiz: any = await Quiz.findById(quizId).select('unitCode isActive').lean();
+    const firstOnUnit = totalQuestions === 1 && !!quiz?.unitCode && quiz.isActive === false;
+
     await Quiz.findByIdAndUpdate(quizId, {
       totalQuestions,
       totalMarks: totalMarks[0]?.total || 0,
-      questionCount: totalQuestions
+      questionCount: totalQuestions,
+      ...(firstOnUnit ? { isActive: true } : {})
     });
 
     return saved;
@@ -177,11 +189,11 @@ export class QuestionService {
   }
 
   // Bulk upload questions
-  async bulkCreateQuestions(quizId: string, questions: any[], tenantId: string): Promise<IQuestion[]> {
+  async bulkCreateQuestions(quizId: string, questions: any[], tenantId: string, createdBy: string): Promise<IQuestion[]> {
     const saved: IQuestion[] = [];
 
     for (const q of questions) {
-      const question = await this.createQuestion(quizId, q, tenantId);
+      const question = await this.createQuestion(quizId, q, tenantId, createdBy);
       saved.push(question);
     }
 

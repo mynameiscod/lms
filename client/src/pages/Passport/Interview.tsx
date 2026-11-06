@@ -344,7 +344,10 @@ const Interview: React.FC = () => {
    */
   const entitlement: MemberEntitlement | undefined = data?.entitlement;
   const rounds: MemberRoundView[] = entitlement?.rounds || [];
-  const canStartRound = entitlement ? entitlement.canStart : true;
+  /** On a trial: its own count of interviews, which stops the start buttons when used up. */
+  const trialIv: { limit: number; used: number } | null = data?.trial || null;
+  const trialFull = !!trialIv && trialIv.used >= trialIv.limit;
+  const canStartRound = (entitlement ? entitlement.canStart : true) && !trialFull;
   /**
    * What to practise next: whichever round they have sat least, ties broken by the order the
    * admin put them in. Gives every general "start" button on this page one unambiguous
@@ -648,8 +651,14 @@ const Interview: React.FC = () => {
                   : <>The standard practice set for your course and year.</>}
               </p>
             </div>
-            <div className={`cp-iv-allowance${entitlement?.remaining === 0 ? ' out' : ''}`}>
-              {entitlement && entitlement.perThirtyDays > 0 ? (
+            <div className={`cp-iv-allowance${entitlement?.remaining === 0 || trialFull ? ' out' : ''}`}>
+              {trialIv ? (
+                <>
+                  <b>{Math.max(0, trialIv.limit - trialIv.used)}</b>
+                  <span>of {trialIv.limit} left</span>
+                  <small>in your trial</small>
+                </>
+              ) : entitlement && entitlement.perThirtyDays > 0 ? (
                 <>
                   <b>{entitlement.remaining}</b>
                   <span>of {entitlement.perThirtyDays} left</span>
@@ -661,7 +670,16 @@ const Interview: React.FC = () => {
             </div>
           </div>
 
-          {!canStartRound && (
+          {trialIv && (
+            <div className={`cp-iv-blocked trial${trialFull ? '' : ' ok'}`}>
+              <i className="bi bi-hourglass-split" />
+              <span>{trialFull
+                ? <>Your trial included {trialIv.limit} mock {trialIv.limit === 1 ? 'interview' : 'interviews'}, and you have done {trialIv.limit === 1 ? 'it' : 'them all'}. Take membership to keep practising.</>
+                : <>Your trial includes <b>{trialIv.limit}</b> mock {trialIv.limit === 1 ? 'interview' : 'interviews'}: {trialIv.used} started, {trialIv.limit - trialIv.used} left. Each one you start counts.</>}</span>
+            </div>
+          )}
+
+          {!canStartRound && !trialFull && (
             <div className="cp-iv-blocked">
               <i className="bi bi-hourglass-split" />
               <span>

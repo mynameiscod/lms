@@ -63,6 +63,8 @@
   margin-bottom: 16px;
 }
 .cp-iv-blocked i { font-size: 15px; line-height: 1.35; flex-shrink: 0; }
+.cp-iv-blocked.trial.ok { background: #FFF8E8; border-color: #F3DFB2; color: #6B4A00; }
+.cp-iv-blocked.trial b { color: #051D64; }
 
 .cp-iv-round-cards {
   display: grid; gap: 13px;

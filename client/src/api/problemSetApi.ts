@@ -81,6 +81,8 @@ export interface LibraryPage {
   rows: LibraryRow[]; total: number; page: number; limit: number; pages: number;
   progress: { solved: number; total: number; byDifficulty: Record<string, { solved: number; total: number }> };
   next: { _id: string; number: number; title: string; difficulty: PbDifficulty } | null;
+  /** A CareerPilot trial shows only its own problems: how many, out of the whole library. */
+  trial?: { problems: number; libraryTotal: number } | null;
 }
 export interface LibraryFacets {
   total: number; difficulties: Record<string, number>;

@@ -1,4 +1,5 @@
 import { recordStageTransition } from '../controllers/leadStageHistoryController';
+import { stampMilestonesAfterExternalMove } from './leadLifecycleService';
 import { classifyOutcome, getPolicy } from './outperoPolicyService';
 import { autoAssignLead } from './leadDistributionService';
 import LeadStage from '../models/LeadStage';
@@ -263,7 +264,10 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
     if (set.stageId && String(set.stageId) !== String(lead.stageId)) update.$push = { activities: { type: 'status_change', createdBy: lead.createdBy, createdAt: new Date(), description: 'AI call outcome: ' + outcome, metadata: { outperoCallId: call.callId } } };
     const applied = await Lead.updateOne({ ...leadQ, stageId: lead.stageId, activities: { $not: { $elemMatch: { type: 'status_change', createdAt: { $gt: new Date(call.startedAt || lead.outpero?.sentAt || call.createdAt) }, 'metadata.outperoCallId': { $exists: false } } } } }, update);
     if (applied.matchedCount === 0) automate = false;
-    if (automate && target && set.stageId && String(set.stageId) !== String(lead.stageId)) await recordStageTransition(lead._id, lead.stageId, target._id, target.name, lead.createdBy, oid(tenantId));
+    if (automate && target && set.stageId && String(set.stageId) !== String(lead.stageId)) {
+      await recordStageTransition(lead._id, lead.stageId, target._id, target.name, lead.createdBy, oid(tenantId), { source: 'outpero' });
+      await stampMilestonesAfterExternalMove(tenantId, lead._id, target);
+    }
     if (state !== 'awaiting_assignment') await mark('feedback_' + outcome);
     else did.push('awaiting_assignment');
   }

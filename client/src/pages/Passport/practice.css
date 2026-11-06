@@ -1,8 +1,8 @@
 /* Practice Lab workspace — problem panel + Monaco editor + tabbed results. */
 
 .pl-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
-.pl-back { background: none; border: none; color: #6d4bd8; font-size: 13.5px; font-weight: 800; cursor: pointer; padding: 0; }
-.pl-back:hover { text-decoration: underline; }
+.pl-back { background: none; border: none; color: #6d4bd8; font-size: 13.5px; font-weight: 800; cursor: pointer; padding: 5px 10px; margin: -5px 0 -5px -10px; border-radius: 9px; transition: background-color .15s; }
+.pl-back:hover { background: #F1ECFF; text-decoration: none; }
 .pl-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-left: auto; }
 .pl-meta span { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #2F3F56; }
 .pl-meta span i { font-style: normal; }

@@ -119,6 +119,7 @@ const LeaveRequests = lazy(() => import('./pages/LeaveRequests'));
 const CodePlayground = lazy(() => import('./pages/CodePlayground'));
 const PassportAdminConfig = lazy(() => import('./pages/Passport/AdminConfig'));
 const PassportAdminStudents = lazy(() => import('./pages/Passport/AdminStudents'));
+const PassportAdminTrialPlans = lazy(() => import('./pages/Passport/AdminTrialPlans'));
 const PassportAdminStudentRoadmap = lazy(() => import('./pages/Passport/AdminStudentRoadmap'));
 const PassportAdminStageSkills = lazy(() => import('./pages/Passport/AdminStageSkills'));
 const PassportAdminCoins = lazy(() => import('./pages/Passport/AdminCoins'));
@@ -248,6 +249,10 @@ const LeadAnalyticsPage = lazy(() => import('./pages/LeadAnalytics'));
 const MeetingsPage = lazy(() => import('./pages/Meetings'));
 const LeadDistributionSettingsPage = lazy(() => import('./pages/LeadDistributionSettings'));
 const FollowUpCalendarPage = lazy(() => import('./pages/FollowUpCalendar'));
+const FollowUpQueuePage = lazy(() => import('./pages/FollowUpQueue'));
+const AdmissionsDashboardPage = lazy(() => import('./pages/AdmissionsDashboard'));
+const LeadAutomationPage = lazy(() => import('./pages/LeadAutomation'));
+const LeadDashboardPage = lazy(() => import('./pages/LeadDashboard'));
 const SeatReservationsPage = lazy(() => import('./pages/SeatReservations'));
 const LeadAgingPage = lazy(() => import('./pages/LeadAging'));
 const LeadDuplicatesPage = lazy(() => import('./pages/LeadDuplicates'));
@@ -264,6 +269,7 @@ const AiSpend = lazy(() => import('./pages/AiSpend'));
 const GoogleSheetIntegrationPage = lazy(() => import('./pages/GoogleSheetIntegration'));
 const LeadScoringSettingsPage = lazy(() => import('./pages/LeadScoringSettings'));
 const LeadSourcesPage = lazy(() => import('./pages/LeadSources'));
+const MetaSyncPage = lazy(() => import('./pages/MetaSync'));
 const AICallConfigPage = lazy(() => import('./pages/AICallConfig'));
 const AllRegistrations = lazy(() => import('./pages/PublicQuizAdmin/AllRegistrations'));
 const RegistrationDetail = lazy(() => import('./pages/PublicQuizAdmin/RegistrationDetail'));
@@ -683,6 +689,10 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_members']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
+      } />
+      {/* Trial plans: a few days of limited access, given to chosen students from Members. */}
+      <Route path="/admin/passport/trial-plans" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']} requiredPermissions={['manage_passport', 'manage_passport_members']}><Layout><PassportAdminTrialPlans /></Layout></ProtectedRoute>
       } />
       {/* Why THIS member got THESE missions. The endpoint existed with no screen calling
           it, so the only way to answer that question was a database query. */}
@@ -2300,7 +2310,7 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
-              <LeadsPage />
+              <LeadDashboardPage />
             </Layout>
           </ProtectedRoute>
         }
@@ -2406,6 +2416,16 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
+        path="/meta-sync"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <MetaSyncPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/lead-scoring-settings"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
@@ -2491,6 +2511,48 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
               <FollowUpCalendarPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-list"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <LeadsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/lead-dashboard" element={<Navigate to="/leads" replace />}
+      />
+      <Route
+        path="/lead-automation"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <LeadAutomationPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admissions-dashboard"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <AdmissionsDashboardPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/follow-up-queue"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <FollowUpQueuePage />
             </Layout>
           </ProtectedRoute>
         }

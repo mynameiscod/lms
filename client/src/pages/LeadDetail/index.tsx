@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import LeadDetailV3 from './v3/LeadDetailV3';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { leadApi, leadStageApi, leadFormConfigApi, leadAIApi, qualificationApi, salesContentApi, meetingApi, leadFeeApi, leadDispositionApi } from '../../api';
@@ -1543,8 +1544,9 @@ const LeadDetail: React.FC = () => {
   );
 };
 
-// Export the new clean V2 component
-export default LeadDetailV2;
+// The live lead page is v3 (v3/LeadDetailV3.tsx); V2 kept as a named export.
+export default LeadDetailV3;
+export { LeadDetailV2 };
 
 // Keep old components as backup
 export { LeadDetailModern };

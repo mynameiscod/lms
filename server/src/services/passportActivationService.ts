@@ -37,6 +37,8 @@ export async function activateMembership(tenantId: string, studentId: string): P
     'passport.expiresAt': expiresAt,
   };
   if (!user?.passport?.activatedAt) set['passport.activatedAt'] = now;
+  // Paid while on a trial: recorded, so the trials report can say who converted.
+  if (user?.passport?.trial?.startedAt && !user.passport.trial.convertedAt) set['passport.trial.convertedAt'] = now;
   if (!user?.passport?.shareSlug) set['passport.shareSlug'] = slugFor(studentId);
 
   await User.updateOne({ _id: studentId }, { $set: set });

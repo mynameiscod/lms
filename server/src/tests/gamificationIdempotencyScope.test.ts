@@ -166,7 +166,8 @@ jest.mock('../models/CoinModels', () => ({
 }));
 
 import { processGamificationEvent } from '../services/gamificationEngine';
-import { BADGE_SEEDS } from '../data/gamificationPolicy';
+/** A seven-day streak badge, as an admin might define it. */
+const STREAK_7 = { key: 'STREAK_7', name: 'One week strong', conditionType: 'STREAK', conditionConfig: { threshold: 7 } };
 
 const TENANT = 't1';
 const A = 'studentA';
@@ -307,7 +308,7 @@ describe('the streak bonus — where the defect showed', () => {
   });
 
   it('lets both students earn the STREAK_7 badge', async () => {
-    badgeDefs.push({ ...BADGE_SEEDS.find(x => x.key === 'STREAK_7')!, tenantId: TENANT, active: true });
+    badgeDefs.push({ ...STREAK_7, tenantId: TENANT, active: true });
     onSixDays(A);
     onSixDays(B);
 
@@ -320,7 +321,7 @@ describe('the streak bonus — where the defect showed', () => {
   });
 
   it('gives each student STREAK_7 only once', async () => {
-    badgeDefs.push({ ...BADGE_SEEDS.find(x => x.key === 'STREAK_7')!, tenantId: TENANT, active: true });
+    badgeDefs.push({ ...STREAK_7, tenantId: TENANT, active: true });
     onSixDays(A);
 
     await award(A, 'm-a');

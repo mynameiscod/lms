@@ -23,14 +23,17 @@
   gap: 6px;
   background: none;
   border: none;
-  padding: 6px 0;
+  padding: 6px 10px;
+  margin-left: -10px;
+  border-radius: 9px;
   font-size: 13.5px;
   font-weight: 600;
   color: #6164EC;
   cursor: pointer;
+  transition: background-color .15s;
 }
 
-.jd-crumb button:hover { text-decoration: underline; }
+.jd-crumb button:hover { background: #EFEFFE; text-decoration: none; }
 
 /* ── Header ─────────────────────────────────────────────────────────── */
 

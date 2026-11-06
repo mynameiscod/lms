@@ -1,0 +1,14 @@
+/* Follow-up queue. Scoped under .fq-page. */
+.fq-page { padding: 24px; max-width: 1200px; margin: 0 auto; }
+.fq-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.fq-header h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 4px; color: #1f2937; }
+.fq-header p { margin: 0; color: #6b7280; font-size: 0.9rem; }
+.fq-tabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; }
+.fq-tabs .nav-link { white-space: nowrap; }
+.fq-hint { color: #6b7280; font-size: 0.85rem; margin: 10px 0; }
+.fq-empty { text-align: center; padding: 48px 16px; color: #6b7280; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; }
+.fq-table-wrap { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow-x: auto; }
+.fq-table { margin: 0; min-width: 760px; }
+.fq-table th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.02em; color: #6b7280; font-weight: 600; }
+.fq-stage { display: inline-block; border-left: 3px solid; padding-left: 6px; font-size: 0.85rem; font-weight: 600; }
+@media (max-width: 720px) { .fq-page { padding: 16px; } }

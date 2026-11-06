@@ -9,6 +9,7 @@ import PassportInterview from '../models/PassportInterview';
 import ProblemSubmission from '../models/ProblemSubmission';
 import StudentProfile from '../models/StudentProfile';
 import { levelFromXp } from '../services/passportGamificationService';
+import { levelNamesFor } from '../services/levelNameService';
 import { liveStreak } from '../services/passportXpService';
 import { spendableBalance } from '../services/coinSpendService';
 import { computeProfileCompleteness } from '../utils/profileCompleteness';
@@ -134,7 +135,7 @@ export async function getMemberProfile(req: Request, res: Response) {
         })),
         progress: {
           xp,
-          level: levelFromXp(xp),
+          level: levelFromXp(xp, await levelNamesFor(tenantId)),
           streak: progress ? liveStreak(progress) : 0,
           longestStreak: progress?.longestStreak || 0,
           lastActiveDay: progress?.lastCompletedDate || null,

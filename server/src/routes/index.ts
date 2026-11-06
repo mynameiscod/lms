@@ -32,6 +32,10 @@ import topicRoutes from './topicRoutes';
 import subTopicRoutes from './subTopicRoutes';
 import leadRoutes from './leadRoutes';
 import leadStageRoutes from './leadStageRoutes';
+import leadPipelineRoutes from './leadPipelineRoutes';
+import leadSavedViewRoutes from './leadSavedViewRoutes';
+import leadReportRoutes from './leadReportRoutes';
+import leadAutomationRoutes from './leadAutomationRoutes';
 import leadFormConfigRoutes from './leadFormConfigRoutes';
 import codeSnippetRoutes from './codeSnippetRoutes';
 import shareRoutes from './shareRoutes';
@@ -52,6 +56,7 @@ import publicHackathonRoutes from './publicHackathonRoutes';
 import publicHackathonExamRoutes from './publicHackathonExamRoutes';
 import hackathonExamRoutes from './hackathonExamRoutes';
 import metaLeadAdsRoutes from './metaLeadAdsRoutes';
+import metaCrmRoutes from './metaCrmRoutes';
 import googleSheetRoutes from './googleSheetRoutes';
 import leadScoringRoutes from './leadScoringRoutes';
 import leadSourceConfigRoutes from './leadSourceConfigRoutes';
@@ -220,6 +225,7 @@ router.use('/hackathons', hackathonRoutes);
 router.use('/certificates', certificateRoutes);
 router.use('/ai-usage', aiUsageRoutes);
 router.use('/meta-leads', metaLeadAdsRoutes);
+router.use('/meta-crm', metaCrmRoutes);
 router.post('/payments/webhook', paymentWebhook); // Razorpay webhook (public, signature-verified) — before the authed /payments mount
 router.all('/payments/return', paymentReturn);    // Razorpay redirect-mode return URL (public) — settles + bounces to app
 router.post('/hms/webhook', hmsWebhook); // 100ms webhook (public) — recording ready, peer join/leave
@@ -262,6 +268,10 @@ router.use('/topics', topicRoutes);
 router.use('/sub-topics', subTopicRoutes);
 router.use('/leads', leadRoutes);
 router.use('/lead-stages', leadStageRoutes);
+router.use('/lead-pipeline', leadPipelineRoutes);
+router.use('/lead-views', leadSavedViewRoutes);
+router.use('/lead-reports', leadReportRoutes);
+router.use('/lead-automation', leadAutomationRoutes);
 router.use('/lead-dispositions', leadDispositionRoutes);
 router.use('/lead-form-config', leadFormConfigRoutes);
 router.use('/code-snippets', codeSnippetRoutes);

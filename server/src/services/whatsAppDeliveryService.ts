@@ -32,6 +32,7 @@ const EXPLAIN: Record<number, string> = {
   132007: 'The filled-in text breaks a WhatsApp content policy.',
   132015: 'The template is paused because of low quality.',
   132016: 'The template is disabled because of low quality.',
+  131042: 'WhatsApp billing problem: Meta could not charge the payment method, so it is blocking ALL template messages (OTPs, broadcasts, stage messages). Fix: Meta Business Manager → Billing & payments → Payment activity: pay the failed bill, or fix/replace the card under Payment methods. Sending resumes shortly after payment.',
   368: 'The WhatsApp account is temporarily restricted for policy violations.',
   190: 'The WhatsApp access token has expired or is invalid — reconnect WhatsApp in Settings.',
 };

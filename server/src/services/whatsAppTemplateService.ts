@@ -6,6 +6,7 @@ import User from '../models/User';
 import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
 import WhatsAppMessageLog from '../models/WhatsAppMessageLog';
+import WhatsAppThread from '../models/WhatsAppThread';
 import * as settings from './settingsService';
 import { getWhatsAppCredentialCandidates, waPost, normalizeTo } from './assessmentOtpService';
 import { recordSend } from './whatsAppDeliveryService';
@@ -27,7 +28,7 @@ export { templateShape };
 const GRAPH = 'https://graph.facebook.com/v21.0';
 
 export class WaTemplateError extends Error {
-  constructor(message: string, public status = 400) { super(message); }
+  constructor(message: string, public status = 400, public code?: string) { super(message); }
 }
 
 // ── Connection ────────────────────────────────────────────────────────────────
@@ -541,10 +542,47 @@ export async function sendTemplateTo(
   return result;
 }
 
-export async function sendTest(tenantId: string, id: string, phone: string, values: string[], buttonParam?: string, sentBy?: string) {
+/** Meta's per-person marketing limit (error 131049). */
+export const MARKETING_HELD_CODE = 131049;
+const MARKETING_HELD_WINDOW_MS = 24 * 3600 * 1000;
+
+/**
+ * Was a MARKETING message to this number held back by Meta (131049) in the last 24 hours, with no
+ * message from them since? Then another marketing send will almost certainly be held back too —
+ * Meta accepts it, then silently drops it, and the admin only finds out from the Delivery log.
+ *
+ * A message from the person opens their conversation and lifts the hold, so an inbound message
+ * after the failure clears this.
+ */
+export async function marketingHeldFor(tenantId: string, phone: string): Promise<Date | null> {
+  const to = normalizeTo(phone);
+  if (!to) return null;
+  const tid = new mongoose.Types.ObjectId(tenantId);
+  const held: any = await WhatsAppMessageLog.findOne({
+    tenantId: tid, to, errorCode: MARKETING_HELD_CODE,
+    createdAt: { $gte: new Date(Date.now() - MARKETING_HELD_WINDOW_MS) },
+  }).sort({ createdAt: -1 }).select('createdAt').lean();
+  if (!held) return null;
+  const thread: any = await WhatsAppThread.findOne({ tenantId: tid, phone: to }).select('lastInboundAt').lean();
+  if (thread?.lastInboundAt && new Date(thread.lastInboundAt) > new Date(held.createdAt)) return null;
+  return new Date(held.createdAt);
+}
+
+export async function sendTest(tenantId: string, id: string, phone: string, values: string[], buttonParam?: string, sentBy?: string, force = false) {
   const t = await WhatsAppTemplate.findOne({ _id: id, tenantId });
   if (!t) throw new WaTemplateError('Template not found', 404);
   if (t.status !== 'APPROVED') throw new WaTemplateError(`Template is ${t.status} — Meta only sends APPROVED templates.`);
+  if (t.category === 'MARKETING' && !force) {
+    const heldAt = await marketingHeldFor(tenantId, phone);
+    if (heldAt) {
+      throw new WaTemplateError(
+        `Meta already held back a marketing message to this number at ${heldAt.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })} (per-person marketing limit, code 131049), ` +
+        'and they have not messaged you since. Another marketing send will most likely be held back too. ' +
+        'Ask them to send any WhatsApp message to your business number first, test with a different number, or use a UTILITY template.',
+        409, 'MARKETING_HELD',
+      );
+    }
+  }
   return sendTemplateTo(tenantId, t, phone, { body: values, urlButtonParam: buttonParam, log: { source: 'test', sentBy } });
 }
 

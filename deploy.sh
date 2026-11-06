@@ -60,6 +60,36 @@ if [ "$HEALTHY" = "false" ]; then
   exit 1
 fi
 
+# ── Publish static assets ────────────────────────────────────────────────────
+# nginx serves /static/ from $STATIC_ROOT, not from the container (see
+# nginx/platform.codebegun.com.conf and deploy-image.sh). A client build changes
+# every bundle hash, so flipping traffic without copying the new bundle here makes
+# index.html ask for files nginx does not have: 404, blank page for everyone.
+# Additive copy (old bundle stays for anyone mid-flip), verified before the flip.
+STATIC_ROOT=/var/www/lms-static
+echo ""
+echo "==> Publishing static assets from server-$NEW to $STATIC_ROOT..."
+mkdir -p "$STATIC_ROOT"
+STAGE=$(mktemp -d /tmp/lms-static.XXXXXX)
+trap 'rm -rf "$STAGE"' EXIT
+if ! docker cp "lms-server-$NEW:/app/client/build/." "$STAGE/" 2>/dev/null || [ ! -f "$STAGE/index.html" ]; then
+  echo "❌ Could not copy client/build out of lms-server-$NEW. Not flipping traffic."
+  docker-compose stop server-$NEW 2>/dev/null || true
+  exit 1
+fi
+cp -r "$STAGE/." "$STATIC_ROOT/"
+MISSING=0
+while read -r ref; do
+  [ -z "$ref" ] && continue
+  if [ ! -f "$STATIC_ROOT$ref" ]; then echo "   ❌ missing: $STATIC_ROOT$ref"; MISSING=$((MISSING + 1)); fi
+done <<< "$(grep -oE '/static/[A-Za-z0-9._/-]+' "$STAGE/index.html" | sort -u)"
+if [ "$MISSING" -gt 0 ]; then
+  echo "❌ $MISSING asset(s) referenced by index.html are missing. Not flipping traffic."
+  docker-compose stop server-$NEW 2>/dev/null || true
+  exit 1
+fi
+echo "   ✅ index.html's assets are all present in $STATIC_ROOT"
+
 # ── Switch nginx to new slot ─────────────────────────────────────────────────
 echo ""
 echo "==> [4/4] Switching nginx upstream to port $NEW_PORT..."

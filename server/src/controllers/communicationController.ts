@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { trialAllowsAnother } from '../services/trialService';
 import crypto from 'crypto';
 import fs from 'fs';
 import mongoose from 'mongoose';
@@ -258,6 +259,10 @@ export const submit = async (req: Request, res: Response) => {
 
     const challenge = await CommunicationChallenge.findOne({ _id: challengeId, tenantId }).lean();
     if (!challenge) { cleanup(file.path); return res.status(404).json({ message: 'Challenge not found' }); }
+
+    // A trial counts each recording sent for feedback.
+    const trialStop = await trialAllowsAnother(tenantId, uId(req), 'communication');
+    if (trialStop && !trialStop.ok) { cleanup(file.path); return res.status(trialStop.status).json(trialStop.body); }
 
     // Enforce the scheduled availability window (opt-in: only if a window is set for this batch+date).
     const meForWindow: any = await User.findById(uId(req)).select('batchId').lean();

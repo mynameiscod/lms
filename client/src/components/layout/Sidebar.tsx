@@ -226,6 +226,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     // ── CareerPilot (separate product) ──
     { label: 'CareerPilot Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport', 'manage_passport_setup'] },
     { label: 'CareerPilot Members', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['view_passport_members', 'manage_passport', 'manage_passport_members'] },
+    { label: 'CareerPilot Trials', path: '/admin/passport/trial-plans', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-hourglass-half', permissions: ['manage_passport', 'manage_passport_members'] },
     /* FIVE ENTRIES WERE REMOVED FROM HERE, NOT FIVE SCREENS.
        CareerPilot Missions, Learning Studio, Concept Bank, Career Stage Tagging and Paper
        Designer each write to a store nothing reads any more: missions need an ACTIVE
@@ -323,7 +324,10 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       moduleKey: 'leads',
       permissions: ['manage_leads', 'view_leads', 'create_leads', 'edit_leads', 'manage_event_apis'],
       submenu: [
-        { label: 'All Leads', path: '/leads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-users-viewfinder', permissions: ['manage_leads', 'view_leads'] },
+        { label: 'Lead Dashboard', path: '/leads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-gauge-high', permissions: ['view_leads', 'manage_leads'] },
+        { label: 'All Leads (list)', path: '/lead-list', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-users-viewfinder', permissions: ['manage_leads', 'view_leads'] },
+        { label: 'Admissions Dashboard', path: '/admissions-dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-chart-column', permissions: ['view_lead_analytics', 'manage_leads'] },
+        { label: 'Follow-up Queue', path: '/follow-up-queue', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-list-check', permissions: ['view_leads', 'edit_leads'] },
         { label: 'Follow-up Calendar', path: '/follow-ups', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-calendar-days', permissions: ['view_leads', 'edit_leads'] },
         { label: 'Seat Reservations', path: '/seat-reservations', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-ticket', permissions: ['manage_leads', 'view_leads', 'convert_leads'] },
         { label: 'Analytics', path: '/leads/analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-simple', permissions: ['manage_leads', 'view_lead_analytics'] },
@@ -332,7 +336,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'Team Activity', path: '/team-activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-column', permissions: ['view_lead_analytics'] },
         { label: 'Sales Content', path: '/sales-content', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-file-invoice', permissions: ['view_leads', 'create_leads'] },
         { label: 'Lead Sources', path: '/lead-sources', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-plug-circle-bolt', permissions: ['manage_leads'] },
-        { label: 'Lead Stages', path: '/lead-stages', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-stairs', permissions: ['manage_leads', 'manage_lead_stages'] },
+        { label: 'Meta Sync', path: '/meta-sync', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-brands fa-meta', permissions: ['manage_leads'] },
+        { label: 'CRM Automation', path: '/lead-automation', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-robot', permissions: ['manage_leads'] },
+        { label: 'Lead Pipeline', path: '/lead-stages', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-stairs', permissions: ['manage_leads', 'manage_lead_stages'] },
         { label: 'Priority Settings', path: '/lead-priority-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-ranking-star', permissions: ['manage_leads'] },
         { label: 'Qualification Questions', path: '/qualification-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-circle-question', permissions: ['manage_leads'] },
         { label: 'Form Settings', path: '/lead-form-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-pen-to-square', permissions: ['manage_leads'] },
@@ -529,7 +535,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       'CareerPilot Assessment', 'Assessment Coverage', 'Paper Designer', 'CareerPilot Pathways', 'CareerPilot Pathway Rules',
       'CareerPilot Missions', 'Content Builder', 'Orientation', 'Learning Studio', 'Mega Curriculum', 'Concept Bank', 'Company Questions', 'CareerPilot News',
       // Run and watch
-      'CareerPilot Members', 'Career Stage Tagging', 'XP & Rewards', 'CareerPilot Coins', 'CareerPilot Journey', 'CareerPilot Drop-off', 'Activity',
+      'CareerPilot Members', 'CareerPilot Trials', 'Career Stage Tagging', 'XP & Rewards', 'CareerPilot Coins', 'CareerPilot Journey', 'CareerPilot Drop-off', 'Activity',
     ] },
     { title: 'Platform',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management', 'Platform Settings'] },
   ];

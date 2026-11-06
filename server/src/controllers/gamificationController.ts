@@ -9,6 +9,8 @@ import {
 import { ensureGamificationDefaults } from '../services/gamificationEngine';
 import { getLeaderboard, rankSummary } from '../services/leaderboardService';
 import { levelFromXp } from '../services/passportGamificationService';
+import { levelNamesFor, invalidateLevelNames } from '../services/levelNameService';
+import { ruleSentence } from '../services/badgeService';
 import { liveStreak } from '../services/passportXpService';
 import { conversionStatus } from '../services/xpConversionService';
 import { CoinLedger } from '../models/CoinModels';
@@ -21,7 +23,9 @@ import {
   TASK_XP_TYPES, TASK_XP_MAX,
   XP_EVENTS, LEADERBOARD_PERIODS, LeaderboardScope, LeaderboardPeriod,
   DEFAULT_TOP_N, isScopeSupported,
+  BADGE_CONDITIONS, isBadgeCondition, DEFAULT_LEVEL_NAMES, MAX_NAMED_LEVELS, LEVEL_NAME_MAX,
 } from '../data/gamificationPolicy';
+import { xpToReachLevel } from '../services/passportGamificationService';
 
 /**
  * Reading a student's engagement standing, and configuring what drives it.
@@ -66,13 +70,13 @@ export const getMyGamification = async (req: Request, res: Response) => {
     res.json({
       xp,
       // Reuses the existing level curve rather than inventing a second progression.
-      level: levelFromXp(xp),
+      level: levelFromXp(xp, await levelNamesFor(tenantId)),
       // The streak as it stands today (Home and the top bar show the same): the stored number only
       // changes when XP is earned, so a lapsed streak kept showing here.
       streak: progress ? liveStreak(progress) : 0,
       longestStreak: progress?.longestStreak || 0,
       badges: (definitions as any[]).map(d => ({
-        key: d.key, name: d.name, description: d.description, iconKey: d.iconKey,
+        key: d.key, name: d.name, description: d.description, iconKey: d.iconKey, color: d.color,
         earned: held.has(d.key),
         awardedAt: held.get(d.key) || null,
       })),
@@ -153,17 +157,22 @@ export const getAdminGamification = async (req: Request, res: Response) => {
     const tenantId = tenantOf(req);
     await ensureGamificationDefaults(tenantId);
 
-    const [rules, badges, cfg, pricing, overrides] = await Promise.all([
+    const [rules, badges, cfg, pricing, overrides, holders] = await Promise.all([
       XpRule.find({ tenantId }).sort({ eventKey: 1 }).lean() as any,
-      BadgeDefinition.find({ tenantId }).sort({ displayOrder: 1 }).lean() as any,
+      BadgeDefinition.find({ tenantId }).sort({ displayOrder: 1, createdAt: 1 }).lean() as any,
       GamificationConfig.findOne({ tenantId }).lean() as any,
       loadXpPricing(tenantId),
       XpTaskOverride.find({ tenantId }).sort({ updatedAt: -1 }).lean() as any,
+      StudentBadge.aggregate([{ $match: { tenantId } }, { $group: { _id: '$badgeKey', n: { $sum: 1 } } }]),
     ]);
+    const earnedBy = new Map<string, number>((holders as any[]).map(h => [h._id, h.n]));
 
     res.json({
       rules,
-      badges,
+      badges: (badges as any[]).map(badgeRow(earnedBy)),
+      /** The rules a badge can use, in words. */
+      badgeConditions: BADGE_CONDITIONS,
+      levels: levelsPayload(cfg?.levelNames),
       settings: cfg?.leaderboard || null,
       // The catalogue, so the screen can explain what each event means without hardcoding it.
       events: XP_EVENTS.map(e => ({
@@ -211,32 +220,217 @@ export const updateXpRule = async (req: Request, res: Response) => {
   }
 };
 
+// ── badges and levels ───────────────────────────────────────────────────────
+
+const badgeRow = (earnedBy: Map<string, number>) => (d: any) => ({
+  key: d.key, name: d.name, description: d.description || '', iconKey: d.iconKey, color: d.color || '#f59e0b',
+  active: !!d.active, conditionType: d.conditionType,
+  threshold: d.conditionConfig?.threshold || 1, eventKey: d.conditionConfig?.eventKey || null,
+  displayOrder: d.displayOrder,
+  /** The rule in words — what a member sees when the description is empty. */
+  rule: ruleSentence(d.conditionType, d.conditionConfig?.threshold || 1, d.conditionConfig?.eventKey),
+  earnedBy: earnedBy.get(d.key) || 0,
+});
+
+const HEX = /^#[0-9a-f]{6}$/i;
+const ICON = /^bi-[a-z0-9-]{1,50}$/;
+
+/**
+ * The editable part of a badge, checked: the fields to $set (and to $unset, as undefined), or why
+ * not. `creating` demands the fields a new badge must have.
+ */
+function badgePatch(b: any, creating: boolean): { patch: Record<string, any> } | { error: string } {
+  const patch: Record<string, any> = {};
+  if (b.name !== undefined || creating) {
+    const name = String(b.name || '').trim().slice(0, 60);
+    if (!name) return { error: 'Give the badge a name.' };
+    patch.name = name;
+  }
+  if (b.description !== undefined) patch.description = String(b.description || '').trim().slice(0, 300);
+  if (b.iconKey !== undefined) {
+    if (!ICON.test(String(b.iconKey))) return { error: 'Pick an icon for the badge.' };
+    patch.iconKey = String(b.iconKey);
+  }
+  if (b.color !== undefined) {
+    if (!HEX.test(String(b.color))) return { error: 'Pick a colour for the badge.' };
+    patch.color = String(b.color).toLowerCase();
+  }
+  if (b.active !== undefined) patch.active = !!b.active;
+
+  if (b.conditionType !== undefined || creating) {
+    const type = String(b.conditionType || '');
+    if (!isBadgeCondition(type)) return { error: 'Choose what the member has to do.' };
+    patch.conditionType = type;
+    if (type === 'EVENT_COUNT') {
+      const ev = String(b.eventKey || '').toUpperCase();
+      if (!XP_EVENTS.some(e => e.key === ev)) return { error: 'Choose which activity is counted.' };
+      patch['conditionConfig.eventKey'] = ev;
+    } else {
+      patch['conditionConfig.eventKey'] = undefined;
+    }
+  }
+  if (b.threshold !== undefined || creating) {
+    const n = Number(b.threshold);
+    const cond = BADGE_CONDITIONS.find(c => c.type === (patch.conditionType || b.conditionType));
+    const max = cond?.max ?? 1_000_000;
+    if (!Number.isInteger(n) || n < 1 || n > max) return { error: `The target must be a whole number from 1 to ${max.toLocaleString('en-IN')}.` };
+    patch['conditionConfig.threshold'] = n;
+  }
+  return { patch };
+}
+
+/** A key for a new badge from its name, unique in the tenant. Keys never change once given. */
+async function newBadgeKey(tenantId: string, name: string): Promise<string> {
+  const base = (name.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'BADGE').slice(0, 40);
+  for (let i = 0; i < 50; i++) {
+    const key = i ? `${base}_${i + 1}` : base;
+    if (!(await BadgeDefinition.exists({ tenantId, key }))) return key;
+  }
+  return `${base}_${Date.now().toString(36).toUpperCase()}`;
+}
+
+const adminBadges = async (tenantId: string) => {
+  const [badges, holders] = await Promise.all([
+    BadgeDefinition.find({ tenantId }).sort({ displayOrder: 1, createdAt: 1 }).lean() as any,
+    StudentBadge.aggregate([{ $match: { tenantId } }, { $group: { _id: '$badgeKey', n: { $sum: 1 } } }]),
+  ]);
+  return (badges as any[]).map(badgeRow(new Map((holders as any[]).map(h => [h._id, h.n]))));
+};
+
+/** POST /passport/gamification/admin/badges — a new badge with its rule. */
+export const createBadge = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const checked = badgePatch(req.body || {}, true);
+    if ('error' in checked) return res.status(400).json({ message: checked.error });
+    const p = checked.patch;
+    const last: any = await BadgeDefinition.findOne({ tenantId }).sort({ displayOrder: -1 }).select('displayOrder').lean();
+    await BadgeDefinition.create({
+      tenantId,
+      key: await newBadgeKey(tenantId, p.name),
+      name: p.name,
+      description: p.description || '',
+      iconKey: p.iconKey || 'bi-award-fill',
+      color: p.color || '#f59e0b',
+      active: p.active ?? true,
+      conditionType: p.conditionType,
+      conditionConfig: { threshold: p['conditionConfig.threshold'], eventKey: p['conditionConfig.eventKey'] },
+      displayOrder: (last?.displayOrder || 0) + 10,
+      updatedBy: String((req as any).user?.id || ''),
+    });
+    res.json({ badges: await adminBadges(tenantId) });
+  } catch (e: any) {
+    console.error('[gamification] create badge:', e?.message || e);
+    res.status(500).json({ message: 'Could not create that badge.' });
+  }
+};
+
 /**
  * PUT /passport/gamification/admin/badges/:key
  *
- * Presentation and the threshold may change. The KEY may not — awards reference it, and
- * renaming it would orphan every badge already earned.
+ * Everything but the KEY may change — awards reference it. A member who already earned the badge
+ * keeps it when the rule changes; a member who now meets it is awarded the next time they look.
  */
 export const updateBadge = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
     const key = String(req.params.key).toUpperCase();
-
-    const patch: any = { updatedBy: String((req as any).user?.id || '') };
-    if (req.body?.name !== undefined) patch.name = String(req.body.name).slice(0, 60);
-    if (req.body?.description !== undefined) patch.description = String(req.body.description).slice(0, 300);
-    if (req.body?.iconKey !== undefined) patch.iconKey = String(req.body.iconKey).slice(0, 60);
-    if (req.body?.active !== undefined) patch.active = !!req.body.active;
-    if (req.body?.threshold !== undefined) {
-      patch['conditionConfig.threshold'] = Math.max(1, Number(req.body.threshold) || 1);
+    const checked = badgePatch(req.body || {}, false);
+    if ('error' in checked) return res.status(400).json({ message: checked.error });
+    const set: Record<string, any> = { updatedBy: String((req as any).user?.id || '') };
+    const unset: Record<string, ''> = {};
+    for (const [k, v] of Object.entries(checked.patch)) {
+      if (v === undefined) unset[k] = ''; else set[k] = v;
     }
 
-    const badge = await BadgeDefinition.findOneAndUpdate({ tenantId, key }, { $set: patch }, { new: true });
+    const badge = await BadgeDefinition.findOneAndUpdate(
+      { tenantId, key }, { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) }, { new: true },
+    );
     if (!badge) return res.status(404).json({ message: 'Badge not found.' });
-    res.json({ badge });
+    res.json({ badges: await adminBadges(tenantId) });
   } catch (e: any) {
     console.error('[gamification] update badge:', e?.message || e);
     res.status(500).json({ message: 'Could not save that badge.' });
+  }
+};
+
+/**
+ * DELETE /passport/gamification/admin/badges/:key
+ *
+ * Only a badge nobody has earned. Taking a badge back from members is not something a tidy-up
+ * should do by accident — one that has been earned can be switched off instead.
+ */
+export const deleteBadge = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const key = String(req.params.key).toUpperCase();
+    const earned = await StudentBadge.countDocuments({ tenantId, badgeKey: key });
+    if (earned) {
+      return res.status(409).json({ message: `${earned} member${earned === 1 ? ' has' : 's have'} earned this badge, so it can't be deleted. Switch it off to hide it instead.` });
+    }
+    const r = await BadgeDefinition.deleteOne({ tenantId, key });
+    if (!r.deletedCount) return res.status(404).json({ message: 'Badge not found.' });
+    res.json({ badges: await adminBadges(tenantId) });
+  } catch (e: any) {
+    console.error('[gamification] delete badge:', e?.message || e);
+    res.status(500).json({ message: 'Could not delete that badge.' });
+  }
+};
+
+/** PUT /passport/gamification/admin/badges-order — body { keys: [...] }, the order members see. */
+export const reorderBadges = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const keys: string[] = Array.isArray(req.body?.keys) ? req.body.keys.map((k: any) => String(k).toUpperCase()) : [];
+    if (!keys.length) return res.status(400).json({ message: 'Which order?' });
+    await BadgeDefinition.bulkWrite(keys.map((key, i) => ({
+      updateOne: { filter: { tenantId, key }, update: { $set: { displayOrder: (i + 1) * 10 } } },
+    })));
+    res.json({ badges: await adminBadges(tenantId) });
+  } catch (e: any) {
+    console.error('[gamification] reorder badges:', e?.message || e);
+    res.status(500).json({ message: 'Could not save that order.' });
+  }
+};
+
+/** The level ladder for the admin: each level's name and the XP that reaches it. */
+const levelsPayload = (saved?: string[]) => {
+  const names = Array.isArray(saved) && saved.length ? saved : DEFAULT_LEVEL_NAMES;
+  return {
+    names,
+    defaults: DEFAULT_LEVEL_NAMES,
+    custom: !!(saved && saved.length),
+    max: MAX_NAMED_LEVELS,
+    nameMax: LEVEL_NAME_MAX,
+    /** XP to reach level 1..max+1, so the screen can show it beside each name. */
+    xpToReach: Array.from({ length: MAX_NAMED_LEVELS + 1 }, (_, i) => xpToReachLevel(i + 1)),
+  };
+};
+
+/**
+ * PUT /passport/gamification/admin/levels — body { names: [...] }, level 1 first; [] restores the
+ * shipped names. Names only: the XP each level needs is fixed, because rewards are gated on level.
+ */
+export const updateLevelNames = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const raw = req.body?.names;
+    if (!Array.isArray(raw)) return res.status(400).json({ message: 'Send the list of level names.' });
+    if (raw.length > MAX_NAMED_LEVELS) return res.status(400).json({ message: `Up to ${MAX_NAMED_LEVELS} levels can be named.` });
+    const names = raw.map((n: any) => String(n ?? '').trim().slice(0, LEVEL_NAME_MAX));
+    const blank = names.findIndex((n: string) => !n);
+    if (blank >= 0) return res.status(400).json({ message: `Level ${blank + 1} needs a name.` });
+
+    const cfg = await GamificationConfig.findOneAndUpdate(
+      { tenantId },
+      { $set: { levelNames: names, updatedBy: String((req as any).user?.id || '') } },
+      { new: true, upsert: true },
+    ).lean() as any;
+    invalidateLevelNames(tenantId);
+    res.json({ levels: levelsPayload(cfg?.levelNames) });
+  } catch (e: any) {
+    console.error('[gamification] level names:', e?.message || e);
+    res.status(500).json({ message: 'Could not save the level names.' });
   }
 };
 

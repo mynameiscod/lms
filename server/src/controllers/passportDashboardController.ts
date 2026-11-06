@@ -6,7 +6,8 @@ import PassportProgress from '../models/PassportProgress';
 import PassportInterview from '../models/PassportInterview';
 import PassportResume from '../models/PassportResume';
 import TechBattle from '../models/TechBattle';
-import { membershipActive, entitlementMap } from '../services/passportEntitlementService';
+import { hasMemberAccess, entitlementMap } from '../services/passportEntitlementService';
+import { trialStatus } from '../services/trialService';
 import { lockedSections, lockedSectionViews } from '../data/memberAccessPolicy';
 import { hiddenCareerPilotFeatures } from '../services/careerPilotFeatureService';
 import { ensureContent, poolMapOf, dayNumber, ymd, clampSlots } from '../services/passportMissionService';
@@ -19,6 +20,9 @@ import { getTodaysPlan, toMemberMissions } from '../services/dailyMissionOrchest
 import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
 import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import * as g from '../services/passportGamificationService';
+import { levelNamesFor } from '../services/levelNameService';
+import { memberBadges } from '../services/badgeService';
+import { ensureGamificationDefaults } from '../services/gamificationEngine';
 import { journeyDayGoal, journeyCompletion } from '../services/foundationJourneyXpService';
 import { getLeaderboard as getScopedLeaderboard } from '../services/leaderboardService';
 import { calculateStudentRoleReadiness } from '../services/roleReadinessService';
@@ -47,7 +51,9 @@ export const getDashboard = async (req: Request, res: Response) => {
       ensureContent(tenantId),
     ]);
 
-    const active = membershipActive(user?.passport);
+    // A running TRIAL gets the member app too; what it may open is in `entitled` / `locked`.
+    const active = hasMemberAccess(user?.passport);
+    const trial = await trialStatus(tenantId, studentId, user?.passport || null).catch(() => null);
 
     /**
      * ASKED ABOUT THE MEMBER, NOT ABOUT A COLLECTION.
@@ -120,6 +126,7 @@ export const getDashboard = async (req: Request, res: Response) => {
         entitled,
         locked,
         hidden: await hiddenCareerPilotFeatures(tenantId),
+        trial,
       });
     }
 
@@ -237,7 +244,7 @@ export const getDashboard = async (req: Request, res: Response) => {
     const contests = await TechBattle.find({ tenantId, status: 'live', startAt: { $gt: now } })
       .select('title prize startAt slug').sort({ startAt: 1 }).limit(3).lean();
 
-    const level = g.levelFromXp(progress.xp);
+    const level = g.levelFromXp(progress.xp, await levelNamesFor(tenantId));
     /*
      * THE ASSESSMENT PART reads the current readiness-based Career Score (careerScoreService, written
      * when at least 40% of the role is measured). Below that, the whole-role readiness — the same
@@ -306,7 +313,11 @@ export const getDashboard = async (req: Request, res: Response) => {
       stats: {
         solved: solvedCount,
         solvedToday: g.solvedToday(progress, now),
-        totalProblems: library.total,
+        // A trial shows its own number of problems, not the whole library.
+        totalProblems: (() => {
+          const t = trial?.items.find(i => i.key === 'practice');
+          return t && t.on && t.limit !== null ? Math.min(t.limit, library.total) : library.total;
+        })(),
         accuracy: g.accuracy(progress),
         streak: liveStreak(progress, now),
         longestStreak: progress.longestStreak,
@@ -336,17 +347,18 @@ export const getDashboard = async (req: Request, res: Response) => {
       streakWeek: g.streakWeek(progress, now),
       activity: g.activitySeries(progress, 7, now),
 
-      badges: g.badges({
-        solvedCount,
-        codingSolved: solvedCount,
-        totalCoding: g.PRACTICE_TARGET,
-        streak: liveStreak(progress, now),
-        longestStreak: progress.longestStreak,
-        completedDays: journey ? journey.completedDays : roadmap.completedDays,
-        interviewsCompleted: interviews.length,
-        resumeScore: resume?.score?.total ?? null,
-        careerScore: assessmentScore,
-      }),
+      // The admin's badges (XP & Rewards → Badges), judged on the figures counted above.
+      badges: await (async () => {
+        await ensureGamificationDefaults(tenantId);
+        return memberBadges(tenantId, studentId, {
+          XP_TOTAL: progress.xp || 0,
+          PROBLEMS_SOLVED: solvedCount,
+          STREAK: Math.max(liveStreak(progress, now), progress.longestStreak || 0),
+          DAYS_COMPLETED: journey ? journey.completedDays : roadmap.completedDays,
+          MOCK_INTERVIEWS: interviews.length,
+          RESUME_SCORE: resume?.score?.total ?? 0,
+        });
+      })().catch((e: any) => { console.error('[passport] badges:', e?.message || e); return []; }),
 
       journey: roadmap.phases.map(p => ({
         key: p.key, label: p.label, fromDay: p.fromDay, toDay: p.toDay,
@@ -384,6 +396,8 @@ export const getDashboard = async (req: Request, res: Response) => {
       locked,
       // Parts of the menu the institute's admin has switched off for CareerPilot students.
       hidden: await hiddenCareerPilotFeatures(tenantId),
+      /** A running trial: its plan, days left, and what each limit has used. Null otherwise. */
+      trial,
     });
   } catch (e: any) {
     console.error('[passport] getDashboard:', e);

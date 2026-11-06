@@ -17,6 +17,7 @@ export interface IQualificationQuestion {
   order: number;
   showInStages?: mongoose.Types.ObjectId[];  // Only show in these stages
   required: boolean;
+  requiredForQualified?: boolean;
   enabled: boolean;
   
   // Auto-update lead field
@@ -94,6 +95,8 @@ const QualificationQuestionSchema: Schema = new Schema(
       ref: 'LeadStage'
     }],
     required: { type: Boolean, default: false },
+    // Must be answered before a lead can move into a "qualified"-milestone stage.
+    requiredForQualified: { type: Boolean, default: false },
     enabled: { type: Boolean, default: true },
     fieldToUpdate: { type: String, trim: true },
     scoreImpact: [ScoreImpactSchema],

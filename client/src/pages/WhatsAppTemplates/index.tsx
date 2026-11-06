@@ -417,7 +417,14 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
     setBusy(true); setErr('');
     try {
       if (mode === 'test') {
-        await waTemplateApi.sendTest(t._id, phone, values, hasBtn ? buttonParam : undefined);
+        try {
+          await waTemplateApi.sendTest(t._id, phone, values, hasBtn ? buttonParam : undefined);
+        } catch (e: any) {
+          // Meta already held back a marketing message to this number — say so before spending another send.
+          if (e?.response?.status !== 409 || e?.response?.data?.code !== 'MARKETING_HELD') throw e;
+          if (!window.confirm(`${e.response.data.message}\n\nSend anyway?`)) { setBusy(false); return; }
+          await waTemplateApi.sendTest(t._id, phone, values, hasBtn ? buttonParam : undefined, true);
+        }
         onDone(`Accepted by Meta for ${phone} — watch the Delivery log for whether it arrives.`);
       } else {
         if (!window.confirm('Send this template to every recipient now? This cannot be undone.')) { setBusy(false); return; }
@@ -445,6 +452,13 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
         <>
           <label style={label}>WhatsApp number</label>
           <input style={input} value={phone} placeholder="9876543210" onChange={(e) => setPhone(e.target.value)} />
+          {t.category === 'MARKETING' && (
+            <div style={hint}>
+              Marketing template: Meta limits how many marketing messages one person gets and may hold this back
+              (code 131049) — especially on repeated tests to the same number. For a reliable test, first send any
+              WhatsApp message from this number to your business number.
+            </div>
+          )}
         </>
       ) : (
         <>

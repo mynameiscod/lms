@@ -273,6 +273,8 @@ const JourneyDay: React.FC = () => {
       const reason = e?.response?.data?.reason;
       if (reason === 'FOUNDATION_NOT_VALIDATED' && e?.response?.data?.gate) setGate(e.response.data.gate);
       else if (reason === 'DAY_LOCKED') setDayLock(e?.response?.data?.message || `Finish day ${dayNumber - 1} first.`);
+      // A trial opens its first days only: say so, rather than showing the membership lock over a day they can see.
+      else if (reason === 'TRIAL_LIMIT') setDayLock(e?.response?.data?.message || 'This day is not part of your trial.');
       else if (e?.response?.status === 403) setLocked(true);
       else setError(e?.response?.data?.message || 'This day could not be opened.');
     } finally {

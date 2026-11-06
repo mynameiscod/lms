@@ -1046,6 +1046,16 @@
 }
 
 /* Stage select in table */
+.crm-substage {
+  font-size: 0.72rem;
+  color: var(--text-secondary, #6b7280);
+  margin-top: 3px;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .crm-stage-select {
   padding: 6px 28px 6px 10px;
   border: 1px solid var(--border-strong);
@@ -1818,29 +1828,22 @@
 }
 
 .crm-reenq-badge { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: #fff1e6; color: #c2410c; border: 1px solid #fdba74; font-size: 11px; font-weight: 700; white-space: nowrap; vertical-align: middle; }
-/* ── Redesign 2026-11 (approved mockup: Admin leads) ───────────────────────────────────────────
-   Visual layer only; tokens from src/styles/tokens.css. */
-.crm-header-title{font-size:var(--cb-text-xl);font-weight:600;letter-spacing:-.02em;color:var(--cb-navy-900)}
-.crm-header-subtitle{font-size:var(--cb-text-md);color:var(--cb-slate)}
-.crm-btn{min-height:var(--cb-control-h);border-radius:var(--cb-radius-sm);font-size:var(--cb-text-md);font-weight:500}
-.crm-btn-secondary{background:var(--cb-paper);border:1px solid var(--cb-line-strong);color:var(--cb-ink)}
-.crm-btn-secondary:hover:not(:disabled){background:var(--cb-ground)}
-.crm-btn-primary{background:var(--cb-navy-900);border-color:var(--cb-navy-900);color:#fff;font-weight:600;box-shadow:none}
-.crm-btn-primary:hover:not(:disabled){background:var(--cb-navy-600);border-color:var(--cb-navy-600)}
-.crm-view-toggle{border-color:var(--cb-line-strong);border-radius:var(--cb-radius-sm)}
-.crm-view-toggle button{font-size:var(--cb-text-sm);color:var(--cb-slate)}
-.crm-view-toggle button.active{background:var(--cb-navy-50);color:var(--cb-navy-900);font-weight:600}
-/* Stats read as one strip */
-.crm-stats{gap:0;background:var(--cb-paper);border:1px solid var(--cb-line);border-radius:var(--cb-radius-md);overflow:hidden}
-.crm-stat-card{border:0;border-right:1px solid var(--cb-line);border-radius:0;padding:16px 20px;display:flex;flex-direction:column;gap:2px}
-.crm-stat-card:last-child{border-right:0}
-.crm-stat-card::before{display:none}
-.crm-stat-card:hover{transform:none;box-shadow:none;border-color:var(--cb-line);background:var(--cb-ground)}
-.crm-stat-card.active{background:var(--cb-navy-50);box-shadow:inset 0 -3px 0 var(--cb-teal-500);border-color:var(--cb-line)}
-.crm-stat-icon{font-size:10px;margin:0 0 2px}
-.crm-stat-value{order:2;font-size:24px;font-weight:600;letter-spacing:-.02em;color:var(--cb-ink);margin:0}
-.crm-stat-label{order:1;font-size:var(--cb-text-sm);color:var(--cb-slate);font-weight:400;text-transform:none;letter-spacing:0}
-.crm-search-input,.crm-filter-select{min-height:36px;border-color:var(--cb-line-strong);border-radius:var(--cb-radius-sm);font-size:var(--cb-text-md)}
-.crm-search-input:focus,.crm-filter-select:focus{border-color:var(--cb-teal-500);box-shadow:var(--cb-focus);outline:none}
-.crm-table thead th{background:var(--cb-ground);color:var(--cb-slate);font-size:var(--cb-text-sm);font-weight:500;text-transform:none;letter-spacing:0}
-.crm-table td{border-color:var(--cb-line-soft);font-size:var(--cb-text-md)}
+
+/* ── Slice 4: milestone strip, sortable headers, last-call chip ── */
+.crm-milestone-strip { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 2px; }
+.crm-ms-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--border-strong, #e2e8f0); background: var(--bg-subtle, #fff);
+  border-radius: 999px; padding: 3px 10px; font-size: 0.78rem; color: var(--text-primary, #1f2937); cursor: pointer;
+}
+.crm-ms-chip strong { font-weight: 700; }
+.crm-ms-chip:hover { border-color: #94a3b8; }
+.crm-ms-chip.active { background: var(--crm-blue, #2563eb); border-color: var(--crm-blue, #2563eb); color: #fff; }
+.crm-ms-lost:not(.active) strong { color: #b91c1c; }
+.crm-ms-enrolled:not(.active) strong { color: #047857; }
+.crm-ms-overdue:not(.active) strong { color: #c2410c; }
+.crm-th-sort button { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; white-space: nowrap; }
+.crm-th-sort button:hover { text-decoration: underline; }
+.crm-outcome { font-size: 0.72rem; text-transform: capitalize; background: #f1f5f9; color: #475569; border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+.crm-outcome-connected, .crm-outcome-callback_requested { background: #dcfce7; color: #166534; }
+.crm-outcome-wrong_number { background: #fee2e2; color: #991b1b; }

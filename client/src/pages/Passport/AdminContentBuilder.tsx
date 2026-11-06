@@ -299,8 +299,10 @@ const AdminContentBuilder: React.FC = () => {
     }
     setSavingOrder(false);
   };
-  const unitXp = items.reduce((t, it) => t + taskXp(it, prices), 0);
-  const minutes = items.reduce((t, it) => t + (Number(it.estimatedDuration) || 0), 0);
+  // The day's totals are what a member gets: a checkpoint not live yet is not on their day.
+  const memberItems = items.filter(it => it.kind !== 'quiz' || it.live);
+  const unitXp = memberItems.reduce((t, it) => t + taskXp(it, prices), 0);
+  const minutes = memberItems.reduce((t, it) => t + (Number(it.estimatedDuration) || 0), 0);
 
   /* setParams({ unit }) wiped `stage` from the URL, so picking a unit sent the next load to Year 1. */
   const pick = (code: string) => {
@@ -443,13 +445,20 @@ const AdminContentBuilder: React.FC = () => {
     setSaving(false);
   };
 
+  /**
+   * Take something off the day. Members' open days follow by themselves (the server refreshes them).
+   * A checkpoint or assignment is unbound, never deleted, so attempts already made are kept.
+   */
   const removeItem = async (it: any) => {
     if (!unit) return;
-    if (it.kind !== 'content') { say('Open the checkpoint to unbind it.'); return; }
-    if (!window.confirm(`Take "${it.contentTitle}" off this day? It stays in the library.`)) return;
+    const isAssessment = it.kind === 'quiz' || it.kind === 'assignment';
+    const what = it.kind === 'quiz' ? 'checkpoint' : it.kind === 'assignment' ? 'assignment' : '';
+    const kept = isAssessment ? `The ${what} itself and any attempts are kept.` : 'It stays in the library.';
+    if (!window.confirm(`Take "${it.contentTitle}" off this day? Members' days update too. ${kept}`)) return;
     setSaving(true);
     try {
-      await passportApi.detachUnitContent(unit.unitCode, String(it.contentId));
+      if (isAssessment) await passportApi.unbindUnitAssessment(unit.unitCode, it.kind === 'quiz' ? 'QUIZ' : 'ASSIGNMENT', String(it.sourceId));
+      else await passportApi.detachUnitContent(unit.unitCode, String(it.contentId));
       await loadPreview(unit.unitCode); await load(unit.stageKey || true);
       say('Taken off this day.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not remove that.'); }
@@ -581,7 +590,7 @@ const AdminContentBuilder: React.FC = () => {
               <h2>{unit.title}</h2>
               <div className="acb-meta">
                 <span className={`acb-chip s-${(unit.status || 'DRAFT').toLowerCase()}`}>{unit.status || 'DRAFT'}</span>
-                <span className="acb-chip"><i className="bi bi-list-task" /> {items.length} task{items.length === 1 ? '' : 's'}</span>
+                <span className="acb-chip"><i className="bi bi-list-task" /> {memberItems.length} task{memberItems.length === 1 ? '' : 's'}</span>
                 <span className="acb-chip"><i className="bi bi-clock" /> {minutes} min</span>
                 <span className="acb-chip"><i className="bi bi-lightning-charge-fill" /> {unitXp} XP{prices?.dayBonus ? ` + ${prices.dayBonus} bonus` : ''}</span>
               </div>
@@ -629,7 +638,10 @@ const AdminContentBuilder: React.FC = () => {
                     <span className="acb-i-ic"><i className={`bi ${ICON_FOR[it.contentType] || 'bi-dot'}`} /></span>
                     <span className="acb-i-t">
                       <b>{it.contentTitle}</b>
-                      <small>{prettyType(it.contentType)} · {it.estimatedDuration || 0} min{it.isGating ? ' · must be completed' : ''}</small>
+                      <small>{prettyType(it.contentType)} · {it.estimatedDuration || 0} min{it.isGating ? ' · must be completed' : ''}
+                        {it.kind === 'quiz' && <> · {it.questionCount || 0} {it.questionCount === 1 ? 'question' : 'questions'}</>}</small>
+                      {it.kind === 'quiz' && !it.live && <span className="acb-i-warn"><i className="bi bi-eye-slash" />
+                        {it.questionCount ? 'Switched off: members do not see it.' : 'No questions yet: members do not see it until you add one.'}</span>}
                     </span>
                     {editingXp
                       ? <form className="acb-i-xpedit" onSubmit={e => { e.preventDefault(); saveTaskXp(it); }}>
@@ -681,7 +693,8 @@ const AdminContentBuilder: React.FC = () => {
       onClose={() => setDrawer(null)} onSave={addContent} />}
     {editUnit && unit && <UnitDrawer unit={unit} saving={saving} stage={unit.stageKey || stage} onClose={() => setEditUnit(false)} onSave={saveUnit} />}
     {assignOpen && unit && <AssignmentDrawer unitTitle={unit.title} saving={saving} onClose={() => setAssignOpen(false)} onCreate={addAssignment} />}
-    {studentView && preview && <StudentDayPreview preview={preview} onClose={() => setStudentView(false)} />}
+    {/* A checkpoint that is not live is not on any member's day, so the member view leaves it out. */}
+    {studentView && preview && <StudentDayPreview preview={{ ...preview, items: preview.items.filter((i: any) => i.kind !== 'quiz' || i.live) }} onClose={() => setStudentView(false)} />}
     {editItem && unit && <ItemDrawer item={editItem} fullEditorHref={editItem.contentId ? withReturn(`/learning-library/edit/${editItem.contentId}`, unit.unitCode) : ''} saving={saving} onClose={() => setEditItem(null)} onSave={saveItem} />}
     {toast && <div className="acb-toast"><i className="bi bi-check-circle-fill" /> {toast}</div>}
   </div>;

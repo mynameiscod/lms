@@ -16,7 +16,7 @@ const wrap = (fn: (req: Request, res: Response) => Promise<any>) => async (req: 
   } catch (e: any) {
     const status = e instanceof svc.WaTemplateError ? e.status : 500;
     if (status === 500) console.error('[wa-templates]', e);
-    res.status(status).json({ success: false, message: e?.message || 'Something went wrong' });
+    res.status(status).json({ success: false, message: e?.message || 'Something went wrong', ...(e?.code && e instanceof svc.WaTemplateError ? { code: e.code } : {}) });
   }
 };
 
@@ -82,9 +82,9 @@ export const compatibility = wrap(async (req, res) => {
 });
 
 export const sendTest = wrap(async (req, res) => {
-  const { phone, values, buttonParam } = req.body || {};
+  const { phone, values, buttonParam, force } = req.body || {};
   if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
-  const r = await svc.sendTest(tId(req), req.params.id, String(phone), Array.isArray(values) ? values.map(String) : [], buttonParam, uId(req));
+  const r = await svc.sendTest(tId(req), req.params.id, String(phone), Array.isArray(values) ? values.map(String) : [], buttonParam, uId(req), force === true);
   if (!r.ok) return res.status(400).json({ success: false, message: `Meta did not accept it: ${explainWaError(r.errorCode, r.error)}` });
   /* "Accepted", not "Sent": Meta has queued it. Whether it reaches the phone arrives later, from Meta's
      delivery report, and shows in the delivery log. */

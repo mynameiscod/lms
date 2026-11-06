@@ -465,6 +465,42 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ CORE PYTHON — the language from the first program, as Core Java and Core C# are ══════════════ */
+  {
+    moduleCode: 'JT_PY_CORE',
+    moduleName: 'Core Python',
+    displayOrder: 95,
+    blurb: 'Python from the first program: setup and fundamentals, object-oriented Python, modules and projects, and exceptions and files.',
+    topics: [
+      t('JT_PY_START', 'Getting Started with Python', ['PYTHON_BASICS', 'IDE_PROFICIENCY'],
+        ['Install Python, run a script from VS Code and from the terminal, and read and print input the way a coding round expects.']),
+      t('JT_PY_BASICS', 'Python Fundamentals', ['PYTHON_BASICS', 'PYTHON_CONTROL_FLOW', 'PYTHON_LISTS_BASICS', 'PYTHON_COLLECTIONS', 'PYTHON_FUNCTIONS'],
+        ['Write Python with types, operators, conditions, loops, lists, strings, dictionaries and functions, and predict what it prints.']),
+      t('JT_PY_OOP', 'Object-Oriented Programming in Python', ['PYTHON_OOP'],
+        ['Design classes with encapsulation, inheritance, polymorphism, abstract base classes, special methods and composition, and say why.']),
+      t('JT_PY_PROJECTS', 'Modules, Packages and Projects', ['PYTHON_MODULES'],
+        ['Split a program into modules and packages, manage its environment and dependencies, and lean on the standard library.']),
+      t('JT_PY_ERRORS', 'Exceptions and File I/O', ['PYTHON_ERROR_HANDLING'],
+        ['Handle and raise exceptions well, read and write text, CSV and JSON files safely, and log instead of print.']),
+    ],
+  },
+
+  /* -------------- DSA IN PYTHON: taught in the track, as DSA in Java and in C# are -------------- */
+  {
+    moduleCode: 'JT_PY_DSA',
+    moduleName: 'Data Structures and Algorithms in Python',
+    displayOrder: 96,
+    blurb: 'The data structures and algorithms interviews ask, implemented and solved in Python.',
+    topics: [
+      t('JT_PY_DSA_LINEAR', 'DSA in Python: Arrays to Sorting',
+        ['DSA_COMPLEXITY', 'DSA_ARRAYS', 'DSA_LINKED_LIST', 'DSA_STACK', 'DSA_HASHING', 'DSA_RECURSION', 'DSA_SORTING'],
+        ['Solve list, string, linked-list, stack, hashing, recursion and sorting problems in Python and state their cost.']),
+      t('JT_PY_DSA_NONLINEAR', 'DSA in Python: Trees to Dynamic Programming',
+        ['DSA_TREES', 'DSA_HEAPS', 'DSA_GRAPHS', 'DSA_GREEDY', 'DSA_DP'],
+        ['Solve tree, heap, graph, greedy and dynamic-programming problems in Python.']),
+    ],
+  },
+
   /* ══════════════ PYTHON — what the years do not teach: modern Python, pytest, Python and MySQL ══════════════ */
   {
     moduleCode: 'JT_PYTHON',

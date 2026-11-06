@@ -3434,3 +3434,12 @@ export const metaCrmApi = {
     return metaCrmCall(`/spend/summary${q.toString() ? `?${q}` : ''}`);
   },
 };
+
+// Admissions reports (server: routes/leadReportRoutes.ts)
+export const leadReportApi = {
+  admissions: (params: { from: string; to: string; assignedTo?: string; source?: string }) => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v) q.append(k, v); });
+    return authenticatedFetch(`${API_BASE_URL}/lead-reports/admissions?${q.toString()}`);
+  },
+};

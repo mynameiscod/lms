@@ -1,6 +1,19 @@
 # CRM Lead Lifecycle Redesign — Audit + Design
 
-Status: **DESIGN — awaiting owner approval. No code changed yet.**
+Status: **BUILT on `new_crm` (all 9 slices, 2026-11-06) — not deployed.**
+
+| Slice | Commit | Where to look |
+|---|---|---|
+| 0 bug fixes | f51be299 | `scripts/repairMeetingActivities.ts` (run after deploy) |
+| 1 pipeline settings | 1d0f4dc3 | `/lead-stages` (Lead Pipeline), `/lead-pipeline` API |
+| 2 one stage-change flow + bulk | c6483022 | `services/leadLifecycleService.ts`, `StageChangeDialog` |
+| 3 option lists, demos, qualification, nurture | 9f9bb371 | `LeadPicklist`, `leadDemoService`, qualification gate |
+| 4 list, saved views, follow-up queue, fees | 9b7b2191 | `/follow-up-queue`, `/lead-views`, `/leads/milestone-summary` |
+| 5+6 Meta CRM events + ad spend | 28321975 (merge 1741d046), c035fa16 | `/meta-sync`, `metaCrmEventService`, `metaAdSpendService` |
+| 7 admissions dashboard | bcfaa146 | `/admissions-dashboard`, `admissionsReportService` |
+| 8 automation | 18baee70 | `/lead-automation`, `leadAutomationService` |
+
+Deviations from Part B: demo statuses stay a fixed list (they carry meaning: attended / no-show); nurture reasons are the Nurture stage's sub-stage reasons, not a separate list; Meta also receives an "Initial Lead" event (Meta's docs ask for it); lead assignment and duplicate detection reuse the existing features rather than new rules.
 Branch: `new_crm` (no merge of `feature/ui-redesign`; current CRM styling is kept).
 Date: 2026-11-06
 

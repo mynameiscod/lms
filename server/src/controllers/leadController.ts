@@ -2,7 +2,8 @@ import { waitsForOutpero } from '../services/outperoPolicyService';
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest, ApiResponse } from '../types';
-import Lead, { CALL_OUTCOMES } from '../models/Lead';
+import Lead from '../models/Lead';
+import { validCallOutcomeCodes } from '../services/leadPicklistService';
 import LeadStage from '../models/LeadStage';
 import User from '../models/User';
 import FollowUpReminder from '../models/FollowUpReminder';
@@ -875,9 +876,10 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
       return res.status(400).json({ success: false, message: `Invalid activity type. Must be one of: ${validTypes.join(', ')}` });
     }
 
-    const validCallOutcomes: readonly string[] = CALL_OUTCOMES;
-    if (type === 'call' && callOutcome && !validCallOutcomes.includes(callOutcome)) {
-      return res.status(400).json({ success: false, message: `Invalid call outcome. Must be one of: ${validCallOutcomes.join(', ')}` });
+    // Built-in outcomes plus the institute's own call-outcome list.
+    const validCallOutcomes = await validCallOutcomeCodes(String(req.tenantId));
+    if (type === 'call' && callOutcome && !validCallOutcomes.has(callOutcome)) {
+      return res.status(400).json({ success: false, message: `Invalid call outcome. Must be one of: ${[...validCallOutcomes].join(', ')}` });
     }
 
     const activityData: any = {
@@ -1884,8 +1886,9 @@ export const quickUpdateLead = async (req: AuthenticatedRequest, res: Response<A
         createdAt: new Date()
       };
       if (activityType === 'call' && callOutcome) {
-        if (!(CALL_OUTCOMES as readonly string[]).includes(callOutcome)) {
-          return res.status(400).json({ success: false, message: `Invalid call outcome. Must be one of: ${CALL_OUTCOMES.join(', ')}` });
+        const okOutcomes = await validCallOutcomeCodes(String(req.tenantId));
+        if (!okOutcomes.has(callOutcome)) {
+          return res.status(400).json({ success: false, message: `Invalid call outcome. Must be one of: ${[...okOutcomes].join(', ')}` });
         }
         activityData.callOutcome = callOutcome;
       }

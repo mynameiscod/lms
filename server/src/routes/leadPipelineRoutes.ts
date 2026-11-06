@@ -8,6 +8,7 @@ import {
   createSubStage, updateSubStage, deleteSubStage, reorderSubStages,
   createReason, updateReason, deleteReason, reorderReasons,
   addStarterPipeline,
+  getPicklist, createPicklistItem, updatePicklistItem, deletePicklistItem, reorderPicklist,
 } from '../controllers/leadPipelineController';
 
 /** Pipeline settings: stages → sub-stages → reasons. Mounted at /lead-pipeline. */
@@ -36,5 +37,12 @@ router.put('/reasons/:id', ...manage, updateReason);
 router.delete('/reasons/:id', ...manage, deleteReason);
 
 router.post('/starter', ...manage, addStarterPipeline);
+
+// Option lists: call outcomes, follow-up reasons
+router.put('/picklists/items/:id', ...manage, updatePicklistItem);
+router.delete('/picklists/items/:id', ...manage, deletePicklistItem);
+router.get('/picklists/:list', ...read, getPicklist);
+router.post('/picklists/:list', ...manage, createPicklistItem);
+router.put('/picklists/:list/reorder', ...manage, reorderPicklist);
 
 export default router;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { followUpApi, leadApi, leadStageApi, leadDispositionApi } from '../../api';
+import { followUpApi, leadApi, leadStageApi, leadDispositionApi, leadPipelineApi } from '../../api';
 import './FollowUpCalendar.css';
 
 interface FollowUp {
@@ -33,8 +33,11 @@ function ActivityLogModal({ lead, onClose, onSaved }: ActivityModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Must match CALL_OUTCOMES in server/src/models/Lead.ts
-  const CALL_OUTCOMES = ['connected', 'not_answered', 'busy', 'not_connected', 'switched_off', 'rejected', 'wrong_number', 'callback_requested'];
+  // The institute's call-outcome list (Lead Pipeline → Call outcomes).
+  const [callOutcomes, setCallOutcomes] = useState<{ code: string; label: string }[]>([]);
+  useEffect(() => {
+    leadPipelineApi.getPicklist('call_outcome', true).then((res: any) => setCallOutcomes(res.data || [])).catch(() => {});
+  }, []);
   const TYPE_ICONS: Record<string,string> = { note: '📝', call: '📞', whatsapp: '💬', email: '📧' };
 
   useEffect(() => {
@@ -81,11 +84,11 @@ function ActivityLogModal({ lead, onClose, onSaved }: ActivityModalProps) {
           ))}
         </div>
 
-        {type === 'call' && dispositions.length === 0 && (
+        {type === 'call' && (
           <select value={callOutcome} onChange={e => setCallOutcome(e.target.value)}
             style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, marginBottom: 10, fontSize: 13 }}>
             <option value="">-- Call Outcome (optional) --</option>
-            {CALL_OUTCOMES.map(o => <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>)}
+            {callOutcomes.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
           </select>
         )}
         {dispositions.length > 0 && (

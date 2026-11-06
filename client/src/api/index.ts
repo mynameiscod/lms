@@ -1919,6 +1919,12 @@ export const leadPipelineApi = {
   deleteReason: (id: string) => pipelineCall(`/reasons/${id}`, 'DELETE'),
   reorderReasons: (subStageId: string, ids: string[]) => pipelineCall(`/sub-stages/${subStageId}/reasons/reorder`, 'PUT', { ids }),
   addStarter: () => pipelineCall('/starter', 'POST', {}),
+  // Option lists: 'call_outcome' | 'followup_reason'
+  getPicklist: (list: string, activeOnly = false) => pipelineCall(`/picklists/${list}${activeOnly ? '?active=1' : ''}`),
+  createPicklistItem: (list: string, data: any) => pipelineCall(`/picklists/${list}`, 'POST', data),
+  updatePicklistItem: (id: string, data: any) => pipelineCall(`/picklists/items/${id}`, 'PUT', data),
+  deletePicklistItem: (id: string) => pipelineCall(`/picklists/items/${id}`, 'DELETE'),
+  reorderPicklist: (list: string, ids: string[]) => pipelineCall(`/picklists/${list}/reorder`, 'PUT', { ids }),
 };
 
 // Lead API
@@ -2977,6 +2983,8 @@ export const meetingApi = {
     sendEmail: boolean;
     status: string;
     cancellationReason: string;
+    feedback: string;
+    nextAction: string;
   }>) => {
     return authenticatedFetch(`${API_BASE_URL}/meetings/${id}`, {
       method: 'PUT',

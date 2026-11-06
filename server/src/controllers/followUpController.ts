@@ -1,7 +1,8 @@
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import FollowUpReminder from '../models/FollowUpReminder';
-import Lead, { CALL_OUTCOMES } from '../models/Lead';
+import Lead from '../models/Lead';
+import { validCallOutcomeCodes } from '../services/leadPicklistService';
 import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
 
@@ -248,7 +249,7 @@ export const completeFollowUp = async (req: AuthenticatedRequest, res: Response)
         createdBy: new mongoose.Types.ObjectId(userId as string),
         createdAt: new Date(),
         // An unknown outcome would fail schema validation and lose the whole completion.
-        callOutcome: (CALL_OUTCOMES as readonly string[]).includes(callOutcome) ? callOutcome : undefined,
+        callOutcome: callOutcome && (await validCallOutcomeCodes(String(tenantId))).has(callOutcome) ? callOutcome : undefined,
         callDuration: callDuration,
         recordingUrl: recordingUrl
       });

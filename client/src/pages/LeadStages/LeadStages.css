@@ -107,6 +107,14 @@
 .pl-empty h3 { color: var(--pl-ink); font-size: 1.1rem; }
 .pl-loading { text-align: center; padding: 60px; color: var(--pl-muted); }
 
+.pl-tabs { margin-bottom: 16px; }
+.pl-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .pl-two { grid-template-columns: 1fr; } }
+.pl-inline-input { font-weight: 600; max-width: 320px; }
+.pl-mini { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--pl-muted); white-space: nowrap; }
+.pl-num { width: 64px; display: inline-block; padding: 0 4px; height: 24px; }
+.pl-link-card { display: block; margin-top: 16px; font-size: 0.85rem; }
+
 .pl-form .form-label { font-weight: 600; font-size: 0.85rem; }
 .pl-toggle { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; cursor: pointer; }
 .pl-toggle input { margin-top: 4px; }

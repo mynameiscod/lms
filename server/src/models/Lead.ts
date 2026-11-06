@@ -153,7 +153,8 @@ export interface ILead extends Document {
   reasonId?: mongoose.Types.ObjectId;
   reasonDetail?: string;
   stageEnteredAt?: Date;
-  milestones?: Partial<Record<'contactingAt' | 'connectedAt' | 'qualifiedAt' | 'demoAt' | 'seatReservedAt' | 'enrolledAt' | 'nurtureAt' | 'lostAt', Date>>;
+  milestones?: Partial<Record<'contactingAt' | 'connectedAt' | 'qualifiedAt' | 'demoAt' | 'demoAttendedAt' | 'seatReservedAt' | 'enrolledAt' | 'nurtureAt' | 'lostAt', Date>>;
+  nurture?: { reactivateAt?: Date };
   assignedTo?: mongoose.Types.ObjectId;
   nextFollowUp?: Date;
   notes: string;
@@ -310,9 +311,13 @@ const LeadActivitySchema: Schema = new Schema(
       type: Date,
       default: Date.now
     },
+    // A built-in code (CALL_OUTCOMES) or the institute's own code from its call-outcome list
+    // (LeadPicklist). Controllers check it against validCallOutcomeCodes(tenantId).
     callOutcome: {
       type: String,
-      enum: CALL_OUTCOMES as unknown as string[]
+      trim: true,
+      maxlength: 60,
+      match: /^[a-z0-9_]+$/
     },
     callSubOutcome: {
       type: String,
@@ -383,7 +388,10 @@ const LeadSchema: Schema = new Schema(
     milestones: {
       contactingAt: Date, connectedAt: Date, qualifiedAt: Date, demoAt: Date,
       seatReservedAt: Date, enrolledAt: Date, nurtureAt: Date, lostAt: Date,
+      // Not a stage: set when a demo meeting is marked attended.
+      demoAttendedAt: Date,
     },
+    nurture: { reactivateAt: { type: Date } },
     assignedTo: {
       type: mongoose.Types.ObjectId,
       ref: 'User'
@@ -727,6 +735,7 @@ const LeadSchema: Schema = new Schema(
 LeadSchema.index({ tenantId: 1, metaSubmissionIds: 1 });
 LeadSchema.index({ tenantId: 1, stageId: 1 });
 LeadSchema.index({ tenantId: 1, subStageId: 1 }, { sparse: true });
+LeadSchema.index({ tenantId: 1, 'nurture.reactivateAt': 1 }, { sparse: true });
 LeadSchema.index({ tenantId: 1, archivedAt: 1, createdAt: -1 });
 LeadSchema.index({ archiveRunId: 1 }, { partialFilterExpression: { archiveRunId: { $exists: true } } });
 LeadSchema.index({ tenantId: 1, assignedTo: 1 });

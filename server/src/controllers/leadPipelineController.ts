@@ -23,6 +23,8 @@ import GoogleSheetIntegration from '../models/GoogleSheetIntegration';
 import { LEAD_MILESTONES, MILESTONE_LABELS, categoryForMilestone, isMilestone, milestoneFromLegacy } from '../config/leadMilestones';
 import { STARTER_PIPELINE } from '../config/leadStarterPipeline';
 import { getPolicy as getOutperoPolicy } from '../services/outperoPolicyService';
+import LeadPicklist from '../models/LeadPicklist';
+import { getList, ensureDefaults, isPicklist, codeFromLabel } from '../services/leadPicklistService';
 
 const oid = (v: any) => new mongoose.Types.ObjectId(String(v));
 const isOid = (v: any) => typeof v === 'string' && mongoose.Types.ObjectId.isValid(v);
@@ -382,4 +384,88 @@ export const addStarterPipeline = async (req: AuthenticatedRequest, res: Respons
   } catch (err: any) {
     fail(res, 500, err.message || 'Failed to add starter stages');
   }
+};
+
+// ─────────────────────────────── Option lists ───────────────────────────────
+// Call outcomes and follow-up reasons (models/LeadPicklist.ts).
+
+/** GET /picklists/:list?active=1 */
+export const getPicklist = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { list } = req.params;
+    if (!isPicklist(list)) return fail(res, 404, 'Unknown list');
+    const items = await getList(String(req.tenantId), list, req.query.active === '1');
+    res.json({ success: true, data: items });
+  } catch (err: any) {
+    fail(res, 500, err.message);
+  }
+};
+
+function picklistFields(body: any) {
+  const out: Record<string, any> = {};
+  const label = str(body.label, 80); if (label !== undefined) out.label = label;
+  for (const k of ['isActive', 'countsAsConnected'] as const) {
+    const b = bool(body[k]); if (b !== undefined) out[k] = b;
+  }
+  if (body.retryHours !== undefined) {
+    const n = Number(body.retryHours);
+    if (!Number.isFinite(n) || n < 0 || n > 720) throw new Error('Retry hours must be between 0 and 720');
+    out.retryHours = Math.round(n);
+  }
+  return out;
+}
+
+/** POST /picklists/:list  { label, ... } — the code is made from the label. */
+export const createPicklistItem = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { list } = req.params;
+    if (!isPicklist(list)) return fail(res, 404, 'Unknown list');
+    const fields = picklistFields(req.body);
+    if (!fields.label) return fail(res, 400, 'Label is required');
+    await ensureDefaults(String(req.tenantId), list);
+    const last = await LeadPicklist.findOne({ tenantId: req.tenantId, list }).sort({ order: -1 }).select('order').lean() as any;
+    const item = await LeadPicklist.create({
+      ...fields, tenantId: req.tenantId, list, code: codeFromLabel(fields.label), order: (last?.order ?? -1) + 1, isSystem: false,
+    });
+    res.status(201).json({ success: true, data: item });
+  } catch (err: any) {
+    if (err?.code === 11000) return fail(res, 400, 'An option with this name already exists');
+    fail(res, 400, err.message);
+  }
+};
+
+/** PUT /picklists/items/:id */
+export const updatePicklistItem = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const fields = picklistFields(req.body);
+    if (fields.label === '') return fail(res, 400, 'Label is required');
+    const item = await LeadPicklist.findOneAndUpdate({ _id: req.params.id, tenantId: req.tenantId }, { $set: fields }, { new: true, runValidators: true });
+    if (!item) return fail(res, 404, 'Option not found');
+    res.json({ success: true, data: item });
+  } catch (err: any) {
+    fail(res, 400, err.message);
+  }
+};
+
+/** DELETE /picklists/items/:id — built-in options can only be switched off. */
+export const deletePicklistItem = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const item = await LeadPicklist.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    if (!item) return fail(res, 404, 'Option not found');
+    if (item.isSystem) return fail(res, 400, 'Built-in options cannot be deleted. Switch it off instead.');
+    if (item.list === 'call_outcome') {
+      const used = await Lead.exists({ tenantId: req.tenantId, 'activities.callOutcome': item.code });
+      if (used) return fail(res, 400, 'Calls were logged with this outcome. Switch it off instead so history stays readable.');
+    }
+    await item.deleteOne();
+    res.json({ success: true, message: 'Deleted' });
+  } catch (err: any) {
+    fail(res, 500, err.message);
+  }
+};
+
+/** PUT /picklists/:list/reorder  { ids } */
+export const reorderPicklist = (req: AuthenticatedRequest, res: Response) => {
+  if (!isPicklist(req.params.list)) return fail(res, 404, 'Unknown list');
+  return reorder(LeadPicklist, req, res, { list: req.params.list }).catch(err => fail(res, 500, err.message));
 };

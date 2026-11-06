@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { leadPipelineApi } from '../../api';
 import { Modal } from '../../components/common';
+import PicklistEditor from './PicklistEditor';
 import './LeadStages.css';
 
 /**
@@ -63,11 +64,13 @@ const LeadStages: React.FC = () => {
   const [subId, setSubId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
   const [form, setForm] = useState<Record<string, any>>({});
+  const [tab, setTab] = useState<'pipeline' | 'lists'>('pipeline');
 
   const notify = (type: 'success' | 'error', message: string) => {
     setAlert({ type, message });
     window.setTimeout(() => setAlert(null), type === 'error' ? 6000 : 3000);
   };
+  const notifyError = useCallback((m: string) => notify('error', m), []);
 
   const load = useCallback(async () => {
     try {
@@ -188,7 +191,22 @@ const LeadStages: React.FC = () => {
 
       {alert && <div className={`alert ${alert.type === 'error' ? 'alert-danger' : 'alert-success'} py-2`}>{alert.message}</div>}
 
-      {stages.length === 0 ? (
+      <ul className="nav nav-tabs pl-tabs">
+        <li className="nav-item"><button className={`nav-link${tab === 'pipeline' ? ' active' : ''}`} onClick={() => setTab('pipeline')}>Stages, sub-stages &amp; reasons</button></li>
+        <li className="nav-item"><button className={`nav-link${tab === 'lists' ? ' active' : ''}`} onClick={() => setTab('lists')}>Call outcomes &amp; follow-up reasons</button></li>
+      </ul>
+
+      {tab === 'lists' ? (
+        <>
+          <div className="pl-two">
+            <PicklistEditor list="call_outcome" title="Call outcomes" onError={notifyError}
+              hint="What counsellors pick after a call. “Reached the person” counts the call as connected; “Retry after” suggests the next try." />
+            <PicklistEditor list="followup_reason" title="Follow-up reasons" onError={notifyError}
+              hint="Why a follow-up is scheduled. Shown when a counsellor schedules a follow-up." />
+          </div>
+          <a className="pl-link-card" href="/qualification-settings">Qualification checklist — choose which questions must be answered before a lead can be marked Qualified →</a>
+        </>
+      ) : stages.length === 0 ? (
         <div className="pl-empty">
           <h3>No stages yet</h3>
           <p>Start from the starter admissions pipeline, or create your own stages.</p>

@@ -1,6 +1,7 @@
 import { AuthenticatedRequest } from '../types';
 import Meeting from '../models/Meeting';
 import Lead from '../models/Lead';
+import { recordMeetingOutcome } from '../services/leadDemoService';
 
 // ── Create meeting ────────────────────────────────────────────────────────────
 export const createMeeting = async (req: AuthenticatedRequest, res: any): Promise<void> => {
@@ -50,8 +51,11 @@ export const createMeeting = async (req: AuthenticatedRequest, res: any): Promis
           description: `${type.replace(/_/g, ' ')} scheduled: ${title} on ${new Date(scheduledAt).toLocaleString()}`,
           createdBy: req.user!.id,
           createdAt: new Date(),
+          metadata: { meetingId: String(meeting._id), status: 'scheduled', meetingType: type },
         },
       },
+      // The lead page shows the next demo from this field.
+      ...(['online_demo', 'campus_visit'].includes(type) ? { $set: { demoBookedAt: new Date(scheduledAt) } } : {}),
     });
 
     res.status(201).json({ success: true, data: meeting });
@@ -110,23 +114,33 @@ export const updateMeeting = async (req: AuthenticatedRequest, res: any): Promis
   try {
     const allowed = ['title', 'scheduledAt', 'durationMinutes', 'attendees',
       'meetingLink', 'location', 'notes', 'sendWhatsApp', 'sendEmail', 'status',
-      'cancellationReason'];
+      'cancellationReason', 'feedback', 'nextAction'];
     const update: any = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) update[key] = req.body[key];
     }
 
     if (update.status === 'completed') update.completedAt = new Date();
-    if (update.status === 'cancelled') update.cancelledAt = new Date();
+    if (update.status === 'cancelled' || update.status === 'declined') update.cancelledAt = new Date();
 
+    const before = await Meeting.findOne({ _id: req.params.id, tenantId: req.tenantId! }).lean();
+    if (!before) {
+      res.status(404).json({ success: false, message: 'Meeting not found' });
+      return;
+    }
     const meeting = await Meeting.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.tenantId! },
       { $set: update },
-      { new: true }
+      { new: true, runValidators: true }
     );
     if (!meeting) {
       res.status(404).json({ success: false, message: 'Meeting not found' });
       return;
+    }
+    // Attendance, no-show, reschedule… are written onto the lead's timeline (and milestones).
+    if ((update.status && update.status !== before.status) || (update.scheduledAt && String(new Date(update.scheduledAt)) !== String(before.scheduledAt))) {
+      await recordMeetingOutcome(String(req.tenantId), meeting, before as any, String(req.user!.id))
+        .catch(err => console.error('[meeting] lead update failed:', err?.message));
     }
     res.json({ success: true, data: meeting });
   } catch (err: any) {

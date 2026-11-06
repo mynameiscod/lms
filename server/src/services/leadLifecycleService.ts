@@ -24,6 +24,7 @@ import LeadStage from '../models/LeadStage';
 import LeadSubStage from '../models/LeadSubStage';
 import LeadReason from '../models/LeadReason';
 import FollowUpReminder from '../models/FollowUpReminder';
+import QualificationQuestionConfig from '../models/QualificationQuestionConfig';
 import { recordStageTransition } from '../controllers/leadStageHistoryController';
 import { pushLeadStageChange } from './googleSheetSyncService';
 import { scheduleDripOnStageEntry } from './whatsAppDripService';
@@ -154,6 +155,23 @@ export async function changeStage(input: StageChangeInput): Promise<StageChangeR
     }
   }
 
+  // ── qualification checklist (first time into a "qualified" stage, by a person) ──
+  let qualificationEvidence: { questionId: string; question: string; answer: any }[] | undefined;
+  if (!sameStage && milestoneFromLegacy(stage) === 'qualified' && !lead.milestones?.qualifiedAt) {
+    const cfg: any = await QualificationQuestionConfig.findOne({ tenantId: tid }).lean();
+    const required = (cfg?.questions || []).filter((q: any) => q.enabled !== false && q.requiredForQualified);
+    if (required.length) {
+      const answers: any = lead.qualificationAnswers instanceof Map ? Object.fromEntries(lead.qualificationAnswers) : (lead.qualificationAnswers || {});
+      const answerOf = (q: any) => { const a = answers[q.id]; return a && typeof a === 'object' && 'answer' in a ? a.answer : a; };
+      const empty = (v: any) => v === undefined || v === null || (typeof v === 'string' && !v.trim()) || (Array.isArray(v) && !v.length);
+      const missing = required.filter((q: any) => empty(answerOf(q)));
+      if (missing.length && (source === 'manual' || source === 'edit')) {
+        throw new LifecycleError(400, `Answer the qualification checklist first: ${missing.map((q: any) => q.question).join('; ')}`, 'QUALIFICATION_REQUIRED');
+      }
+      qualificationEvidence = required.map((q: any) => ({ questionId: q.id, question: q.question, answer: answerOf(q) ?? null }));
+    }
+  }
+
   if (sameStage && String(lead.subStageId || '') === String(sub?._id || '') && String(lead.reasonId || '') === String(reason?._id || '') && !note && !followUpAt) {
     return { status: 'unchanged', lead, fromStageName: stage.name, toStageName: stage.name };
   }
@@ -189,6 +207,9 @@ export async function changeStage(input: StageChangeInput): Promise<StageChangeR
   }
   for (const [path, at] of Object.entries(milestoneStamps(lead.milestones?.toObject?.() || lead.milestones, milestone, now))) lead.set(path, at);
   if (followUpAt) lead.nextFollowUp = followUpAt;
+  // Nurture keeps the owner and remembers when to bring the lead back.
+  if (milestone === 'nurture') { if (followUpAt) lead.set('nurture.reactivateAt', followUpAt); }
+  else if (lead.nurture?.reactivateAt) lead.set('nurture.reactivateAt', undefined);
 
   const where = [sub?.name, shownReason, reasonDetail].filter(Boolean).map(s => noQuotes(String(s))).join(' · ');
   const fromName = fromStage?.name || 'Unknown';
@@ -228,6 +249,7 @@ export async function changeStage(input: StageChangeInput): Promise<StageChangeR
         ...(reason ? { reasonId: reason._id, reasonName: reason.name } : {}),
         ...(reasonDetail ? { reasonDetail } : {}),
         ...(note ? { note } : {}),
+        ...(qualificationEvidence ? { qualificationEvidence } : {}),
       },
     );
     pushLeadStageChange(tenantId, { _id: lead._id, name: lead.name, phone: lead.phone, email: lead.email, assignedTo: lead.assignedTo?.toString() }, fromName, stage.name)

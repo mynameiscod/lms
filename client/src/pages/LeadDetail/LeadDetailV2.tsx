@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { leadApi, leadStageApi, qualificationApi, followUpApi, userApi } from '../../api';
+import { leadApi, leadStageApi, qualificationApi, followUpApi, userApi, meetingApi, leadPipelineApi } from '../../api';
 import SalesCallRecordingCard from '../../components/leads/SalesCallRecordingCard';
 import LeadAiCalls from './LeadAiCalls';
 import { leadArchiveApi, archiveError } from '../../api/leadArchiveApi';
@@ -8,6 +8,7 @@ import ChatPanel from '../../components/WhatsAppChat/ChatPanel';
 import { canChat } from '../../api/whatsAppChatApi';
 import { useAuth } from '../../contexts/AuthContext';
 import StageChangeDialog from '../../components/leads/StageChangeDialog';
+import LeadMeetingsCard from '../../components/leads/LeadMeetingsCard';
 import './LeadDetailV2.css';
 
 interface Lead {
@@ -120,6 +121,13 @@ const LeadDetailV2: React.FC = () => {
   const [converting, setConverting] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: string }>({ show: false, message: '', type: 'success' });
   const [stageDialog, setStageDialog] = useState<{ open: boolean; stageId: string | null }>({ open: false, stageId: null });
+  const [meetingsVersion, setMeetingsVersion] = useState(0);
+  const [callOutcomes, setCallOutcomes] = useState<{ code: string; label: string }[]>([]);
+  useEffect(() => {
+    leadPipelineApi.getPicklist('call_outcome', true)
+      .then((res: any) => setCallOutcomes((res.data || []).map((o: any) => ({ code: o.code, label: o.label }))))
+      .catch(() => setCallOutcomes([]));
+  }, []);
 
   useEffect(() => {
     if (leadId) {
@@ -296,7 +304,14 @@ const LeadDetailV2: React.FC = () => {
     if (!demoDate) return;
     setDemoSaving(true);
     try {
-      await leadApi.updateLead(leadId!, { demoBookedAt: demoDate, demoNotes });
+      // A demo is a Meeting: attendance (attended / no-show / rescheduled) is tracked on it,
+      // and the server sets the lead's demoBookedAt.
+      await meetingApi.create({
+        leadId: leadId!, type: 'online_demo', title: `Demo with ${lead?.name || 'lead'}`,
+        scheduledAt: new Date(demoDate).toISOString(), notes: demoNotes || undefined,
+      });
+      if (demoNotes) await leadApi.updateLead(leadId!, { demoNotes }).catch(() => {});
+      setMeetingsVersion(v => v + 1);
       // Create a FollowUpReminder of type 'demo' so it appears on the calendar
       await followUpApi.create({
         leadId: leadId!,
@@ -309,8 +324,8 @@ const LeadDetailV2: React.FC = () => {
       setLead(prev => prev ? { ...prev, demoBookedAt: demoDate, demoNotes } : null);
       setShowDemoModal(false);
       showToast('Demo booked successfully');
-    } catch (error) {
-      showToast('Failed to book demo', 'error');
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to book demo', 'error');
     } finally {
       setDemoSaving(false);
     }
@@ -903,6 +918,7 @@ const LeadDetailV2: React.FC = () => {
           </div>
 
           {/* Sales Call Recordings */}
+          <LeadMeetingsCard leadId={lead._id} version={meetingsVersion} onChanged={(m) => { showToast(m); fetchData(); }} onError={(m) => showToast(m, 'error')} />
           <SalesCallRecordingCard leadId={lead._id} />
         </div>
       </div>
@@ -990,15 +1006,8 @@ const LeadDetailV2: React.FC = () => {
                     className="ld2-select"
                   >
                     <option value="">Select outcome...</option>
-                    {/* Values must match CALL_OUTCOMES in server/src/models/Lead.ts */}
-                    <option value="connected">Connected</option>
-                    <option value="not_answered">No Answer</option>
-                    <option value="not_connected">Not Connected</option>
-                    <option value="busy">Busy</option>
-                    <option value="switched_off">Switched Off</option>
-                    <option value="rejected">Call Rejected</option>
-                    <option value="wrong_number">Wrong Number</option>
-                    <option value="callback_requested">Callback Requested</option>
+                    {/* The institute's call-outcome list (Lead Pipeline → Call outcomes). */}
+                    {callOutcomes.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
                   </select>
                 </div>
               )}

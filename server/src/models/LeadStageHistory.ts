@@ -74,6 +74,8 @@ const LeadStageHistorySchema: Schema = new Schema(
     reasonName: { type: String, trim: true },
     reasonDetail: { type: String, trim: true },
     note: { type: String, trim: true },
+    // Answers to the required qualification questions at the moment the lead was qualified.
+    qualificationEvidence: { type: Schema.Types.Mixed },
     source: { type: String, enum: ['manual', 'bulk', 'approval', 'outpero', 'automation', 'convert', 'reopen', 'edit'] }
   },
   { timestamps: true }

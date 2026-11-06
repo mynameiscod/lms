@@ -2,7 +2,7 @@ import { waitsForOutpero } from '../services/outperoPolicyService';
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest, ApiResponse } from '../types';
-import Lead from '../models/Lead';
+import Lead, { CALL_OUTCOMES } from '../models/Lead';
 import LeadStage from '../models/LeadStage';
 import User from '../models/User';
 import FollowUpReminder from '../models/FollowUpReminder';
@@ -686,9 +686,11 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
       return res.status(404).json({ success: false, message: 'Stage not found' });
     }
 
-    // Enforce mandatory reason for "Not Interested"
-    if (newStage.name === 'Not Interested' && !notInterestedReason?.trim()) {
-      return res.status(400).json({ success: false, message: 'Reason is required when marking lead as Not Interested' });
+    // A stage flagged requiresReason (or the legacy "Not Interested" stage) needs a reason.
+    const needsReason = !!(newStage as any).requiresReason || newStage.name === 'Not Interested';
+    const givenReason = (notInterestedReason || reason || '').trim();
+    if (needsReason && !givenReason) {
+      return res.status(400).json({ success: false, message: `A reason is required when moving a lead to "${newStage.name}"` });
     }
 
     const scopeFilter = await buildLeadScopeFilter(req);
@@ -734,16 +736,17 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
     // Clear any pending approval when admin applies the stage change
     (lead as any).pendingApproval = undefined;
     
-    if (newStage.name === 'Not Interested') {
-      lead.notInterestedReason = (notInterestedReason || reason || '').trim();
+    if (needsReason) {
+      lead.notInterestedReason = givenReason;
     }
 
     lead.activities.push({
       type: 'status_change',
+      // Keep this exact wording: LeadDetailV2 parses it to colour visited stages.
       description: `Stage changed from "${oldStageName}" to "${newStage.name}"`,
       createdBy: req.user!.id as any,
       createdAt: new Date(),
-      metadata: { from: oldStageName, to: newStage.name }
+      metadata: { from: oldStageName, to: newStage.name, ...(givenReason ? { reason: givenReason } : {}) }
     });
     await lead.save();
 
@@ -960,7 +963,7 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
       return res.status(400).json({ success: false, message: `Invalid activity type. Must be one of: ${validTypes.join(', ')}` });
     }
 
-    const validCallOutcomes = ['not_answered', 'not_connected', 'busy', 'rejected', 'connected'];
+    const validCallOutcomes: readonly string[] = CALL_OUTCOMES;
     if (type === 'call' && callOutcome && !validCallOutcomes.includes(callOutcome)) {
       return res.status(400).json({ success: false, message: `Invalid call outcome. Must be one of: ${validCallOutcomes.join(', ')}` });
     }

@@ -7,6 +7,7 @@ import { leadArchiveApi, archiveError } from '../../api/leadArchiveApi';
 import ChatPanel from '../../components/WhatsAppChat/ChatPanel';
 import { canChat } from '../../api/whatsAppChatApi';
 import { useAuth } from '../../contexts/AuthContext';
+import { moveLeadToStage } from '../../utils/leadStageChange';
 import './LeadDetailV2.css';
 
 interface Lead {
@@ -68,6 +69,7 @@ interface Stage {
   name: string;
   color: string;
   order: number;
+  requiresReason?: boolean;
 }
 
 interface Question {
@@ -228,13 +230,18 @@ const LeadDetailV2: React.FC = () => {
   const handleStageChange = async (stageName: string) => {
     try {
       const stage = stages.find(s => s.name === stageName);
-      if (stage) {
-        await leadApi.changeStage(leadId!, stage._id);
+      if (!stage) return;
+      const result = await moveLeadToStage(leadId!, stage);
+      if (result === 'cancelled') return;
+      if (result === 'pending_approval') {
+        showToast(`Sent to a manager for approval: ${stageName}`);
+        fetchData();
+        return;
       }
       setLead(prev => prev ? { ...prev, stage: stageName } : null);
       showToast(`Stage updated to ${stageName}`);
-    } catch (error) {
-      showToast('Failed to update stage', 'error');
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to update stage', 'error');
     }
   };
 
@@ -982,10 +989,13 @@ const LeadDetailV2: React.FC = () => {
                     className="ld2-select"
                   >
                     <option value="">Select outcome...</option>
+                    {/* Values must match CALL_OUTCOMES in server/src/models/Lead.ts */}
                     <option value="connected">Connected</option>
-                    <option value="no_answer">No Answer</option>
+                    <option value="not_answered">No Answer</option>
+                    <option value="not_connected">Not Connected</option>
                     <option value="busy">Busy</option>
-                    <option value="voicemail">Voicemail</option>
+                    <option value="switched_off">Switched Off</option>
+                    <option value="rejected">Call Rejected</option>
                     <option value="wrong_number">Wrong Number</option>
                     <option value="callback_requested">Callback Requested</option>
                   </select>

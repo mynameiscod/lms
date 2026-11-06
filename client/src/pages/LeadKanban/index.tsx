@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { leadApi, leadStageApi } from '../../api';
+import { moveLeadToStage } from '../../utils/leadStageChange';
 
 interface KanbanLead {
   _id: string;
@@ -17,6 +18,7 @@ interface KanbanStage {
   name: string;
   color?: string;
   order: number;
+  requiresReason?: boolean;
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -81,25 +83,31 @@ export default function LeadKanbanPage() {
     if (!drag || drag.fromStageId === toStageId) return;
 
     const { leadId, fromStageId } = drag;
-
-    // Optimistic update
-    setLeadsByStage(prev => {
-      const fromLeads = prev[fromStageId] || [];
-      const movedLead = fromLeads.find(l => l._id === leadId);
-      if (!movedLead) return prev;
-      return {
-        ...prev,
-        [fromStageId]: fromLeads.filter(l => l._id !== leadId),
-        [toStageId]: [...(prev[toStageId] || []), { ...movedLead, stageId: toStageId }],
-      };
-    });
+    const toStage = stages.find(s => s._id === toStageId);
+    if (!toStage) return;
 
     setMoving(true);
     try {
-      await leadApi.changeStage(leadId, toStageId);
-    } catch (e) {
+      // Asks for a reason when the stage needs one, and reports a manager-approval hold.
+      const result = await moveLeadToStage(leadId, toStage);
+      if (result === 'cancelled') return;
+      if (result === 'pending_approval') {
+        window.alert(`Sent to a manager for approval: "${toStage.name}". The lead stays where it is until approved.`);
+        return;
+      }
+      setLeadsByStage(prev => {
+        const fromLeads = prev[fromStageId] || [];
+        const movedLead = fromLeads.find(l => l._id === leadId);
+        if (!movedLead) return prev;
+        return {
+          ...prev,
+          [fromStageId]: fromLeads.filter(l => l._id !== leadId),
+          [toStageId]: [...(prev[toStageId] || []), { ...movedLead, stageId: toStageId }],
+        };
+      });
+    } catch (e: any) {
       console.error('Stage change failed:', e);
-      // Revert
+      window.alert(e?.message || 'Failed to move the lead');
       await load();
     } finally {
       setMoving(false);

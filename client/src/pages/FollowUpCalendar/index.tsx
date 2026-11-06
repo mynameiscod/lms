@@ -33,7 +33,8 @@ function ActivityLogModal({ lead, onClose, onSaved }: ActivityModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const CALL_OUTCOMES = ['connected', 'not_answered', 'busy', 'not_connected', 'switched_off', 'wrong_number'];
+  // Must match CALL_OUTCOMES in server/src/models/Lead.ts
+  const CALL_OUTCOMES = ['connected', 'not_answered', 'busy', 'not_connected', 'switched_off', 'rejected', 'wrong_number', 'callback_requested'];
   const TYPE_ICONS: Record<string,string> = { note: '📝', call: '📞', whatsapp: '💬', email: '📧' };
 
   useEffect(() => {

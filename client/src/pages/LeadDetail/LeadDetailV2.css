@@ -1507,12 +1507,16 @@
   color: #065f46;
 }
 
-.ld2-outcome-no_answer {
+.ld2-outcome-no_answer,
+.ld2-outcome-not_answered,
+.ld2-outcome-not_connected,
+.ld2-outcome-switched_off {
   background: #fef3c7;
   color: #92400e;
 }
 
-.ld2-outcome-busy {
+.ld2-outcome-busy,
+.ld2-outcome-rejected {
   background: #fee2e2;
   color: #991b1b;
 }

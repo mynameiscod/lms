@@ -30,7 +30,7 @@ const ACTIVITY_ICON: Record<string, string> = {
   call: '📞', whatsapp: '💬', note: '📝', email: '✉️', status_change: '🔄', stage_change: '🔄', lead: '🎯', meeting: '🤝',
 };
 const TYPE_COLOR: Record<string, string> = { call: '#16a34a', whatsapp: '#0891b2', note: '#7c3aed', email: '#ca8a04', status_change: '#ea580c', stage_change: '#ea580c', meeting: '#db2777' };
-const OUTCOME_LABEL: Record<string, string> = { connected: 'Connected', not_answered: 'Not answered', not_connected: 'Not connected', busy: 'Busy', rejected: 'Rejected', wrong_number: 'Wrong number', switched_off: 'Switched off' };
+const OUTCOME_LABEL: Record<string, string> = { connected: 'Connected', not_answered: 'Not answered', not_connected: 'Not connected', busy: 'Busy', rejected: 'Rejected', wrong_number: 'Wrong number', switched_off: 'Switched off', callback_requested: 'Callback requested' };
 
 interface Alert { level: 'bad' | 'warn'; text: string }
 

@@ -79,6 +79,12 @@ router.get('/ads', authMiddleware, tenantResolver, roleGuard(['view_leads', 'man
 router.get('/export', authMiddleware, tenantResolver, roleGuard(['export_leads', 'manage_leads']), exportLeads);
 router.post('/import', authMiddleware, tenantResolver, roleGuard(['export_leads', 'manage_leads']), importLeads);
 
+// Lead aging board + duplicate detection. These MUST stay above GET /:leadId, or Express
+// treats "aging" / "duplicates" as a lead id and these pages never load.
+router.get('/aging', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getAgingLeads);
+router.get('/duplicates', authMiddleware, tenantResolver, roleGuard(['manage_leads']), getDuplicateLeads);
+router.post('/duplicates/merge', authMiddleware, tenantResolver, roleGuard(['manage_leads']), mergeDuplicateLeads);
+
 // CRUD — granular permissions
 router.get('/', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getLeads);
 router.get('/:leadId', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getLeadById);
@@ -104,13 +110,6 @@ router.post('/:leadId/whatsapp-click', authMiddleware, tenantResolver, roleGuard
 
 // Convert to student (need convert_leads or manage_leads)
 router.post('/:leadId/convert', authMiddleware, tenantResolver, roleGuard(['convert_leads', 'manage_leads']), convertToStudent);
-
-// Lead aging board
-router.get('/aging', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getAgingLeads);
-
-// Duplicate lead detection + merge
-router.get('/duplicates', authMiddleware, tenantResolver, roleGuard(['manage_leads']), getDuplicateLeads);
-router.post('/duplicates/merge', authMiddleware, tenantResolver, roleGuard(['manage_leads']), mergeDuplicateLeads);
 
 // P5: Fee & Payment
 router.patch('/:leadId/fee', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'manage_leads']), updateLeadFee);

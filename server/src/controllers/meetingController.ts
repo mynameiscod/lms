@@ -40,12 +40,15 @@ export const createMeeting = async (req: AuthenticatedRequest, res: any): Promis
     });
 
     // Log activity on lead
-    await Lead.findByIdAndUpdate(leadId, {
+    // Field names must match LeadActivitySchema (description/createdBy). $push skips
+    // validation, so wrong names here used to store an activity that made every later
+    // lead.save() on this lead fail.
+    await Lead.findOneAndUpdate({ _id: leadId, tenantId: req.tenantId }, {
       $push: {
         activities: {
           type: 'meeting',
-          note: `${type.replace(/_/g, ' ')} scheduled: ${title} on ${new Date(scheduledAt).toLocaleString()}`,
-          performedBy: req.user!.id,
+          description: `${type.replace(/_/g, ' ')} scheduled: ${title} on ${new Date(scheduledAt).toLocaleString()}`,
+          createdBy: req.user!.id,
           createdAt: new Date(),
         },
       },

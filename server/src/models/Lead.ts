@@ -1,6 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export type CallOutcome = 'not_answered' | 'not_connected' | 'busy' | 'rejected' | 'connected' | 'wrong_number' | 'switched_off';
+/** Every call outcome the server accepts. The lead page, follow-up calendar and API all use this one list. */
+export const CALL_OUTCOMES = ['not_answered', 'not_connected', 'busy', 'rejected', 'connected', 'wrong_number', 'switched_off', 'callback_requested'] as const;
+export type CallOutcome = typeof CALL_OUTCOMES[number];
 export type CallStatus = 'scheduled' | 'completed' | 'missed' | 'rescheduled' | 'cancelled';
 export type CallSubOutcome = 'interested_follow_up' | 'interested_demo' | 'interested_visit' | 'interested_payment' | 'need_time' | 'not_interested';
 export type LeadLanguage = 'english' | 'telugu' | 'hindi';
@@ -300,7 +302,7 @@ const LeadActivitySchema: Schema = new Schema(
     },
     callOutcome: {
       type: String,
-      enum: ['not_answered', 'not_connected', 'busy', 'rejected', 'connected', 'wrong_number', 'switched_off']
+      enum: CALL_OUTCOMES as unknown as string[]
     },
     callSubOutcome: {
       type: String,
@@ -559,7 +561,9 @@ const LeadSchema: Schema = new Schema(
     lostReason: { type: String, trim: true },
     lostReasonCategory: {
       type: String,
-      enum: ['financial', 'competitor', 'timing', 'quality', 'other']
+      // Must include every category LostReasonConfig allows ('contact' was missing, so
+      // marking a lead lost with e.g. "Wrong number" failed validation).
+      enum: ['financial', 'competitor', 'timing', 'quality', 'contact', 'other']
     },
     lostReasonDetail: { type: String, trim: true },
     lostAt: { type: Date },

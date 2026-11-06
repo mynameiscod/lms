@@ -93,16 +93,24 @@ const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<strin
   const filter: any = { tenantId, ...scopeFilter, archivedAt: null };
   if (stageId) filter.stageId = stageId;
   // getLeads resolves ?milestone= into these stage ids (needs a lookup, so it is done there).
+  // Only ObjectIds the server put there count — strings arriving in the URL are ignored.
+  const serverIds = (v: any) => Array.isArray(v) && v.every((x: any) => x instanceof mongoose.Types.ObjectId);
+  if (!serverIds(query._milestoneStageIds)) delete query._milestoneStageIds;
+  if (!serverIds(query._closedStageIds)) delete query._closedStageIds;
   if (!stageId && Array.isArray(query._milestoneStageIds)) filter.stageId = { $in: query._milestoneStageIds };
   if (subStageId && mongoose.Types.ObjectId.isValid(String(subStageId))) filter.subStageId = subStageId;
   const esc = (s: any) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   if (course) filter.courseInterest = new RegExp(esc(course), 'i');
   // Inside $and so the search box's own $or cannot overwrite it.
   if (campaign) mergeMatch(filter, { $and: [{ $or: [{ 'sourceDetails.campaignName': new RegExp(esc(campaign), 'i') }, { 'utmParams.campaign': new RegExp(esc(campaign), 'i') }] }] });
+  // getLeads resolves ?openOnly=1 into these (lost / enrolled stages left out).
+  if (!stageId && !query._milestoneStageIds && Array.isArray(query._closedStageIds)) filter.stageId = { $nin: query._closedStageIds };
   if (followUp) {
     const now = new Date();
-    const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(now); dayEnd.setHours(23, 59, 59, 999);
+    // "Today" is the India calendar day, whatever timezone the server runs in.
+    const ist = new Date(now.getTime() + 330 * 60_000); ist.setUTCHours(0, 0, 0, 0);
+    const dayStart = new Date(ist.getTime() - 330 * 60_000);
+    const dayEnd = new Date(dayStart.getTime() + 86_400_000 - 1);
     if (followUp === 'overdue') filter.nextFollowUp = { $lt: now };
     else if (followUp === 'today') filter.nextFollowUp = { $gte: dayStart, $lte: dayEnd };
     else if (followUp === 'upcoming') filter.nextFollowUp = { $gt: dayEnd };
@@ -148,6 +156,9 @@ export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiRespo
       // Stages carrying this milestone (or, for stages saved before milestones, the one it is guessed from).
       const all = await LeadStage.find({ tenantId: req.tenantId }).select('milestone category isLostStage').lean();
       query._milestoneStageIds = all.filter((s: any) => milestoneFromLegacy(s) === milestone).map((s: any) => s._id);
+    } else if (req.query.openOnly === '1') {
+      const all = await LeadStage.find({ tenantId: req.tenantId }).select('milestone category isLostStage').lean();
+      query._closedStageIds = all.filter((s: any) => ['lost', 'enrolled'].includes(milestoneFromLegacy(s))).map((s: any) => s._id);
     }
     const filter = buildLeadFilter(query, req.tenantId!, scopeFilter);
 

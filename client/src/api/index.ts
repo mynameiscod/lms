@@ -1929,9 +1929,9 @@ export const leadPipelineApi = {
 
 // Lead API
 export const leadApi = {
-  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string; adId?: string; reEnquiry?: boolean; milestone?: string; subStageId?: string; followUp?: string; course?: string; campaign?: string; sort?: string; dir?: 'asc' | 'desc' }) => {
+  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string; adId?: string; reEnquiry?: boolean; milestone?: string; subStageId?: string; followUp?: string; course?: string; campaign?: string; sort?: string; dir?: 'asc' | 'desc'; openOnly?: string }) => {
     const params = new URLSearchParams();
-    for (const k of ['milestone', 'subStageId', 'followUp', 'course', 'campaign', 'sort', 'dir'] as const) {
+    for (const k of ['milestone', 'subStageId', 'followUp', 'course', 'campaign', 'sort', 'dir', 'openOnly'] as const) {
       if (filters?.[k]) params.append(k, String(filters[k]));
     }
     if (filters?.adId) params.append('adId', filters.adId);
@@ -3437,6 +3437,11 @@ export const metaCrmApi = {
 
 // Admissions reports (server: routes/leadReportRoutes.ts)
 export const leadReportApi = {
+  /** Lead Dashboard: tiles, funnel, trend, follow-up tasks, tab counts. Omit dates for all time. */
+  dashboard: (from?: string, to?: string) => {
+    const q = new URLSearchParams(); if (from) q.append('from', from); if (to) q.append('to', to);
+    return authenticatedFetch(`${API_BASE_URL}/lead-reports/dashboard?${q.toString()}`);
+  },
   admissions: (params: { from: string; to: string; assignedTo?: string; source?: string }) => {
     const q = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => { if (v) q.append(k, v); });

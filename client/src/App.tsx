@@ -250,6 +250,7 @@ const FollowUpCalendarPage = lazy(() => import('./pages/FollowUpCalendar'));
 const FollowUpQueuePage = lazy(() => import('./pages/FollowUpQueue'));
 const AdmissionsDashboardPage = lazy(() => import('./pages/AdmissionsDashboard'));
 const LeadAutomationPage = lazy(() => import('./pages/LeadAutomation'));
+const LeadDashboardPage = lazy(() => import('./pages/LeadDashboard'));
 const SeatReservationsPage = lazy(() => import('./pages/SeatReservations'));
 const LeadAgingPage = lazy(() => import('./pages/LeadAging'));
 const LeadDuplicatesPage = lazy(() => import('./pages/LeadDuplicates'));
@@ -2480,6 +2481,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
               <FollowUpCalendarPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-dashboard"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <LeadDashboardPage />
             </Layout>
           </ProtectedRoute>
         }

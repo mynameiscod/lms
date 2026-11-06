@@ -36,7 +36,28 @@ const MAX_COHORT = 50_000;
 const pct = (n: number, d: number) => (d ? Math.round((n / d) * 1000) / 10 : null);
 const money = (n: number) => Math.round(n * 100) / 100;
 
-export interface ReportInput { tenantId: string; from: Date; to: Date; scope: Record<string, any>; assignedTo?: string; source?: string }
+export interface ReportInput { tenantId: string; from: Date; to: Date; scope: Record<string, any>; assignedTo?: string; source?: string; course?: string }
+
+/** Hours from a lead arriving to its first contact (first action, else first Contacting stamp). */
+function firstContactHoursOf(leads: any[]): number[] {
+  return leads
+    .map(l => { const at = l.telecallerMetrics?.firstActionAt || l.milestones?.contactingAt; return at ? (new Date(at).getTime() - new Date(l.createdAt).getTime()) / 3600_000 : null; })
+    .filter((h): h is number => h !== null && h >= 0)
+    .sort((a, b) => a - b);
+}
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const medianOf = (xs: number[]) => (xs.length ? xs[Math.floor(xs.length / 2)] : null);
+const round1 = (n: number | null) => (n === null ? null : Math.round(n * 10) / 10);
+
+/** Headline numbers for one cohort (used for this period and the one before it). */
+function headline(leads: any[]) {
+  const total = leads.length;
+  const qualified = leads.filter(l => !!l.milestones?.qualifiedAt).length;
+  const enrolled = leads.filter(l => !!l.milestones?.enrolledAt).length;
+  return { total, qualified, enrolled, conversionRate: pct(enrolled, total), medianFirstContactHours: round1(medianOf(firstContactHoursOf(leads))) };
+}
+/** Percent change; null when there is nothing to compare with. */
+const change = (now: number | null, before: number | null) => (now === null || before === null || before === 0 ? null : Math.round(((now - before) / before) * 1000) / 10);
 
 export async function admissionsReport(input: ReportInput) {
   const { tenantId, from, to, scope } = input;
@@ -44,12 +65,18 @@ export async function admissionsReport(input: ReportInput) {
   const filter: any = { tenantId: tid, ...scope, createdAt: { $gte: from, $lte: to } };
   if (input.assignedTo && mongoose.Types.ObjectId.isValid(input.assignedTo)) filter.assignedTo = input.assignedTo;
   if (input.source) filter.source = String(input.source).slice(0, 60);
+  // Course name typed by people: matched literally, case-insensitive.
+  if (input.course) filter.courseInterest = new RegExp(escapeRegex(String(input.course).slice(0, 100)), 'i');
 
+  // The period of the same length just before this one, for the "vs previous" changes.
+  const len = to.getTime() - from.getTime();
+  const prevFilter: any = { ...filter, createdAt: { $gte: new Date(from.getTime() - len - 1), $lt: from } };
   const [leads, stages] = await Promise.all([
     Lead.find(filter).select('createdAt stageId assignedTo source milestones nextFollowUp telecallerMetrics.firstActionAt lastContactedAt sourceDetails.campaignName sourceDetails.metaCampaignId utmParams.campaign archivedAt')
       .populate('assignedTo', 'firstName lastName').limit(MAX_COHORT + 1).lean(),
     LeadStage.find({ tenantId: tid }).select('name milestone category isLostStage').lean(),
   ]);
+  const prevLeads = await Lead.find(prevFilter).select('createdAt milestones telecallerMetrics.firstActionAt').limit(MAX_COHORT).lean();
   const truncated = leads.length > MAX_COHORT;
   const cohort = truncated ? leads.slice(0, MAX_COHORT) : leads;
   const stageMs = new Map(stages.map((s: any) => [String(s._id), milestoneFromLegacy(s)]));
@@ -141,9 +168,41 @@ export async function admissionsReport(input: ReportInput) {
     Lead.countDocuments({ ...openFilter, createdAt: { $gte: new Date(now - 30 * day), $lt: new Date(now - 7 * day) } }),
   ]);
 
+  // ── headline now vs the previous period of the same length ──
+  const nowH = headline(cohort);
+  const prevH = headline(prevLeads);
+  const comparison = {
+    previousRange: { from: new Date(from.getTime() - len - 1), to: from },
+    previous: prevH,
+    totalChangePct: change(nowH.total, prevH.total),
+    qualifiedChangePct: change(nowH.qualified, prevH.qualified),
+    enrolledChangePct: change(nowH.enrolled, prevH.enrolled),
+    // Conversion moves in percentage POINTS, not percent.
+    conversionChangePp: nowH.conversionRate !== null && prevH.conversionRate !== null && prevH.total ? round1(nowH.conversionRate - prevH.conversionRate) : null,
+    // Lower is better: a negative change means contact got faster.
+    firstContactChangePct: change(nowH.medianFirstContactHours, prevH.medianFirstContactHours),
+  };
+
+  // ── leads received per day (per week past 90 days) ──
+  const DAY = 86_400_000;
+  const istDay = (d: Date) => new Date(d.getTime() + 330 * 60_000).toISOString().slice(0, 10);
+  const days = Math.max(1, Math.ceil((to.getTime() - from.getTime()) / DAY));
+  const weekly = days > 92;
+  const bucketKey = (d: Date) => {
+    if (!weekly) return istDay(d);
+    const offset = Math.floor((d.getTime() - from.getTime()) / (7 * DAY));
+    return istDay(new Date(from.getTime() + offset * 7 * DAY));
+  };
+  const trendMap = new Map<string, number>();
+  for (let t = from.getTime(); t <= to.getTime(); t += weekly ? 7 * DAY : DAY) trendMap.set(bucketKey(new Date(t)), 0);
+  for (const l of cohort) { const k = bucketKey(new Date(l.createdAt)); if (trendMap.has(k)) trendMap.set(k, (trendMap.get(k) || 0) + 1); }
+  const trend = { unit: weekly ? 'week' : 'day', points: [...trendMap.entries()].map(([day, count]) => ({ day, count })) };
+
   return {
     range: { from, to },
     cohort: cohort.length, truncated,
+    comparison,
+    trend,
     funnel, lost, nurture,
     firstContact: { medianHours: median !== null ? Math.round(median * 10) / 10 : null, within1hPct: within1h, contactedCount: firstContactHours.length },
     counsellors,

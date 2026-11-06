@@ -3444,7 +3444,7 @@ export const leadReportApi = {
     const q = new URLSearchParams(); if (from) q.append('from', from); if (to) q.append('to', to);
     return authenticatedFetch(`${API_BASE_URL}/lead-reports/dashboard?${q.toString()}`);
   },
-  admissions: (params: { from: string; to: string; assignedTo?: string; source?: string }) => {
+  admissions: (params: { from: string; to: string; assignedTo?: string; source?: string; course?: string }) => {
     const q = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => { if (v) q.append(k, v); });
     return authenticatedFetch(`${API_BASE_URL}/lead-reports/admissions?${q.toString()}`);

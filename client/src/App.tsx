@@ -247,6 +247,10 @@ const LeadAnalyticsPage = lazy(() => import('./pages/LeadAnalytics'));
 const MeetingsPage = lazy(() => import('./pages/Meetings'));
 const LeadDistributionSettingsPage = lazy(() => import('./pages/LeadDistributionSettings'));
 const FollowUpCalendarPage = lazy(() => import('./pages/FollowUpCalendar'));
+const FollowUpQueuePage = lazy(() => import('./pages/FollowUpQueue'));
+const AdmissionsDashboardPage = lazy(() => import('./pages/AdmissionsDashboard'));
+const LeadAutomationPage = lazy(() => import('./pages/LeadAutomation'));
+const LeadDashboardPage = lazy(() => import('./pages/LeadDashboard'));
 const SeatReservationsPage = lazy(() => import('./pages/SeatReservations'));
 const LeadAgingPage = lazy(() => import('./pages/LeadAging'));
 const LeadDuplicatesPage = lazy(() => import('./pages/LeadDuplicates'));
@@ -263,6 +267,7 @@ const AiSpend = lazy(() => import('./pages/AiSpend'));
 const GoogleSheetIntegrationPage = lazy(() => import('./pages/GoogleSheetIntegration'));
 const LeadScoringSettingsPage = lazy(() => import('./pages/LeadScoringSettings'));
 const LeadSourcesPage = lazy(() => import('./pages/LeadSources'));
+const MetaSyncPage = lazy(() => import('./pages/MetaSync'));
 const AICallConfigPage = lazy(() => import('./pages/AICallConfig'));
 const AllRegistrations = lazy(() => import('./pages/PublicQuizAdmin/AllRegistrations'));
 const RegistrationDetail = lazy(() => import('./pages/PublicQuizAdmin/RegistrationDetail'));
@@ -2275,7 +2280,7 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
-              <LeadsPage />
+              <LeadDashboardPage />
             </Layout>
           </ProtectedRoute>
         }
@@ -2381,6 +2386,16 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
+        path="/meta-sync"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <MetaSyncPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/lead-scoring-settings"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
@@ -2466,6 +2481,48 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
               <FollowUpCalendarPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-list"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <LeadsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/lead-dashboard" element={<Navigate to="/leads" replace />}
+      />
+      <Route
+        path="/lead-automation"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <LeadAutomationPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admissions-dashboard"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <AdmissionsDashboardPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/follow-up-queue"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <FollowUpQueuePage />
             </Layout>
           </ProtectedRoute>
         }

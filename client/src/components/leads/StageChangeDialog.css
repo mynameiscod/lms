@@ -1,0 +1,23 @@
+/* Stage → sub-stage → reason dialog. Scoped under .scd. */
+.scd .form-label { font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
+.scd-req { color: #dc2626; margin-left: 2px; }
+.scd-loading { padding: 32px; text-align: center; color: #6b7280; }
+
+.scd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.scd-chip {
+  --chip: #005897;
+  border: 1px solid var(--chip);
+  color: var(--chip);
+  background: #fff;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.scd-chip:hover { background: #f8fafc; }
+.scd-chip.active { background: var(--chip); color: #fff; }
+.scd-chip-plain { --chip: #64748b; font-weight: 500; }
+
+.scd-actions { display: flex; justify-content: flex-end; gap: 8px; }

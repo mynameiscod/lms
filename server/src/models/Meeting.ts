@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export type MeetingType = 'online_demo' | 'trainer_call' | 'campus_visit' | 'payment_discussion';
-export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show' | 'rescheduled';
+export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show' | 'rescheduled' | 'declined';
 
 export interface IMeeting extends Document {
   tenantId: string;
@@ -20,6 +20,9 @@ export interface IMeeting extends Document {
   completedAt?: Date;
   cancelledAt?: Date;
   cancellationReason?: string;
+  feedback?: string;
+  nextAction?: string;
+  remindedAt?: Date;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -39,7 +42,8 @@ const MeetingSchema = new Schema<IMeeting>(
     durationMinutes: { type: Number, default: 60 },
     status: {
       type: String,
-      enum: ['scheduled', 'completed', 'cancelled', 'no_show', 'rescheduled'],
+      // completed = attended. declined = the student said no to the demo.
+      enum: ['scheduled', 'completed', 'cancelled', 'no_show', 'rescheduled', 'declined'],
       default: 'scheduled',
     },
     attendees: [{ type: String }], // user IDs
@@ -51,6 +55,10 @@ const MeetingSchema = new Schema<IMeeting>(
     completedAt: { type: Date },
     cancelledAt: { type: Date },
     cancellationReason: { type: String },
+    feedback: { type: String, trim: true, maxlength: 2000 },
+    nextAction: { type: String, trim: true, maxlength: 500 },
+    // Set when the automation "demo reminder" fired; cleared when the meeting is moved.
+    remindedAt: { type: Date },
     createdBy: { type: String, required: true },
   },
   { timestamps: true }

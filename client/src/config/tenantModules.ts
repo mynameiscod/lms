@@ -169,7 +169,7 @@ const PATH_MODULE: [string, ModuleKey][] = ([
   ['/admin/concerns', 'concerns'], ['/admin/support', 'careerPilot'], ['/admin/branding', 'branding'], ['/student-features', 'studentFeatures'], ['/admin/integrations', 'integrations'],
   ['/employee', 'employees'], ['/employees', 'employees'], ['/employee-activity', 'employees'], ['/employee-portal', 'employees'], ['/expenses', 'expenses'],
   ['/admin/ai-spend', 'aiSpend'], ['/admin/logs', 'apiLogs'],
-  ['/leads', 'leads'], ['/follow-ups', 'leads'], ['/lead-', 'leads'], ['/team-activity', 'leads'], ['/sales-content', 'leads'],
+  ['/leads', 'leads'], ['/follow-ups', 'leads'], ['/follow-up-queue', 'leads'], ['/admissions-dashboard', 'leads'], ['/meta-sync', 'leads'], ['/lead-', 'leads'], ['/team-activity', 'leads'], ['/sales-content', 'leads'],
   ['/qualification-settings', 'leads'], ['/google-sheet-integration', 'leads'], ['/admin/outpero', 'leads'], ['/event-apis', 'leads'], ['/ai-call-config', 'leads'],
 ] as [string, ModuleKey][]).sort((a, b) => b[0].length - a[0].length);
 

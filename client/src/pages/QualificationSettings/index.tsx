@@ -18,6 +18,7 @@ interface QualificationQuestion {
   order: number;
   showInStages?: string[];
   required: boolean;
+  requiredForQualified?: boolean;
   enabled: boolean;
   fieldToUpdate?: string;
   scoreImpact?: ScoreImpact[];
@@ -534,6 +535,9 @@ config.questions
                           <span className="qc-badge qc-badge-required">
                             <i className="fa-solid fa-asterisk"></i>Required
                           </span>
+                        )}
+                        {q.requiredForQualified && (
+                          <span className="qc-badge qc-badge-required">Needed for Qualified</span>
                         )}
                         {q.fieldToUpdate && (
                           <span className="qc-badge qc-badge-field">
@@ -1060,6 +1064,20 @@ config.questions
                     <i className="fa-solid fa-asterisk text-danger me-1"></i>
                     Required question (BDM must answer before moving lead)
                   </label>
+                </div>
+
+                <div className="form-check mb-3">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id="requiredForQualifiedCheck"
+                    checked={!!editingQuestion.requiredForQualified}
+                    onChange={(e) => setEditingQuestion({ ...editingQuestion, requiredForQualified: e.target.checked })}
+                  />
+                  <label className="form-check-label" htmlFor="requiredForQualifiedCheck">
+                    Must be answered before a lead can be marked Qualified
+                  </label>
+                  <div className="form-text">Applies to stages whose milestone is “Qualified”. The answers are saved with the lead's history.</div>
                 </div>
 
                 {/* Score Impact Section */}

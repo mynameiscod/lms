@@ -1,6 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export type CallOutcome = 'not_answered' | 'not_connected' | 'busy' | 'rejected' | 'connected' | 'wrong_number' | 'switched_off';
+/** Every call outcome the server accepts. The lead page, follow-up calendar and API all use this one list. */
+export const CALL_OUTCOMES = ['not_answered', 'not_connected', 'busy', 'rejected', 'connected', 'wrong_number', 'switched_off', 'callback_requested'] as const;
+export type CallOutcome = typeof CALL_OUTCOMES[number];
 export type CallStatus = 'scheduled' | 'completed' | 'missed' | 'rescheduled' | 'cancelled';
 export type CallSubOutcome = 'interested_follow_up' | 'interested_demo' | 'interested_visit' | 'interested_payment' | 'need_time' | 'not_interested';
 export type LeadLanguage = 'english' | 'telugu' | 'hindi';
@@ -35,6 +37,10 @@ export interface ISourceDetails {
   /** Click-to-WhatsApp ads: Meta's click id and the headline the person saw. */
   ctwaClid?: string;
   adHeadline?: string;
+  metaCampaignId?: string;
+  metaAdSetId?: string;
+  metaPageId?: string;
+  metaLeadCreatedAt?: Date;
 }
 
 export interface ICostData {
@@ -147,6 +153,14 @@ export interface ILead extends Document {
   courseInterest: string[];
   source: string;
   stageId: mongoose.Types.ObjectId;
+  subStageId?: mongoose.Types.ObjectId;
+  reasonId?: mongoose.Types.ObjectId;
+  reasonDetail?: string;
+  stageEnteredAt?: Date;
+  lastContactedAt?: Date;
+  lastCallOutcome?: string;
+  milestones?: Partial<Record<'contactingAt' | 'connectedAt' | 'qualifiedAt' | 'demoAt' | 'demoAttendedAt' | 'seatReservedAt' | 'enrolledAt' | 'nurtureAt' | 'lostAt', Date>>;
+  nurture?: { reactivateAt?: Date };
   assignedTo?: mongoose.Types.ObjectId;
   nextFollowUp?: Date;
   notes: string;
@@ -211,6 +225,11 @@ export interface ILead extends Document {
     requestedBy: mongoose.Types.ObjectId;
     requestedAt: Date;
     reason?: string;
+    subStageId?: mongoose.Types.ObjectId;
+    reasonId?: mongoose.Types.ObjectId;
+    reasonDetail?: string;
+    note?: string;
+    nextFollowUp?: Date;
   };
   
   // NEW: SLA breach flag
@@ -298,9 +317,13 @@ const LeadActivitySchema: Schema = new Schema(
       type: Date,
       default: Date.now
     },
+    // A built-in code (CALL_OUTCOMES) or the institute's own code from its call-outcome list
+    // (LeadPicklist). Controllers check it against validCallOutcomeCodes(tenantId).
     callOutcome: {
       type: String,
-      enum: ['not_answered', 'not_connected', 'busy', 'rejected', 'connected', 'wrong_number', 'switched_off']
+      trim: true,
+      maxlength: 60,
+      match: /^[a-z0-9_]+$/
     },
     callSubOutcome: {
       type: String,
@@ -361,6 +384,24 @@ const LeadSchema: Schema = new Schema(
       ref: 'LeadStage',
       required: true
     },
+    // Configurable pipeline (LeadSubStage / LeadReason). Optional: older leads have none.
+    subStageId: { type: mongoose.Types.ObjectId, ref: 'LeadSubStage' },
+    reasonId: { type: mongoose.Types.ObjectId, ref: 'LeadReason' },
+    reasonDetail: { type: String, trim: true, maxlength: 1000 },
+    stageEnteredAt: { type: Date },
+    // Kept in step when a call / WhatsApp / email is logged, so the list can show and sort them
+    // without loading every activity.
+    lastContactedAt: { type: Date },
+    lastCallOutcome: { type: String, trim: true },
+    // First time the lead reached each milestone. Set once, never overwritten — funnel
+    // reports and Meta events count from these, so a reopened lead is not counted twice.
+    milestones: {
+      contactingAt: Date, connectedAt: Date, qualifiedAt: Date, demoAt: Date,
+      seatReservedAt: Date, enrolledAt: Date, nurtureAt: Date, lostAt: Date,
+      // Not a stage: set when a demo meeting is marked attended.
+      demoAttendedAt: Date,
+    },
+    nurture: { reactivateAt: { type: Date } },
     assignedTo: {
       type: mongoose.Types.ObjectId,
       ref: 'User'
@@ -472,7 +513,12 @@ const LeadSchema: Schema = new Schema(
       landingPage: { type: String, trim: true },
       referrerUrl: { type: String, trim: true },
       ctwaClid: { type: String, trim: true },
-      adHeadline: { type: String, trim: true }
+      adHeadline: { type: String, trim: true },
+      // Meta's own ids (strings) — join keys for ad spend and CRM conversion events.
+      metaCampaignId: { type: String, trim: true },
+      metaAdSetId: { type: String, trim: true },
+      metaPageId: { type: String, trim: true },
+      metaLeadCreatedAt: { type: Date }
     },
     
     // NEW: Cost tracking (admin visibility only)
@@ -559,7 +605,9 @@ const LeadSchema: Schema = new Schema(
     lostReason: { type: String, trim: true },
     lostReasonCategory: {
       type: String,
-      enum: ['financial', 'competitor', 'timing', 'quality', 'other']
+      // Must include every category LostReasonConfig allows ('contact' was missing, so
+      // marking a lead lost with e.g. "Wrong number" failed validation).
+      enum: ['financial', 'competitor', 'timing', 'quality', 'contact', 'other']
     },
     lostReasonDetail: { type: String, trim: true },
     lostAt: { type: Date },
@@ -576,8 +624,14 @@ const LeadSchema: Schema = new Schema(
       requestedBy: { type: mongoose.Types.ObjectId, ref: 'User' },
       requestedAt: { type: Date },
       reason: { type: String, trim: true },
+      // Full request, so approval applies exactly what the counsellor chose.
+      subStageId: { type: mongoose.Types.ObjectId, ref: 'LeadSubStage' },
+      reasonId: { type: mongoose.Types.ObjectId, ref: 'LeadReason' },
+      reasonDetail: { type: String, trim: true },
+      note: { type: String, trim: true },
+      nextFollowUp: { type: Date },
     },
-    
+
     // NEW: SLA breach
     slaBreach: { type: Boolean, default: false },
     slaBreachAt: { type: Date },
@@ -695,6 +749,9 @@ const LeadSchema: Schema = new Schema(
 
 LeadSchema.index({ tenantId: 1, metaSubmissionIds: 1 });
 LeadSchema.index({ tenantId: 1, stageId: 1 });
+LeadSchema.index({ tenantId: 1, subStageId: 1 }, { sparse: true });
+LeadSchema.index({ tenantId: 1, 'nurture.reactivateAt': 1 }, { sparse: true });
+LeadSchema.index({ tenantId: 1, lastContactedAt: -1 });
 LeadSchema.index({ tenantId: 1, archivedAt: 1, createdAt: -1 });
 LeadSchema.index({ archiveRunId: 1 }, { partialFilterExpression: { archiveRunId: { $exists: true } } });
 LeadSchema.index({ tenantId: 1, assignedTo: 1 });

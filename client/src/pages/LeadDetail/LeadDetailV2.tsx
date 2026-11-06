@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { leadApi, leadStageApi, qualificationApi, followUpApi, userApi } from '../../api';
+import { leadApi, leadStageApi, qualificationApi, followUpApi, userApi, meetingApi, leadPipelineApi } from '../../api';
 import SalesCallRecordingCard from '../../components/leads/SalesCallRecordingCard';
 import LeadAiCalls from './LeadAiCalls';
 import { leadArchiveApi, archiveError } from '../../api/leadArchiveApi';
 import ChatPanel from '../../components/WhatsAppChat/ChatPanel';
 import { canChat } from '../../api/whatsAppChatApi';
 import { useAuth } from '../../contexts/AuthContext';
+import StageChangeDialog from '../../components/leads/StageChangeDialog';
+import LeadMeetingsCard from '../../components/leads/LeadMeetingsCard';
+import LeadFeeCard from '../../components/leads/LeadFeeCard';
+import LeadMetaEventsCard from '../../components/leads/LeadMetaEventsCard';
 import './LeadDetailV2.css';
 
 interface Lead {
@@ -16,6 +20,10 @@ interface Lead {
   email: string;
   priority: string;
   stage: string;
+  stageId?: { _id: string; name: string } | string;
+  subStageId?: { _id: string; name: string } | null;
+  reasonId?: { _id: string; name: string } | null;
+  pendingApproval?: { stageName?: string } | null;
   source: string;
   sourceDetails?: { adName?: string; adId?: string; adSetName?: string; campaignName?: string; adHeadline?: string };
   assignedTo?: { _id?: string; name?: string; firstName?: string; lastName?: string } | null;
@@ -68,6 +76,7 @@ interface Stage {
   name: string;
   color: string;
   order: number;
+  requiresReason?: boolean;
 }
 
 interface Question {
@@ -113,6 +122,14 @@ const LeadDetailV2: React.FC = () => {
   const [convertPassword, setConvertPassword] = useState('Welcome@123');
   const [converting, setConverting] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: string }>({ show: false, message: '', type: 'success' });
+  const [stageDialog, setStageDialog] = useState<{ open: boolean; stageId: string | null }>({ open: false, stageId: null });
+  const [meetingsVersion, setMeetingsVersion] = useState(0);
+  const [callOutcomes, setCallOutcomes] = useState<{ code: string; label: string }[]>([]);
+  useEffect(() => {
+    leadPipelineApi.getPicklist('call_outcome', true)
+      .then((res: any) => setCallOutcomes((res.data || []).map((o: any) => ({ code: o.code, label: o.label }))))
+      .catch(() => setCallOutcomes([]));
+  }, []);
 
   useEffect(() => {
     if (leadId) {
@@ -225,17 +242,10 @@ const LeadDetailV2: React.FC = () => {
     }
   };
 
-  const handleStageChange = async (stageName: string) => {
-    try {
-      const stage = stages.find(s => s.name === stageName);
-      if (stage) {
-        await leadApi.changeStage(leadId!, stage._id);
-      }
-      setLead(prev => prev ? { ...prev, stage: stageName } : null);
-      showToast(`Stage updated to ${stageName}`);
-    } catch (error) {
-      showToast('Failed to update stage', 'error');
-    }
+  // Every stage change goes through the stage → sub-stage → reason dialog.
+  const handleStageChange = (stageName?: string) => {
+    const stage = stageName ? stages.find(s => s.name === stageName) : null;
+    setStageDialog({ open: true, stageId: stage?._id || null });
   };
 
   const handlePriorityChange = async (priority: string) => {
@@ -296,7 +306,14 @@ const LeadDetailV2: React.FC = () => {
     if (!demoDate) return;
     setDemoSaving(true);
     try {
-      await leadApi.updateLead(leadId!, { demoBookedAt: demoDate, demoNotes });
+      // A demo is a Meeting: attendance (attended / no-show / rescheduled) is tracked on it,
+      // and the server sets the lead's demoBookedAt.
+      await meetingApi.create({
+        leadId: leadId!, type: 'online_demo', title: `Demo with ${lead?.name || 'lead'}`,
+        scheduledAt: new Date(demoDate).toISOString(), notes: demoNotes || undefined,
+      });
+      if (demoNotes) await leadApi.updateLead(leadId!, { demoNotes }).catch(() => {});
+      setMeetingsVersion(v => v + 1);
       // Create a FollowUpReminder of type 'demo' so it appears on the calendar
       await followUpApi.create({
         leadId: leadId!,
@@ -309,8 +326,8 @@ const LeadDetailV2: React.FC = () => {
       setLead(prev => prev ? { ...prev, demoBookedAt: demoDate, demoNotes } : null);
       setShowDemoModal(false);
       showToast('Demo booked successfully');
-    } catch (error) {
-      showToast('Failed to book demo', 'error');
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to book demo', 'error');
     } finally {
       setDemoSaving(false);
     }
@@ -540,7 +557,12 @@ const LeadDetailV2: React.FC = () => {
                 <i className="bi bi-flag"></i>
                 <div>
                   <label>Stage</label>
-                  <span>{lead.stage}</span>
+                  <span>
+                    {lead.stage}
+                    {lead.subStageId?.name && <span className="ld2-substage"> › {lead.subStageId.name}</span>}
+                    {lead.reasonId?.name && <span className="ld2-substage"> · {lead.reasonId.name}</span>}
+                    {lead.pendingApproval?.stageName && <span className="ld2-pending"> (waiting for approval: {lead.pendingApproval.stageName})</span>}
+                  </span>
                 </div>
               </div>
               <div className="ld2-summary-item">
@@ -606,7 +628,10 @@ const LeadDetailV2: React.FC = () => {
 
           {/* Stage Pipeline */}
           <div className="ld2-stage-pipeline">
-            <h3>Lead Stage</h3>
+            <div className="ld2-stage-head">
+              <h3>Lead Stage</h3>
+              <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => handleStageChange()}>Change stage</button>
+            </div>
             <div className="ld2-stages">
               {(() => {
                 // Only six stages fit. A lead sitting in a stage outside them (e.g. "With Outpero")
@@ -895,6 +920,9 @@ const LeadDetailV2: React.FC = () => {
           </div>
 
           {/* Sales Call Recordings */}
+          <LeadMeetingsCard leadId={lead._id} version={meetingsVersion} onChanged={(m) => { showToast(m); fetchData(); }} onError={(m) => showToast(m, 'error')} />
+          <LeadFeeCard lead={lead} onSaved={(m) => { showToast(m); fetchData(); }} onError={(m) => showToast(m, 'error')} />
+          <LeadMetaEventsCard leadId={lead._id} version={typeof lead.stageId === 'object' ? lead.stageId?._id : lead.stageId} />
           <SalesCallRecordingCard leadId={lead._id} />
         </div>
       </div>
@@ -982,12 +1010,8 @@ const LeadDetailV2: React.FC = () => {
                     className="ld2-select"
                   >
                     <option value="">Select outcome...</option>
-                    <option value="connected">Connected</option>
-                    <option value="no_answer">No Answer</option>
-                    <option value="busy">Busy</option>
-                    <option value="voicemail">Voicemail</option>
-                    <option value="wrong_number">Wrong Number</option>
-                    <option value="callback_requested">Callback Requested</option>
+                    {/* The institute's call-outcome list (Lead Pipeline → Call outcomes). */}
+                    {callOutcomes.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
                   </select>
                 </div>
               )}
@@ -1184,6 +1208,16 @@ const LeadDetailV2: React.FC = () => {
           </div>
         </div>
       )}
+
+      <StageChangeDialog
+        open={stageDialog.open}
+        onClose={() => setStageDialog({ open: false, stageId: null })}
+        leadIds={[lead._id]}
+        initialStageId={stageDialog.stageId}
+        currentStageId={typeof lead.stageId === 'object' ? lead.stageId?._id : lead.stageId}
+        currentSubStageId={lead.subStageId?._id || null}
+        onDone={(_outcome, message) => { showToast(message); fetchData(); }}
+      />
     </div>
   );
 };

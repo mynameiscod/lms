@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { LEAD_MILESTONES, LeadMilestone } from '../config/leadMilestones';
 
 export type StageCategory = 'new' | 'engaging' | 'qualified' | 'negotiation' | 'converted' | 'lost';
 export type UrgencyLevel = 'low' | 'medium' | 'high';
@@ -37,7 +38,9 @@ export interface ILeadStage extends Document {
   // NEW: Enhanced stage properties
   description?: string;
   category: StageCategory;
-  
+  milestone?: LeadMilestone;
+  metaEventName?: string;
+
   // NEW: Stage movement rules
   allowedNextStages: mongoose.Types.ObjectId[];
   allowedPreviousStages: mongoose.Types.ObjectId[];
@@ -106,6 +109,15 @@ const LeadStageSchema: Schema = new Schema(
       enum: ['new', 'engaging', 'qualified', 'negotiation', 'converted', 'lost'],
       default: 'new'
     },
+    // What this stage means for reports / Meta / automation (see config/leadMilestones.ts).
+    // Unset on stages created before milestones existed.
+    milestone: {
+      type: String,
+      enum: LEAD_MILESTONES as unknown as string[],
+    },
+    // Optional event name sent to Meta (Conversion Leads) when a lead first reaches this
+    // stage's milestone. Blank = the default name for the milestone (metaCrmEventService).
+    metaEventName: { type: String, trim: true, maxlength: 100 },
     
     // NEW: Stage movement rules
     allowedNextStages: [{

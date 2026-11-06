@@ -20,7 +20,7 @@ interface SubStage {
 interface Stage {
   _id: string; name: string; color: string; order: number; isActive: boolean; isDefault: boolean;
   description?: string; milestone?: string; milestoneEffective: string;
-  requiresReason?: boolean; requiresNote?: boolean; isFinal?: boolean;
+  requiresReason?: boolean; requiresNote?: boolean; isFinal?: boolean; metaEventName?: string;
   leadCount: number; usedByOutpero: boolean; subStages: SubStage[];
 }
 interface Milestone { value: string; label: string }
@@ -116,8 +116,8 @@ const LeadStages: React.FC = () => {
   const openStage = (item?: Stage) => {
     setEditing({ kind: 'stage', item });
     setForm(item
-      ? { name: item.name, color: item.color, description: item.description || '', milestone: item.milestone || item.milestoneEffective, requiresReason: !!item.requiresReason, requiresNote: !!item.requiresNote, isFinal: !!item.isFinal, isActive: item.isActive }
-      : { name: '', color: '#005897', description: '', milestone: 'none', requiresReason: false, requiresNote: false, isFinal: false, isActive: true });
+      ? { name: item.name, color: item.color, description: item.description || '', metaEventName: item.metaEventName || '', milestone: item.milestone || item.milestoneEffective, requiresReason: !!item.requiresReason, requiresNote: !!item.requiresNote, isFinal: !!item.isFinal, isActive: item.isActive }
+      : { name: '', color: '#005897', description: '', metaEventName: '', milestone: 'none', requiresReason: false, requiresNote: false, isFinal: false, isActive: true });
   };
   const openSub = (item?: SubStage) => {
     setEditing({ kind: 'sub', item });
@@ -339,6 +339,13 @@ const LeadStages: React.FC = () => {
                   </select>
                   <div className="form-text">{MILESTONE_HELP[form.milestone] || ''} Reports and Meta use this, never the stage name.</div>
                 </div>
+                {form.milestone && form.milestone !== 'none' && (
+                  <div className="mb-3">
+                    <label className="form-label">Meta event name <span className="text-muted">(optional)</span></label>
+                    <input className="form-control" value={form.metaEventName || ''} maxLength={60} placeholder="Leave blank for the default" onChange={e => setForm(f => ({ ...f, metaEventName: e.target.value }))} />
+                    <div className="form-text">What Meta sees when a lead first reaches this milestone (Meta sync page). Changing it later starts a new event name in Meta.</div>
+                  </div>
+                )}
                 <div className="mb-3">
                   <label className="form-label">Description <span className="text-muted">(optional)</span></label>
                   <input className="form-control" value={form.description || ''} maxLength={300} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />

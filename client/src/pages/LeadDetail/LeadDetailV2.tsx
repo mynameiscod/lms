@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import StageChangeDialog from '../../components/leads/StageChangeDialog';
 import LeadMeetingsCard from '../../components/leads/LeadMeetingsCard';
 import LeadFeeCard from '../../components/leads/LeadFeeCard';
+import LeadMetaEventsCard from '../../components/leads/LeadMetaEventsCard';
 import './LeadDetailV2.css';
 
 interface Lead {
@@ -921,6 +922,7 @@ const LeadDetailV2: React.FC = () => {
           {/* Sales Call Recordings */}
           <LeadMeetingsCard leadId={lead._id} version={meetingsVersion} onChanged={(m) => { showToast(m); fetchData(); }} onError={(m) => showToast(m, 'error')} />
           <LeadFeeCard lead={lead} onSaved={(m) => { showToast(m); fetchData(); }} onError={(m) => showToast(m, 'error')} />
+          <LeadMetaEventsCard leadId={lead._id} version={typeof lead.stageId === 'object' ? lead.stageId?._id : lead.stageId} />
           <SalesCallRecordingCard leadId={lead._id} />
         </div>
       </div>

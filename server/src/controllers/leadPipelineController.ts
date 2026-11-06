@@ -91,6 +91,8 @@ function stageFields(body: any) {
   const out: Record<string, any> = {};
   const name = str(body.name, 60); if (name !== undefined) out.name = name;
   const description = str(body.description, 300); if (description !== undefined) out.description = description;
+  // Name Meta receives for this stage's milestone (blank = default per milestone).
+  const metaEventName = str(body.metaEventName, 60); if (metaEventName !== undefined) out.metaEventName = metaEventName;
   if (typeof body.color === 'string' && HEX.test(body.color)) out.color = body.color;
   for (const k of ['requiresReason', 'requiresNote', 'isActive', 'isFinal'] as const) {
     const b = bool(body[k]); if (b !== undefined) out[k] = b;

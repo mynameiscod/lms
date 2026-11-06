@@ -3,8 +3,8 @@
    Scope the visual migration to its unique root signature so no other LMS page
    is affected while videos, notes, Q&A, practice, lessons and gating stay intact. */
 :root {
-  --cb-navy: #051d64;
-  --cb-teal: #359aad;
+  --cb-navy: var(--cb-navy-900);
+  --cb-teal: var(--cb-teal-500);
   --cb-ink: #10224f;
   --cb-muted: #66789b;
   --cb-line: #e3eaf3;

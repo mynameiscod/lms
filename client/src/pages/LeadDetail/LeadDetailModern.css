@@ -2,23 +2,23 @@
 
 /* CSS Variables - Clean Professional Colors */
 :root {
-  --ld-primary: #4f46e5;
-  --ld-primary-light: #6366f1;
-  --ld-primary-dark: #4338ca;
-  --ld-success: #10b981;
-  --ld-success-light: #d1fae5;
-  --ld-warning: #f59e0b;
-  --ld-warning-light: #fef3c7;
-  --ld-danger: #ef4444;
-  --ld-danger-light: #fee2e2;
-  --ld-info: #3b82f6;
-  --ld-info-light: #dbeafe;
-  --ld-bg: #f8fafc;
+  --ld-primary: var(--cb-navy-600);
+  --ld-primary-light: var(--cb-navy-600);
+  --ld-primary-dark: var(--cb-navy-600);
+  --ld-success: var(--cb-success);
+  --ld-success-light: var(--cb-success-50);
+  --ld-warning: var(--cb-marigold-500);
+  --ld-warning-light: var(--cb-marigold-50);
+  --ld-danger: var(--cb-danger);
+  --ld-danger-light: var(--cb-danger-50);
+  --ld-info: var(--cb-navy-600);
+  --ld-info-light: var(--cb-navy-100);
+  --ld-bg: var(--cb-ground);
   --ld-card-bg: #ffffff;
-  --ld-border: #e5e7eb;
-  --ld-text: #111827;
-  --ld-text-muted: #6b7280;
-  --ld-text-light: #9ca3af;
+  --ld-border: var(--cb-line);
+  --ld-text: var(--cb-ink);
+  --ld-text-muted: var(--cb-slate);
+  --ld-text-light: var(--cb-slate-2);
   --ld-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --ld-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
   --ld-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -110,8 +110,8 @@
   font-weight: 600;
   padding: 4px 10px;
   border-radius: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-transform: none;
+  letter-spacing: 0;
   margin-top: 4px;
   display: inline-block;
 }
@@ -266,7 +266,7 @@
 }
 
 .next-action-header h3 i {
-  color: #fbbf24;
+  color: var(--cb-marigold-700);
 }
 
 .followup-status {
@@ -334,7 +334,7 @@
 }
 
 .next-action-buttons .btn-light:hover {
-  background: #f1f5f9;
+  background: var(--cb-line-soft);
 }
 
 .next-action-buttons .btn-outline-light {
@@ -485,7 +485,7 @@
 }
 
 .lead-summary-card .card-header-custom {
-  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, var(--cb-navy-600) 0%, var(--cb-navy-600) 100%);
   padding: 16px 20px;
   color: white;
 }
@@ -515,7 +515,7 @@
 }
 
 .summary-item:hover {
-  background: #f9fafb;
+  background: var(--cb-ground);
 }
 
 .summary-item:nth-child(odd) {
@@ -551,8 +551,8 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--ld-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-transform: none;
+  letter-spacing: 0;
   margin-bottom: 2px;
 }
 
@@ -668,12 +668,12 @@
   flex-shrink: 0;
 }
 
-.timeline-icon.note { background: #dbeafe; color: #2563eb; }
-.timeline-icon.call { background: #d1fae5; color: #059669; }
-.timeline-icon.whatsapp { background: #dcfce7; color: #16a34a; }
-.timeline-icon.email { background: #fef3c7; color: #d97706; }
-.timeline-icon.stage_change { background: #e0e7ff; color: #4f46e5; }
-.timeline-icon.system { background: #f3f4f6; color: #6b7280; }
+.timeline-icon.note { background: var(--cb-navy-100); color: var(--cb-navy-600); }
+.timeline-icon.call { background: var(--cb-success-50); color: var(--cb-success-ink); }
+.timeline-icon.whatsapp { background: var(--cb-success-50); color: var(--cb-success-ink); }
+.timeline-icon.email { background: var(--cb-marigold-50); color: var(--cb-marigold-700); }
+.timeline-icon.stage_change { background: var(--cb-navy-100); color: var(--cb-navy-600); }
+.timeline-icon.system { background: var(--cb-line-soft); color: var(--cb-slate); }
 
 .timeline-content {
   flex: 1;
@@ -749,7 +749,7 @@
 }
 
 .panel-card-header:hover {
-  background: #f9fafb;
+  background: var(--cb-ground);
 }
 
 .panel-card-header h4 {
@@ -952,7 +952,7 @@
 }
 
 .btn-save-checklist:hover {
-  background: #059669;
+  background: var(--cb-success);
 }
 
 /* AI Insights */
@@ -985,8 +985,8 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--ld-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .insight-item .insight-value {
@@ -1038,23 +1038,23 @@
 }
 
 .floating-btn.note {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--cb-navy-100);
+  color: var(--cb-navy-600);
 }
 
 .floating-btn.call {
-  background: #d1fae5;
-  color: #059669;
+  background: var(--cb-success-50);
+  color: var(--cb-success-ink);
 }
 
 .floating-btn.whatsapp {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--cb-success-50);
+  color: var(--cb-success-ink);
 }
 
 .floating-btn.followup {
-  background: #e0e7ff;
-  color: #4f46e5;
+  background: var(--cb-navy-100);
+  color: var(--cb-navy-600);
 }
 
 /* ============ MODALS ============ */

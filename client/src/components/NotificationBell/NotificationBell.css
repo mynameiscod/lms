@@ -66,8 +66,8 @@
   transition: background 0.1s;
 }
 .nb-item:hover { background: #f8f9fa; }
-.nb-item--unread { background: #eff6ff; }
-.nb-item--unread:hover { background: #dbeafe; }
+.nb-item--unread { background: var(--cb-navy-50); }
+.nb-item--unread:hover { background: var(--cb-navy-100); }
 
 .nb-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
 

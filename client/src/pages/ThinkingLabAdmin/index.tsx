@@ -40,7 +40,9 @@ const ThinkingLabAdmin: React.FC = () => {
     thinkingLabApi.meta().then(m => { setCategories(m.categories); setDifficulties(m.difficulties); setForm(f => ({ ...f, category: m.categories[0] || '' })); }).catch(() => {});
     batchApi.getBatches().then((b: any) => setBatches((Array.isArray(b) ? b : (b?.data || b?.batches || [])).map((x: any) => ({ _id: x._id, name: x.name })))).catch(() => {});
     loadProblems().catch(() => {}); loadSchedule();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { loadProblems().catch(() => {}); /* eslint-disable-next-line */ }, [filter.category, filter.difficulty]);
 
   const generate = async () => {

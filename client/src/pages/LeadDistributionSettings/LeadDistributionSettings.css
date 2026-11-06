@@ -31,7 +31,7 @@
 .toggle-slider {
   width: 44px;
   height: 24px;
-  background: #d1d5db;
+  background: var(--cb-line-strong);
   border-radius: 12px;
   position: relative;
   transition: background 0.2s;
@@ -50,7 +50,7 @@
 }
 
 .toggle-switch input:checked + .toggle-slider {
-  background: #6366f1;
+  background: var(--cb-navy-600);
 }
 
 .toggle-switch input:checked + .toggle-slider::after {
@@ -60,7 +60,7 @@
 .toggle-label {
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--cb-ink-2);
 }
 
 .dist-disabled-notice {
@@ -75,7 +75,7 @@
 
 .dist-section {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cb-line);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
@@ -84,13 +84,13 @@
 .dist-section h2 {
   font-size: 15px;
   font-weight: 600;
-  color: #374151;
+  color: var(--cb-ink-2);
   margin: 0 0 16px 0;
 }
 
 .dist-hint {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
   margin: 6px 0 0;
 }
 
@@ -101,7 +101,7 @@
 }
 
 .mode-card {
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--cb-line);
   border-radius: 10px;
   padding: 14px;
   cursor: pointer;
@@ -109,18 +109,18 @@
 }
 
 .mode-card:hover { border-color: #a5b4fc; }
-.mode-card.active { border-color: #6366f1; background: #eef2ff; }
+.mode-card.active { border-color: var(--cb-navy-600); background: var(--cb-navy-50); }
 
 .mode-card-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--cb-ink);
   margin-bottom: 4px;
 }
 
 .mode-card-desc {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--cb-slate);
 }
 
 .agent-table {
@@ -132,16 +132,16 @@
 .agent-table th,
 .agent-table td {
   padding: 8px 12px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--cb-line-soft);
   text-align: left;
 }
 
 .agent-table th {
   font-weight: 600;
-  color: #6b7280;
+  color: var(--cb-slate);
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .agent-table input[type="number"] {
@@ -152,7 +152,7 @@
 }
 
 .dist-error {
-  color: #ef4444;
+  color: var(--cb-danger-ink);
   font-size: 13px;
   margin-bottom: 12px;
 }
@@ -166,5 +166,5 @@
 .dist-loading {
   padding: 48px;
   text-align: center;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
 }

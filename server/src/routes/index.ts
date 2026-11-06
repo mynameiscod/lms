@@ -93,6 +93,7 @@ import { hmsWebhook, publicInviteInfo, publicJoin } from '../controllers/liveCla
 import communicationRoutes from './communicationRoutes';
 import thinkingLabRoutes from './thinkingLabRoutes';
 import visualizerRoutes from './visualizerRoutes';
+import dsaCurriculumRoutes from './dsaCurriculumRoutes';
 import batchOfferingRoutes from './batchOfferingRoutes';
 import assessmentScheduleRoutes from './assessmentScheduleRoutes';
 import passportRoutes from './passportRoutes';
@@ -339,6 +340,7 @@ router.use('/communication', communicationRoutes); // AI Communication Lab
 router.use('/drills', drillRoutes);
 router.use('/thinking-lab', thinkingLabRoutes);
 router.use('/visualizer', visualizerRoutes); // Code Visualizer
+router.use('/dsa', dsaCurriculumRoutes); // DSA curriculum (Code Visualizer → Learn)
 router.use('/payments', paymentRoutes);
 router.use('/batch-offerings', batchOfferingRoutes);
 router.use('/assessment-schedules', assessmentScheduleRoutes);

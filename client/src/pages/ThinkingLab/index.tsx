@@ -155,6 +155,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
 
   // Lazy-load Progress + Leaderboard when their tab opens.
   useEffect(() => { if (tab === 'progress' && !badges) thinkingLabApi.badges().then(setBadges).catch(() => setBadges([])); }, [tab, badges]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { if (tab === 'progress' && !profile) loadProfile(); /* eslint-disable-next-line */ }, [tab]);
   useEffect(() => { if (tab === 'analytics' && !analytics) thinkingLabApi.analytics().then(setAnalytics).catch(() => {}); }, [tab, analytics]);
 

@@ -1,0 +1,123 @@
+/* DSA curriculum pages (Code Visualizer → Learn). LMS only; every rule sits under .vz-root.vzp. */
+
+/* The six-step progression, shown as the sequence it is */
+.vz-root.vzp .vzp-steps { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; counter-reset: none; }
+.vz-root.vzp .vzp-steps li, .vz-root.vzp .vzp-steps li a {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 999px;
+  background: var(--vzp-surface-2); border: 1px solid var(--vzp-line); color: var(--vzp-body); font-size: 13px; font-weight: 500; text-decoration: none;
+}
+.vz-root.vzp .vzp-steps li a { padding: 0; border: 0; background: none; }
+.vz-root.vzp .vzp-steps li:has(a):hover { border-color: var(--vzp-royal); }
+.vz-root.vzp .vzp-steps li span { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--vzp-royal-soft); color: var(--vzp-royal); font-size: 12px; font-weight: 600; font-family: var(--vzp-mono); }
+.vz-root.vzp .vzp-steps.compact { margin-top: 16px; }
+.vz-root.vzp .vz-crumbs { display: flex; gap: 8px; }
+.vz-root.vzp .vz-crumbs a { color: var(--vzp-muted); text-decoration: none; }
+.vz-root.vzp .vz-crumbs a:hover { color: var(--vzp-royal); }
+
+.vz-root.vzp .vz-chip.is-lesson { background: var(--vzp-green-soft); color: var(--vzp-green); border-color: transparent; }
+.vz-root.vzp .vz-chip.is-outline { background: var(--vzp-surface-2); color: var(--vzp-muted); }
+
+/* Curriculum list */
+.vz-root.vzp .vzp-learn-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0 0 14px; color: var(--vzp-muted); font-size: 14px; }
+.vz-root.vzp .vzp-learn-meta b { color: var(--vzp-ink); font-weight: 600; }
+.vz-root.vzp .vzp-module-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 12px; }
+.vz-root.vzp .vzp-module {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr) 112px; gap: 14px; align-items: center; padding: 16px 18px;
+  border-radius: 14px; background: var(--vzp-surface); border: 1px solid var(--vzp-line); color: var(--vzp-ink); text-decoration: none;
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+  animation: vzp-card-in .45s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(min(var(--i, 0), 12) * 35ms);
+}
+.vz-root.vzp .vzp-module:hover { border-color: var(--vzp-royal); box-shadow: var(--vzp-shadow-hover); transform: translateY(-1px); color: var(--vzp-ink); }
+.vz-root.vzp .vzp-module:focus-visible { outline: none; border-color: var(--vzp-electric); box-shadow: 0 0 0 4px rgba(61, 107, 255, .22); }
+.vz-root.vzp .vzp-module-no { font-family: var(--vzp-mono); font-size: 22px; font-weight: 500; color: var(--vzp-royal); text-align: center; }
+.vz-root.vzp .vzp-module-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.vz-root.vzp .vzp-module-top { display: flex; gap: 6px; flex-wrap: wrap; }
+.vz-root.vzp .vzp-module-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin-top: 4px; }
+.vz-root.vzp .vzp-module-sum { font-size: 13.5px; color: var(--vzp-muted); line-height: 1.45; }
+.vz-root.vzp .vzp-module-foot { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--vzp-body); margin-top: 2px; }
+.vz-root.vzp .vzp-module-progress { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--vzp-muted); text-align: right; }
+.vz-root.vzp .vzp-bar { display: block; height: 6px; border-radius: 999px; background: var(--vzp-line); overflow: hidden; }
+.vz-root.vzp .vzp-bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--vzp-royal), var(--vzp-cyan)); }
+.vz-root.vzp .vzp-bar.big { height: 10px; max-width: 520px; }
+.vz-root.vzp .vzp-setup { background: var(--vzp-surface); border: 1px dashed var(--vzp-line-strong); border-radius: 14px; padding: 24px; display: grid; gap: 10px; justify-items: start; }
+.vz-root.vzp .vzp-setup h2 { font-size: 18px; margin: 0; }
+.vz-root.vzp .vzp-setup p { margin: 0; color: var(--vzp-body); max-width: 70ch; }
+.vz-root.vzp .vzp-setup.inline { padding: 16px; margin: 12px 0; }
+
+/* Module page */
+.vz-root.vzp .vzp-outline-note { margin: 0 0 16px; padding: 12px 16px; border-radius: 10px; background: var(--vzp-amber-soft); color: var(--vzp-amber-ink); font-size: 14px; }
+.vz-root.vzp .vzp-sec { background: var(--vzp-surface); border: 1px solid var(--vzp-line); border-radius: 16px; padding: 24px; margin-bottom: 16px; scroll-margin-top: 80px; }
+.vz-root.vzp .vzp-sec > h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 14px; }
+.vz-root.vzp .vzp-sec h3 { font-size: 16px; font-weight: 600; margin: 0 0 10px; }
+.vz-root.vzp .vzp-lead { font-size: 16px; line-height: 1.7; color: var(--vzp-body); max-width: 78ch; margin: 0 0 18px; }
+.vz-root.vzp .vzp-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 0 0 18px; }
+.vz-root.vzp .vzp-panel { background: var(--vzp-surface-2); border: 1px solid var(--vzp-line); border-radius: 12px; padding: 16px 18px; }
+.vz-root.vzp .vzp-panel ul { margin: 0; padding-left: 18px; color: var(--vzp-body); line-height: 1.65; font-size: 14.5px; }
+.vz-root.vzp .vzp-panel.warn { background: var(--vzp-amber-soft); border-color: transparent; }
+.vz-root.vzp .vzp-prereq a { color: var(--vzp-royal); font-weight: 500; }
+.vz-root.vzp .vzp-blocks { display: grid; gap: 10px; margin-top: 18px; }
+.vz-root.vzp .vzp-block { border-left: 0; padding: 14px 16px; border-radius: 12px; background: var(--vzp-surface-2); border: 1px solid var(--vzp-line); }
+.vz-root.vzp .vzp-block h4 { margin: 0 0 6px; font-size: 15px; font-weight: 600; color: var(--vzp-ink); }
+.vz-root.vzp .vzp-block p { margin: 0; color: var(--vzp-body); line-height: 1.65; font-size: 14.5px; max-width: 80ch; }
+.vz-root.vzp .vzp-example { margin: 0 0 20px; }
+.vz-root.vzp .vzp-example > p { color: var(--vzp-body); margin: 0 0 10px; max-width: 78ch; }
+.vz-root.vzp .vzp-example .vz-copybox pre { max-height: 520px; overflow: auto; white-space: pre; font-size: 13px; line-height: 1.6; }
+.vz-root.vzp .vzp-io { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 10px; }
+.vz-root.vzp .vzp-io > div { background: var(--vzp-surface-2); border: 1px solid var(--vzp-line); border-radius: 10px; padding: 10px 12px; }
+.vz-root.vzp .vzp-io span { font-size: 12px; color: var(--vzp-muted); font-weight: 500; }
+.vz-root.vzp .vzp-io pre { margin: 4px 0 0; font-family: var(--vzp-mono); font-size: 13px; color: var(--vzp-ink); white-space: pre-wrap; }
+.vz-root.vzp .vzp-table-wrap { overflow-x: auto; margin: 8px 0 18px; }
+.vz-root.vzp table.vzp-table { width: 100%; min-width: 560px !important; border-collapse: collapse; font-size: 14px; background: transparent !important; }
+.vz-root.vzp .vzp-table th { text-align: left; font-weight: 500; color: var(--vzp-muted) !important; font-size: 13px; padding: 8px 10px; border-bottom: 1px solid var(--vzp-line) !important; background: transparent !important; }
+.vz-root.vzp .vzp-table td { padding: 10px; border-bottom: 1px solid var(--vzp-line) !important; color: var(--vzp-body) !important; }
+.vz-root.vzp .vzp-table td.mono { font-family: var(--vzp-mono); color: var(--vzp-ink) !important; white-space: nowrap; }
+.vz-root.vzp .vzp-table tr:hover { background: transparent !important; }
+.vz-root.vzp .vzp-sets { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
+.vz-root.vzp .vzp-count { font-family: var(--vzp-mono); font-size: 12px; opacity: .8; margin-left: 4px; }
+.vz-root.vzp .vzp-problems { list-style: none; margin: 14px 0 0; padding: 0; border: 1px solid var(--vzp-line); border-radius: 12px; overflow: hidden; }
+.vz-root.vzp .vzp-problems li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto 92px; gap: 12px; align-items: center; padding: 11px 16px; border-top: 1px solid var(--vzp-line); font-size: 14px; }
+.vz-root.vzp .vzp-problems li:first-child { border-top: 0; }
+.vz-root.vzp .vzp-pnum { color: var(--vzp-muted); font-size: 12.5px; font-family: var(--vzp-mono); }
+.vz-root.vzp .vzp-ptitle { color: var(--vzp-ink); font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vz-root.vzp .vzp-ptags { display: flex; gap: 6px; }
+.vz-root.vzp .vzp-pstate { font-size: 12.5px; font-weight: 500; text-align: right; color: var(--vzp-muted); }
+.vz-root.vzp .vzp-pstate.solved { color: var(--vzp-green); }
+.vz-root.vzp .vzp-pstate.attempted { color: var(--vzp-amber-ink); }
+.vz-root.vzp .vzp-qa { border: 1px solid var(--vzp-line); border-radius: 12px; background: var(--vzp-surface-2); padding: 0; }
+.vz-root.vzp .vzp-qa summary { cursor: pointer; padding: 14px 16px; font-weight: 500; color: var(--vzp-ink); list-style: none; }
+.vz-root.vzp .vzp-qa summary::-webkit-details-marker { display: none; }
+.vz-root.vzp .vzp-qa summary::after { content: 'Show answer'; float: right; font-size: 12.5px; color: var(--vzp-royal); font-weight: 500; }
+.vz-root.vzp .vzp-qa[open] summary::after { content: 'Hide'; }
+.vz-root.vzp .vzp-qa p { margin: 0; padding: 0 16px 14px; color: var(--vzp-body); line-height: 1.6; }
+.vz-root.vzp .vzp-sec .vz-concept { margin-top: 16px; }
+
+/* Library page entry point */
+.vz-root.vzp .vzp-learn-cta {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin: -16px 0 28px; padding: 16px 20px; border-radius: 14px; text-decoration: none;
+  background: var(--st-bg); color: var(--st-ink); border: 1px solid var(--st-line);
+  background-image: radial-gradient(90% 120% at 100% 0%, rgba(61, 107, 255, .30), transparent 60%);
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.vz-root.vzp .vzp-learn-cta:hover { color: var(--st-ink); transform: translateY(-1px); box-shadow: 0 16px 36px -18px rgba(5, 15, 55, .8); }
+.vz-root.vzp .vzp-learn-cta b { font-size: 16px; font-weight: 600; display: block; }
+.vz-root.vzp .vzp-learn-cta span { color: var(--st-muted); font-size: 14px; }
+.vz-root.vzp .vzp-learn-cta em { font-style: normal; font-weight: 600; color: #fff; background: #3D6BFF; border-radius: 10px; padding: 9px 16px; font-size: 14px; white-space: nowrap; }
+
+@media (max-width: 720px) {
+  .vz-root.vzp .vzp-module-list { grid-template-columns: 1fr; }
+  .vz-root.vzp .vzp-module { grid-template-columns: 34px minmax(0, 1fr); }
+  .vz-root.vzp .vzp-module-progress { grid-column: 2; text-align: left; }
+  .vz-root.vzp .vzp-sec { padding: 18px 16px; }
+  .vz-root.vzp .vzp-problems li { grid-template-columns: minmax(0, 1fr) auto; }
+  .vz-root.vzp .vzp-pnum, .vz-root.vzp .vzp-ptags { display: none; }
+}
+
+/* Curriculum modules as concept cards on the library page */
+.vz-root.vzp .vz-section .vzp-section-link { margin-left: auto; font-size: 14px; font-weight: 600; color: var(--vzp-royal); text-decoration: none; }
+.vz-root.vzp .vz-section .vzp-section-link:hover { text-decoration: underline; }
+.vz-root.vzp .vzp-mnum { font-family: var(--vzp-mono); font-size: 13px; font-weight: 500; color: var(--vzp-royal); padding: 3px 8px; border-radius: 6px; background: var(--vzp-royal-soft); }
+.vz-root.vzp .vzp-mcard .vz-chip.is-lesson { background: var(--vzp-green-soft); color: var(--vzp-green); border-color: transparent; }
+.vz-root.vzp .vzp-open { color: var(--vzp-royal); font-weight: 600; font-size: 13px; }
+.vz-root.vzp .vz-lib-cx > span { white-space: nowrap; }
+.vz-root.vzp .vz-lib-cx > span { white-space: nowrap; }

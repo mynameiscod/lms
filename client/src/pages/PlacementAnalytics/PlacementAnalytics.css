@@ -21,7 +21,7 @@
   margin-bottom: 0.2rem;
 }
 .pa-subtitle {
-  color: #6b7280;
+  color: var(--cb-slate);
   font-size: 0.875rem;
   margin: 0;
 }
@@ -43,9 +43,9 @@
 }
 .pa-stat-card.pa-stat-primary  { border-color: var(--bs-primary); }
 .pa-stat-card.pa-stat-info     { border-color: #38bdf8; }
-.pa-stat-card.pa-stat-warning  { border-color: #f59e0b; }
-.pa-stat-card.pa-stat-success  { border-color: #22c55e; }
-.pa-stat-card.pa-stat-secondary{ border-color: #8b5cf6; }
+.pa-stat-card.pa-stat-warning  { border-color: var(--cb-marigold-500); }
+.pa-stat-card.pa-stat-success  { border-color: var(--cb-success); }
+.pa-stat-card.pa-stat-secondary{ border-color: var(--cb-navy-600); }
 
 .pa-stat-value {
   font-size: 1.75rem;
@@ -56,9 +56,9 @@
 }
 .pa-stat-label {
   font-size: 0.75rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: .04em;
+  color: var(--cb-slate);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 /* Grid of cards */
@@ -80,13 +80,13 @@
 .pa-card-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--cb-ink-2);
   margin-bottom: 1rem;
-  text-transform: uppercase;
-  letter-spacing: .04em;
+  text-transform: none;
+  letter-spacing: 0;
 }
 .pa-empty {
-  color: #9ca3af;
+  color: var(--cb-slate-2);
   font-size: 0.85rem;
   text-align: center;
   padding: 2rem 0;
@@ -138,7 +138,7 @@
 }
 .pa-status-bar-wrap {
   flex: 1;
-  background: #f3f4f6;
+  background: var(--cb-line-soft);
   border-radius: 4px;
   height: 8px;
   overflow: hidden;
@@ -151,11 +151,11 @@
 .pa-status-count {
   font-weight: 600;
   font-size: 0.85rem;
-  color: #374151;
+  color: var(--cb-ink-2);
   min-width: 24px;
   text-align: right;
 }
 .pa-badge-upcoming   { background: #38bdf8; color: #fff; }
 .pa-badge-ongoing    { background: var(--bs-primary); color: #fff; }
-.pa-badge-completed  { background: #22c55e; color: #fff; }
-.pa-badge-cancelled  { background: #ef4444; color: #fff; }
+.pa-badge-completed  { background: var(--cb-success); color: #fff; }
+.pa-badge-cancelled  { background: var(--cb-danger); color: #fff; }

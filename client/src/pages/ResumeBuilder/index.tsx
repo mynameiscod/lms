@@ -612,7 +612,6 @@ const ResumeBuilder: React.FC = () => {
       action: () => { setSections(s => ({ ...s, experience: [...s.experience, { company: '', role: '', from: '', to: '', current: false, bullets: [''] }] })); setStep('build'); setTimeout(() => jumpTo('rb-sec-experience'), 80); },
     },
   ];
-  const tipsRemaining = tips.filter(t => !t.done).length;
 
   // Apply an AI suggestion: add an entry if the section is empty, then jump+highlight
   const applySuggestion = (section: string) => {

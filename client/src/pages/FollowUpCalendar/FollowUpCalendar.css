@@ -2,21 +2,21 @@
    Follow-Up Calendar — Modern Mobile-First Design
    ═══════════════════════════════════════════════════════ */
 :root {
-  --fuc-purple:        #7c3aed;
+  --fuc-purple:        var(--cb-navy-600);
   --fuc-purple-mid:    #a78bfa;
-  --fuc-purple-light:  #ede9fe;
-  --fuc-blue:          #2563eb;
-  --fuc-blue-light:    #dbeafe;
-  --fuc-green:         #059669;
-  --fuc-green-light:   #d1fae5;
-  --fuc-red:           #dc2626;
-  --fuc-red-light:     #fee2e2;
-  --fuc-amber:         #d97706;
-  --fuc-amber-light:   #fef3c7;
-  --fuc-gray:          #64748b;
-  --fuc-dark:          #1e293b;
-  --fuc-border:        #e2e8f0;
-  --fuc-bg:            #f8fafc;
+  --fuc-purple-light:  var(--cb-navy-100);
+  --fuc-blue:          var(--cb-navy-600);
+  --fuc-blue-light:    var(--cb-navy-100);
+  --fuc-green:         var(--cb-success);
+  --fuc-green-light:   var(--cb-success-50);
+  --fuc-red:           var(--cb-danger);
+  --fuc-red-light:     var(--cb-danger-50);
+  --fuc-amber:         var(--cb-marigold-500);
+  --fuc-amber-light:   var(--cb-marigold-50);
+  --fuc-gray:          var(--cb-slate);
+  --fuc-dark:          var(--cb-ink);
+  --fuc-border:        var(--cb-line);
+  --fuc-bg:            var(--cb-ground);
   --fuc-card:          #ffffff;
   --fuc-radius:        14px;
   --fuc-shadow:        0 4px 24px rgba(0, 0, 0, 0.08);
@@ -193,7 +193,7 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-.btn-today:hover { background: #6d28d9; }
+.btn-today:hover { background: var(--cb-navy-600); }
 
 /* Month Grid */
 .calendar-grid {
@@ -206,8 +206,8 @@
   font-size: 11px;
   font-weight: 700;
   color: var(--fuc-gray);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-transform: none;
+  letter-spacing: 0;
   border-bottom: 1.5px solid var(--fuc-border);
   background: #fafbff;
 }
@@ -222,7 +222,7 @@
 .calendar-day:nth-child(7n) { border-right: none; }
 .calendar-day:hover          { background: #faf8ff; }
 .calendar-day.other-month   { background: #fafafa; }
-.calendar-day.other-month .day-number { color: #cbd5e1; }
+.calendar-day.other-month .day-number { color: var(--cb-line-strong); }
 .calendar-day.today         { background: #faf5ff; }
 .calendar-day.today .day-number {
   background: var(--fuc-purple);
@@ -276,8 +276,8 @@
   font-weight: 700;
   color: var(--fuc-gray);
   margin-bottom: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
+  text-transform: none;
+  letter-spacing: 0;
 }
 .followup-section h3.overdue { color: var(--fuc-red); }
 .followup-list { display: flex; flex-direction: column; gap: 10px; }
@@ -347,7 +347,7 @@
 }
 .btn-action:hover { border-color: var(--fuc-purple); color: var(--fuc-purple); }
 .btn-action.primary { background: var(--fuc-purple); color: #fff; border-color: var(--fuc-purple); }
-.btn-action.primary:hover { background: #6d28d9; }
+.btn-action.primary:hover { background: var(--cb-navy-600); }
 
 /* Empty state */
 .no-followups { text-align: center; padding: 56px 20px; color: var(--fuc-gray); }

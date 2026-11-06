@@ -106,6 +106,7 @@ function useVideoActivity(content: any) {
         ...meta.current,
         watchedSeconds: Math.round(playedSeconds.current),
         durationSeconds: Math.round(duration.current) || undefined,
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
         maxPct: Math.max(0, ...Array.from(milestones.current)),
       });
     };
@@ -506,6 +507,7 @@ const UnplayableLink: React.FC = () => (
 
 /** YouTube and Vimeo embeds expose no playback events here, so only the opening is recorded. */
 function OpenedOnly({ content, children }: { content: any; children: React.ReactNode }) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { if (onCareerPilot()) trackAction('Opened a video', { meta: videoMeta(content) }); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   return <>{children}</>;
 }

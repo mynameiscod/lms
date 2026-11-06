@@ -1,73 +1,44 @@
+/* Shared Button (components/common/Button.tsx). Flat, token-based; see src/styles/tokens.css.
+   Note: these selectors are global (.btn, .btn-primary…), so they also shape Bootstrap buttons. */
 .btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
+  min-height: var(--cb-control-h);
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--cb-radius-sm);
   cursor: pointer;
+  font-family: var(--cb-font-sans);
   font-weight: 600;
-  font-size: 14px;
-  transition: all 0.3s ease;
+  font-size: var(--cb-text-md);
+  line-height: 1.2;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  letter-spacing: 0.3px;
+  letter-spacing: 0;
 }
 
-.btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
+.btn:focus-visible { outline: none; box-shadow: var(--cb-focus); }
 
-.btn:active:not(:disabled) {
-  transform: translateY(0);
-}
+.btn-primary { background: var(--cb-navy-900); border-color: var(--cb-navy-900); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--cb-navy-600); border-color: var(--cb-navy-600); color: #fff; }
+.btn-primary:active:not(:disabled) { background: var(--cb-navy-800); border-color: var(--cb-navy-800); }
 
-.btn-primary {
-  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(0, 88, 151, 0.3);
-}
+.btn-secondary { background: var(--cb-paper); border-color: var(--cb-line-strong); color: var(--cb-ink); font-weight: 500; }
+.btn-secondary:hover:not(:disabled) { background: var(--cb-ground); border-color: var(--cb-line-strong); color: var(--cb-ink); }
 
-.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #003d6b 0%, #002849 100%);
-  box-shadow: 0 8px 20px rgba(0, 88, 151, 0.4);
-}
+.btn-danger { background: var(--cb-danger); border-color: var(--cb-danger); color: #fff; }
+.btn-danger:hover:not(:disabled) { background: var(--cb-danger-ink); border-color: var(--cb-danger-ink); color: #fff; }
 
-.btn-secondary {
-  background: #64748b;
-  color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #475569;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.btn-danger {
-  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-  box-shadow: 0 6px 16px rgba(244, 63, 94, 0.4);
-}
-
-.btn-success {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.btn-success:hover:not(:disabled) {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
-}
+.btn-success { background: var(--cb-success); border-color: var(--cb-success); color: #fff; }
+.btn-success:hover:not(:disabled) { background: var(--cb-success-ink); border-color: var(--cb-success-ink); color: #fff; }
 
 .btn:disabled {
-  opacity: 0.5;
+  background: var(--cb-line);
+  border-color: var(--cb-line);
+  color: var(--cb-slate-2);
   cursor: not-allowed;
-  transform: none;
+  opacity: 1;
 }
+
+@media (pointer: coarse) { .btn { min-height: 44px; } }

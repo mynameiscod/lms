@@ -174,7 +174,7 @@ Last reminded: ${fmt(r.paymentRemindedAt)}` : '';
   return (
     <div className="hk">
       <div className="hk-crumb">
-        <a onClick={() => nav('/admin/hackathons')}>Hackathons</a> <span style={{ color: '#cbd5e1' }}>›</span>{' '}
+        <a href="/admin/hackathons" onClick={e => { e.preventDefault(); nav('/admin/hackathons'); }}>Hackathons</a> <span style={{ color: '#cbd5e1' }}>›</span>{' '}
         <b>{hackathon?.title || 'Registrations'}</b>
       </div>
 

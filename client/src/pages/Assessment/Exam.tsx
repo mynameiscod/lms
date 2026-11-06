@@ -56,7 +56,7 @@ const Exam: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [items, setItems] = useState<AssessmentItemView[]>([]);
-  const [meta, setMeta] = useState<{ title: string; timeLimitMinutes: number }>({ title: '', timeLimitMinutes: 25 });
+  const [, setMeta] = useState<{ title: string; timeLimitMinutes: number }>({ title: '', timeLimitMinutes: 25 });
   const [stage, setStage] = useState(0);
   const [totalStages, setTotalStages] = useState(1);
   const [isLast, setIsLast] = useState(true);

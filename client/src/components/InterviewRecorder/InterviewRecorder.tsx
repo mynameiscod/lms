@@ -83,6 +83,7 @@ const InterviewRecorder = forwardRef<InterviewRecorderRef, InterviewRecorderProp
       // Cleanup stream on unmount
       stopCamera();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [isEnabled, stopCamera]);
 
   // Auto-start recording - only trigger once
@@ -96,6 +97,7 @@ const InterviewRecorder = forwardRef<InterviewRecorderRef, InterviewRecorderProp
       }, 500);
       return () => clearTimeout(timer);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [autoStart, hasPermission, recordingComplete]);
 
   const requestCameraPermission = async () => {

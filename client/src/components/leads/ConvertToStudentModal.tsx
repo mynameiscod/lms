@@ -26,7 +26,7 @@ const ConvertToStudentModal: React.FC<ConvertToStudentModalProps> = ({
   onClose,
   onConverted
 }) => {
-  const [alertMsg, setAlertMsg] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [, setAlertMsg] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const showAlertMsg = (type: 'success' | 'error', message: string) => {
     setAlertMsg({ type, message });
     setTimeout(() => setAlertMsg(null), 3000);

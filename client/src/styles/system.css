@@ -1,0 +1,138 @@
+/*
+ * Bootstrap, re-skinned on the CodeBegun tokens. Pages that use Bootstrap classes (btn, form-control,
+ * table, badge, card, modal, nav-tabs) pick up the redesign without markup changes.
+ * Every rule is wrapped in :where(...) so it adds no specificity (any page rule still wins) and
+ * never applies on the CareerPilot surface.
+ */
+:where(html:not([data-surface="careerpilot"])) body { font-family: var(--cb-font-sans); }
+
+/* Buttons */
+:where(html:not([data-surface="careerpilot"])) .btn{
+  --bs-btn-font-family: var(--cb-font-sans);
+  --bs-btn-font-size: var(--cb-text-md);
+  --bs-btn-font-weight: 600;
+  --bs-btn-padding-x: 16px;
+  --bs-btn-padding-y: 8px;
+  --bs-btn-border-radius: var(--cb-radius-sm);
+  --bs-btn-focus-box-shadow: var(--cb-focus);
+}
+:where(html:not([data-surface="careerpilot"])) .btn-sm { --bs-btn-padding-x: 12px; --bs-btn-padding-y: 5px; --bs-btn-font-size: var(--cb-text-sm); }
+:where(html:not([data-surface="careerpilot"])) .btn-lg { --bs-btn-padding-x: 20px; --bs-btn-padding-y: 10px; --bs-btn-font-size: var(--cb-text-base); }
+:where(html:not([data-surface="careerpilot"])) .btn-primary{
+  --bs-btn-bg: var(--cb-navy-900);
+  --bs-btn-border-color: var(--cb-navy-900);
+  --bs-btn-hover-bg: var(--cb-navy-600);
+  --bs-btn-hover-border-color: var(--cb-navy-600);
+  --bs-btn-active-bg: var(--cb-navy-800);
+  --bs-btn-active-border-color: var(--cb-navy-800);
+  --bs-btn-disabled-bg: var(--cb-line);
+  --bs-btn-disabled-border-color: var(--cb-line);
+  --bs-btn-disabled-color: var(--cb-slate-2);
+}
+:where(html:not([data-surface="careerpilot"])) .btn-secondary, :where(html:not([data-surface="careerpilot"])) .btn-outline-secondary, :where(html:not([data-surface="careerpilot"])) .btn-light{
+  --bs-btn-color: var(--cb-ink);
+  --bs-btn-bg: var(--cb-paper);
+  --bs-btn-border-color: var(--cb-line-strong);
+  --bs-btn-hover-color: var(--cb-ink);
+  --bs-btn-hover-bg: var(--cb-ground);
+  --bs-btn-hover-border-color: var(--cb-line-strong);
+  --bs-btn-active-color: var(--cb-ink);
+  --bs-btn-active-bg: var(--cb-line-soft);
+  --bs-btn-active-border-color: var(--cb-line-strong);
+  --bs-btn-font-weight: 500;
+}
+:where(html:not([data-surface="careerpilot"])) .btn-outline-primary{
+  --bs-btn-color: var(--cb-navy-900);
+  --bs-btn-border-color: var(--cb-line-strong);
+  --bs-btn-hover-color: var(--cb-navy-900);
+  --bs-btn-hover-bg: var(--cb-navy-50);
+  --bs-btn-hover-border-color: var(--cb-navy-100);
+  --bs-btn-active-color: var(--cb-navy-900);
+  --bs-btn-active-bg: var(--cb-navy-100);
+  --bs-btn-active-border-color: var(--cb-navy-100);
+}
+:where(html:not([data-surface="careerpilot"])) .btn-info, :where(html:not([data-surface="careerpilot"])) .btn-teal{
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--cb-teal-700);
+  --bs-btn-border-color: var(--cb-teal-700);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--cb-teal-800);
+  --bs-btn-hover-border-color: var(--cb-teal-800);
+}
+:where(html:not([data-surface="careerpilot"])) .btn-success{
+  --bs-btn-bg: var(--cb-success); --bs-btn-border-color: var(--cb-success);
+  --bs-btn-hover-bg: var(--cb-success-ink); --bs-btn-hover-border-color: var(--cb-success-ink);
+}
+:where(html:not([data-surface="careerpilot"])) .btn-danger{
+  --bs-btn-bg: var(--cb-danger); --bs-btn-border-color: var(--cb-danger);
+  --bs-btn-hover-bg: var(--cb-danger-ink); --bs-btn-hover-border-color: var(--cb-danger-ink);
+}
+:where(html:not([data-surface="careerpilot"])) .btn-link { --bs-btn-color: var(--cb-teal-700); --bs-btn-hover-color: var(--cb-teal-800); }
+
+/* Fields */
+:where(html:not([data-surface="careerpilot"])) .form-control, :where(html:not([data-surface="careerpilot"])) .form-select{
+  font-family: var(--cb-font-sans);
+  font-size: var(--cb-text-md);
+  color: var(--cb-ink);
+  border-color: var(--cb-line-strong);
+  border-radius: var(--cb-radius-sm);
+  min-height: var(--cb-control-h);
+}
+:where(html:not([data-surface="careerpilot"])) .form-control::placeholder { color: var(--cb-slate-2); }
+:where(html:not([data-surface="careerpilot"])) .form-control:focus, :where(html:not([data-surface="careerpilot"])) .form-select:focus{
+  border-color: var(--cb-teal-500);
+  box-shadow: var(--cb-focus);
+}
+:where(html:not([data-surface="careerpilot"])) .form-label { font-size: var(--cb-text-sm); font-weight: 500; color: var(--cb-ink); margin-bottom: 6px; }
+:where(html:not([data-surface="careerpilot"])) .form-text { color: var(--cb-slate); font-size: var(--cb-text-sm); }
+:where(html:not([data-surface="careerpilot"])) .form-check-input:checked { background-color: var(--cb-navy-900); border-color: var(--cb-navy-900); }
+:where(html:not([data-surface="careerpilot"])) .form-check-input:focus { box-shadow: var(--cb-focus); border-color: var(--cb-teal-500); }
+:where(html:not([data-surface="careerpilot"])) .invalid-feedback { color: var(--cb-danger-ink); }
+:where(html:not([data-surface="careerpilot"])) .is-invalid { border-color: var(--cb-danger) !important; }
+
+/* Tables */
+:where(html:not([data-surface="careerpilot"])) .table{
+  --bs-table-color: var(--cb-ink);
+  --bs-table-border-color: var(--cb-line-soft);
+  --bs-table-striped-bg: var(--cb-ground);
+  --bs-table-hover-bg: var(--cb-ground);
+  font-size: var(--cb-text-md);
+  font-variant-numeric: tabular-nums;
+}
+:where(html:not([data-surface="careerpilot"])) .table > thead th{
+  background: var(--cb-ground);
+  color: var(--cb-slate);
+  font-size: var(--cb-text-sm);
+  font-weight: 500;
+  border-bottom-color: var(--cb-line);
+}
+
+/* Cards, :where(html:not([data-surface="careerpilot"])) modals, :where(html:not([data-surface="careerpilot"])) dropdowns */
+:where(html:not([data-surface="careerpilot"])) .card{
+  --bs-card-border-color: var(--cb-line);
+  --bs-card-border-radius: var(--cb-radius-md);
+  --bs-card-cap-bg: var(--cb-paper);
+  box-shadow: none;
+}
+:where(html:not([data-surface="careerpilot"])) .modal-content { border: 1px solid var(--cb-line); border-radius: var(--cb-radius-lg); box-shadow: var(--cb-shadow-2); }
+:where(html:not([data-surface="careerpilot"])) .modal-title { font-size: var(--cb-text-lg); font-weight: 600; color: var(--cb-ink); }
+:where(html:not([data-surface="careerpilot"])) .dropdown-menu { border-color: var(--cb-line); border-radius: var(--cb-radius-md); box-shadow: var(--cb-shadow-2); font-size: var(--cb-text-md); }
+
+/* Badges and alerts */
+:where(html:not([data-surface="careerpilot"])) .badge { font-weight: 500; border-radius: var(--cb-radius-pill); padding: 0.35em 0.75em; }
+:where(html:not([data-surface="careerpilot"])) .bg-primary { background-color: var(--cb-navy-900) !important; }
+:where(html:not([data-surface="careerpilot"])) .text-primary { color: var(--cb-navy-900) !important; }
+:where(html:not([data-surface="careerpilot"])) .alert { border-radius: var(--cb-radius-md); font-size: var(--cb-text-md); }
+:where(html:not([data-surface="careerpilot"])) .alert-success { --bs-alert-bg: var(--cb-success-50); --bs-alert-color: var(--cb-success-ink); --bs-alert-border-color: #BFE3D0; }
+:where(html:not([data-surface="careerpilot"])) .alert-danger { --bs-alert-bg: var(--cb-danger-50);  --bs-alert-color: var(--cb-danger-ink);  --bs-alert-border-color: #F1C4BF; }
+:where(html:not([data-surface="careerpilot"])) .alert-warning { --bs-alert-bg: var(--cb-warning-50); --bs-alert-color: var(--cb-warning-ink); --bs-alert-border-color: #F3D9A8; }
+:where(html:not([data-surface="careerpilot"])) .alert-info { --bs-alert-bg: var(--cb-teal-50);    --bs-alert-color: var(--cb-teal-800);    --bs-alert-border-color: var(--cb-teal-100); }
+
+/* Tabs and pagination */
+:where(html:not([data-surface="careerpilot"])) .nav-tabs { --bs-nav-tabs-border-color: var(--cb-line); }
+:where(html:not([data-surface="careerpilot"])) .nav-tabs .nav-link { color: var(--cb-slate); font-weight: 500; }
+:where(html:not([data-surface="careerpilot"])) .nav-tabs .nav-link.active { color: var(--cb-navy-900); border-color: var(--cb-line) var(--cb-line) var(--cb-paper); }
+:where(html:not([data-surface="careerpilot"])) .nav-pills .nav-link.active { background-color: var(--cb-navy-900); }
+:where(html:not([data-surface="careerpilot"])) .page-link { color: var(--cb-navy-900); border-color: var(--cb-line); }
+:where(html:not([data-surface="careerpilot"])) .active > .page-link, :where(html:not([data-surface="careerpilot"])) .page-link.active { background-color: var(--cb-navy-900); border-color: var(--cb-navy-900); }
+:where(html:not([data-surface="careerpilot"])) .progress { --bs-progress-bar-bg: var(--cb-teal-500); --bs-progress-bg: var(--cb-line); border-radius: var(--cb-radius-pill); }

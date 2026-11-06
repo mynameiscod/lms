@@ -5,13 +5,13 @@
   padding: 16px;
   background: white;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--cb-line);
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
 .nav-arrow {
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  background: linear-gradient(135deg, var(--cb-navy-600) 0%, var(--cb-navy-600) 100%);
   color: white;
   border: none;
   padding: 10px 14px;
@@ -35,15 +35,15 @@
 
 .nav-arrow.disabled,
 .nav-arrow:disabled {
-  background: #e2e8f0;
-  color: #94a3b8;
+  background: var(--cb-line);
+  color: var(--cb-slate-2);
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 .nav-arrow.disabled:hover,
 .nav-arrow:disabled:hover {
-  background: #e2e8f0;
+  background: var(--cb-line);
   box-shadow: none;
   transform: none;
 }
@@ -58,8 +58,8 @@
 .week-range {
   font-size: 13px;
   font-weight: 700;
-  background: #f0f4ff;
-  color: #005897;
+  background: var(--cb-navy-50);
+  color: var(--cb-navy-600);
   padding: 8px 14px;
   border-radius: 6px;
   white-space: nowrap;
@@ -80,17 +80,17 @@
 }
 
 .days-container::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--cb-line-soft);
   border-radius: 2px;
 }
 
 .days-container::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--cb-line-strong);
   border-radius: 2px;
 }
 
 .days-container::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--cb-slate-2);
 }
 
 .day-button {
@@ -99,7 +99,7 @@
   align-items: center;
   gap: 4px;
   padding: 10px 12px;
-  background: #f8fafc;
+  background: var(--cb-ground);
   border: 2px solid transparent;
   border-radius: 8px;
   cursor: pointer;
@@ -109,14 +109,14 @@
 }
 
 .day-button:hover {
-  background: #f0f4ff;
-  border-color: #2563eb;
+  background: var(--cb-navy-50);
+  border-color: var(--cb-navy-600);
 }
 
 .day-button.disabled,
 .day-button:disabled {
-  background: #f1f5f9;
-  color: #cbd5e1;
+  background: var(--cb-line-soft);
+  color: var(--cb-line-strong);
   cursor: not-allowed;
   opacity: 0.5;
   border-color: transparent;
@@ -124,31 +124,31 @@
 
 .day-button.disabled:hover,
 .day-button:disabled:hover {
-  background: #f1f5f9;
+  background: var(--cb-line-soft);
   border-color: transparent;
 }
 
 .day-button.disabled .day-name,
 .day-button:disabled .day-name {
-  color: #cbd5e1;
+  color: var(--cb-line-strong);
 }
 
 .day-button.disabled .day-date,
 .day-button:disabled .day-date {
-  color: #cbd5e1;
+  color: var(--cb-line-strong);
 }
 
 .day-button.active {
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-  border-color: #1d4ed8;
+  background: linear-gradient(135deg, var(--cb-navy-600) 0%, var(--cb-navy-600) 100%);
+  border-color: var(--cb-navy-600);
   color: white;
 }
 
 .day-name {
   font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .day-button.active .day-name {
@@ -158,11 +158,11 @@
 .day-date {
   font-size: 13px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--cb-slate);
 }
 
 .day-button.active .day-date {
-  color: #dbeafe;
+  color: var(--cb-navy-100);
 }
 
 @media (max-width: 768px) {

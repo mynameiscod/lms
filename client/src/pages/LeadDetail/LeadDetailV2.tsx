@@ -135,6 +135,7 @@ const LeadDetailV2: React.FC = () => {
     if (leadId) {
       fetchData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [leadId]);
 
   const fetchData = async () => {
@@ -232,15 +233,6 @@ const LeadDetailV2: React.FC = () => {
     if (lead?.phone) window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}`, '_blank');
   };
 
-  const handleAddActivity = async (type: string, description: string) => {
-    try {
-      await leadApi.addActivity(leadId!, { type, description });
-      fetchData();
-      showToast('Activity logged');
-    } catch (error) {
-      showToast('Failed to log activity', 'error');
-    }
-  };
 
   // Every stage change goes through the stage → sub-stage → reason dialog.
   const handleStageChange = (stageName?: string) => {

@@ -1,8 +1,8 @@
 /* Placement Program — the ad landing page. Same brand family as the CareerPilot join page. Prefix: ppr-. */
-.ppr { --navy: #0b1a66; --teal: #3598ad; --ink: #0e1b3d; --text: #3d4a63; --muted: #6b7890; --line: #e2e8f2;
+.ppr { --navy: var(--cb-navy-800); --teal: #3598ad; --ink: #0e1b3d; --text: #3d4a63; --muted: #6b7890; --line: #e2e8f2;
   flex: 1 0 auto; display: flex; flex-direction: column; color: var(--ink);
   background: radial-gradient(circle at 75% 15%, rgba(53, 152, 173, .12), transparent 38%), linear-gradient(180deg, #f5f9ff 0%, #eef5fd 100%);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  font-family: var(--cb-font-sans); }
 .ppr *, .ppr *::before, .ppr *::after { box-sizing: border-box; }
 .ppr h1, .ppr h2, .ppr p { margin: 0; }
 
@@ -12,13 +12,13 @@
 .ppr-main { flex: 1; width: min(1200px, calc(100% - 32px)); margin: 0 auto; padding: clamp(24px, 5vw, 56px) 0;
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 520px); gap: clamp(24px, 4vw, 56px); align-items: start; }
 
-.ppr-eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
+.ppr-eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 800; letter-spacing: 0; text-transform: none; color: var(--teal); }
 .ppr-copy h1 { font-size: clamp(30px, 4.2vw, 46px); line-height: 1.12; font-weight: 800; color: var(--navy); margin: 14px 0 14px; }
 .ppr-copy h1 span { color: var(--teal); }
 .ppr-lead { font-size: 17px; line-height: 1.6; color: var(--text); max-width: 520px; }
 .ppr-steps { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 12px; max-width: 520px; }
 .ppr-steps li { display: flex; gap: 14px; align-items: flex-start; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
-.ppr-steps b { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #e6f4f7; color: var(--teal); font-size: 14px; flex: 0 0 auto; }
+.ppr-steps b { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--cb-teal-50); color: var(--teal); font-size: 14px; flex: 0 0 auto; }
 .ppr-steps strong { display: block; font-size: 15px; }
 .ppr-steps small { display: block; font-size: 13.5px; color: var(--muted); margin-top: 2px; }
 
@@ -38,7 +38,7 @@
 .ppr-fine { margin-top: 12px; font-size: 12.5px; color: var(--muted); text-align: center; }
 
 .ppr-done { text-align: center; padding: 26px 8px; }
-.ppr-done-ic { display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #e7f7ef; color: #16a34a; font-size: 32px; margin-bottom: 12px; }
+.ppr-done-ic { display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #e7f7ef; color: var(--cb-success-ink); font-size: 32px; margin-bottom: 12px; }
 .ppr-done h2 { margin-bottom: 8px; }
 .ppr-done p { color: var(--text); line-height: 1.6; }
 
@@ -56,15 +56,15 @@
 .ppr-portal h1 { font-size: clamp(26px, 4vw, 34px); font-weight: 800; color: var(--navy); margin-bottom: 6px; }
 .ppr-portal .ppr-lead { margin-bottom: 18px; }
 .ppr-muted { color: var(--muted); font-size: 14.5px; }
-.ppr-ok { background: #e7f7ef; color: #15803d; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 14px; }
+.ppr-ok { background: #e7f7ef; color: var(--cb-success-ink); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 14px; }
 .ppr-step { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 20px; margin-bottom: 16px; box-shadow: 0 12px 32px rgba(14, 27, 61, .06); }
 .ppr-step.done { border-color: #bbf7d0; }
 .ppr-step-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
-.ppr-step-head b { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #e6f4f7; color: var(--teal); flex: 0 0 auto; }
-.ppr-step.done .ppr-step-head b { background: #dcfce7; color: #15803d; }
+.ppr-step-head b { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--cb-teal-50); color: var(--teal); flex: 0 0 auto; }
+.ppr-step.done .ppr-step-head b { background: var(--cb-success-50); color: var(--cb-success-ink); }
 .ppr-step-head strong { display: block; font-size: 17px; }
 .ppr-step-head small { display: block; color: var(--muted); font-size: 13.5px; margin-top: 2px; }
-.ppr-done-line { color: #15803d; font-weight: 700; display: flex; gap: 8px; align-items: center; }
+.ppr-done-line { color: var(--cb-success-ink); font-weight: 700; display: flex; gap: 8px; align-items: center; }
 .ppr-days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; }
 .ppr-days button, .ppr-times button { border: 1px solid #d4dcea; background: #fff; border-radius: 10px; padding: 9px 14px; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; white-space: nowrap; }
 .ppr-days button.on, .ppr-times button.on { background: var(--navy); color: #fff; border-color: var(--navy); }

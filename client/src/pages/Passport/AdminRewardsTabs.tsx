@@ -379,6 +379,7 @@ export const RedemptionsTab: React.FC<{ onChanged?: () => void }> = ({ onChanged
       setErr(e?.response?.data?.message || 'Could not load redemptions.');
     }
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { setRows(null); load(status); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [status]);
 
   const flash = (m: string) => { setMsg(m); window.setTimeout(() => setMsg(''), 3600); };

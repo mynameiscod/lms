@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { qualificationApi, leadStageApi } from '../../api';
 import './QualificationSettings.css';
 
@@ -179,9 +178,8 @@ const DEFAULT_QUESTIONS: QualificationQuestion[] = [
 ];
 
 const QualificationSettings: React.FC = () => {
-  const navigate = useNavigate();
   const [config, setConfig] = useState<QualificationConfig | null>(null);
-  const [stages, setStages] = useState<Stage[]>([]);
+  const [, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);

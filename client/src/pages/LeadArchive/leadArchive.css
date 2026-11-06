@@ -42,9 +42,9 @@
 .la-alert.ok { background: var(--la-ok-soft); color: var(--la-ok); } .la-alert.bad { background: var(--la-bad-soft); color: var(--la-bad); }
 .la-table-wrap { overflow-x: auto; }
 .la-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.la-table th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--la-muted); padding: 8px 10px; border-bottom: 1px solid var(--la-line); white-space: nowrap; }
+.la-table th { text-align: left; font-size: 11.5px; text-transform: none; letter-spacing: 0; color: var(--la-muted); padding: 8px 10px; border-bottom: 1px solid var(--la-line); white-space: nowrap; }
 .la-table td { padding: 8px 10px; border-bottom: 1px solid var(--la-line); vertical-align: top; }
-.la-mono { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+.la-mono { font-family: var(--cb-font-mono); font-size: 12.5px; }
 .la-num { font-variant-numeric: tabular-nums; }
 .la-pill { display: inline-block; border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 600; margin-right: 4px; }
 .la-pill.archive { background: var(--la-accent-soft); color: var(--la-accent); }

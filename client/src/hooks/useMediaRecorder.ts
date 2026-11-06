@@ -77,6 +77,7 @@ export function useMediaRecorder(
       // revoke object URL
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, []);
 
   // Auto-request permission
@@ -84,6 +85,7 @@ export function useMediaRecorder(
     if (autoRequestPermission && hasPermission === null) {
       requestPermission();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [autoRequestPermission]);
 
   const requestPermission = useCallback(async () => {

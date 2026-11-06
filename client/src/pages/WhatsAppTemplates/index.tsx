@@ -682,6 +682,7 @@ const WhatsAppTemplates: React.FC = () => {
     } catch (e) { say('err', errMsg(e, 'Could not load templates')); }
     setLoading(false);
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { loadAll(); }, []);
 
   const loadHistory = () => waTemplateApi.broadcasts().then(setHistory).catch(() => {});

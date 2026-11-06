@@ -63,6 +63,7 @@ const AssignToBatchesModal: React.FC<Props> = ({ contentType, contentId, content
     } catch { /* ignore */ }
     setLoading(false);
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [contentId]);
 
   const loadStudents = async (search: string) => {

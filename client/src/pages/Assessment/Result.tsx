@@ -169,7 +169,7 @@ const Result: React.FC = () => {
         <aside className="rz-side">
           <nav className="rz-nav">
             {NAV.map((n, i) => (
-              <a key={n.label} className={i === 0 ? 'on' : ''} onClick={() => onNav(n)}>
+              <a key={n.label} href={n.lock ? '/login' : `#${n.to}`} className={i === 0 ? 'on' : ''} onClick={e => { e.preventDefault(); onNav(n); }}>
                 <span>{n.ic}</span>{n.label}{n.lock && <span className="lk">🔒</span>}
               </a>
             ))}

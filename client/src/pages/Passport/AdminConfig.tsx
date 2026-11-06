@@ -99,6 +99,7 @@ const PassportAdminConfig: React.FC = () => {
     } catch (e: any) { setMsg({ ok: false, text: e?.response?.data?.message || 'Failed to load' }); }
     setLoading(false);
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { load(); }, []);
 
   const dirty = useMemo(() => !!cfg && serialise(cfg, rows, journeyDays, missionsPerDay) !== snapshot,

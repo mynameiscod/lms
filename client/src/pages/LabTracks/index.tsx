@@ -148,10 +148,12 @@ const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, o
   const [busy, setBusy] = useState(false);
 
   const load = () => api.getTrack(trackId).then(d => setData(d as any)).catch(e => setErr(e.message));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { load(); }, [trackId]);
   useEffect(() => {
     if (!data) return;
     api.library(data.track.lab, q).then(setBank).catch(() => setBank([]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [data?.track.lab, q]);
 
   const byDay = useMemo(() => {

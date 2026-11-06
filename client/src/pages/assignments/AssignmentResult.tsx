@@ -337,7 +337,6 @@ const AssignmentResult: React.FC = () => {
             {assignment.mcqQuestions.map((q, qIndex) => {
               const answer = submission.mcqAnswers?.find(a => a.questionIndex === qIndex);
               const isCorrect = answer?.isCorrect;
-              const correctIndex = q.options.findIndex(o => o.isCorrect);
               
               return (
                 <div key={qIndex} className="mcq-card">

@@ -2,7 +2,7 @@
 .att-card {
   background: white;
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cb-line);
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
@@ -13,7 +13,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--cb-line-soft);
 }
 
 .att-header-left {
@@ -29,14 +29,14 @@
 .att-title {
   font-size: 1rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--cb-ink);
 }
 
 .att-date {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6b7280;
-  background: #f3f4f6;
+  color: var(--cb-slate);
+  background: var(--cb-line-soft);
   padding: 4px 12px;
   border-radius: 20px;
 }
@@ -76,12 +76,12 @@
   gap: 3px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--cb-ink-2);
 }
 
 .att-time-icon {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
 }
 
 /* Circular Progress */
@@ -124,9 +124,9 @@
 .att-ring-label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--cb-slate-2);
+  text-transform: none;
+  letter-spacing: 0;
   margin-top: 4px;
 }
 
@@ -154,13 +154,13 @@
 .att-stat-lbl {
   font-size: 0.65rem;
   font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
+  color: var(--cb-slate-2);
+  text-transform: none;
   letter-spacing: 0.3px;
 }
 
 .att-stat-divider {
   width: 1px;
   height: 28px;
-  background: #e5e7eb;
+  background: var(--cb-line);
 }

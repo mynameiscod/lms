@@ -25,6 +25,7 @@ const BattleDetail: React.FC = () => {
     setBattle(battle); setPublicBase(publicBase);
     setTenantSlug(localStorage.getItem('tenantSlug') || 'codebegun');
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
 
   useEffect(() => {

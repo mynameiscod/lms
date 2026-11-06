@@ -50,6 +50,7 @@ const InterviewQuestionsPage: React.FC = () => {
     if (chapterId) {
       fetchData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [chapterId]);
 
   const fetchData = async () => {

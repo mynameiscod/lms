@@ -48,13 +48,13 @@ const LostReasonModal: React.FC<LostReasonModalProps> = ({
   onClose,
   onMarkedLost
 }) => {
-  const [alertMsg, setAlertMsg] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [, setAlertMsg] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const showAlertMsg = (type: 'success' | 'error', message: string) => {
     setAlertMsg({ type, message });
     setTimeout(() => setAlertMsg(null), 3000);
   };
   const [saving, setSaving] = useState(false);
-  const [reasons, setReasons] = useState<LostReason[]>(defaultReasons);
+  const [reasons] = useState<LostReason[]>(defaultReasons);
   const [selectedReason, setSelectedReason] = useState<string>('');
   const [detail, setDetail] = useState('');
   const [scheduleReengagement, setScheduleReengagement] = useState(false);
@@ -88,7 +88,6 @@ const LostReasonModal: React.FC<LostReasonModalProps> = ({
     try {
       setSaving(true);
       
-      const reengagementDate = scheduleReengagement ? calculateReengagementDate(reengagementPeriod) : null;
       
       await leadApi.updateLead(lead._id, {
         lostReason: selectedReason,
@@ -107,17 +106,6 @@ const LostReasonModal: React.FC<LostReasonModalProps> = ({
     }
   };
 
-  const calculateReengagementDate = (period: string): Date => {
-    const date = new Date();
-    switch (period) {
-      case '1_month': date.setMonth(date.getMonth() + 1); break;
-      case '2_months': date.setMonth(date.getMonth() + 2); break;
-      case '3_months': date.setMonth(date.getMonth() + 3); break;
-      case '6_months': date.setMonth(date.getMonth() + 6); break;
-      default: date.setMonth(date.getMonth() + 3);
-    }
-    return date;
-  };
 
   const groupedReasons = reasons.reduce((acc, reason) => {
     if (!acc[reason.category]) acc[reason.category] = [];

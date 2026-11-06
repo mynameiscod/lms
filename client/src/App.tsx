@@ -1,4 +1,4 @@
-import { homePathFor, productRedirect } from './utils/product';
+import { homePathFor, isMember, productRedirect } from './utils/product';
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -156,7 +156,6 @@ const PassportSkillAssessment = lazy(() => import('./pages/Passport/SkillAssessm
 const PassportRewards = lazy(() => import('./pages/Passport/Rewards'));
 const AptitudeSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.AptitudeSoon })));
 const ReasoningSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.ReasoningSoon })));
-const PassportPractice = lazy(() => import('./pages/Passport/Practice'));
 const PassportPracticeItem = lazy(() => import('./pages/Passport/PracticeItem'));
 const PassportInterview = lazy(() => import('./pages/Passport/Interview'));
 const PassportResumeCenter = lazy(() => import('./pages/Passport/ResumeCenter'));
@@ -202,8 +201,11 @@ const LogicGym = lazy(() => import('./pages/LogicGym'));
 const DrillsAdmin = lazy(() => import('./pages/DrillsAdmin'));
 const ThinkingLab = lazy(() => import('./pages/ThinkingLab'));
 const CodeVisualizer = lazy(() => import('./pages/CodeVisualizer'));
+const DsaCurriculum = lazy(() => import('./pages/CodeVisualizer/learn/Curriculum'));
+const DsaModulePage = lazy(() => import('./pages/CodeVisualizer/learn/ModulePage'));
 const CodeVisualizerWorkspace = lazy(() => import('./pages/CodeVisualizer/Workspace'));
 const CodeVisualizerAdmin = lazy(() => import('./pages/CodeVisualizerAdmin'));
+const DsaVisualizer = lazy(() => import('./pages/DsaVisualizer'));
 const ThinkingLabAdmin = lazy(() => import('./pages/ThinkingLabAdmin'));
 const InterviewQuestionsPage = lazy(() => import('./pages/InterviewQuestions'));
 const InterviewQuestionBankPage = lazy(() => import('./pages/InterviewQuestionBank'));
@@ -553,6 +555,13 @@ const AppRoutes: React.FC = () => {
    */
   const { search } = useLocation();
   useEffect(() => { captureCareerPilotAttribution(search); }, [search]);
+  /**
+   * Which visual surface this page belongs to. CareerPilot keeps its 75% desktop zoom (index.css);
+   * the LMS renders at true size. Members are always CareerPilot; anyone else is CareerPilot only on
+   * its own addresses.
+   */
+  const surface = isMember(boundaryUser) || /^\/(careerpilot|passport)(\/|$)/.test(boundaryPath) ? 'careerpilot' : 'lms';
+  useEffect(() => { document.documentElement.dataset.surface = surface; }, [surface]);
 
   if (crossing) return <Navigate to={crossing} replace />;
 
@@ -1361,6 +1370,38 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
             <Layout>
               <CodeVisualizer />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* DSA Visualizer (searching, sorting, coding patterns). Static path, so it wins over /visualizer/:slug. */}
+      <Route
+        path="/visualizer/dsa"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <DsaVisualizer />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* DSA curriculum (Code Visualizer → Learn). Static paths, so they win over /visualizer/:slug. */}
+      <Route
+        path="/visualizer/learn"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <DsaCurriculum />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/visualizer/learn/:slug"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <DsaModulePage />
             </Layout>
           </ProtectedRoute>
         }

@@ -92,7 +92,6 @@ const AdminStudentProfilesPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [detailProfile, setDetailProfile] = useState<ProfileSummary | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const searchTimeout = useRef<any>(null);
 

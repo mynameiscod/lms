@@ -2,15 +2,15 @@
    Scoped to .qr-page so no styles leak into the LMS shell. */
 
 .qr-page {
-  --cb-primary: #005897;
-  --cb-secondary: #1976d2;
+  --cb-primary: var(--cb-navy-600);
+  --cb-secondary: var(--cb-navy-600);
   --cb-bg: #f4f8fc;
-  --cb-text: #1e293b;
-  --cb-muted: #64748b;
+  --cb-text: var(--cb-ink);
+  --cb-muted: var(--cb-slate);
   --cb-border: #e4eaf1;
   --cb-green: #16a36a;
-  --cb-orange: #f59e0b;
-  --cb-red: #dc2626;
+  --cb-orange: var(--cb-marigold-500);
+  --cb-red: var(--cb-danger);
   width: 100%;
   min-height: 100vh;
   padding: 18px;
@@ -48,8 +48,8 @@
 .qr-type-pill { padding: 6px 10px; border-radius: 999px; background: #eef6fb; border: 1px solid #d9e9f2; color: var(--cb-primary); font-size: 11px; font-weight: 700; white-space: nowrap; }
 .qr-timer { min-width: 120px; padding: 8px 12px; border-radius: 10px; background: #fff9f0; border: 1px solid #fde3bd; text-align: right; }
 .qr-timer .qr-timer-label { color: #8b6b42; font-size: 10px; }
-.qr-timer .qr-timer-val { margin-top: 2px; color: #d97706; font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.qr-timer.warn { background: #fff7ed; border-color: #fdba74; }
+.qr-timer .qr-timer-val { margin-top: 2px; color: var(--cb-marigold-700); font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.qr-timer.warn { background: var(--cb-marigold-50); border-color: #fdba74; }
 .qr-timer.crit { background: #fff1f2; border-color: #fecdd3; }
 .qr-timer.crit .qr-timer-val { color: var(--cb-red); }
 .qr-pause, .qr-hamburger { display: none; }
@@ -105,7 +105,7 @@
   font-size: 12px; font-weight: 700;
   cursor: pointer;
 }
-.qr-mark:hover { background: #f7fafc; border-color: #bad3df; }
+.qr-mark:hover { background: var(--cb-ground); border-color: #bad3df; }
 .qr-mark.on { color: #b66a0b; background: #fff8ed; border-color: #f2d09c; }
 
 .qr-options { display: flex; flex-direction: column; gap: 12px; }
@@ -144,8 +144,8 @@
 .qr-code {
   width: 100%; min-height: 300px; padding: 15px;
   border: 1px solid #18263a; border-radius: 11px;
-  background: #0f172a; color: #e2e8f0;
-  font-family: 'JetBrains Mono', Consolas, monospace; font-size: 13px; line-height: 1.55; resize: vertical;
+  background: var(--cb-ink); color: var(--cb-line);
+  font-family: var(--cb-font-mono); font-size: 13px; line-height: 1.55; resize: vertical;
 }
 
 /* bottom controls */
@@ -171,7 +171,7 @@
   justify-self: end;
   color: #fff;
   border: 1px solid transparent;
-  background: linear-gradient(135deg, #005897, #1976d2);
+  background: linear-gradient(135deg, var(--cb-navy-600), var(--cb-navy-600));
   box-shadow: 0 6px 14px rgba(0, 88, 151, .16);
 }
 .qr-btn.submit { background: linear-gradient(135deg, #0f8f62, #16a36a); }
@@ -243,7 +243,7 @@
 .qr-mchips, .qr-mprogress { display: none; }
 
 /* warning/submit modals inherit the app Modal component; keep content readable */
-.warning-content p, .confirm-content p { color: #475569; line-height: 1.6; font-size: 14px; }
+.warning-content p, .confirm-content p { color: var(--cb-slate); line-height: 1.6; font-size: 14px; }
 .button-group { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 
 /* Proctored no-copy mode */
@@ -269,9 +269,9 @@
   .qr-left { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
   .qr-right { display: grid; grid-template-columns: 1fr 1fr; }
   .qr-mprogress { display: block; margin-bottom: 10px; padding: 12px 14px; background: #fff; border: 1px solid var(--cb-border); border-radius: 11px; }
-  .qr-mprow { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 7px; color: #64748b; font-size: 11px; }
+  .qr-mprow { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 7px; color: var(--cb-slate); font-size: 11px; }
   .qr-mchips { display: flex; gap: 8px; margin-bottom: 10px; overflow-x: auto; }
-  .qr-mchip { flex: 0 0 auto; padding: 7px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--cb-border); color: #64748b; font-size: 10px; }
+  .qr-mchip { flex: 0 0 auto; padding: 7px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--cb-border); color: var(--cb-slate); font-size: 10px; }
   .qr-mchip b { margin-left: 5px; color: #17385e; }
 }
 

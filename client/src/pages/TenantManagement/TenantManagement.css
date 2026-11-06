@@ -35,13 +35,13 @@
 .tm-search-wrap i {
   position: absolute;
   left: 0.75rem;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
   font-size: 0.8rem;
 }
 
 .tm-search {
   padding: 0.45rem 0.75rem 0.45rem 2rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cb-line);
   border-radius: 8px;
   font-size: 0.875rem;
   outline: none;
@@ -95,14 +95,14 @@
 
 .tm-list-count {
   font-size: 0.9rem;
-  color: #374151;
+  color: var(--cb-ink-2);
 }
-.tm-list-count b { font-weight: 700; color: #111827; }
+.tm-list-count b { font-weight: 700; color: var(--cb-ink); }
 
 .tm-sort {
   font-size: 0.78rem;
-  color: #374151;
-  border: 1px solid #e5e7eb;
+  color: var(--cb-ink-2);
+  border: 1px solid var(--cb-line);
   border-radius: 8px;
   padding: 0.3rem 0.55rem;
   background: #fff;
@@ -126,11 +126,11 @@
 .tm-empty {
   text-align: center;
   padding: 2rem;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
 }
 
 .tm-card {
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--cb-line);
   border-radius: 10px;
   padding: 0.875rem 1rem;
   cursor: pointer;
@@ -177,7 +177,7 @@
 .tm-card-name {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #111827;
+  color: var(--cb-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -185,7 +185,7 @@
 
 .tm-card-meta {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
 }
 
 .tm-badge {
@@ -196,12 +196,12 @@
 }
 
 .tm-badge.active {
-  background: #dcfce7;
+  background: var(--cb-success-50);
   color: #166534;
 }
 
 .tm-badge.inactive {
-  background: #fef2f2;
+  background: var(--cb-danger-50);
   color: #991b1b;
 }
 
@@ -223,18 +223,18 @@
 }
 
 .tm-chip.on {
-  background: #dbeafe;
+  background: var(--cb-navy-100);
   color: var(--bs-primary);
 }
 
 .tm-chip.off {
-  background: #f3f4f6;
-  color: #d1d5db;
+  background: var(--cb-line-soft);
+  color: var(--cb-line-strong);
 }
 
 .tm-chip-count {
   font-size: 0.72rem;
-  color: #6b7280;
+  color: var(--cb-slate);
   margin-left: 2px;
 }
 
@@ -249,7 +249,7 @@
 .tm-progress-track {
   height: 5px;
   border-radius: 99px;
-  background: #eef2f7;
+  background: var(--cb-line-soft);
   overflow: hidden;
 }
 
@@ -263,12 +263,12 @@
 .tm-modules-label {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--cb-slate);
 }
 
 /* ── Panel ── */
 .tm-panel {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cb-line);
   border-radius: 12px;
   padding: 1.5rem;
   background: #fff;
@@ -283,7 +283,7 @@
   justify-content: center;
   min-height: 300px;
   height: 100%;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
   text-align: center;
 }
 
@@ -297,13 +297,13 @@
 .tm-panel-empty-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--cb-slate);
   margin: 0 0 0.35rem 0;
 }
 
 .tm-panel-empty-sub {
   font-size: 0.82rem;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
   margin: 0;
   max-width: 320px;
 }
@@ -359,25 +359,25 @@
 
 .tm-panel-slug {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
 }
 
 .tm-close {
-  background: #f3f4f6;
+  background: var(--cb-line-soft);
   border: none;
   border-radius: 6px;
   width: 28px;
   height: 28px;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--cb-slate);
   font-size: 0.8rem;
 }
 
 .tm-panel-hint {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--cb-slate);
   margin-bottom: 1.25rem;
-  background: #fffbeb;
+  background: var(--cb-marigold-50);
   border: 1px solid #fde68a;
   border-radius: 8px;
   padding: 0.6rem 0.85rem;
@@ -391,7 +391,7 @@
 }
 
 .tm-module-card {
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--cb-line);
   border-radius: 10px;
   padding: 0.875rem 0.75rem;
   cursor: pointer;
@@ -409,7 +409,7 @@
 }
 
 .tm-module-card.off {
-  background: #f9fafb;
+  background: var(--cb-ground);
   opacity: 0.7;
 }
 
@@ -426,14 +426,14 @@
 }
 
 .tm-module-card.off .tm-module-icon {
-  color: #d1d5db;
+  color: var(--cb-line-strong);
 }
 
 .tm-switch {
   width: 32px;
   height: 17px;
   border-radius: 99px;
-  background: #d1d5db;
+  background: var(--cb-line-strong);
   position: relative;
   transition: background 0.18s;
 }
@@ -460,13 +460,13 @@
 .tm-module-label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--cb-ink-2);
   margin-bottom: 0.2rem;
 }
 
 .tm-module-desc {
   font-size: 0.72rem;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
   line-height: 1.3;
 }
 
@@ -474,13 +474,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--cb-line-soft);
   padding-top: 1rem;
 }
 
 .tm-enabled-count {
   font-size: 0.82rem;
-  color: #374151;
+  color: var(--cb-ink-2);
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -509,12 +509,12 @@
 .tm-card-actions {
   margin-top: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--cb-line-soft);
 }
 
 .tm-link-btn {
   background: none;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cb-line);
   border-radius: 6px;
   font-size: 0.74rem;
   color: var(--bs-primary);
@@ -528,7 +528,7 @@
 .tm-empty-state {
   text-align: center;
   padding: 2.5rem 1rem;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
 }
 .tm-empty-state i {
   font-size: 2.5rem;
@@ -581,9 +581,9 @@
 }
 
 .tm-modal-error {
-  background: #fef2f2;
+  background: var(--cb-danger-50);
   border: 1px solid #fca5a5;
-  color: #b91c1c;
+  color: var(--cb-danger-ink);
   border-radius: 8px;
   padding: 0.6rem 0.85rem;
   font-size: 0.84rem;
@@ -610,12 +610,12 @@
 .tm-form-group label {
   font-size: 0.82rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--cb-ink-2);
 }
 
 .tm-form-group input {
   padding: 0.55rem 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--cb-line-strong);
   border-radius: 8px;
   font-size: 0.9rem;
   outline: none;
@@ -630,7 +630,7 @@
 
 .tm-hint {
   font-weight: 400;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
   font-size: 0.74rem;
 }
 
@@ -670,11 +670,11 @@
   align-items: center;
   font-size: 0.78rem;
   padding: 0.35rem 0.75rem;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--cb-line-strong);
   border-radius: 99px;
   cursor: pointer;
-  background: #f9fafb;
-  color: #6b7280;
+  background: var(--cb-ground);
+  color: var(--cb-slate);
   user-select: none;
   transition: all 0.12s;
 }
@@ -691,7 +691,7 @@
   justify-content: flex-end;
   gap: 0.75rem;
   padding-top: 0.5rem;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--cb-line-soft);
   margin-top: 0.25rem;
 }
 
@@ -715,7 +715,7 @@
 
 .tm-success-sub {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--cb-slate);
   margin-bottom: 1.25rem;
 }
 
@@ -731,7 +731,7 @@
 .tm-link-label {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--cb-ink-2);
   margin-bottom: 0.45rem;
 }
 
@@ -747,7 +747,7 @@
   color: #1a5490;
   word-break: break-all;
   background: #fff;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--cb-line-strong);
   border-radius: 6px;
   padding: 0.3rem 0.55rem;
 }
@@ -769,8 +769,8 @@
 
 .tm-link-note {
   font-size: 0.78rem;
-  color: #6b7280;
-  background: #fffbeb;
+  color: var(--cb-slate);
+  background: var(--cb-marigold-50);
   border: 1px solid #fde68a;
   border-radius: 8px;
   padding: 0.6rem 0.85rem;
@@ -797,9 +797,9 @@
 .tm-type-chip {
   padding: 0.4rem 0.9rem;
   border-radius: 20px;
-  border: 2px solid #e5e7eb;
-  background: #f9fafb;
-  color: #374151;
+  border: 2px solid var(--cb-line);
+  background: var(--cb-ground);
+  color: var(--cb-ink-2);
   font-size: 0.82rem;
   font-weight: 500;
   cursor: pointer;
@@ -812,8 +812,8 @@
   color: var(--bs-primary);
   font-weight: 700;
 }
-.tm-type-chip.tm-plan-pro.active { border-color: #7c3aed; background: #f5f3ff; color: #7c3aed; }
-.tm-type-chip.tm-plan-enterprise.active { border-color: #d97706; background: #fffbeb; color: #d97706; }
+.tm-type-chip.tm-plan-pro.active { border-color: var(--cb-navy-600); background: var(--cb-navy-50); color: var(--cb-navy-600); }
+.tm-type-chip.tm-plan-enterprise.active { border-color: var(--cb-marigold-500); background: var(--cb-marigold-50); color: var(--cb-marigold-700); }
 
 /* ── Module select grid (in create modal) ───────────────────────────────── */
 .tm-module-select-grid {
@@ -829,19 +829,19 @@
   gap: 0.5rem;
   padding: 0.45rem 0.75rem;
   border-radius: 8px;
-  border: 1.5px solid #e5e7eb;
-  background: #f9fafb;
+  border: 1.5px solid var(--cb-line);
+  background: var(--cb-ground);
   cursor: pointer;
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--cb-slate);
   transition: all 0.15s;
 }
 .tm-module-select-chip:hover { border-color: var(--bs-primary); }
 .tm-module-select-chip i { font-size: 0.9rem; opacity: 0.6; }
 .tm-module-select-chip span:first-of-type { flex: 1; }
 .tm-module-select-chip.on {
-  border-color: #22c55e;
-  background: #f0fdf4;
+  border-color: var(--cb-success);
+  background: var(--cb-success-50);
   color: #166534;
 }
 .tm-module-select-chip.on i { opacity: 1; }
@@ -851,27 +851,27 @@
   font-weight: 700;
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
-  background: #e5e7eb;
-  color: #9ca3af;
+  background: var(--cb-line);
+  color: var(--cb-slate-2);
 }
 .tm-module-select-badge.on {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--cb-success-50);
+  color: var(--cb-success-ink);
 }
 
 /* ── Info box below form ────────────────────────────────────────────────── */
 .tm-modal-info-box {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: var(--cb-navy-50);
+  border: 1px solid var(--cb-navy-100);
   border-radius: 8px;
   padding: 0.6rem 0.85rem;
   font-size: 0.82rem;
-  color: #1d4ed8;
+  color: var(--cb-navy-600);
   margin: 0.75rem 0;
 }
 
 /* Module groups (2026-10-09) */
 .tm-module-group { margin-bottom: 18px; }
 .tm-module-group-head { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 8px; }
-.tm-module-group-head h4 { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #475569; margin: 0; }
-.tm-link { border: 0; background: none; color: #4f46e5; font-weight: 700; font-size: 12.5px; cursor: pointer; }
+.tm-module-group-head h4 { font-size: 13px; font-weight: 800; text-transform: none; letter-spacing: 0; color: var(--cb-slate); margin: 0; }
+.tm-link { border: 0; background: none; color: var(--cb-navy-600); font-weight: 700; font-size: 12.5px; cursor: pointer; }

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { leadApi, leadStageApi, userApi, leadFormConfigApi } from '../../api';
@@ -187,8 +187,8 @@ const LeadsPage: React.FC = () => {
   });
 
   const [showReasonModal, setShowReasonModal] = useState(false);
-  const [pendingLeadId, setPendingLeadId] = useState('');
-  const [pendingStageId, setPendingStageId] = useState('');
+  const [pendingLeadId] = useState('');
+  const [pendingStageId] = useState('');
   const [notInterestedReason, setNotInterestedReason] = useState('');
 
   const [openMenuId, setOpenMenuId] = useState<string|null>(null);
@@ -204,6 +204,7 @@ const LeadsPage: React.FC = () => {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [showModal, showImportModal, showWhatsAppModal, showReasonModal]);
 
   useEffect(() => {
@@ -674,24 +675,24 @@ const LeadsPage: React.FC = () => {
     <div className="crm-page">
       <div className="crm-header">
         <div className="crm-header-left">
-          <h1 className="crm-header-title">Lead Management</h1>
+          <h1 className="crm-header-title">Lead management</h1>
           <p className="crm-header-subtitle">Track, assign, follow up and convert leads</p>
         </div>
         <div className="crm-header-actions">
           <div className="crm-view-toggle">
-            <button className={view==='table'?'active':''} onClick={()=>setView('table')}>&#8862; Table</button>
-            <button className={view==='kanban'?'active':''} onClick={()=>setView('kanban')}>&#8942; Board</button>
+            <button className={view==='table'?'active':''} onClick={()=>setView('table')} aria-pressed={view==='table'}>Table</button>
+            <button className={view==='kanban'?'active':''} onClick={()=>setView('kanban')} aria-pressed={view==='kanban'}>Board</button>
           </div>
           <button
             className={`crm-btn crm-btn-secondary${currentUser&&filterAssignee===currentUser._id?' active':''}`}
             onClick={handleMyLeads}
             title={currentUser&&filterAssignee===currentUser._id?'Show all leads':'Show only my leads'}>
-            &#128100; My Leads
+            My leads
           </button>
-          <button className="crm-btn crm-btn-secondary" onClick={()=>setShowImportModal(true)}>&#8679; Import</button>
-          <button className="crm-btn crm-btn-secondary" onClick={handleExport}>&#8681; Export</button>
-          <button className="crm-btn crm-btn-secondary" title="Quick-capture walk-in visitor" onClick={()=>setShowWalkInModal(true)}>🚶 Walk-in</button>
-          <button className="crm-btn crm-btn-primary" onClick={handleOpenCreate}>+ New Lead</button>
+          <button className="crm-btn crm-btn-secondary" onClick={()=>setShowImportModal(true)}>Import</button>
+          <button className="crm-btn crm-btn-secondary" onClick={handleExport}>Export</button>
+          <button className="crm-btn crm-btn-secondary" title="Quick-capture walk-in visitor" onClick={()=>setShowWalkInModal(true)}>Walk-in</button>
+          <button className="crm-btn crm-btn-primary" onClick={handleOpenCreate}>New lead</button>
         </div>
       </div>
 
@@ -751,19 +752,16 @@ const LeadsPage: React.FC = () => {
           <>
             <div className="crm-stat-card" style={{'--stat-accent':'#2563eb'} as React.CSSProperties}
               onClick={()=>{setActiveStageFilter('');setFilterStage('');}}>
-              <span className="crm-stat-icon">&#128203;</span>
               <div className="crm-stat-value">{totalLeads}</div>
-              <div className="crm-stat-label">Total Leads</div>
+              <div className="crm-stat-label">Total leads</div>
             </div>
             <div className="crm-stat-card" style={{'--stat-accent':'#ea580c'} as React.CSSProperties}>
-              <span className="crm-stat-icon">&#128276;</span>
               <div className="crm-stat-value">{todayFollowUps}</div>
-              <div className="crm-stat-label">Follow-ups Today</div>
+              <div className="crm-stat-label">Follow-ups today</div>
             </div>
             <div className="crm-stat-card" style={{'--stat-accent':'#10b981'} as React.CSSProperties}>
-              <span className="crm-stat-icon">&#128222;</span>
               <div className="crm-stat-value">{callsToday}</div>
-              <div className="crm-stat-label">Calls Today</div>
+              <div className="crm-stat-label">Calls today</div>
             </div>
             {stages.slice(0,6).map(stage=>{
               const count=stageCounts[stage._id] ?? stageCounts[`__name__${stage.name}`] ?? 0;
@@ -815,8 +813,8 @@ const LeadsPage: React.FC = () => {
 
       {/* Today's Activity Widget — shown to non-admin BDM/staff */}
       {myActivity && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 16px', background: 'linear-gradient(135deg,#1e1b4b 0%,#312e81 100%)', borderRadius: 10, margin: '0 0 12px', color: '#fff', fontSize: 13 }}>
-          <span style={{ fontWeight: 700, marginRight: 4 }}>Today's Activity:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 16px', background: '#051D64', borderRadius: 10, margin: '0 0 12px', color: '#fff', fontSize: 13 }}>
+          <span style={{ fontWeight: 600, marginRight: 4 }}>Today's activity:</span>
           {[
             { icon: '📞', label: 'Calls', val: myActivity.todayByType?.call || 0 },
             { icon: '💬', label: 'WhatsApp', val: myActivity.todayByType?.whatsapp || 0 },

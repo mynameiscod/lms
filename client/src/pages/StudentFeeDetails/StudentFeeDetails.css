@@ -15,7 +15,7 @@
 .sfd-loading,
 .sfd-error {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cb-line);
   border-radius: 12px;
   padding: 20px;
   margin-top: 16px;
@@ -23,7 +23,7 @@
 
 .sfd-error {
   border-color: #fca5a5;
-  color: #b91c1c;
+  color: var(--cb-danger-ink);
 }
 
 .sfd-header-actions {
@@ -47,13 +47,13 @@
 
 .sfd-btn:hover { background: #13287a; }
 .sfd-btn.ghost { background: #fff; color: #1b3a8a; }
-.sfd-btn.ghost:hover { background: #eef2ff; }
+.sfd-btn.ghost:hover { background: var(--cb-navy-50); }
 .sfd-btn:disabled { opacity: .6; cursor: not-allowed; }
 
 .sfd-notice {
-  background: #ecfdf5;
+  background: var(--cb-success-50);
   border: 1px solid #a7f3d0;
-  color: #047857;
+  color: var(--cb-success-ink);
   border-radius: 10px;
   padding: 12px 16px;
   margin-bottom: 14px;
@@ -63,7 +63,7 @@
 
 .sfd-card {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cb-line);
   border-radius: 14px;
   margin-bottom: 20px;
   overflow: hidden;
@@ -74,7 +74,7 @@
   justify-content: space-between;
   align-items: flex-start;
   padding: 20px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--cb-line);
   gap: 16px;
 }
 
@@ -85,13 +85,13 @@
 
 .sfd-meta {
   margin: 4px 0 0;
-  color: #6b7280;
+  color: var(--cb-slate);
   font-size: 0.95rem;
 }
 
 .sfd-card-amounts span {
   display: block;
-  color: #111827;
+  color: var(--cb-ink);
   font-size: 0.95rem;
   margin-bottom: 6px;
 }
@@ -108,12 +108,12 @@
 }
 
 .sfd-notes {
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
+  background: var(--cb-ground);
+  border: 1px solid var(--cb-line);
   border-radius: 10px;
   padding: 14px;
   margin-bottom: 16px;
-  color: #334155;
+  color: var(--cb-ink-2);
 }
 
 .sfd-subsection {
@@ -138,12 +138,12 @@
 .sfd-table-wrap td {
   padding: 12px 10px;
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--cb-line);
   font-size: 0.95rem;
 }
 
 .sfd-table-wrap th {
-  color: #475569;
+  color: var(--cb-slate);
 }
 
 .sfd-card + .sfd-card {

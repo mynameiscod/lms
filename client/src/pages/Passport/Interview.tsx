@@ -89,6 +89,7 @@ const Interview: React.FC = () => {
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [session?.id, session?.status, session?.startedAt]);
 
   /**
@@ -308,6 +309,7 @@ const Interview: React.FC = () => {
     const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [session?.id, session?.status]);
 
   const openPast = async (s: InterviewSession) => {

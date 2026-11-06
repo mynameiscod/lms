@@ -58,7 +58,6 @@ const FIELD_TYPES = [
   { value: 'checkbox', label: 'Checkbox' },
 ];
 
-const CORE_FIELDS = ['name', 'email', 'phone'];
 
 const LeadFormSettings: React.FC = () => {
   const [fields, setFields] = useState<FormField[]>([]);
@@ -212,14 +211,6 @@ const LeadFormSettings: React.FC = () => {
     }));
   };
 
-  const handlePlaceholderChange = (fieldKey: string, placeholder: string) => {
-    setFields(prev => prev.map(f => {
-      if (f.fieldKey === fieldKey) {
-        return { ...f, placeholder };
-      }
-      return f;
-    }));
-  };
 
   const handleMoveField = (index: number, direction: 'up' | 'down') => {
     const newFields = [...fields];

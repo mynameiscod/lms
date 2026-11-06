@@ -5,7 +5,7 @@
 }
 
 .am-loading { display: flex; justify-content: center; padding: 4rem; }
-.am-empty { text-align: center; color: #9ca3af; padding: 3rem; font-size: 0.9rem; }
+.am-empty { text-align: center; color: var(--cb-slate-2); padding: 3rem; font-size: 0.9rem; }
 
 .am-header {
   display: flex;
@@ -16,7 +16,7 @@
   gap: 0.75rem;
 }
 .am-title { font-size: 1.4rem; font-weight: 700; color: #1e1e2e; margin-bottom: 0.15rem; }
-.am-subtitle { color: #6b7280; font-size: 0.85rem; margin: 0; }
+.am-subtitle { color: var(--cb-slate); font-size: 0.85rem; margin: 0; }
 
 .am-filters {
   display: flex;
@@ -39,7 +39,7 @@
   border-radius: 12px;
   padding: 1.1rem;
   box-shadow: 0 1px 4px rgba(0,0,0,.07);
-  border: 1px solid #f3f4f6;
+  border: 1px solid var(--cb-line-soft);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -64,10 +64,10 @@
 .am-card-body { flex: 1; }
 
 .am-name { font-weight: 700; font-size: 0.95rem; color: #1e1e2e; }
-.am-year-dept { font-size: 0.78rem; color: #9ca3af; margin-top: 0.1rem; }
-.am-company { font-size: 0.82rem; color: #374151; margin-top: 0.3rem; }
-.am-ctc { font-size: 0.78rem; color: #22c55e; font-weight: 600; margin-top: 0.2rem; }
-.am-loc { font-size: 0.78rem; color: #6b7280; margin-top: 0.15rem; }
+.am-year-dept { font-size: 0.78rem; color: var(--cb-slate-2); margin-top: 0.1rem; }
+.am-company { font-size: 0.82rem; color: var(--cb-ink-2); margin-top: 0.3rem; }
+.am-ctc { font-size: 0.78rem; color: var(--cb-success-ink); font-weight: 600; margin-top: 0.2rem; }
+.am-loc { font-size: 0.78rem; color: var(--cb-slate); margin-top: 0.15rem; }
 
 .am-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
 .am-badge { font-size: 0.7rem; }

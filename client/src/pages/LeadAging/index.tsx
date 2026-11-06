@@ -29,7 +29,7 @@ export default function LeadAgingPage() {
   const [leads, setLeads] = useState<AgingLead[]>([]);
   const [loading, setLoading] = useState(false);
   const [days, setDays] = useState(7);
-  const [stageId, setStageId] = useState('');
+  const [stageId] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);

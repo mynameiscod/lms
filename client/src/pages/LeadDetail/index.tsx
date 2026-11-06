@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import LeadDetailV3 from './v3/LeadDetailV3';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -130,14 +130,6 @@ const INTEREST_CONCERNS = [
   { value:'other', label:'Other' }
 ];
 
-const TIMELINE_FILTERS = [
-  { key:'all', label:'All' },
-  { key:'call', label:'📞 Calls' },
-  { key:'note', label:'📝 Notes' },
-  { key:'email', label:'📧 Email' },
-  { key:'whatsapp', label:'💬 WhatsApp' },
-  { key:'status_change', label:'🔄 Stage Changes' }
-];
 
 const initials = (name: string) => name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
 
@@ -572,32 +564,6 @@ const LeadDetail: React.FC = () => {
     }
   };
 
-  // Qualification answer handler
-  const handleSaveQualificationAnswer = async (questionId: string, answer: any) => {
-    if (!lead) return;
-    try {
-      setSavingQualification(true);
-      const currentAnswers = { ...qualificationAnswers, [questionId]: answer };
-      // Count only questions with actual answers for progress
-      const answeredCount = Object.values(currentAnswers).filter((ans: any) => {
-        if (typeof ans === 'object' && ans !== null) {
-          return ans.answered && ans.answer;
-        }
-        return ans && ans !== true;
-      }).length;
-      const answersArray = Object.entries(currentAnswers).map(([qId, ans]) => ({ questionId: qId, answer: ans }));
-      const enabledQuestions = qualificationQuestions.filter(q => q.enabled !== false).length;
-      const progress = enabledQuestions > 0 ? Math.round((answeredCount / enabledQuestions) * 100) : 0;
-      await qualificationApi.saveLeadAnswers(lead._id, { answers: answersArray, progress });
-      setQualificationAnswers(prev => ({ ...prev, [questionId]: answer }));
-      // Don't reload data - just update local state for better UX
-      showAlertMsg('success', 'Answer saved');
-    } catch (error: any) {
-      showAlertMsg('error', error.message || 'Failed to save answer');
-    } finally {
-      setSavingQualification(false);
-    }
-  };
 
   // Submit all checklist answers at once
   const handleSubmitAllAnswers = async () => {

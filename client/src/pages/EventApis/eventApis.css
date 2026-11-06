@@ -38,10 +38,10 @@
 .ev-alert-warn { background: var(--ev-warn-soft); color: var(--ev-warn); }
 .ev-table-wrap { overflow-x: auto; }
 .ev-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.ev-table th { text-align: left; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--ev-muted); font-weight: 700; padding: 8px 10px; border-bottom: 1px solid var(--ev-line); white-space: nowrap; }
+.ev-table th { text-align: left; font-size: 11.5px; letter-spacing: 0; text-transform: none; color: var(--ev-muted); font-weight: 700; padding: 8px 10px; border-bottom: 1px solid var(--ev-line); white-space: nowrap; }
 .ev-table td { padding: 9px 10px; border-bottom: 1px solid var(--ev-line); vertical-align: top; }
 .ev-table tr:last-child td { border-bottom: 0; }
-.ev-mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12.5px; overflow-wrap: anywhere; }
+.ev-mono { font-family: var(--cb-font-mono); font-size: 12.5px; overflow-wrap: anywhere; }
 .ev-pill { display: inline-block; border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .ev-pill.open { background: var(--ev-ok-soft); color: var(--ev-ok); }
 .ev-pill.closed { background: #eceff3; color: var(--ev-muted); }
@@ -55,7 +55,7 @@
 .ev-fields .off td { color: var(--ev-faint); }
 .ev-newfield { display: grid; grid-template-columns: minmax(140px, 2fr) minmax(110px, 1.2fr) minmax(110px, 1fr) minmax(140px, 2fr) auto; gap: 8px; align-items: end; margin-top: 12px; }
 @media (max-width: 760px) { .ev-newfield { grid-template-columns: 1fr; } }
-.ev-code { background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 12px 14px; font: 12.5px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; overflow-x: auto; white-space: pre; margin: 6px 0 0; }
+.ev-code { background: var(--cb-ink); color: var(--cb-line); border-radius: 8px; padding: 12px 14px; font: 12.5px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; overflow-x: auto; white-space: pre; margin: 6px 0 0; }
 .ev-copyrow { display: flex; gap: 8px; align-items: center; }
 .ev-copyrow .ev-input { flex: 1; }
 .ev-modal-back { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 1000; overflow-y: auto; }

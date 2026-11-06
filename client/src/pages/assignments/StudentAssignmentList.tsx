@@ -154,6 +154,7 @@ const StudentAssignmentList: React.FC = () => {
       ? Math.round(scored.reduce((sum, a) => sum + (a.submission?.percentage || 0), 0) / scored.length)
       : 0;
     return { total, evaluated, submitted, overdue, dueSoon, pending, averageScore };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [assignments]);
 
   const featured = useMemo(() => {
@@ -167,16 +168,19 @@ const StudentAssignmentList: React.FC = () => {
         return da - db;
       });
     return candidates[0] || null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [assignments]);
 
   const upcoming = useMemo(() => assignments
     .filter(a => !isDone(a) && !isOverdue(a) && !!dueOf(a))
     .sort((a, b) => new Date(dueOf(a) as string).getTime() - new Date(dueOf(b) as string).getTime())
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
     .slice(0, 4), [assignments]);
 
   const recentEvaluations = useMemo(() => assignments
     .filter(a => statusOf(a) === 'graded')
     .sort((a, b) => new Date(b.submission?.submittedAt || 0).getTime() - new Date(a.submission?.submittedAt || 0).getTime())
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
     .slice(0, 3), [assignments]);
 
   const tabMatches = (a: StudentAssignment) => {

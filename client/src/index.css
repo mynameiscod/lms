@@ -1,3 +1,5 @@
+@import './styles/tokens.css';
+@import './styles/system.css';
 @import './styles/careerpilot-member-shell.css';
 @import './styles/careerpilot-system-migration.css';
 
@@ -34,47 +36,36 @@ body {
   background: #f9fafb;
 }
 
+/* LMS surface: the redesign's typeface and ground. CareerPilot keeps the rule above. */
+:where(html:not([data-surface="careerpilot"])) body {
+  font-family: var(--cb-font-sans);
+  font-size: var(--cb-text-base);
+  line-height: 1.5;
+  color: var(--cb-ink);
+  background: var(--cb-ground);
+}
+
 #root {
   width: 100%;
-  /* Load the whole app slightly zoomed out by default (~75%). Anything that has to size itself against
-     the real window reads --app-zoom, because vh units are not scaled by this zoom. */
-  --app-zoom: 0.75;
-  zoom: 0.75;
-  /* zoom shrinks vh, so 100vh under-fills the screen and leaves a gap below
-     short pages (e.g. login). Compensate so #root fills the real viewport. */
-  min-height: calc(100vh / 0.75);
+  /* The LMS renders at true size: no global zoom (redesign, 2026-11). --app-zoom stays defined at 1
+     because a dozen stylesheets divide vh by it. */
+  --app-zoom: 1;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 /*
- * ── NO ZOOM ON A PHONE ───────────────────────────────────────────────────────────────────
- *
- * The rule above exists so a desktop fits more on screen, and it was never turned off, so it
- * applied to phones too — where it does the opposite of what anybody wanted. Three things went
- * wrong at once on a 390px screen:
- *
- *   EVERYTHING DREW AT 75%. 13px body text rendered at 9.75 real pixels; the 9px labels on the
- *   interview screen at 6.75. A 44px button — the minimum a thumb can reliably hit — drew at 33.
- *
- *   LAYOUT AND MEDIA QUERIES DISAGREED BY A THIRD. zoom scales the layout box, so the app laid
- *   itself out as though it had 520px of room; @media always measures the REAL viewport, so the
- *   390px rules fired against a 520px layout. Every breakpoint in the product was off by 33%.
- *
- *   AND THE COMPENSATION ONLY EVER RAN ON DESKTOP. Around seventeen stylesheets zoom themselves
- *   back up at 1200px and 1600px. Nothing did so below. The smallest screens were left with the
- *   smallest rendering of any device class, which is exactly backwards for students who are
- *   mostly on a phone.
- *
- * Below 1024px the app renders at the size the browser and the reader chose. --app-zoom goes to
- * 1 with it, because a dozen files divide by it to undo the scaling of vh — leaving it at 0.75
- * would make every one of those calculations wrong in the other direction.
+ * CareerPilot keeps its 75% desktop rendering. Its pages were tuned for that zoom page by page
+ * (see careerpilot-member-shell.css, Passport/*.css), and the redesign does not change CareerPilot.
+ * AppRoutes sets data-surface on <html> from the route and the signed-in product.
+ * Below 1025px nothing is zoomed, exactly as before.
  */
-@media (max-width: 1024px) {
-  #root {
-    --app-zoom: 1;
-    zoom: 1;
-    min-height: 100vh;
+@media (min-width: 1025px) {
+  html[data-surface="careerpilot"] #root {
+    --app-zoom: 0.75;
+    zoom: 0.75;
+    min-height: calc(100vh / var(--app-zoom, 1));
   }
 }
 
@@ -82,6 +73,7 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+:where(html:not([data-surface="careerpilot"])) :is(code, kbd, pre, samp) { font-family: var(--cb-font-mono); }
 
 * {
   box-sizing: border-box;
@@ -89,6 +81,26 @@ code {
 
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
+}
+:where(html:not([data-surface="careerpilot"])) :is(h1, h2, h3, h4, h5, h6) { letter-spacing: -0.01em; }
+
+/* Inputs inherit the interface typeface instead of the browser default. */
+:where(html:not([data-surface="careerpilot"])) :is(button, input, select, textarea) { font-family: inherit; }
+
+/* One visible keyboard focus ring across the app. Mouse clicks do not show it. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--cb-teal-500);
+  outline-offset: 2px;
+}
+
+/* Respect the reader's reduced-motion setting everywhere, confetti included. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* CareerPilot paid-member navigation must use the same visual language as the

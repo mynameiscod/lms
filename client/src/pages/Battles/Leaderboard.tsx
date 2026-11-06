@@ -19,6 +19,7 @@ const BattleLeaderboard: React.FC = () => {
     try { setData(await battlePublicApi.leaderboard(tenant, String(slug), c ? { college: c } : {})); } catch { /* */ }
     setLoading(false);
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [tenant, slug]);
 
   const rows = data?.leaderboard || [];

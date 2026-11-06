@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { interviewQuestionBankApi } from '../../api/interviewModuleApi';
 import './InterviewQBManagement.css';
 
-type InterviewCategory = 'communication' | 'hr' | 'technical';
 type IInterviewQuestionShared = { _id?: string; interviewCategory: string; questionType: string; topic?: string; subTopic?: string; difficulty: string; roleTarget?: string; experienceLevel?: string; tags?: string[]; questionText: string; questionHint?: string; answerMode: string; mcqOptions?: any[]; expectedAnswerPoints?: string[]; sampleStrongAnswer?: string; weakAnswerIndicators?: string[]; keywordsForMatching?: string[]; enableFollowUp?: boolean; maxScore: number; suggestedTimeSeconds: number; [key: string]: any; };
 
 const CATEGORY_LABELS: Record<string, string> = {

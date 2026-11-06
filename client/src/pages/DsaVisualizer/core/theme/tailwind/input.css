@@ -1,0 +1,28 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "../base.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities);
+@source "../..";
+@source "../../../index.tsx";
+
+/* CodeBegun palette: the two Tailwind families the visualizer uses, re-pointed at the brand. */
+@theme {
+  --color-emerald-50: #E3F3F6;
+  --color-emerald-100: #CFEAF0;
+  --color-emerald-300: #8FCFDB;
+  --color-emerald-400: #359AAD;
+  --color-emerald-700: #1F7F92;
+  --color-emerald-800: #051D64;
+  --color-emerald-900: #041650;
+  --color-emerald-950: #020E32;
+  --color-slate-50: #F5F8FC;
+  --color-slate-100: #EEF3F9;
+  --color-slate-200: #D6DEEA;
+  --color-slate-300: #C2CCDC;
+  --color-slate-400: #94A1BA;
+  --color-slate-500: #66728E;
+  --color-slate-600: #4A5878;
+  --color-slate-700: #34405E;
+  --color-slate-800: #1E2A4F;
+  --color-slate-900: #0A1A4A;
+}

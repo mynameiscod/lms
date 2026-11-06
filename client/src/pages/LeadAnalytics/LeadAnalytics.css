@@ -85,15 +85,15 @@
 }
 
 .stat-card.primary .stat-value {
-  color: #3b82f6;
+  color: var(--cb-navy-600);
 }
 
 .stat-card.success .stat-value {
-  color: #10b981;
+  color: var(--cb-success-ink);
 }
 
 .stat-card.warning .stat-value {
-  color: #f59e0b;
+  color: var(--cb-marigold-700);
 }
 
 /* Analytics Sections */
@@ -169,7 +169,7 @@
 
 .funnel-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  background: linear-gradient(90deg, var(--cb-navy-600), #60a5fa);
   border-radius: 4px;
   transition: width 0.5s ease;
   display: flex;
@@ -202,7 +202,7 @@
 }
 
 .funnel-summary strong {
-  color: #10b981;
+  color: var(--cb-success-ink);
   font-size: 18px;
 }
 
@@ -223,7 +223,7 @@
   font-size: 12px;
   font-weight: 600;
   color: #666;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .source-table td {
@@ -236,11 +236,11 @@
 }
 
 .source-table .best {
-  color: #10b981;
+  color: var(--cb-success-ink);
 }
 
 .source-table .worst {
-  color: #ef4444;
+  color: var(--cb-danger-ink);
 }
 
 .conv-badge {
@@ -252,18 +252,18 @@
 }
 
 .conv-badge.high {
-  background: #d1fae5;
-  color: #059669;
+  background: var(--cb-success-50);
+  color: var(--cb-success-ink);
 }
 
 .conv-badge.medium {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--cb-marigold-50);
+  color: var(--cb-marigold-700);
 }
 
 .conv-badge.low {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--cb-danger-50);
+  color: var(--cb-danger-ink);
 }
 
 /* Bottlenecks */
@@ -296,13 +296,13 @@
 }
 
 .bottleneck-icon.warning {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--cb-marigold-50);
+  color: var(--cb-marigold-700);
 }
 
 .bottleneck-icon.success {
-  background: #d1fae5;
-  color: #059669;
+  background: var(--cb-success-50);
+  color: var(--cb-success-ink);
 }
 
 .bottleneck-info {
@@ -327,11 +327,11 @@
 }
 
 .bottleneck-value.warning {
-  color: #d97706;
+  color: var(--cb-marigold-700);
 }
 
 .bottleneck-value.success {
-  color: #059669;
+  color: var(--cb-success-ink);
 }
 
 /* Lost Reasons */
@@ -398,7 +398,7 @@
   font-size: 12px;
   font-weight: 600;
   color: #666;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .team-performance-table td {
@@ -416,7 +416,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: var(--cb-navy-600);
   color: white;
   display: flex;
   align-items: center;
@@ -435,13 +435,13 @@
 }
 
 .response-badge.fast {
-  background: #d1fae5;
-  color: #059669;
+  background: var(--cb-success-50);
+  color: var(--cb-success-ink);
 }
 
 .response-badge.slow {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--cb-danger-50);
+  color: var(--cb-danger-ink);
 }
 
 .response-badge.normal {
@@ -460,7 +460,7 @@
 
 .timeline-bar {
   flex: 1;
-  background: linear-gradient(180deg, #3b82f6, #60a5fa);
+  background: linear-gradient(180deg, var(--cb-navy-600), #60a5fa);
   border-radius: 4px 4px 0 0;
   min-height: 20px;
   position: relative;
@@ -504,7 +504,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid #f0f0f0;
-  border-top-color: #3b82f6;
+  border-top-color: var(--cb-navy-600);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
@@ -528,7 +528,7 @@
 .funnel-label {
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--cb-ink-2);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -536,8 +536,8 @@
 
 .bottleneck-badge {
   font-size: 10px;
-  background: #fef2f2;
-  color: #ef4444;
+  background: var(--cb-danger-50);
+  color: var(--cb-danger-ink);
   border: 1px solid #fca5a5;
   border-radius: 4px;
   padding: 1px 5px;
@@ -546,7 +546,7 @@
 }
 
 .funnel-bar-wrapper {
-  background: #f3f4f6;
+  background: var(--cb-line-soft);
   border-radius: 6px;
   height: 28px;
   overflow: hidden;
@@ -554,7 +554,7 @@
 
 .funnel-bar-fill {
   height: 100%;
-  background: #6366f1;
+  background: var(--cb-navy-600);
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -568,7 +568,7 @@
 }
 
 .funnel-bar-fill.bottleneck {
-  background: #ef4444;
+  background: var(--cb-danger);
 }
 
 .funnel-meta {
@@ -581,22 +581,22 @@
 .funnel-value {
   font-size: 14px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--cb-ink);
 }
 
 .drop-off {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--cb-slate);
 }
 
 .drop-off.critical {
-  color: #ef4444;
+  color: var(--cb-danger-ink);
   font-weight: 600;
 }
 
 .avg-age {
   font-size: 10px;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
 }
 
 /* -- Filters with date inputs ---------------------------------- */
@@ -604,7 +604,7 @@
   display: flex;
   flex-direction: column;
   font-size: 11px;
-  color: #6b7280;
+  color: var(--cb-slate);
   gap: 3px;
 }
 

@@ -2,11 +2,11 @@
   position: sticky;
   top: 0;
   z-index: 120;
-  height: 68px;
-  margin-left: 232px;
-  width: calc(100% - 232px);
+  height: 64px;
+  margin-left: 248px;
+  width: calc(100% - 248px);
   background: #FFFFFF;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid var(--cb-line);
   transition: margin-left .25s ease, width .25s ease;
 }
 
@@ -16,8 +16,8 @@
 }
 
 .app-navbar-container {
-  height: 68px;
-  padding: 0 24px;
+  height: 64px;
+  padding: 0 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -38,13 +38,13 @@
   border: 0;
   border-radius: 9px;
   background: transparent;
-  color: #051D64;
+  color: var(--cb-navy-900);
   cursor: pointer;
   display: grid;
   place-items: center;
   font-size: 22px;
 }
-.app-navbar-hamburger:hover { background: #F8FAFC; }
+.app-navbar-hamburger:hover { background: var(--cb-ground); }
 
 .app-navbar-search {
   width: min(320px, 34vw);
@@ -52,30 +52,30 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--cb-line);
   border-radius: 9px;
   background: #FFFFFF;
   padding: 0 11px;
-  color: #64748B;
+  color: var(--cb-slate);
 }
-.app-navbar-search:focus-within { border-color: #359AAD; box-shadow: 0 0 0 3px rgba(53,154,173,.10); }
+.app-navbar-search:focus-within { border-color: var(--cb-teal-500); box-shadow: 0 0 0 3px rgba(53,154,173,.10); }
 .app-navbar-search input {
   min-width: 0;
   flex: 1;
   border: 0;
   outline: 0;
   background: transparent;
-  color: #0F172A;
+  color: var(--cb-ink);
   font: inherit;
   font-size: 13px;
 }
-.app-navbar-search input::placeholder { color: #94A3B8; }
+.app-navbar-search input::placeholder { color: var(--cb-slate-2); }
 .search-shortcut {
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--cb-line);
   border-radius: 5px;
   padding: 2px 5px;
   font-size: 10px;
-  color: #94A3B8;
+  color: var(--cb-slate-2);
   white-space: nowrap;
 }
 
@@ -90,7 +90,7 @@
   border-radius: 10px;
   padding: 5px 7px;
 }
-.user-menu-summary:hover { background: #F8FAFC; }
+.user-menu-summary:hover { background: var(--cb-ground); }
 
 .user-avatar,
 .user-avatar-img {
@@ -102,7 +102,7 @@
 .user-avatar {
   display: grid;
   place-items: center;
-  background: #051D64;
+  background: var(--cb-navy-900);
   color: #FFFFFF;
   font-size: 12px;
   font-weight: 700;
@@ -110,9 +110,9 @@
 .user-avatar-img { object-fit: cover; }
 
 .user-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.user-name { color: #0F172A; font-size: 12.5px; font-weight: 700; white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
-.user-role { color: #64748B; font-size: 9.5px; font-weight: 600; text-transform: uppercase; }
-.user-menu-chevron { color: #64748B; font-size: 11px; }
+.user-name { color: var(--cb-ink); font-size: 12.5px; font-weight: 700; white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.user-role { color: var(--cb-slate); font-size: 9.5px; font-weight: 600; text-transform: none; }
+.user-menu-chevron { color: var(--cb-slate); font-size: 11px; }
 
 .user-menu-popover {
   position: absolute;
@@ -120,7 +120,7 @@
   right: 0;
   min-width: 170px;
   padding: 6px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--cb-line);
   border-radius: 10px;
   background: #FFFFFF;
   box-shadow: 0 12px 30px rgba(15,23,42,.12);
@@ -136,7 +136,7 @@
   border-radius: 7px;
   padding: 9px 10px;
   background: transparent;
-  color: #334155;
+  color: var(--cb-ink-2);
   text-decoration: none;
   font: inherit;
   font-size: 12px;
@@ -144,12 +144,12 @@
   cursor: pointer;
 }
 .user-menu-popover a:hover,
-.user-menu-popover button:hover { background: #F8FAFC; color: #051D64; }
-.user-menu-popover button { color: #DC2626; }
-.app-login-link { color: #051D64; font-weight: 700; text-decoration: none; }
+.user-menu-popover button:hover { background: var(--cb-ground); color: var(--cb-navy-900); }
+.user-menu-popover button { color: var(--cb-danger-ink); }
+.app-login-link { color: var(--cb-navy-900); font-weight: 700; text-decoration: none; }
 
 @media (max-width: 1024px) {
-  .app-navbar { margin-left: 220px; width: calc(100% - 220px); }
+  .app-navbar { margin-left: 232px; width: calc(100% - 232px); }
   .layout.sidebar-collapsed .app-navbar { margin-left: 76px; width: calc(100% - 76px); }
   .app-navbar-container { padding: 0 18px; }
   .app-navbar-search { width: min(260px, 31vw); }

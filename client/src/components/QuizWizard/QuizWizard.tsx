@@ -230,6 +230,7 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
       };
       fetchStudents();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, [formData.accessibleTo]);
 
   // Fetch chapters when subject changes

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Alert, Spinner } from '../common';
+import { Alert } from '../common';
 import { type AlertType } from '../common';
 import ContentForm from './ContentForm';
 import EnhancedContentTable from './EnhancedContentTable';

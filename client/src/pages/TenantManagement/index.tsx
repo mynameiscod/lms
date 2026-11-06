@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import TenantDomainEditor from '../../components/TenantDomainEditor';
 import TenantLimitsEditor from '../../components/TenantLimitsEditor';
 import OnboardingChecklist from '../../components/OnboardingChecklist';

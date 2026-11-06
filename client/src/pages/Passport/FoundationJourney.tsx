@@ -545,21 +545,6 @@ const FoundationJourneyPage: React.FC = () => {
     setParams(next, { replace: true });
   }, [params, setParams]);
 
-  /**
-   * Open a welcome day in the same panel a learning day uses.
-   *
-   * It used to navigate to the orientation screen, which took the member off their plan to do
-   * something that IS their plan for the next five days. The URL carries it for the same reason
-   * `?day=` does: a refresh, or a link, lands back on the day they were reading.
-   */
-  const selectOrientationDay = useCallback((n: number) => {
-    setOpenOrientationDay(n);
-    setOpenDay(null);
-    const next = new URLSearchParams(params);
-    next.set('welcome', String(n));
-    next.delete('day');
-    setParams(next, { replace: true });
-  }, [params, setParams]);
 
   useEffect(() => { load(); }, [load]);
 

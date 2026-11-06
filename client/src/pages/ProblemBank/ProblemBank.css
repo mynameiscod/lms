@@ -4,26 +4,26 @@
    Difficulty: easy teal · medium amber · hard rose (LeetCode's convention, which solvers know). */
 
 .pb-root {
-  --pb-ink: #0f172a;
-  --pb-body: #334155;
-  --pb-muted: #2F3F56;
-  --pb-faint: #3F4F66;
+  --pb-ink: var(--cb-ink);
+  --pb-body: var(--cb-ink-2);
+  --pb-muted: var(--cb-ink-2);
+  --pb-faint: var(--cb-ink-2);
   --pb-line: #e7eaf3;
   --pb-line-strong: #d7dbe8;
-  --pb-bg: #f5f7fb;
+  --pb-bg: var(--cb-ground);
   --pb-card: #ffffff;
   --pb-soft: #f7f8fc;
-  --pb-accent: #4f46e5;
+  --pb-accent: var(--cb-navy-600);
   --pb-accent-ink: #3730a3;
   --pb-accent-soft: #eef0ff;
   --pb-accent-line: #d9dcfb;
   --pb-easy: #0d9488; --pb-easy-soft: #ccfbf1;
-  --pb-medium: #b45309; --pb-medium-soft: #fef3c7;
+  --pb-medium: #b45309; --pb-medium-soft: var(--cb-marigold-50);
   --pb-hard: #be123c; --pb-hard-soft: #ffe4e6;
-  --pb-ok: #047857; --pb-ok-soft: #d1fae5;
-  --pb-bad: #b91c1c; --pb-bad-soft: #fee2e2;
-  --pb-warn: #b45309; --pb-warn-soft: #fef3c7;
-  --pb-console: #0f172a;
+  --pb-ok: var(--cb-success); --pb-ok-soft: var(--cb-success-50);
+  --pb-bad: var(--cb-danger); --pb-bad-soft: var(--cb-danger-50);
+  --pb-warn: #b45309; --pb-warn-soft: var(--cb-marigold-50);
+  --pb-console: var(--cb-ink);
   color: var(--pb-ink);
   background: var(--pb-bg);
   min-height: 100%;
@@ -35,7 +35,7 @@
 .pb-root h3 { font-size: 15px; margin: 0 0 8px; font-weight: 700; }
 .pb-muted { color: var(--pb-muted); }
 .pb-faint { color: var(--pb-faint); }
-.pb-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.pb-mono { font-family: var(--cb-font-mono); }
 .pb-root :focus-visible { outline: 2px solid var(--pb-accent); outline-offset: 2px; }
 .pb-card { background: var(--pb-card); border: 1px solid var(--pb-line); border-radius: 14px; }
 .pb-row { display: flex; align-items: center; gap: 10px; }
@@ -51,8 +51,8 @@
 .pb-btn:disabled { opacity: .55; cursor: not-allowed; }
 .pb-btn-primary { background: var(--pb-accent); border-color: var(--pb-accent); color: #fff; }
 .pb-btn-primary:hover:not(:disabled) { background: var(--pb-accent-ink); border-color: var(--pb-accent-ink); }
-.pb-btn-success { background: #059669; border-color: #059669; color: #fff; }
-.pb-btn-success:hover:not(:disabled) { background: #047857; }
+.pb-btn-success { background: var(--cb-success); border-color: var(--cb-success); color: #fff; }
+.pb-btn-success:hover:not(:disabled) { background: var(--cb-success); }
 .pb-btn-ghost { background: transparent; border-color: transparent; color: var(--pb-body); }
 .pb-btn-ghost:hover:not(:disabled) { background: #eef0f6; }
 .pb-btn-danger { color: var(--pb-bad); }
@@ -112,7 +112,7 @@
 
 .pb-table-wrap { overflow-x: auto; }
 .pb-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-.pb-table th { text-align: left; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--pb-muted); font-weight: 700;
+.pb-table th { text-align: left; font-size: 11.5px; letter-spacing: 0; text-transform: none; color: var(--pb-muted); font-weight: 700;
   padding: 10px 12px; border-bottom: 1px solid var(--pb-line); background: var(--pb-soft); white-space: nowrap; }
 .pb-table td { padding: 11px 12px; border-bottom: 1px solid var(--pb-line); vertical-align: middle; }
 .pb-table tr:last-child td { border-bottom: 0; }
@@ -219,14 +219,14 @@
 .pb-case-dot.fail { background: var(--pb-bad-soft); color: var(--pb-bad); }
 .pb-case-dot.sel { outline: 2px solid currentColor; outline-offset: 1px; }
 .pb-io { margin-bottom: 10px; }
-.pb-io .k { font-size: 11.5px; font-weight: 750; color: var(--pb-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+.pb-io .k { font-size: 11.5px; font-weight: 750; color: var(--pb-muted); text-transform: none; letter-spacing: 0; margin-bottom: 4px; }
 .pb-io pre { margin: 0; background: #fff; border: 1px solid var(--pb-line); border-radius: 10px; padding: 9px 11px; font-size: 12.5px; white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; }
-.pb-io pre.console { background: var(--pb-console); color: #e2e8f0; border-color: var(--pb-console); }
-.pb-io pre.err { background: #fff5f5; color: var(--pb-bad); border-color: #fecaca; }
+.pb-io pre.console { background: var(--pb-console); color: var(--cb-line); border-color: var(--pb-console); }
+.pb-io pre.err { background: #fff5f5; color: var(--pb-bad); border-color: var(--cb-danger-50); }
 
 .pb-matrix { width: 100%; border-collapse: collapse; font-size: 13px; }
 .pb-matrix td, .pb-matrix th { padding: 7px 8px; border-bottom: 1px solid var(--pb-line); text-align: left; }
-.pb-matrix th { font-size: 11.5px; color: var(--pb-muted); text-transform: uppercase; letter-spacing: .04em; }
+.pb-matrix th { font-size: 11.5px; color: var(--pb-muted); text-transform: none; letter-spacing: 0; }
 
 /* Student preview */
 .pb-preview { padding: 6px 2px; }
@@ -242,7 +242,7 @@
 .pb-md { line-height: 1.65; color: var(--pb-body); word-wrap: break-word; }
 .pb-md p { margin: 0 0 10px; }
 .pb-md h1, .pb-md h2, .pb-md h3, .pb-md h4 { color: var(--pb-ink); margin: 14px 0 8px; }
-.pb-md code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #f1f3f9; padding: 1px 5px; border-radius: 5px; font-size: 12.5px; color: #1e293b; }
+.pb-md code { font-family: var(--cb-font-mono); background: #f1f3f9; padding: 1px 5px; border-radius: 5px; font-size: 12.5px; color: var(--cb-ink); }
 .pb-md pre { background: #f7f8fc; border: 1px solid var(--pb-line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; }
 .pb-md pre code { background: transparent; padding: 0; }
 .pb-md ul, .pb-md ol { padding-left: 22px; margin: 0 0 10px; }
@@ -270,8 +270,8 @@
 
 /* Who a problem is given to ("Available to"): CareerPilot (in the practice library), LMS, or nobody yet. */
 .pb-tag-cp { background: #e6f4f6; color: #1f6f7d; gap: 4px; }
-.pb-tag-lms { background: #eff6ff; color: #1d4ed8; }
-.pb-tag-none { background: #fff7ed; color: #b45309; }
+.pb-tag-lms { background: var(--cb-navy-50); color: var(--cb-navy-600); }
+.pb-tag-none { background: var(--cb-marigold-50); color: #b45309; }
 
 /* Bulk bar: the count, "select all that match", and the Available to menu. */
 .pb-bulk-count { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
@@ -299,4 +299,4 @@
 @media (max-width: 640px) { .pb-tagfilter { width: 100%; } }
 
 /* A statement block laid out by its spaces (a pattern, pasted code): shown exactly as written. */
-.pb-md pre.pb-pre-text { margin: 8px 0; padding: 10px 12px; border-radius: 8px; background: #F6F8FB; border: 1px solid #E2EAF2; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; white-space: pre; overflow-x: auto; }
+.pb-md pre.pb-pre-text { margin: 8px 0; padding: 10px 12px; border-radius: 8px; background: #F6F8FB; border: 1px solid var(--cb-line); font-family: var(--cb-font-mono); font-size: 13px; line-height: 1.5; white-space: pre; overflow-x: auto; }

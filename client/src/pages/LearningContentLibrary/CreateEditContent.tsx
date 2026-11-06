@@ -98,7 +98,7 @@ export default function CreateEditContent() {
   const [videoFile,   setVideoFile]   = useState<File | null>(null);
   const [notesFile,   setNotesFile]   = useState<File | null>(null);
   const [thumbFile,   setThumbFile]   = useState<File | null>(null);
-  const [uploadPct,   setUploadPct]   = useState(0);
+  const [,   setUploadPct]   = useState(0);
   const [skillOpts,   setSkillOpts]   = useState<SkillOptions | null>(null);
   const [skillOptsErr, setSkillOptsErr] = useState('');
   const [skillSearch, setSkillSearch] = useState('');

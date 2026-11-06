@@ -6,7 +6,7 @@ import passportApi, {
   AnalyticsEnvelope, ConfigHealthView, LaunchReadinessView, HealthFindingView,
 } from '../../api/passportApi';
 import {
-  Cell, figure, countCell, percentCell, unavailableCell, coverageOf, reasonOf,
+  Cell, countCell, percentCell, unavailableCell, coverageOf, reasonOf,
   SEVERITY, AREA_STATUS, LAUNCH_STATUS, RANGES, rangeParams,
 } from './analyticsPresenters';
 
@@ -202,7 +202,6 @@ const AdminAnalytics: React.FC = () => {
   const env = section ? cache[cacheKey] : undefined;
   const d = env?.data;
 
-  const stage = (key: string) => d?.stages?.find((s: any) => s.key === key);
 
   return (
     <div data-testid="cp-analytics">

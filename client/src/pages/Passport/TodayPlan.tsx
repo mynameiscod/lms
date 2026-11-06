@@ -4,7 +4,7 @@ import passportApi, {
   DailyPlanResponse, DailyPlanAvailable, DailyPlanUnavailable, DailyMission,
 } from '../../api/passportApi';
 import './todayPlan.css';
-import { useProgramDays, daysLabel } from './useProgramDays';
+import { useProgramDays } from './useProgramDays';
 
 /**
  * What to do today, drawn from the 90-day roadmap.

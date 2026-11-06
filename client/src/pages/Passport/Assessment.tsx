@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { AssessQuestion, AssessResult } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
@@ -421,9 +421,6 @@ const ResultView: React.FC<{
   const paymentOff = status?.paymentAvailable === false;
   const isMember = !!status?.active;
   const score = result.careerScore;
-  const scoreBand = BANDS(score);
-  const circumference = 2 * Math.PI * 62;
-  const dash = useMemo(() => (score / 100) * circumference, [score, circumference]);
   const encourage = score >= 75 ? "You're on a strong track. Stay consistent and you'll go far!"
     : score >= 45 ? "You're on the right track. With the right plan and consistent effort, you can achieve great things!"
     : "Great first step — a focused plan will move your score up fast.";

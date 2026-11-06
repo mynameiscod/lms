@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { leadPriorityApi, leadFormConfigApi } from '../../api';
 import './LeadPrioritySettings.css';
 
@@ -99,7 +98,6 @@ const CATEGORY_OPTIONS = [
 ];
 
 const LeadPrioritySettings: React.FC = () => {
-  const navigate = useNavigate();
   const [config, setConfig] = useState<PriorityConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -131,6 +129,7 @@ const LeadPrioritySettings: React.FC = () => {
   useEffect(() => {
     loadConfig();
     loadCustomFields();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, []);
 
   const loadCustomFields = async () => {

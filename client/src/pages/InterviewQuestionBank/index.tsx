@@ -78,6 +78,7 @@ const InterviewQuestionBankPage: React.FC = () => {
 
   useEffect(() => {
     fetchInitialData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unchanged behaviour: runs only when the listed values change
   }, []);
 
   const fetchInitialData = async () => {

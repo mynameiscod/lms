@@ -1,7 +1,7 @@
 .activity-log {
   background: white;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--cb-line);
   padding: 16px;
 }
 
@@ -11,19 +11,19 @@
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--cb-line);
 }
 
 .log-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--cb-ink);
 }
 
 .log-count {
-  background: #f0f4ff;
-  color: #005897;
+  background: var(--cb-navy-50);
+  color: var(--cb-navy-600);
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 12px;
@@ -42,7 +42,7 @@
   align-items: center;
   justify-content: center;
   padding: 30px 20px;
-  color: #9ca3af;
+  color: var(--cb-slate-2);
   text-align: center;
   min-height: 150px;
 }
@@ -62,13 +62,13 @@
   display: flex;
   gap: 12px;
   padding: 12px;
-  background: #f8fafc;
+  background: var(--cb-ground);
   border-radius: 6px;
   transition: all 0.3s ease;
 }
 
 .log-entry:hover {
-  background: #f0f4ff;
+  background: var(--cb-navy-50);
   box-shadow: 0 2px 8px rgba(0, 88, 151, 0.08);
 }
 
@@ -87,7 +87,7 @@
   width: 32px;
   height: 32px;
   background: white;
-  border: 2px solid #005897;
+  border: 2px solid var(--cb-navy-600);
   border-radius: 50%;
   font-size: 14px;
   flex-shrink: 0;
@@ -96,7 +96,7 @@
 .log-line {
   width: 2px;
   height: 40px;
-  background: linear-gradient(180deg, #005897 0%, transparent 100%);
+  background: linear-gradient(180deg, var(--cb-navy-600) 0%, transparent 100%);
   margin-top: -8px;
 }
 
@@ -115,18 +115,18 @@
 .log-action {
   font-size: 13px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--cb-ink);
 }
 
 .log-message {
   font-size: 12px;
-  color: #64748b;
+  color: var(--cb-slate);
   line-height: 1.4;
 }
 
 .log-time {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--cb-slate-2);
   font-weight: 500;
   margin-top: 2px;
 }

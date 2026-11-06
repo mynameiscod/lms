@@ -44,6 +44,7 @@ import { startPartnerReplyScheduler } from './jobs/partnerReplyCron';
 import { registerWaChatSocket } from './realtime/whatsAppChatRealtime';
 import { registerSocketAuth, socketUser, mayJoinTenant, mayJoinStaff, mayHostLiveClass } from './realtime/socketAuth';
 import { startOutperoForwardScheduler } from './jobs/outperoForwardCron';
+import { startMetaCrmScheduler } from './jobs/metaCrmCron';
 import { startCompanyExpenseScheduler } from './jobs/companyExpenseCron';
 
 const PORT = process.env.PORT || 5000;
@@ -422,6 +423,7 @@ const startServer = async () => {
 
     // Send leads queued for Outpero (bulk sends, retries)
     startOutperoForwardScheduler();
+    startMetaCrmScheduler();
 
     // Add each month's recurring company costs (rent, subscriptions)
     startCompanyExpenseScheduler();

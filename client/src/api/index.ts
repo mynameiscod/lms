@@ -3404,3 +3404,33 @@ export const hmsClassApi = {
   searchPeople: (q: string) =>
     authenticatedFetch(`${API_BASE_URL}/hms-classes/people/search?q=${encodeURIComponent(q)}`),
 };
+
+// Meta CRM conversion events + ad spend sync (server: routes/metaCrmRoutes.ts)
+const metaCrmCall = (path: string, method = 'GET', body?: any) =>
+  authenticatedFetch(`${API_BASE_URL}/meta-crm${path}`, { method, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
+
+export const metaCrmApi = {
+  summary: () => metaCrmCall('/summary'),
+  events: (params: { status?: string; page?: number; limit?: number } = {}) => {
+    const q = new URLSearchParams();
+    if (params.status) q.set('status', params.status);
+    if (params.page) q.set('page', String(params.page));
+    if (params.limit) q.set('limit', String(params.limit));
+    return metaCrmCall(`/events${q.toString() ? `?${q}` : ''}`);
+  },
+  /** One lead's Meta events, oldest first (for the lead page). */
+  leadEvents: (leadId: string) => metaCrmCall(`/lead/${leadId}`),
+  retryFailed: () => metaCrmCall('/retry-failed', 'POST', {}),
+  testSend: (leadId?: string) => metaCrmCall('/test-send', 'POST', leadId ? { leadId } : {}),
+  getSettings: () => metaCrmCall('/settings'),
+  updateSettings: (data: Record<string, any>) => metaCrmCall('/settings', 'PUT', data),
+  syncSpend: (days = 3) => metaCrmCall(`/spend/sync?days=${days}`, 'POST', {}),
+  backfillSpend: (days = 90) => metaCrmCall(`/spend/backfill?days=${days}`, 'POST', {}),
+  spendStatus: () => metaCrmCall('/spend/status'),
+  spendSummary: (from?: string, to?: string) => {
+    const q = new URLSearchParams();
+    if (from) q.set('from', from);
+    if (to) q.set('to', to);
+    return metaCrmCall(`/spend/summary${q.toString() ? `?${q}` : ''}`);
+  },
+};

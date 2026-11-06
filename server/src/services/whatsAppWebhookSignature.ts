@@ -14,8 +14,24 @@ import * as settings from './settingsService';
  */
 export function verifyMetaSignature(rawBody: Buffer | string | undefined, header: string | undefined): { accept: boolean; reason?: string } {
   const mode = (settings.getStr('WHATSAPP_WEBHOOK_SIGNATURE', 'log') || 'log').toLowerCase();
-  if (mode === 'off') return { accept: true };
   const secret = settings.getStr('WHATSAPP_APP_SECRET', '') || settings.getStr('META_APP_SECRET', '') || process.env.META_APP_SECRET || '';
+  return verifyHubSignature(rawBody, header, mode, secret);
+}
+
+/**
+ * Lead Ads webhook — same check, its own switch (META_LEAD_WEBHOOK_SIGNATURE, default "log")
+ * and the Lead Ads app secret (META_APP_SECRET).
+ */
+export function verifyLeadAdsSignature(rawBody: Buffer | string | undefined, header: string | undefined): { accept: boolean; reason?: string } {
+  const mode = (settings.getStr('META_LEAD_WEBHOOK_SIGNATURE', 'log') || 'log').toLowerCase();
+  const secret = settings.getStr('META_APP_SECRET', '') || process.env.META_APP_SECRET || '';
+  return verifyHubSignature(rawBody, header, mode, secret);
+}
+
+/** X-Hub-Signature-256 check over the exact raw bytes, constant-time, with log/enforce/off modes. */
+export function verifyHubSignature(rawBody: Buffer | string | undefined, header: string | undefined, modeIn: string, secret: string): { accept: boolean; reason?: string } {
+  const mode = (modeIn || 'log').toLowerCase();
+  if (mode === 'off') return { accept: true };
   const enforce = mode === 'enforce';
 
   let reason: string | undefined;

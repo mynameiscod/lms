@@ -175,3 +175,33 @@ First-contact SLA alert, unanswered-call retry scheduling (from `call_outcome.su
 - With no migration, old leads have no sub-stage/reason/milestones; funnel reports are accurate from go-live onward, and old leads appear as "stage only".
 - Outpero stage mapping uses stage IDs — if the owner deletes an old stage that Outpero maps to, Outpero will reject; the Pipeline page will warn before deleting a stage referenced by Outpero settings.
 - Production read of current stage names/counts was blocked by the permission check; not needed now (no migration).
+
+---
+
+## Part E — Meta notes (checked 2026-11-06)
+
+What Meta's current documentation says, and how the build follows it.
+
+**Conversion Leads payload** — [payload specification](https://developers.facebook.com/documentation/ads-commerce/conversions-api/conversion-leads-integration/payload-specification)
+- `action_source` = `system_generated` for every Conversion Leads event.
+- `custom_data.event_source` = `crm` (fixed); `custom_data.lead_event_source` = the name of the CRM (we send `META_CRM_SOURCE_NAME`, default "CodeBegun LMS"). Events missing either are not used for Conversion Leads optimisation ([Salesforce webhooks guide](https://developers.facebook.com/documentation/ads-commerce/conversions-api/guides/salesforce-webhooks)).
+- `user_data.lead_id` = the 15–17 digit `leadgen_id` from the Lead Ads webhook — highest-priority identifier, **not hashed**; an invalid lead_id gets the event rejected. Phone/email may be added but **must be SHA-256 hashed**. Meta's example writes lead_id as a bare JSON number; ids this long exceed JS number precision, so we serialise it digit-for-digit (`serialiseBody`).
+- `event_name` is free text = your CRM stage name. Send **all** stages as they happen, **including the initial lead stage**. → We send "Initial Lead" once per lead (when its first milestone event is queued, if the lead is < 7 days old) plus one event per milestone (default names, overridable per stage via `LeadStage.metaEventName`).
+- `event_time` (Unix seconds) may be up to 7 days old and must be after the lead was created. → Events older than ~7 days at send time are marked `skipped`, never sent.
+- Only native Lead Ads (Instant Forms) leads are supported. → Non-Meta leads are recorded `skipped`.
+
+**Integration guidance** — [Conversion Leads integration overview](https://developers.facebook.com/docs/marketing-api/conversions-api/conversion-leads-integration), [CRM for platforms](https://developers.facebook.com/documentation/ads-commerce/conversions-api/guides/conversions-api-crm-for-platforms)
+- Upload at least daily; real time is best (we send within a minute).
+- The optimised stage should happen within 28 days of the lead and convert at 1–40%; ≥200 leads/month recommended. → The Meta sync page shows "% of Meta leads that reached Qualified" and warns before optimising on thin data.
+- This CRM integration is separate from any web pixel CAPI set-up (different required parameters).
+
+**General Conversions API** — [Using the API](https://developers.facebook.com/docs/marketing-api/conversions-api/using-the-api)
+- Endpoint `POST https://graph.facebook.com/<ver>/<DATASET_ID>/events`; examples use **v27.0** (we use `META_GRAPH_VERSION = 'v27.0'`).
+- Up to 1,000 events per request; one event older than 7 days fails the whole request. → We send one event per request (low volume; isolates failures).
+- `test_event_code` is for testing only and must be removed in production. → Attached only in `test` mode and by "Send test event".
+
+**Build decisions**
+- `META_CRM_MODE` per institute: `off` (default — nothing queued, so switching on never back-sends history) · `test` · `live`.
+- Token is sent in an `Authorization: Bearer` header, never in a URL; spend paging follows the `after` cursor, never Meta's `next` URL.
+- Retries on network errors / 429 / 5xx (1, 5, 15, 60, 180 min), permanent fail on other 4xx; "Retry failed" re-queues.
+- Ad spend: `GET /act_<id>/insights?level=ad&time_increment=1` → `AdSpendDaily` (unique per institute/day/ad); nightly re-pull of the last 3 days after 02:00 IST, backfill up to 90 days.

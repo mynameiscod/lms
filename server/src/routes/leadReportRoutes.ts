@@ -22,7 +22,7 @@ router.get('/admissions', authMiddleware, tenantResolver, roleGuard(['view_lead_
     if (to.getTime() - from.getTime() > 366 * 86_400_000) return res.status(400).json({ success: false, message: 'Pick at most one year' });
     const data = await admissionsReport({
       tenantId: String(req.tenantId), from, to, scope: await buildLeadScopeFilter(req),
-      assignedTo: q.assignedTo || undefined, source: q.source || undefined,
+      assignedTo: q.assignedTo || undefined, source: q.source || undefined, course: q.course || undefined,
     });
     res.json({ success: true, data });
   } catch (err: any) {

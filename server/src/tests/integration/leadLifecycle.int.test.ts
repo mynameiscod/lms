@@ -188,3 +188,32 @@ describe('milestoneStamps', () => {
     expect(milestoneStamps({}, 'new', at)).toEqual({});
   });
 });
+
+describe('old, unrelated bad data on a lead', () => {
+  it('does not block a move (broken legacy meeting activity + an out-of-range enum)', async () => {
+    const lead: any = await newLead();
+    // What the old createMeeting bug stored, plus a value an import once wrote.
+    await Lead.collection.updateOne({ _id: lead._id }, {
+      $push: { activities: { type: 'meeting', note: 'demo', performedBy: ADMIN.id, createdAt: new Date() } } as any,
+      $set: { priority: 'HOT' },
+    });
+    const r = await move(lead, { stageId: String(lost._id), subStageId: String(notInterested._id), reasonId: String(feeHigh._id), source: 'bulk', note: 'cleanup' });
+    expect(r.status).toBe('moved');
+    const saved: any = await Lead.findById(lead._id).lean();
+    expect(String(saved.stageId)).toBe(String(lost._id));
+    expect(String(saved.reasonId)).toBe(String(feeHigh._id));
+    expect(saved.milestones.lostAt).toBeTruthy();
+    expect(saved.activities.some((a: any) => a.type === 'status_change' && a.description.startsWith('Stage changed from "New Lead" to "Lost"'))).toBe(true);
+    expect(saved.activities.some((a: any) => a.type === 'note' && a.description === 'cleanup')).toBe(true);
+    expect(saved.activities.some((a: any) => a.note === 'demo')).toBe(true); // the old entry is left as it was
+    expect(await LeadStageHistory.countDocuments({ leadId: lead._id })).toBe(1);
+  });
+
+  it('trims over-long text instead of failing the move', async () => {
+    const lead: any = await newLead();
+    await move(lead, { stageId: String(qualified._id), reasonText: 'r', reasonDetail: 'x'.repeat(5000) });
+    const saved: any = await Lead.findById(lead._id).lean();
+    expect(String(saved.stageId)).toBe(String(qualified._id));
+    expect(saved.reasonDetail.length).toBe(1000);
+  });
+});

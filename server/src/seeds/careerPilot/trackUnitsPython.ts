@@ -54,6 +54,68 @@ export const TRACK_PYTHON: Record<string, TopicSeed> = {
     ...ending('Python Fundamentals', 'FUNCTIONS'),
   ] },
 
+  /*
+   * ── OOP, projects and errors, in Python (user decision 2026-11-06) ──
+   *
+   * Tracks start in Year 2, so they no longer borrow Year 2's OOP, project-structure and robustness
+   * topics or Year 3's advanced OOP either: like Core Java's OOP and Exceptions topics, these are
+   * taught in the track's own language. Writing your own context managers, comprehensions and
+   * generators stay in JT_PY_MODERN.
+   */
+  JT_PY_OOP: { category: 'UNIVERSAL', units: [
+    u('CLASSES_OBJECTS', 'Classes and Objects', 'A class as a blueprint, instances, attributes and methods — modelling a thing in code.',
+      ['Write a class with attributes and methods and create and use objects from it'], 40),
+    u('INIT_SELF', 'The Constructor, self and Instance State', '__init__, what self really is, instance attributes, and every object having its own state.',
+      ['Write __init__ methods and explain what self refers to on every call'], 40, { after: ['CLASSES_OBJECTS'] }),
+    u('ENCAPSULATION', 'Encapsulation: _private, Properties and Validation', 'Python\'s conventions instead of access modifiers, name mangling, and @property keeping an object valid.',
+      ['Protect an object\'s state with properties and validation, and explain _name and __name'], 40, { after: ['INIT_SELF'] }),
+    u('CLASS_MEMBERS', 'Class Attributes, classmethod and staticmethod', 'State shared by every instance, the shared-mutable trap, alternative constructors and utility methods.',
+      ['Choose between instance attributes, class attributes, classmethods and staticmethods'], 35, { after: ['ENCAPSULATION'] }),
+    u('INHERITANCE', 'Inheritance and super()', 'Subclassing, what is inherited, overriding __init__ with super(), and isinstance.',
+      ['Extend a class, call super() correctly, and say what a subclass inherits'], 45, { after: ['CLASS_MEMBERS'] }),
+    u('POLYMORPHISM', 'Polymorphism, Overriding and Duck Typing', 'One call, many behaviours: overriding, dynamic dispatch, and "if it quacks like a duck".',
+      ['Use overriding and duck typing and predict which method a call runs'], 45, { after: ['INHERITANCE'] }),
+    u('ABSTRACTION', 'Abstract Base Classes and Interfaces', 'abc.ABC and @abstractmethod as a contract, NotImplementedError, and multiple inheritance with the MRO.',
+      ['Define a contract with an abstract base class and read a class\'s method resolution order'], 40, { after: ['POLYMORPHISM'] }),
+    u('DUNDER', 'Special Methods: __str__, __repr__, __eq__ and __hash__', 'Making objects print, compare and work as dict keys, and why __eq__ and __hash__ go together.',
+      ['Implement __str__, __repr__, __eq__ and __hash__ correctly and explain the contract between them'], 40, { after: ['ABSTRACTION'] }),
+    u('COMPOSITION', 'Composition Over Inheritance', 'Building objects from parts, has-a versus is-a, and spotting inheritance used where composition fits.',
+      ['Redesign an inheritance hierarchy with composition and say when each is the right tool'], 35, { after: ['DUNDER'] }),
+    ...ending('Python OOP', 'COMPOSITION', { project: ['MINI_PROJECT', 'Mini Project — An Inventory and Orders System', 'A console shop: products of different kinds, stock, customers and orders with totals and discounts, designed with encapsulation, inheritance, an abstract base class and composition.'] }),
+  ] },
+
+  JT_PY_PROJECTS: { category: 'UNIVERSAL', units: [
+    u('MODULES', 'Modules and import', 'One file as a module, the import forms, where Python looks for modules, and __name__.',
+      ['Split code across modules and import it in the right form'], 40),
+    u('PACKAGES', 'Packages and Project Layout', 'Folders as packages, __init__.py, absolute and relative imports, and a layout a team can read.',
+      ['Lay out a project as packages and fix the import errors a bad layout causes'], 40, { after: ['MODULES'] }),
+    u('SCOPE', 'Names, Scope and the LEGB Rule', 'Local, enclosing, global and built-in names, global and nonlocal, and shadowing a built-in by accident.',
+      ['Predict which name a reference resolves to and avoid shadowing bugs'], 35, { after: ['PACKAGES'] }),
+    u('VENV_PIP', 'Virtual Environments and pip', 'One environment per project, installing and pinning packages, and requirements.txt.',
+      ['Create a virtual environment, install and pin dependencies, and rebuild it on another machine'], 40, { after: ['SCOPE'] }),
+    u('PYPROJECT', 'pyproject.toml and Running Your Package', 'Project metadata, python -m, an entry point, and installing your own project in editable mode.',
+      ['Describe a project in pyproject.toml and run it as a package with python -m'], 35, { after: ['VENV_PIP'] }),
+    u('STDLIB', 'The Standard Library You Will Use Every Week', 'sys, math, random, datetime, collections and time — what to reach for before installing anything.',
+      ['Solve everyday tasks with the standard library instead of hand-written code or a new dependency'], 40, { after: ['PYPROJECT'] }),
+    ...ending('Python Projects', 'STDLIB'),
+  ] },
+
+  JT_PY_ERRORS: { category: 'UNIVERSAL', units: [
+    u('EXCEPTIONS', 'Exceptions and the Traceback', 'What an exception is, the built-in hierarchy, and the exceptions every Python developer meets.',
+      ['Name the common built-in exceptions and read a traceback to the line that raised'], 40),
+    u('TRY_EXCEPT', 'try, except, else and finally', 'Catching the right exception, never a bare except, else for the success path, and finally for cleanup.',
+      ['Handle exceptions without swallowing them and use else and finally correctly'], 40, { after: ['EXCEPTIONS'] }),
+    u('RAISING', 'Raising and Custom Exceptions', 'raise, chaining with from, exceptions of your own, and asking forgiveness versus looking before you leap.',
+      ['Define and raise a custom exception and decide when a function should raise'], 35, { after: ['TRY_EXCEPT'] }),
+    u('FILES', 'Reading and Writing Files with with and pathlib', 'open, modes and encodings, reading line by line, with closing for you, and paths that work on every OS.',
+      ['Read and write text files safely with with and pathlib'], 45, { after: ['RAISING'] }),
+    u('CSV_JSON', 'CSV and JSON In and Out', 'The csv and json modules, DictReader and DictWriter, and turning data into files and back.',
+      ['Read and write CSV and JSON files and convert between them and Python data'], 40, { after: ['FILES'] }),
+    u('LOGGING', 'Logging Instead of print', 'The logging module, levels, a format with time and source, and logging an exception with its traceback.',
+      ['Replace debugging prints with logging at the right levels'], 35, { after: ['CSV_JSON'] }),
+    ...ending('Python Exceptions and Files', 'LOGGING'),
+  ] },
+
   /* ── Pythonic and modern Python ── */
   JT_PY_MODERN: { category: 'UNIVERSAL', units: [
     u('COMPREHENSIONS', 'Comprehensions and Pythonic Loops', 'List, dict and set comprehensions, enumerate, zip, unpacking, and when a plain loop reads better.',

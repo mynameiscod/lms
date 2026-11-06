@@ -111,15 +111,14 @@ export const PACKS: PackDefinition[] = [
 
   /* ── Python Full Stack + AI, batch P1: Python (the years' Python reused, the gaps added) and DSA in Python ── */
   /*
-   * Python is taught from the first program inside the track (JT_PY_START, JT_PY_BASICS), as Core
-   * Java and Core C# are — no longer borrowed from Year 1 (user decision 2026-11-06). The years'
-   * OOP, structure and error topics stay: they are written in Python.
+   * Python is taught inside the track, as Core Java and Core C# are (user decision 2026-11-06):
+   * tracks start in Year 2, so none of Core Python is borrowed from a year's curriculum — not
+   * Year 1's basics, not Year 2's OOP, structure and robustness, not Year 3's advanced OOP.
    */
   { key: 'CORE_PYTHON', title: 'Core Python', kind: 'SKILL',
-    description: 'Python from the first program: setup and fundamentals, then OOP, modules, files and errors, modern Python and pytest.',
-    topics: [['JT_PY_START', 'MUST'], ['JT_PY_BASICS', 'MUST'],
-      ['T2_OOP_OBJECTS', 'MUST'], ['T2_OOP_PRINCIPLES', 'MUST'], ['T2_PY_STRUCTURE', 'MUST'], ['T2_PY_ROBUST', 'MUST'],
-      ['JT_PY_MODERN', 'MUST'], ['JT_PY_TESTING', 'MUST'], ['T3_ADV_OOP', 'SHOULD']] },
+    description: 'Python from the first program: setup and fundamentals, OOP, modules and projects, exceptions and files, then modern Python and pytest.',
+    topics: [['JT_PY_START', 'MUST'], ['JT_PY_BASICS', 'MUST'], ['JT_PY_OOP', 'MUST'], ['JT_PY_PROJECTS', 'MUST'],
+      ['JT_PY_ERRORS', 'MUST'], ['JT_PY_MODERN', 'MUST'], ['JT_PY_TESTING', 'MUST']] },
   /* QA/SDET keeps Core Python exactly as it was, with Year 1's lessons (user decision 2026-11-06). */
   { key: 'CORE_PYTHON_QA', title: 'Core Python', kind: 'SKILL',
     description: 'Python from the first variable — the years’ lessons — to OOP, modules, files and errors, then modern Python and pytest.',
@@ -226,7 +225,7 @@ export const PACKS: PackDefinition[] = [
   { key: 'PYTHON_FOR_DATA', title: 'Python for Data', kind: 'SKILL',
     description: 'Python from the first program — setup and fundamentals — to pandas, cleaning data you can trust, and exploratory analysis with honest charts.',
     topics: [['JT_PY_START', 'MUST'], ['JT_PY_BASICS', 'MUST'],
-      ['T2_PY_ROBUST', 'SHOULD'], ['DT_PANDAS', 'MUST'], ['DT_DATA_CLEANING', 'MUST'], ['DT_EDA_VIZ', 'MUST']] },
+      ['JT_PY_ERRORS', 'SHOULD'], ['DT_PANDAS', 'MUST'], ['DT_DATA_CLEANING', 'MUST'], ['DT_EDA_VIZ', 'MUST']] },
 
   /* ── Data Analytics + AI, batch A3: statistics, A/B tests and Power BI ── */
   { key: 'STATISTICS_ANALYTICS', title: 'Statistics and A/B Testing', kind: 'SKILL',

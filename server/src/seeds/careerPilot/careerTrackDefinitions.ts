@@ -110,15 +110,25 @@ export const PACKS: PackDefinition[] = [
       ['T4_SIM_DEBRIEF', 'MUST'], ['T4_VERIFY_GAPS', 'SHOULD']] },
 
   /* ── Python Full Stack + AI, batch P1: Python (the years' Python reused, the gaps added) and DSA in Python ── */
+  /*
+   * Python is taught inside the track, as Core Java and Core C# are (user decision 2026-11-06):
+   * tracks start in Year 2, so none of Core Python is borrowed from a year's curriculum — not
+   * Year 1's basics, not Year 2's OOP, structure and robustness, not Year 3's advanced OOP.
+   */
   { key: 'CORE_PYTHON', title: 'Core Python', kind: 'SKILL',
+    description: 'Python from the first program: setup and fundamentals, OOP, modules and projects, exceptions and files, then modern Python and pytest.',
+    topics: [['JT_PY_START', 'MUST'], ['JT_PY_BASICS', 'MUST'], ['JT_PY_OOP', 'MUST'], ['JT_PY_PROJECTS', 'MUST'],
+      ['JT_PY_ERRORS', 'MUST'], ['JT_PY_MODERN', 'MUST'], ['JT_PY_TESTING', 'MUST']] },
+  /* QA/SDET keeps Core Python exactly as it was, with Year 1's lessons (user decision 2026-11-06). */
+  { key: 'CORE_PYTHON_QA', title: 'Core Python', kind: 'SKILL',
     description: 'Python from the first variable — the years’ lessons — to OOP, modules, files and errors, then modern Python and pytest.',
     topics: [['T_VARIABLES', 'MUST'], ['T_CONDITIONS', 'MUST'], ['T_LOOPS', 'MUST'], ['T_FUNCTIONS', 'MUST'], ['T_ARRAYS', 'MUST'],
       ['T2_OOP_OBJECTS', 'MUST'], ['T2_OOP_PRINCIPLES', 'MUST'], ['T2_PY_STRUCTURE', 'MUST'], ['T2_PY_ROBUST', 'MUST'],
       ['JT_PY_MODERN', 'MUST'], ['JT_PY_TESTING', 'MUST'], ['T3_ADV_OOP', 'SHOULD']] },
+  /* Taught in the track, as DSA in Java and DSA in C# are, not the years' lessons (user decision 2026-11-06). */
   { key: 'DSA_PYTHON', title: 'DSA in Python', kind: 'SKILL',
-    description: 'The data structures and algorithms interviews ask, in Python — the years’ lessons, in order.',
-    topics: [['T2_DS_LINEAR', 'MUST'], ['T2_DS_KEYED', 'MUST'], ['T2_ALGORITHMS', 'MUST'], ['T2_DSA_INTERVIEW', 'MUST'],
-      ['T3_TREES_BST', 'MUST'], ['T3_GRAPHS', 'MUST'], ['T3_GREEDY_DP', 'MUST'], ['T3_HEAPS', 'SHOULD']] },
+    description: 'The data structures and algorithms interviews ask, implemented and solved in Python.',
+    topics: [['JT_PY_DSA_LINEAR', 'MUST'], ['JT_PY_DSA_NONLINEAR', 'MUST']] },
   { key: 'PYTHON_DATA', title: 'Python and MySQL', kind: 'SKILL',
     description: 'Python reaching MySQL directly — before the Django ORM does it for you.',
     topics: [['JT_PY_MYSQL', 'MUST']] },
@@ -213,9 +223,9 @@ export const PACKS: PackDefinition[] = [
 
   /* ── Data Analytics + AI, batch A2: Python for data ── */
   { key: 'PYTHON_FOR_DATA', title: 'Python for Data', kind: 'SKILL',
-    description: 'Python from the first variable — the years’ lessons — to pandas, cleaning data you can trust, and exploratory analysis with honest charts.',
-    topics: [['T_VARIABLES', 'MUST'], ['T_CONDITIONS', 'MUST'], ['T_LOOPS', 'MUST'], ['T_FUNCTIONS', 'MUST'], ['T_ARRAYS', 'MUST'],
-      ['T2_PY_ROBUST', 'SHOULD'], ['DT_PANDAS', 'MUST'], ['DT_DATA_CLEANING', 'MUST'], ['DT_EDA_VIZ', 'MUST']] },
+    description: 'Python from the first program — setup and fundamentals — to pandas, cleaning data you can trust, and exploratory analysis with honest charts.',
+    topics: [['JT_PY_START', 'MUST'], ['JT_PY_BASICS', 'MUST'],
+      ['JT_PY_ERRORS', 'SHOULD'], ['DT_PANDAS', 'MUST'], ['DT_DATA_CLEANING', 'MUST'], ['DT_EDA_VIZ', 'MUST']] },
 
   /* ── Data Analytics + AI, batch A3: statistics, A/B tests and Power BI ── */
   { key: 'STATISTICS_ANALYTICS', title: 'Statistics and A/B Testing', kind: 'SKILL',
@@ -624,7 +634,7 @@ export const TRACKS: TrackDefinition[] = [
      own topics (QA1–QA3), placement (QA4) and bank (QA5) land with their batches. */
   { key: 'QA_SDET', name: 'QA / SDET (Test Automation)', language: 'Python and Java', order: 140,
     description: 'Testing as a practice and test design; automation with pytest, Playwright and Selenium with Java; API testing; performance testing; quality in CI; mobile, accessibility and security checks.',
-    specializePacks: ['CORE_PYTHON', 'GIT_TOOLS', 'QA_YEAR_BASICS', 'QA_FOUNDATIONS', 'QA_AUTOMATION', 'QA_ENGINEERING', 'CAPSTONE_QA'],
+    specializePacks: ['CORE_PYTHON_QA', 'GIT_TOOLS', 'QA_YEAR_BASICS', 'QA_FOUNDATIONS', 'QA_AUTOMATION', 'QA_ENGINEERING', 'CAPSTONE_QA'],
     placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_QA_IV', 'PL_QA_SCENARIOS', 'PL_CORE_CS', 'PL_PROJECT_DESIGN', 'PL_QA_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 
   /* Mobile App Development — React Native with TypeScript and Expo as the main stack, native Android

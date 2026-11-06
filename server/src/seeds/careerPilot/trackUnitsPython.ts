@@ -12,6 +12,153 @@ import { ending } from './trackUnitsWeb';
  * with pytest, and Python talking to MySQL.
  */
 export const TRACK_PYTHON: Record<string, TopicSeed> = {
+  /*
+   * ── Python from the first program (user decision 2026-11-06) ──
+   *
+   * The tracks used to borrow Year 1's variables, conditions, loops, functions and arrays. Year 1
+   * teaches programming to first-years; a track teaches the LANGUAGE, the way Core Java and Core C#
+   * do from their first program. So Python gets its own start and fundamentals here, and Year 1 is
+   * left exactly as it is. QA/SDET keeps the borrowed topics (CORE_PYTHON_QA).
+   */
+  JT_PY_START: { category: 'UNIVERSAL', units: [
+    u('INSTALL', 'Installing Python and Meeting the Interpreter', 'What gets installed, python vs py vs python3, the REPL, and why "python is not recognised" happens.',
+      ['Install Python, check the version from a terminal, and try expressions in the interactive interpreter'], 35, { skillKeys: ['PYTHON_BASICS'] }),
+    u('FIRST_PROGRAM', 'Your First Python Script', 'A .py file, running it, indentation as syntax, comments, and reading a traceback from the bottom up.',
+      ['Write and run a script from the terminal and read the first errors it raises'], 40, { after: ['INSTALL'], skillKeys: ['PYTHON_BASICS'] }),
+    u('VSCODE', 'Working in VS Code', 'The Python extension, choosing the interpreter, running and debugging with breakpoints.',
+      ['Open a project in VS Code, pick the right interpreter, and step through a script with breakpoints'], 40, { after: ['FIRST_PROGRAM'], skillKeys: ['IDE_PROFICIENCY'] }),
+    u('INPUT_OUTPUT', 'Reading Input and Printing Output', 'input(), split and int(), print with sep and end, f-strings — the shape every coding round expects.',
+      ['Read numbers and lines from standard input and print formatted output'], 35, { after: ['VSCODE'], skillKeys: ['PYTHON_BASICS'] }),
+    ...ending('Python Setup', 'INPUT_OUTPUT', { minutes: [35, 45, 30, 35] }),
+  ] },
+
+  JT_PY_BASICS: { category: 'UNIVERSAL', units: [
+    u('TYPES', 'Variables and Built-in Types', 'Names bound to objects, int (no overflow), float, str, bool and None, and dynamic typing.',
+      ['Bind names to values, say each value\'s type, and predict where float precision surprises you'], 40, { skillKeys: ['PYTHON_BASICS'] }),
+    u('CONVERSIONS', 'Type Conversion and Truthiness', 'int(), float(), str() and bool(), the ValueError a bad conversion raises, and what counts as false.',
+      ['Convert between types safely and predict the truth value of any built-in value'], 35, { after: ['TYPES'], skillKeys: ['PYTHON_BASICS'] }),
+    u('OPERATORS', 'Operators and Expressions', '// and % with negatives, **, chained comparisons, and/or returning an operand, and is versus ==.',
+      ['Predict the value of expressions including //, %, **, chained comparisons, and, or and is'], 40, { after: ['CONVERSIONS'], skillKeys: ['PYTHON_BASICS'] }),
+    u('CONDITIONS', 'if, elif, else and match', 'Branches, the conditional expression, and match-case for choosing between shapes of data.',
+      ['Write conditions, conditional expressions and match statements that cover every case'], 40, { after: ['OPERATORS'], skillKeys: ['PYTHON_CONTROL_FLOW'] }),
+    u('LOOPS', 'Loops: for, while, range, break and else', 'Looping over anything iterable, range, enumerate and zip, break and continue, and the loop else.',
+      ['Write and trace for and while loops, including nested ones, and choose the right one'], 45, { after: ['CONDITIONS'], skillKeys: ['PYTHON_CONTROL_FLOW'] }),
+    u('LISTS_TUPLES', 'Lists and Tuples', 'Indexing and slicing, mutating a list, aliasing, the common list methods, tuples and unpacking.',
+      ['Create, slice, change and copy lists, and use tuples and unpacking where they fit'], 45, { after: ['LOOPS'], skillKeys: ['PYTHON_LISTS_BASICS'] }),
+    u('STRINGS', 'Strings and f-strings', 'Immutability, slicing, split, join, strip and replace, and formatting numbers with f-strings.',
+      ['Manipulate strings with the str methods and format output precisely with f-strings'], 45, { after: ['LISTS_TUPLES'], skillKeys: ['PYTHON_BASICS'] }),
+    u('DICTS_SETS', 'Dictionaries and Sets', 'Key lookups, get and setdefault, iterating items, counting with a dict, and set operations.',
+      ['Store, look up, count and group with dictionaries, and remove duplicates and compare collections with sets'], 45, { after: ['STRINGS'], skillKeys: ['PYTHON_COLLECTIONS'] }),
+    u('FUNCTIONS', 'Functions, Arguments and Return Values', 'def and return, default and keyword arguments, the mutable-default trap, *args and **kwargs, and local scope.',
+      ['Write functions with positional, default and keyword arguments and say what each call returns'], 45, { after: ['DICTS_SETS'], skillKeys: ['PYTHON_FUNCTIONS'] }),
+    ...ending('Python Fundamentals', 'FUNCTIONS'),
+  ] },
+
+  /*
+   * ── OOP, projects and errors, in Python (user decision 2026-11-06) ──
+   *
+   * Tracks start in Year 2, so they no longer borrow Year 2's OOP, project-structure and robustness
+   * topics or Year 3's advanced OOP either: like Core Java's OOP and Exceptions topics, these are
+   * taught in the track's own language. Writing your own context managers, comprehensions and
+   * generators stay in JT_PY_MODERN.
+   */
+  JT_PY_OOP: { category: 'UNIVERSAL', units: [
+    u('CLASSES_OBJECTS', 'Classes and Objects', 'A class as a blueprint, instances, attributes and methods — modelling a thing in code.',
+      ['Write a class with attributes and methods and create and use objects from it'], 40),
+    u('INIT_SELF', 'The Constructor, self and Instance State', '__init__, what self really is, instance attributes, and every object having its own state.',
+      ['Write __init__ methods and explain what self refers to on every call'], 40, { after: ['CLASSES_OBJECTS'] }),
+    u('ENCAPSULATION', 'Encapsulation: _private, Properties and Validation', 'Python\'s conventions instead of access modifiers, name mangling, and @property keeping an object valid.',
+      ['Protect an object\'s state with properties and validation, and explain _name and __name'], 40, { after: ['INIT_SELF'] }),
+    u('CLASS_MEMBERS', 'Class Attributes, classmethod and staticmethod', 'State shared by every instance, the shared-mutable trap, alternative constructors and utility methods.',
+      ['Choose between instance attributes, class attributes, classmethods and staticmethods'], 35, { after: ['ENCAPSULATION'] }),
+    u('INHERITANCE', 'Inheritance and super()', 'Subclassing, what is inherited, overriding __init__ with super(), and isinstance.',
+      ['Extend a class, call super() correctly, and say what a subclass inherits'], 45, { after: ['CLASS_MEMBERS'] }),
+    u('POLYMORPHISM', 'Polymorphism, Overriding and Duck Typing', 'One call, many behaviours: overriding, dynamic dispatch, and "if it quacks like a duck".',
+      ['Use overriding and duck typing and predict which method a call runs'], 45, { after: ['INHERITANCE'] }),
+    u('ABSTRACTION', 'Abstract Base Classes and Interfaces', 'abc.ABC and @abstractmethod as a contract, NotImplementedError, and multiple inheritance with the MRO.',
+      ['Define a contract with an abstract base class and read a class\'s method resolution order'], 40, { after: ['POLYMORPHISM'] }),
+    u('DUNDER', 'Special Methods: __str__, __repr__, __eq__ and __hash__', 'Making objects print, compare and work as dict keys, and why __eq__ and __hash__ go together.',
+      ['Implement __str__, __repr__, __eq__ and __hash__ correctly and explain the contract between them'], 40, { after: ['ABSTRACTION'] }),
+    u('COMPOSITION', 'Composition Over Inheritance', 'Building objects from parts, has-a versus is-a, and spotting inheritance used where composition fits.',
+      ['Redesign an inheritance hierarchy with composition and say when each is the right tool'], 35, { after: ['DUNDER'] }),
+    ...ending('Python OOP', 'COMPOSITION', { project: ['MINI_PROJECT', 'Mini Project — An Inventory and Orders System', 'A console shop: products of different kinds, stock, customers and orders with totals and discounts, designed with encapsulation, inheritance, an abstract base class and composition.'] }),
+  ] },
+
+  JT_PY_PROJECTS: { category: 'UNIVERSAL', units: [
+    u('MODULES', 'Modules and import', 'One file as a module, the import forms, where Python looks for modules, and __name__.',
+      ['Split code across modules and import it in the right form'], 40),
+    u('PACKAGES', 'Packages and Project Layout', 'Folders as packages, __init__.py, absolute and relative imports, and a layout a team can read.',
+      ['Lay out a project as packages and fix the import errors a bad layout causes'], 40, { after: ['MODULES'] }),
+    u('SCOPE', 'Names, Scope and the LEGB Rule', 'Local, enclosing, global and built-in names, global and nonlocal, and shadowing a built-in by accident.',
+      ['Predict which name a reference resolves to and avoid shadowing bugs'], 35, { after: ['PACKAGES'] }),
+    u('VENV_PIP', 'Virtual Environments and pip', 'One environment per project, installing and pinning packages, and requirements.txt.',
+      ['Create a virtual environment, install and pin dependencies, and rebuild it on another machine'], 40, { after: ['SCOPE'] }),
+    u('PYPROJECT', 'pyproject.toml and Running Your Package', 'Project metadata, python -m, an entry point, and installing your own project in editable mode.',
+      ['Describe a project in pyproject.toml and run it as a package with python -m'], 35, { after: ['VENV_PIP'] }),
+    u('STDLIB', 'The Standard Library You Will Use Every Week', 'sys, math, random, datetime, collections and time — what to reach for before installing anything.',
+      ['Solve everyday tasks with the standard library instead of hand-written code or a new dependency'], 40, { after: ['PYPROJECT'] }),
+    ...ending('Python Projects', 'STDLIB'),
+  ] },
+
+  JT_PY_ERRORS: { category: 'UNIVERSAL', units: [
+    u('EXCEPTIONS', 'Exceptions and the Traceback', 'What an exception is, the built-in hierarchy, and the exceptions every Python developer meets.',
+      ['Name the common built-in exceptions and read a traceback to the line that raised'], 40),
+    u('TRY_EXCEPT', 'try, except, else and finally', 'Catching the right exception, never a bare except, else for the success path, and finally for cleanup.',
+      ['Handle exceptions without swallowing them and use else and finally correctly'], 40, { after: ['EXCEPTIONS'] }),
+    u('RAISING', 'Raising and Custom Exceptions', 'raise, chaining with from, exceptions of your own, and asking forgiveness versus looking before you leap.',
+      ['Define and raise a custom exception and decide when a function should raise'], 35, { after: ['TRY_EXCEPT'] }),
+    u('FILES', 'Reading and Writing Files with with and pathlib', 'open, modes and encodings, reading line by line, with closing for you, and paths that work on every OS.',
+      ['Read and write text files safely with with and pathlib'], 45, { after: ['RAISING'] }),
+    u('CSV_JSON', 'CSV and JSON In and Out', 'The csv and json modules, DictReader and DictWriter, and turning data into files and back.',
+      ['Read and write CSV and JSON files and convert between them and Python data'], 40, { after: ['FILES'] }),
+    u('LOGGING', 'Logging Instead of print', 'The logging module, levels, a format with time and source, and logging an exception with its traceback.',
+      ['Replace debugging prints with logging at the right levels'], 35, { after: ['CSV_JSON'] }),
+    ...ending('Python Exceptions and Files', 'LOGGING'),
+  ] },
+
+  /*
+   * -- DSA in Python (user decision 2026-11-06) --
+   *
+   * The track no longer borrows the years' DSA topics: like DSA in Java and DSA in C#, the data
+   * structures and algorithms interviews ask are taught here, in the track's language, with
+   * Python's own tools (list, deque, dict, set, heapq, bisect, sorted with a key).
+   */
+  JT_PY_DSA_LINEAR: { category: 'UNIVERSAL', units: [
+    u('COMPLEXITY', 'Big-O in Python Terms', 'Counting operations, and what list, deque, dict and set operations each cost, including the hidden O(n) ones.',
+      ['State the time and space cost of Python code and of the built-in operations it uses'], 40, { skillKeys: ['DSA_COMPLEXITY'] }),
+    u('ARRAY_PATTERNS', 'Array and String Patterns: Two Pointers and Sliding Window', 'The two patterns behind most list and string questions, in Python.',
+      ['Solve list and string problems with two pointers and a sliding window in Python'], 50, { after: ['COMPLEXITY'], skillKeys: ['DSA_ARRAYS'] }),
+    u('LINKED_LISTS', 'Linked Lists in Python', 'A Node class, insertion, deletion, reversal, and the fast-and-slow pointer.',
+      ['Implement and manipulate a singly linked list in Python'], 50, { after: ['ARRAY_PATTERNS'], skillKeys: ['DSA_LINKED_LIST'] }),
+    u('STACKS_QUEUES', 'Stacks and Queues with list and deque', 'Balanced brackets, next greater element, and queue-based simulations with collections.deque.',
+      ['Solve stack and queue problems in Python with a list and collections.deque'], 45, { after: ['LINKED_LISTS'], skillKeys: ['DSA_STACK'] }),
+    u('HASHING', 'Hashing Problems with dict, set and Counter', 'Counting, two-sum, grouping anagrams, and the first non-repeating character.',
+      ['Solve lookup and counting problems in Python with dict, set and Counter'], 45, { after: ['STACKS_QUEUES'], skillKeys: ['DSA_HASHING'] }),
+    u('RECURSION', 'Recursion and Backtracking in Python', 'Base cases, the call stack and its limit, and generating subsets and permutations.',
+      ['Write recursive and backtracking solutions in Python and trace them'], 50, { after: ['HASHING'], skillKeys: ['DSA_RECURSION'] }),
+    u('SORTING_SEARCHING', 'Sorting and Binary Search in Python', 'sorted with key functions, merge sort by hand, and binary search with and without bisect.',
+      ['Sort with key functions, implement merge sort, and write a correct binary search in Python'], 50, { after: ['RECURSION'], skillKeys: ['DSA_SORTING'] }),
+    ...ending('DSA in Python: Linear Structures', 'SORTING_SEARCHING', { minutes: [45, 75, 40, 45] }),
+  ] },
+
+  JT_PY_DSA_NONLINEAR: { category: 'UNIVERSAL', units: [
+    u('TREES', 'Binary Trees and Traversals in Python', 'A TreeNode, recursive and iterative traversals, height and level order.',
+      ['Build a binary tree in Python and traverse it in every order'], 50, { skillKeys: ['DSA_TREES'] }),
+    u('BST', 'Binary Search Trees in Python', 'Insert, search, delete and validate a BST, and why Python has no built-in sorted map.',
+      ['Implement BST operations in Python and validate a tree'], 45, { after: ['TREES'], skillKeys: ['DSA_TREES'] }),
+    u('HEAPS', 'Heaps and heapq Problems', 'Top-k, merging sorted lists, and running medians with heapq, and turning a min-heap into a max-heap.',
+      ['Solve top-k and merge problems in Python with heapq'], 45, { after: ['BST'], skillKeys: ['DSA_HEAPS'] }),
+    u('GRAPHS', 'Graphs, BFS and DFS in Python', 'Adjacency lists with dict and defaultdict, BFS for shortest steps, DFS for components and cycles.',
+      ['Represent a graph in Python and solve problems with BFS and DFS'], 50, { after: ['HEAPS'], skillKeys: ['DSA_GRAPHS'] }),
+    u('SHORTEST_PATH', 'Shortest Paths and Topological Sort', 'Dijkstra with heapq, and ordering tasks with dependencies.',
+      ['Implement Dijkstra and a topological sort in Python'], 50, { after: ['GRAPHS'], skillKeys: ['DSA_GRAPHS'] }),
+    u('GREEDY', 'Greedy Algorithms in Python', 'Intervals, activity selection, and how to check a greedy choice is safe.',
+      ['Solve interval and scheduling problems greedily in Python and justify the choice'], 40, { after: ['SHORTEST_PATH'], skillKeys: ['DSA_GREEDY'] }),
+    u('DYNAMIC_PROGRAMMING', 'Dynamic Programming in Python', 'Memoisation with functools.cache and tabulation: climbing stairs, coin change, longest common subsequence.',
+      ['Solve 1D and 2D dynamic-programming problems in Python, top-down and bottom-up'], 55, { after: ['GREEDY'], skillKeys: ['DSA_DP'] }),
+    ...ending('DSA in Python: Trees, Graphs and DP', 'DYNAMIC_PROGRAMMING', { minutes: [45, 75, 40, 45] }),
+  ] },
+
   /* ── Pythonic and modern Python ── */
   JT_PY_MODERN: { category: 'UNIVERSAL', units: [
     u('COMPREHENSIONS', 'Comprehensions and Pythonic Loops', 'List, dict and set comprehensions, enumerate, zip, unpacking, and when a plain loop reads better.',

@@ -217,3 +217,23 @@ describe('old, unrelated bad data on a lead', () => {
     expect(saved.reasonDetail.length).toBe(1000);
   });
 });
+
+describe('a sub-stage that requires a reason but has none listed', () => {
+  it('accepts a typed reason instead of blocking', async () => {
+    const placements = await LeadSubStage.create({ tenantId: T, stageId: qualified._id, name: 'Looking for Placements', requiresReason: true });
+    const lead: any = await newLead();
+    const e = await move(lead, { stageId: String(qualified._id), subStageId: String(placements._id), source: 'bulk' }).catch((x: any) => x);
+    expect(e).toBeInstanceOf(LifecycleError);
+    expect(e.message).toBe('Type a reason for "Looking for Placements"');
+    const r = await move(lead, { stageId: String(qualified._id), subStageId: String(placements._id), source: 'bulk', reasonText: 'Placement-only programme' });
+    expect(r.status).toBe('moved');
+    expect((await Lead.findById(lead._id).lean() as any).notInterestedReason).toBe('Placement-only programme');
+  });
+
+  it('still insists on the list once reasons exist', async () => {
+    const lead: any = await newLead();
+    const e = await move(lead, { stageId: String(lost._id), subStageId: String(notInterested._id), reasonText: 'typed' }).catch((x: any) => x);
+    expect(e.code).toBe('REASON_REQUIRED');
+    expect(e.message).toBe('Pick a reason for "Not interested"');
+  });
+});

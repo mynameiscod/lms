@@ -6,6 +6,8 @@ const pointer = jest.fn(async () => config);
 jest.mock('../services/outperoPolicyService', () => ({ waitsForOutpero: () => false }));
 jest.mock('../models/Lead', () => ({ __esModule: true, default: { findOne: jest.fn(async () => lead), findOneAndUpdate: (...a: any[]) => (assigned as any)(...a), aggregate: jest.fn(async () => []) } }));
 jest.mock('../models/LeadDistributionConfig', () => ({ __esModule: true, default: { findOne: jest.fn(async () => config), findOneAndUpdate: (...a: any[]) => (pointer as any)(...a) } }));
+// Both staff in this test are counsellors (admins / BDM role); the rule itself is tested in leadCounsellors.int.test.ts.
+jest.mock('../services/leadCounsellorService', () => ({ listCounsellors: async () => [{ _id: '65a0000000000000000000cc' }, { _id: '65a0000000000000000000dd' }] }));
 jest.mock('../models/User', () => ({ __esModule: true, default: { find: (...a: any[]) => ({ lean: () => (userFind as any)(...a) }) } }));
 import { autoAssignLead } from '../services/leadDistributionService';
 beforeEach(() => { lead.assignedTo = undefined; lead.assignment = undefined; config.roundRobinPointer = null; userFind.mockReset().mockResolvedValue([{ _id: '65a0000000000000000000cc' }, { _id: '65a0000000000000000000dd' }] as any); pointer.mockReset().mockResolvedValue(config); assigned.mockClear(); });

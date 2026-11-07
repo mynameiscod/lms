@@ -1929,6 +1929,8 @@ export const leadPipelineApi = {
 
 // Lead API
 export const leadApi = {
+  /** People who can be assigned leads: Super Admin, System Admin and staff with a BDM role. */
+  getCounsellors: async () => authenticatedFetch(`${API_BASE_URL}/leads/counsellors`),
   getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string; adId?: string; reEnquiry?: boolean; milestone?: string; subStageId?: string; followUp?: string; course?: string; campaign?: string; sort?: string; dir?: 'asc' | 'desc'; openOnly?: string }) => {
     const params = new URLSearchParams();
     for (const k of ['milestone', 'subStageId', 'followUp', 'course', 'campaign', 'sort', 'dir', 'openOnly'] as const) {

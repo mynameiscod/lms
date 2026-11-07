@@ -1,4 +1,5 @@
 import { waitsForOutpero } from './outperoPolicyService';
+import { listCounsellors } from './leadCounsellorService';
 import mongoose from 'mongoose';
 import Lead, { ILead, LeadPriority, LeadEligibility } from '../models/Lead';
 import LeadPriorityConfig, {
@@ -142,6 +143,10 @@ async function getNextRoundRobinAssignee(
   ruleIndex?: number
 ): Promise<mongoose.Types.ObjectId | null> {
   if (!members || members.length === 0) return null;
+  // Only counsellors (admins or a BDM role) receive leads, whoever is listed in older settings.
+  const counsellorIds = new Set((await listCounsellors(String(tenantId))).map(c => c._id));
+  members = members.filter(m => counsellorIds.has(String(m)));
+  if (members.length === 0) return null;
 
   let config: ILeadScoringConfig | null;
 

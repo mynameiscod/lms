@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { leadApi, leadReportApi, leadStageApi, userApi } from '../../api';
+import { leadApi, leadReportApi, leadStageApi } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Modal } from '../../components/common';
 import StageChangeDialog from '../../components/leads/StageChangeDialog';
 import FunnelChart, { FUNNEL_RAMP } from './FunnelChart';
 import TrendChart, { SERIES } from './TrendChart';
+import LeadKanbanPage from '../LeadKanban';
 import './LeadDashboard.css';
 
 /**
@@ -96,6 +97,22 @@ const LeadDashboard: React.FC = () => {
   const [addForm, setAddForm] = useState({ name: '', phone: '', email: '', course: '', source: 'walkin' });
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'danger'; text: string } | null>(null);
+  // Everything the old "All Leads (list)" page offered, now here (single leads screen).
+  const [extra, setExtra] = useState<{ priority: string; adId: string; reEnquiry: boolean }>({ priority: '', adId: '', reEnquiry: false });
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
+  const [pageSize, setPageSize] = useState(25);
+  const [view, setView] = useState<'table' | 'board'>('table');
+  const [ads, setAds] = useState<{ adId: string; adName?: string; campaignName?: string; adSetName?: string; leads: number }[]>([]);
+  const [views, setViews] = useState<{ _id: string; name: string; filters: Record<string, string>; shared: boolean; mine: boolean }[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [waOpen, setWaOpen] = useState(false);
+  const [waMsg, setWaMsg] = useState('');
+  const [myActivity, setMyActivity] = useState<any>(null);
+  const perms: string[] = (user as any)?.permissions || [];
+  const isAdmin = !!user && ['SUPER_ADMIN', 'TENANT_ADMIN'].includes(user.role);
+  const canDelete = isAdmin || perms.some(p => ['delete_leads', 'manage_leads'].includes(p));
+  const canImport = isAdmin || perms.some(p => ['export_leads', 'manage_leads'].includes(p));
   const searchRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -112,9 +129,15 @@ const LeadDashboard: React.FC = () => {
 
   useEffect(() => {
     leadStageApi.getStages().then((r: any) => setStages(r.data || [])).catch(() => {});
-    userApi.getUsers().then((r: any) => setStaff((r.data || []).filter((u: any) => ['TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'].includes(u.role) || u.customRoleId))).catch(() => {});
+    leadApi.getCounsellors().then((r: any) => setStaff(r.data || [])).catch(() => {});
     leadApi.getSources().then((r: any) => setSources((r.data || []).map((s: any) => (typeof s === 'string' ? s : s._id || s.source)).filter(Boolean))).catch(() => {});
-  }, []);
+    leadApi.getAds().then((r: any) => setAds(r?.data || [])).catch(() => {});
+    // A counsellor's own numbers for today (admins see the team on Team Activity).
+    if (!isAdmin) leadApi.getMyPerformance().then((r: any) => setMyActivity(r?.data || null)).catch(() => {});
+  }, [isAdmin]);
+
+  const loadViews = useCallback(() => { leadApi.getSavedViews().then((r: any) => setViews(r.data || [])).catch(() => setViews([])); }, []);
+  useEffect(() => { loadViews(); }, [loadViews]);
 
   const loadDash = useCallback(() => {
     setDashError('');
@@ -124,8 +147,9 @@ const LeadDashboard: React.FC = () => {
 
   // The table: tab + filters (+ the date range for the period tabs).
   const listParams = useMemo(() => {
-    const p: any = { page, limit: 25, search: search || undefined, stageId: filters.stageId || undefined, course: filters.course || undefined,
-      source: filters.source || undefined, campaign: filters.campaign || undefined, assignedTo: filters.assignedTo || undefined, sort: 'createdAt', dir: 'desc' };
+    const p: any = { page, limit: pageSize, search: search || undefined, stageId: filters.stageId || undefined, course: filters.course || undefined,
+      source: filters.source || undefined, campaign: filters.campaign || undefined, assignedTo: filters.assignedTo || undefined, sort: 'createdAt', dir: 'desc',
+      priority: extra.priority || undefined, adId: extra.adId || undefined, reEnquiry: extra.reEnquiry || undefined };
     const period = { dateFrom: range.from, dateTo: range.to };
     switch (tab) {
       case 'mine': Object.assign(p, period, { assignedTo: myId }); break;
@@ -135,8 +159,9 @@ const LeadDashboard: React.FC = () => {
       case 'lost': Object.assign(p, period, { milestone: 'lost', stageId: undefined }); break;
       default: Object.assign(p, period);
     }
+    if (sort) Object.assign(p, { sort: sort.key, dir: sort.dir }); // a clicked column header wins
     return p;
-  }, [page, search, filters, tab, range.from, range.to, myId]);
+  }, [page, pageSize, search, filters, extra, sort, tab, range.from, range.to, myId]);
 
   const loadLeads = useCallback(async () => {
     setLoadingLeads(true);
@@ -190,6 +215,71 @@ const LeadDashboard: React.FC = () => {
     finally { setBusy(false); }
   };
 
+  const importCsv = async () => {
+    if (!importFile) return;
+    setBusy(true);
+    try {
+      const r: any = await leadApi.importLeads(await importFile.text());
+      notify('success', r.message || `Imported ${r.data?.imported || 0} leads`);
+      setImportOpen(false); setImportFile(null); refreshAll();
+    } catch (e: any) { notify('danger', e.message || 'Import failed'); }
+    finally { setBusy(false); }
+  };
+
+  /** Opens WhatsApp for each selected lead with the message filled in (nothing is sent automatically). */
+  const sendWhatsApp = () => {
+    leads.filter(l => selected.has(l._id) && l.phone).forEach(l => {
+      const msg = encodeURIComponent(waMsg.trim() ? waMsg.replace(/\{name\}/gi, l.name) : `Hi ${l.name},`);
+      window.open(`https://wa.me/${String(l.phone).replace(/\D/g, '')}?text=${msg}`, '_blank');
+    });
+    setWaOpen(false); setSelected(new Set());
+  };
+
+  const deleteLead = async (l: any) => {
+    setMenuFor(null);
+    if (!window.confirm(`Delete the lead "${l.name}"? This cannot be undone. (To hide old leads instead, use Lead Archive.)`)) return;
+    try { await leadApi.deleteLead(l._id); notify('success', 'Lead deleted'); refreshAll(); }
+    catch (e: any) { notify('danger', e.message || 'Could not delete'); }
+  };
+
+  const toggleSort = (key: string) => {
+    setSort(s => (s?.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'name' || key === 'nextFollowUp' ? 'asc' : 'desc' }));
+    setPage(1);
+  };
+  const sortMark = (key: string) => (sort?.key === key ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : '');
+
+  // ── saved views ──
+  const currentView = (): Record<string, string> => {
+    const v: Record<string, string> = { tab, rangeKey, ...filters, priority: extra.priority, adId: extra.adId, reEnquiry: extra.reEnquiry ? 'true' : '', search: searchInput,
+      ...(sort ? { sort: sort.key, dir: sort.dir } : {}), ...(rangeKey === 'custom' ? { dateFrom: custom.from, dateTo: custom.to } : {}) };
+    Object.keys(v).forEach(k => { if (!v[k]) delete v[k]; });
+    return v;
+  };
+  const applyView = (id: string) => {
+    const v = views.find(x => x._id === id); if (!v) return;
+    const f = v.filters || {};
+    setTab((f.tab as Tab) || 'all');
+    setRangeKey((f.rangeKey as RangeKey) || 'this_month');
+    if (f.rangeKey === 'custom') setCustom({ from: f.dateFrom || '', to: f.dateTo || '' });
+    setFilters({ stageId: f.stageId || '', course: f.course || '', source: f.source || '', campaign: f.campaign || '', assignedTo: f.assignedTo || '' });
+    setExtra({ priority: f.priority || '', adId: f.adId || '', reEnquiry: f.reEnquiry === 'true' });
+    setSearchInput(f.search || ''); setSearch(f.search || '');
+    setSort(f.sort ? { key: f.sort, dir: f.dir === 'asc' ? 'asc' : 'desc' } : null);
+    setPage(1);
+  };
+  const saveView = async () => {
+    const name = window.prompt('Name this view (e.g. "My overdue hot leads")');
+    if (!name?.trim()) return;
+    const shared = isAdmin ? window.confirm('Share this view with the whole team?') : false;
+    try { await leadApi.saveView(name.trim(), currentView(), shared); loadViews(); notify('success', `View "${name.trim()}" saved`); }
+    catch (e: any) { notify('danger', e.message || 'Could not save the view'); }
+  };
+  const deleteView = async (id: string) => {
+    const v = views.find(x => x._id === id);
+    if (!v || !window.confirm(`Delete the view "${v.name}"?`)) return;
+    try { await leadApi.deleteView(id); loadViews(); } catch (e: any) { notify('danger', e.message || 'Could not delete'); }
+  };
+
   const allChecked = leads.length > 0 && leads.every(l => selected.has(l._id));
   const toggleAll = () => setSelected(allChecked ? new Set() : new Set(leads.map(l => l._id)));
   const toggleOne = (id: string) => setSelected(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -213,8 +303,25 @@ const LeadDashboard: React.FC = () => {
           <input ref={searchRef} value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="Search leads by name, mobile, email…" aria-label="Search leads" />
           <kbd>Ctrl + K</kbd>
         </div>
+        <div className="ldb-seg" role="group" aria-label="View">
+          <button type="button" className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}><i className="bi bi-table" /> Table</button>
+          <button type="button" className={view === 'board' ? 'active' : ''} onClick={() => setView('board')}><i className="bi bi-kanban" /> Board</button>
+        </div>
+        {canImport && <button className="ldb-btn" onClick={() => { setImportFile(null); setImportOpen(true); }}><i className="bi bi-upload" /> Import</button>}
         <button className="ldb-btn-primary" onClick={() => setAddOpen(true)}><i className="bi bi-plus-lg" /> Add Lead</button>
       </div>
+
+      {myActivity && (
+        <div className="ldb-today" aria-label="Your activity today">
+          <strong>Your day:</strong>
+          <span><i className="bi bi-telephone" /> {myActivity.todayByType?.call || 0} calls</span>
+          <span><i className="bi bi-whatsapp" /> {myActivity.todayByType?.whatsapp || 0} WhatsApp</span>
+          <span><i className="bi bi-sticky" /> {myActivity.todayByType?.note || 0} notes</span>
+          <span><i className="bi bi-signpost-split" /> {myActivity.todayByType?.stage_change || myActivity.todayByType?.status_change || 0} stage moves</span>
+          <span><i className="bi bi-bullseye" /> {myActivity.uniqueleadsTouchedToday || 0} leads touched</span>
+          <span className="ldb-today-sub">Week {myActivity.weekActivities ?? 0} · Month {myActivity.monthActivities ?? 0}</span>
+        </div>
+      )}
 
       <header className="ldb-head">
         <div>
@@ -365,28 +472,56 @@ const LeadDashboard: React.FC = () => {
           <option value="">Counsellor: All</option>
           {staff.map(u => <option key={u._id} value={u._id}>{`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email}</option>)}
         </select>
+        <select value={extra.priority} onChange={e => { setExtra(x => ({ ...x, priority: e.target.value })); setPage(1); }} aria-label="Priority">
+          <option value="">Priority: All</option>
+          <option value="hot">Hot</option><option value="warm">Warm</option><option value="cold">Cold</option>
+        </select>
+        {ads.length > 0 && (
+          <select value={extra.adId} onChange={e => { setExtra(x => ({ ...x, adId: e.target.value })); setPage(1); }} aria-label="Ad" title="Leads that came from one ad">
+            <option value="">Ad: All</option>
+            {ads.map(a => <option key={a.adId} value={a.adId}>{a.adId.startsWith('form:') ? `Lead form ${a.adId.slice(5)}` : [a.campaignName, a.adName || a.adSetName || a.adId].filter(Boolean).join(' › ')} ({a.leads})</option>)}
+          </select>
+        )}
+        <button type="button" className={`ldb-toggle${extra.reEnquiry ? ' on' : ''}`} aria-pressed={extra.reEnquiry} onClick={() => { setExtra(x => ({ ...x, reEnquiry: !x.reEnquiry })); setPage(1); }}
+          title="Leads that enquired again and have not been worked since"><i className="bi bi-arrow-repeat" /> Enquired again</button>
+        <select value="" onChange={e => { const v = e.target.value; if (v === '__save') saveView(); else if (v.startsWith('__del:')) deleteView(v.slice(6)); else if (v) applyView(v); }} aria-label="Saved views">
+          <option value="">Saved views…</option>
+          {views.map(v => <option key={v._id} value={v._id}>{v.name}{v.shared ? ' (team)' : ''}</option>)}
+          <option value="__save">+ Save these filters as a view</option>
+          {views.filter(v => v.mine).map(v => <option key={`d${v._id}`} value={`__del:${v._id}`}>Delete “{v.name}”</option>)}
+        </select>
         <div className="ldb-filters-right">
           <button className="ldb-icon-btn" onClick={exportExcel} title="Export to Excel" aria-label="Export to Excel"><i className="bi bi-download" /></button>
-          <button className="ldb-icon-btn" onClick={() => navigate('/lead-list')} title="Open the full leads list" aria-label="Open the full leads list"><i className="bi bi-list-ul" /></button>
         </div>
       </div>
 
-      {selected.size > 0 && canBulk && (
+      {selected.size > 0 && (
         <div className="ldb-bulk">
           <strong>{selected.size} selected</strong>
-          <button onClick={() => setStageDialog({ leadIds: Array.from(selected) })}>Move stage</button>
-          <button onClick={() => { setAssignTo(''); setAssignOpen(true); }}>Assign</button>
+          {canBulk && <button onClick={() => setStageDialog({ leadIds: Array.from(selected) })}>Move stage</button>}
+          {canBulk && <button onClick={() => { setAssignTo(''); setAssignOpen(true); }}>Assign</button>}
+          <button onClick={() => { setWaMsg(''); setWaOpen(true); }}><i className="bi bi-whatsapp" /> WhatsApp</button>
           <button className="ldb-link" onClick={() => setSelected(new Set())}>Clear</button>
         </div>
       )}
 
+      {/* ── board (Kanban) ── */}
+      {view === 'board' && <div className="ldb-board"><LeadKanbanPage /></div>}
+
       {/* ── table ── */}
+      {view === 'table' && (<>
       <div className="ldb-table-wrap">
         <table className="ldb-table">
           <thead>
             <tr>
               <th className="ldb-check"><input type="checkbox" checked={allChecked} onChange={toggleAll} aria-label="Select all on this page" /></th>
-              <th>Student / Lead</th><th>Course Interest</th><th>Source</th><th>Stage</th><th>Last Contact</th><th>Next Follow-up</th><th>Counsellor</th><th>Lead Age</th><th className="ldb-actions-h">Actions</th>
+              <th className="ldb-th-sort" aria-sort={sort?.key === 'name' ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}><button type="button" onClick={() => toggleSort('name')}>Student / Lead{sortMark('name')}</button></th>
+              <th>Course Interest</th><th>Source</th><th>Stage</th>
+              <th className="ldb-th-sort"><button type="button" onClick={() => toggleSort('lastContactedAt')}>Last Contact{sortMark('lastContactedAt')}</button></th>
+              <th className="ldb-th-sort"><button type="button" onClick={() => toggleSort('nextFollowUp')}>Next Follow-up{sortMark('nextFollowUp')}</button></th>
+              <th>Counsellor</th>
+              <th className="ldb-th-sort"><button type="button" onClick={() => toggleSort('createdAt')}>Lead Age{sortMark('createdAt')}</button></th>
+              <th className="ldb-actions-h">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -406,7 +541,13 @@ const LeadDashboard: React.FC = () => {
                   <td>
                     <button className="ldb-person" onClick={() => navigate(`/leads/${l._id}`)}>
                       <span className="ldb-avatar" aria-hidden="true">{initials(l.name)}</span>
-                      <span><span className="ldb-name">{l.name}</span><span className="ldb-sub">{l.phone}</span></span>
+                      <span>
+                        <span className="ldb-name">{l.name}
+                          {l.priority && l.priority !== 'cold' && <span className={`ldb-prio ${l.priority}`} title={`Priority: ${l.priority}`}>{l.priority === 'hot' ? 'Hot' : 'Warm'}</span>}
+                          {l.reEnquiryUnseen && <span className="ldb-reenq" title="Enquired again — not worked since">🔁</span>}
+                        </span>
+                        <span className="ldb-sub">{l.phone}</span>
+                      </span>
                     </button>
                   </td>
                   <td>{(l.courseInterest || []).slice(0, 2).map((c: string) => <span key={c} className="ldb-chip">{c}</span>)}{!l.courseInterest?.length && <span className="ldb-muted">—</span>}</td>
@@ -429,6 +570,7 @@ const LeadDashboard: React.FC = () => {
                           <button role="menuitem" onClick={() => navigate(`/leads/${l._id}`)}>View details</button>
                           <button role="menuitem" onClick={() => { setMenuFor(null); setStageDialog({ leadIds: [l._id], currentStageId: stage?._id, currentSubStageId: l.subStageId?._id || null }); }}>Move stage</button>
                           <a role="menuitem" href={`https://wa.me/${String(l.phone || '').replace(/\D/g, '')}`} target="_blank" rel="noreferrer">WhatsApp</a>
+                          {canDelete && <button role="menuitem" className="ldb-menu-danger" onClick={() => deleteLead(l)}>Delete</button>}
                         </div>
                       )}
                     </span>
@@ -440,13 +582,42 @@ const LeadDashboard: React.FC = () => {
         </table>
       </div>
       <div className="ldb-pager">
-        <span className="ldb-muted">{fmtN(total)} lead{total === 1 ? '' : 's'}</span>
+        <span className="ldb-muted">
+          {fmtN(total)} lead{total === 1 ? '' : 's'} ·{' '}
+          <label className="ldb-pagesize">Show
+            <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} aria-label="Leads per page">
+              {[25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+            </select> per page</label>
+        </span>
         <div>
           <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
           <span>Page {page} of {totalPages}</span>
           <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</button>
         </div>
       </div>
+      </>)}
+
+      <Modal isOpen={importOpen} onClose={() => setImportOpen(false)} title="Import leads from CSV" size="small">
+        <p className="small text-muted mb-2">Columns: <strong>Name, Email, Phone, Source, Course Interest, Notes</strong>. Name and Phone are required. Duplicate phone numbers are skipped.</p>
+        <label className="ldb-drop">
+          <input type="file" accept=".csv,text/csv" onChange={e => setImportFile(e.target.files?.[0] || null)} />
+          <i className={`bi ${importFile ? 'bi-file-earmark-check' : 'bi-cloud-arrow-up'}`} aria-hidden="true" />
+          <span>{importFile ? importFile.name : 'Choose a CSV file'}</span>
+        </label>
+        <div className="d-flex justify-content-end gap-2 mt-3">
+          <button className="btn btn-outline-secondary btn-sm" onClick={() => setImportOpen(false)}>Cancel</button>
+          <button className="btn btn-primary btn-sm" disabled={!importFile || busy} onClick={importCsv}>{busy ? 'Importing…' : 'Import'}</button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={waOpen} onClose={() => setWaOpen(false)} title={`WhatsApp ${selected.size} lead${selected.size === 1 ? '' : 's'}`} size="small">
+        <p className="small text-muted mb-2">Opens a WhatsApp chat for each lead with this message filled in — you press send in each. <code>{'{name}'}</code> is replaced by the lead's name.</p>
+        <textarea className="form-control" rows={4} value={waMsg} onChange={e => setWaMsg(e.target.value)} placeholder="Hi {name}, thanks for your interest in CodeBegun…" maxLength={1000} />
+        <div className="d-flex justify-content-end gap-2 mt-3">
+          <button className="btn btn-outline-secondary btn-sm" onClick={() => setWaOpen(false)}>Cancel</button>
+          <button className="btn btn-success btn-sm" onClick={sendWhatsApp}><i className="bi bi-whatsapp" /> Open {selected.size} chat{selected.size === 1 ? '' : 's'}</button>
+        </div>
+      </Modal>
 
       <StageChangeDialog
         open={!!stageDialog}

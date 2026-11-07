@@ -14,7 +14,7 @@ import LeadSavedView from '../models/LeadSavedView';
 const router = express.Router();
 const guard = [authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads'])];
 
-const FILTER_KEYS = ['stageId', 'subStageId', 'milestone', 'source', 'assignedTo', 'priority', 'adId', 'reEnquiry',
+const FILTER_KEYS = ['tab', 'rangeKey', 'stageId', 'subStageId', 'milestone', 'source', 'assignedTo', 'priority', 'adId', 'reEnquiry',
   'search', 'dateFrom', 'dateTo', 'datePreset', 'course', 'campaign', 'followUp', 'sort', 'dir'];
 const cleanFilters = (raw: any): Record<string, string> => {
   const out: Record<string, string> = {};

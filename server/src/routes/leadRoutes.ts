@@ -12,6 +12,7 @@ import {
   bulkChangeStage,
   bulkAssignLeads,
   getMilestoneSummary,
+  getLeadCounsellors,
   getFollowUpQueue,
   approveStageChange,
   addLeadActivity, logCallClick, logWhatsAppClick, staffHeartbeat, getTeamOverview, getTeamPerson,
@@ -88,6 +89,9 @@ router.post('/import', authMiddleware, tenantResolver, roleGuard(['export_leads'
 router.get('/aging', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getAgingLeads);
 router.get('/duplicates', authMiddleware, tenantResolver, roleGuard(['manage_leads']), getDuplicateLeads);
 router.post('/duplicates/merge', authMiddleware, tenantResolver, roleGuard(['manage_leads']), mergeDuplicateLeads);
+
+// Who can be assigned leads (literal path, above /:leadId)
+router.get('/counsellors', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getLeadCounsellors);
 
 // Milestone strip + follow-up queue (literal paths, above /:leadId)
 router.get('/milestone-summary', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getMilestoneSummary);

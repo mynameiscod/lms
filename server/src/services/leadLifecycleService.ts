@@ -149,7 +149,13 @@ export async function changeStage(input: StageChangeInput): Promise<StageChangeR
   const skipsRules = source === 'convert' || source === 'outpero' || source === 'automation';
 
   if (!skipsRules) {
-    if (sub?.requiresReason && !reason) throw new LifecycleError(400, `Pick a reason for "${sub.name}"`, 'REASON_REQUIRED');
+    if (sub?.requiresReason && !reason) {
+      // A sub-stage can require a reason before anyone has added reasons to its list —
+      // then a typed reason is accepted instead of leaving people stuck.
+      const hasList = await LeadReason.exists({ tenantId: tid, subStageId: sub._id, isActive: true });
+      if (hasList) throw new LifecycleError(400, `Pick a reason for "${sub.name}"`, 'REASON_REQUIRED');
+      if (!reasonText) throw new LifecycleError(400, `Type a reason for "${sub.name}"`, 'REASON_REQUIRED');
+    }
     if (reason?.requiresDetail && !reasonDetail) throw new LifecycleError(400, `Add details for "${reason.name}"`, 'DETAIL_REQUIRED');
     const stageNeedsReason = !!stage.requiresReason || stage.name === 'Not Interested';
     if (stageNeedsReason && !reason && !reasonText) throw new LifecycleError(400, `A reason is required when moving a lead to "${stage.name}"`, 'REASON_REQUIRED');

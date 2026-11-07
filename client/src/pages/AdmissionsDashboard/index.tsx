@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { leadApi, leadReportApi, userApi } from '../../api';
+import { leadApi, leadReportApi } from '../../api';
 import { FUNNEL_RAMP } from '../LeadDashboard/FunnelChart';
 import './AdmissionsDashboard.css';
 
@@ -136,7 +136,7 @@ const AdmissionsDashboard: React.FC = () => {
   }, [preset, custom]);
 
   useEffect(() => {
-    userApi.getUsers().then((r: any) => setStaff((r.data || []).filter((u: any) => ['TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'].includes(u.role) || u.customRoleId))).catch(() => {});
+    leadApi.getCounsellors().then((r: any) => setStaff(r.data || [])).catch(() => {});
     leadApi.getSources().then((r: any) => setSources((r.data || []).map((s: any) => (typeof s === 'string' ? s : s._id || s.source)).filter(Boolean))).catch(() => {});
     leadReportApi.dashboard().then((r: any) => setCourses(r.data?.options?.courses || [])).catch(() => {});
   }, []);

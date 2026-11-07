@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { leadApi, leadPipelineApi, qualificationApi, followUpApi, userApi, meetingApi } from '../../../api';
+import { leadApi, leadPipelineApi, qualificationApi, followUpApi, meetingApi, leadFormConfigApi } from '../../../api';
 import { leadArchiveApi, archiveError } from '../../../api/leadArchiveApi';
 import { canChat } from '../../../api/whatsAppChatApi';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -88,6 +88,9 @@ const LeadDetailV3: React.FC = () => {
   const [fu, setFu] = useState({ at: '', reason: '', note: '' });
   const [demo, setDemo] = useState({ at: '', notes: '' });
   const [edit, setEdit] = useState({ name: '', phone: '', email: '', courses: '' });
+  // Custom lead fields from Form Settings (the non-built-in, enabled ones).
+  const [customDefs, setCustomDefs] = useState<{ fieldKey: string; label: string; type: string; options?: string[] }[]>([]);
+  const [editCustom, setEditCustom] = useState<Record<string, any>>({});
   const [staff, setStaff] = useState<any[]>([]);
   const [assignTo, setAssignTo] = useState('');
   const [convertPassword, setConvertPassword] = useState('Welcome@123');
@@ -120,6 +123,8 @@ const LeadDetailV3: React.FC = () => {
     qualificationApi.getConfig().then((r: any) => setQuestions(r.data?.questions || [])).catch(() => {});
     leadPipelineApi.getPicklist('call_outcome', true).then((r: any) => setOutcomes(r.data || [])).catch(() => {});
     leadPipelineApi.getPicklist('followup_reason', true).then((r: any) => setFuReasons(r.data || [])).catch(() => {});
+    leadFormConfigApi.getConfig().then((r: any) => setCustomDefs((r.data?.fields || []).filter((f: any) => f.enabled && !f.isBuiltIn)
+      .sort((a: any, b: any) => (a.order || 0) - (b.order || 0)))).catch(() => {});
   }, []);
   useEffect(() => { const close = () => setMenu(null); window.addEventListener('click', close); return () => window.removeEventListener('click', close); }, []);
 
@@ -175,11 +180,16 @@ const LeadDetailV3: React.FC = () => {
   };
   const saveEdit = () => {
     if (!edit.name.trim() || !edit.phone.trim()) { notify('danger', 'Name and mobile are required'); return; }
-    run(() => leadApi.updateLead(lead._id, { name: edit.name.trim(), phone: edit.phone.trim(), email: edit.email.trim(), courseInterest: edit.courses.split(',').map(s => s.trim()).filter(Boolean) }), 'Lead updated');
+    run(() => leadApi.updateLead(lead._id, {
+      name: edit.name.trim(), phone: edit.phone.trim(), email: edit.email.trim(),
+      courseInterest: edit.courses.split(',').map(s => s.trim()).filter(Boolean),
+      // The institute's own form fields (Form Settings), merged so untouched ones are kept.
+      ...(customDefs.length ? { customFields: { ...(lead.customFields || {}), ...editCustom } } : {}),
+    }), 'Lead updated');
   };
   const openAssign = async () => {
     setMenu(null); setAssignTo(lead?.assignedTo?._id || ''); setModal('assign');
-    if (!staff.length) userApi.getUsers().then((r: any) => setStaff((r.data || []).filter((u: any) => ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(u.role) || u.customRoleId))).catch(() => {});
+    if (!staff.length) leadApi.getCounsellors().then((r: any) => setStaff(r.data || [])).catch(() => {});
   };
   const markTaskDone = (t: any) => run(() => followUpApi.completeFollowUp(t._id, { outcome: 'done' }), 'Follow-up marked done', false);
   const addNote = () => {
@@ -225,7 +235,7 @@ const LeadDetailV3: React.FC = () => {
         <h1>Lead Details</h1>
         <div className="ldv-titlebar-actions" onClick={e => e.stopPropagation()}>
           <button className="ldv-btn" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/leads'))}><i className="bi bi-arrow-left" /> Back</button>
-          <button className="ldv-btn" onClick={() => { setEdit({ name: lead.name || '', phone: lead.phone || '', email: lead.email || '', courses: (lead.courseInterest || []).join(', ') }); setModal('edit'); }}><i className="bi bi-pencil" /> Edit</button>
+          <button className="ldv-btn" onClick={() => { setEdit({ name: lead.name || '', phone: lead.phone || '', email: lead.email || '', courses: (lead.courseInterest || []).join(', ') }); setEditCustom({ ...(lead.customFields || {}) }); setModal('edit'); }}><i className="bi bi-pencil" /> Edit</button>
           <div className="ldv-dd">
             <button className="ldv-btn" aria-haspopup="menu" aria-expanded={menu === 'stage'} onClick={() => setMenu(menu === 'stage' ? null : 'stage')}>Change Stage <i className="bi bi-chevron-down" /></button>
             {menu === 'stage' && (
@@ -476,6 +486,23 @@ const LeadDetailV3: React.FC = () => {
           <label className="small fw-semibold">Mobile<input className="form-control" value={edit.phone} onChange={e => setEdit(x => ({ ...x, phone: e.target.value }))} /></label>
           <label className="small fw-semibold">Email<input className="form-control" type="email" value={edit.email} onChange={e => setEdit(x => ({ ...x, email: e.target.value }))} /></label>
           <label className="small fw-semibold">Interested courses <span className="text-muted fw-normal">(comma separated)</span><input className="form-control" value={edit.courses} onChange={e => setEdit(x => ({ ...x, courses: e.target.value }))} /></label>
+          {customDefs.map(f => {
+            const v = editCustom[f.fieldKey] ?? '';
+            const set = (val: any) => setEditCustom(c => ({ ...c, [f.fieldKey]: val }));
+            return (
+              <label key={f.fieldKey} className="small fw-semibold">{f.label}
+                {f.type === 'select' && f.options?.length ? (
+                  <select className="form-select" value={String(v)} onChange={e => set(e.target.value)}>
+                    <option value="">—</option>{f.options.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                ) : f.type === 'textarea' ? (
+                  <textarea className="form-control" rows={2} value={String(v)} onChange={e => set(e.target.value)} />
+                ) : (
+                  <input className="form-control" type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : f.type === 'email' ? 'email' : 'text'} value={String(v)} onChange={e => set(e.target.value)} />
+                )}
+              </label>
+            );
+          })}
           <div className="d-flex justify-content-end gap-2"><button className="btn btn-outline-secondary btn-sm" onClick={() => setModal(null)}>Cancel</button><button className="btn btn-primary btn-sm" disabled={busy} onClick={saveEdit}>{busy ? 'Saving…' : 'Save'}</button></div>
         </div>
       </Modal>

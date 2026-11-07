@@ -76,11 +76,17 @@ const DIFFS = ['easy', 'medium', 'hard'] as const;
 async function myResults(userId: string) {
   const rows: any[] = await ProblemSubmission.aggregate([
     { $match: { userId } },
-    { $group: { _id: '$problemId', solved: { $max: { $cond: [{ $eq: ['$verdict', 'AC'] }, 1, 0] } } } },
+    { $group: {
+      _id: '$problemId',
+      solved: { $max: { $cond: [{ $eq: ['$verdict', 'AC'] }, 1, 0] } },
+      subs: { $sum: 1 },
+      accepted: { $sum: { $cond: [{ $eq: ['$verdict', 'AC'] }, 1, 0] } },
+    } },
   ]);
   const solved: any[] = []; const triedOnly: any[] = [];
-  for (const r of rows) (r.solved ? solved : triedOnly).push(r._id);
-  return { solved, triedOnly, solvedSet: new Set(solved.map(String)), triedSet: new Set(triedOnly.map(String)) };
+  let submissions = 0; let accepted = 0;
+  for (const r of rows) { (r.solved ? solved : triedOnly).push(r._id); submissions += r.subs || 0; accepted += r.accepted || 0; }
+  return { solved, triedOnly, solvedSet: new Set(solved.map(String)), triedSet: new Set(triedOnly.map(String)), submissions, accepted };
 }
 
 // ── Totals and filter choices (cached briefly: they are the same for everyone in an institute) ──
@@ -190,6 +196,10 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
     for (const r of rowsSolved) solvedByDiff[r._id] = r.n;
   }
   const solvedTotal = solvedByDiff.easy + solvedByDiff.medium + solvedByDiff.hard;
+  // Tried but not solved yet, among the problems this learner can see — the "Attempted" tab's count.
+  const attempted = mine.triedOnly.length
+    ? await CodingProblem.countDocuments({ $and: [(await visible(l.tenantId)), ...inScope(scope), { _id: { $in: mine.triedOnly } }] })
+    : 0;
 
   // "Next up": the easiest problem not solved yet.
   let next: any = null;
@@ -209,7 +219,10 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
     })),
     total, page, limit, pages: Math.max(1, Math.ceil(total / limit)),
     progress: {
-      solved: solvedTotal, total: totalsShown.total,
+      solved: solvedTotal, total: totalsShown.total, attempted,
+      /** Every run submitted for judging, and how many were accepted: accuracy is the second over the first. */
+      submissions: mine.submissions,
+      accuracy: mine.submissions ? Math.round((mine.accepted / mine.submissions) * 100) : null,
       byDifficulty: Object.fromEntries(DIFFS.map((d) => [d, { solved: solvedByDiff[d], total: totalsShown.byDifficulty[d] || 0 }])),
     },
     next: next ? { _id: String(next._id), number: next.number, title: next.title, difficulty: next.difficulty } : null,

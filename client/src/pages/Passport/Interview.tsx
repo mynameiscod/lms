@@ -8,7 +8,7 @@ import { useInterviewVoice, speechInSupported, speechOutSupported } from './useI
 import { INTERVIEWER_FACE_ENABLED } from './interviewFace';
 import './interviewRedesign.css';
 import './interviewDashboard.css';
-import { barWidth } from '../../utils/barWidth';
+import './interviewHub.css';
 
 const InterviewAvatar = React.lazy(() => import('./InterviewAvatar'));
 
@@ -67,6 +67,10 @@ const Interview: React.FC = () => {
   const [savingRec, setSavingRec] = useState(false);
   const [recWarning, setRecWarning] = useState('');
   const [playUrl, setPlayUrl] = useState('');
+  /** The landing page's feedback panel: which past sitting it shows, and which tab. */
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  const [fbTab, setFbTab] = useState<'feedback' | 'questions' | 'recording' | 'transcript'>('feedback');
+  const [allHistory, setAllHistory] = useState(false);
   const chatEnd = useRef<HTMLDivElement>(null);
   const [voiceOn, setVoiceOn] = useState(speechOutSupported);
   const [elapsed, setElapsed] = useState(0);
@@ -319,6 +323,17 @@ const Interview: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (fbTab !== 'recording' || session) return undefined;
+    const list: InterviewSession[] = data?.sessions || [];
+    const s = list.find(x => x.id === pickedId) || list.find(x => x.status === 'completed' && x.evaluation);
+    if (!s?.hasRecording) return undefined;
+    let live = true;
+    setPlayUrl(u => { if (u) URL.revokeObjectURL(u); return ''; });
+    passportApi.interviewRecordingUrl(s.id).then(u => { if (live) setPlayUrl(u); else URL.revokeObjectURL(u); }).catch(() => { /* the feedback still reads without the video */ });
+    return () => { live = false; };
+  }, [fbTab, pickedId, data, session]);
+
   // Blob URLs hold the whole video in memory until revoked.
   useEffect(() => () => { if (playUrl) URL.revokeObjectURL(playUrl); }, [playUrl]);
 
@@ -552,122 +567,80 @@ const Interview: React.FC = () => {
   }
 
   const completed = sessions.filter(s => s.status === 'completed' && s.evaluation);
-  const recentCompleted = completed.slice(0, 5);
-  const latest = recentCompleted[0];
+  const latest = completed[0];
   const latestScore = latest?.evaluation?.overallScore ?? null;
-  const latestAreas = latest?.evaluation?.areaScores?.slice(0, 5) || [];
-  const readiness = latestScore === null ? 'Start your first mock' : READINESS_LABEL[latest?.evaluation?.readinessLevel || ''] || 'Keep practicing';
-  const totalAnswers = completed.reduce((n, s) => n + s.transcript.filter(t => t.role === 'candidate').length, 0);
-  const strongest = latestAreas.length ? [...latestAreas].sort((a, b) => b.percentage - a.percentage)[0] : null;
-  /* Best, not latest: one shaky round does not undo what a member has already proved they can do. */
-  const bestScore = completed.length ? Math.max(...completed.map(s => s.evaluation?.overallScore ?? 0)) : null;
+  /** Average of every graded round, and how far the latest moved from the first one (sessions are newest first). */
+  const avgScore = completed.length ? Math.round(completed.reduce((t, s) => t + (s.evaluation?.overallScore ?? 0), 0) / completed.length) : null;
+  const firstScore = completed.length > 1 ? completed[completed.length - 1].evaluation?.overallScore ?? null : null;
+  const improvement = latestScore !== null && firstScore !== null ? latestScore - firstScore : null;
+
+  /** The round a past sitting was, so it carries that round's icon and colour. */
+  const typeOf = (s: InterviewSession): string => {
+    const r = rounds.find(x => x.key === s.planRoundKey);
+    if (r) return r.type;
+    const l = `${s.planRoundLabel || s.role}`.toLowerCase();
+    return /\bhr\b|behaviou?r/.test(l) ? 'hr' : /communic/.test(l) ? 'communication' : 'technical';
+  };
+  const minutesOf = (s: InterviewSession) => (s.completedAt
+    ? Math.max(1, Math.round((new Date(s.completedAt).getTime() - new Date(s.startedAt).getTime()) / 60000)) : null);
+  const dayOf = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+  const scoreTone = (n: number) => (n >= 75 ? 'good' : n >= 60 ? 'ok' : 'low');
+
+  /** The sitting whose feedback the panel shows: the one picked, else the latest graded. */
+  const shown = sessions.find(s => s.id === pickedId && s.status === 'completed') || latest || null;
+  const ev = shown?.evaluation || null;
+  const history = allHistory ? sessions : sessions.slice(0, 5);
+  const pick = (s: InterviewSession) => {
+    if (s.status !== 'completed') { openPast(s); return; }
+    setPickedId(s.id); setFbTab('feedback');
+  };
+  const r = 44; const c = 2 * Math.PI * r;
 
   return (
-    <PassportShell meta={latestScore !== null ? <span className="pm-pill"><i className="bi bi-mic" /> Interview <b>{latestScore}%</b></span> : undefined}>
-      <div className="cp-iv-page cp-iv-dashboard iv2">
-        {/* A logo-navy hero, as on every redesigned CareerPilot page: the one action, and where the member stands. */}
-        <section className="iv2-hero">
-          <div className="iv2-hero-copy">
-            <span className="iv2-eyebrow">Interview practice</span>
+    <PassportShell>
+      <div className="cp-iv-page ivh">
+        <section className="ivh-top">
+          <div className="ivh-copy">
+            <span className="ivh-eyebrow">Interview practice</span>
             <h1>Mock <span>Interview</span></h1>
-            <p>Practice. Improve. Perform. Run a realistic round with an AI interviewer and get specific feedback on every answer.</p>
-            <div className="iv2-chips">
-              <span><i className="bi bi-robot" /> Adaptive follow-ups</span>
-              <span><i className="bi bi-mic" /> Speak or type</span>
-              <span><i className="bi bi-clipboard2-check" /> Detailed feedback</span>
-            </div>
-            <div className="iv2-actions">
-              <button className="iv2-btn light" onClick={() => start(nextRound?.key)} disabled={busy || !canStartRound}>
-                <i className="bi bi-play-fill" /> {busy ? 'Setting up…' : nextRound ? `Start ${nextRound.title}` : 'Start AI Mock Interview'}
+            <p>Take individual mock interviews, get detailed feedback, and track your improvement over time.</p>
+            <div className="ivh-actions">
+              <button type="button" className="ivh-btn primary" onClick={() => start(nextRound?.key)} disabled={busy || !canStartRound}>
+                <i className="bi bi-play-fill" aria-hidden /> {busy ? 'Setting up…' : nextRound ? `Start ${nextRound.title}` : 'Start a mock interview'}
               </button>
-              {latest && <button className="iv2-btn ghost" onClick={() => openPast(latest)}><i className="bi bi-file-earmark-bar-graph" /> Latest report</button>}
+              <button type="button" className="ivh-btn" onClick={() => { setAllHistory(true); document.getElementById('ivh-history')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} disabled={!sessions.length}>
+                <i className="bi bi-calendar3" aria-hidden /> View All Interviews
+              </button>
             </div>
           </div>
-          {/* The middle of the banner is this member's own record: what they have sat, how their own
-              rounds stand, and the round to sit next — the same one the hero button starts. */}
-          <div className="iv2-momentum">
-            <span className="iv2-eyebrow">Your practice</span>
-            <div className={`iv2-strip${completed.length ? ' on' : ''}`}>
-              <span className="ic"><i className="bi bi-mic-fill" aria-hidden="true" /></span>
-              <div>
-                <b>{sessions.length} interview{sessions.length === 1 ? '' : 's'} attempted</b>
-                <span>{bestScore !== null
-                  ? `${completed.length} graded · best score ${bestScore}%`
-                  : 'Finish a round and your first score appears here.'}</span>
-                {bestScore !== null && <i className="iv2-strip-bar" aria-hidden="true"><em style={{ width: `${barWidth(bestScore)}%` }} /></i>}
-              </div>
-            </div>
-            {rounds.length > 1 && (
-              /* The plan's own rounds, in the admin's order. The trailing word is dropped so four
-                 "… Interview" labels still fit on one line at this width. */
-              <ol className="iv2-steps2">
-                {rounds.map(r => (
-                  <li key={r.key} className={r.used > 0 ? 'done' : nextRound?.key === r.key ? 'current' : ''}>
-                    <i /><span>{r.title.replace(/\s*interview\s*$/i, '') || r.title}</span>
-                  </li>
-                ))}
-              </ol>
-            )}
-            {nextRound && (
-              <button type="button" className="iv2-next" onClick={() => start(nextRound.key)} disabled={busy || !canStartRound}>
-                <span className="ic"><i className="bi bi-play-fill" aria-hidden="true" /></span>
-                <div>
-                  <b>{nextRound.used ? 'Practise next' : 'Start next'}</b>
-                  <span>{nextRound.title}</span>
-                  <em>{nextRound.questions} question{nextRound.questions === 1 ? '' : 's'} · {nextRound.minutes} min{nextRound.used ? ` · practised ${nextRound.used}×` : ''}</em>
-                </div>
-                <i className="bi bi-chevron-right" aria-hidden="true" />
-              </button>
-            )}
-          </div>
-          <div className="iv2-score">
-            <div className="iv2-ring" style={{ ['--iv2-deg' as any]: `${(latestScore ?? 0) * 3.6}deg` }}>
-              <div><strong>{latestScore ?? '—'}</strong>{latestScore !== null && <span>/100</span>}</div>
-            </div>
-            <div className="iv2-score-copy">
-              <small>Interview readiness</small>
-              <b>{readiness}</b>
-              <span>{completed.length} completed round{completed.length === 1 ? '' : 's'} · {totalAnswers} answer{totalAnswers === 1 ? '' : 's'}</span>
-            </div>
+          <div className="ivh-stats">
+            <div className="ivh-stat"><i className="bi bi-calendar-check ic blue" aria-hidden /><b>{sessions.length}</b><span>Interviews Taken</span></div>
+            <div className="ivh-stat"><i className="bi bi-check-circle ic green" aria-hidden /><b>{completed.length}</b><span>Completed</span></div>
+            <div className="ivh-stat"><i className="bi bi-bar-chart-fill ic violet" aria-hidden /><b>{avgScore !== null ? `${avgScore}%` : '—'}</b><span>Avg. Score</span></div>
+            <div className="ivh-stat"><i className="bi bi-graph-up-arrow ic green" aria-hidden /><b className={improvement !== null && improvement < 0 ? 'down' : 'up'}>{improvement === null ? '—' : `${improvement > 0 ? '+' : ''}${improvement}%`}</b><span>Improvement</span></div>
           </div>
         </section>
 
         {!aiAvailable && <div className="pm-msg info">AI isn't configured on this tenant yet, so interviews will run on scripted questions and won't be scored.</div>}
 
         {/*
-          THE INTERVIEWS THIS MEMBER HAS ACTUALLY BEEN GIVEN.
-          One card per round of their plan, named for what it is, so a student can see what
-          is expected of them before starting rather than pressing one generic button and
-          finding out. The allowance is shared across the cards — the plan grants a number of
-          interviews, not a number per type — which is why it is stated once, up here.
+          THE INTERVIEWS THIS MEMBER HAS ACTUALLY BEEN GIVEN — one card per round of their plan. The
+          allowance is shared across the cards (the plan grants a number of interviews, not a number
+          per type), which is why it is stated once, beside the heading.
         */}
-        <section className="cp-iv-assigned">
-          <div className="cp-iv-assigned-head">
+        <section className="ivh-card ivh-rounds">
+          <div className="ivh-card-head">
             <div>
-              <h2>Your mock interviews</h2>
-              <p>
-                {entitlement?.planName
-                  ? <>Assigned to you on the <b>{entitlement.planName}</b> plan.</>
-                  : <>The standard practice set for your course and year.</>}
-              </p>
+              <h2>Interview Rounds</h2>
+              <p>{entitlement?.planName
+                ? <>Choose a round, start an interview and get detailed feedback. Assigned to you on the <b>{entitlement.planName}</b> plan.</>
+                : <>Choose a round, start an interview and get detailed feedback.</>}</p>
             </div>
-            <div className={`cp-iv-allowance${entitlement?.remaining === 0 || trialFull ? ' out' : ''}`}>
-              {trialIv ? (
-                <>
-                  <b>{Math.max(0, trialIv.limit - trialIv.used)}</b>
-                  <span>of {trialIv.limit} left</span>
-                  <small>in your trial</small>
-                </>
-              ) : entitlement && entitlement.perThirtyDays > 0 ? (
-                <>
-                  <b>{entitlement.remaining}</b>
-                  <span>of {entitlement.perThirtyDays} left</span>
-                  <small>rolling 30 days</small>
-                </>
-              ) : (
-                <><b><i className="bi bi-infinity" /></b><span>no limit</span><small>practise as often as you like</small></>
-              )}
-            </div>
+            <span className={`ivh-allow${entitlement?.remaining === 0 || trialFull ? ' out' : ''}`}>
+              {trialIv ? <><b>{Math.max(0, trialIv.limit - trialIv.used)}</b> of {trialIv.limit} left in your trial</>
+                : entitlement && entitlement.perThirtyDays > 0 ? <><b>{entitlement.remaining}</b> of {entitlement.perThirtyDays} left · rolling 30 days</>
+                  : <><i className="bi bi-infinity" aria-hidden /> No limit</>}
+            </span>
           </div>
 
           {trialIv && (
@@ -678,7 +651,6 @@ const Interview: React.FC = () => {
                 : <>Your trial includes <b>{trialIv.limit}</b> mock {trialIv.limit === 1 ? 'interview' : 'interviews'}: {trialIv.used} started, {trialIv.limit - trialIv.used} left. Each one you start counts.</>}</span>
             </div>
           )}
-
           {!canStartRound && !trialFull && (
             <div className="cp-iv-blocked">
               <i className="bi bi-hourglass-split" />
@@ -691,28 +663,24 @@ const Interview: React.FC = () => {
             </div>
           )}
 
-          <div className="cp-iv-round-cards">
-            {rounds.map(r => (
-              <article className={`cp-iv-round-card ${r.type}${!canStartRound ? ' locked' : ''}`} key={r.key}>
-                <div className="cp-iv-round-icon"><i className={`bi ${ROUND_ICON[r.type] || 'bi-mic'}`} /></div>
-                <h3>{r.title}</h3>
-                {/* Only when the admin actually named it — otherwise this repeats the title. */}
-                {!!r.label && <span className="cp-iv-round-sub">{r.label}</span>}
-                <p className="cp-iv-round-blurb">{ROUND_BLURB[r.type] || ''}</p>
-                <div className="cp-iv-round-meta">
-                  <span><i className="bi bi-patch-question" /> {r.questions} question{r.questions === 1 ? '' : 's'}</span>
-                  <span><i className="bi bi-clock" /> {r.minutes} min</span>
+          <div className="ivh-round-grid">
+            {rounds.map(rd => (
+              <article key={rd.key} className={`ivh-round t-${rd.type}${!canStartRound ? ' locked' : ''}`}>
+                <div className="ivh-round-top">
+                  <span className="ivh-round-ic" aria-hidden><i className={`bi ${ROUND_ICON[rd.type] || 'bi-mic'}`} /></span>
+                  <div>
+                    <h3>{rd.title}</h3>
+                    {/* Only when the admin actually named it — otherwise this repeats the title. */}
+                    {!!rd.label && <span className="ivh-round-sub">{rd.label}</span>}
+                    <p>{ROUND_BLURB[rd.type] || ''}</p>
+                  </div>
                 </div>
-                <div className="cp-iv-round-foot">
-                  <span className="cp-iv-round-used">
-                    {r.used ? `Practised ${r.used}×` : 'Not practised yet'}
-                  </span>
-                  <button
-                    className="cp-iv-round-go"
-                    onClick={() => start(r.key)}
-                    disabled={busy || !canStartRound}
-                  >
-                    {r.used ? 'Practise again' : 'Start'} <i className="bi bi-arrow-right" />
+                <div className="ivh-round-foot">
+                  <span><i className="bi bi-clock" aria-hidden /> {rd.minutes} min</span>
+                  <span><i className="bi bi-patch-question" aria-hidden /> {rd.questions} question{rd.questions === 1 ? '' : 's'}</span>
+                  <span className="ivh-round-used">{rd.used ? `Practised ${rd.used}×` : 'Not practised yet'}</span>
+                  <button type="button" onClick={() => start(rd.key)} disabled={busy || !canStartRound}>
+                    {rd.used ? 'Again' : 'Start'} <i className="bi bi-arrow-right" aria-hidden />
                   </button>
                 </div>
               </article>
@@ -720,61 +688,124 @@ const Interview: React.FC = () => {
           </div>
         </section>
 
-        <div className="cp-iv-main-grid">
-          <div className="cp-iv-main-column">
-            <div className="cp-iv-metric-row">
-              {(latestAreas.length ? latestAreas : [
-                { title: 'Mock rounds', percentage: Math.min(100, completed.length * 20) },
-                { title: 'Answers practiced', percentage: Math.min(100, totalAnswers * 4) },
-              ]).map((a: any, i: number) => (
-                <div className="cp-iv-metric" key={`${a.title}-${i}`}><div className={`cp-iv-metric-icon m${i % 5}`}><i className={`bi ${['bi-code-slash','bi-diagram-3','bi-chat-dots','bi-person-check','bi-cpu'][i % 5]}`} /></div><div><span>{a.title}</span><b>{a.percentage}{latestAreas.length ? '/100' : '%'}</b><div className="cp-iv-progress"><i style={{ width: `${Math.min(100, a.percentage)}%` }} /></div></div></div>
-              ))}
+        <div className="ivh-lower">
+          <section className="ivh-card ivh-history" id="ivh-history">
+            <div className="ivh-card-head">
+              <h2>Interview History</h2>
+              {sessions.length > 5 && (
+                <button type="button" className="ivh-link" onClick={() => setAllHistory(v => !v)}>
+                  {allHistory ? 'Show recent' : `View All (${sessions.length})`} <i className={`bi ${allHistory ? 'bi-arrow-up' : 'bi-arrow-right'}`} aria-hidden />
+                </button>
+              )}
             </div>
+            {!sessions.length && <div className="ivh-empty"><i className="bi bi-mic" aria-hidden /><b>No mock interviews yet</b><span>Start a round above — your history and scores appear here.</span></div>}
+            <ul className="ivh-hist">
+              {/* Titled by the round it WAS, read off the row — so a member's history keeps saying
+                  "HR Interview" after an admin renames that round. */}
+              {history.map(s => {
+                const t = typeOf(s); const score = s.evaluation?.overallScore; const m = minutesOf(s);
+                return (
+                  <li key={s.id}>
+                    <button type="button" className={`ivh-hrow${shown?.id === s.id ? ' on' : ''}`} onClick={() => pick(s)}>
+                      <span className={`ivh-round-ic sm t-${t}`} aria-hidden><i className={`bi ${ROUND_ICON[t] || 'bi-mic'}`} /></span>
+                      <span className="ivh-hrow-tx">
+                        <b>{s.planRoundLabel || s.role}</b>
+                        <small><i className="bi bi-calendar3" aria-hidden /> {dayOf(s.startedAt)}{m ? ` · ${m} min` : ''}</small>
+                      </span>
+                      <span className="ivh-hrow-res">
+                        {s.status === 'completed' && score != null
+                          ? <><em className={`ivh-pill ${scoreTone(score)}`}>{score}%</em><small>Completed</small></>
+                          : <><em className="ivh-pill wait">{s.status === 'in_progress' ? 'Resume' : '—'}</em><small>{s.status === 'in_progress' ? 'In progress' : 'Not completed'}</small></>}
+                      </span>
+                      <i className="bi bi-chevron-right ivh-chev" aria-hidden />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
 
-            <div className="cp-iv-insights-grid">
-              <section className="cp-iv-panel">
-                <div className="cp-iv-panel-head"><h3>Performance trend</h3><span>{completed.length} completed rounds</span></div>
-                {recentCompleted.length ? <div className="cp-iv-trend">{[...recentCompleted].reverse().map((s, i) => <div className="cp-iv-trend-point" key={s.id}><span style={{ height: `${Math.max(18, s.evaluation?.overallScore || 0)}%` }}><b>{s.evaluation?.overallScore ?? 0}</b></span><small>{i + 1}</small></div>)}</div> : <div className="cp-iv-empty">Your interview score trend will appear after your first completed round.</div>}
-              </section>
-
-              <div className="cp-iv-stack">
-                <section className="cp-iv-panel"><h3 className="good-title"><i className="bi bi-check-circle" /> Top strengths</h3>{latest?.evaluation?.strengths?.length ? <ul>{latest.evaluation.strengths.slice(0, 4).map((x, i) => <li key={i}>{x}</li>)}</ul> : <p className="cp-iv-muted">Complete a mock interview to discover what you already do well.</p>}</section>
-                <section className="cp-iv-panel cp-iv-improve"><h3 className="warn-title"><i className="bi bi-exclamation-circle" /> Areas to improve</h3>{latest?.evaluation?.improvements?.length ? <ul>{latest.evaluation.improvements.slice(0, 4).map((x, i) => <li key={i}>{x}</li>)}</ul> : <p className="cp-iv-muted">Your priority improvement areas will appear here after grading.</p>}</section>
-              </div>
+          <section className="ivh-card ivh-feedback" aria-live="polite">
+            <div className="ivh-card-head">
+              <h2>{shown && shown.id !== latest?.id ? 'Feedback' : 'Latest Feedback'}</h2>
+              {shown && <span className="ivh-tagline">{shown.planRoundLabel || shown.role} · {dayOf(shown.startedAt)}</span>}
             </div>
+            {!shown || !ev ? (
+              <div className="ivh-empty"><i className="bi bi-clipboard2-check" aria-hidden /><b>Your feedback appears here</b><span>Finish a round and you get an overall score, area by area scores, what you did well and what to work on.</span></div>
+            ) : (
+              <>
+                <div className="ivh-tabs" role="tablist">
+                  {([['feedback', 'Feedback'], ['questions', 'Questions'], ...(shown.hasRecording ? [['recording', 'Recording']] : []), ['transcript', 'Transcript']] as [typeof fbTab, string][]).map(([k, l]) => (
+                    <button key={k} type="button" role="tab" aria-selected={fbTab === k} className={fbTab === k ? 'on' : ''} onClick={() => setFbTab(k)}>{l}</button>
+                  ))}
+                </div>
 
-            <section className="cp-iv-practice-strip">
-              <div><i className="bi bi-robot" /><span><b>AI Mock Interview</b><small>Real conversation with adaptive follow-up questions.</small></span></div>
-              <div><i className="bi bi-mic" /><span><b>Voice Practice</b><small>Speak naturally in supported browsers, or type anywhere.</small></span></div>
-              <div><i className="bi bi-clipboard2-check" /><span><b>Detailed Feedback</b><small>Area scores, strengths, improvements and better answers.</small></span></div>
-              <button className="pm-btn primary" onClick={() => start(nextRound?.key)} disabled={busy || !canStartRound}>Start now <i className="bi bi-arrow-right" /></button>
-            </section>
-          </div>
+                {fbTab === 'feedback' && (
+                  <>
+                    <div className="ivh-fb-grid">
+                      <div className="ivh-ring">
+                        <svg viewBox="0 0 104 104" width="132" height="132" aria-hidden>
+                          <circle cx="52" cy="52" r={r} className="bg" />
+                          <circle cx="52" cy="52" r={r} className={`fg ${scoreTone(ev.overallScore)}`} strokeDasharray={c} strokeDashoffset={c * (1 - ev.overallScore / 100)} transform="rotate(-90 52 52)" />
+                        </svg>
+                        <b>{ev.overallScore}%</b>
+                        <span>Overall Score</span>
+                      </div>
+                      {!!ev.areaScores?.length && (
+                        <ul className="ivh-areas">
+                          {ev.areaScores.slice(0, 5).map((a, i) => (
+                            <li key={i}><i className={`bi ${['bi-code-slash', 'bi-layers', 'bi-diagram-3', 'bi-chat-dots', 'bi-cpu'][i % 5]}`} aria-hidden /><span>{a.title}</span><b>{a.percentage}%</b></li>
+                          ))}
+                        </ul>
+                      )}
+                      <div className="ivh-wells">
+                        {!!ev.strengths?.length && (
+                          <div className="ivh-well good"><b><i className="bi bi-hand-thumbs-up" aria-hidden /> What You Did Well</b><ul>{ev.strengths.slice(0, 3).map((x, i) => <li key={i}>{x}</li>)}</ul></div>
+                        )}
+                        {!!ev.improvements?.length && (
+                          <div className="ivh-well fix"><b><i className="bi bi-bullseye" aria-hidden /> Areas to Improve</b><ul>{ev.improvements.slice(0, 3).map((x, i) => <li key={i}>{x}</li>)}</ul></div>
+                        )}
+                      </div>
+                    </div>
+                    {ev.summary && (
+                      <div className="ivh-note"><i className="bi bi-file-earmark-text" aria-hidden /><div><b>Interviewer’s Note</b><p>{ev.summary}</p></div></div>
+                    )}
+                  </>
+                )}
 
-          <aside className="cp-iv-side-column">
-            <section className="cp-iv-panel cp-iv-readiness">
-              <h3>Interview Readiness Score</h3>
-              <div className="cp-iv-readiness-body">
-                <div className="cp-iv-score-ring" style={{ '--score': `${latestScore ?? 0}%` } as React.CSSProperties}><strong>{latestScore ?? '—'}</strong><span>/100</span></div>
-                <div><b>{readiness}</b><p>{latestScore === null ? 'Complete a mock interview to establish your baseline.' : 'Use each round to turn your weakest area into your next strength.'}</p>{strongest && <span className="cp-iv-status">Strongest: {strongest.title}</span>}</div>
-              </div>
-              {latest && <button className="cp-iv-link-btn" onClick={() => openPast(latest)}>View detailed report <i className="bi bi-arrow-right" /></button>}
-            </section>
+                {fbTab === 'questions' && (
+                  ev.questionFeedback?.length ? (
+                    <div className="ivh-qs">
+                      {ev.questionFeedback.map((q, i) => (
+                        <div className="iv-qf" key={i}>
+                          <div className="iv-qf-head"><span className={`iv-verdict ${q.verdict}`}>{VERDICT_LABEL[q.verdict] || q.verdict}</span><span className="iv-qf-q">{q.question}</span></div>
+                          {q.whatWorked && <p className="iv-qf-line good"><b>Worked:</b> {q.whatWorked}</p>}
+                          {q.whatToFix && <p className="iv-qf-line fix"><b>Fix:</b> {q.whatToFix}</p>}
+                          {q.betterAnswer && <div className="iv-qf-better"><span className="lbl">A stronger answer</span><p>“{q.betterAnswer}”</p></div>}
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="ivh-muted">No question-by-question feedback for this round.</p>
+                )}
 
-            <section className="cp-iv-panel">
-              <div className="cp-iv-panel-head"><h3>Recent Mock Interviews</h3><span>{sessions.length} total</span></div>
-              <div className="cp-iv-history-list">
-                {/* Titled by the round it WAS, read off the row — so a member's history keeps
-                    saying "HR Interview" after an admin renames that round. */}
-                {sessions.slice(0, 5).map(s => <button key={s.id} onClick={() => openPast(s)}><span className={`cp-iv-mini-score ${s.status}`}>{s.status === 'completed' ? s.evaluation?.overallScore ?? 0 : '•'}</span><span><b>{s.planRoundLabel || s.role}</b><small>{new Date(s.startedAt).toLocaleDateString()} · {s.status === 'completed' ? READINESS_LABEL[s.evaluation?.readinessLevel || ''] || 'Completed' : s.status === 'in_progress' ? 'In progress — resume' : 'Not completed'}</small></span><i className="bi bi-chevron-right" /></button>)}
-                {!sessions.length && <div className="cp-iv-empty compact">No mock interviews yet.</div>}
-              </div>
-            </section>
+                {fbTab === 'recording' && (
+                  playUrl ? <video src={playUrl} controls playsInline className="ivh-video" /> : <p className="ivh-muted">Loading your recording…</p>
+                )}
 
-            <section className="cp-iv-panel cp-iv-tips"><h3>Interview Tips for You</h3><div><i className="bi bi-chat-square-text" /><span><b>Use specific examples</b><small>Structure experience answers with context, action and result.</small></span></div><div><i className="bi bi-clock-history" /><span><b>Think before answering</b><small>A short pause is better than an unfocused response.</small></span></div><div><i className="bi bi-volume-up" /><span><b>Practice out loud</b><small>Voice practice makes real interviews feel more familiar.</small></span></div></section>
+                {fbTab === 'transcript' && (
+                  <div className="ivh-transcript">
+                    {shown.transcript.map((t, i) => (
+                      <div className={`iv-turn ${t.role}`} key={i}><span className="av">{t.role === 'interviewer' ? '🎙️' : '🙋'}</span><div className="bub">{t.text}</div></div>
+                    ))}
+                  </div>
+                )}
 
-            <section className="cp-iv-panel cp-iv-placement-card"><i className="bi bi-bullseye" /><div><h3>Placement Ready?</h3><p>Connect interview performance with your overall CareerPilot readiness.</p><button className="pm-btn primary cp-iv-full" onClick={() => navigate('/careerpilot/placement')}>Go to Placement Readiness <i className="bi bi-arrow-right" /></button></div></section>
-          </aside>
+                <div className="ivh-fb-foot">
+                  <button type="button" className="ivh-link" onClick={() => openPast(shown)}>Open the full report <i className="bi bi-arrow-right" aria-hidden /></button>
+                </div>
+              </>
+            )}
+          </section>
         </div>
 
         {err && <div className="pm-msg err">{err}</div>}

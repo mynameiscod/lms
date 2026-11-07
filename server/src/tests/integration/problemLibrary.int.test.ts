@@ -276,7 +276,8 @@ describe('progress', () => {
     judgeMock.mockResolvedValueOnce(verdict('WA')); await post(`/coding-practice/library/${m1._id}/submit`, 'member', { language: 'python', code: 'a' });
     const all = (await get('/coding-practice/library', 'member')).body.data;
     expect(Object.fromEntries(all.rows.map((r: any) => [r.title, r.status]))).toEqual({ E1: 'solved', E2: 'todo', M1: 'attempted', H1: 'todo' });
-    expect(all.progress).toEqual({ solved: 1, total: 4, byDifficulty: { easy: { solved: 1, total: 2 }, medium: { solved: 0, total: 1 }, hard: { solved: 0, total: 1 } } });
+    // One accepted run out of two submitted: 50% accuracy. M1 is tried and not solved: one attempted.
+    expect(all.progress).toEqual({ solved: 1, total: 4, attempted: 1, submissions: 2, accuracy: 50, byDifficulty: { easy: { solved: 1, total: 2 }, medium: { solved: 0, total: 1 }, hard: { solved: 0, total: 1 } } });
     expect(all.next).toMatchObject({ title: 'E2', difficulty: 'easy' });
     const names = async (s: string) => (await get(`/coding-practice/library?status=${s}`, 'member')).body.data.rows.map((r: any) => r.title);
     expect(await names('solved')).toEqual(['E1']);

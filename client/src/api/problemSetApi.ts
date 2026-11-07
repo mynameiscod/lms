@@ -79,7 +79,13 @@ export interface LibraryRow {
 }
 export interface LibraryPage {
   rows: LibraryRow[]; total: number; page: number; limit: number; pages: number;
-  progress: { solved: number; total: number; byDifficulty: Record<string, { solved: number; total: number }> };
+  progress: {
+    solved: number; total: number; byDifficulty: Record<string, { solved: number; total: number }>;
+    /** Tried and not solved yet. Optional: a server not yet deployed does not send these. */
+    attempted?: number; submissions?: number;
+    /** Accepted submissions over all submissions, as a percent; null before the first submission. */
+    accuracy?: number | null;
+  };
   next: { _id: string; number: number; title: string; difficulty: PbDifficulty } | null;
   /** A CareerPilot trial shows only its own problems: how many, out of the whole library. */
   trial?: { problems: number; libraryTotal: number } | null;

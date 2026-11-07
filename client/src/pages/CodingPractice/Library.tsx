@@ -6,7 +6,7 @@ import { LANG_SHORT } from '../ProblemBank/shared';
 import LibrarySolve from './LibrarySolve';
 import '../ProblemBank/ProblemBank.css';
 import './practiceLibrary.css';
-import { barWidth } from '../../utils/barWidth';
+import './practiceHub.css';
 
 /**
  * The practice library: every published Problem Bank problem, chosen by the member. Filters live
@@ -20,7 +20,6 @@ const FILTERS = ['q', 'difficulty', 'topic', 'tag', 'company', 'language', 'stat
 
 const kfmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '')}K` : String(n));
 const cap = (d: string) => d[0].toUpperCase() + d.slice(1);
-const DCOL: Record<string, string> = { easy: '#10b981', medium: '#f59e0b', hard: '#f43f5e' };
 
 export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
   const nav = useNavigate();
@@ -78,77 +77,76 @@ export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
 
   const active = FILTERS.filter((k) => k !== 'sort' && k !== 'page' && k !== 'status' && get(k));
   const prog = data?.progress;
-  const pct = (a?: number, b?: number) => (b ? Math.round(((a || 0) / b) * 100) : 0);
   const reset = () => { setText(''); setParams({}, { replace: true }); };
   const start = () => { if (data?.next) nav(`${base}/${data.next._id}`); else if (data?.rows[0]) nav(`${base}/${data.rows[0]._id}`); };
   const from = data ? (data.page - 1) * data.limit + 1 : 0;
 
+  /** The tabs' counts are the learner's own, across the whole library — not the filtered list. */
+  const attempted = prog?.attempted ?? null;
+  const counts: Record<string, number | null> = prog ? {
+    '': prog.total,
+    todo: attempted === null ? null : Math.max(0, prog.total - prog.solved - attempted),
+    attempted,
+    solved: prog.solved,
+  } : { '': null, todo: null, attempted: null, solved: null };
+  const accuracy = prog?.accuracy ?? null;
+  const to = data ? from + data.rows.length - 1 : 0;
+  const open = (id: string) => nav(`${base}/${id}`);
+
   return (
-    <div className="pl pl2x">
+    <div className="pl pl2x plh">
       {/*
-        * ONE TOP CARD, EVERYTHING ONCE. The page used to say the same things twice: a Start button
-        * and an "Up next · Solve it" card that opened the same problem; four figure cards and a
-        * "Your progress" card with the same Easy/Medium/Hard bars; plus a decorative picture, a
-        * quote and an AI Mentor card that repeats the sidebar. Now: what to do next on the left,
-        * where they stand on the right, and the list across the page below.
+        * THE TOP OF THE PAGE: what to do next on the left, the learner's three figures beside it,
+        * and the list across the page below — filters in the address, so a filtered list can be
+        * bookmarked and survives opening a problem and pressing Back.
         */}
-      <section className="plx-hero">
-        <div className="plx-copy">
-          <span className="plx-eyebrow">Practice Lab</span>
-          <h1>Turn problems into <span>progress</span></h1>
-          <p>Real coding problems with tests that run your code. Pick by topic, company or difficulty, or carry on from where you stopped.</p>
+      <section className="plh-top">
+        <div className="plh-copy">
+          <span className="plh-eyebrow">Practice Lab</span>
+          <h1>Turn Problems into <span>Progress</span></h1>
+          <p>Solve real coding problems, build strong problem-solving skills and get ready for interviews.</p>
           {data?.trial && (
             <p className="plx-trial"><i className="bi bi-hourglass-split" /> Your trial includes <b>{data.trial.problems}</b> of the {data.trial.libraryTotal.toLocaleString('en-IN')} problems. Membership opens all of them.</p>
           )}
-          {data?.next ? (
-            <div className="plx-next">
-              <small>{prog?.solved ? 'Up next for you' : 'Start with'}</small>
-              <b>{data.next.number}. {data.next.title}</b>
-              <span className={`pl-diff ${data.next.difficulty}`}>{cap(data.next.difficulty)}</span>
-            </div>
-          ) : null}
-          <div className="plx-actions">
-            <button className="pl-btn primary" onClick={start} disabled={!data}>
-              <i className="fa-solid fa-play" /> {prog?.solved ? 'Continue practising' : 'Start practising'}
+        </div>
+        <div className="plh-bar">
+          <div className="plh-actions">
+            <button type="button" className="plh-btn primary" onClick={start} disabled={!data}>
+              <i className="fa-solid fa-play" aria-hidden /> {prog?.solved ? 'Continue Practising' : 'Start Practising'}
             </button>
-            <button type="button" className="pl-btn" onClick={() => nav('/careerpilot/mentor')}>
-              <i className="fa-solid fa-robot" /> Ask AI Mentor
+            <button type="button" className="plh-btn" onClick={() => nav('/careerpilot/mentor')}>
+              <i className="fa-solid fa-robot" aria-hidden /> Ask AI Mentor
             </button>
           </div>
-        </div>
-
-        <div className="plx-progress" aria-label="Your progress">
-          <div className="plx-total">
-            <b>{prog?.solved ?? 0}<em> / {prog?.total ?? 0}</em></b>
-            <span>problems solved</span>
+          <div className="plh-stats">
+            <div className="plh-stat"><i className="fa-solid fa-code ic blue" aria-hidden /><span><b>{prog ? prog.total.toLocaleString('en-IN') : '—'}</b><small>Problems</small></span></div>
+            <div className="plh-stat"><i className="fa-regular fa-circle-check ic green" aria-hidden /><span><b>{prog ? prog.solved.toLocaleString('en-IN') : '—'}</b><small>Solved</small></span></div>
+            <div className="plh-stat"><i className="fa-solid fa-chart-simple ic violet" aria-hidden /><span><b>{accuracy !== null ? `${accuracy}%` : '—'}</b><small>Accuracy</small></span></div>
           </div>
-          <div className="plx-bar"><i style={{ width: `${barWidth(pct(prog?.solved, prog?.total))}%` }} /></div>
-          {(['easy', 'medium', 'hard'] as const).map((d) => {
-            const x = prog?.byDifficulty[d];
-            return (
-              <div key={d} className="plx-diffrow">
-                <div className="h"><span><i className={`dot ${d}`} />{cap(d)}</span><span>{x?.solved ?? 0} / {x?.total ?? 0}</span></div>
-                <div className="bar"><span style={{ width: `${barWidth(pct(x?.solved, x?.total))}%`, background: DCOL[d] }} /></div>
-              </div>
-            );
-          })}
         </div>
+        {data?.next && (
+          <p className="plh-next">
+            <span>{prog?.solved ? 'Up next for you' : 'Start with'}</span>
+            <button type="button" onClick={() => open(data.next!._id)}>{data.next.number}. {data.next.title}</button>
+            <em className={`pl-diff ${data.next.difficulty}`}>{cap(data.next.difficulty)}</em>
+          </p>
+        )}
       </section>
 
-      <section className="pl-card pl-panel">
+      <section className="pl-card pl-panel plh-panel">
         <div className="pl-tabs">
           {STATUS.map(([v, l]) => (
-            <button key={v} className={`pl-tab${get('status') === v ? ' on' : ''}`} onClick={() => set({ status: v })}>
-              <i className={`fa-${v === '' ? 'solid fa-table-cells-large' : v === 'todo' ? 'regular fa-star' : v === 'attempted' ? 'solid fa-clock-rotate-left' : 'regular fa-circle-check'}`} /> {l}
+            <button key={v} className={`pl-tab${get('status') === v ? ' on' : ''}`} onClick={() => set({ status: v })} aria-pressed={get('status') === v}>
+              <i className={`fa-${v === '' ? 'solid fa-table-cells-large' : v === 'todo' ? 'regular fa-star' : v === 'attempted' ? 'solid fa-rotate' : 'regular fa-circle-check'}`} aria-hidden /> {l}{counts[v] !== null ? ` (${(counts[v] as number).toLocaleString('en-IN')})` : ''}
             </button>
           ))}
           <span className="grow" />
-          <button className="pl-btn" onClick={randomProblem} disabled={!data || picking}><i className="fa-solid fa-shuffle" /> Random Problem</button>
+          <button className="pl-btn plh-random" onClick={randomProblem} disabled={!data || picking}><i className="fa-solid fa-shuffle" aria-hidden /> Random Problem</button>
         </div>
 
         <div className="pl-filters">
           <div className="pl-search"><i className="fa-solid fa-magnifying-glass" />
-            <input placeholder="Search by title, topic, tag or number…" value={text} onChange={(e) => setText(e.target.value)} aria-label="Search problems" /></div>
+            <input placeholder="Search by title, topic, company or number…" value={text} onChange={(e) => setText(e.target.value)} aria-label="Search problems" /></div>
           <label className="pl-field">Difficulty
             <select value={get('difficulty')} onChange={(e) => set({ difficulty: e.target.value })}>
               <option value="">All</option>
@@ -166,37 +164,59 @@ export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
             <select value={get('language')} onChange={(e) => set({ language: e.target.value })}>
               <option value="">All</option>{(facets?.languages || []).map((t) => <option key={t.name} value={t.name}>{LANG_SHORT[t.name] || t.name} ({t.count})</option>)}
             </select></label>
-          <button className="pl-btn" onClick={reset} disabled={!active.length && !get('status') && !get('sort')}><i className="fa-solid fa-rotate" /> Reset</button>
+          <button className="pl-btn" onClick={reset} disabled={!active.length && !get('status') && !get('sort')}><i className="fa-solid fa-rotate-left" aria-hidden /> Reset</button>
         </div>
 
         <div className="pl-meta">
-          <span>{data ? (data.total ? `Showing ${from} - ${from + data.rows.length - 1} of ${data.total.toLocaleString()} problems` : 'No problems') : 'Loading…'}</span>
-          <span>Sort by
-            <select value={get('sort') || 'number'} onChange={(e) => set({ sort: e.target.value === 'number' ? '' : e.target.value })} aria-label="Sort">
+          <span>{data ? (data.total ? `Showing ${from} – ${to} of ${data.total.toLocaleString('en-IN')} problems` : 'No problems') : 'Loading…'}</span>
+          <label className="plh-sort">Sort by
+            <select value={get('sort') || 'number'} onChange={(e) => set({ sort: e.target.value === 'number' ? '' : e.target.value })}>
               {SORTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select></span>
+            </select></label>
         </div>
 
         {err && <div className="pb-alert pb-alert-bad">{err}</div>}
         {data && !data.rows.length && <div className="pl-empty"><h3>{active.length || get('status') ? 'No problems match' : 'No problems yet'}</h3><p>{active.length || get('status') ? 'Try removing a filter.' : 'Problems appear here as they are published.'}</p></div>}
-        {data?.rows.map((r) => (
-          <div key={r._id} className="pl-row" onClick={() => nav(`${base}/${r._id}`)} role="link" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') nav(`${base}/${r._id}`); }}>
-            <span title={r.status === 'solved' ? 'Solved' : r.status === 'attempted' ? 'Attempted' : 'Not started'}>
-              {r.status === 'solved' ? <i className="fa-solid fa-circle-check" style={{ color: '#059669' }} />
-                : r.status === 'attempted' ? <i className="fa-solid fa-circle-half-stroke" style={{ color: '#d97706' }} />
-                  : <i className="fa-regular fa-circle" style={{ color: '#a3acc0' }} />}
-            </span>
-            <span className="num">{r.number}</span>
-            <span className="t">{r.title}</span>
-            <span className="pl-chips hide-sm">{r.topics.slice(0, 3).map((t) => <span key={t} className="pl-chip" onClick={(e) => { e.stopPropagation(); set({ topic: t }); }}>{t}</span>)}</span>
-            <span className="pl-chips hide-sm">{r.companies.slice(0, 2).map((c) => <span key={c} className="pl-chip co">{c}</span>)}</span>
-            <span className="hide-sm" style={{ color: '#475569' }}>{r.acceptance != null ? `${r.acceptance}%` : ''}</span>
-            <span className="pl-att hide-sm">{r.attempts ? <>{kfmt(r.attempts)}<br />attempts</> : ''}</span>
-            <span className={`pl-diff ${r.difficulty}`}>{cap(r.difficulty)}</span>
-            <button className={`pl-solve${r.status === 'solved' ? ' done' : ''}`} onClick={(e) => { e.stopPropagation(); nav(`${base}/${r._id}`); }}>{r.status === 'solved' ? 'Review' : 'Solve →'}</button>
-            <i className="fa-solid fa-chevron-right hide-sm" style={{ color: '#a3acc0', fontSize: 11 }} />
+
+        {!!data?.rows.length && (
+          <div className="plh-table" role="table" aria-label="Problems">
+            <div className="plh-row plh-thead" role="row">
+              <span role="columnheader" className="c-st" aria-label="Status" />
+              <span role="columnheader" className="c-num">#</span>
+              <span role="columnheader" className="c-title">Problem Title</span>
+              <span role="columnheader" className="c-topic">Topic</span>
+              <span role="columnheader" className="c-att">Attempts</span>
+              <span role="columnheader" className="c-acc">Acceptance</span>
+              <span role="columnheader" className="c-diff">Difficulty</span>
+              <span role="columnheader" className="c-act">Action</span>
+            </div>
+            {data.rows.map((r) => (
+              <div key={r._id} className={`plh-row s-${r.status}`} role="row" tabIndex={0} onClick={() => open(r._id)} onKeyDown={(e) => { if (e.key === 'Enter') open(r._id); }}>
+                <span role="cell" className="c-st" title={r.status === 'solved' ? 'Solved' : r.status === 'attempted' ? 'Attempted' : 'Not started'}>
+                  {r.status === 'solved' ? <i className="fa-solid fa-circle-check" aria-label="Solved" />
+                    : r.status === 'attempted' ? <i className="fa-solid fa-circle-half-stroke" aria-label="Attempted" />
+                      : <i className="fa-regular fa-circle" aria-label="Not started" />}
+                </span>
+                <span role="cell" className="c-num">{r.number}</span>
+                <span role="cell" className="c-title">
+                  <b>{r.title}</b>
+                  {!!r.companies.length && <small>{r.companies.slice(0, 2).join(' · ')}</small>}
+                </span>
+                <span role="cell" className="c-topic">
+                  {r.topics[0] && <span className="plh-topic" onClick={(e) => { e.stopPropagation(); set({ topic: r.topics[0] }); }} title={`Show ${r.topics[0]} problems`}>{r.topics[0]}</span>}
+                </span>
+                <span role="cell" className="c-att">{r.attempts ? `${kfmt(r.attempts)} attempt${r.attempts === 1 ? '' : 's'}` : '—'}</span>
+                <span role="cell" className="c-acc">{r.acceptance != null ? `${r.acceptance}%` : '—'}</span>
+                <span role="cell" className="c-diff"><span className={`pl-diff ${r.difficulty}`}>{cap(r.difficulty)}</span></span>
+                <span role="cell" className="c-act">
+                  <button type="button" className={`plh-solve${r.status === 'solved' ? ' done' : ''}`} onClick={(e) => { e.stopPropagation(); open(r._id); }}>
+                    {r.status === 'solved' ? 'Review' : <>Solve <i className="fa-solid fa-arrow-right" aria-hidden /></>}
+                  </button>
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
 
         {data && data.pages > 1 && (
           <div className="pl-pager">

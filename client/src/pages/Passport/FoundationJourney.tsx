@@ -839,11 +839,6 @@ const FoundationJourneyPage: React.FC = () => {
   const todayActs = day && day.day === currentDay ? (day.activities || []) : [];
   const todayLeft = todayActs.filter(a => !a.done).length;
   const todayDone = todayActs.length > 0 && todayLeft === 0;
-  const todayLine = todayActs.length > 0
-    ? (todayDone ? `All ${todayActs.length} tasks finished` : `${todayLeft} of ${todayActs.length} tasks left`)
-    : todaySummary && todaySummary.activities > 0
-      ? `${todaySummary.activities} ${todaySummary.activities === 1 ? 'task' : 'tasks'}${todaySummary.minutes > 0 ? ` · ${mins(todaySummary.minutes)}` : ''}`
-      : '';
   /**
    * What the one big button does.
    *

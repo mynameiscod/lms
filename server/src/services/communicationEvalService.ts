@@ -12,6 +12,7 @@ import * as settings from './settingsService';
 import { IEvaluation } from '../models/CommunicationAttempt';
 import { ICommunicationProfile } from '../models/CommunicationProfile';
 import { ICommunicationChallenge } from '../models/CommunicationChallenge';
+import { STUDENT_FEEDBACK_STYLE } from '../data/feedbackStyle';
 
 const FILLERS = ['um', 'uh', 'umm', 'uhh', 'hmm', 'like', 'actually', 'basically', 'so', 'you know', 'i mean', 'right', 'okay', 'ok', 'literally', 'kind of', 'sort of', 'yeah'];
 
@@ -109,7 +110,7 @@ function buildPrompt(profile: Partial<ICommunicationProfile> | null, challenge: 
     'You evaluate a student\'s spoken self-introduction. Be constructive and encouraging — never insulting or demotivating. ' +
     'Base your evaluation ONLY on the transcript and the given profile facts. Never invent skills, projects, companies, ' +
     'responsibilities, or education the student did not provide. Keep suggestions realistic and in simple professional English. ' +
-    'Respond with STRICT JSON only — no markdown, no commentary.';
+    'Respond with STRICT JSON only — no markdown, no commentary.\n' + STUDENT_FEEDBACK_STYLE;
 
   const user =
     `${profileCtx}\n\n` +

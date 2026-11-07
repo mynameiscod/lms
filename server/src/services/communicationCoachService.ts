@@ -21,6 +21,7 @@ import { recordUsage } from './aiGateway';
 import * as settings from './settingsService';
 import { generateTemplate } from './communicationEvalService';
 import { HesitationSignals } from './communicationSignalsService';
+import { STUDENT_FEEDBACK_STYLE } from '../data/feedbackStyle';
 
 export type Area = 'intro' | 'project' | 'technical' | 'hr';
 export const AREAS: Area[] = ['intro', 'project', 'technical', 'hr'];
@@ -271,7 +272,7 @@ export async function evaluateCoachAnswer(o: {
   const system = 'You are a kind but honest speaking coach for Indian engineering freshers who are nervous in interviews. '
     + 'Judge only what is in the transcript and the profile facts: never invent skills, projects or education. '
     + 'Scores are 0-100 and CALIBRATED TO A REAL RECRUITER: 70 means an IT company would pass this answer for a fresher; 50 means understandable but hesitant or thin; below 30 means barely answered. '
-    + 'Be encouraging, specific and short. The coach message must name one thing they did well and one thing to fix, using the measured numbers. Output STRICT JSON only.';
+    + 'Be encouraging, specific and short. The coach message must name one thing they did well and one thing to fix, using the measured numbers in everyday words. Output STRICT JSON only.\n' + STUDENT_FEEDBACK_STYLE;
   const mode = prompt.level === 1 ? 'The student was READING a script aloud: judge delivery (fluency, clarity, steadiness), do not penalise the content for being a script.'
     : prompt.level === 2 ? 'The student had a guide of points to follow.' : 'The student answered without help.';
   const user = `Question asked: "${prompt.ask}"${prompt.followUp ? ` Then they had to answer: "${prompt.followUp}".` : ''}\n${mode}\n`

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { communicationApi, CommAttempt } from '../../api/communicationApi';
 import LabHome from './LabHome';
+import SpeakingFeedback from './SpeakingFeedback';
 
 /**
  * The Communication Coach page: where the student stands and what to do today.
@@ -55,36 +56,25 @@ export const CompareCard: React.FC<{ data: any[] | null }> = ({ data }) => {
 };
 
 export const CoachResult: React.FC<{ a: any; next: CoachState | null; onClose: () => void }> = ({ a, next, onClose }) => {
-  const e = a.evaluation || {}; const c = a.coach || {}; const s = c.signals || {};
-  const tile = (label: string, value: React.ReactNode) => <div className="clx-card clx-score-card"><b>{value}</b><span>{label}</span></div>;
+  const e = a.evaluation || {}; const c = a.coach || {}; const sg = c.signals || {};
   const nextStep = next?.steps.find(x => !x.done);
-  return <div className="clx-feedback">
-    <div className="clx-card clx-feedback-head">
-      <div className="clx-feedback-score"><div><b>{e.overallScore}</b><div style={{ fontSize: 11 }}>/100</div></div></div>
-      <div><h2 style={{ margin: 0 }}>{a.challengeTitle}</h2><p style={{ margin: '6px 0 0' }}>{e.dailyCoachMessage}</p></div>
-    </div>
-    <div className="clx-card" style={{ padding: 16, margin: '12px 0' }}>
-      <h3 style={{ marginTop: 0 }}>How you sounded <small style={{ color: hesTone(s.hesitationIndex), fontWeight: 700 }}>· {hesLabel(s.hesitationIndex)}</small></h3>
-      <div className="clx-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))' }}>
-        {tile('Silences of 1s+', s.pauseCount ?? '—')}
-        {tile('Longest silence', s.longestPauseSec != null ? `${s.longestPauseSec}s` : '—')}
-        {tile('Time to first word', s.timeToFirstWordSec != null ? `${s.timeToFirstWordSec}s` : '—')}
-        {tile('Restarts', s.restarts ?? '—')}
-        {tile('Fillers / 100 words', s.fillerPer100Words ?? '—')}
-        {tile('Words / min', a.wordsPerMinute ?? '—')}
-      </div>
-      {!!(c.tips || []).length && <ul style={{ margin: '14px 0 0', paddingLeft: 18 }}>{c.tips.map((t: string, i: number) => <li key={i} style={{ marginBottom: 6 }}>{t}</li>)}</ul>}
-    </div>
-    <div className="clx-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))' }}>
-      <div className="clx-card" style={{ padding: 16 }}><h3 style={{ marginTop: 0 }}>Done well</h3><ul style={{ paddingLeft: 18 }}>{(e.strengths || []).map((t: string, i: number) => <li key={i}>{t}</li>)}</ul></div>
-      <div className="clx-card" style={{ padding: 16 }}><h3 style={{ marginTop: 0 }}>Work on</h3><ul style={{ paddingLeft: 18 }}>{(e.areasToImprove || []).map((t: string, i: number) => <li key={i}>{t}</li>)}</ul></div>
-    </div>
-    {e.improvedIntroduction && <div className="clx-card" style={{ padding: 16, margin: '12px 0' }}><h3 style={{ marginTop: 0 }}>A good answer to the same question</h3><p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{e.improvedIntroduction}</p><p style={{ color: '#2F3F56', fontSize: 12.5, marginBottom: 0 }}>Read it once, then say it in your own words. Do not memorise it.</p></div>}
-    <div className="clx-actions">
-      {nextStep ? <button className="clx-btn primary" onClick={onClose}><i className="bi bi-arrow-right-circle" /> Next: {nextStep.role}</button>
-        : <button className="clx-btn primary" onClick={onClose}><i className="bi bi-check2-circle" /> Back to my session</button>}
-    </div>
-  </div>;
+  const n = (v: any, unit = '') => (v == null || v === '' ? '—' : `${typeof v === 'number' ? Math.round(v * 10) / 10 : v}${unit}`);
+  return <SpeakingFeedback
+    title={a.challengeTitle} score={e.overallScore ?? 0} level={e.readinessLevel}
+    message={e.dailyCoachMessage} strengths={e.strengths} improve={e.areasToImprove}
+    nextFocus={e.nextPracticeFocus} tips={c.tips} betterAnswer={e.improvedIntroduction}
+    measuresNote={hesLabel(sg.hesitationIndex ?? null)}
+    measures={[
+      { label: 'Pauses of 1 second or more', value: n(sg.pauseCount) },
+      { label: 'Longest pause', value: n(sg.longestPauseSec, 's') },
+      { label: 'Time before your first word', value: n(sg.timeToFirstWordSec, 's') },
+      { label: 'Times you restarted a sentence', value: n(sg.restarts) },
+      { label: '"Um" and "uh" per 100 words', value: n(sg.fillerPer100Words) },
+      { label: 'Words per minute', value: n(a.wordsPerMinute), hint: 'Between 110 and 150 is comfortable to listen to.' },
+    ]}
+    transcript={a.transcript}
+    footer={<button className="clx-btn primary sfb-cta" onClick={onClose}>{nextStep ? <><i className="bi bi-arrow-right-circle" /> Next: {nextStep.role}</> : <><i className="bi bi-check2-circle" /> Back to my session</>}</button>}
+  />;
 };
 
 const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: (s: CoachStep) => void; history: CommAttempt[]; today: string; onOpenAttempt: (a: CommAttempt) => void; onViewAll: () => void }> = ({ state, loading, onStart, history, today, onOpenAttempt, onViewAll }) => {

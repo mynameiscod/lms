@@ -162,3 +162,41 @@
 .ivh-sep { width: 1px; height: 18px; background: #D9E1EC; }
 @media (max-width: 1280px) { .ivh-round-foot { flex-wrap: wrap; } .ivh-sep { display: none; } }
 @media (max-width: 560px) { .ivh-hrow-tx b { white-space: normal; overflow: visible; } }
+
+/* ── AI feedback, readable ──
+   The page is shown at 75% on laptops (#root zoom), so 13–14px feedback read as about 10px. Every
+   sentence the AI wrote is now 15.5–16.5px with room between lines, in the page's own font. */
+.ivh .ivh-feedback, .cp-iv-page .cp-iv-card, .ivh .ivh-qs, .cp-iv-page .iv-qf { font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.ivh .ivh-feedback :is(h2, h3, b, p, li), .cp-iv-page .cp-iv-card :is(h3, b, p, li) { font-family: inherit !important; }
+.ivh .ivh-well { font-size: 15.5px; padding: 14px 16px; }
+.ivh .ivh-well b { font-size: 16px; }
+.ivh .ivh-well ul { margin-top: 8px; line-height: 1.6; display: flex; flex-direction: column; gap: 6px; }
+.ivh .ivh-note b { font-size: 16px; }
+.ivh .ivh-note p { font-size: 16px; line-height: 1.6; margin-top: 4px; }
+.ivh .ivh-areas li { font-size: 15px; }
+.ivh .ivh-ring span { font-size: 15px; }
+.ivh .iv-qf-line, .cp-iv-page .iv-qf-line { font-size: 15.5px; line-height: 1.65; color: #2B3D57; }
+.ivh .iv-qf-q, .cp-iv-page .iv-qf-q { font-size: 16px; }
+.ivh .iv-qf-better .lbl, .cp-iv-page .iv-qf-better .lbl { font-size: 12.5px; }
+.ivh .iv-qf-better p, .cp-iv-page .iv-qf-better p { font-size: 16px; line-height: 1.7; }
+.ivh .iv-turn .bub, .cp-iv-page .iv-turn .bub { font-size: 15.5px; line-height: 1.65; }
+.ivh .ivh-muted { font-size: 15px; }
+
+/* Full report */
+.cp-iv-page .cp-iv-card h3 { font-size: 19px; font-weight: 800; color: #051D64; }
+.cp-iv-page .cp-iv-card > p, .cp-iv-page .ivf-summary { font-size: 16.5px; line-height: 1.65; color: #102A4F; }
+.cp-iv-page .cp-iv-area-feedback { font-size: 15.5px; line-height: 1.6; color: #2B3D57; }
+.cp-iv-page .cp-iv-muted { font-size: 15px; }
+.ivf-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+.ivf-list { padding: 14px 16px; border-radius: 14px; }
+.ivf-list b { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; }
+.ivf-list ul { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ivf-list li { display: flex; align-items: flex-start; gap: 9px; font-size: 15.5px; line-height: 1.6; color: #102A4F; }
+.ivf-list li > i { flex: none; margin-top: 3px; font-size: 16px; }
+.ivf-list.good { background: #F6FCF9; border: 1px solid #CCE9DC; }
+.ivf-list.good b, .ivf-list.good li > i { color: #13784F; }
+.ivf-list.fix { background: #FFFAF3; border: 1px solid #F3DDBE; }
+.ivf-list.fix b, .ivf-list.fix li > i { color: #A6640D; }
+@media (max-width: 760px) { .ivf-two { grid-template-columns: 1fr; } }
+.cp-iv-page .iv-area-row .t, .cp-iv-page .iv-area-row .p { font-size: 15px; }
+.cp-iv-page p.cp-iv-muted { font-size: 15px !important; color: #52637A; }

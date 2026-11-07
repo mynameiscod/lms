@@ -5,6 +5,7 @@ import { isCounted } from './LabHome';
 import './communicationLab.css';
 import { useLocation } from 'react-router-dom';
 import DailyPracticeCard from '../Passport/DailyPracticeCard';
+import SpeakingFeedback from './SpeakingFeedback';
 
 const todayStr = () => {
   const d = new Date();
@@ -199,7 +200,24 @@ const ProfileForm: React.FC = () => {
 const ResultView: React.FC<{ a: CommAttempt; onClose: () => void }> = ({ a, onClose }) => {
   const e: any = a.evaluation;
   if (!e) return null;
-  return <div className="clx-feedback"><div className="clx-card clx-feedback-head"><div className="clx-feedback-score"><div><b>{e.overallScore}</b><div style={{ fontSize: 11 }}>/100</div></div></div><div style={{ flex:1 }}><h2 style={{ margin:'0 0 5px',color:'#051d64' }}>{e.readinessLevel}</h2><p style={{ margin:0,color:'#2F3F56',fontSize:13.5 }}>{e.dailyCoachMessage}</p><p style={{ margin:'8px 0 0',fontSize:12.5,color:'#2F3F56' }}><i className="bi bi-speedometer2" /> {e.speakingSpeed?.wordsPerMinute || 0} wpm &nbsp; <i className="bi bi-chat-dots" /> {e.fillerWords?.total || 0} filler words</p></div><button className="clx-btn" onClick={onClose}><i className="bi bi-arrow-left" /> Back</button></div><div className="clx-score-grid"><ScoreCard label="Confidence" value={e.confidenceScore}/><ScoreCard label="Clarity" value={e.clarityScore}/><ScoreCard label="Fluency" value={e.fluencyScore}/><ScoreCard label="Grammar" value={e.grammarScore}/><ScoreCard label="Content" value={e.contentScore}/><ScoreCard label="Project" value={e.projectExplanationScore}/><ScoreCard label="Career Goal" value={e.careerGoalScore}/><ScoreCard label="Closing" value={e.closingScore}/></div>{(e.strengths?.length || e.areasToImprove?.length) ? <div className="clx-grid"><div className="clx-card clx-panel"><h3 style={{ color:'#16835d' }}><i className="bi bi-check-circle" /> Strengths</h3><ul>{(e.strengths || []).map((s:string,i:number)=><li key={i}>{s}</li>)}</ul></div><div className="clx-card clx-panel"><h3 style={{ color:'#b86b00' }}><i className="bi bi-arrow-up-right-circle" /> Areas to improve</h3><ul>{(e.areasToImprove || []).map((s:string,i:number)=><li key={i}>{s}</li>)}</ul></div></div> : null}{e.transcript && <div className="clx-card clx-panel"><h3><i className="bi bi-file-text" /> Your transcript</h3><p style={{ whiteSpace:'pre-wrap',lineHeight:1.65 }}>{e.transcript}</p></div>}</div>;
+  const wpm = e.speakingSpeed?.wordsPerMinute ?? (a as any).wordsPerMinute;
+  return <SpeakingFeedback
+    title={a.challengeTitle || 'Your recording'} score={e.overallScore ?? 0} level={e.readinessLevel}
+    message={e.dailyCoachMessage} strengths={e.strengths} improve={e.areasToImprove}
+    nextFocus={e.nextPracticeFocus} betterAnswer={e.improvedIntroduction}
+    onBack={onClose} backLabel="Back"
+    measures={[
+      { label: 'Words per minute', value: wpm ?? '—', hint: e.speakingSpeed?.recommendedRange ? `Comfortable range: ${e.speakingSpeed.recommendedRange}` : undefined },
+      { label: '"Um" and "uh"', value: e.fillerWords?.total ?? '—' },
+    ]}
+    scores={[
+      { label: 'Confidence', value: e.confidenceScore }, { label: 'Clarity', value: e.clarityScore },
+      { label: 'Fluency', value: e.fluencyScore }, { label: 'Grammar', value: e.grammarScore },
+      { label: 'Content', value: e.contentScore }, { label: 'Your project', value: e.projectExplanationScore },
+      { label: 'Career goal', value: e.careerGoalScore }, { label: 'Closing', value: e.closingScore },
+    ]}
+    transcript={e.transcript || (a as any).transcript}
+  />;
 };
 
 const CommunicationLab: React.FC = () => {

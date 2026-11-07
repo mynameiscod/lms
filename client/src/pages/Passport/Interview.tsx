@@ -9,6 +9,7 @@ import { INTERVIEWER_FACE_ENABLED } from './interviewFace';
 import './interviewRedesign.css';
 import './interviewDashboard.css';
 import './interviewHub.css';
+import { cleanFeedback, cleanList } from '../../utils/feedbackText';
 
 const InterviewAvatar = React.lazy(() => import('./InterviewAvatar'));
 
@@ -402,9 +403,15 @@ const Interview: React.FC = () => {
 
           <div className="iv-room cp-iv-report-grid">
             <div>
-              <div className="pm-card cp-iv-card">
+              <div className="pm-card cp-iv-card ivf">
                 <h3>How you did</h3>
-                <p>{ev?.summary || 'No feedback available.'}</p>
+                <p className="ivf-summary">{cleanFeedback(ev?.summary) || 'No feedback available.'}</p>
+                {(!!ev?.strengths?.length || !!ev?.improvements?.length) && (
+                  <div className="ivf-two">
+                    {!!ev?.strengths?.length && <div className="ivf-list good"><b><i className="bi bi-check-circle-fill" aria-hidden /> What you did well</b><ul>{cleanList(ev.strengths).map((x, i) => <li key={i}><i className="bi bi-check-lg" aria-hidden /><span>{x}</span></li>)}</ul></div>}
+                    {!!ev?.improvements?.length && <div className="ivf-list fix"><b><i className="bi bi-arrow-up-right-circle-fill" aria-hidden /> What to work on</b><ul>{cleanList(ev.improvements).map((x, i) => <li key={i}><i className="bi bi-arrow-right" aria-hidden /><span>{x}</span></li>)}</ul></div>}
+                  </div>
+                )}
               </div>
 
               {!!ev?.areaScores?.length && (
@@ -417,7 +424,7 @@ const Interview: React.FC = () => {
                         <span className="b"><i style={{ width: `${a.percentage}%` }} /></span>
                         <span className="p">{a.percentage}%</span>
                       </div>
-                      {a.feedback && <div className="cp-iv-area-feedback">{a.feedback}</div>}
+                      {a.feedback && <div className="cp-iv-area-feedback">{cleanFeedback(a.feedback)}</div>}
                     </div>
                   ))}
                 </div>
@@ -433,9 +440,9 @@ const Interview: React.FC = () => {
                         <span className={`iv-verdict ${q.verdict}`}>{VERDICT_LABEL[q.verdict] || q.verdict}</span>
                         <span className="iv-qf-q">{q.question}</span>
                       </div>
-                      {q.whatWorked && <p className="iv-qf-line good"><b>Worked:</b> {q.whatWorked}</p>}
-                      {q.whatToFix && <p className="iv-qf-line fix"><b>Fix:</b> {q.whatToFix}</p>}
-                      {q.betterAnswer && <div className="iv-qf-better"><span className="lbl">A stronger answer</span><p>“{q.betterAnswer}”</p></div>}
+                      {q.whatWorked && <p className="iv-qf-line good"><b>Worked:</b> {cleanFeedback(q.whatWorked)}</p>}
+                      {q.whatToFix && <p className="iv-qf-line fix"><b>Fix:</b> {cleanFeedback(q.whatToFix)}</p>}
+                      {q.betterAnswer && <div className="iv-qf-better"><span className="lbl">A stronger answer</span><p>“{cleanFeedback(q.betterAnswer)}”</p></div>}
                     </div>
                   ))}
                 </div>
@@ -471,8 +478,6 @@ const Interview: React.FC = () => {
                   <video src={playUrl} controls playsInline className="cp-iv-playback" />
                 </div>
               )}
-              {!!ev?.strengths?.length && <div className="pm-card cp-iv-card"><h3 className="good-title">✓ Strengths</h3><ul className="iv-list">{ev.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul></div>}
-              {!!ev?.improvements?.length && <div className="pm-card cp-iv-card"><h3 className="warn-title">△ Work on this</h3><ul className="iv-list">{ev.improvements.map((s, i) => <li key={i}>{s}</li>)}</ul></div>}
               <button
                 className="pm-btn primary cp-iv-full"
                 onClick={() => { setSession(null); start(nextRound?.key); }}
@@ -770,15 +775,15 @@ const Interview: React.FC = () => {
                       )}
                       <div className="ivh-wells">
                         {!!ev.strengths?.length && (
-                          <div className="ivh-well good"><b><i className="bi bi-hand-thumbs-up" aria-hidden /> What You Did Well</b><ul>{ev.strengths.slice(0, 3).map((x, i) => <li key={i}>{x}</li>)}</ul></div>
+                          <div className="ivh-well good"><b><i className="bi bi-hand-thumbs-up" aria-hidden /> What You Did Well</b><ul>{cleanList(ev.strengths).slice(0, 3).map((x, i) => <li key={i}>{x}</li>)}</ul></div>
                         )}
                         {!!ev.improvements?.length && (
-                          <div className="ivh-well fix"><b><i className="bi bi-bullseye" aria-hidden /> Areas to Improve</b><ul>{ev.improvements.slice(0, 3).map((x, i) => <li key={i}>{x}</li>)}</ul></div>
+                          <div className="ivh-well fix"><b><i className="bi bi-bullseye" aria-hidden /> Areas to Improve</b><ul>{cleanList(ev.improvements).slice(0, 3).map((x, i) => <li key={i}>{x}</li>)}</ul></div>
                         )}
                       </div>
                     </div>
                     {ev.summary && (
-                      <div className="ivh-note"><i className="bi bi-file-earmark-text" aria-hidden /><div><b>Interviewer’s Note</b><p>{ev.summary}</p></div></div>
+                      <div className="ivh-note"><i className="bi bi-file-earmark-text" aria-hidden /><div><b>Interviewer’s Note</b><p>{cleanFeedback(ev.summary)}</p></div></div>
                     )}
                   </>
                 )}
@@ -789,9 +794,9 @@ const Interview: React.FC = () => {
                       {ev.questionFeedback.map((q, i) => (
                         <div className="iv-qf" key={i}>
                           <div className="iv-qf-head"><span className={`iv-verdict ${q.verdict}`}>{VERDICT_LABEL[q.verdict] || q.verdict}</span><span className="iv-qf-q">{q.question}</span></div>
-                          {q.whatWorked && <p className="iv-qf-line good"><b>Worked:</b> {q.whatWorked}</p>}
-                          {q.whatToFix && <p className="iv-qf-line fix"><b>Fix:</b> {q.whatToFix}</p>}
-                          {q.betterAnswer && <div className="iv-qf-better"><span className="lbl">A stronger answer</span><p>“{q.betterAnswer}”</p></div>}
+                          {q.whatWorked && <p className="iv-qf-line good"><b>Worked:</b> {cleanFeedback(q.whatWorked)}</p>}
+                          {q.whatToFix && <p className="iv-qf-line fix"><b>Fix:</b> {cleanFeedback(q.whatToFix)}</p>}
+                          {q.betterAnswer && <div className="iv-qf-better"><span className="lbl">A stronger answer</span><p>“{cleanFeedback(q.betterAnswer)}”</p></div>}
                         </div>
                       ))}
                     </div>

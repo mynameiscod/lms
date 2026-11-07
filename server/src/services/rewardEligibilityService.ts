@@ -1,4 +1,5 @@
 import User from '../models/User';
+import { isDemoPassport } from '../data/demoPolicy';
 import PassportProgress from '../models/PassportProgress';
 import PassportConfig from '../models/PassportConfig';
 import { StudentBadge } from '../models/GamificationModels';
@@ -80,6 +81,8 @@ export async function loadStudentRewardContext(
    * than by a second membership state machine invented here.
    */
   const membershipOk = isEntitled(cfg?.entitlements, user?.passport, 'roadmap_full', now);
+  /* A demo account earns coins to show how it works, but never redeems a real reward. */
+  const demo = isDemoPassport(user?.passport);
 
   const counts = new Map<string, number>();
   for (const r of (mine as any[])) counts.set(r.rewardKey, (counts.get(r.rewardKey) || 0) + 1);
@@ -94,8 +97,8 @@ export async function loadStudentRewardContext(
     tenantId, studentId, coins, xp,
     level: levelFromXp(xp).level,
     badgeKeys: new Set((badges as any[]).map(b => b.badgeKey)),
-    canSpend: membershipOk,
-    spendBlockedReason: membershipOk ? undefined : 'MEMBERSHIP_REQUIRED',
+    canSpend: membershipOk && !demo,
+    spendBlockedReason: demo ? 'DEMO_ACCOUNT' : membershipOk ? undefined : 'MEMBERSHIP_REQUIRED',
     redemptionCounts: counts,
     memberAllowanceRemainingInr: memberRemaining,
     tenantBudgetAvailablePaise: budget.availablePaise,

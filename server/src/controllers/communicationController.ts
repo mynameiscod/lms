@@ -276,7 +276,8 @@ export const submit = async (req: Request, res: Response) => {
 
     // Enforce max attempts per challenge per day
     const priorCount = await CommunicationAttempt.countDocuments({ tenantId, studentId: uId(req), challengeId, practiceDate });
-    if (priorCount >= (challenge.maxAttempts || 2)) { cleanup(file.path); return res.status(429).json({ message: `Maximum ${challenge.maxAttempts} attempts reached for today.` }); }
+    const { isDemoUser } = await import('../services/demoService');
+    if (priorCount >= (challenge.maxAttempts || 2) && !(await isDemoUser(String(uId(req))))) { cleanup(file.path); return res.status(429).json({ message: `Maximum ${challenge.maxAttempts} attempts reached for today.` }); }
 
     // 1) Transcribe (Whisper) from the temp file
     let transcript = ''; let durationSec = 0;

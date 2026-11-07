@@ -1,0 +1,27 @@
+/* The Demo bar (DemoBar.tsx): only demo accounts see it. Amber, so it is never mistaken for the
+   product itself in a screenshot or on a projector. */
+.demo-bar { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; margin: 0 0 16px; padding: 10px 14px; border-radius: 16px; background: #FFF6E2; border: 1px solid #F3D9A4; color: #4A3200; }
+.demo-tag { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: #8A4B00; color: #fff; font-size: 12.5px; font-weight: 900; letter-spacing: .08em; }
+.demo-plan { font-size: 14px; font-weight: 800; color: #4A3200; min-width: 0; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.demo-year { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: #6B4A00; }
+.demo-year select { height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid #E5C27E; background: #fff; font: inherit; font-size: 14px; font-weight: 800; color: #051D64; cursor: pointer; }
+.demo-wait { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #6B4A00; }
+.demo-wait i { animation: demo-spin 1s linear infinite; }
+@keyframes demo-spin { to { transform: rotate(360deg); } }
+.demo-grow { flex: 1; }
+.demo-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid #E5C27E; background: #fff; color: #4A3200; font: inherit; font-size: 13.5px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.demo-btn:hover:not(:disabled) { border-color: #8A4B00; }
+.demo-btn.warn { color: #A12A2A; border-color: #F0C2BC; }
+.demo-btn.warn.solid { background: #A12A2A; border-color: #A12A2A; color: #fff; }
+.demo-btn:disabled { opacity: .55; cursor: not-allowed; }
+.demo-err { flex-basis: 100%; margin: 0; font-size: 13.5px; font-weight: 700; color: #A12A2A; }
+.demo-confirm { flex-basis: 100%; padding: 12px 14px; border-radius: 12px; background: #fff; border: 1px solid #F0C2BC; }
+.demo-confirm p { margin: 0 0 10px; font-size: 14px; color: #4A1A14; line-height: 1.5; }
+.demo-confirm div { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 760px) {
+  .demo-grow { display: none; }
+  .demo-plan { max-width: none; flex: 1 1 auto; }
+  .demo-year { flex: 1 1 100%; }
+  .demo-year select { flex: 1; }
+  .demo-btn { flex: 1 1 calc(50% - 6px); }
+}

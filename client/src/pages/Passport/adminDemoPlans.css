@@ -1,0 +1,41 @@
+/* Super Admin → Demo plans (AdminDemoPlans.tsx, root .dp). Builds on the trial-plans styles
+   (adminTrials.css) and only adds what a year-by-year plan needs. */
+.dp .dp-good { background: #EAF8F1; color: #13784F; }
+.dp .dp-bad { background: #FFF3E6; color: #A14F06; }
+.dp .dp-years li span { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.dp-start { font-style: normal; font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #EEF2FF; color: #0B3BBF; }
+.dp-missing { margin: 0 0 12px; padding: 10px 14px 10px 30px; border-radius: 12px; background: #FFF6EC; border: 1px solid #F6DDBF; color: #6B3E06; font-size: 13px; line-height: 1.5; }
+
+.dp-drawer { width: min(860px, 100vw); }
+.dp-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px; border-radius: 12px; background: #F1F4F9; margin: 4px 0 12px; }
+.dp-tabs button { flex: 1 1 110px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; background: none; padding: 9px 12px; border-radius: 9px; font: inherit; font-size: 14px; font-weight: 700; color: #102A4F; cursor: pointer; }
+.dp-tabs button.on { background: #051D64; color: #fff; box-shadow: 0 4px 10px rgba(5, 29, 100, .2); }
+.dp-tabs button i { color: #13A05B; }
+.dp-tabs button.on i { color: #7FE0B4; }
+.dp-year { display: flex; flex-direction: column; gap: 14px; }
+.dp-year-lg { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+.dp-inline { margin: 6px 0 0; }
+.dp-rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.dp-chk { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; border: 1px solid #D9E1EC; background: #fff; font-size: 14px; font-weight: 700; color: #102A4F; cursor: pointer; }
+.dp-chk.on { border-color: #0B3BBF; background: #EEF2FF; color: #0B3BBF; }
+.dp-chk input { accent-color: #0B3BBF; }
+.dp-pick { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid #E8EEF5; }
+.dp-pick-hd em { font-style: normal; font-weight: 600; color: #2F3F56; margin-left: 6px; }
+.dp-cat { color: #2F3F56; font-weight: 600; }
+.dp-gone { color: #A12A2A; font-weight: 700; }
+.dp-order { display: inline-flex; gap: 4px; }
+@media (max-width: 640px) {
+  .dp-tabs button { flex-basis: calc(50% - 6px); }
+  .dp-year-lg { flex-wrap: wrap; }
+}
+/* Year rows on the card: the label and its "opens here" tag stay on one line. */
+.dp .dp-years li > span { white-space: nowrap; }
+.dp-start { white-space: nowrap; }
+/* Chosen items: title takes the room, the order arrows and remove sit together at the end. */
+.dp-pick .tp-pk-list.chosen li { display: flex; align-items: center; gap: 8px; }
+.dp-pick .tp-pk-list.chosen li .tp-pt { flex: 1 1 auto; min-width: 0; }
+.dp-pick .tp-pk-list.chosen li .tp-pn, .dp-pick .tp-pk-list.chosen li .tp-pd, .dp-pick .tp-pk-list.chosen li .dp-order, .dp-pick .tp-pk-list.chosen li > .tp-pk-btn { flex: none; }
+@media (max-width: 640px) {
+  .dp .dp-years li { flex-wrap: wrap; }
+  .dp .dp-years li b { flex-basis: 100%; text-align: left; padding-left: 28px; }
+}

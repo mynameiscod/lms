@@ -71,7 +71,9 @@ async function loadAndCheckQuota(
 
   const maxHints = assignment.maxAiHints || 3;
   const used = submission.aiHintsUsed || 0;
-  if (used >= maxHints) {
+  // A demo account is not held to the hint count; the tenant's AI budget still applies.
+  const { isDemoUser } = await import('./demoService');
+  if (used >= maxHints && !(await isDemoUser(String(studentId)))) {
     throw new Error(`You've used all ${maxHints} AI hints available for this problem.`);
   }
 

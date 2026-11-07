@@ -103,6 +103,7 @@ const memberMatch = (prefix = ''): Record<string, any> => {
   return {
     [`${prefix}role`]: { $nin: LEADERBOARD_EXCLUDED_ROLES },
     [`${prefix}isActive`]: { $ne: false },
+    [`${prefix}passport.demo.planId`]: { $exists: false },
     $or: (f.$or as any[]).map(c => Object.fromEntries(Object.entries(c).map(([k, v]) => [`${prefix}${k}`, v]))),
   };
 };
@@ -112,7 +113,7 @@ const eligibleUserStage = () => ([
     $lookup: {
       from: 'users', localField: 'studentId', foreignField: '_id',
       as: 'user',
-      pipeline: [{ $project: { role: 1, isActive: 1, tenantId: 1, 'passport.product': 1, 'passport.active': 1, 'passport.activatedAt': 1, 'passport.verifiedAt': 1 } }],
+      pipeline: [{ $project: { role: 1, isActive: 1, tenantId: 1, 'passport.product': 1, 'passport.active': 1, 'passport.activatedAt': 1, 'passport.verifiedAt': 1, 'passport.demo.planId': 1 } }],
     },
   },
   { $unwind: '$user' },

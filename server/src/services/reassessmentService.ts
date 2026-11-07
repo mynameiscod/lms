@@ -1,4 +1,5 @@
 import User from '../models/User';
+import { isDemoPassport } from '../data/demoPolicy';
 import PassportConfig from '../models/PassportConfig';
 import PassportProgress from '../models/PassportProgress';
 import CareerRoadmap from '../models/CareerRoadmap';
@@ -192,7 +193,8 @@ export async function evaluateReassessmentEligibility(
     .sort((a, b) => b.getTime() - a.getTime())[0] || null;
 
   let nextEligibleAt: Date | null = null;
-  if (lastCompleted && cfg.cooldownDays > 0) {
+  // A demo account can show the skill check again at any time (data/demoPolicy.ts).
+  if (lastCompleted && cfg.cooldownDays > 0 && !isDemoPassport(user?.passport)) {
     const elapsed = daysBetween(lastCompleted, now);
     if (elapsed < cfg.cooldownDays) {
       blockers.push('COOLDOWN_ACTIVE');

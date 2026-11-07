@@ -237,6 +237,56 @@ export const passportApi = {
     const { data } = await axios.delete(`${BASE}/members/${userId}/grant`, { headers: auth() });
     return data;
   },
+  /** Demo plans (Super Admin): what a demo account shows, year by year. */
+  listDemoPlans: async (): Promise<{ plans: DemoPlan[]; years: DemoYearInfo[]; roundTypes: string[]; maxPerList: number }> => {
+    const { data } = await axios.get(`${BASE}/demo-plans`, { headers: auth() });
+    return data;
+  },
+  searchDemoOptions: async (kind: 'problems' | 'thinking' | 'books', q: string): Promise<DemoPickItem[]> => {
+    const { data } = await axios.get(`${BASE}/demo-plans/options/${kind}`, { params: { q }, headers: auth() });
+    return data.items || [];
+  },
+  listDemoTracks: async (): Promise<{ key: string; name: string }[]> => {
+    const { data } = await axios.get(`${BASE}/demo-plans/options/tracks`, { headers: auth() });
+    return data.tracks || [];
+  },
+  saveDemoPlan: async (id: string | null, body: DemoPlanInput): Promise<{ id: string; missing: string[]; warnings: string[] }> => {
+    const { data } = id
+      ? await axios.put(`${BASE}/demo-plans/${id}`, body, { headers: auth() })
+      : await axios.post(`${BASE}/demo-plans`, body, { headers: auth() });
+    return data;
+  },
+  deleteDemoPlan: async (id: string): Promise<void> => {
+    await axios.delete(`${BASE}/demo-plans/${id}`, { headers: auth() });
+  },
+  /** One member's demo access (Super Admin). */
+  memberDemo: async (userId: string): Promise<MemberDemoView> => {
+    const { data } = await axios.get(`${BASE}/members/${userId}/demo`, { headers: auth() });
+    return data;
+  },
+  giveDemo: async (userId: string, planId: string, note: string): Promise<{ given: boolean; roadmap: { ok: boolean; message?: string } }> => {
+    const { data } = await axios.post(`${BASE}/members/${userId}/demo`, { planId, note }, { headers: auth() });
+    return data;
+  },
+  endDemo: async (userId: string): Promise<void> => {
+    await axios.delete(`${BASE}/members/${userId}/demo`, { headers: auth() });
+  },
+  resetDemo: async (userId: string, kind: 'progress' | 'full'): Promise<{ reset: string; cleared: Record<string, number> }> => {
+    const { data } = await axios.post(`${BASE}/members/${userId}/demo/reset`, { kind }, { headers: auth() });
+    return data;
+  },
+  /** The demo account's own: its plan and year, and moving between years. */
+  myDemo: async (): Promise<MyDemo | null> => {
+    const { data } = await axios.get(`${BASE}/me/demo`, { headers: auth() });
+    return data.demo || null;
+  },
+  switchMyDemoYear: async (year: string): Promise<void> => {
+    await axios.post(`${BASE}/me/demo/year`, { year }, { headers: auth() });
+  },
+  resetMyDemo: async (kind: 'progress' | 'full'): Promise<{ reset: string }> => {
+    const { data } = await axios.post(`${BASE}/me/demo/reset`, { kind }, { headers: auth() });
+    return data;
+  },
   /** Trial plans: what a trial opens and for how long (CareerPilot → Trial plans). */
   listTrialPlans: async (): Promise<{ plans: TrialPlan[]; catalogue: TrialCatalogueItem[]; maxDays: number; maxPicked: number }> => {
     const { data } = await axios.get(`${BASE}/trial-plans`, { headers: auth() });
@@ -2060,6 +2110,27 @@ export interface TrialStatus {
 }
 export interface TrialItemSetting { on: boolean; limit: number | null }
 export interface TrialProblem { id: string; number: number; title: string; difficulty: string }
+/** Demo plans and demo accounts (Super Admin). */
+export interface DemoYearInfo { key: string; year: number; label: string }
+export interface DemoPickItem { id: string; title: string; number?: number; difficulty?: string; category?: string; live: boolean }
+export interface DemoYearView {
+  enabled: boolean; track: string; landingDay: number; interviewTypes: string[];
+  practice: DemoPickItem[]; thinking: DemoPickItem[]; books: DemoPickItem[];
+}
+export interface DemoPlan {
+  id: string; name: string; description: string; startYear: string; active: boolean; accounts: number; updatedAt?: string;
+  years: Record<string, DemoYearView>; missing: string[]; warnings: string[];
+}
+export interface DemoPlanInput {
+  name: string; description: string; startYear: string; active: boolean;
+  years: Record<string, { enabled: boolean; track: string; landingDay: number; interviewTypes: string[]; practiceIds: string[]; thinkingIds: string[]; bookIds: string[] }>;
+}
+export interface MemberDemoView {
+  demo: { planId: string; planName: string; year: string; years: DemoYearInfo[]; at: string; byName: string; note: string } | null;
+  plans: { id: string; name: string; missing: string[] }[];
+  paid: boolean;
+}
+export interface MyDemo { planName: string; year: string; years: DemoYearInfo[]; landingDay: number }
 export interface TrialPlan { id: string; name: string; description: string; days: number; items: Record<string, TrialItemSetting>; active: boolean; running: number; updatedAt?: string; practiceProblems: TrialProblem[] }
 export interface TrialCatalogueItem { key: string; label: string; icon: string; unit: string | null; hint: string | null }
 

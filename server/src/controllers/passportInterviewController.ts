@@ -138,8 +138,23 @@ async function entitlementFor(tenantId: string, studentId: string, user: any): P
     PassportInterview.find({ tenantId, studentId, createdAt: { $gte: since } })
       .select('planRoundKey createdAt transcript.role').lean(),
   ]);
+  /**
+   * A demo account: no monthly limit, no waiting between rounds, and only the rounds its demo plan
+   * chose for the year shown (all of the plan's rounds when none of them match).
+   */
+  const { demoContext } = await import('../services/demoService');
+  const demo = await demoContext(studentId);
+  const shaped = demo ? {
+    ...resolved,
+    quota: { ...resolved.quota, perThirtyDays: 0, cooldownHours: 0 },
+    rounds: (() => {
+      const want = demo.config?.interviewTypes || [];
+      const kept = resolved.rounds.filter((r: any) => want.includes(r.type));
+      return kept.length ? kept : resolved.rounds;
+    })(),
+  } : resolved;
   return summariseEntitlement(
-    resolved,
+    shaped as any,
     (sittings as any[]).map(s => ({
       planRoundKey: s.planRoundKey,
       createdAt: s.createdAt,

@@ -9,6 +9,7 @@ import SetPasswordDialog from './SetPasswordDialog';
 import ShareCardDialog from './ShareCardDialog';
 import { useUnlock } from './useUnlock';
 import TrialBanner from './TrialBanner';
+import DemoBar from './DemoBar';
 import { startActivityBeacon, trackPage } from './activityBeacon';
 import visualizerApi from '../../api/visualizerApi';
 import supportApi from '../../api/supportApi';
@@ -532,6 +533,9 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         </div>}
         {shareOpen && d && <ShareCardDialog data={d} onClose={() => setShareOpen(false)} />}
         {pwdOpen && <SetPasswordDialog onClose={() => setPwdOpen(false)} onDone={() => { setPwdOpen(false); setPwdDone(true); }} />}
+
+        {/* A demo account: the year switch and the resets (super admin gives demo access). */}
+        <DemoBar />
 
         {/* A member on a trial always sees what is left of it. */}
         {d?.trial && <TrialBanner trial={d.trial} />}

@@ -19,6 +19,9 @@ export interface FoundationGate extends GateDecision {
 const NO_GATE: FoundationGate = { applies: false, firstYearDay: null, open: true, pending: [], flagged: [], passed: 0, total: 0 };
 
 export async function foundationGateFor(curriculumId: string | mongoose.Types.ObjectId, studentId: string): Promise<FoundationGate> {
+  // A demo account is shown the year straight away, bridge checks passed or not.
+  const { isDemoUser } = await import('./demoService');
+  if (await isDemoUser(studentId)) return NO_GATE;
   const cur = await LearningCurriculum.findById(curriculumId).select('roadmapVersion').lean() as any;
   if (cur?.roadmapVersion !== 'ROADMAP_V2') return NO_GATE;
 

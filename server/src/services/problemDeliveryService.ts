@@ -248,7 +248,10 @@ export async function gradeAndRecord(
   });
   let reward: { xp: number } | null = null;
   if (!l.isStaff) {
-    await CodingProblem.updateOne({ _id: p._id }, { $inc: { 'stats.attempts': 1, ...(firstAccept ? { 'stats.accepted': 1 } : {}) } });
+    const { isDemoUser } = await import('./demoService');
+    if (!(await isDemoUser(String(l.userId)))) {
+      await CodingProblem.updateOne({ _id: p._id }, { $inc: { 'stats.attempts': 1, ...(firstAccept ? { 'stats.accepted': 1 } : {}) } });
+    }
     if (firstAccept) reward = await rewardFirstSolve(l, p);
   }
   return { result: r, recorded: true, submissionId: sub._id, late, firstAccept, reward };

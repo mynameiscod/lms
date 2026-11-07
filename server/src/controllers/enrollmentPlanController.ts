@@ -30,6 +30,10 @@ import { studentContentRow } from '../services/studentContentView';
 import { reconcileJourneyDayXp, xpForJourneyItem } from '../services/foundationJourneyXpService';
 import { loadXpPricing, XpPricing } from '../services/xpPricingService';
 import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService';
+/** What the day ladder reads (services/demoService.ts), loaded only when a day is checked. */
+const ladderDays = async (userId: string, completed: Set<number>): Promise<Set<number>> => {
+  try { return await (await import('../services/demoService')).ladderDays(userId, completed); } catch { return completed; }
+};
 
 /**
  * A Foundation journey is the member's ninety days. Without membership its days cannot be opened or
@@ -606,7 +610,7 @@ export const markContentComplete = async (req: Request, res: Response) => {
         return res.status(403).json({ reason: 'ORIENTATION_REQUIRED', message: 'Finish your welcome days first — Day 1 opens after them.' });
       }
       const pacedFrom = await pacingClockFor(String(enrollment.tenantId), String(enrollment.studentId));
-      if (!isJourneyDayOpen(dayNo, doneDays, pacedFrom)) {
+      if (!isJourneyDayOpen(dayNo, await ladderDays(String(enrollment.studentId), doneDays), pacedFrom)) {
         const early = !calendarAllowsDay(dayNo, pacedFrom);
         return res.status(403).json({
           reason: early ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
@@ -907,7 +911,8 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
      */
     const isFoundationJourney = (enrollment as any).enrolledBy === 'foundation-journey';
     if (isFoundationJourney && dayNumber > 1) {
-      const doneDays = new Set<number>(((enrollment.completedDays || []) as number[]).map(Number));
+      /* A demo account reads every day as reachable (services/demoService.ts). */
+      const doneDays = await ladderDays(String(enrollment.studentId), new Set<number>(((enrollment.completedDays || []) as number[]).map(Number)));
       if (!doneDays.has(dayNumber - 1) && !doneDays.has(dayNumber)) {
         isLocked = true;
         lockReason = 'sequential';

@@ -20,6 +20,8 @@ import * as roadmap from '../controllers/passportRoadmapController';
 import * as practice from '../controllers/passportPracticeController';
 import * as interview from '../controllers/passportInterviewController';
 import * as trials from '../controllers/trialController';
+import * as demoPlans from '../controllers/demoPlanController';
+import * as demoAccess from '../controllers/demoAccessController';
 import * as interviewPlans from '../controllers/interviewPlanController';
 import * as activity from '../controllers/careerPilotActivityController';
 import * as learningUnits from '../controllers/conceptLearningUnitController';
@@ -688,6 +690,22 @@ router.post('/members/:userId/active', MANAGE_FOR.cpMembers, ctrl.setMemberActiv
  * membership runs, or hold a grant while their login is disabled.
  */
 router.post('/members/:userId/grant',    MANAGE_FOR.cpMembers, ctrl.grantMembership);
+// Demo plans and demo access: super admin only (controllers/demoPlanController, demoAccessController).
+router.get('/demo-plans',                     SUPER_ADMIN, demoPlans.listDemoPlans);
+router.get('/demo-plans/options/problems',    SUPER_ADMIN, demoPlans.searchDemoProblems);
+router.get('/demo-plans/options/thinking',    SUPER_ADMIN, demoPlans.searchDemoThinking);
+router.get('/demo-plans/options/books',       SUPER_ADMIN, demoPlans.searchDemoBooks);
+router.get('/demo-plans/options/tracks',      SUPER_ADMIN, demoPlans.listDemoTracks);
+router.post('/demo-plans',                    SUPER_ADMIN, demoPlans.saveDemoPlan);
+router.put('/demo-plans/:id',                 SUPER_ADMIN, demoPlans.saveDemoPlan);
+router.delete('/demo-plans/:id',              SUPER_ADMIN, demoPlans.deleteDemoPlan);
+router.get('/members/:userId/demo',           SUPER_ADMIN, demoAccess.memberDemo);
+router.post('/members/:userId/demo',          SUPER_ADMIN, demoAccess.giveDemo);
+router.delete('/members/:userId/demo',        SUPER_ADMIN, demoAccess.endDemo);
+router.post('/members/:userId/demo/reset',     SUPER_ADMIN, demoAccess.resetMemberDemo);
+router.get('/me/demo',                        MEMBER, demoAccess.myDemo);
+router.post('/me/demo/year',                  MEMBER, demoAccess.switchMyDemoYear);
+router.post('/me/demo/reset',                 MEMBER, demoAccess.resetMyDemo);
 router.delete('/members/:userId/grant',  MANAGE_FOR.cpMembers, ctrl.revokeMembership);
 // Trials: limited access for a chosen student (data/trialPolicy.ts).
 router.get('/trial-plans',               MANAGE_FOR.cpMembers, trials.listPlans);

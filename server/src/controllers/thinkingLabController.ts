@@ -125,10 +125,25 @@ async function scheduledProblem(tenantId: string, batchId: any, dateStr: string)
 const USER_FIELDS = 'firstName lastName batchId passport.product passport.active passport.activatedAt passport.verifiedAt';
 
 /** The CareerPilot bank for a tenant, as the selection rule needs it. */
-async function memberBank(tenantId: string) {
+async function memberBank(tenantId: string, studentId?: string) {
+  /*
+   * A demo account's bank is exactly the questions its demo plan chose for the year shown, in the
+   * plan's order (data/demoPolicy.ts). A year with none chosen falls back to the usual bank.
+   */
+  if (studentId) {
+    const { demoContext } = await import('../services/demoService');
+    const demo = await demoContext(studentId);
+    const ids = (demo?.config?.thinkingIds || []).map(String);
+    if (ids.length) return ids.map((id, i) => ({ id, order: i + 1, createdAt: null }));
+  }
   const rows: any[] = await ThinkingProblem.find({ tenantId, active: true, ...audienceFilter('careerpilot') })
     .select('_id order createdAt').lean();
   return rows.map(r => ({ id: String(r._id), order: r.order, createdAt: r.createdAt }));
+}
+
+/** A problem from the member's bank: the tenant's own, or any active one a demo plan chose. */
+async function bankProblem(tenantId: string, id: string, demo: boolean) {
+  return ThinkingProblem.findOne({ _id: id, ...(demo ? {} : { tenantId }), active: true }).lean();
 }
 
 /** Leaderboard rows for a member compare members only — not the LMS students of the same tenant. */
@@ -140,7 +155,9 @@ async function memberIds(tenantId: string) {
 const isMemberView = (u: any) => !u?.batchId && isCareerPilotMember(u?.passport);
 
 async function memberToday(req: Request, res: Response, u: any, d: string) {
-  const bank = await memberBank(tId(req));
+  const bank = await memberBank(tId(req), uId(req));
+  const { isDemoUser } = await import('../services/demoService');
+  const demo = await isDemoUser(uId(req));
   let ch: any = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });
   if (!ch) {
     // A trial counts each new challenge; at its limit no new one is handed out.
@@ -150,7 +167,7 @@ async function memberToday(req: Request, res: Response, u: any, d: string) {
     }
     const given: any[] = await DailyChallenge.find({ tenantId: tId(req), studentId: uId(req) }).select('problemId').lean();
     const pickId = pickMemberProblem(bank, given.map(g => String(g.problemId)));
-    const p: any = pickId ? await ThinkingProblem.findOne({ _id: pickId, tenantId: tId(req), active: true }).lean() : null;
+    const p: any = pickId ? await bankProblem(tId(req), pickId, demo) : null;
     if (!p) {
       return res.json({ challenge: null, empty: true, reason: 'bank_empty', message: 'Thinking Lab problems are being prepared. Check back soon.' });
     }
@@ -164,7 +181,7 @@ async function memberToday(req: Request, res: Response, u: any, d: string) {
       } },
       { upsert: true, new: false },
     );
-    if (!before) await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesAssigned: 1 } });
+    if (!before && !demo) await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesAssigned: 1 } });
     ch = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });
   }
   const p = await ThinkingProblem.findById(ch.problemId).lean();
@@ -259,6 +276,22 @@ export const nextChallenge = async (req: Request, res: Response) => {
     // random "next" — the student is finished until the next scheduled challenge.
     // A member follows the same one-a-day rhythm; their next problem unlocks tomorrow.
     const u: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
+
+    // A DEMO ACCOUNT goes straight on to the next question of its plan, today.
+    const { isDemoUser } = await import('../services/demoService');
+    if (await isDemoUser(uId(req))) {
+      const bank = await memberBank(tId(req), uId(req));
+      const given: any[] = await DailyChallenge.find({ tenantId: tId(req), studentId: uId(req) }).select('problemId').lean();
+      const pickId = pickMemberProblem(bank, given.map(g => String(g.problemId)));
+      const p: any = pickId ? await bankProblem(tId(req), pickId, true) : null;
+      if (!p) return res.json({ challenge: null, empty: true, message: 'No more Thinking Lab questions in this demo.' });
+      const ch = await DailyChallenge.create({
+        tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '),
+        date: d, seq: (last?.seq || 0) + 1, problemId: p._id, difficulty: p.difficulty, language: p.language, code: p.starterCode || '',
+        status: 'assigned', startedAt: new Date(),
+      });
+      return res.json({ challenge: challengeView(ch, p), member: { position: positionInBank(bank, String(p._id)), total: bank.length } });
+    }
     const message = isMemberView(u)
       ? "That's today's problem done. Your next Thinking Lab problem unlocks tomorrow."
       : "That's today's challenge. Check back when your instructor assigns the next one.";
@@ -367,7 +400,7 @@ export const submit = async (req: Request, res: Response) => {
       (ch as any).gameAwarded = true;
     }
     await ch.save();
-    if (allPassed) await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesSolved: 1 } });
+    if (allPassed && !(await (await import('../services/demoService')).isDemoUser(uId(req)))) await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesSolved: 1 } });
 
     res.json({
       allPassed, passedCount, total: results.length,

@@ -49,6 +49,10 @@ import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished } from '..
 import { loadXpPricing } from '../services/xpPricingService';
 import { orientationBlocksLearning, orientationRoadmap, pacingClockFor } from '../services/orientationService';
 import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService';
+/** What the day ladder reads (services/demoService.ts), loaded only when a day is checked. */
+const ladderDays = async (userId: string, completed: Set<number>): Promise<Set<number>> => {
+  try { return await (await import('../services/demoService')).ladderDays(userId, completed); } catch { return completed; }
+};
 import { roadmapV2SettingFor } from '../services/roadmapV2SettingService';
 import { adoptSetupTrack } from '../services/roadmapRebuildService';
 
@@ -575,6 +579,8 @@ export const getMyJourney = async (req: Request, res: Response) => {
     const overview = await overviewOf(tenantId, days as any[], stageKey);
     /* Read once for the whole strip: ninety lookups for one answer would be absurd. */
     const stripPacedFrom = await pacingClockFor(tenantId, studentId);
+    /* What the ladder reads: every day for a demo account (services/demoService.ts). */
+    const ladder = await ladderDays(String(studentId), completed);
 
     /**
      * A short summary per day rather than the full activity list.
@@ -606,10 +612,10 @@ export const getMyJourney = async (req: Request, res: Response) => {
       status: completed.has(d.dayNumber) ? 'COMPLETED'
         : d.dayNumber === currentDay ? 'CURRENT'
           : d.dayNumber < currentDay ? 'SKIPPED' : 'UPCOMING',
-      locked: !isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom),
+      locked: !isJourneyDayOpen(d.dayNumber, ladder, stripPacedFrom),
       /* Which gate is shut, so the strip can say "tomorrow" rather than only "locked". */
-      lockedReason: gateHolds(d.dayNumber) && isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? 'FOUNDATION_GATE'
-        : isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? undefined
+      lockedReason: gateHolds(d.dayNumber) && isJourneyDayOpen(d.dayNumber, ladder, stripPacedFrom) ? 'FOUNDATION_GATE'
+        : isJourneyDayOpen(d.dayNumber, ladder, stripPacedFrom) ? undefined
           : !calendarAllowsDay(d.dayNumber, stripPacedFrom) ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
     })).map(d => (d.lockedReason === 'FOUNDATION_GATE' ? { ...d, locked: true } : d))
       /* A trial's days past its limit say so, whatever else holds them. */
@@ -743,7 +749,7 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
 
     const doneDays = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
     const pacedFrom = await pacingClockFor(tenantId, String(studentId));
-    if (!isJourneyDayOpen(plan.dayNumber, doneDays, pacedFrom)) {
+    if (!isJourneyDayOpen(plan.dayNumber, await ladderDays(String(studentId), doneDays), pacedFrom)) {
       /**
        * TWO REASONS, TWO MESSAGES.
        *

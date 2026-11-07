@@ -190,7 +190,9 @@ export async function orientationFor(tenantId: string, studentId: string): Promi
    * but only if 0.1 is done. Members created before pacing existed have `paced` absent and are
    * held to the completion ladder alone, exactly as before.
    */
-  const paced = progress.paced === true;
+  /* A demo account opens every welcome day, in any order, on any day. */
+  const demo = await isDemoUser(studentId);
+  const paced = progress.paced === true && !demo;
   const clock: Date | null = paced ? (progress.pacedFrom || progress.startedAt || null) : null;
   const now = new Date();
 
@@ -200,7 +202,7 @@ export async function orientationFor(tenantId: string, studentId: string): Promi
     const programmeDay = programmeDayOfOrientation(i + 1);
     const dated = !clock || calendarHasReached(programmeDay, clock, now);
     /* A day already finished stays open — the calendar never takes back what was done. */
-    const locked = !done && (!previousDone || !dated);
+    const locked = !demo && !done && (!previousDone || !dated);
     return {
       dayNumber: d.dayNumber,
       day: welcomeDayLabel(d.dayNumber),
@@ -263,8 +265,16 @@ export async function orientationFor(tenantId: string, studentId: string): Promi
  * mandatory and unfinished; a tenant with orientation off, or a member who was already learning,
  * is never held here.
  */
+/** Lazily, so loading this service never loads the demo models with it. */
+const isDemoUser = async (studentId: string): Promise<boolean> => {
+  if (!connected()) return false;
+  try { return await (await import('./demoService')).isDemoUser(studentId); } catch { return false; }
+};
+
 export async function orientationBlocksLearning(tenantId: string, studentId: string): Promise<boolean> {
   try {
+    // A demo account opens Day 1 whether or not the welcome was shown (data/demoPolicy.ts).
+    if (await isDemoUser(studentId)) return false;
     const view = await orientationFor(tenantId, studentId);
     return view.enabled && view.mandatory && !view.complete;
   } catch (e: any) {
@@ -501,7 +511,8 @@ export async function orientationRoadmap(
     return {
       mandatory: view.mandatory,
       complete: view.complete,
-      blocking: view.mandatory && !view.complete,
+      // Never blocking for a demo account: Day 1 is open with the welcome still to do.
+      blocking: view.mandatory && !view.complete && !(await isDemoUser(studentId)),
       totalDays: view.totalDays,
       completedDays: view.completedDays,
       days: view.days.map(d => ({
@@ -532,6 +543,8 @@ export async function orientationRoadmap(
 export async function pacingClockFor(tenantId: string, studentId: string): Promise<Date | null> {
   if (!connected() || !mongoose.Types.ObjectId.isValid(studentId)) return null;
   try {
+    // A demo account is never paced: every day is open today.
+    if (await isDemoUser(studentId)) return null;
     const row: any = await OrientationProgress
       .findOne({ tenantId, studentId: new mongoose.Types.ObjectId(studentId) })
       .select('paced pacedFrom startedAt').lean();

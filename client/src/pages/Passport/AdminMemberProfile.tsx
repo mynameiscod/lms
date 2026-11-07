@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import passportApi from '../../api/passportApi';
 import './adminMemberProfile.css';
 import MemberActivityCard from './MemberActivity';
+import AdminDemoAccess from './AdminDemoAccess';
 import { barWidth } from '../../utils/barWidth';
 
 /**
@@ -197,6 +198,8 @@ const AdminMemberProfile: React.FC = () => {
             </table>
           ) : <p className="amp-muted">No payments recorded.</p>}
         </Card>
+
+        {isSuperAdmin() && <AdminDemoAccess studentId={studentId} />}
 
         <Card title="Role readiness" icon="bi-bullseye" error={readiness.error}
           action={<Link className="amp-link" to={`/admin/passport/students/${studentId}/roadmap`}>Details</Link>}>

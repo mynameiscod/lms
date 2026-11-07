@@ -706,7 +706,8 @@ const FoundationJourneyPage: React.FC = () => {
          * last day they finished instead, where the panel can say when the next one arrives.
          * Landing them on a learning day the server would refuse is the one thing to avoid.
          */
-        const owes = v.mandatory && !v.complete;
+        /* A link that names a learning day (`?day=`, e.g. the Demo bar's "Demo day") is honoured: the welcome is not forced over it. */
+        const owes = v.mandatory && !v.complete && !params.get('day');
         const lastDone = [...v.days].reverse().find(d => d.done)?.dayNumber ?? null;
         const open = v.days.some(d => d.dayNumber === asked && !d.locked) ? asked
           : owes ? (v.nextDay ?? lastDone ?? v.days[0]?.dayNumber ?? null)

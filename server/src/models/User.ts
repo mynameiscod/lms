@@ -271,6 +271,24 @@ const UserSchema: Schema = new Schema(
         byName:      { type: String },
         reason:      { type: String },
       },
+      /**
+       * A DEMO ACCOUNT (data/demoPolicy.ts): the super admin's demo plan this account shows, the year
+       * on screen now, and what the account was before — so ending the demo or a Full reset puts
+       * it back exactly. Absent on every ordinary account.
+       */
+      demo: {
+        type: new Schema({
+          planId:   { type: Schema.Types.ObjectId, ref: 'DemoPlan' },
+          planName: { type: String },
+          year:     { type: String },
+          by:       { type: String },
+          byName:   { type: String },
+          at:       { type: Date },
+          note:     { type: String },
+          previous: { type: Schema.Types.Mixed },
+        }, { _id: false }),
+        default: undefined,
+      },
       // Drop-off tracking. Signing up and proving you own the number are different
       // events, and until now only the first left a trace — so someone who never
       // entered their OTP looked identical to someone who verified and then stalled.

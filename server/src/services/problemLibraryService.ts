@@ -37,6 +37,28 @@ const visible = async (tenantId: string) => {
 onGrantChange(() => cache.clear());
 onAudienceChange.push(() => cache.clear());
 
+/**
+ * A DEMO ACCOUNT sees exactly the problems its demo plan chose for the year being shown — in any
+ * library, as long as they are published, because a super admin chose them. Memoised per request
+ * object: the list reads it several times.
+ */
+const demoMemo = new WeakMap<object, Promise<string[] | null>>();
+function demoScope(l: Learner): Promise<string[] | null> {
+  if (!l.isCareerPilot || l.isStaff) return Promise.resolve(null);
+  let hit = demoMemo.get(l as object);
+  if (!hit) {
+    hit = (async () => {
+      const { demoContext } = await import('./demoService');
+      const d = await demoContext(String(l.userId));
+      return d ? (d.config?.practiceIds || []).map(String) : null;
+    })();
+    demoMemo.set(l as object, hit);
+  }
+  return hit;
+}
+/** What this learner may see: the plan's published problems for a demo, the usual rule otherwise. */
+const seen = async (l: Learner) => ((await demoScope(l)) ? { status: 'published' } : visible(l.tenantId));
+
 export function assertMayUseLibrary(l: Learner) {
   if (!l.isCareerPilot && !l.isStaff) throw new PbError('The problem library is for CareerPilot members.', 403);
 }
@@ -50,6 +72,8 @@ export function assertMayUseLibrary(l: Learner) {
  */
 async function trialScope(l: Learner): Promise<string[] | null> {
   if (!l.isCareerPilot || l.isStaff) return null;
+  const demo = await demoScope(l);
+  if (demo) return demo;
   const passport = await passportOf(l.userId);
   const s = trialItem(passport, 'practice');
   if (s?.on && passport.trial.practicePicked) return (passport.trial.practiceIds || []).map(String);
@@ -141,7 +165,7 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
   const page = Math.max(1, Math.round(Number(q.page)) || 1);
   const [mine, scope] = await Promise.all([myResults(l.userId), trialScope(l)]);
 
-  const and: any[] = [(await visible(l.tenantId)), ...inScope(scope)];
+  const and: any[] = [(await seen(l)), ...inScope(scope)];
   const diffs = csv(q.difficulty).filter((d) => (DIFFS as readonly string[]).includes(d));
   if (diffs.length) and.push({ difficulty: { $in: diffs } });
   if (csv(q.topic).length) and.push({ topics: { $in: csv(q.topic) } });
@@ -183,7 +207,7 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
   ]);
   // On a trial, progress is measured against the trial's own problems, not the whole library.
   const totalsShown = scope ? await (async () => {
-    const r: any[] = await CodingProblem.aggregate([{ $match: { $and: [(await visible(l.tenantId)), ...inScope(scope)] } }, { $group: { _id: '$difficulty', n: { $sum: 1 } } }]);
+    const r: any[] = await CodingProblem.aggregate([{ $match: { $and: [(await seen(l)), ...inScope(scope)] } }, { $group: { _id: '$difficulty', n: { $sum: 1 } } }]);
     const byDifficulty: Record<string, number> = { easy: 0, medium: 0, hard: 0 };
     for (const x of r) byDifficulty[x._id] = x.n;
     return { total: r.reduce((n, x) => n + x.n, 0), byDifficulty };
@@ -192,19 +216,19 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
   // Progress is measured against the whole library, whatever the filters on the page.
   const solvedByDiff: Record<string, number> = { easy: 0, medium: 0, hard: 0 };
   if (mine.solved.length) {
-    const rowsSolved: any[] = await CodingProblem.aggregate([{ $match: { $and: [(await visible(l.tenantId)), ...inScope(scope), { _id: { $in: mine.solved } }] } }, { $group: { _id: '$difficulty', n: { $sum: 1 } } }]);
+    const rowsSolved: any[] = await CodingProblem.aggregate([{ $match: { $and: [(await seen(l)), ...inScope(scope), { _id: { $in: mine.solved } }] } }, { $group: { _id: '$difficulty', n: { $sum: 1 } } }]);
     for (const r of rowsSolved) solvedByDiff[r._id] = r.n;
   }
   const solvedTotal = solvedByDiff.easy + solvedByDiff.medium + solvedByDiff.hard;
   // Tried but not solved yet, among the problems this learner can see — the "Attempted" tab's count.
   const attempted = mine.triedOnly.length
-    ? await CodingProblem.countDocuments({ $and: [(await visible(l.tenantId)), ...inScope(scope), { _id: { $in: mine.triedOnly } }] })
+    ? await CodingProblem.countDocuments({ $and: [(await seen(l)), ...inScope(scope), { _id: { $in: mine.triedOnly } }] })
     : 0;
 
   // "Next up": the easiest problem not solved yet.
   let next: any = null;
   for (const d of DIFFS) {
-    next = await CodingProblem.findOne({ $and: [(await visible(l.tenantId)), ...inScope(scope), { difficulty: d }, { _id: { $nin: mine.solved } }] }).sort({ number: 1, _id: 1 }).select('number title difficulty').lean();
+    next = await CodingProblem.findOne({ $and: [(await seen(l)), ...inScope(scope), { difficulty: d }, { _id: { $nin: mine.solved } }] }).sort({ number: 1, _id: 1 }).select('number title difficulty').lean();
     if (next) break;
   }
 
@@ -227,7 +251,7 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
     },
     next: next ? { _id: String(next._id), number: next.number, title: next.title, difficulty: next.difficulty } : null,
     /** On a trial: how many problems it shows, out of the whole library. */
-    trial: scope ? { problems: scope.length, libraryTotal: totals.total } : null,
+    trial: scope && !(await demoScope(l)) ? { problems: scope.length, libraryTotal: totals.total } : null,
   };
 }
 
@@ -235,7 +259,7 @@ export async function listLibrary(l: Learner, q: LibraryQuery) {
 
 async function loadProblem(l: Learner, id: string) {
   if (!mongoose.isValidObjectId(id)) throw new PbError('Problem not found', 404);
-  const p = await CodingProblem.findOne({ _id: id, ...(await visible(l.tenantId)) });
+  const p = await CodingProblem.findOne({ _id: id, ...(await seen(l)) });
   if (!p) throw new PbError('This problem is not available.', 404);
   const scope = await trialScope(l);
   if (scope && !scope.includes(String(p._id))) {
@@ -253,8 +277,8 @@ export async function libraryProblem(l: Learner, id: string) {
     CodingProblemTestCase.find({ problemId: p._id, isSample: true }).sort({ order: 1 }).select('input expectedOutput explanation').lean(),
     ProblemSubmission.find({ userId: l.userId, problemId: p._id }).sort({ createdAt: -1 }).limit(30)
       .select('language code verdict passed total score maxScore timeMs late createdAt compileError').lean(),
-    CodingProblem.findOne({ $and: [(await visible(l.tenantId)), ...inScope(scope), { $or: [{ number: { $lt: p.number } }, { number: p.number, _id: { $lt: p._id } }] }] }).sort({ number: -1, _id: -1 }).select('_id').lean(),
-    CodingProblem.findOne({ $and: [(await visible(l.tenantId)), ...inScope(scope), { $or: [{ number: { $gt: p.number } }, { number: p.number, _id: { $gt: p._id } }] }] }).sort({ number: 1, _id: 1 }).select('_id').lean(),
+    CodingProblem.findOne({ $and: [(await seen(l)), ...inScope(scope), { $or: [{ number: { $lt: p.number } }, { number: p.number, _id: { $lt: p._id } }] }] }).sort({ number: -1, _id: -1 }).select('_id').lean(),
+    CodingProblem.findOne({ $and: [(await seen(l)), ...inScope(scope), { $or: [{ number: { $gt: p.number } }, { number: p.number, _id: { $gt: p._id } }] }] }).sort({ number: 1, _id: 1 }).select('_id').lean(),
     libraryTotals(l.tenantId),
   ]);
   return {

@@ -1,4 +1,5 @@
 import Quiz, { IQuiz } from '../models/Quiz';
+import { isDemoPassport } from '../data/demoPolicy';
 import { reconcileQuizTotalMarks, computeQuizTotalMarks, percentageOf } from './quizMarksService';
 import AssessmentSchedule from '../models/AssessmentSchedule';
 import Question from '../models/Question';
@@ -277,8 +278,9 @@ export class QuizService {
         }
       }
 
-      // Check attempt count
-      if (quiz.multipleAttempts && quiz.maxAttempts) {
+      // Check attempt count. A demo account retakes any checkpoint during a demo (data/demoPolicy.ts).
+      const demo = isDemoPassport((user as any)?.passport);
+      if (demo) { /* no attempt limit */ } else if (quiz.multipleAttempts && quiz.maxAttempts) {
         const previousAttempts = await QuizAttempt.countDocuments({
           quizId,
           studentId,

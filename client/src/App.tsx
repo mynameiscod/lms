@@ -120,6 +120,7 @@ const CodePlayground = lazy(() => import('./pages/CodePlayground'));
 const PassportAdminConfig = lazy(() => import('./pages/Passport/AdminConfig'));
 const PassportAdminStudents = lazy(() => import('./pages/Passport/AdminStudents'));
 const PassportAdminTrialPlans = lazy(() => import('./pages/Passport/AdminTrialPlans'));
+const PassportAdminDemoPlans = lazy(() => import('./pages/Passport/AdminDemoPlans'));
 const PassportAdminStudentRoadmap = lazy(() => import('./pages/Passport/AdminStudentRoadmap'));
 const PassportAdminStageSkills = lazy(() => import('./pages/Passport/AdminStageSkills'));
 const PassportAdminCoins = lazy(() => import('./pages/Passport/AdminCoins'));
@@ -680,6 +681,10 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_members']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
+      } />
+      {/* Demo plans: what a demo account shows, year by year. Super admin only. */}
+      <Route path="/admin/passport/demo-plans" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']}><Layout><PassportAdminDemoPlans /></Layout></ProtectedRoute>
       } />
       {/* Trial plans: a few days of limited access, given to chosen students from Members. */}
       <Route path="/admin/passport/trial-plans" element={

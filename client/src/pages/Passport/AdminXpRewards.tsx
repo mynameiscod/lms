@@ -44,7 +44,10 @@ const TYPE_ICON: Record<string, string> = {
 const EVENT_ICON: Record<string, string> = {
   ORIENTATION_DAY_COMPLETED: 'bi-flag', CAREER_MISSION_COMPLETED: 'bi-bullseye', PERSONALIZED_ASSESSMENT_COMPLETED: 'bi-clipboard-check',
   MOCK_INTERVIEW_COMPLETED: 'bi-mic', COMPANY_MOCK_TEST_COMPLETED: 'bi-building',
+  THINKING_LAB_DAILY_COMPLETED: 'bi-lightbulb', COMMUNICATION_DAILY_COMPLETED: 'bi-chat-quote',
 };
+/** The labs pay once a day, so they get their own card with the streak freezes. */
+const LAB_EVENTS = ['THINKING_LAB_DAILY_COMPLETED', 'COMMUNICATION_DAILY_COMPLETED'];
 const n = (v: number) => (v || 0).toLocaleString('en-IN');
 
 const AdminXpRewards: React.FC = () => {
@@ -262,6 +265,7 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
       setData(d);
       setTypes(Object.fromEntries(d.taskTypes.map(t => [t.key, String(t.xp)])));
       setRules(d.rules);
+      setFreeze({ every: String(d.labStreak?.freezeEvery ?? 7), max: String(d.labStreak?.freezeMax ?? 2) });
       setErr('');
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not load the XP settings.');
@@ -274,6 +278,9 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
   const valid = (v: string) => v !== '' && Number.isInteger(Number(v)) && Number(v) >= 0 && Number(v) <= max;
   const validLimit = (v: any) => String(v) !== '' && Number.isInteger(Number(v)) && Number(v) >= 0;
 
+  const [freeze, setFreeze] = useState({ every: '7', max: '2' });
+  const freezeDirty = !!data?.labStreak && (freeze.every !== String(data.labStreak.freezeEvery) || freeze.max !== String(data.labStreak.freezeMax));
+  const freezeValid = (v: string, top: number) => v !== '' && Number.isInteger(Number(v)) && Number(v) >= 0 && Number(v) <= top;
   const ruleOf = (key: string) => rules.find(r => r.eventKey === key);
   const setRule = (key: string, patch: Partial<XpRuleRow>) => setRules(rs => rs.map(r => (r.eventKey === key ? { ...r, ...patch } : r)));
   const ruleDirty = useCallback((key: string) => {
@@ -283,8 +290,9 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
 
   const dirtyTypes = useMemo(() => (data ? data.taskTypes.filter(t => String(t.xp) !== types[t.key]).map(t => t.key) : []), [data, types]);
   const dirtyRules = useMemo(() => (data ? data.rules.map(r => r.eventKey).filter(ruleDirty) : []), [data, ruleDirty]);
-  const dirtyCount = dirtyTypes.length + dirtyRules.length;
-  const allValid = Object.values(types).every(valid) && rules.every(r => valid(String(r.xp)) && validLimit(r.dailyLimit));
+  const dirtyCount = dirtyTypes.length + dirtyRules.length + (freezeDirty ? 1 : 0);
+  const allValid = Object.values(types).every(valid) && rules.every(r => valid(String(r.xp)) && validLimit(r.dailyLimit))
+    && freezeValid(freeze.every, data?.labStreak?.everyMax ?? 60) && freezeValid(freeze.max, data?.labStreak?.holdMax ?? 10);
   useLeaveWarning(dirtyCount > 0);
 
   const saveAll = async () => {
@@ -302,6 +310,11 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
         setData(d => (d ? { ...d, rules: d.rules.map(x => (x.eventKey === key ? out.rule : x)) } : d));
         setRules(rs => rs.map(x => (x.eventKey === key ? out.rule : x)));
       }
+      if (freezeDirty) {
+        const r = await passportApi.updateLabStreak(Math.round(Number(freeze.every)), Math.round(Number(freeze.max)));
+        setData(d => (d ? { ...d, labStreak: r.labStreak } : d));
+        setFreeze({ every: String(r.labStreak.freezeEvery), max: String(r.labStreak.freezeMax) });
+      }
       onSaved();
       flash(`Saved ${dirtyCount} change${dirtyCount === 1 ? '' : 's'}. Members see the new amounts the next time they open a page.`);
     } catch (e: any) {
@@ -314,6 +327,7 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
     if (!data) return;
     setTypes(Object.fromEntries(data.taskTypes.map(t => [t.key, String(t.xp)])));
     setRules(data.rules);
+    if (data.labStreak) setFreeze({ every: String(data.labStreak.freezeEvery), max: String(data.labStreak.freezeMax) });
   };
 
   const resetOverride = async (refKind: 'content' | 'module', refId: string) => {
@@ -337,7 +351,8 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
 
   const taskRule = ruleOf(TASK_EVENT);
   const dayRule = ruleOf(DAY_EVENT);
-  const otherEvents = data.events.filter(e => e.key !== TASK_EVENT && e.key !== DAY_EVENT);
+  const otherEvents = data.events.filter(e => e.key !== TASK_EVENT && e.key !== DAY_EVENT && !LAB_EVENTS.includes(e.key));
+  const labEvents = data.events.filter(e => LAB_EVENTS.includes(e.key));
   const tasksOff = !!taskRule && !taskRule.enabled;
   const overrides = data.taskOverrides.filter(o => !find || (o.title || '').toLowerCase().includes(find.toLowerCase()));
 
@@ -421,6 +436,37 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
       </div>
       <p className="xr-foot">Daily limit 0 means no limit. Streak bonuses (100 XP at 7 days, 500 at 30) are fixed.</p>
     </section>
+
+    {/* ── Thinking Lab and Communication Lab ───────────────────────────────── */}
+    {labEvents.length > 0 && <section className="xr-card">
+      <div className="xr-card-hd"><div><h2>Thinking Lab and Communication Lab</h2><p>Each lab pays once a day, for the first question or task a member completes. A partly right Thinking Lab answer earns its share.</p></div></div>
+      <div className="xr-acts">
+        <div className="xr-acts-hd" aria-hidden><span>Activity</span><span>XP</span><span>Daily limit</span><span>Paying</span></div>
+        {labEvents.map(ev => {
+          const r = ruleOf(ev.key);
+          if (!r) return null;
+          return <div key={ev.key} className={`xr-act${r.enabled ? '' : ' off'}${ruleDirty(ev.key) ? ' unsaved' : ''}`}>
+            <span className="xr-act-l"><span className="xr-act-ic"><i className={`bi ${EVENT_ICON[ev.key] || 'bi-stars'}`} /></span><span><b>{ev.name}</b><small>{ev.description}</small></span></span>
+            <label className="xr-act-f"><span>XP</span><Stepper value={String(r.xp)} max={max} disabled={!r.enabled} label={`${ev.name} XP`} onChange={x => setRule(ev.key, { xp: x as any })} /></label>
+            <label className="xr-act-f"><span>Daily limit</span><Stepper value={String(r.dailyLimit)} max={100000} step={10} disabled={!r.enabled} label={`${ev.name} daily limit`} onChange={x => setRule(ev.key, { dailyLimit: x as any })} /></label>
+            <label className="xr-switch sm"><input type="checkbox" checked={r.enabled} onChange={e => setRule(ev.key, { enabled: e.target.checked })} /><span>{r.enabled ? 'On' : 'Off'}</span></label>
+          </div>;
+        })}
+      </div>
+      <div className="xr-dayrules xr-lab-rules">
+        <div className={`xr-dr${freezeDirty ? ' unsaved' : ''}`}>
+          <span className="xr-dr-ic blue"><i className="bi bi-snow2" /></span>
+          <div className="xr-dr-c"><b>Earn a streak freeze every</b><small>Days in a row in one lab. A freeze saves the streak on a missed day, used on its own. 0 = no freezes.</small></div>
+          <div className="xr-dr-ctl"><Stepper value={freeze.every} max={data.labStreak?.everyMax ?? 60} label="Days in a row to earn a freeze" onChange={x => setFreeze(f => ({ ...f, every: x }))} /><span className="xr-unit">days</span></div>
+        </div>
+        <div className={`xr-dr${freezeDirty ? ' unsaved' : ''}`}>
+          <span className="xr-dr-ic blue"><i className="bi bi-shield-check" /></span>
+          <div className="xr-dr-c"><b>Freezes a member can hold</b><small>Per lab. Once full, no more are earned until one is used.</small></div>
+          <div className="xr-dr-ctl"><Stepper value={freeze.max} max={data.labStreak?.holdMax ?? 10} label="Most freezes held" onChange={x => setFreeze(f => ({ ...f, max: x }))} /></div>
+        </div>
+      </div>
+      <p className="xr-foot">Daily limit 0 means no limit. Every completed question or task also counts toward the member's Day streak.</p>
+    </section>}
 
     {/* ── Tasks priced one by one ───────────────────────────────────────── */}
     <section className="xr-card">

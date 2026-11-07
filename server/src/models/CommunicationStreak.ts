@@ -14,6 +14,9 @@ export interface ICommunicationStreak extends Document {
   lastCompletedDate?: string;      // YYYY-MM-DD
   completedDates: string[];        // distinct completed days (kept bounded)
   lastRemindedDate?: string;       // YYYY-MM-DD — dedupe daily nudges
+  /** CareerPilot members: streak freezes held, and the missed days they covered (data/labStreakPolicy.ts). */
+  freezes?: number;
+  frozenDates?: string[];
   updatedAt: Date;
   createdAt: Date;
 }
@@ -29,6 +32,8 @@ const CommunicationStreakSchema = new Schema<ICommunicationStreak>(
     lastCompletedDate: { type: String },
     completedDates: { type: [String], default: [] },
     lastRemindedDate: { type: String },
+    freezes: { type: Number, default: 0 },
+    frozenDates: { type: [String], default: undefined },
   },
   { timestamps: true }
 );

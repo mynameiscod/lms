@@ -310,6 +310,8 @@ export interface IGamificationConfig extends Document {
 
   /** What each level is called, level 1 first. Empty = the shipped names (DEFAULT_LEVEL_NAMES). */
   levelNames?: string[];
+  /** Lab streak freezes (data/labStreakPolicy.ts). Unset = the defaults. */
+  labStreak?: { freezeEvery?: number; freezeMax?: number };
   /** Which shipped badge set this tenant has been migrated to (BADGE_SET_VERSION). */
   badgeSetVersion?: number;
 
@@ -341,6 +343,10 @@ const GamificationConfigSchema = new Schema<IGamificationConfig>(
 
     taskXp: { type: Schema.Types.Mixed, default: undefined },
     levelNames: { type: [String], default: undefined },
+    labStreak: {
+      freezeEvery: { type: Number },
+      freezeMax: { type: Number },
+    },
     badgeSetVersion: { type: Number, default: 0 },
 
     updatedBy: { type: String },

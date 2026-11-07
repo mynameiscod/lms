@@ -114,6 +114,9 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
   const minWords = challenge?.minApproachWords ?? 30;
   const done = challenge?.status === 'solved' || challenge?.status === 'submitted';
   const member = cp || !!stats?.member;
+  /** A CareerPilot member earns the day's XP set in XP & Rewards, not the problem's own amount. */
+  const memberXp = stats?.member && stats.dayXp != null;
+  const xpOf = (problemXp: number) => (memberXp ? stats!.dayXp! : problemXp);
 
   const hydrate = useCallback((ch: TLChallenge | null) => {
     if (!ch) { setChallenge(null); return; }
@@ -328,8 +331,9 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
                 <div>
                   <b>{stats?.solvedTotal ?? 0} problem{stats?.solvedTotal === 1 ? '' : 's'} solved</b>
                   <span>{(stats?.streak || 0) > 0
-                    ? `${stats!.streak}-day lab streak · ${stats!.xpTotal} lab XP`
-                    : `${stats?.xpTotal ?? 0} lab XP · solve today’s problem to start a streak`}</span>
+                    ? `${stats!.streak}-day lab streak${stats?.freezes ? ` · ${stats.freezes} freeze${stats.freezes === 1 ? '' : 's'}` : ''} · ${stats!.xpTotal} lab XP`
+                    : `${stats?.xpTotal ?? 0} lab XP · ${stats?.member ? 'submit today’s problem' : 'solve today’s problem'} to start a streak`}</span>
+                  {stats?.member && !!stats.dayXp && <span className="iv2-strip-xp">{stats.paidToday ? `Today’s ${stats.dayXp} XP earned` : `Today’s problem pays ${stats.dayXp} XP`}</span>}
                   {setTotal > 0 && <i className="iv2-strip-bar" aria-hidden="true"><em style={{ width: `${barWidth(setPct)}%` }} /></i>}
                 </div>
               </div>
@@ -344,7 +348,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
                   <div>
                     <b>Today’s problem</b>
                     <span>{p.title}</span>
-                    <em>{p.difficulty ? p.difficulty.charAt(0).toUpperCase() + p.difficulty.slice(1) : ''} · {p.xp} XP{p.estimatedMinutes ? ` · ~${p.estimatedMinutes} min` : ''}</em>
+                    <em>{p.difficulty ? p.difficulty.charAt(0).toUpperCase() + p.difficulty.slice(1) : ''} · {xpOf(p.xp)} XP{p.estimatedMinutes ? ` · ~${p.estimatedMinutes} min` : ''}</em>
                   </div>
                   <i className="bi bi-chevron-right" aria-hidden="true" />
                 </button>
@@ -424,6 +428,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
 
       {tab === 'challenge' && p && challenge && !open && (
         <ChallengeOverview
+          xp={xpOf(challenge.problem?.xp || 0)}
           challenge={challenge} position={memberPos} seconds={seconds} done={done} minWords={minWords}
           onOpen={() => setOpen(true)}
         />
@@ -445,7 +450,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
                 )}
                 <span style={{ fontSize: fz(t, 11), fontWeight: 800, color: '#fff', background: diffColor, borderRadius: 999, padding: '3px 10px', textTransform: 'capitalize' }}>{p.difficulty}</span>
                 <span style={{ fontSize: fz(t, 11.5), fontWeight: 700, color: cp ? t.accentInk : t.primary, background: cp ? t.accentSoft : t.primarySoft, borderRadius: 999, padding: '3px 10px' }}>{p.category}</span>
-                <span style={{ fontSize: fz(t, 12), color: t.sub }}>⚡ {p.xp} XP</span>
+                <span style={{ fontSize: fz(t, 12), color: t.sub }}>⚡ {xpOf(p.xp)} XP</span>
                 {p.estimatedMinutes && <span style={{ fontSize: fz(t, 12), color: t.sub }}>· ~{p.estimatedMinutes} min</span>}
               </div>
               <h2 style={{ margin: '8px 0 0', fontSize: fz(t, 19), color: t.ink, fontWeight: 700 }}>{p.title}</h2>
@@ -512,7 +517,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
 
               {/* Voice — Explain to AI (optional, +30 XP) */}
               <div style={{ marginTop: 16, borderTop: `1px dashed ${t.border}`, paddingTop: 14 }}>
-                <div style={{ fontSize: fz(t, 12.5), fontWeight: 800, color: t.accent }}>🎤 Explain your logic out loud <span style={{ color: t.sub, fontWeight: 500 }}>(optional · +30 XP)</span></div>
+                <div style={{ fontSize: fz(t, 12.5), fontWeight: 800, color: t.accent }}>🎤 Explain your logic out loud <span style={{ color: t.sub, fontWeight: 500 }}>({memberXp ? 'optional' : 'optional · +30 XP'})</span></div>
                 <p style={{ fontSize: fz(t, 12), color: t.sub, margin: '2px 0 8px' }}>Speak your approach — the AI coaches your confidence, clarity and communication. Great interview practice.</p>
                 {!voiceEval && (
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -579,7 +584,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
           {/* Thinking Journal — mandatory reflection after solving */}
           {done && (
             <div style={{ ...card, marginTop: 16 }}>
-              <SectionH>📓 Thinking Journal <span style={{ color: t.sub, fontWeight: 500, fontSize: fz(t, 12) }}>(+15 XP · builds your Thinking Profile)</span></SectionH>
+              <SectionH>📓 Thinking Journal <span style={{ color: t.sub, fontWeight: 500, fontSize: fz(t, 12) }}>({memberXp ? 'builds your Thinking Profile' : '+15 XP · builds your Thinking Profile'})</span></SectionH>
               {journalSaved ? (
                 <div style={{ background: t.successSoft, border: `1px solid ${t.successBorder}`, color: t.success, borderRadius: 10, padding: 12, fontSize: fz(t, 13) }}>✓ Journal saved. Your Thinking Profile updates as you reflect on more problems — see the <b>My Progress</b> tab.</div>
               ) : (
@@ -774,7 +779,9 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
  */
 const ChallengeOverview: React.FC<{
   challenge: TLChallenge; position: { position: number; total: number } | null; seconds: number; done: boolean; minWords: number; onOpen: () => void;
-}> = ({ challenge, position, seconds, done, minWords, onOpen }) => {
+  /** What solving it pays this viewer. */
+  xp: number;
+}> = ({ challenge, position, seconds, done, minWords, onOpen, xp }) => {
   const t = useT();
   const p = challenge.problem!;
   const started = !done && (seconds > 0 || challenge.attempts > 0 || !!challenge.approach?.trim());
@@ -801,7 +808,7 @@ const ChallengeOverview: React.FC<{
           <h2>{p.title}</h2>
           {preview && <p className="tl-ov-preview">{preview}</p>}
           <div className="tl-ov-meta">
-            <span><i className="bi bi-lightning-charge-fill" aria-hidden /> {p.xp} XP</span>
+            <span><i className="bi bi-lightning-charge-fill" aria-hidden /> {xp} XP</span>
             {p.estimatedMinutes ? <span><i className="bi bi-clock" aria-hidden /> ~{p.estimatedMinutes} min</span> : null}
             {(p.examples?.length || 0) > 0 && <span><i className="bi bi-list-check" aria-hidden /> {p.examples.length} example{p.examples.length === 1 ? '' : 's'}</span>}
             {(p.totalHints || 0) > 0 && <span><i className="bi bi-life-preserver" aria-hidden /> {p.totalHints} hint{p.totalHints === 1 ? '' : 's'} available</span>}

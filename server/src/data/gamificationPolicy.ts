@@ -134,6 +134,31 @@ export const XP_EVENTS: XpEventDefinition[] = [
     uniqueSource: true,
     streakQualifying: true,
   },
+  /**
+   * The labs pay like a daily mission: one award a day, for the first question or task the member
+   * completes that day (the source is the day itself, so a second one finds it already paid). Further
+   * questions that day are practice. A partly right Thinking Lab answer earns its share of the amount.
+   * CareerPilot members only; LMS students keep the lab's own scoring (services/gamificationService).
+   */
+  {
+    key: 'THINKING_LAB_DAILY_COMPLETED',
+    name: 'Thinking Lab question of the day',
+    description: 'The first Thinking Lab question a member completes each day. A partly right answer earns its share.',
+    defaultXp: 20,
+    // One a day is guaranteed by the source; a cap would only refuse an admin's raised amount.
+    defaultDailyLimit: 0,
+    uniqueSource: true,
+    streakQualifying: true,
+  },
+  {
+    key: 'COMMUNICATION_DAILY_COMPLETED',
+    name: 'Communication Lab task of the day',
+    description: 'The first Communication Lab task a member completes each day.',
+    defaultXp: 20,
+    defaultDailyLimit: 0,
+    uniqueSource: true,
+    streakQualifying: true,
+  },
   // There is deliberately NO separate company mock-interview event. A company-flavoured mock
   // is the same Module 14 sitting with a company brief on the prompt — same engine, same
   // grading, same effort — and it already pays MOCK_INTERVIEW_COMPLETED. A second event would

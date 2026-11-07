@@ -104,13 +104,13 @@ export const submitCoach = async (req: Request, res: Response) => {
       coach: { area, level: prompt.level, step: step.index, isBaseline, role: step.role, ask: prompt.ask, followUp: prompt.followUp, signals, skills, tips },
     });
 
-    await bumpStreak(tenantId, studentId, practiceDate);
+    const reward = await bumpStreak(tenantId, studentId, practiceDate);
     const st: any = await CommunicationStreak.findOne({ tenantId, studentId }).lean();
     if (st) evaluateAchievements(tenantId, studentId, st, attempt.evaluation as any).catch(() => {});
     createNotifications(tenantId, [studentId], 'general', 'Your speaking practice was scored', `${prompt.title}: ${ev.overall}/100. ${ev.coachMessage || ''}`.slice(0, 280), '/ai-communication-lab').catch(() => {});
 
     const out = attempt.toObject() as any; delete out.recordingKey;
-    res.status(201).json({ attempt: out, next: await getCoachState(tenantId, studentId) });
+    res.status(201).json({ attempt: out, next: await getCoachState(tenantId, studentId), ...(reward ? { reward } : {}) });
   } catch (err: any) {
     cleanup(file?.path);
     res.status(500).json({ message: err.message || 'Failed to submit recording' });

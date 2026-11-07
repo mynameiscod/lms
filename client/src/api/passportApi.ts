@@ -848,6 +848,10 @@ export const passportApi = {
     return data;
   },
   /** Admin: what each type of journey task pays. */
+  updateLabStreak: async (freezeEvery: number, freezeMax: number): Promise<{ labStreak: LabStreakSettings }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/lab-streak`, { freezeEvery, freezeMax }, { headers: auth() });
+    return data;
+  },
   updateTaskXp: async (byType: Record<string, number>): Promise<{ taskTypes: TaskXpType[] }> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/task-xp`, { byType }, { headers: auth() });
     return data;
@@ -2655,7 +2659,10 @@ export interface AdminGamification {
   taskTypes: TaskXpType[];
   taskOverrides: { refKind: 'content' | 'module'; refId: string; xp: number; title: string; updatedAt: string }[];
   taskXpMax: number;
+  /** Thinking Lab and Communication Lab streak freezes. */
+  labStreak?: LabStreakSettings;
 }
+export interface LabStreakSettings { freezeEvery: number; freezeMax: number; everyMax: number; holdMax: number }
 
 export interface UnitStudentPreview {
   preview: true;

@@ -16,6 +16,44 @@ import * as game from '../services/gamificationService';
 import { transcribeFile } from '../services/speakingService';
 import { isCareerPilotMember, careerPilotMemberFilter } from '../services/careerPilotPopulation';
 import { pickMemberProblem, positionInBank } from '../services/thinkingLabMemberDaily';
+import { awardLabDay, labStreakSettingsFor, labDayXp } from '../services/labRewardService';
+import { advanceLabStreak, labStreakToday } from '../data/labStreakPolicy';
+import { XpLedger } from '../models/GamificationModels';
+import PassportProgress from '../models/PassportProgress';
+
+/** Ledger events that count as XP from the Thinking Lab: each day's award, and old lab XP moved in. */
+const LAB_XP_EVENTS = ['THINKING_LAB_DAILY_COMPLETED', 'THINKING_LAB_XP_MOVED'];
+
+/**
+ * A CareerPilot member finished a Thinking Lab question.
+ *
+ * The lab streak moves (one question done is a streak day, with freezes), and the day's XP is paid
+ * through the same engine as daily missions — once a day, `share` of the admin's amount. Nothing
+ * goes to the lab's own XP, coins or badges: those are for LMS students only.
+ */
+async function memberQuestionDone(req: Request, u: any, share: number, ref: string) {
+  const day = today();
+  const settings = await labStreakSettingsFor(tId(req));
+  const gs: any = await StudentGameStats.findOneAndUpdate(
+    { tenantId: tId(req), studentId: uId(req) },
+    { $setOnInsert: { tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' ') } },
+    { new: true, upsert: true },
+  );
+  const st = advanceLabStreak({ current: gs.currentStreak, longest: gs.longestStreak, lastDate: gs.lastSolvedDate, freezes: gs.freezes || 0 }, day, settings);
+  if (st.advanced) {
+    gs.currentStreak = st.current; gs.longestStreak = st.longest; gs.lastSolvedDate = st.lastDate; gs.freezes = st.freezes;
+    if (st.frozenDates.length) gs.frozenDates = [...(gs.frozenDates || []), ...st.frozenDates].slice(-60);
+    await gs.save();
+  }
+  const award = await awardLabDay({ tenantId: tId(req), studentId: uId(req), lab: 'thinking', day, share, ref });
+  return {
+    xpEarned: award.awarded,
+    reward: {
+      fullXp: award.fullXp, alreadyPaid: award.alreadyPaid, dayStreak: award.dayStreak, streakBonus: award.streakBonus || 0,
+      labStreak: { current: st.advanced ? st.current : gs.currentStreak, longest: st.advanced ? st.longest : gs.longestStreak, freezes: st.advanced ? st.freezes : (gs.freezes || 0), earnedFreeze: st.earnedFreeze, frozenDates: st.frozenDates },
+    },
+  };
+}
 
 // Credit bonus XP (voice/journal) to the student's game stats. Returns coins + new badges.
 async function creditBonusXp(req: Request, amount: number) {
@@ -153,6 +191,7 @@ async function memberIds(tenantId: string) {
 
 /** The viewer is a CareerPilot member with no batch — the member rules apply to them. */
 const isMemberView = (u: any) => !u?.batchId && isCareerPilotMember(u?.passport);
+const viewerIsMember = async (req: Request) => isMemberView(await User.findById(uId(req)).select(USER_FIELDS).lean());
 
 async function memberToday(req: Request, res: Response, u: any, d: string) {
   const bank = await memberBank(tId(req), uId(req));
@@ -380,13 +419,24 @@ export const submit = async (req: Request, res: Response) => {
       premium: p.difficulty === 'interview', tenantId: tId(req),
     });
 
+    const viewer: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
+    const member = isMemberView(viewer);
     const xp = lab.computeXp({ problemXp: p.xp, allPassed, attempts: ch.attempts, hintsUsed: ch.hintsUsed, explainedThinking: (ch.approachWordCount || 0) >= lab.MIN_APPROACH_WORDS });
+    const xpBefore = ch.xpEarned || 0;
     ch.aiFeedback = feedback; ch.score = feedback?.overall ?? (allPassed ? 80 : Math.round(passedCount / Math.max(1, results.length) * 60));
     ch.passed = allPassed; ch.xpEarned = xp; ch.status = allPassed ? 'solved' : 'submitted'; ch.submittedAt = new Date();
 
     // Gamification: award XP/coins/badges once, only on a first-time solve of this challenge.
     let newBadges: any[] = []; let coinsEarned = 0;
-    const firstSolve = allPassed && !ch.gameAwarded;
+    let reward: any = null;
+    if (member) {
+      // A submitted question is a streak day. The day's XP is paid on a solve for now; a partly right
+      // answer earns its share once answers are checked step by step.
+      const r = await memberQuestionDone(req, viewer, allPassed ? 1 : 0, String(ch._id));
+      ch.xpEarned = Math.max(xpBefore, r.xpEarned);
+      reward = { ...r.reward, xpNow: r.xpEarned };
+    }
+    const firstSolve = !member && allPassed && !ch.gameAwarded;
     if (firstSolve) {
       const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
       const gs: any = await StudentGameStats.findOneAndUpdate(
@@ -405,7 +455,8 @@ export const submit = async (req: Request, res: Response) => {
     res.json({
       allPassed, passedCount, total: results.length,
       results: results.map((r: any) => ({ index: r.index, passed: r.passed, hidden: r.hidden })),
-      feedback, xpEarned: xp, coinsEarned, newBadges, status: ch.status,
+      feedback, xpEarned: member ? (reward?.xpNow || 0) : xp, coinsEarned, newBadges, status: ch.status,
+      ...(reward ? { reward } : {}),
     });
   } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to submit' }); }
 };
@@ -416,6 +467,26 @@ export const stats = async (req: Request, res: Response) => {
     const gs: any = await StudentGameStats.findOne({ tenantId: tId(req), studentId: uId(req) }).lean();
     const solvedToday = await DailyChallenge.countDocuments({ tenantId: tId(req), studentId: uId(req), passed: true, date: today() });
     const u: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
+    if (isMemberView(u)) {
+      const sid = new mongoose.Types.ObjectId(uId(req));
+      const [labXp, settings, dayXp, pp, paidToday] = await Promise.all([
+        XpLedger.aggregate([{ $match: { tenantId: tId(req), studentId: sid, eventKey: { $in: LAB_XP_EVENTS } } }, { $group: { _id: null, n: { $sum: '$amount' } } }]),
+        labStreakSettingsFor(tId(req)),
+        labDayXp(tId(req), 'thinking'),
+        PassportProgress.findOne({ tenantId: tId(req), studentId: uId(req) }).select('xp streak').lean() as any,
+        XpLedger.exists({ tenantId: tId(req), studentId: sid, eventKey: 'THINKING_LAB_DAILY_COMPLETED', sourceId: today() }),
+      ]);
+      const view = labStreakToday({ current: gs?.currentStreak || 0, longest: gs?.longestStreak || 0, lastDate: gs?.lastSolvedDate, freezes: gs?.freezes || 0 }, today());
+      return res.json({
+        member: true,
+        xpTotal: labXp[0]?.n || 0, level: 1, coins: 0,
+        streak: view.current, longestStreak: gs?.longestStreak || 0, streakAtRisk: view.atRisk,
+        freezes: gs?.freezes || 0, freezeEvery: settings.freezeEvery, freezeMax: settings.freezeMax,
+        dayXp, paidToday: !!paidToday, totalXp: pp?.xp || 0, dayStreak: pp?.streak || 0,
+        solvedTotal: await DailyChallenge.countDocuments({ tenantId: tId(req), studentId: uId(req), passed: true }),
+        solvedToday, badgeCount: (gs?.badges || []).length,
+      });
+    }
     res.json({
       member: isMemberView(u),
       xpTotal: gs?.xpTotal || 0, level: gs?.level || 1, coins: gs?.coins || 0,
@@ -445,7 +516,22 @@ export const leaderboard = async (req: Request, res: Response) => {
     const onlyIds = isMemberView(viewer) ? await memberIds(tId(req)) : null;
 
     let rows: any[] = [];
-    if (scope === 'weekly' || scope === 'monthly') {
+    if (onlyIds) {
+      const since = new Date(0);
+      if (scope === 'weekly' || scope === 'monthly') {
+        const d = istToday();
+        if (scope === 'weekly') { const dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow); } else d.setDate(1);
+        since.setTime(d.getTime());
+      }
+      const agg = await XpLedger.aggregate([
+        { $match: { tenantId: tId(req), eventKey: { $in: LAB_XP_EVENTS }, studentId: { $in: onlyIds }, at: { $gte: since } } },
+        { $group: { _id: '$studentId', xp: { $sum: '$amount' }, days: { $sum: { $cond: [{ $eq: ['$eventKey', 'THINKING_LAB_DAILY_COMPLETED'] }, 1, 0] } } } },
+        { $sort: { xp: -1 } }, { $limit: limit },
+      ]);
+      const names = new Map((await User.find({ _id: { $in: agg.map((a: any) => a._id) } }).select('firstName lastName').lean() as any[])
+        .map((x) => [String(x._id), [x.firstName, x.lastName].filter(Boolean).join(' ') || 'Member']));
+      rows = agg.map((r: any) => ({ studentId: String(r._id), name: names.get(String(r._id)) || 'Member', xp: r.xp, solved: r.days }));
+    } else if (scope === 'weekly' || scope === 'monthly') {
       // XP earned in the current period, aggregated from solves.
       const d = istToday();
       if (scope === 'weekly') { const dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow); } // Monday
@@ -488,7 +574,7 @@ export const voiceExplain = async (req: Request, res: Response) => {
 
     // Award the voice-explanation bonus once.
     let bonus: any = null;
-    if (!ch.voiceXpAwarded) { bonus = await creditBonusXp(req, 30); ch.voiceXpAwarded = true; }
+    if (!ch.voiceXpAwarded && !(await viewerIsMember(req))) { bonus = await creditBonusXp(req, 30); ch.voiceXpAwarded = true; }
     await ch.save();
     res.json({ voiceEval, xpEarned: ch.voiceXpAwarded && bonus ? 30 : 0, coinsEarned: bonus?.coinsEarned || 0, newBadges: bonus?.newBadges || [] });
   } catch (err: any) {
@@ -511,7 +597,7 @@ export const saveJournal = async (req: Request, res: Response) => {
       answeredAt: new Date(),
     };
     let bonus: any = null;
-    if (!ch.journalXpAwarded) { bonus = await creditBonusXp(req, 15); ch.journalXpAwarded = true; }
+    if (!ch.journalXpAwarded && !(await viewerIsMember(req))) { bonus = await creditBonusXp(req, 15); ch.journalXpAwarded = true; }
     await ch.save();
     res.json({ saved: true, xpEarned: bonus ? 15 : 0, coinsEarned: bonus?.coinsEarned || 0, newBadges: bonus?.newBadges || [] });
   } catch (err: any) { res.status(500).json({ message: err.message }); }

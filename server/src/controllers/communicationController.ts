@@ -22,6 +22,10 @@ import { evaluateAchievements, getAchievementsForStudent, computeLeaderboard } f
 import CommunicationInstructorFeedback from '../models/CommunicationInstructorFeedback';
 import CommunicationAuditLog from '../models/CommunicationAuditLog';
 import * as settings from '../services/settingsService';
+import { isCareerPilotMember } from '../services/careerPilotPopulation';
+import { awardLabDay, labStreakSettingsFor, LabDayAward } from '../services/labRewardService';
+import { advanceLabStreak } from '../data/labStreakPolicy';
+import { istToday, ymd as planYmd } from '../utils/planSchedule';
 
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
@@ -310,7 +314,7 @@ export const submit = async (req: Request, res: Response) => {
     });
 
     // 4) Update the daily streak (server-authoritative) + award achievements
-    await bumpStreak(tenantId, uId(req), practiceDate);
+    const reward = await bumpStreak(tenantId, uId(req), practiceDate);
     const st: any = await CommunicationStreak.findOne({ tenantId, studentId: uId(req) }).lean();
     if (st) evaluateAchievements(tenantId, uId(req), st, evaluation).catch(() => {});
 
@@ -322,14 +326,47 @@ export const submit = async (req: Request, res: Response) => {
     ).catch(() => {});
 
     const out = attempt.toObject() as any; delete out.recordingKey;
-    res.status(201).json({ attempt: out });
+    res.status(201).json({ attempt: out, ...(reward ? { reward } : {}) });
   } catch (err: any) {
     cleanup(file?.path);
     res.status(500).json({ message: err.message || 'Failed to submit recording' });
   }
 };
 
-export async function bumpStreak(tenantId: string, studentId: string, practiceDate: string) {
+/**
+ * A recording was scored: count the day for the streak.
+ *
+ * A CareerPilot member's streak also has freezes (data/labStreakPolicy.ts), and the day pays XP like a
+ * daily mission — once, through the shared engine (labRewardService). The XP day is the server's date,
+ * never one the browser sent. LMS students keep the streak exactly as it was.
+ */
+export async function bumpStreak(tenantId: string, studentId: string, practiceDate: string): Promise<LabDayAward | null> {
+  const u: any = await User.findById(studentId).select('batchId passport.product passport.active passport.activatedAt passport.verifiedAt').lean().catch(() => null);
+  if (u && !u.batchId && isCareerPilotMember(u.passport)) return memberStreakDay(tenantId, studentId, practiceDate);
+  await lmsStreakDay(tenantId, studentId, practiceDate);
+  return null;
+}
+
+async function memberStreakDay(tenantId: string, studentId: string, practiceDate: string): Promise<LabDayAward> {
+  const cfg = await labStreakSettingsFor(tenantId);
+  const s: any = await CommunicationStreak.findOne({ tenantId, studentId });
+  if (!s) {
+    const st = advanceLabStreak({ current: 0, longest: 0, lastDate: null, freezes: 0 }, practiceDate, cfg);
+    await CommunicationStreak.create({ tenantId, studentId, currentStreak: st.current, longestStreak: st.longest, totalCompletedDays: 1, lastCompletedDate: practiceDate, completedDates: [practiceDate], freezes: st.freezes });
+  } else if (!s.completedDates.includes(practiceDate)) {
+    const st = advanceLabStreak({ current: s.currentStreak, longest: s.longestStreak, lastDate: s.lastCompletedDate, freezes: s.freezes || 0 }, practiceDate, cfg);
+    if (st.advanced) {
+      s.currentStreak = st.current; s.longestStreak = st.longest; s.lastCompletedDate = st.lastDate; s.freezes = st.freezes;
+      if (st.frozenDates.length) s.frozenDates = [...(s.frozenDates || []), ...st.frozenDates].slice(-60);
+    }
+    s.totalCompletedDays += 1;
+    s.completedDates = [...s.completedDates, practiceDate].slice(-400);
+    await s.save();
+  }
+  return awardLabDay({ tenantId, studentId, lab: 'communication', day: planYmd(istToday()) });
+}
+
+async function lmsStreakDay(tenantId: string, studentId: string, practiceDate: string) {
   const s = await CommunicationStreak.findOne({ tenantId, studentId });
   if (!s) {
     await CommunicationStreak.create({ tenantId, studentId, currentStreak: 1, longestStreak: 1, totalCompletedDays: 1, lastCompletedDate: practiceDate, completedDates: [practiceDate] });

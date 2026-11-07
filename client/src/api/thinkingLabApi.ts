@@ -37,7 +37,9 @@ export interface TLChallenge {
   code: string; language: string; attempts: number; hintsUsed: number; timeSpentSec: number;
   passed: boolean; score?: number; xpEarned: number; aiFeedback?: TLRubric; problem: TLProblem | null;
 }
-export interface TLStats { /** A CareerPilot member with no batch: member bank, member leaderboard. */ member?: boolean; xpTotal: number; level: number; coins: number; streak: number; longestStreak: number; solvedTotal: number; solvedToday: number; badgeCount: number; }
+export interface TLStats { /** A CareerPilot member with no batch: member bank, member leaderboard. */ member?: boolean; xpTotal: number; level: number; coins: number; streak: number; longestStreak: number; solvedTotal: number; solvedToday: number; badgeCount: number;
+  /** CareerPilot members: streak freezes held, the day's XP, and whether today is already paid. */
+  freezes?: number; freezeEvery?: number; freezeMax?: number; dayXp?: number; paidToday?: boolean; streakAtRisk?: boolean; }
 export interface TLBadge { key: string; name: string; icon: string; desc: string; earned: boolean; earnedAt?: string | null; }
 export interface TLLeaderRow { rank: number; studentId: string; name: string; xp: number; level?: number; solved?: number; streak?: number; isMe: boolean; }
 export interface TLVoiceEval { transcript: string; durationSec: number; confidence: number; communication: number; grammar: number; logic: number; flow: number; professionalism: number; technicalVocabulary: number; overall: number; summary: string; tips: string[]; }

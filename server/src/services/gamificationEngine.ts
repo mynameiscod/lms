@@ -225,6 +225,29 @@ export async function processGamificationEvent(event: GamificationEvent): Promis
   };
 }
 
+/**
+ * Count today as a day the member showed up, without paying anything.
+ *
+ * For an activity that is a streak day whether or not it pays: a lab question answered wrong still
+ * counts, and so does a second one after the day's XP was paid. Same streak rule, milestone bonus and
+ * streak badges as an award, and at most one advance a day.
+ */
+export async function recordActiveDay(tenantId: string, studentId: string, now: Date = new Date()): Promise<{ streak: number; advanced: boolean; streakBonus?: number; badges: string[] }> {
+  await PassportProgress.updateOne({ tenantId, studentId }, { $setOnInsert: { startDate: now } }, { upsert: true });
+  const r = await touchStreak(tenantId, studentId, ymd(now), now);
+  const badges: string[] = [];
+  let streakBonus: number | undefined;
+  if (r.advanced) {
+    const milestone = streakMilestoneFor(r.streak);
+    if (milestone && milestone.bonusXp > 0) {
+      const bonus = await awardStreakBonus(tenantId, studentId, milestone.days, milestone.bonusXp, now);
+      if (bonus > 0) streakBonus = bonus;
+    }
+    badges.push(...await evaluateBadges(tenantId, studentId, ['STREAK'], now));
+  }
+  return { streak: r.streak, advanced: r.advanced, streakBonus, badges };
+}
+
 const toId = (id: string): any => {
   const mongoose = require('mongoose');
   return mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id;

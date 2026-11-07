@@ -93,3 +93,6 @@
   .tl-hero-wrap .iv2-actions { flex-direction: column; align-items: stretch; }
   .tl-hero-wrap .iv2-actions .iv2-btn { width: 100%; white-space: nowrap; }
 }
+
+/* CareerPilot members: what today's problem pays, under the streak line. */
+.iv2 .iv2-strip > div > span.iv2-strip-xp { font-weight: 800; color: #17855B; }

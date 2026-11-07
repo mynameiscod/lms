@@ -7,6 +7,7 @@ import {
   loadXpPricing, invalidateXpPricing, cleanXp, overrideKey,
 } from '../services/xpPricingService';
 import { ensureGamificationDefaults } from '../services/gamificationEngine';
+import { labStreakSettings, LAB_FREEZE_EVERY_MAX, LAB_FREEZE_HOLD_MAX } from '../data/labStreakPolicy';
 import { getLeaderboard, rankSummary } from '../services/leaderboardService';
 import { levelFromXp } from '../services/passportGamificationService';
 import { levelNamesFor, invalidateLevelNames } from '../services/levelNameService';
@@ -185,6 +186,8 @@ export const getAdminGamification = async (req: Request, res: Response) => {
         refKind: o.refKind, refId: o.refId, xp: o.xp, title: o.title || '', updatedAt: o.updatedAt,
       })),
       taskXpMax: TASK_XP_MAX,
+      /** Thinking Lab and Communication Lab streak freezes. */
+      labStreak: { ...labStreakSettings(cfg?.labStreak), everyMax: LAB_FREEZE_EVERY_MAX, holdMax: LAB_FREEZE_HOLD_MAX },
       supportedScopes: ['COLLEGE', 'GLOBAL'],
     });
   } catch (e: any) {
@@ -431,6 +434,25 @@ export const updateLevelNames = async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[gamification] level names:', e?.message || e);
     res.status(500).json({ message: 'Could not save the level names.' });
+  }
+};
+
+/** PUT /passport/gamification/admin/lab-streak  { freezeEvery, freezeMax } */
+export const updateLabStreak = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const every = Number(req.body?.freezeEvery), max = Number(req.body?.freezeMax);
+    if (!Number.isInteger(every) || every < 0 || every > LAB_FREEZE_EVERY_MAX) return res.status(400).json({ message: `Earn a freeze every 0 to ${LAB_FREEZE_EVERY_MAX} days (0 switches freezes off).` });
+    if (!Number.isInteger(max) || max < 0 || max > LAB_FREEZE_HOLD_MAX) return res.status(400).json({ message: `A member can hold 0 to ${LAB_FREEZE_HOLD_MAX} freezes.` });
+    const cfg = await GamificationConfig.findOneAndUpdate(
+      { tenantId },
+      { $set: { labStreak: { freezeEvery: every, freezeMax: max }, updatedBy: String((req as any).user?.id || '') } },
+      { new: true, upsert: true },
+    ).lean() as any;
+    res.json({ labStreak: { ...labStreakSettings(cfg?.labStreak), everyMax: LAB_FREEZE_EVERY_MAX, holdMax: LAB_FREEZE_HOLD_MAX } });
+  } catch (e: any) {
+    console.error('[gamification] lab streak:', e?.message || e);
+    res.status(500).json({ message: 'Could not save the lab streak settings.' });
   }
 };
 

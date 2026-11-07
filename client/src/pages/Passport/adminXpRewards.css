@@ -409,3 +409,7 @@
 .xr .xr-f input[type="date"] { padding-left: 12px !important; padding-right: 12px !important; }
 .xr .xr-f > :is(input, textarea, select) { padding-left: 12px !important; padding-right: 12px !important; }
 .xr .xr-f > textarea { padding-top: 9px !important; padding-bottom: 9px !important; }
+
+/* Lab card (Thinking Lab and Communication Lab): the freeze settings sit under the two activities. */
+.xr-lab-rules { margin-top: 14px; }
+.xr-unit { font-size: 13px; font-weight: 700; color: var(--muted); }

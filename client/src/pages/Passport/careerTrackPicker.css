@@ -28,3 +28,24 @@
 .ctp-current .ctp-desc { display: block; margin: 2px 0 0; }
 .ctp-current button { flex: none; white-space: nowrap; }
 @media (max-width: 560px) { .ctp-current { flex-wrap: wrap; } .ctp-current button { width: 100%; } }
+
+/* ── The track as one bar (journey and roadmap pages): icon, name, a divider, the track's own
+   description, and the change button at the right. Wraps to two rows on a tablet, stacks on a phone. */
+.ctp.ctp-bar { padding: 12px 16px; border-radius: 18px; margin: 0; }
+.ctp-bar .ctp-current { gap: 14px; }
+.ctp-bar .ctp-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: #EEF2FF; color: #3B4CB8; font-size: 19px; }
+.ctp-bar .ctp-current .ctp-name { flex: 0 1 auto; min-width: 0; padding-right: 16px; border-right: 1px solid #E2EAF2; }
+.ctp-bar .ctp-current .ctp-name small { text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 700; color: #2F3F56; }
+.ctp-bar .ctp-current .ctp-name b { font-size: 16px; font-weight: 800; color: #051D64; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctp-bar .ctp-current .ctp-desc { flex: 1 1 260px; min-width: 0; margin: 0; font-size: 14px; line-height: 1.45; color: #33475B; }
+.ctp-bar .ctp-current button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 800; box-shadow: 0 2px 8px rgba(15, 46, 77, .06); }
+.ctp-bar .ctp-current button:hover { border-color: #051D64; }
+@media (max-width: 900px) {
+  .ctp-bar .ctp-current { flex-wrap: wrap; }
+  .ctp-bar .ctp-current .ctp-name { flex: 1 1 auto; border-right: 0; padding-right: 0; }
+  .ctp-bar .ctp-current .ctp-desc { order: 3; flex-basis: 100%; }
+}
+@media (max-width: 560px) {
+  .ctp-bar .ctp-current .ctp-name b { white-space: normal; }
+  .ctp-bar .ctp-current button { order: 4; width: 100%; justify-content: center; }
+}

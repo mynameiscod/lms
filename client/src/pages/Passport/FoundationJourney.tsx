@@ -37,6 +37,7 @@ import './foundationJourney.css';
 import './foundationPreview.css';
 import './foundationMember.css';
 import './orientation.css';
+import './journeyDashboard.css';
 import { useProgramDays } from './useProgramDays';
 import { barWidth } from '../../utils/barWidth';
 
@@ -79,6 +80,76 @@ const ICON_FILLED: Record<string, string> = {
 const mins = (n: number) =>
   (n >= 60 ? `${Math.floor(n / 60)}h${n % 60 ? ` ${n % 60}m` : ''}` : `${n} min`);
 
+/** "~ 1 hr 10 min" — the day's length as the plan states it. */
+const approx = (n: number) =>
+  (n >= 60 ? `~ ${Math.floor(n / 60)} hr${n % 60 ? ` ${n % 60} min` : ''}` : `~ ${n} min`);
+
+/** One line under each task, in words, by what kind of task it is. */
+const TYPE_HINT: Record<string, string> = {
+  video: 'Watch the lesson and learn the idea.',
+  notes: 'Read the key concepts and syntax.',
+  worked_example: 'See a real example and follow how it works.',
+  interactive_lesson: 'Learn by trying it as you go.',
+  interactive_activity: 'A short hands-on activity.',
+  tech_qa: 'Questions interviewers ask on this topic.',
+  behavioral_qa: 'Questions interviewers ask on this topic.',
+  practice_theory: 'Practise what you just learned.',
+  practice_coding: 'Write and run the code yourself.',
+  aptitude: 'Sharpen your aptitude.',
+  quiz: 'A quick check of your understanding.',
+  assignment: 'Build it and submit your work.',
+};
+
+/** How many tasks the day card lists before "View more". */
+const FIRST_TASKS = 5;
+
+/** A task's title without the "— video" / "— notes" its kind already says. */
+const lessonName = (title: string) => title.split(/\s+[—–]\s+/)[0].trim();
+
+/**
+ * THE TOP OF THE PAGE: where the member is, and the numbers that matter today.
+ *
+ * Title on the left; on the right the ring, the day count, today's plan and the one button. It is
+ * the same for a member and before membership, so buying changes the figures, not the furniture.
+ */
+const JourneyHead: React.FC<{
+  badge: string; stage: string; sub: string; pct: number; pctLabel: string;
+  daysLine: string; plan?: { title: string; line: string } | null;
+  action: React.ReactNode;
+}> = ({ badge, stage, sub, pct, pctLabel, daysLine, plan, action }) => {
+  const r = 26; const c = 2 * Math.PI * r;
+  const p = Math.max(0, Math.min(100, pct));
+  return (
+    <header className="jd-head">
+      <div className="jd-head-copy">
+        <span className="jd-badge">{badge}</span>
+        <h1>{stage} Journey</h1>
+        <p>{sub}</p>
+      </div>
+      <div className="jd-stats">
+        <div className="jd-stat jd-stat-ring">
+          <svg viewBox="0 0 64 64" width="64" height="64" aria-hidden>
+            <circle cx="32" cy="32" r={r} className="jd-ring-bg" />
+            <circle cx="32" cy="32" r={r} className="jd-ring-fg" strokeDasharray={c} strokeDashoffset={c * (1 - p / 100)} transform="rotate(-90 32 32)" />
+          </svg>
+          <span><b>{p}%</b><small>{pctLabel}</small></span>
+        </div>
+        <div className="jd-stat">
+          <span className="jd-stat-ic"><i className="bi bi-calendar3" aria-hidden /></span>
+          <span><b>{daysLine}</b></span>
+        </div>
+        {plan && (
+          <div className="jd-stat">
+            <span className="jd-stat-ic play"><i className="bi bi-play-fill" aria-hidden /></span>
+            <span><b>{plan.title}</b><small>{plan.line}</small></span>
+          </div>
+        )}
+        <div className="jd-stat-act">{action}</div>
+      </div>
+    </header>
+  );
+};
+
 /** A welcome-day task, as it is listed on the plan (the same glyphs the welcome day page uses). */
 const WELCOME_ICON: Record<string, string> = {
   video: 'bi-play-fill', notes: 'bi-journal-text', image: 'bi-image-fill', checklist: 'bi-check2-square', recording: 'bi-mic-fill',
@@ -99,8 +170,8 @@ const WELCOME_LABEL: Record<string, string> = {
  * Positions are read with offsetLeft against the strip itself (it is position:relative), not
  * getBoundingClientRect, because #root renders at zoom .75 and the two disagree under zoom.
  */
-const DayStrip: React.FC<{ totalDays: number; label: string; focusDay?: number | null; children: React.ReactNode }> =
-  ({ totalDays, label, focusDay, children }) => {
+const DayStrip: React.FC<{ totalDays: number; label: string; focusDay?: number | null; aside?: React.ReactNode; children: React.ReactNode }> =
+  ({ totalDays, label, focusDay, aside, children }) => {
     const wrapRef = useRef<HTMLElement | null>(null);
     const [edge, setEdge] = useState({ prev: false, next: false });
     const [activeFrom, setActiveFrom] = useState<number | null>(null);
@@ -189,6 +260,7 @@ const DayStrip: React.FC<{ totalDays: number; label: string; focusDay?: number |
                       aria-current={activeFrom === r.from ? 'true' : undefined} onClick={() => jumpTo(r.from)}>{r.label}</button>
             ))}
           </div>
+          {aside}
         </nav>
         <div className={`fj-strip-row${edge.prev ? ' can-prev' : ''}${edge.next ? ' can-next' : ''}`}>
           <button type="button" className="fj-strip-arrow prev" onClick={() => page(-1)} disabled={!edge.prev}
@@ -270,6 +342,7 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
   const programDays = useProgramDays();
   const previewDays = journey.preview || [];
   const [open, setOpen] = useState<number>(previewDays[0]?.day ?? 1);
+  const [showAll, setShowAll] = useState(false);
   const { unlock, busy, msg, priceInr } = useUnlock();
 
   /** The programme's own name, from the server. Falls back to the only name this page ever had. */
@@ -292,36 +365,36 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
   const openPct = totalDays ? Math.round((openCount / totalDays) * 100) : 0;
 
   return (
-    <div className="fj-page fjm fjm-preview">
-      <section className="fjm-hero fjm-hero2">
-        <div className="fjm-hero-copy">
-          {/* Not "Day 1 of N": nobody starts there. Every student starts on the welcome. */}
-          <span className="fjm-eyebrow">Starts on Day 0.1 · {totalDays} learning days</span>
-          <h1>{stage} <span>Journey</span></h1>
-          <p>Your personalised plan, built from your skill check. The first {openCount} days are open to read — membership opens all {totalDays}.</p>
-          <div className="fjm-chips">
-            <span><i className="bi bi-calendar3" /> {totalDays} learning days</span>
-            <span><i className="bi bi-eye" /> {openCount} days to preview</span>
-            {avgMins > 0 && <span><i className="bi bi-clock" /> About {mins(avgMins)} a day</span>}
-          </div>
-        </div>
-
-        {/* One card, like the member's: what is open, the unlock, and the roadmap preview. */}
-        <div className="fjm-side">
-          <div className="fjm-side-top"><b>{openCount} of {totalDays} days open</b><span>{openPct}%</span></div>
-          <div className="fjm-side-bar" role="progressbar" aria-valuenow={openPct} aria-valuemin={0} aria-valuemax={100} aria-label="Days open to preview"><i style={{ width: `${barWidth(openPct)}%` }} /></div>
-          <p className="fjm-next"><i className="bi bi-lock" aria-hidden /> <span><b>{lockedCount > 0 ? `${lockedCount} days unlock with membership` : 'Every day is open'}</b><em>Every lesson, checkpoint and project</em></span></p>
-          <div className="fjm-side-actions">
-            <button type="button" className="fjm-act primary" onClick={() => unlock(onUnlocked)} disabled={busy}>{unlockLabel}</button>
-            <button type="button" className="fjm-act" onClick={() => nav('/careerpilot/roadmap')}><i className="bi bi-map" aria-hidden /> View roadmap</button>
-          </div>
-          {msg && <p className="fj-msg err">{msg}</p>}
-        </div>
-      </section>
+    <div className="fj-page fjm fjm-preview jd">
+      {/* The member's header, with what is true before membership: how much is open, and the unlock. */}
+      <JourneyHead
+        badge={`Starts on Day 0.1 · ${totalDays} learning days`}
+        stage={stage}
+        sub={`Your personalised plan, built from your skill check. The first ${openCount} days are open to read — membership opens all ${totalDays}.`}
+        pct={openPct}
+        pctLabel="Open to preview"
+        daysLine={`${openCount} / ${totalDays} Days open`}
+        plan={avgMins > 0 ? { title: 'Each day', line: approx(avgMins) } : null}
+        action={(
+          <button type="button" className="jd-start" onClick={() => unlock(onUnlocked)} disabled={busy}>
+            {unlockLabel} <i className="bi bi-unlock" aria-hidden />
+          </button>
+        )}
+      />
+      {msg && <p className="fj-msg err">{msg}</p>}
 
       {/* The whole programme, as a strip — the same one a member scrolls, with the locks a
           non-member has. Days past the preview are named by number and open nothing. */}
-      <DayStrip totalDays={totalDays} label={`All ${totalDays} days`} focusDay={open}>
+      <DayStrip
+        totalDays={totalDays}
+        label={`All ${totalDays} days`}
+        focusDay={open}
+        aside={(
+          <button type="button" className="jd-full" onClick={() => nav('/careerpilot/roadmap')}>
+            View Full Journey <i className="bi bi-arrow-right" aria-hidden />
+          </button>
+        )}
+      >
             {Array.from({ length: totalDays }, (_, i) => i + 1).map(n => {
               const readable = openSet.has(n);
               const title = previewDays.find(d => d.day === n)?.title;
@@ -331,7 +404,7 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
                     type="button"
                     id={`fj-chip-${n}`}
                     className={`fj-chip s-upcoming${readable ? '' : ' s-locked'}${open === n ? ' open' : ''}`}
-                    onClick={() => readable && setOpen(n)}
+                    onClick={() => { if (readable) { setOpen(n); setShowAll(false); } }}
                     disabled={!readable}
                     aria-label={readable ? `Day ${n}: ${title || 'preview'}` : `Day ${n} — unlocks with membership`}
                     title={readable ? `Day ${n}${title ? ` — ${title}` : ''}` : `Day ${n} — unlocks with membership`}
@@ -344,44 +417,84 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
             })}
       </DayStrip>
 
-      {day && (
-        <section className="fj-day" aria-live="polite">
-          <div className="fj-day-head">
-            <div>
-              <span className="fj-status s-upcoming"><i className="bi bi-eye" /> Preview</span>
-              <h2>Day {day.day} · {day.title}</h2>
-              {day.objective && <p className="fj-objective">{day.objective}</p>}
-            </div>
-            {day.minutes > 0 && <span className="fj-mins">{mins(day.minutes)}</span>}
+      {day && (() => {
+        const shown = showAll ? day.activities : day.activities.slice(0, FIRST_TASKS);
+        const hidden = day.activities.length - shown.length;
+        const next = previewDays.find(d => d.day === day.day + 1) || null;
+        return (
+          <div className="jd-body">
+            <section className="fj-day jd-day" aria-live="polite">
+              <div className="jd-day-head">
+                <span className="jd-day-ic" aria-hidden><i className="bi bi-calendar2-week" /></span>
+                <div className="jd-day-title">
+                  <h2>Day {day.day} – {day.title}</h2>
+                  {day.objective && <p>{day.objective}</p>}
+                </div>
+                <div className="jd-day-meta">
+                  <span className="jd-tag"><i className="bi bi-eye" aria-hidden /> Preview</span>
+                  {day.minutes > 0 && <span className="jd-time"><i className="bi bi-clock" aria-hidden /> {approx(day.minutes)}</span>}
+                </div>
+              </div>
+
+              {day.outcomes.length > 0 && (
+                <div className="jd-outcomes">
+                  <span className="jd-outcomes-ic" aria-hidden><i className="bi bi-bullseye" /></span>
+                  <div>
+                    <b>Learning Outcomes</b>
+                    <ul>{day.outcomes.map((o, i) => <li key={i}><i className="bi bi-check-circle-fill" aria-hidden /> {o}</li>)}</ul>
+                  </div>
+                </div>
+              )}
+
+              <ol className="jd-acts">
+                {shown.map((a, i) => (
+                  <li key={i} className={a.gating ? 'gating' : ''}>
+                    <div className="jd-act" aria-disabled>
+                      <span className={`fj-act-icon t-${a.type}`}><i className={`bi ${ICON_FILLED[a.type] || ICON[a.type] || 'bi-journal-text'}`} aria-hidden /></span>
+                      <span className="jd-act-body">
+                        <b>{a.title}</b>
+                        <small>{TYPE_HINT[a.type] || TYPE_LABEL[a.type] || a.type}</small>
+                      </span>
+                      <span className="jd-act-end">
+                        {a.minutes > 0 && <span className="jd-act-time"><i className="bi bi-clock" aria-hidden /> {mins(a.minutes)}</span>}
+                        <span className="jd-lock"><i className="bi bi-lock-fill" aria-hidden /> Membership</span>
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              {day.activities.length > FIRST_TASKS && (
+                <div className="jd-more">
+                  <span><i className="bi bi-stack" aria-hidden /> {hidden > 0 ? `+ ${hidden} more ${hidden === 1 ? 'task' : 'tasks'} on this day` : `All ${day.activities.length} tasks shown`}</span>
+                  <button type="button" onClick={() => setShowAll(v => !v)} aria-expanded={showAll}>
+                    {showAll ? <>Show less <i className="bi bi-arrow-up" aria-hidden /></> : <>View More ({hidden}) <i className="bi bi-arrow-down" aria-hidden /></>}
+                  </button>
+                </div>
+              )}
+            </section>
+
+            <aside className="jd-side" aria-label="About this day">
+              <div className="jd-card jd-unlock">
+                <div className="jd-card-head">
+                  <span className="jd-card-ic goal" aria-hidden><i className="bi bi-unlock-fill" /></span>
+                  <div>
+                    <span className="jd-card-title"><b>Ready to start Day {day.day}?</b></span>
+                    <p>Membership opens every lesson, checkpoint and project{lockedCount > 0 ? ` — all ${totalDays} days` : ''}.</p>
+                  </div>
+                </div>
+                <button type="button" className="jd-start" onClick={() => unlock(onUnlocked)} disabled={busy}>{unlockLabel}</button>
+              </div>
+              {next && (
+                <button type="button" className="jd-card jd-next" onClick={() => { setOpen(next.day); setShowAll(false); }}>
+                  <span className="jd-card-ic next" aria-hidden><i className="bi bi-arrow-up-right" /></span>
+                  <span className="jd-next-tx"><b>Next Step</b><span>Day {next.day} – {next.title}</span></span>
+                  <span className="jd-next-go" aria-hidden><i className="bi bi-arrow-right" /></span>
+                </button>
+              )}
+            </aside>
           </div>
-
-          {day.outcomes.length > 0 && (
-            <div className="fjp-outcomes">
-              <span>By the end of this day you can</span>
-              <ul>{day.outcomes.map((o, i) => <li key={i}><i className="bi bi-check2-circle" /> {o}</li>)}</ul>
-            </div>
-          )}
-
-          <h3 className="fjp-acts-title">What this day contains</h3>
-          <ol className="fjp-acts">
-            {day.activities.map((a, i) => (
-              <li key={i} className={a.gating ? 'gating' : ''}>
-                <span className={`ic t-${a.type}`}><i className={`bi ${ICON_FILLED[a.type] || ICON[a.type] || 'bi-journal-text'}`} aria-hidden /></span>
-                <span className="body">
-                  <b>{a.title}</b>
-                  <small>{TYPE_LABEL[a.type] || a.type}{a.minutes > 0 && <> · {mins(a.minutes)}</>}</small>
-                </span>
-                <span className="lk"><i className="bi bi-lock-fill" aria-hidden /> Membership</span>
-              </li>
-            ))}
-          </ol>
-
-          <div className="fjp-day-cta">
-            <div><b>Ready to start Day {day.day}?</b><span>Membership opens every lesson, checkpoint and project — all {totalDays} days.</span></div>
-            <button type="button" className="fjp-btn primary" onClick={() => unlock(onUnlocked)} disabled={busy}>{unlockLabel}</button>
-          </div>
-        </section>
-      )}
+        );
+      })()}
     </div>
   );
 };
@@ -513,6 +626,8 @@ const FoundationJourneyPage: React.FC = () => {
   const [lockedDay, setLockedDay] = useState<{ day: number; title?: string | null; topic?: string | null } | null>(null);
   const [dayError, setDayError] = useState('');
   const [dayRetry, setDayRetry] = useState(0);
+  /** The day card lists its first few tasks; "View more" shows the rest. */
+  const [showAllTasks, setShowAllTasks] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dayLoading, setDayLoading] = useState(false);
   const [err, setErr] = useState('');
@@ -619,7 +734,7 @@ const FoundationJourneyPage: React.FC = () => {
   useEffect(() => {
     if (openDay === null) return undefined;
     let cancelled = false;
-    setDay(null); setLockedDay(null); setDayError('');
+    setDay(null); setLockedDay(null); setDayError(''); setShowAllTasks(false);
 
     /**
      * A day the overview reports locked is not requested at all: the locked card is shown from what the
@@ -743,61 +858,92 @@ const FoundationJourneyPage: React.FC = () => {
     else selectDay(currentDay);
   };
 
+  /** Today's plan, for the top of the page: the welcome day still owed, or today's learning day. */
+  const owedWelcome = welcomeOutstanding
+    ? (orientation?.days || []).find(d => d.dayNumber === welcomeOutstanding.dayNumber) || null
+    : null;
+  const plan = onWelcome && welcomeOutstanding
+    ? {
+      title: 'Today’s Plan',
+      line: [
+        owedWelcome ? `${owedWelcome.items.length} ${owedWelcome.items.length === 1 ? 'Task' : 'Tasks'}` : `Day ${welcomeLabel}`,
+        welcomeOutstanding.minutes > 0 ? approx(welcomeOutstanding.minutes) : '',
+      ].filter(Boolean).join(' · '),
+    }
+    : todayDone
+      ? { title: 'Today is finished', line: `All ${todayActs.length} tasks done` }
+      : todaySummary
+        ? {
+          title: 'Today’s Plan',
+          line: [
+            todayActs.length > 0 && todayLeft < todayActs.length ? `${todayLeft} of ${todayActs.length} Tasks left` : todayActs.length > 0 ? `${todayActs.length} Tasks` : `${todaySummary.activities} ${todaySummary.activities === 1 ? 'Task' : 'Tasks'}`,
+            todaySummary.minutes > 0 ? approx(todaySummary.minutes) : '',
+          ].filter(Boolean).join(' · '),
+        }
+        : null;
+  const startLabel = onWelcome && welcomeOutstanding
+    ? `Start Day ${welcomeLabel}`
+    : todayDone ? `Review Day ${currentDay}` : `${todayActs.length > 0 && todayLeft < todayActs.length ? 'Continue' : 'Start'} Day ${currentDay}`;
+
+  /** The day after the one being read, for "Next step". After the last welcome day it is Day 1. */
+  const shownDay = openOrientationDay === null ? (day?.day ?? lockedDay?.day ?? openDay) : null;
+  const nextWelcome = openOrientationDay !== null
+    ? (orientation?.days || []).find(d => d.dayNumber === openOrientationDay + 1) || null
+    : null;
+  const nextSummary = shownDay !== null
+    ? days.find(d => d.day === shownDay + 1) || null
+    : openOrientationDay !== null && !nextWelcome ? days.find(d => d.day === 1) || null : null;
+
+  /** What the day card lists before "View more". */
+  const acts = day?.activities || [];
+  const shownActs = showAllTasks ? acts : acts.slice(0, FIRST_TASKS);
+  const hiddenActs = acts.length - shownActs.length;
+  const doneActs = acts.filter(a => a.done).length;
+  const dayXp = acts.reduce((t, a) => t + (a.xp ?? 0), 0) + (day?.dayBonusXp ?? 0);
+  const isTodayOpen = !!day && day.status === 'CURRENT';
+  /**
+   * "Today You'll Learn": the day's lessons by name, once each — left out when it only repeats the
+   * day's own title — then what the day is made of ("1 video · 1 notes · 1 practice · 1 checkpoint").
+   */
+  const learnList = Array.from(new Set(
+    acts.filter(a => ['video', 'notes', 'worked_example', 'interactive_lesson'].includes(a.type)).map(a => lessonName(a.title)),
+  )).filter(t => t && t.toLowerCase() !== (day?.title || '').toLowerCase()).slice(0, 5);
+  const makeup = Object.entries(acts.reduce<Record<string, number>>((m, a) => {
+    const k = (TYPE_LABEL[a.type] || a.type).toLowerCase(); m[k] = (m[k] || 0) + 1; return m;
+  }, {})).map(([k, n]) => `${n} ${k}`).join(' · ');
+  const openPlayer = (n: number) => { if (enrollmentId) nav(`/careerpilot/journey/day/${n}`); };
+
   return (
-    <div className="fj-page fjm">
-      {/*
-        * ONE CARD: where they are, how far along, and the two things to do — open today, or see the
-        * whole road. It used to be three boxes (the journey, a "My N days" rail and a separate ring)
-        * that each repeated the day count. My Roadmap is reached from here now, not the sidebar.
-        */}
-      <section className="fjm-hero fjm-hero2">
-        <div className="fjm-hero-copy">
-          {/*
-            * WHERE THEY ACTUALLY ARE, WHICH IS NOT ALWAYS DAY 1.
-            *
-            * The hero read "Day 1 of 90" for a member still on the welcome, because currentDay
-            * is the learning clock and the welcome sits before it. Everybody starts on 0.1, and
-            * a plan that says Day 1 while Day 1 is shut is telling them the wrong thing on the
-            * first line they read.
-            *
-            * The count after it stays the programme's, not the welcome's: ninety learning days
-            * is the promise, and the five before them are not part of it.
-            */}
-          <span className="fjm-eyebrow">
-            {onWelcome ? `Day ${welcomeLabel} · before Day 1` : `Day ${currentDay} of ${totalDays}`}
-          </span>
-          <h1>{stage} <span>Journey</span></h1>
-          <p>One learning day at a time. Finish today’s tasks and the next day opens.</p>
-          <div className="fjm-chips">
-            <span><i className="bi bi-check2-circle" /> {completedCount} of {totalDays} days done</span>
-            <span><i className="bi bi-flag" /> {Math.max(0, totalDays - completedCount)} to go</span>
-          </div>
-        </div>
-        <div className="fjm-side">
-          <div className="fjm-side-top"><b>{percentComplete}% complete</b><span>{completedCount} of {totalDays} days</span></div>
-          <div className="fjm-side-bar" role="progressbar" aria-valuenow={percentComplete} aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress"><i style={{ width: `${barWidth(percentComplete)}%` }} /></div>
-          {(onWelcome && welcomeOutstanding) ? (
-            <p className="fjm-next"><i className="bi bi-play-circle" aria-hidden /> <span><b>Next: Day {welcomeLabel}</b>{welcomeOutstanding.title ? ` · ${welcomeOutstanding.title}` : ''}<em>Finish the welcome and Day 1 opens</em></span></p>
-          ) : todayLine ? (
-            <p className="fjm-next"><i className={`bi ${todayDone ? 'bi-check-circle' : 'bi-play-circle'}`} aria-hidden /> <span><b>{todayDone ? 'Today is finished' : `Today: Day ${currentDay}`}</b>{todaySummary?.title ? ` · ${todaySummary.title}` : ''}<em>{todayLine}</em></span></p>
-          ) : null}
-          <div className="fjm-side-actions">
-            <button type="button" className="fjm-act primary" onClick={openToday}>
-              {onWelcome && welcomeOutstanding ? `Start Day ${welcomeLabel}` : todayDone ? `Review Day ${currentDay}` : `${todayLeft < todayActs.length ? 'Continue' : 'Start'} Day ${currentDay}`} <i className="bi bi-arrow-right" aria-hidden />
-            </button>
-            <button type="button" className="fjm-act" onClick={() => nav('/careerpilot/roadmap')}>
-              <i className="bi bi-map" aria-hidden /> View roadmap
-            </button>
-          </div>
-        </div>
-      </section>
+    <div className="fj-page fjm jd">
+      <JourneyHead
+        badge={onWelcome ? `Day ${welcomeLabel} · before Day 1` : `Day ${currentDay} of ${totalDays}`}
+        stage={stage}
+        sub="One learning day at a time. Finish today’s tasks and unlock what’s next."
+        pct={percentComplete}
+        pctLabel="Complete"
+        daysLine={`${completedCount} / ${totalDays} Days`}
+        plan={plan}
+        action={(
+          <button type="button" className="jd-start" onClick={openToday}>
+            {startLabel} <i className="bi bi-arrow-right" aria-hidden />
+          </button>
+        )}
+      />
 
       <CareerTrackPicker onPicked={() => { load(); }} />
 
-      {/* The ninety, as a strip you step through with the arrows either side (see DayStrip) —
-          with range jumps, so the days beyond the edge are never a guess, and a lock on every
-          day that cannot be opened yet. */}
-      <DayStrip totalDays={totalDays} label={`All ${totalDays} days`} focusDay={openOrientationDay === null ? openDay : null}>
+      {/* The days, as a strip you step through with the arrows either side (see DayStrip) — with
+          range tabs, so the days beyond the edge are never a guess, and the whole road one click away. */}
+      <DayStrip
+        totalDays={totalDays}
+        label={`All ${totalDays} days`}
+        focusDay={openOrientationDay === null ? openDay : null}
+        aside={(
+          <button type="button" className="jd-full" onClick={() => nav('/careerpilot/roadmap')}>
+            View Full Journey <i className="bi bi-arrow-right" aria-hidden />
+          </button>
+        )}
+      >
           {/*
             * The welcome days sit at the head of the strip, numbered 0.1 onward, so the plan
             * reads in the order it is actually met. They open the welcome screen rather than the
@@ -844,170 +990,232 @@ const FoundationJourneyPage: React.FC = () => {
           })}
       </DayStrip>
 
-      <section className="fj-day" aria-live="polite">
-        {/*
-          * A WELCOME DAY, SHOWN THE WAY A LEARNING DAY IS.
-          *
-          * The plan is an overview: a learning day shows what it holds and opens on its own page
-          * to be worked through, and a welcome day does the same — its tasks are listed here, and
-          * the videos, recordings and checklist are done on the welcome day page
-          * (/careerpilot/journey/welcome/:day), which finishes the day and moves on. The gate is
-          * the server's either way, and a locked chip cannot be clicked to get here.
-          *
-          * Rendered instead of the learning day rather than beside it, because exactly one of the
-          * two is ever open.
-          */}
-        {openOrientationDay !== null && welcomeDay && (() => {
-          const wd = welcomeDay;
-          const doneCount = wd.items.filter(i => i.done).length;
-          const finished = !!wd.done || (wd.items.length > 0 && doneCount === wd.items.length);
-          const isToday = welcomeOutstanding?.dayNumber === wd.dayNumber;
-          const minutes = wd.minutes ?? wd.items.reduce((s, i) => s + (i.estimatedMinutes || 0), 0);
-          return (
-            <>
-              <div className="fj-day-head">
-                <div>
-                  <span className={`fj-status s-${finished ? 'completed' : isToday ? 'current' : 'upcoming'}`}>
-                    {finished ? 'Completed' : isToday ? 'Today' : 'Upcoming'}
-                  </span>
-                  <h2>Day {wd.day} · {wd.title}</h2>
-                  {wd.blurb && <p className="fj-objective">{wd.blurb}</p>}
+      {openOrientationDay === null && !dayLoading && openSummary && openDay !== null && openDay > currentDay && openSummary.status !== 'COMPLETED' && (
+        <PlacementOffer key={openDay} topic={openSummary.topic ?? null} day={openDay} />
+      )}
+
+      <div className="jd-body">
+        <section className="fj-day jd-day" aria-live="polite">
+          {/*
+            * A WELCOME DAY, SHOWN THE WAY A LEARNING DAY IS.
+            *
+            * The plan is an overview: a learning day shows what it holds and opens on its own page
+            * to be worked through, and a welcome day does the same — its tasks are listed here, and
+            * the videos, recordings and checklist are done on the welcome day page
+            * (/careerpilot/journey/welcome/:day), which finishes the day and moves on. The gate is
+            * the server's either way, and a locked chip cannot be clicked to get here.
+            */}
+          {openOrientationDay !== null && welcomeDay && (() => {
+            const wd = welcomeDay;
+            const doneCount = wd.items.filter(i => i.done).length;
+            const finished = !!wd.done || (wd.items.length > 0 && doneCount === wd.items.length);
+            const isToday = welcomeOutstanding?.dayNumber === wd.dayNumber;
+            const minutes = wd.minutes ?? wd.items.reduce((t, i) => t + (i.estimatedMinutes || 0), 0);
+            return (
+              <>
+                <div className="jd-day-head">
+                  <span className="jd-day-ic" aria-hidden><i className="bi bi-calendar2-week" /></span>
+                  <div className="jd-day-title">
+                    <h2>Day {wd.day} – {wd.title}</h2>
+                    {wd.blurb && <p>{wd.blurb}</p>}
+                  </div>
+                  <div className="jd-day-meta">
+                    <span className={`jd-tag s-${finished ? 'completed' : isToday ? 'current' : 'upcoming'}`}>
+                      {finished ? 'Completed' : isToday ? 'Today' : 'Upcoming'}
+                    </span>
+                    {minutes > 0 && <span className="jd-time"><i className="bi bi-clock" aria-hidden /> {approx(minutes)}</span>}
+                  </div>
                 </div>
-                <div className="fj-day-actions">
-                  {minutes > 0 && <span className="fj-mins">{mins(minutes)}</span>}
-                  {/* Today's day is started from the top card; another day is opened from here. */}
-                  {!wd.locked && !(isToday && !finished) && (
-                    <button
-                      type="button"
-                      className="fj-start ghost"
-                      onClick={() => nav(`/careerpilot/journey/welcome/${wd.dayNumber}`)}
-                    >
-                      {finished ? 'Review this day' : 'Open this day'}
-                    </button>
-                  )}
+                {wd.items.length === 0 ? (
+                  <p className="fj-empty">This day is still being prepared. It will appear here before you reach it.</p>
+                ) : (
+                  <ol className="jd-acts">
+                    {wd.items.map(it => (
+                      <li key={it.key} className={it.done ? 'done' : ''}>
+                        <button type="button" className="jd-act" disabled={wd.locked} onClick={() => nav(`/careerpilot/journey/welcome/${wd.dayNumber}`)}>
+                          <span className={`fj-act-icon t-${it.kind}`}>
+                            <i className={`bi ${WELCOME_ICON[it.kind] || 'bi-journal-text'}`} aria-hidden />
+                          </span>
+                          <span className="jd-act-body">
+                            <b>{it.title}</b>
+                            <small>{WELCOME_LABEL[it.kind] || it.kind}{it.required ? ' · must be completed' : ' · optional'}</small>
+                          </span>
+                          <span className="jd-act-end">
+                            {it.estimatedMinutes > 0 && <span className="jd-act-time"><i className="bi bi-clock" aria-hidden /> {mins(it.estimatedMinutes)}</span>}
+                            <span className={`fjm-check${it.done ? ' on' : ''}`} aria-label={it.done ? 'Done' : 'Not done yet'}>{it.done && <i className="bi bi-check-lg" />}</span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </>
+            );
+          })()}
+
+          {openOrientationDay === null && dayLoading && <div className="fj-skeleton">Loading day…</div>}
+
+          {openOrientationDay === null && !dayLoading && lockedDay && (
+            <LockedDay
+              day={lockedDay.day} title={lockedDay.title} topic={lockedDay.topic}
+              currentDay={currentDay}
+              welcomeLabel={welcomeFirst && welcomeOutstanding ? welcomeOutstanding.day : null}
+              trialDays={(journey as any)?.trialDays}
+              onBack={() => (welcomeFirst && welcomeOutstanding
+                ? nav(`/careerpilot/journey/welcome/${welcomeOutstanding.dayNumber}`)
+                : selectDay(currentDay))}
+            />
+          )}
+
+          {openOrientationDay === null && !dayLoading && dayError && (
+            <div className="fj-msg err">
+              <b>{dayError}</b>
+              <button type="button" className="fj-start" onClick={() => setDayRetry(n => n + 1)}>Try again</button>
+            </div>
+          )}
+
+          {openOrientationDay === null && !dayLoading && day && (
+            <>
+              <div className="jd-day-head">
+                <span className="jd-day-ic" aria-hidden><i className="bi bi-calendar2-week" /></span>
+                <div className="jd-day-title">
+                  <h2>Day {day.day} – {day.title}</h2>
+                  {/* The one piece of planning a student sees, in the unit's own words. */}
+                  {day.objective && <p>{day.objective}</p>}
+                </div>
+                <div className="jd-day-meta">
+                  <span className={`jd-tag s-${day.status.toLowerCase()}`}>
+                    {day.status === 'COMPLETED' ? 'Completed' : day.status === 'CURRENT' ? 'Today' : 'Upcoming'}
+                  </span>
+                  {day.minutes > 0 && <span className="jd-time"><i className="bi bi-clock" aria-hidden /> {approx(day.minutes)}</span>}
                 </div>
               </div>
-              {wd.items.length === 0 ? (
+
+              {day.outcomes.length > 0 && (
+                <div className="jd-outcomes">
+                  <span className="jd-outcomes-ic" aria-hidden><i className="bi bi-bullseye" /></span>
+                  <div>
+                    <b>{isTodayOpen ? 'Today’s Learning Outcomes' : 'Learning Outcomes'}</b>
+                    <ul>{day.outcomes.map((o, i) => <li key={i}><i className="bi bi-check-circle-fill" aria-hidden /> {o}</li>)}</ul>
+                  </div>
+                </div>
+              )}
+
+              {acts.length === 0 ? (
                 <p className="fj-empty">This day is still being prepared. It will appear here before you reach it.</p>
               ) : (
-                <ol className="fj-acts">
-                  {wd.items.map(it => (
-                    <li key={it.key} className={`${it.required ? 'gating' : ''}${it.done ? ' done' : ''}`}>
-                      <span className={`fj-act-icon t-${it.kind}`}>
-                        <i className={`bi ${WELCOME_ICON[it.kind] || 'bi-journal-text'}`} aria-hidden />
-                      </span>
-                      <span className="fj-act-body">
-                        <b>{it.title}</b>
-                        <small>
-                          {WELCOME_LABEL[it.kind] || it.kind}
-                          {it.estimatedMinutes > 0 && <> · {mins(it.estimatedMinutes)}</>}
-                          {it.required ? <> · must be completed</> : <> · optional</>}
-                        </small>
-                      </span>
-                      <span className={`fjm-check${it.done ? ' on' : ''}`} aria-label={it.done ? 'Done' : 'Not done yet'}>{it.done && <i className="bi bi-check-lg" />}</span>
-                    </li>
-                  ))}
-                </ol>
+                <>
+                  <ol className="jd-acts">
+                    {shownActs.map((a: FoundationJourneyActivity) => (
+                      <li key={a.id || `${a.order}`} className={`${a.gating ? 'gating' : ''}${a.done ? ' done' : ''}`}>
+                        <button type="button" className="jd-act" disabled={!enrollmentId} onClick={() => openPlayer(day.day)}>
+                          <span className={`fj-act-icon t-${a.type}`}>
+                            <i className={`bi ${ICON_FILLED[a.type] || ICON[a.type] || 'bi-journal-text'}`} aria-hidden />
+                          </span>
+                          <span className="jd-act-body">
+                            <b>{a.title}</b>
+                            <small>{TYPE_HINT[a.type] || TYPE_LABEL[a.type] || a.type}{a.gating ? ' · must be completed' : ''}</small>
+                          </span>
+                          <span className="jd-act-end">
+                            {a.minutes > 0 && <span className="jd-act-time"><i className="bi bi-clock" aria-hidden /> {mins(a.minutes)}</span>}
+                            {(a.xp ?? 0) > 0 && <span className="fjm-xp">+{a.xp} XP</span>}
+                            <span className={`fjm-check${a.done ? ' on' : ''}`} aria-label={a.done ? 'Done' : 'Not done yet'}>{a.done && <i className="bi bi-check-lg" />}</span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                  {acts.length > FIRST_TASKS && (
+                    <div className="jd-more">
+                      <span><i className="bi bi-stack" aria-hidden /> {hiddenActs > 0 ? `+ ${hiddenActs} more ${hiddenActs === 1 ? 'task' : 'tasks'} ${isTodayOpen ? 'for today' : 'on this day'}` : `All ${acts.length} tasks shown`}</span>
+                      <button type="button" onClick={() => setShowAllTasks(v => !v)} aria-expanded={showAllTasks}>
+                        {showAllTasks ? <>Show less <i className="bi bi-arrow-up" aria-hidden /></> : <>View More ({hiddenActs}) <i className="bi bi-arrow-down" aria-hidden /></>}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </>
-          );
-        })()}
+          )}
+        </section>
 
-        {openOrientationDay === null && dayLoading && <div className="fj-skeleton">Loading day…</div>}
-
-        {openOrientationDay === null && !dayLoading && openSummary && openDay !== null && openDay > currentDay && openSummary.status !== 'COMPLETED' && (
-          <PlacementOffer key={openDay} topic={openSummary.topic ?? null} day={openDay} />
-        )}
-
-        {openOrientationDay === null && !dayLoading && lockedDay && (
-          <LockedDay
-            day={lockedDay.day} title={lockedDay.title} topic={lockedDay.topic}
-            currentDay={currentDay}
-            welcomeLabel={welcomeFirst && welcomeOutstanding ? welcomeOutstanding.day : null}
-            trialDays={(journey as any)?.trialDays}
-            onBack={() => (welcomeFirst && welcomeOutstanding
-              ? nav(`/careerpilot/journey/welcome/${welcomeOutstanding.dayNumber}`)
-              : selectDay(currentDay))}
-          />
-        )}
-
-        {openOrientationDay === null && !dayLoading && dayError && (
-          <div className="fj-msg err">
-            <b>{dayError}</b>
-            <button type="button" className="fj-start" onClick={() => setDayRetry(n => n + 1)}>Try again</button>
-          </div>
-        )}
-
-        {openOrientationDay === null && !dayLoading && day && (
-          <>
-            <div className="fj-day-head">
-              <div>
-                <span className={`fj-status s-${day.status.toLowerCase()}`}>
-                  {day.status === 'COMPLETED' ? 'Completed'
-                    : day.status === 'CURRENT' ? 'Today' : 'Upcoming'}
-                </span>
-                <h2>Day {day.day} · {day.title}</h2>
-                {/* The one piece of planning a student sees, in the unit's own words. */}
-                {day.objective && <p className="fj-objective">{day.objective}</p>}
+        {/* The side column: the day's goal, what it teaches, and where it leads. */}
+        <aside className="jd-side" aria-label="About this day">
+          {openOrientationDay === null && !dayLoading && day && acts.length > 0 && (
+            <div className="jd-card">
+              <div className="jd-card-head">
+                <span className="jd-card-ic goal" aria-hidden><i className="bi bi-bullseye" /></span>
+                <div>
+                  <span className="jd-card-title"><b>Day Goal</b><span className="jd-count">{doneActs} / {acts.length} Tasks</span></span>
+                  <p>{day.status === 'COMPLETED'
+                    ? `Day complete${dayXp > 0 ? ` — ${dayXp} XP earned` : ''}.`
+                    : dayXp > 0 ? `Complete all tasks and earn ${dayXp} XP.` : 'Complete every task to finish the day.'}</p>
+                </div>
               </div>
-              <div className="fj-day-actions">
-                {day.minutes > 0 && <span className="fj-mins">{mins(day.minutes)}</span>}
-                {/* The day opens inside CareerPilot, where each lesson, checkpoint and project
-                    is worked through without leaving the member rail. Locking stays the
-                    server's: a day not yet reachable says so there. */}
-                {/* Today's day is started from the top card; another day is opened from here. */}
-                {enrollmentId && day.status !== 'CURRENT' && (
-                  <button
-                    type="button"
-                    className="fj-start ghost"
-                    onClick={() => nav(`/careerpilot/journey/day/${day.day}`)}
-                  >
-                    {day.status === 'COMPLETED' ? 'Review this day' : 'Open this day'}
-                  </button>
-                )}
+              <div className="jd-bar" role="progressbar" aria-valuenow={doneActs} aria-valuemin={0} aria-valuemax={acts.length} aria-label="Tasks done today">
+                <i style={{ width: `${barWidth(acts.length ? Math.round((doneActs / acts.length) * 100) : 0)}%` }} />
               </div>
+              {(day.dayBonusXp ?? 0) > 0 && (
+                <p className="jd-bonus"><i className="bi bi-gift-fill" aria-hidden /> <span>Includes a <b>+{day.dayBonusXp} XP</b> day bonus</span></p>
+              )}
             </div>
+          )}
 
-            {day.outcomes.length > 0 && (
-              <div className="fj-outcomes">
-                <span>By the end of today you can</span>
-                <ul>{day.outcomes.map((o, i) => <li key={i}>{o}</li>)}</ul>
+          {openOrientationDay === null && !dayLoading && day && acts.length > 0 && (
+            <div className="jd-card">
+              <div className="jd-card-head">
+                <span className="jd-card-ic learn" aria-hidden><i className="bi bi-book" /></span>
+                <div><b>{isTodayOpen ? 'Today You’ll Learn' : 'You’ll Learn'}</b></div>
               </div>
-            )}
+              <ul className="jd-learn">
+                {learnList.map(t => <li key={t}>{t}</li>)}
+                {openSummary?.topic && <li>Topic: <b>{openSummary.topic}</b></li>}
+                {openSummary?.module && <li>Part of: <b>{openSummary.module}</b></li>}
+              </ul>
+              {makeup && <p className="jd-topic">This day: <b>{makeup}</b></p>}
+            </div>
+          )}
 
-            {day.activities.length === 0 ? (
-              <p className="fj-empty">
-                This day is still being prepared. It will appear here before you reach it.
-              </p>
-            ) : (
-              <ol className="fj-acts">
-                {day.activities.map((a: FoundationJourneyActivity) => (
-                  <li key={a.id || `${a.order}`} className={`${a.gating ? 'gating' : ''}${a.done ? ' done' : ''}`}>
-                    <span className={`fj-act-icon t-${a.type}`}>
-                      <i className={`bi ${ICON_FILLED[a.type] || ICON[a.type] || 'bi-journal-text'}`} aria-hidden />
-                    </span>
-                    <span className="fj-act-body">
-                      <b>{a.title}</b>
-                      <small>
-                        {TYPE_LABEL[a.type] || a.type}
-                        {a.minutes > 0 && <> · {mins(a.minutes)}</>}
-                        {a.gating && <> · must be completed</>}
-                      </small>
-                    </span>
-                    {(a.xp ?? 0) > 0 && <span className="fjm-xp">+{a.xp} XP</span>}
-                    <span className={`fjm-check${a.done ? ' on' : ''}`} aria-label={a.done ? 'Done' : 'Not done yet'}>{a.done && <i className="bi bi-check-lg" />}</span>
-                  </li>
-                ))}
-              </ol>
-            )}
-            {(day.dayBonusXp ?? 0) > 0 && day.activities.length > 0 && (
-              <p className={`fjm-bonus${day.status === 'COMPLETED' ? ' done' : ''}`}>
-                <i className="bi bi-gift-fill" /> {day.status === 'COMPLETED' ? 'Day complete —' : 'Finish every task for a'} <b>+{day.dayBonusXp} XP</b> day bonus
-              </p>
-            )}
-          </>
-        )}
-      </section>
+          {openOrientationDay !== null && welcomeDay && welcomeDay.items.length > 0 && (() => {
+            const done = welcomeDay.items.filter(i => i.done).length;
+            return (
+              <div className="jd-card">
+                <div className="jd-card-head">
+                  <span className="jd-card-ic goal" aria-hidden><i className="bi bi-bullseye" /></span>
+                  <div>
+                    <span className="jd-card-title"><b>Day Goal</b><span className="jd-count">{done} / {welcomeDay.items.length} Tasks</span></span>
+                    <p>Finish the welcome tasks — Day 1 opens when the welcome is done.</p>
+                  </div>
+                </div>
+                <div className="jd-bar" role="progressbar" aria-valuenow={done} aria-valuemin={0} aria-valuemax={welcomeDay.items.length} aria-label="Welcome tasks done">
+                  <i style={{ width: `${barWidth(Math.round((done / welcomeDay.items.length) * 100))}%` }} />
+                </div>
+              </div>
+            );
+          })()}
+
+          {nextWelcome && (
+            <button type="button" className="jd-card jd-next" onClick={() => selectOrientationDay(nextWelcome.dayNumber)}>
+              <span className="jd-card-ic next" aria-hidden><i className="bi bi-arrow-up-right" /></span>
+              <span className="jd-next-tx"><b>Next Step</b><span>Day {nextWelcome.day} – {nextWelcome.title}</span></span>
+              <span className="jd-next-go" aria-hidden><i className="bi bi-arrow-right" /></span>
+            </button>
+          )}
+          {nextSummary && (
+            <button type="button" className="jd-card jd-next" onClick={() => selectDay(nextSummary.day)}>
+              <span className="jd-card-ic next" aria-hidden><i className="bi bi-arrow-up-right" /></span>
+              <span className="jd-next-tx"><b>Next Step</b><span>Day {nextSummary.day} – {nextSummary.title}</span></span>
+              <span className="jd-next-go" aria-hidden><i className="bi bi-arrow-right" /></span>
+            </button>
+          )}
+          {openOrientationDay === null && !nextSummary && day && day.day === totalDays && (
+            <div className="jd-card jd-next last">
+              <span className="jd-card-ic next" aria-hidden><i className="bi bi-flag-fill" /></span>
+              <span className="jd-next-tx"><b>The last day</b><span>Finish it and your {stage} Journey is complete.</span></span>
+            </div>
+          )}
+        </aside>
+      </div>
     </div>
   );
 };

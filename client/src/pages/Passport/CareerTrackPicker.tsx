@@ -38,15 +38,17 @@ const CareerTrackPicker: React.FC<{ onPicked?: () => void }> = () => {
   }
 
   return (
-    <section className="ctp" aria-label="Your career track">
+    <section className="ctp ctp-bar" aria-label="Your career track">
       <div className="ctp-current">
-        <i className="bi bi-signpost-2-fill" aria-hidden />
-        <div>
+        <span className="ctp-ic" aria-hidden><i className="bi bi-stack" /></span>
+        <div className="ctp-name">
           <small>Your track</small>
           <b>{current.name}</b>
-          <span className="ctp-desc">Based on the role and language you chose in setup.{data.fixed ? ' Your roadmap is built from this track.' : ''}</span>
         </div>
-        <button type="button" onClick={() => nav('/careerpilot/support/new?module=career_tracks')}>Need a change?</button>
+        <span className="ctp-desc">{current.description || `Based on the role and language you chose in setup.${data.fixed ? ' Your roadmap is built from this track.' : ''}`}</span>
+        <button type="button" onClick={() => nav('/careerpilot/support/new?module=career_tracks')}>
+          <i className="bi bi-arrow-left-right" aria-hidden /> Need a change?
+        </button>
       </div>
     </section>
   );

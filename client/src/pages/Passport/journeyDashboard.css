@@ -1,0 +1,188 @@
+/* My N Days (FoundationJourney.tsx, root .fj-page.fjm.jd): the journey as a dashboard.
+   A header with the figures that matter today, the track bar, the day tabs and strip, then the
+   day being read beside a side column (its goal, what it teaches, what comes next).
+   Loaded after foundationMember.css and scoped to .jd, so it wins over the older hero rules
+   without touching My Roadmap (.frm), which still uses them. */
+
+.fj-page.fjm.jd { gap: 16px; }
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+.jd-head { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 4px 2px 0; }
+.jd-head-copy { min-width: 0; flex: 1 1 360px; }
+.jd-badge { display: inline-block; padding: 5px 12px; border-radius: 999px; background: #EEEAFE; color: #4B3BB8; font-size: 13px; font-weight: 800; }
+.fjm.jd .jd-head h1 { margin: 10px 0 0; font-size: clamp(28px, 2.4vw, 36px); line-height: 1.15; font-weight: 800; letter-spacing: -.02em; color: var(--navy) !important; }
+.fjm.jd .jd-head-copy > p { margin: 6px 0 0; font-size: 16px; line-height: 1.5; color: var(--text) !important; }
+
+.jd-stats { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+.jd-stat { display: flex; align-items: center; gap: 12px; padding: 4px 22px; min-height: 56px; border-left: 1px solid var(--line); }
+.jd-stat:first-child { border-left: 0; padding-left: 0; }
+.jd-stat > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.fjm.jd .jd-stat b { font-size: 16px; font-weight: 800; color: var(--navy) !important; white-space: nowrap; }
+.fjm.jd .jd-stat small { margin-top: 2px; font-size: 13px; font-weight: 600; color: var(--muted) !important; white-space: nowrap; }
+.jd-stat-ring b { font-size: 22px !important; }
+.jd-stat-ring svg { flex: none; }
+.jd-ring-bg { fill: none; stroke: #E4EBF4; stroke-width: 6; }
+.jd-ring-fg { fill: none; stroke: #1E9AA8; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .4s ease; }
+.jd-stat-ic { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; background: #EEF2FF; color: #3B4CB8; }
+.jd-stat-ic.play { background: #E6F4F7; color: #1B7D91; font-size: 20px; }
+.jd-stat-act { padding-left: 22px; min-height: 56px; display: flex; align-items: center; }
+.jd-start { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 50px; padding: 0 24px; border-radius: 14px; border: 0; background: #0B3BBF; color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; white-space: nowrap; box-shadow: 0 10px 22px rgba(11, 59, 191, .25); transition: background .15s, transform .12s; }
+.jd-start:hover { background: #051D64; transform: translateY(-1px); }
+.jd-start:focus-visible { outline: 3px solid rgba(53, 154, 173, .55); outline-offset: 2px; }
+
+/* ── Day tabs and strip ───────────────────────────────────────────────────── */
+.fjm.jd .fjm-strip-card { padding: 16px 18px 12px; border-radius: 18px; }
+.fjm.jd .fj-range { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+.fjm.jd .fj-range-jumps { flex: 1 1 auto; min-width: 0; }
+.fjm.jd .fj-range-btn { min-height: 42px; padding: 0 22px; border-radius: 12px; background: #F1F4F9; border-color: #E6ECF3; color: var(--ink); font-size: 14px; font-weight: 800; }
+.fjm.jd .fj-range-btn.on { background: #0B3BBF; border-color: #0B3BBF; color: #fff; box-shadow: 0 6px 14px rgba(11, 59, 191, .22); }
+.jd-full { flex: none; display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; padding: 8px 6px; color: #0B3BBF; font-size: 14.5px; font-weight: 800; cursor: pointer; white-space: nowrap; border-radius: 10px; }
+.jd-full:hover { background: #EEF2FF; }
+.fjm.jd .fj-strip { gap: 10px; }
+.fjm.jd .fj-chip { width: 42px; height: 42px; border-radius: 50%; background: #F1F4F9; border-color: #E6ECF3; color: #2F3F56; font-size: 14px; }
+.fjm.jd .fj-chip.s-current { background: #0B3BBF; border-color: #0B3BBF; color: #fff; box-shadow: 0 6px 14px rgba(11, 59, 191, .28); }
+.fjm.jd .fj-chip.s-completed { background: var(--green-bg); border-color: #CCE9DC; color: var(--green); }
+.fjm.jd .fj-chip.s-locked { background: #F7F9FC; border-color: #EDF1F6; color: #A9B7C8; }
+.fjm.jd .fj-chip.open:not(.s-current) { box-shadow: 0 0 0 3px rgba(11, 59, 191, .28); border-color: #0B3BBF; color: #0B3BBF; }
+.fjm.jd .fj-chip-welcome { border-radius: 50%; }
+.fjm.jd .fj-strip-arrow { width: 38px; height: 38px; background: #fff; color: #2F3F56; border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(15, 46, 77, .06); font-size: 15px; }
+.fjm.jd .fj-strip-arrow:hover:not(:disabled) { background: #F1F4F9; color: #051D64; box-shadow: 0 4px 10px rgba(15, 46, 77, .1); }
+.fjm.jd .fj-strip-arrow:disabled { background: #F7F9FC; color: #C1CCD9; border-color: #EDF1F6; }
+
+/* ── The day and its side column ──────────────────────────────────────────── */
+.jd-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 18px; align-items: start; }
+.fjm.jd .jd-day { padding: 22px 22px 20px; border-radius: 20px; min-width: 0; }
+.jd-day-head { display: flex; align-items: flex-start; gap: 16px; }
+.jd-day-ic { flex: none; width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 24px; background: #EEF2FF; color: #0B3BBF; box-shadow: inset 0 0 0 1px #DCE3FB; }
+.jd-day-title { flex: 1; min-width: 0; }
+.fjm.jd .jd-day-title h2 { margin: 2px 0 0; font-size: 22px; line-height: 1.3; font-weight: 800; color: var(--navy); overflow-wrap: anywhere; }
+.fjm.jd .jd-day-title p { margin: 4px 0 0; font-size: 15px; line-height: 1.5; color: var(--text); }
+.jd-day-meta { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.jd-time { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: 999px; background: #F1F4F9; color: var(--ink); font-size: 14px; font-weight: 800; white-space: nowrap; }
+.jd-tag { padding: 4px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 800; background: #F1F4F9; color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
+.jd-tag.s-current { background: #EEF2FF; color: #0B3BBF; border-color: #DCE3FB; }
+.jd-tag.s-completed { background: var(--green-bg); color: var(--green); border-color: #CCE9DC; }
+
+.jd-outcomes { margin-top: 18px; display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border-radius: 16px; background: #EAF8F1; border: 1px solid #CCE9DC; }
+.jd-outcomes-ic { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: #D6F0E4; color: #13784F; }
+.jd-outcomes > div { flex: 1; min-width: 0; }
+.fjm.jd .jd-outcomes b { display: block; font-size: 16px; font-weight: 800; color: var(--navy); }
+.jd-outcomes ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 0; }
+.jd-outcomes li { display: inline-flex; align-items: flex-start; gap: 8px; padding: 0 18px; font-size: 14.5px; line-height: 1.45; color: #1D3B2F; border-left: 1px solid #BFE0CF; }
+.jd-outcomes li:first-child { padding-left: 0; border-left: 0; }
+.jd-outcomes li i { flex: none; color: #17855B; font-size: 16px; margin-top: 1px; }
+
+.jd-acts { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.jd-act { width: 100%; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: #fff; text-align: left; cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s; }
+.jd-act:hover:not(:disabled) { border-color: #C9D6E6; box-shadow: 0 4px 14px rgba(15, 46, 77, .07); }
+.jd-act:disabled { cursor: default; }
+.jd-act:focus-visible { outline: 3px solid rgba(53, 154, 173, .5); outline-offset: 2px; }
+.jd-acts li.gating .jd-act { border-color: #E4DDFB; }
+.jd-acts li.done .jd-act { background: #F7FAFD; }
+.jd-act-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fjm.jd .jd-act-body b { font-size: 15.5px; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
+.fjm.jd .jd-act-body small { font-size: 13.5px; color: var(--muted); }
+.jd-acts li.done .jd-act-body b { color: var(--muted); text-decoration: line-through; }
+.jd-act-end { flex: none; display: flex; align-items: center; gap: 14px; }
+.jd-act-time { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; min-width: 66px; }
+.fjm.jd .fjm-xp { min-width: 62px; text-align: center; padding: 5px 10px; }
+.fjm.jd .fjm-check { width: 26px; height: 26px; }
+
+.jd-more { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-radius: 14px; background: #FFF6E5; border: 1px solid #F6E2B8; }
+.jd-more > span { display: inline-flex; align-items: center; gap: 9px; font-size: 14.5px; font-weight: 700; color: #5C4310; }
+.jd-more button { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid #D9DFEA; background: #fff; color: #0B3BBF; font-size: 14px; font-weight: 800; cursor: pointer; }
+.jd-more button:hover { border-color: #0B3BBF; }
+
+.jd-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.jd-card { display: block; width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); text-align: left; }
+.jd-card-head { display: flex; align-items: flex-start; gap: 12px; }
+.jd-card-head > div { flex: 1; min-width: 0; }
+.fjm.jd .jd-card-head b { display: block; font-size: 17px; font-weight: 800; color: var(--navy); }
+.fjm.jd .jd-card-head p { margin: 3px 0 0; font-size: 14px; line-height: 1.45; color: var(--text); }
+.jd-card-ic { flex: none; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-size: 19px; background: #EEF2FF; color: #0B3BBF; }
+.jd-card-ic.learn { border-radius: 12px; background: #E6F4F7; color: #1B7D91; }
+.jd-card-ic.next { border-radius: 12px; background: #fff; color: #4B3BB8; box-shadow: inset 0 0 0 1px #E1DAFB; }
+.jd-count { flex: none; padding: 5px 10px; border-radius: 999px; background: #F1F4F9; color: var(--ink); font-size: 13px; font-weight: 800; white-space: nowrap; }
+.jd-bar { margin-top: 14px; height: 8px; border-radius: 999px; background: #E4EBF4; overflow: hidden; }
+.jd-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #0B3BBF, #359AAD); }
+.jd-bonus { margin: 12px 0 0; display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: #9A5A00; }
+.jd-bonus b { color: #9A5A00; }
+.jd-learn { margin: 12px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.jd-learn li { font-size: 14.5px; line-height: 1.45; color: var(--ink); overflow-wrap: anywhere; }
+.jd-learn li::marker { color: #0B3BBF; }
+.jd-topic { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
+.jd-topic b { color: var(--ink); }
+.jd-next { display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, #F4F1FF, #ECE8FD); border-color: #E1DAFB; cursor: pointer; transition: box-shadow .15s, transform .12s; }
+.jd-next:hover { box-shadow: 0 8px 20px rgba(75, 59, 184, .14); transform: translateY(-1px); }
+.jd-next.last { cursor: default; }
+.jd-next.last:hover { box-shadow: 0 3px 14px rgba(15, 46, 77, .05); transform: none; }
+.jd-next-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.fjm.jd .jd-next-tx b { font-size: 17px; font-weight: 800; color: var(--navy); }
+.fjm.jd .jd-next-tx span { font-size: 14.5px; line-height: 1.4; color: var(--ink); overflow-wrap: anywhere; }
+.jd-next-go { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #0B3BBF; box-shadow: 0 2px 8px rgba(75, 59, 184, .15); }
+
+/* The locked card and messages sit inside the day card here, so they lose their own frame. */
+.fjm.jd .jd-day .fj-locked { border: 0; box-shadow: none; padding: 8px 0; margin: 0; }
+.fjm.jd .fj-place { margin: 0; }
+
+/* ── Narrower laptops: the figures wrap under the title on their own (flex-wrap) and keep the button at the right. */
+.jd-card-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.jd-card-title .jd-count { margin-left: auto; }
+/* When the figures wrap under the title they run the full width, the button at the far right. */
+@media (max-width: 1180px) and (min-width: 761px) {
+  .jd-stats { flex: 1 1 100%; }
+  .jd-stat-act { margin-left: auto; }
+}
+@media (max-width: 1100px) {
+  .jd-body { grid-template-columns: 1fr; }
+  .jd-side { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .jd-side > .jd-next { grid-column: 1 / -1; }
+}
+
+/* ── Tablets and phones ───────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .jd-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .jd-stat, .jd-stat:first-child { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: #fff; min-height: 0; }
+  .jd-stats > .jd-stat:nth-child(3) { grid-column: 1 / -1; }
+  .jd-stat-act { grid-column: 1 / -1; margin: 0; padding: 0; border: 0; min-height: 0; }
+  .jd-start { width: 100%; }
+  .fjm.jd .fj-range { flex-direction: column; align-items: stretch; }
+  .jd-full { align-self: flex-end; }
+  .jd-day-head { flex-wrap: wrap; }
+  .jd-day-meta { flex-direction: row; align-items: center; width: 100%; padding-left: 68px; }
+  .jd-outcomes ul { flex-direction: column; }
+  .jd-outcomes li, .jd-outcomes li:first-child { padding: 0; border: 0; }
+}
+@media (max-width: 560px) {
+  .fjm.jd .jd-day { padding: 16px 14px; }
+  .jd-day-ic { width: 44px; height: 44px; font-size: 20px; }
+  .fjm.jd .jd-day-title h2 { font-size: 19px; }
+  .jd-day-meta { padding-left: 0; }
+  .jd-act { flex-wrap: wrap; align-items: flex-start; gap: 10px 12px; padding: 12px; }
+  .jd-act .fj-act-icon { width: 40px; height: 40px; font-size: 18px; }
+  .jd-act-body { flex: 1 1 calc(100% - 64px); }
+  .jd-act-end { width: 100%; padding-left: 52px; gap: 10px; }
+  .jd-act-time { min-width: 0; }
+  .fjm.jd .fjm-xp { display: inline-block; min-width: 0; }
+  .jd-act-end .fjm-check { margin-left: auto; }
+  .jd-more { flex-direction: column; align-items: stretch; }
+  .jd-more button { justify-content: center; }
+  .jd-side { display: flex; }
+  .fjm.jd .fj-chip { width: 40px; height: 40px; font-size: 13.5px; }
+  .fjm.jd .fj-range-btn { padding: 0 8px; }
+}
+
+/* ── Before membership: the same day card, each task marked with what opens it ── */
+.jd-lock { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: #F1F4F9; border: 1px solid var(--line); color: #2F3F56; font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+.fjm-preview .jd-act { cursor: default; }
+.fjm-preview .jd-act:hover { border-color: var(--line); box-shadow: none; }
+.jd-unlock .jd-start { width: 100%; margin-top: 14px; white-space: normal; text-align: center; }
+.jd-tag i { margin-right: 4px; }
+
+/* Phones: long figures and the unlock price wrap inside their box instead of pushing the page sideways. */
+@media (max-width: 760px) {
+  .jd-stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .jd-stat { min-width: 0; }
+  .fjm.jd .jd-stat b, .fjm.jd .jd-stat small { white-space: normal; }
+  .jd-start { white-space: normal; text-align: center; }
+}

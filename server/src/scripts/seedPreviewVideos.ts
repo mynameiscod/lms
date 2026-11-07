@@ -96,11 +96,21 @@ const DEFAULT_URL = 'https://www.youtube.com/watch?v=rfscVS0vtbw';
     .find({ tenantId, unitCode: { $in: unitCodes } })
     .select('unitCode title topicCode skillKeys defaultDepth').lean() as any[];
 
+  /**
+   * A unit that already has a video someone uploaded keeps it. The write below is keyed on
+   * unit + type, so without this a re-run would replace a real lesson with the placeholder.
+   */
+  const realVideo = new Set<string>(await LearningContentLibrary.distinct('unitCode', {
+    tenantId, type: 'video', unitCode: { $in: unitCodes }, createdBy: { $ne: CREATED_BY },
+  }));
+
   console.log(`  units owning content: ${units.length}`);
+  console.log(`  already have a real video (left alone): ${realVideo.size}`);
   console.log(`  url: ${url}`);
 
   let written = 0;
   for (const unit of units) {
+    if (realVideo.has(unit.unitCode)) continue;
     written++;
     if (!apply) continue;
     await LearningContentLibrary.updateOne(

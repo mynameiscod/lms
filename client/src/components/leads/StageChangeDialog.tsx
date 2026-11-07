@@ -72,9 +72,12 @@ const StageChangeDialog: React.FC<Props> = ({ open, onClose, leadIds, initialSta
 
   // What this target asks for (mirrors server rules).
   const needSub = !bulk && subs.length > 0;
-  const needReasonFromList = !!sub?.requiresReason;
+  // A sub-stage that requires a reason but has no reasons listed yet asks for a typed one
+  // (the server accepts that too), instead of blocking with nothing to pick.
+  const needReasonFromList = !!sub?.requiresReason && reasons.length > 0;
+  const subNeedsTypedReason = !!sub?.requiresReason && reasons.length === 0;
   const stageNeedsReason = !!stage && (!!stage.requiresReason || stage.name === 'Not Interested');
-  const needTypedReason = stageNeedsReason && !reason && !needReasonFromList;
+  const needTypedReason = (stageNeedsReason && !reason && !needReasonFromList) || subNeedsTypedReason;
   const needDetail = !!reason?.requiresDetail;
   const needNote = !!(stage?.requiresNote || sub?.requiresNote);
   const needFollowUp = !bulk && !!sub?.requiresFollowUp;

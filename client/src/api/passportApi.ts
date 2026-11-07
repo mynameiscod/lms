@@ -259,6 +259,28 @@ export const passportApi = {
   deleteDemoPlan: async (id: string): Promise<void> => {
     await axios.delete(`${BASE}/demo-plans/${id}`, { headers: auth() });
   },
+  /** Job openings for every member (Job Board). */
+  listJobOpenings: async (): Promise<{ locked: boolean; openings: JobOpening[] }> => {
+    const { data } = await axios.get(`${BASE}/job-openings`, { headers: auth() });
+    return data;
+  },
+  markJobApplied: async (id: string, applied: boolean): Promise<{ appliedAt: string | null }> => {
+    const { data } = await axios.put(`${BASE}/job-openings/${id}/applied`, { applied }, { headers: auth() });
+    return data;
+  },
+  adminJobOpenings: async (): Promise<{ openings: AdminJobOpening[] }> => {
+    const { data } = await axios.get(`${BASE}/job-openings-admin`, { headers: auth() });
+    return data;
+  },
+  saveJobOpening: async (id: string | null, body: JobOpeningInput): Promise<{ opening: AdminJobOpening }> => {
+    const { data } = id
+      ? await axios.put(`${BASE}/job-openings-admin/${id}`, body, { headers: auth() })
+      : await axios.post(`${BASE}/job-openings-admin`, body, { headers: auth() });
+    return data;
+  },
+  deleteJobOpening: async (id: string): Promise<void> => {
+    await axios.delete(`${BASE}/job-openings-admin/${id}`, { headers: auth() });
+  },
   /** One member's demo access (Super Admin). */
   memberDemo: async (userId: string): Promise<MemberDemoView> => {
     const { data } = await axios.get(`${BASE}/members/${userId}/demo`, { headers: auth() });
@@ -2116,6 +2138,22 @@ export interface DemoPickItem { id: string; title: string; number?: number; diff
 export interface DemoYearView {
   enabled: boolean; track: string; landingDay: number; interviewTypes: string[];
   practice: DemoPickItem[]; thinking: DemoPickItem[]; books: DemoPickItem[];
+}
+export type JobKind = 'job' | 'internship';
+export type WorkMode = 'onsite' | 'hybrid' | 'remote';
+export interface JobOpening {
+  id: string; company: string; companyLogo: string; role: string; kind: JobKind; workMode: WorkMode;
+  locations: string[]; payMin: number | null; payMax: number | null; experience: string; batches: number[];
+  skills: string[]; description: string; applyUrl: string; lastDate: string | null; publishedAt: string;
+  appliedAt: string | null;
+}
+export interface AdminJobOpening extends JobOpening {
+  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED'; expired: boolean; applied: number; createdByName: string; updatedAt: string;
+}
+export interface JobOpeningInput {
+  company: string; companyLogo: string; role: string; kind: JobKind; workMode: WorkMode; locations: string[];
+  payMin: number | null; payMax: number | null; experience: string; batches: number[]; skills: string[];
+  description: string; applyUrl: string; lastDate: string | null; status: 'DRAFT' | 'PUBLISHED' | 'CLOSED';
 }
 export interface DemoPlan {
   id: string; name: string; description: string; startYear: string; active: boolean; accounts: number; updatedAt?: string;

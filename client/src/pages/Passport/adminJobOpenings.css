@@ -1,0 +1,32 @@
+/* CareerPilot → Job openings (AdminJobOpenings.tsx, root .jo). Builds on the admin styles in adminXpRewards.css. */
+.jo-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.jo .jo-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+.jo-logo { flex: none; width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; overflow: hidden; background: #EEF2FF; color: var(--navy); font-weight: 800; font-size: 15px; border: 1px solid var(--line); }
+.jo-logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.jo-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.jo-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.jo-title h2 { margin: 0; font-size: 16px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.jo-co { font-size: 14px; font-weight: 600; color: var(--muted); }
+.jo-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; font-size: 13px; color: #42546E; }
+.jo-meta span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.jo-meta i { color: #7F8EA3; }
+.jo-st.live { background: var(--good-bg); color: var(--good); }
+.jo-st.drafts { background: #EEF2F7; color: #4A5A70; }
+.jo-st.ended { background: #FFF1E6; color: #A14F06; }
+.jo-acts { flex: none; display: flex; align-items: center; gap: 6px; }
+.jo-acts a.xr-btn { text-decoration: none; }
+.jo-drawer { width: min(720px, 100vw); }
+.jo-drawer .xr-seg { align-self: flex-start; }
+@media (max-width: 900px) {
+  .jo .jo-row { flex-wrap: wrap; align-items: flex-start; }
+  .jo-body { flex-basis: calc(100% - 60px); }
+  .jo-acts { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
+}
+@media (max-width: 480px) {
+  .jo-title { flex-wrap: wrap; }
+  .jo-title h2 { white-space: normal; }
+  .jo .xr-toolbar .xr-search { flex-basis: 100%; }
+  .jo .xr-seg { overflow-x: auto; }
+}
+/* Example text must not read as filled-in values. */
+.jo-drawer .xr-f > :is(input, textarea)::placeholder { color: #A3AEBD !important; font-weight: 500; opacity: 1; }

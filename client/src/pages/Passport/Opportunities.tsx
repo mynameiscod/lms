@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collegeMembershipApi, placementDriveApi } from '../../api';
-import passportApi, { CompanyRow } from '../../api/passportApi';
+import passportApi, { CompanyRow, JobOpening } from '../../api/passportApi';
+import { payText } from './AdminJobOpenings';
 import { useMember } from './MemberLayout';
 import { copyText } from '../../components/feedback/appFeedback';
 import './opportunities.css';
@@ -50,6 +51,8 @@ interface Membership {
   backlogs?: number;
 }
 
+type Item = { kind: 'drive'; d: Drive } | { kind: 'opening'; o: JobOpening };
+
 const SAVED_KEY = 'careerpilot_saved_opportunities';
 
 const statusLabel: Record<AppStatus, string> = {
@@ -86,6 +89,8 @@ const Opportunities: React.FC = () => {
    * member could only reach a company page by knowing its slug.
    */
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
+  /** Openings in the market posted for every member (AdminJobOpenings). Applied on the company's own site. */
+  const [openings, setOpenings] = useState<JobOpening[]>([]);
   const [location, setLocation] = useState('');
   const [saved, setSaved] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(SAVED_KEY) || '[]')); }
@@ -96,7 +101,7 @@ const Opportunities: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const [upcoming, ongoing, apps, profile, ready, cos] = await Promise.all([
+      const [upcoming, ongoing, apps, profile, ready, cos, jobs] = await Promise.all([
         placementDriveApi.list('upcoming').catch(() => ({ data: [] })),
         placementDriveApi.list('ongoing').catch(() => ({ data: [] })),
         placementDriveApi.getMyApplications().catch(() => ({ data: [] })),
@@ -105,7 +110,9 @@ const Opportunities: React.FC = () => {
         // Failure is not fatal to the page: drives and companies are independent, and a
         // company list that will not load should cost its own tab, not the whole screen.
         passportApi.listCompanies().catch(() => ({ companies: [] as CompanyRow[] })),
+        passportApi.listJobOpenings().catch(() => ({ locked: false, openings: [] as JobOpening[] })),
       ]);
+      setOpenings(jobs?.openings || []);
       setCompanies((cos as any)?.companies || []);
       const open = [...(upcoming?.data || []), ...(ongoing?.data || [])] as Drive[];
       const uniq = Array.from(new Map(open.map(d => [d._id, d])).values());
@@ -151,7 +158,10 @@ const Opportunities: React.FC = () => {
     return { eligible: reasons.length === 0, reasons };
   };
 
-  const locations = useMemo(() => Array.from(new Set(drives.map(d => d.location).filter(Boolean) as string[])).sort(), [drives]);
+  const locations = useMemo(() => Array.from(new Set([
+    ...drives.map(d => d.location).filter(Boolean) as string[],
+    ...openings.flatMap(o => o.locations),
+  ])).sort(), [drives, openings]);
 
   const shown = useMemo(() => drives.filter(d => {
     const text = `${d.companyName} ${d.role} ${d.location || ''}`.toLowerCase();
@@ -162,8 +172,23 @@ const Opportunities: React.FC = () => {
     return true;
   }), [drives, query, location, type]);
 
+  const shownOpenings = useMemo(() => openings.filter(o => {
+    const text = `${o.company} ${o.role} ${o.locations.join(' ')} ${o.skills.join(' ')}`.toLowerCase();
+    if (query && !text.includes(query.toLowerCase())) return false;
+    if (location && !o.locations.includes(location)) return false;
+    if (type === 'internships' && o.kind !== 'internship') return false;
+    if (type === 'jobs' && o.kind !== 'job') return false;
+    return true;
+  }), [openings, query, location, type]);
+
   const recommended = shown.filter(d => eligibility(d).eligible);
-  const listed = type === 'all' ? [...recommended, ...shown.filter(d => !eligibility(d).eligible)] : shown;
+  // College drives the student is eligible for first, then openings in the market, then drives with an eligibility gap.
+  const listed: Item[] = [
+    ...(type === 'all' ? recommended : shown).map((d): Item => ({ kind: 'drive', d })),
+    ...shownOpenings.map((o): Item => ({ kind: 'opening', o })),
+    ...(type === 'all' ? shown.filter(d => !eligibility(d).eligible) : []).map((d): Item => ({ kind: 'drive', d })),
+  ];
+  const appliedOpenings = openings.filter(o => o.appliedAt).length;
 
   const pageCount = Math.max(1, Math.ceil(listed.length / PER_PAGE));
   // Clamped rather than trusted: switching from a tab of 40 to one of 5 while on page 3 would
@@ -176,6 +201,20 @@ const Opportunities: React.FC = () => {
     next.has(id) ? next.delete(id) : next.add(id);
     return next;
   });
+
+  /** The student's own note that they applied on the company site. */
+  const markApplied = async (o: JobOpening, applied: boolean) => {
+    setBusyId(o.id); setError('');
+    try {
+      const r = await passportApi.markJobApplied(o.id, applied);
+      setOpenings(prev => prev.map(x => x.id === o.id ? { ...x, appliedAt: r.appliedAt } : x));
+      setMessage(applied ? `Marked as applied: ${o.role} at ${o.company}.` : '');
+    } catch (e: any) {
+      setError(e?.response?.data?.message || 'Could not save that.');
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const apply = async (d: Drive) => {
     const existing = appByDrive.get(d._id);
@@ -228,9 +267,9 @@ const Opportunities: React.FC = () => {
           </div>
         </div>
         <div className="opp-metrics opp2-metrics">
-          <Metric icon="bi-briefcase-fill" value={recommended.length} label="Open & eligible" tone="teal" />
+          <Metric icon="bi-briefcase-fill" value={recommended.length + openings.length} label="Open & eligible" tone="teal" />
           <Metric icon="bi-bookmark-fill" value={saved.size} label="Saved" tone="violet" />
-          <Metric icon="bi-send-fill" value={applications.length} label="Applications" tone="blue" />
+          <Metric icon="bi-send-fill" value={applications.length + appliedOpenings} label="Applications" tone="blue" />
           <Metric icon="bi-calendar-check-fill" value={interviewCount} label="Interviews" tone="green" />
         </div>
       </header>
@@ -285,10 +324,13 @@ const Opportunities: React.FC = () => {
               </div>
             )
           ) : !listed.length ? (
-            <div className="opp-empty"><i className="bi bi-briefcase" /><h3>No matching opportunities right now</h3><p>Try another filter or check back when new placement drives are published.</p></div>
+            <div className="opp-empty"><i className="bi bi-briefcase" /><h3>No matching opportunities right now</h3><p>Try another filter, or check back soon. New openings are added regularly.</p></div>
           ) : (
             <div className="opp-list">
-              {pageItems.map(d => {
+              {pageItems.map(item => {
+                if (item.kind === 'opening') return <OpeningCard key={`o-${item.o.id}`} o={item.o} saved={saved.has(item.o.id)}
+                  busy={busyId === item.o.id} onSave={() => toggleSave(item.o.id)} onApplied={(v) => markApplied(item.o, v)} />;
+                const d = item.d;
                 const check = eligibility(d);
                 const app = appByDrive.get(d._id);
                 const isSaved = saved.has(d._id);
@@ -405,6 +447,51 @@ const Opportunities: React.FC = () => {
 const prettySkill = (key?: string) => {
   const t = String(key || '').replace(/[_-]+/g, ' ').trim().toLowerCase();
   return t ? t[0].toUpperCase() + t.slice(1) : '—';
+};
+
+const MODE: Record<string, string> = { onsite: 'On-site', hybrid: 'Hybrid', remote: 'Remote' };
+
+/** An opening in the market: applied for on the company's site, tracked here by the student's own mark. */
+const OpeningCard: React.FC<{ o: JobOpening; saved: boolean; busy: boolean; onSave: () => void; onApplied: (v: boolean) => void }> = ({ o, saved, busy, onSave, onApplied }) => {
+  const pay = payText(o.kind, o.payMin, o.payMax);
+  const daysLeft = o.lastDate ? Math.ceil((new Date(o.lastDate).setHours(23, 59, 59, 999) - Date.now()) / 86400000) - 1 : null;
+  const facts = [o.experience, o.batches.length ? `${o.batches.join(', ')} batch` : ''].filter(Boolean).join(' · ');
+  return (
+    <article className="opp-card opp-opening">
+      <div className="opp-company-logo">
+        {o.companyLogo ? <img src={o.companyLogo} alt="" /> : <span>{o.company.slice(0, 2).toUpperCase()}</span>}
+      </div>
+      <div className="opp-card-body">
+        <div className="opp-card-title-row">
+          <div><h3>{o.role}</h3><div className="opp-company-name">{o.company}</div></div>
+          {daysLeft != null && daysLeft <= 3
+            ? <span className="opp-fit warn"><i className="bi bi-hourglass-split" /> {daysLeft <= 0 ? 'Last day today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}</span>
+            : <span className="opp-fit open"><i className="bi bi-globe2" /> Off-campus</span>}
+        </div>
+        <div className="opp-meta">
+          <span><i className="bi bi-briefcase" /> {o.kind === 'internship' ? 'Internship' : 'Job'} · {MODE[o.workMode] || o.workMode}</span>
+          {!!o.locations.length && <span><i className="bi bi-geo-alt" /> {o.locations.join(', ')}</span>}
+          {pay && <span><i className="bi bi-cash-stack" /> {pay}</span>}
+          {o.lastDate && <span><i className="bi bi-clock" /> Apply by {new Date(o.lastDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>}
+        </div>
+        {o.description && <p className="opp-desc">{o.description}</p>}
+        {!!o.skills.length && <div className="opp-skills">{o.skills.slice(0, 6).map(sk => <span key={sk}>{sk}</span>)}</div>}
+        <div className="opp-match-note">
+          <i className="bi bi-box-arrow-up-right" />
+          <span>{facts ? `${facts}. ` : ''}You apply on the company’s website. Once you have, mark it here to keep track.</span>
+        </div>
+      </div>
+      <div className="opp-card-actions">
+        <button className={`opp-save${saved ? ' on' : ''}`} onClick={onSave}><i className={`bi ${saved ? 'bi-bookmark-fill' : 'bi-bookmark'}`} /> {saved ? 'Saved' : 'Save'}</button>
+        <a className="opp-apply" href={o.applyUrl} target="_blank" rel="noopener noreferrer" aria-label={`Apply on ${o.company}’s website (opens in a new tab)`}>Apply now <i className="bi bi-box-arrow-up-right" /></a>
+        {o.appliedAt
+          ? <button className="opp-applied opp-applied-btn" disabled={busy} onClick={() => onApplied(false)} title="Undo: not applied">
+              <i className="bi bi-check-circle-fill" /> Applied
+            </button>
+          : <button className="opp-mark" disabled={busy} onClick={() => onApplied(true)}><i className="bi bi-check2-square" /> Mark as applied</button>}
+      </div>
+    </article>
+  );
 };
 
 const Metric: React.FC<{ icon: string; value: number; label: string; tone: string }> = ({ icon, value, label, tone }) => (

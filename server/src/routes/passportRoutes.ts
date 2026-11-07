@@ -22,6 +22,7 @@ import * as interview from '../controllers/passportInterviewController';
 import * as trials from '../controllers/trialController';
 import * as demoPlans from '../controllers/demoPlanController';
 import * as demoAccess from '../controllers/demoAccessController';
+import * as jobOpenings from '../controllers/jobOpeningController';
 import * as interviewPlans from '../controllers/interviewPlanController';
 import * as activity from '../controllers/careerPilotActivityController';
 import * as learningUnits from '../controllers/conceptLearningUnitController';
@@ -706,6 +707,15 @@ router.post('/members/:userId/demo/reset',     SUPER_ADMIN, demoAccess.resetMemb
 router.get('/me/demo',                        MEMBER, demoAccess.myDemo);
 router.post('/me/demo/year',                  MEMBER, demoAccess.switchMyDemoYear);
 router.post('/me/demo/reset',                 MEMBER, demoAccess.resetMyDemo);
+// Job openings for every member (controllers/jobOpeningController). Posting needs its own permission,
+// not manage_passport: an opening reaches members of every institute, so only a super admin gives it.
+const MANAGE_OPENINGS = roleGuard(['manage_job_openings']);
+router.get('/job-openings',                   MEMBER, jobOpenings.listOpenings);
+router.put('/job-openings/:id/applied',       MEMBER, jobOpenings.markApplied);
+router.get('/job-openings-admin',             MANAGE_OPENINGS, jobOpenings.adminListOpenings);
+router.post('/job-openings-admin',            MANAGE_OPENINGS, jobOpenings.saveOpening);
+router.put('/job-openings-admin/:id',         MANAGE_OPENINGS, jobOpenings.saveOpening);
+router.delete('/job-openings-admin/:id',      MANAGE_OPENINGS, jobOpenings.deleteOpening);
 router.delete('/members/:userId/grant',  MANAGE_FOR.cpMembers, ctrl.revokeMembership);
 // Trials: limited access for a chosen student (data/trialPolicy.ts).
 router.get('/trial-plans',               MANAGE_FOR.cpMembers, trials.listPlans);

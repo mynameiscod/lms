@@ -121,6 +121,7 @@ const PassportAdminConfig = lazy(() => import('./pages/Passport/AdminConfig'));
 const PassportAdminStudents = lazy(() => import('./pages/Passport/AdminStudents'));
 const PassportAdminTrialPlans = lazy(() => import('./pages/Passport/AdminTrialPlans'));
 const PassportAdminDemoPlans = lazy(() => import('./pages/Passport/AdminDemoPlans'));
+const PassportAdminJobOpenings = lazy(() => import('./pages/Passport/AdminJobOpenings'));
 const PassportAdminStudentRoadmap = lazy(() => import('./pages/Passport/AdminStudentRoadmap'));
 const PassportAdminStageSkills = lazy(() => import('./pages/Passport/AdminStageSkills'));
 const PassportAdminCoins = lazy(() => import('./pages/Passport/AdminCoins'));
@@ -683,6 +684,10 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_members']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
       } />
       {/* Demo plans: what a demo account shows, year by year. Super admin only. */}
+      {/* Opens for whoever holds manage_job_openings — a permission only a super admin can give a role. */}
+      <Route path="/admin/passport/job-openings" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_job_openings']}><Layout><PassportAdminJobOpenings /></Layout></ProtectedRoute>
+      } />
       <Route path="/admin/passport/demo-plans" element={
         <ProtectedRoute requiredRoles={['SUPER_ADMIN']}><Layout><PassportAdminDemoPlans /></Layout></ProtectedRoute>
       } />

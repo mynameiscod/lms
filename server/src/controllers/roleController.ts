@@ -1,9 +1,21 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import { RoleService } from '../services/roleService';
-import { PERMISSION_GROUPS } from '../middleware/roleGuard';
+import { PERMISSION_GROUPS, SUPER_ADMIN_GRANTED } from '../middleware/roleGuard';
 
 const roleService = new RoleService();
+
+const isSuper = (req: AuthenticatedRequest) => req.user?.role === 'SUPER_ADMIN';
+
+/**
+ * The permissions a role ends up with when someone other than a super admin saves it: everything
+ * they asked for except the super-admin-only ones, which stay exactly as the role already had them.
+ */
+const guardGrants = (req: AuthenticatedRequest, requested: string[], existing: string[] = []): string[] => {
+  if (isSuper(req)) return requested;
+  const kept = existing.filter((p) => SUPER_ADMIN_GRANTED.includes(p));
+  return [...requested.filter((p) => !SUPER_ADMIN_GRANTED.includes(p)), ...kept];
+};
 
 export const getAvailablePermissions = async (
   req: AuthenticatedRequest,
@@ -12,7 +24,10 @@ export const getAvailablePermissions = async (
   res.status(200).json({
     success: true,
     message: 'Available permissions fetched',
-    data: PERMISSION_GROUPS
+    // An institute admin is not shown what they cannot give.
+    data: isSuper(req) ? PERMISSION_GROUPS : Object.fromEntries(Object.entries(PERMISSION_GROUPS).map(([k, g]) => [k, {
+      ...g, permissions: g.permissions.filter((p) => !SUPER_ADMIN_GRANTED.includes(p.key)),
+    }])),
   });
 };
 
@@ -34,7 +49,7 @@ export const createRole = async (
     const roleData = {
       name,
       description,
-      permissions: permissions || [],
+      permissions: guardGrants(req, permissions || []),
       tenantId: req.tenantId!
     };
 
@@ -117,7 +132,10 @@ export const updateRole = async (
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
-    if (permissions !== undefined) updateData.permissions = permissions;
+    if (permissions !== undefined) {
+      const current: any = isSuper(req) ? null : await roleService.getRoleById(roleId, req.tenantId!);
+      updateData.permissions = guardGrants(req, permissions, current?.permissions || []);
+    }
 
     const role = await roleService.updateRole(roleId, req.tenantId!, updateData);
 
@@ -190,7 +208,7 @@ export const addPermissions = async (
       });
     }
 
-    const role = await roleService.addPermissions(roleId, req.tenantId!, permissions);
+    const role = await roleService.addPermissions(roleId, req.tenantId!, guardGrants(req, permissions));
 
     if (!role) {
       return res.status(404).json({
@@ -230,7 +248,7 @@ export const removePermissions = async (
       });
     }
 
-    const role = await roleService.removePermissions(roleId, req.tenantId!, permissions);
+    const role = await roleService.removePermissions(roleId, req.tenantId!, guardGrants(req, permissions));
 
     if (!role) {
       return res.status(404).json({

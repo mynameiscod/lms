@@ -253,6 +253,9 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       // see. Same reasoning as scoring categories above — editing content and rewriting
       // what existing members are doing are different levels of trust.
       { key: 'reroute_passport_members', label: 'Re-route Existing CareerPilot Members Between Pathways' },
+      // Not under manage_passport: an opening is shown to members of EVERY institute, so only a super
+      // admin can give this to a role (SUPER_ADMIN_GRANTED below).
+      { key: 'manage_job_openings', label: 'CareerPilot: post job openings for every member (super admin gives this)' },
       { key: 'use_passport', label: 'Use CareerPilot (Member Surfaces)' },
     ]
   },
@@ -366,6 +369,12 @@ export const FEATURE_PERMISSIONS = [
 ];
 
 // Flatten all permission keys
+/**
+ * Permissions only a super admin can put on a role. They act beyond one institute, so an
+ * institute admin who manages roles must not be able to hand them out — or take them away.
+ */
+export const SUPER_ADMIN_GRANTED = ['manage_job_openings'];
+
 export const ALL_PERMISSIONS = Object.values(PERMISSION_GROUPS)
   .flatMap(group => group.permissions.map(p => p.key));
 

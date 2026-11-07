@@ -132,3 +132,23 @@
 #root .gd .opp2 .opp2-metrics .opp-metric .icon.blue, .opp2 .opp2-metrics .opp-metric .icon.blue { color: #1B3C77 !important; }
 #root .gd .opp2 .opp2-metrics .opp-metric b, .opp2 .opp2-metrics .opp-metric b { color: #051D64 !important; }
 #root .gd .opp2 .opp2-metrics .opp-metric span, .opp2 .opp2-metrics .opp-metric span { color: #1B7D91 !important; }
+
+/* Openings in the market (OpeningCard): applied for on the company site, tracked by the student's own mark. */
+.opp2 .opp-opening { grid-template-columns: 62px minmax(0, 1fr) 150px; }
+.opp-fit.open { background: #EEF2FF; color: #0B3BBF; }
+.opp-skills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.opp-skills span { font-size: 10px; font-weight: 750; color: #33445E; background: #F1F4F9; border: 1px solid #E1E7EF; border-radius: 999px; padding: 3px 8px; }
+.opp-card-actions a.opp-apply { min-height: 36px; border-radius: 9px; font-weight: 800; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 8px; text-align: center; text-decoration: none; color: #fff; line-height: 1.2; }
+.opp-card-actions a.opp-apply:hover { color: #fff; filter: brightness(1.12); }
+.opp-card-actions .opp-mark { background: #fff; color: #17885D; border: 1px dashed #9FD6BF; cursor: pointer; }
+.opp-card-actions .opp-mark:hover:not(:disabled) { background: #F2FBF7; }
+.opp-card-actions .opp-applied-btn { cursor: pointer; width: 100%; }
+.opp-card-actions .opp-applied-btn:hover:not(:disabled) { background: #fff; }
+@media (max-width: 900px) {
+  .opp2 .opp-opening { grid-template-columns: 52px minmax(0, 1fr); }
+  .opp2 .opp-opening .opp-card-actions { grid-template-columns: 1fr 1fr 1fr; }
+}
+@media (max-width: 560px) {
+  .opp2 .opp-opening .opp-card-actions { grid-template-columns: 1fr 1fr; }
+  .opp2 .opp-opening .opp-card-actions a.opp-apply { grid-column: 1 / -1; order: -1; }
+}

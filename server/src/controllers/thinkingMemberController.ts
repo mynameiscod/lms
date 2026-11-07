@@ -33,4 +33,5 @@ export const answer = handle((req) => svc.submitAnswer(tId(req), uId(req), req.p
 export const hint = handle((req) => svc.revealHint(tId(req), uId(req), req.params.id), 'show a hint');
 export const run = handle((req) => svc.runCode(tId(req), uId(req), req.params.id, req.body), 'run your code');
 export const practice = handle((req) => svc.practiceMore(tId(req), uId(req), req.body?.type), 'add a practice question');
+export const review = handle((req) => svc.finishedQuestion(tId(req), uId(req), req.params.id), 'open that question');
 export const history = handle(async (req) => ({ items: await svc.history(tId(req), uId(req), Math.max(1, Number(req.query.page) || 1)) }), 'load your history');

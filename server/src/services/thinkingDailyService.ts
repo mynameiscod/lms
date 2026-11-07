@@ -414,6 +414,16 @@ async function setFinished(tenantId: string, studentId: string, day: any) {
   return n >= ids.length;
 }
 
+/** A question the member finished on any day, to read again from History. Unfinished ones stay closed. */
+export async function finishedQuestion(tenantId: string, studentId: string, questionId: string) {
+  if (!mongoose.isValidObjectId(questionId)) throw new LabError(404, 'Question not found.');
+  const a: any = await ThinkingAnswer.findOne({ tenantId, studentId: oid(studentId), questionId: oid(questionId) }).lean();
+  if (!a?.finished) throw new LabError(404, 'You can review a question once you have finished it.');
+  const q: any = await ThinkingQuestion.findById(questionId).lean();
+  if (!q) throw new LabError(404, 'Question not found.');
+  return { question: memberQuestion(q, a), date: a.date, practice: !!a.practice };
+}
+
 /** Finished questions, newest first. */
 export async function history(tenantId: string, studentId: string, page = 1) {
   const per = 20;

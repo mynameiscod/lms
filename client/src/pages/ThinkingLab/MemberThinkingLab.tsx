@@ -1,7 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { memberLabApi, TQQuestion, TQReward, TQToday, TQType } from '../../api/thinkingLabApi';
 import { useMember } from '../Passport/MemberLayout';
 import SectionLock from '../Passport/SectionLock';
+import '../ProblemBank/ProblemBank.css';
+import '../CodingPractice/practiceLibrary.css';
+import '../CodingPractice/practiceHub.css';
 import './memberThinkingLab.css';
 
 /**
@@ -27,6 +30,10 @@ const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
 const MIN_WORDS = 8;
 const errOf = (e: any, d: string) => e?.response?.data?.message || d;
 
+type Tab = 'today' | 'practice' | 'history';
+type HistoryRow = Awaited<ReturnType<typeof memberLabApi.history>>['items'][number];
+const cap = (d: string) => (d ? d[0].toUpperCase() + d.slice(1) : '');
+
 const MemberThinkingLab: React.FC = () => {
   const { data: member } = useMember();
   const locked = (member?.locked || []).some((l: any) => l.section === 'thinkingLab');
@@ -34,139 +41,255 @@ const MemberThinkingLab: React.FC = () => {
   const [err, setErr] = useState('');
   const [blocked, setBlocked] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [review, setReview] = useState<TQQuestion | null>(null);
   const [toast, setToast] = useState('');
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<Tab>('today');
+  const [history, setHistory] = useState<HistoryRow[] | null>(null);
+  const [q, setQ] = useState('');
+  const [type, setType] = useState('');
+  const [diff, setDiff] = useState('');
 
-  const flash = (m: string) => { setToast(m); window.setTimeout(() => setToast(''), 4500); };
+  const flash = (m: string) => { setToast(m); window.setTimeout(() => setToast(''), 5000); };
   const load = useCallback(() => memberLabApi.today()
     .then((d) => { setDay(d); setErr(''); })
     .catch((e) => { if (e?.response?.data?.reason === 'trial_limit') setBlocked(errOf(e, '')); else setErr(errOf(e, 'Could not load today’s questions.')); }), []);
-  useEffect(() => { if (!locked) load(); }, [load, locked]);
+  const loadHistory = useCallback(() => memberLabApi.history().then((r) => setHistory(r.items)).catch(() => setHistory([])), []);
+  useEffect(() => { if (!locked) { load(); loadHistory(); } }, [load, loadHistory, locked]);
 
   const all = useMemo(() => [...(day?.items || []), ...(day?.practice || [])], [day]);
-  const open = all.find((q) => q.id === openId) || null;
-  const setDone = !!day && day.items.length > 0 && day.items.every((q) => q.state === 'solved' || q.state === 'finished');
+  const open = review || all.find((x) => x.id === openId) || null;
+  const setDone = !!day && day.items.length > 0 && day.items.every((x) => x.state === 'solved' || x.state === 'finished');
+  const nextUp = day?.items.find((x) => x.state === 'new' || x.state === 'trying') || null;
 
-  const replace = (q: TQQuestion) => setDay((d) => d && ({ ...d,
-    items: d.items.map((x) => (x.id === q.id ? q : x)), practice: d.practice.map((x) => (x.id === q.id ? q : x)),
-    done: d.items.map((x) => (x.id === q.id ? q : x)).filter((x) => x.state === 'solved' || x.state === 'finished').length }));
+  const replace = (x: TQQuestion) => setDay((d) => d && ({ ...d,
+    items: d.items.map((y) => (y.id === x.id ? x : y)), practice: d.practice.map((y) => (y.id === x.id ? x : y)),
+    done: d.items.map((y) => (y.id === x.id ? x : y)).filter((y) => y.state === 'solved' || y.state === 'finished').length }));
 
   const onReward = (r: TQReward | null) => {
+    loadHistory();
     if (!r) return;
     const bits = [r.xpNow ? `+${r.xpNow} XP` : r.alreadyPaid ? 'Today’s XP was already earned' : '', `Lab streak ${r.labStreak.current} day${r.labStreak.current === 1 ? '' : 's'}`];
     if (r.labStreak.usedFreezes) bits.push(`${r.labStreak.usedFreezes} freeze${r.labStreak.usedFreezes === 1 ? '' : 's'} saved your streak`);
     if (r.labStreak.earnedFreeze) bits.push('you earned a streak freeze');
     if (r.streakBonus) bits.push(`+${r.streakBonus} XP streak bonus`);
     flash(bits.filter(Boolean).join(' · '));
-    memberLabApi.today().then(setDay).catch(() => { /* the card already shows the result */ });
+    memberLabApi.today().then(setDay).catch(() => { /* the screen already shows the result */ });
   };
 
-  const practice = async (type?: TQType) => {
+  const practice = async (t?: TQType) => {
     setBusy(true);
-    try { const d = await memberLabApi.practice(type); setDay((x) => (x ? { ...d, summary: x.summary, calendar: x.calendar } : x)); setOpenId(d.practice[d.practice.length - 1]?.id || null); }
-    catch (e) { flash(errOf(e, 'Could not add a practice question.')); }
+    try {
+      const d = await memberLabApi.practice(t);
+      setDay((x) => (x ? { ...d, summary: x.summary, calendar: x.calendar } : x));
+      setTab('practice');
+      setOpenId(d.practice[d.practice.length - 1]?.id || null);
+    } catch (e) { flash(errOf(e, 'Could not add a practice question.')); }
     setBusy(false);
   };
+  const openReview = async (id: string) => {
+    const inDay = all.find((x) => x.id === id);
+    if (inDay) { setOpenId(id); return; }
+    try { setReview((await memberLabApi.review(id)).question); } catch (e) { flash(errOf(e, 'Could not open that question.')); }
+  };
+  const close = () => { setOpenId(null); setReview(null); };
 
   if (locked) return <SectionLock section="thinkingLab" />;
-  if (blocked) return <div className="tl2"><div className="tl2-card tl2-state"><i className="bi bi-hourglass-split" /><h2>Your trial’s Thinking Lab questions are used</h2><p>{blocked}</p></div></div>;
-  if (err) return <div className="tl2"><div className="tl2-card tl2-state"><i className="bi bi-exclamation-circle" /><h2>Could not load the Thinking Lab</h2><p>{err}</p><button className="tl2-btn primary" onClick={() => { setErr(''); load(); }}>Try again</button></div></div>;
-  if (!day) return <div className="tl2"><div className="tl2-card tl2-state"><span className="tl2-spin" /> Loading today’s questions…</div></div>;
+  if (blocked || err || !day) {
+    return (
+      <div className="pl pl2x plh tl3">
+        <section className="pl-card pl-panel plh-panel tl3-state">
+          {blocked ? <><i className="bi bi-hourglass-split" /><h2>Your trial’s Thinking Lab questions are used</h2><p>{blocked}</p></>
+            : err ? <><i className="bi bi-exclamation-circle" /><h2>Could not load the Thinking Lab</h2><p>{err}</p><button className="plh-btn primary" onClick={() => { setErr(''); load(); }}>Try again</button></>
+              : <><span className="tl2-spin" /> Loading today’s questions…</>}
+        </section>
+      </div>
+    );
+  }
 
   const s = day.summary;
+  const counts: Record<Tab, number> = { today: day.items.length, practice: day.practice.length, history: history?.length ?? 0 };
+  const match = (x: { title: string; type: string; difficulty: string; subCategory?: string }) =>
+    (!type || x.type === type) && (!diff || x.difficulty === diff)
+    && (!q.trim() || `${x.title} ${x.subCategory || ''} ${TYPE[x.type as TQType]?.label || ''}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const list = tab === 'today' ? day.items.filter(match) : tab === 'practice' ? day.practice.filter(match) : [];
+  const hist = tab === 'history' ? (history || []).filter((h) => match({ ...h, subCategory: '' })) : [];
+  const shown = tab === 'history' ? hist.length : list.length;
+  const filtered = !!(q.trim() || type || diff);
+
   return (
-    <div className="tl2">
-      <header className="tl2-hero">
-        <div className="tl2-hero-copy">
-          <span className="tl2-kicker">Think, then answer</span>
-          <h1>Thinking <span>Lab</span></h1>
+    <div className="pl pl2x plh tl3">
+      <section className="plh-top">
+        <div className="plh-copy">
+          <span className="plh-eyebrow">Thinking Lab</span>
+          <h1>Think First, Then <span>Answer</span></h1>
           <p>{day.perDay === 1 ? 'One question a day' : `${day.perDay} questions a day`}: give your answer and explain how you got there. Half the XP is for the answer, half for your reasoning.</p>
         </div>
-        <div className="tl2-tiles">
-          <div className={`tl2-tile${s.streakAtRisk ? ' risk' : ''}`}>
-            <i className="bi bi-fire" />
-            <div><b>{s.streak}<small> day{s.streak === 1 ? '' : 's'}</small></b><span>{s.streakAtRisk ? 'Answer today to keep it' : 'Lab streak'}</span></div>
+        <div className="plh-bar">
+          <div className="plh-actions">
+            <button type="button" className="plh-btn primary" disabled={!nextUp && !setDone} onClick={() => (nextUp ? (setTab('today'), setOpenId(nextUp.id)) : practice())}>
+              <i className={`bi ${nextUp ? 'bi-play-fill' : 'bi-plus-lg'}`} aria-hidden /> {nextUp ? (nextUp.state === 'trying' ? 'Continue Today’s Question' : 'Start Today’s Question') : 'Practise More'}
+            </button>
+            <button type="button" className="plh-btn" disabled={!setDone || busy || day.demo} title={setDone ? '' : 'Opens once today’s questions are done'} onClick={() => setTab('practice')}>
+              <i className="bi bi-collection" aria-hidden /> Practice Questions
+            </button>
           </div>
-          <div className="tl2-tile">
-            <i className="bi bi-snow2" />
-            <div><b>{s.freezes}<small> / {s.freezeMax}</small></b><span>{s.freezeEvery ? `Freezes · 1 per ${s.freezeEvery} days` : 'Freezes off'}</span></div>
-          </div>
-          <div className="tl2-tile">
-            <i className="bi bi-check2-circle" />
-            <div><b>{day.done}<small> / {day.items.length || day.perDay}</small></b><span>Done today</span></div>
-          </div>
-          <div className={`tl2-tile${s.paidToday ? ' good' : ''}`}>
-            <i className="bi bi-lightning-charge-fill" />
-            <div><b>{s.paidToday ? `+${s.paidToday}` : s.dayXp}<small> XP</small></b><span>{s.paidToday ? 'Earned today' : 'Today’s question pays'}</span></div>
+          <div className="plh-stats">
+            <div className="plh-stat" title={s.streakAtRisk ? 'Answer today to keep your streak' : 'Days in a row'}><i className={`bi bi-fire ic tl3-fire${s.streakAtRisk ? ' risk' : ''}`} aria-hidden /><span><b>{s.streak}</b><small>{s.streakAtRisk ? 'Streak · answer today' : 'Day streak'}</small></span></div>
+            <div className="plh-stat"><i className="fa-regular fa-circle-check ic green" aria-hidden /><span><b>{s.solvedTotal}</b><small>Solved</small></span></div>
+            <div className="plh-stat" title={s.freezeEvery ? `One freeze for every ${s.freezeEvery} days in a row, up to ${s.freezeMax}` : 'Freezes are off'}><i className="bi bi-snow2 ic tl3-ice" aria-hidden /><span><b>{s.freezes}<em>/{s.freezeMax}</em></b><small>Freezes</small></span></div>
           </div>
         </div>
-      </header>
-
-      {toast && <div className="tl2-toast" role="status"><i className="bi bi-stars" /> {toast}</div>}
-
-      <div className="tl2-layout">
-        <main className="tl2-main">
-          {open ? (
-            <Solve key={open.id} q={open} practice={day.practice.some((p) => p.id === open.id)} demo={day.demo}
-              onBack={() => setOpenId(null)} onUpdate={(q, r) => { replace(q); onReward(r); }}
-              onNext={() => { const next = day.items.find((q) => q.id !== open.id && (q.state === 'new' || q.state === 'trying')); setOpenId(next ? next.id : null); }}
-              hasNext={day.items.some((q) => q.id !== open.id && (q.state === 'new' || q.state === 'trying'))} />
-          ) : <>
-            <section className="tl2-card">
-              <div className="tl2-card-hd">
-                <div><h2>Today’s {day.items.length === 1 ? 'question' : 'questions'}</h2><p>{setDone ? 'All done for today. Come back tomorrow, or practise more below.' : day.demo ? 'Demo: every question of the plan is open.' : 'Your first finished question earns today’s XP and keeps your streak going.'}</p></div>
-                <CodingBadge c={day.coding} stage={day.stage} />
-              </div>
-              {day.bankEmpty
-                ? <div className="tl2-empty"><i className="bi bi-inboxes" /><b>No new questions for you right now</b><span>You have answered everything we have for your year. New questions are added regularly.</span></div>
-                : <ul className="tl2-list">{day.items.map((q, i) => <QuestionRow key={q.id} q={q} first={i === 0 && !s.paidToday} dayXp={s.dayXp} onOpen={() => setOpenId(q.id)} />)}</ul>}
-            </section>
-
-            {day.practice.length > 0 && (
-              <section className="tl2-card">
-                <div className="tl2-card-hd"><div><h2>Practice</h2><p>Extra questions. No XP, just more thinking.</p></div></div>
-                <ul className="tl2-list">{day.practice.map((q) => <QuestionRow key={q.id} q={q} onOpen={() => setOpenId(q.id)} />)}</ul>
-              </section>
-            )}
+        <p className="plh-next">
+          {nextUp ? <>
+            <span>{nextUp.state === 'trying' ? 'Continue' : 'Today’s question'}</span>
+            <button type="button" onClick={() => { setTab('today'); setOpenId(nextUp.id); }}>{nextUp.title}</button>
+            <em className={`pl-diff ${nextUp.difficulty}`}>{cap(nextUp.difficulty)}</em>
+            {!s.paidToday && s.dayXp > 0 && <em className="tl3-xp"><i className="bi bi-lightning-charge-fill" aria-hidden /> up to {s.dayXp} XP</em>}
+          </> : <>
+            <span>{s.paidToday ? 'Done for today' : 'Today'}</span>
+            <b className="tl3-done">{s.paidToday ? `+${s.paidToday} XP earned · come back tomorrow` : day.bankEmpty ? 'New questions are being added' : 'All of today’s questions are finished'}</b>
           </>}
-        </main>
+          <CodingBadge c={day.coding} stage={day.stage} />
+        </p>
+      </section>
 
-        <aside className="tl2-aside">
-          <section className="tl2-card">
-            <div className="tl2-card-hd"><div><h2>Your streak</h2><p>Last 5 weeks · best {s.longestStreak} day{s.longestStreak === 1 ? '' : 's'}</p></div></div>
-            <div className="tl2-cal" role="img" aria-label={`Thinking Lab days in the last five weeks: ${day.calendar.filter((c) => c.state === 'done').length} done`}>
-              {day.calendar.map((c) => <span key={c.date} className={c.state} title={`${new Date(c.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}${c.state === 'done' ? ' · done' : c.state === 'frozen' ? ' · saved by a freeze' : ''}`} />)}
+      {toast && <div className="tl3-toast" role="status"><i className="bi bi-stars" aria-hidden /> {toast}</div>}
+
+      {open ? (
+        <Solve key={open.id} q={open} practice={!!review ? false : day.practice.some((p) => p.id === open.id)} demo={day.demo} readOnly={!!review}
+          onBack={close} onUpdate={(x, r) => { replace(x); onReward(r); }}
+          onNext={() => { const n = day.items.find((x) => x.id !== open.id && (x.state === 'new' || x.state === 'trying')); if (n) { setReview(null); setOpenId(n.id); } else close(); }}
+          hasNext={!review && day.items.some((x) => x.id !== open.id && (x.state === 'new' || x.state === 'trying'))} />
+      ) : (
+        <section className="pl-card pl-panel plh-panel">
+          <div className="pl-tabs">
+            {([['today', 'Today', 'bi-calendar-check'], ['practice', 'Practice', 'bi-collection'], ['history', 'History', 'bi-clock-history']] as [Tab, string, string][]).map(([k, l, ic]) => (
+              <button key={k} className={`pl-tab${tab === k ? ' on' : ''}`} aria-pressed={tab === k} onClick={() => setTab(k)}>
+                <i className={`bi ${ic}`} aria-hidden /> {l} ({counts[k]})
+              </button>
+            ))}
+            <span className="grow" />
+            <button className="pl-btn plh-random" disabled={!setDone || busy || day.demo} title={setDone ? 'Add another question for practice' : 'Opens once today’s questions are done'} onClick={() => practice()}>
+              <i className="bi bi-shuffle" aria-hidden /> Practise More
+            </button>
+          </div>
+
+          <div className="pl-filters">
+            <div className="pl-search"><i className="fa-solid fa-magnifying-glass" />
+              <input placeholder="Search by title or kind of question…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search questions" /></div>
+            <label className="pl-field">Type
+              <select value={type} onChange={(e) => setType(e.target.value)}>
+                <option value="">All</option>
+                {(Object.keys(TYPE) as TQType[]).filter((t) => t !== 'coding' || day.coding.open).map((t) => <option key={t} value={t}>{TYPE[t].label}</option>)}
+              </select></label>
+            <label className="pl-field">Difficulty
+              <select value={diff} onChange={(e) => setDiff(e.target.value)}>
+                <option value="">All</option>{['easy', 'medium', 'hard'].map((d) => <option key={d} value={d}>{cap(d)}</option>)}
+              </select></label>
+            <button className="pl-btn" disabled={!filtered} onClick={() => { setQ(''); setType(''); setDiff(''); }}><i className="fa-solid fa-rotate-left" aria-hidden /> Reset</button>
+          </div>
+
+          <div className="pl-meta">
+            <span>{shown ? `Showing ${shown} question${shown === 1 ? '' : 's'}` : 'No questions'}</span>
+            <span className="tl3-meta-r">{tab === 'today' ? `${day.done} of ${day.items.length || day.perDay} done today` : tab === 'practice' ? 'Practice earns no XP' : `${(history || []).filter((h) => h.correct).length} solved`}</span>
+          </div>
+
+          {tab === 'history' && <Calendar days={day.calendar} best={s.longestStreak} />}
+
+          {tab !== 'history' && !list.length && (
+            <div className="pl-empty">
+              {filtered ? <><h3>No questions match</h3><p>Try removing a filter.</p></>
+                : tab === 'today' ? <><h3>{day.bankEmpty ? 'No new questions for you right now' : 'Nothing today'}</h3><p>{day.bankEmpty ? 'You have answered everything we have for your year. New questions are added regularly.' : 'Come back tomorrow.'}</p></>
+                  : <><h3>No practice questions yet</h3><p>{setDone ? 'Pick a kind of question to practise. Practice earns no XP.' : 'Finish today’s questions first, then practise as much as you like.'}</p>
+                    {setDone && !day.demo && <div className="tl3-pick">{(Object.keys(TYPE) as TQType[]).filter((t) => t !== 'coding' || day.coding.open).map((t) => (
+                      <button key={t} className="plh-btn" disabled={busy} onClick={() => practice(t)}><i className={`bi ${TYPE[t].icon}`} aria-hidden /> {SHORT[t]}</button>
+                    ))}</div>}</>}
             </div>
-            <div className="tl2-legend"><span><i className="done" /> Done</span><span><i className="frozen" /> Freeze used</span><span><i className="none" /> Missed</span></div>
-          </section>
+          )}
+          {tab === 'history' && !hist.length && <div className="pl-empty"><h3>{filtered ? 'No questions match' : 'Nothing finished yet'}</h3><p>{filtered ? 'Try removing a filter.' : 'Questions you finish appear here, so you can read the model answer again.'}</p></div>}
 
-          <section className="tl2-card">
-            <div className="tl2-card-hd"><div><h2>Practise more</h2><p>{setDone ? 'Pick a kind of question. Practice is for you; it earns no XP.' : 'Opens once today’s questions are done.'}</p></div></div>
-            <div className="tl2-practice">
-              {(['math', 'logical', 'critical', 'coding'] as TQType[]).filter((t) => t !== 'coding' || day.coding.open).map((t) => (
-                <button key={t} className="tl2-btn" title={TYPE[t].label} disabled={!setDone || busy || day.demo} onClick={() => practice(t)}><i className={`bi ${TYPE[t].icon}`} /> {SHORT[t]}</button>
+          {!!list.length && (
+            <div className="plh-table tl3-table" role="table" aria-label="Questions">
+              <div className="plh-row plh-thead" role="row">
+                <span role="columnheader" className="c-st" aria-label="Status" />
+                <span role="columnheader" className="c-title">Question</span>
+                <span role="columnheader" className="c-topic">Type</span>
+                <span role="columnheader" className="c-att">Tries</span>
+                <span role="columnheader" className="c-acc">Score</span>
+                <span role="columnheader" className="c-diff">Difficulty</span>
+                <span role="columnheader" className="c-act">Action</span>
+              </div>
+              {list.map((x) => {
+                const done = x.state === 'solved' || x.state === 'finished';
+                return (
+                  <div key={x.id} className={`plh-row s-${x.state === 'solved' ? 'solved' : x.state === 'new' ? 'todo' : 'attempted'}`} role="row" tabIndex={0} onClick={() => setOpenId(x.id)} onKeyDown={(e) => { if (e.key === 'Enter') setOpenId(x.id); }}>
+                    <span role="cell" className="c-st" title={x.state === 'solved' ? 'Solved' : x.state === 'finished' ? 'Finished' : x.state === 'trying' ? 'In progress' : 'Not started'}>
+                      {x.state === 'solved' ? <i className="fa-solid fa-circle-check" aria-label="Solved" /> : x.state === 'new' ? <i className="fa-regular fa-circle" aria-label="Not started" /> : <i className="fa-solid fa-circle-half-stroke" aria-label={done ? 'Finished' : 'In progress'} />}
+                    </span>
+                    <span role="cell" className="c-title"><b>{x.title}</b><small>{[x.subCategory, x.estimatedMinutes ? `~${x.estimatedMinutes} min` : '', x.xpEarned ? `+${x.xpEarned} XP` : ''].filter(Boolean).join(' · ')}</small></span>
+                    <span role="cell" className="c-topic"><span className={`plh-topic tl3-type ${x.type}`}><i className={`bi ${TYPE[x.type].icon}`} aria-hidden /> {SHORT[x.type]}</span></span>
+                    <span role="cell" className="c-att">{x.attemptsUsed ? `${x.attemptsUsed} of ${x.attemptsAllowed}` : '—'}</span>
+                    <span role="cell" className="c-acc">{x.attemptsUsed ? `${Math.round(x.bestShare * 100)}%` : '—'}</span>
+                    <span role="cell" className="c-diff"><span className={`pl-diff ${x.difficulty}`}>{cap(x.difficulty)}</span></span>
+                    <span role="cell" className="c-act">
+                      <button type="button" className={`plh-solve${done ? ' done' : ''}`} onClick={(e) => { e.stopPropagation(); setOpenId(x.id); }}>
+                        {done ? 'Review' : x.state === 'trying' ? <>Continue <i className="fa-solid fa-arrow-right" aria-hidden /></> : <>Solve <i className="fa-solid fa-arrow-right" aria-hidden /></>}
+                      </button>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {!!hist.length && (
+            <div className="plh-table tl3-table" role="table" aria-label="Finished questions">
+              <div className="plh-row plh-thead" role="row">
+                <span role="columnheader" className="c-st" aria-label="Result" />
+                <span role="columnheader" className="c-title">Question</span>
+                <span role="columnheader" className="c-topic">Type</span>
+                <span role="columnheader" className="c-att">Date</span>
+                <span role="columnheader" className="c-acc">Score</span>
+                <span role="columnheader" className="c-diff">Difficulty</span>
+                <span role="columnheader" className="c-act">Action</span>
+              </div>
+              {hist.map((h) => (
+                <div key={h.id} className={`plh-row s-${h.correct ? 'solved' : 'attempted'}`} role="row" tabIndex={0} onClick={() => openReview(h.id)} onKeyDown={(e) => { if (e.key === 'Enter') openReview(h.id); }}>
+                  <span role="cell" className="c-st" title={h.correct ? 'Solved' : 'Finished'}>{h.correct ? <i className="fa-solid fa-circle-check" aria-label="Solved" /> : <i className="fa-solid fa-circle-half-stroke" aria-label="Finished" />}</span>
+                  <span role="cell" className="c-title"><b>{h.title}</b><small>{[h.practice ? 'Practice' : 'Daily question', h.xpEarned ? `+${h.xpEarned} XP` : ''].filter(Boolean).join(' · ')}</small></span>
+                  <span role="cell" className="c-topic"><span className={`plh-topic tl3-type ${h.type}`}><i className={`bi ${TYPE[h.type as TQType]?.icon || 'bi-lightbulb'}`} aria-hidden /> {SHORT[h.type as TQType] || h.type}</span></span>
+                  <span role="cell" className="c-att">{new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                  <span role="cell" className="c-acc">{Math.round(h.share * 100)}%</span>
+                  <span role="cell" className="c-diff"><span className={`pl-diff ${h.difficulty}`}>{cap(h.difficulty)}</span></span>
+                  <span role="cell" className="c-act"><button type="button" className="plh-solve done" onClick={(e) => { e.stopPropagation(); openReview(h.id); }}>Review</button></span>
+                </div>
               ))}
             </div>
-          </section>
-
-          <section className="tl2-card tl2-howto">
-            <h2>How it is scored</h2>
-            <ol>
-              <li><b>Answer</b> half the XP for the right final answer.</li>
-              <li><b>Reasoning</b> half for explaining the key steps. A wrong answer with good reasoning still earns some.</li>
-              <li><b>Attempts</b> up to 3 tries a question (5 for coding). The model answer opens when you finish.</li>
-            </ol>
-          </section>
-        </aside>
-      </div>
+          )}
+        </section>
+      )}
     </div>
   );
 };
 
+/** The last five weeks, for the History tab: done, saved by a freeze, or missed. */
+const Calendar: React.FC<{ days: TQToday['calendar']; best: number }> = ({ days, best }) => (
+  <div className="tl3-cal-wrap">
+    <div className="tl3-cal" role="img" aria-label={`Thinking Lab days in the last five weeks: ${days.filter((c) => c.state === 'done').length} done`}>
+      {days.map((c) => <span key={c.date} className={c.state} title={`${new Date(c.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}${c.state === 'done' ? ' · done' : c.state === 'frozen' ? ' · saved by a freeze' : ''}`} />)}
+    </div>
+    <div className="tl3-legend">
+      <b>Last 5 weeks</b><span>Best streak {best} day{best === 1 ? '' : 's'}</span>
+      <span><i className="done" /> Done</span><span><i className="frozen" /> Freeze used</span><span><i className="none" /> Missed</span>
+    </div>
+  </div>
+);
+
 const CodingBadge: React.FC<{ c: TQToday['coding']; stage: string }> = ({ c, stage }) => {
-  if (c.open) return <span className="tl2-badge open"><i className="bi bi-unlock-fill" /> Coding open</span>;
-  if (c.reason === 'year1' || stage === 'foundation') return <span className="tl2-badge"><i className="bi bi-lock-fill" /> Coding from Year 2</span>;
-  return <span className="tl2-badge" title="Coding questions open once you finish the basics topics in your roadmap"><i className="bi bi-lock-fill" /> Coding after basics · {c.basicsDone}/{c.basicsTotal}</span>;
+  if (c.open) return <span className="tl3-badge open"><i className="bi bi-unlock-fill" /> Coding open</span>;
+  if (c.reason === 'year1' || stage === 'foundation') return <span className="tl3-badge"><i className="bi bi-lock-fill" /> Coding from Year 2</span>;
+  return <span className="tl3-badge" title="Coding questions open once you finish the basics topics in your roadmap"><i className="bi bi-lock-fill" /> Coding after basics · {c.basicsDone}/{c.basicsTotal}</span>;
 };
 
 const StateTag: React.FC<{ q: TQQuestion }> = ({ q }) => {
@@ -176,27 +299,8 @@ const StateTag: React.FC<{ q: TQQuestion }> = ({ q }) => {
   return <span className="tl2-tag">New</span>;
 };
 
-const QuestionRow: React.FC<{ q: TQQuestion; first?: boolean; dayXp?: number; onOpen: () => void }> = ({ q, first, dayXp, onOpen }) => (
-  <li>
-    <button className={`tl2-q ${q.type}`} onClick={onOpen}>
-      <span className="tl2-q-ic"><i className={`bi ${TYPE[q.type].icon}`} /></span>
-      <span className="tl2-q-body">
-        <span className="tl2-q-meta">{TYPE[q.type].label}{q.subCategory ? ` · ${q.subCategory}` : ''}<em className={`tl2-diff ${q.difficulty}`}>{q.difficulty}</em></span>
-        <b>{q.title}</b>
-        <span className="tl2-q-foot">
-          {q.estimatedMinutes ? <span><i className="bi bi-clock" /> ~{q.estimatedMinutes} min</span> : null}
-          {first && dayXp ? <span className="xp"><i className="bi bi-lightning-charge-fill" /> up to {dayXp} XP</span> : null}
-          {q.xpEarned > 0 && <span className="xp"><i className="bi bi-lightning-charge-fill" /> +{q.xpEarned} XP earned</span>}
-        </span>
-      </span>
-      <StateTag q={q} />
-      <i className="bi bi-chevron-right tl2-q-go" aria-hidden />
-    </button>
-  </li>
-);
-
-const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; onBack: () => void; onUpdate: (q: TQQuestion, r: TQReward | null) => void; onNext: () => void; hasNext: boolean }> =
-  ({ q, practice, demo, onBack, onUpdate, onNext, hasNext }) => {
+const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; readOnly?: boolean; onBack: () => void; onUpdate: (q: TQQuestion, r: TQReward | null) => void; onNext: () => void; hasNext: boolean }> =
+  ({ q, practice, demo, readOnly, onBack, onUpdate, onNext, hasNext }) => {
     const coding = q.type === 'coding';
     const finished = q.state === 'solved' || q.state === 'finished';
     const [answer, setAnswer] = useState(q.last?.answer || '');
@@ -207,6 +311,9 @@ const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; onBack:
     const [err, setErr] = useState('');
     const [run, setRun] = useState<Awaited<ReturnType<typeof memberLabApi.run>> | null>(null);
     const left = q.attemptsAllowed - q.attemptsUsed;
+    // Opening a question brings it into view: on a phone the list sits well below the top.
+    const top = useRef<HTMLElement>(null);
+    useEffect(() => { top.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, []);
     const wc = words(explanation);
 
     const submit = async () => {
@@ -231,9 +338,9 @@ const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; onBack:
     };
 
     return (
-      <section className="tl2-card tl2-solve">
+      <section ref={top} className="pl-card pl-panel plh-panel tl2-solve">
         <div className="tl2-solve-top">
-          <button className="tl2-back" onClick={onBack}><i className="bi bi-arrow-left" /> Today’s questions</button>
+          <button className="tl2-back" onClick={onBack}><i className="bi bi-arrow-left" /> {readOnly ? 'History' : 'Back to the list'}</button>
           <StateTag q={q} />
         </div>
         <span className="tl2-q-meta">{TYPE[q.type].label}{q.subCategory ? ` · ${q.subCategory}` : ''}<em className={`tl2-diff ${q.difficulty}`}>{q.difficulty}</em>{practice ? <em className="tl2-diff practice">practice</em> : null}</span>
@@ -272,7 +379,7 @@ const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; onBack:
             {q.reveal.explanation && <><h3>How to think about it</h3><p className="tl2-pre">{q.reveal.explanation}</p></>}
             {q.reveal.referenceSolution && <><h3>A model solution</h3><pre className="tl2-code ro">{q.reveal.referenceSolution}</pre></>}
             <div className="tl2-actions">
-              <button className="tl2-btn" onClick={onBack}>Back to today</button>
+              <button className="tl2-btn" onClick={onBack}>{readOnly ? 'Back to history' : 'Back to the list'}</button>
               {hasNext && <button className="tl2-btn primary" onClick={onNext}>Next question <i className="bi bi-arrow-right" /></button>}
             </div>
           </div>

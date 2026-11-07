@@ -79,6 +79,7 @@ export const memberLabApi = {
   hint: async (id: string): Promise<{ hints: string[]; hintsTotal: number }> => (await axios.post(`${BASE}/member/questions/${id}/hint`, {}, h())).data,
   run: async (id: string, code: string, language: string): Promise<{ compileError: string | null; results: { index: number; passed: boolean; input: string; expected: string }[]; firstFail: { input: string; expected: string; actual: string } | null }> =>
     (await axios.post(`${BASE}/member/questions/${id}/run`, { code, language }, { ...h(), timeout: 120000 })).data,
+  review: async (id: string): Promise<{ question: TQQuestion; date: string; practice: boolean }> => (await axios.get(`${BASE}/member/questions/${id}`, h())).data,
   practice: async (type?: TQType): Promise<TQToday> => (await axios.post(`${BASE}/member/practice`, { type }, h())).data,
   history: async (page = 1): Promise<{ items: { id: string; title: string; type: string; difficulty: string; date: string; correct: boolean; share: number; xpEarned: number; practice: boolean }[] }> =>
     (await axios.get(`${BASE}/member/history`, { ...h(), params: { page } })).data,

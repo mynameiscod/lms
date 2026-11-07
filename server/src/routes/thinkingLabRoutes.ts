@@ -31,6 +31,7 @@ const memberGate = requireCareerPilotFeature('thinking_lab');
 router.get('/member/today', memberGate, member.today);
 router.get('/member/history', memberGate, member.history);
 router.post('/member/practice', memberGate, member.practice);
+router.get('/member/questions/:id', memberGate, member.review);
 router.post('/member/questions/:id/answer', memberGate, member.answer);
 router.post('/member/questions/:id/hint', memberGate, member.hint);
 router.post('/member/questions/:id/run', memberGate, member.run);

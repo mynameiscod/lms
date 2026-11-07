@@ -289,3 +289,12 @@
   .qbk .qbk-hero { grid-template-columns: minmax(0, 1fr); gap: 22px; }
   .qbk .qbk-hero-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Phones: the book's name wraps instead of being cut off, and the keyboard shortcuts (no keyboard) go. */
+@media (max-width: 760px) {
+  .qbk .qbk-bar .ttl b { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.3; }
+  .qbk .qbk-shortcuts { display: none; }
+}
+@media (hover: none) and (pointer: coarse) {
+  .qbk .qbk-shortcuts { display: none; }
+}

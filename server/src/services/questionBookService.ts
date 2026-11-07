@@ -211,6 +211,8 @@ export async function shelf(tenantId: string, userId: string) {
       color: b.color, emblem: b.emblem, questionCount: b.questionCount, chapters: b.chapters.length, global: b.scope === 'global',
       knew: marks.filter((m) => m === 'knew').length, revise: marks.filter((m) => m === 'revise').length,
       favorites: p?.favorites?.length || 0, started: !!p,
+      // When the member last read it, so the library can offer "Continue reading" on the latest book.
+      readAt: p?.updatedAt || null,
     };
   });
 }

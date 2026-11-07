@@ -14,19 +14,28 @@ const CheatSheet: React.FC = () => {
   const [answers, setAnswers] = useState(true);
   useEffect(() => { questionBookApi.cheatSheet().then(setGroups).catch(() => setGroups([])); }, []);
   const total = (groups || []).reduce((n, g) => n + g.items.length, 0);
+  const books = (groups || []).length;
   return (
-    <div className="pb-root qb qbk">
-      <div className="pb-page qb-sheet qbk-page">
-        <button className="ihx-back-qb qb-noprint qbk-link" style={{ textDecoration: 'none', marginBottom: 12, display: 'inline-flex', gap: 7, alignItems: 'center' }} onClick={() => nav(base)}><i className="bi bi-arrow-left" aria-hidden="true" /> Library</button>
-        <div className="qbk-sheet-head">
-          <span className="ic"><i className="bi bi-star-fill" aria-hidden="true" /></span>
-          <div className="t">
-            <h1>My cheat sheet</h1>
-            <p>{total ? `${total} starred question${total === 1 ? '' : 's'} — read this the night before.` : 'The questions you star while reading collect here.'}</p>
-          </div>
-          {!!total && <label className="pb-switch qb-noprint"><input type="checkbox" checked={answers} onChange={(e) => setAnswers(e.target.checked)} /> Show answers</label>}
-          {!!total && <button className="pb-btn pb-btn-primary qb-noprint" onClick={() => window.print()}><i className="bi bi-printer" aria-hidden="true" /> Print / save as PDF</button>}
+    <div className="pl pl2x plh qbk2 qbk2-sheet qb qbk qb-sheet">
+      <section className="plh-top">
+        <div className="plh-copy">
+          <span className="plh-eyebrow">Question Books</span>
+          <h1>My Cheat <span>Sheet</span></h1>
+          <p>{total ? 'Every question you starred, with your own notes. Read it the night before.' : 'The questions you star while reading collect here, with your own notes.'}</p>
         </div>
+        <div className="plh-bar qb-noprint">
+          <div className="plh-actions">
+            {!!total && <button type="button" className="plh-btn primary" onClick={() => window.print()}><i className="fa-solid fa-print" aria-hidden /> Print / Save as PDF</button>}
+            <button type="button" className="plh-btn" onClick={() => nav(base)}><i className="fa-solid fa-arrow-left" aria-hidden /> Back to Library</button>
+          </div>
+          {!!total && <div className="plh-stats">
+            <div className="plh-stat"><i className="fa-solid fa-star ic qbk2-star" aria-hidden /><span><b>{total}</b><small>Starred</small></span></div>
+            <div className="plh-stat"><i className="fa-solid fa-book ic blue" aria-hidden /><span><b>{books}</b><small>{books === 1 ? 'Book' : 'Books'}</small></span></div>
+            <label className="plh-stat qbk2-toggle"><input type="checkbox" checked={answers} onChange={(e) => setAnswers(e.target.checked)} /><span><b>{answers ? 'Shown' : 'Hidden'}</b><small>Answers</small></span></label>
+          </div>}
+        </div>
+      </section>
+      <div className="qbk2-groups">
         {!groups ? <span className="pb-spinner" /> : !total ? (
           <div className="qbk-empty"><span className="ill"><i className="bi bi-star" aria-hidden="true" /></span><h2>Nothing starred yet</h2><p>While reading a book, tap the ☆ on a question to add it here with your own notes.</p>
             <button className="qbk-go primary qb-noprint" style={{ maxWidth: 240, margin: '0 auto' }} onClick={() => nav(base)}><i className="bi bi-journal-bookmark" aria-hidden="true" /> Open the library</button></div>

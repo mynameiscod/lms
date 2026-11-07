@@ -14,6 +14,8 @@ export interface ShelfBook {
   id: string; slug: string; title: string; kind: 'topic' | 'company'; subject: string; description: string;
   color: string; emblem: string; questionCount: number; chapters: number; global: boolean;
   knew: number; revise: number; favorites: number; started: boolean;
+  /** When the member last read it; null if never. */
+  readAt?: string | null;
 }
 export interface BookQ { id: string; chapterId: string; question: string; answer: string; difficulty: Difficulty; askedAt: string; tip: string }
 export interface ReadBook {

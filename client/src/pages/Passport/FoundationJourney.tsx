@@ -120,8 +120,8 @@ const JourneyHead: React.FC<{
   const r = 26; const c = 2 * Math.PI * r;
   const p = Math.max(0, Math.min(100, pct));
   return (
-    <header className="jd-head">
-      <div className="jd-head-copy">
+    <header className="jd-top">
+      <div className="jd-top-copy">
         <span className="jd-badge">{badge}</span>
         <h1>{stage} Journey</h1>
         <p>{sub}</p>
@@ -422,7 +422,7 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
         const hidden = day.activities.length - shown.length;
         const next = previewDays.find(d => d.day === day.day + 1) || null;
         return (
-          <div className="jd-body">
+          <div className="jd-layout">
             <section className="fj-day jd-day" aria-live="polite">
               <div className="jd-day-head">
                 <span className="jd-day-ic" aria-hidden><i className="bi bi-calendar2-week" /></span>
@@ -994,7 +994,7 @@ const FoundationJourneyPage: React.FC = () => {
         <PlacementOffer key={openDay} topic={openSummary.topic ?? null} day={openDay} />
       )}
 
-      <div className="jd-body">
+      <div className="jd-layout">
         <section className="fj-day jd-day" aria-live="polite">
           {/*
             * A WELCOME DAY, SHOWN THE WAY A LEARNING DAY IS.

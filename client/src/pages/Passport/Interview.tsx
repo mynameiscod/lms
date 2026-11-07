@@ -22,7 +22,7 @@ const READINESS_LABEL: Record<string, string> = {
 const VERDICT_LABEL: Record<string, string> = { strong: 'Strong', okay: 'Okay', weak: 'Needs work' };
 
 const ROUND_ICON: Record<string, string> = {
-  technical: 'bi-code-slash', hr: 'bi-person-check', communication: 'bi-chat-dots',
+  technical: 'bi-code-slash', hr: 'bi-people', communication: 'bi-chat-dots',
 };
 
 /**
@@ -33,9 +33,19 @@ const ROUND_ICON: Record<string, string> = {
  * description of somebody else when shown to the person about to sit it.
  */
 const ROUND_BLURB: Record<string, string> = {
-  technical:     'What you have built, what you understand about it, and how you work through a problem.',
-  hr:            'Motivation, ownership, and how you work with other people.',
-  communication: 'How clearly you explain yourself — structure, fluency and confidence.',
+  technical:     'System design, coding and problem-solving.',
+  hr:            'Behavioural, cultural fit and career discussions.',
+  communication: 'Clarity, structure and overall communication.',
+};
+
+/** What each round's feedback is, on the card's footer. */
+const ROUND_FEEDBACK: Record<string, string> = {
+  technical: 'Full evaluation', hr: 'Structured feedback', communication: 'AI feedback',
+};
+
+/** A round's name in the history, by what kind of round it was. */
+const ROUND_NAME: Record<string, string> = {
+  technical: 'Technical Interview', hr: 'HR Interview', communication: 'Communication Round',
 };
 
 /** "in 3 hours" / "on 12 Mar" — whichever is the more useful way to say when. */
@@ -669,18 +679,18 @@ const Interview: React.FC = () => {
                 <div className="ivh-round-top">
                   <span className="ivh-round-ic" aria-hidden><i className={`bi ${ROUND_ICON[rd.type] || 'bi-mic'}`} /></span>
                   <div>
-                    <h3>{rd.title}</h3>
-                    {/* Only when the admin actually named it — otherwise this repeats the title. */}
-                    {!!rd.label && <span className="ivh-round-sub">{rd.label}</span>}
+                    <h3>{rd.title}{rd.used > 0 && <em className="ivh-round-used" title={`Practised ${rd.used} times`}>{rd.used}×</em>}</h3>
+                    {/* Only when the admin gave it a name of its own — "Technical" under "Technical Interview" says nothing. */}
+                    {!!rd.label && !rd.title.toLowerCase().includes(rd.label.toLowerCase()) && <span className="ivh-round-sub">{rd.label}</span>}
                     <p>{ROUND_BLURB[rd.type] || ''}</p>
                   </div>
                 </div>
                 <div className="ivh-round-foot">
-                  <span><i className="bi bi-clock" aria-hidden /> {rd.minutes} min</span>
-                  <span><i className="bi bi-patch-question" aria-hidden /> {rd.questions} question{rd.questions === 1 ? '' : 's'}</span>
-                  <span className="ivh-round-used">{rd.used ? `Practised ${rd.used}×` : 'Not practised yet'}</span>
+                  <span title={`${rd.questions} question${rd.questions === 1 ? '' : 's'}`}><i className="bi bi-clock" aria-hidden /> {rd.minutes} min</span>
+                  <span className="ivh-sep" aria-hidden />
+                  <span><i className="bi bi-layers" aria-hidden /> {ROUND_FEEDBACK[rd.type] || 'Detailed feedback'}</span>
                   <button type="button" onClick={() => start(rd.key)} disabled={busy || !canStartRound}>
-                    {rd.used ? 'Again' : 'Start'} <i className="bi bi-arrow-right" aria-hidden />
+                    Start <i className="bi bi-arrow-right" aria-hidden />
                   </button>
                 </div>
               </article>
@@ -709,7 +719,7 @@ const Interview: React.FC = () => {
                     <button type="button" className={`ivh-hrow${shown?.id === s.id ? ' on' : ''}`} onClick={() => pick(s)}>
                       <span className={`ivh-round-ic sm t-${t}`} aria-hidden><i className={`bi ${ROUND_ICON[t] || 'bi-mic'}`} /></span>
                       <span className="ivh-hrow-tx">
-                        <b>{s.planRoundLabel || s.role}</b>
+                        <b>{ROUND_NAME[t] || s.planRoundLabel || s.role}</b>
                         <small><i className="bi bi-calendar3" aria-hidden /> {dayOf(s.startedAt)}{m ? ` · ${m} min` : ''}</small>
                       </span>
                       <span className="ivh-hrow-res">
@@ -728,7 +738,7 @@ const Interview: React.FC = () => {
           <section className="ivh-card ivh-feedback" aria-live="polite">
             <div className="ivh-card-head">
               <h2>{shown && shown.id !== latest?.id ? 'Feedback' : 'Latest Feedback'}</h2>
-              {shown && <span className="ivh-tagline">{shown.planRoundLabel || shown.role} · {dayOf(shown.startedAt)}</span>}
+              {shown && <span className="ivh-tagline">{ROUND_NAME[typeOf(shown)] || shown.planRoundLabel || shown.role} · {dayOf(shown.startedAt)}</span>}
             </div>
             {!shown || !ev ? (
               <div className="ivh-empty"><i className="bi bi-clipboard2-check" aria-hidden /><b>Your feedback appears here</b><span>Finish a round and you get an overall score, area by area scores, what you did well and what to work on.</span></div>

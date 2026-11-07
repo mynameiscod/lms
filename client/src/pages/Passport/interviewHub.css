@@ -153,3 +153,12 @@
   .ivh-tabs button { flex: 1 1 auto; padding: 8px 10px; }
   .ivh-tagline { white-space: normal; }
 }
+
+/* Round cards as in the design: a short line under the title, then time | feedback and Start on one row. */
+.ivh .ivh-round h3 { display: flex; align-items: center; gap: 8px; }
+.ivh .ivh-round h3 .ivh-round-used { font-style: normal; font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #EAF8F1; color: #13784F; }
+.ivh-round-foot { flex-wrap: nowrap; }
+.ivh-round-foot > span { color: var(--ivh-text); font-weight: 600; }
+.ivh-sep { width: 1px; height: 18px; background: #D9E1EC; }
+@media (max-width: 1280px) { .ivh-round-foot { flex-wrap: wrap; } .ivh-sep { display: none; } }
+@media (max-width: 560px) { .ivh-hrow-tx b { white-space: normal; overflow: visible; } }

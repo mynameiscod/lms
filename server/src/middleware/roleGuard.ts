@@ -256,6 +256,8 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       // Not under manage_passport: an opening is shown to members of EVERY institute, so only a super
       // admin can give this to a role (SUPER_ADMIN_GRANTED below).
       { key: 'manage_job_openings', label: 'CareerPilot: post job openings for every member (super admin gives this)' },
+      // The Thinking Lab question bank is shared by every institute, so the same rule applies.
+      { key: 'manage_thinking_bank', label: 'CareerPilot: write and approve Thinking Lab questions for every member (super admin gives this)' },
       { key: 'use_passport', label: 'Use CareerPilot (Member Surfaces)' },
     ]
   },
@@ -373,7 +375,7 @@ export const FEATURE_PERMISSIONS = [
  * Permissions only a super admin can put on a role. They act beyond one institute, so an
  * institute admin who manages roles must not be able to hand them out — or take them away.
  */
-export const SUPER_ADMIN_GRANTED = ['manage_job_openings'];
+export const SUPER_ADMIN_GRANTED = ['manage_job_openings', 'manage_thinking_bank'];
 
 export const ALL_PERMISSIONS = Object.values(PERMISSION_GROUPS)
   .flatMap(group => group.permissions.map(p => p.key));

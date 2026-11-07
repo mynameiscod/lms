@@ -259,6 +259,16 @@ export const passportApi = {
   deleteDemoPlan: async (id: string): Promise<void> => {
     await axios.delete(`${BASE}/demo-plans/${id}`, { headers: auth() });
   },
+  /** Problem Bank → Thinking Lab: the shared question bank. */
+  thinkingBankMeta: async (): Promise<ThinkingBankMeta> => (await axios.get(`${BASE}/thinking-bank/meta`, { headers: auth() })).data,
+  thinkingBankList: async (f: { type?: string; difficulty?: string; year?: string; status?: string; q?: string; page?: number }): Promise<{ questions: ThinkingQuestionRow[]; total: number; page: number; pages: number }> =>
+    (await axios.get(`${BASE}/thinking-bank`, { headers: auth(), params: f })).data,
+  thinkingBankGet: async (id: string): Promise<{ question: ThinkingQuestionDetail }> => (await axios.get(`${BASE}/thinking-bank/${id}`, { headers: auth() })).data,
+  thinkingBankSave: async (id: string | null, body: Partial<ThinkingQuestionDetail>): Promise<{ question: ThinkingQuestionDetail }> =>
+    (id ? await axios.put(`${BASE}/thinking-bank/${id}`, body, { headers: auth() }) : await axios.post(`${BASE}/thinking-bank`, body, { headers: auth() })).data,
+  thinkingBankDelete: async (id: string): Promise<void> => { await axios.delete(`${BASE}/thinking-bank/${id}`, { headers: auth() }); },
+  thinkingBankGenerate: async (body: { type: string; difficulty: string; subCategory?: string; year?: string; count: number; brief?: string }): Promise<{ questions: ThinkingQuestionRow[]; failed: number }> =>
+    (await axios.post(`${BASE}/thinking-bank/generate`, body, { headers: auth(), timeout: 180000 })).data,
   /** Job openings for every member (Job Board). */
   listJobOpenings: async (): Promise<{ locked: boolean; openings: JobOpening[] }> => {
     const { data } = await axios.get(`${BASE}/job-openings`, { headers: auth() });
@@ -2142,6 +2152,26 @@ export interface DemoPickItem { id: string; title: string; number?: number; diff
 export interface DemoYearView {
   enabled: boolean; track: string; landingDay: number; interviewTypes: string[];
   practice: DemoPickItem[]; thinking: DemoPickItem[]; books: DemoPickItem[];
+}
+export type ThinkingType = 'math' | 'logical' | 'critical' | 'coding';
+export type ThinkingStatus = 'DRAFT' | 'PUBLISHED' | 'RETIRED';
+export interface ThinkingBankMeta {
+  types: { key: ThinkingType; label: string; suggestions: string[] }[];
+  difficulties: string[]; years: { key: string; label: string }[]; answerFormats: string[]; statuses: ThinkingStatus[];
+  limits: { keyStepsMin: number; keyStepsMax: number; hintsMax: number; aiBatchMax: number };
+  stats: { byType: Record<string, { published: number; total: number }>; byStatus: Record<string, number>; total: number };
+}
+export interface ThinkingQuestionRow {
+  id: string; number: number; code: string; type: ThinkingType; subCategory: string; difficulty: string; years: string[];
+  title: string; status: ThinkingStatus; source: 'manual' | 'ai' | 'migrated'; order: number | null;
+  timesServed: number; timesSolved: number; ready: boolean; updatedAt: string;
+}
+export interface ThinkingQuestionDetail extends ThinkingQuestionRow {
+  statement: string; imageUrl: string; answerFormat: 'number' | 'text' | 'choice'; choices: string[]; answer: string; acceptedAnswers: string[];
+  keySteps: string[]; explanation: string; hints: string[]; estimatedMinutes: number | null;
+  language: string; starterCode: string; examples: { input: string; expectedOutput: string; explanation?: string }[];
+  testCases: { input: string; expectedOutput: string; hidden: boolean }[]; referenceSolution: string; topics: string[];
+  problems: string[]; approvedAt: string | null;
 }
 export type JobKind = 'job' | 'internship';
 export type WorkMode = 'onsite' | 'hybrid' | 'remote';

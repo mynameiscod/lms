@@ -207,6 +207,7 @@ const CodeVisualizer = lazy(() => import('./pages/CodeVisualizer'));
 const CodeVisualizerWorkspace = lazy(() => import('./pages/CodeVisualizer/Workspace'));
 const CodeVisualizerAdmin = lazy(() => import('./pages/CodeVisualizerAdmin'));
 const ThinkingLabAdmin = lazy(() => import('./pages/ThinkingLabAdmin'));
+const ThinkingBank = lazy(() => import('./pages/ProblemBank/ThinkingBank'));
 const InterviewQuestionsPage = lazy(() => import('./pages/InterviewQuestions'));
 const InterviewQuestionBankPage = lazy(() => import('./pages/InterviewQuestionBank'));
 const InterviewTemplateList = lazy(() => import('./pages/InterviewTemplateList'));
@@ -1147,6 +1148,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <ProblemBank />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* The shared Thinking Lab question bank: a super admin, or a role they gave manage_thinking_bank. */}
+      <Route
+        path="/problem-bank/thinking"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_thinking_bank']}>
+            <Layout>
+              <ThinkingBank />
             </Layout>
           </ProtectedRoute>
         }

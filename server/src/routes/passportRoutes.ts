@@ -23,6 +23,7 @@ import * as trials from '../controllers/trialController';
 import * as demoPlans from '../controllers/demoPlanController';
 import * as demoAccess from '../controllers/demoAccessController';
 import * as jobOpenings from '../controllers/jobOpeningController';
+import * as thinkingBank from '../controllers/thinkingBankController';
 import * as interviewPlans from '../controllers/interviewPlanController';
 import * as activity from '../controllers/careerPilotActivityController';
 import * as learningUnits from '../controllers/conceptLearningUnitController';
@@ -717,6 +718,16 @@ router.get('/job-openings-admin',             MANAGE_OPENINGS, jobOpenings.admin
 router.post('/job-openings-admin',            MANAGE_OPENINGS, jobOpenings.saveOpening);
 router.put('/job-openings-admin/:id',         MANAGE_OPENINGS, jobOpenings.saveOpening);
 router.delete('/job-openings-admin/:id',      MANAGE_OPENINGS, jobOpenings.deleteOpening);
+// The shared Thinking Lab question bank (controllers/thinkingBankController). Same rule as openings:
+// every institute's members are served from it, so only a super admin gives the permission.
+const MANAGE_THINKING_BANK = roleGuard(['manage_thinking_bank']);
+router.get('/thinking-bank/meta',             MANAGE_THINKING_BANK, thinkingBank.meta);
+router.post('/thinking-bank/generate',        MANAGE_THINKING_BANK, rateLimit('adminAi'), thinkingBank.generate);
+router.get('/thinking-bank',                  MANAGE_THINKING_BANK, thinkingBank.list);
+router.post('/thinking-bank',                 MANAGE_THINKING_BANK, thinkingBank.save);
+router.get('/thinking-bank/:id',              MANAGE_THINKING_BANK, thinkingBank.detail);
+router.put('/thinking-bank/:id',              MANAGE_THINKING_BANK, thinkingBank.save);
+router.delete('/thinking-bank/:id',           MANAGE_THINKING_BANK, thinkingBank.remove);
 router.delete('/members/:userId/grant',  MANAGE_FOR.cpMembers, ctrl.revokeMembership);
 // Trials: limited access for a chosen student (data/trialPolicy.ts).
 router.get('/trial-plans',               MANAGE_FOR.cpMembers, trials.listPlans);

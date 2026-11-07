@@ -232,7 +232,6 @@ const CareerProfilePage = lazy(() => import('./pages/CareerProfile'));
 const CareerProfileAdmin = lazy(() => import('./pages/CareerProfile/Admin'));
 const PlacementPartnership = lazy(() => import('./pages/PartnerPipeline'));
 const FeesPage = lazy(() => import('./pages/Fees'));
-const LeadsPage = lazy(() => import('./pages/Leads'));
 const TeamActivity = lazy(() => import('./pages/TeamActivity'));
 const LeadDetailPage = lazy(() => import('./pages/LeadDetail'));
 const LeadStagesPage = lazy(() => import('./pages/LeadStages'));
@@ -2485,16 +2484,7 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/lead-list"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
-            <Layout>
-              <LeadsPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/lead-list" element={<Navigate to="/leads" replace />} />
       <Route path="/lead-dashboard" element={<Navigate to="/leads" replace />}
       />
       <Route

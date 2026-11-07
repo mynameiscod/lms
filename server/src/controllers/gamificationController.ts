@@ -8,6 +8,7 @@ import {
 } from '../services/xpPricingService';
 import { ensureGamificationDefaults } from '../services/gamificationEngine';
 import { labStreakSettings, LAB_FREEZE_EVERY_MAX, LAB_FREEZE_HOLD_MAX } from '../data/labStreakPolicy';
+import { labDailySettings, PER_DAY_MAX } from '../data/thinkingDailyPolicy';
 import { getLeaderboard, rankSummary } from '../services/leaderboardService';
 import { levelFromXp } from '../services/passportGamificationService';
 import { levelNamesFor, invalidateLevelNames } from '../services/levelNameService';
@@ -188,6 +189,8 @@ export const getAdminGamification = async (req: Request, res: Response) => {
       taskXpMax: TASK_XP_MAX,
       /** Thinking Lab and Communication Lab streak freezes. */
       labStreak: { ...labStreakSettings(cfg?.labStreak), everyMax: LAB_FREEZE_EVERY_MAX, holdMax: LAB_FREEZE_HOLD_MAX },
+      /** Questions and tasks a day, per year. */
+      labDaily: { ...labDailySettings(cfg?.labDaily), perDayMax: PER_DAY_MAX },
       supportedScopes: ['COLLEGE', 'GLOBAL'],
     });
   } catch (e: any) {
@@ -453,6 +456,21 @@ export const updateLabStreak = async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[gamification] lab streak:', e?.message || e);
     res.status(500).json({ message: 'Could not save the lab streak settings.' });
+  }
+};
+
+/** PUT /passport/gamification/admin/lab-daily  { thinking: {year: {perDay, codingPerDay}}, communication: {year: {perDay}} } */
+export const updateLabDaily = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const next = labDailySettings(req.body || {});
+    const cfg = await GamificationConfig.findOneAndUpdate(
+      { tenantId }, { $set: { labDaily: next, updatedBy: String((req as any).user?.id || '') } }, { new: true, upsert: true },
+    ).lean() as any;
+    res.json({ labDaily: { ...labDailySettings(cfg?.labDaily), perDayMax: PER_DAY_MAX } });
+  } catch (e: any) {
+    console.error('[gamification] lab daily:', e?.message || e);
+    res.status(500).json({ message: 'Could not save the daily set.' });
   }
 };
 

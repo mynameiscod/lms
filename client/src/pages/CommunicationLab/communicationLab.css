@@ -101,3 +101,7 @@
 .clx-steps-grid { display: grid; gap: 14px; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); }
 @media (max-width: 1440px) { .clx-steps-grid[data-n="4"] { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .clx-steps-grid { grid-template-columns: minmax(0, 1fr) !important; } }
+
+/* CareerPilot members: today's speaking goal (DailyPracticeCard) above the coach. */
+.clx .clx-daily { margin: 0 0 16px; padding: 12px; border-radius: 16px; background: #fff; border: 1px solid #E2EAF2; }
+.clx .clx-daily .dp-labs { margin-top: 0; }

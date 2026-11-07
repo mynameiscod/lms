@@ -208,6 +208,7 @@ const CodeVisualizerWorkspace = lazy(() => import('./pages/CodeVisualizer/Worksp
 const CodeVisualizerAdmin = lazy(() => import('./pages/CodeVisualizerAdmin'));
 const ThinkingLabAdmin = lazy(() => import('./pages/ThinkingLabAdmin'));
 const ThinkingBank = lazy(() => import('./pages/ProblemBank/ThinkingBank'));
+const MemberThinkingLab = lazy(() => import('./pages/ThinkingLab/MemberThinkingLab'));
 const InterviewQuestionsPage = lazy(() => import('./pages/InterviewQuestions'));
 const InterviewQuestionBankPage = lazy(() => import('./pages/InterviewQuestionBank'));
 const InterviewTemplateList = lazy(() => import('./pages/InterviewTemplateList'));
@@ -927,7 +928,8 @@ const AppRoutes: React.FC = () => {
             analytics and leaderboard — inside the member shell. Practice is a separate list
             (/careerpilot/practice); this is the one-problem-a-day lab, served to members from
             the CareerPilot bank in curriculum order. */}
-        <Route path="/careerpilot/thinking-lab" element={<ThinkingLab variant="careerpilot" />} />
+        {/* Members get the daily set from the shared bank; the LMS keeps its own Thinking Lab at /thinking-lab. */}
+        <Route path="/careerpilot/thinking-lab" element={<MemberThinkingLab />} />
         <Route path="/passport/practice/:id" element={<LegacyRedirect to="/careerpilot/practice/:id" />} />
         <Route path="/careerpilot/interview" element={<PassportInterview />} />
         <Route path="/passport/interview" element={<LegacyRedirect to="/careerpilot/interview" />} />

@@ -52,6 +52,38 @@ export interface TLAdminProblem { id: string; title: string; category: string; d
 
 const h = () => ({ headers: authHeader() });
 
+// ── CareerPilot members: the daily set from the shared bank ──────────────────
+export type TQType = 'math' | 'logical' | 'critical' | 'coding';
+export type TQStep = { status: 'covered' | 'partial' | 'missing'; step: string };
+export interface TQQuestion {
+  id: string; code: string; type: TQType; subCategory: string; difficulty: string; title: string; statement: string; imageUrl: string;
+  estimatedMinutes: number | null; answerFormat: 'number' | 'text' | 'choice' | null; choices: string[];
+  hintsTotal: number; hints: string[]; language: string | null; starterCode: string | null;
+  examples: { input: string; expectedOutput: string; explanation?: string }[]; visibleTests: { input: string; expectedOutput: string }[];
+  keyStepCount: number; attemptsAllowed: number; state: 'new' | 'trying' | 'solved' | 'finished'; attemptsUsed: number;
+  last: { answer: string | null; explanation: string; code: string | null; correct: boolean; share: number; passed: number | null; total: number | null; feedback: string; steps: TQStep[] } | null;
+  bestShare: number; xpEarned: number;
+  reveal: { answer: string | null; keySteps: string[]; explanation: string; referenceSolution: string | null } | null;
+}
+export interface TQSummary { streak: number; streakAtRisk: boolean; longestStreak: number; freezes: number; freezeEvery: number; freezeMax: number; labXp: number; dayXp: number; paidToday: number; solvedTotal: number }
+export interface TQToday {
+  date: string; stage: string; demo: boolean; items: TQQuestion[]; practice: TQQuestion[]; perDay: number; done: number;
+  coding: { open: boolean; reason: 'year1' | 'basics' | 'open'; basicsDone: number; basicsTotal: number }; bankEmpty: boolean;
+  summary: TQSummary; calendar: { date: string; state: 'done' | 'frozen' | 'none' }[];
+}
+export interface TQReward { xpNow: number; fullXp: number; share: number; alreadyPaid: boolean; dayStreak: number; streakBonus: number; labStreak: { current: number; longest: number; freezes: number; earnedFreeze: boolean; usedFreezes: number } }
+export const memberLabApi = {
+  today: async (): Promise<TQToday> => (await axios.get(`${BASE}/member/today`, h())).data,
+  answer: async (id: string, body: { answer?: string; explanation: string; code?: string; language?: string }): Promise<{ question: TQQuestion; reward: TQReward | null }> =>
+    (await axios.post(`${BASE}/member/questions/${id}/answer`, body, { ...h(), timeout: 120000 })).data,
+  hint: async (id: string): Promise<{ hints: string[]; hintsTotal: number }> => (await axios.post(`${BASE}/member/questions/${id}/hint`, {}, h())).data,
+  run: async (id: string, code: string, language: string): Promise<{ compileError: string | null; results: { index: number; passed: boolean; input: string; expected: string }[]; firstFail: { input: string; expected: string; actual: string } | null }> =>
+    (await axios.post(`${BASE}/member/questions/${id}/run`, { code, language }, { ...h(), timeout: 120000 })).data,
+  practice: async (type?: TQType): Promise<TQToday> => (await axios.post(`${BASE}/member/practice`, { type }, h())).data,
+  history: async (page = 1): Promise<{ items: { id: string; title: string; type: string; difficulty: string; date: string; correct: boolean; share: number; xpEarned: number; practice: boolean }[] }> =>
+    (await axios.get(`${BASE}/member/history`, { ...h(), params: { page } })).data,
+};
+
 export const thinkingLabApi = {
   getToday: async (): Promise<{ challenge: TLChallenge | null; empty?: boolean; message?: string; member?: { position: number; total: number } }> => (await axios.get(`${BASE}/today`, h())).data,
   next: async (): Promise<{ challenge: TLChallenge | null; empty?: boolean; message?: string }> => (await axios.post(`${BASE}/next`, {}, h())).data,

@@ -1,0 +1,22 @@
+/* Daily practice (DailyPracticeCard.tsx): both labs' progress today, on My N Days and the Communication Lab. */
+.dp-card .dp-labs { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.dp-card .jd-card-head + .dp-labs { margin-top: 12px; }
+.dp-lab { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 1px solid #E2EAF2; border-radius: 14px; background: #fff; text-align: left; cursor: pointer; font: inherit; color: #102A4F;
+  transition: border-color .15s ease, box-shadow .15s ease; }
+.dp-lab:hover { border-color: #BFD3EA; box-shadow: 0 8px 18px rgba(13, 41, 83, .06); }
+.dp-lab:focus-visible { outline: 2px solid #359AAD; outline-offset: 2px; }
+.dp-lab-ic { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; font-size: 17px; }
+.dp-lab.thinking .dp-lab-ic { background: #FFF4E0; color: #B26F00; }
+.dp-lab.communication .dp-lab-ic { background: #E6F6F8; color: #1F7F8F; }
+.dp-lab.done .dp-lab-ic { background: #EAF8F1; color: #17885D; }
+.dp-lab-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.dp-lab-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.dp-lab-top b { font-size: 14.5px; }
+.dp-lab-top em { font-style: normal; font-size: 12.5px; font-weight: 800; color: #5D6E88; white-space: nowrap; }
+.dp-lab-bar { height: 6px; border-radius: 999px; background: #EEF2F7; overflow: hidden; }
+.dp-lab-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #051D64, #359AAD); }
+.dp-lab.done .dp-lab-bar i { background: #17885D; }
+.dp-lab-foot { display: flex; flex-wrap: wrap; gap: 3px 12px; font-size: 12.5px; color: #5D6E88; }
+.dp-lab-foot .risk { color: #A6640D; font-weight: 700; }
+.dp-lab-foot .xp { color: #A66B00; font-weight: 700; }
+.dp-lab-foot i { margin-right: 2px; }

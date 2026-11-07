@@ -312,6 +312,8 @@ export interface IGamificationConfig extends Document {
   levelNames?: string[];
   /** Lab streak freezes (data/labStreakPolicy.ts). Unset = the defaults. */
   labStreak?: { freezeEvery?: number; freezeMax?: number };
+  /** Questions / tasks a day per year (data/thinkingDailyPolicy.ts). Unset = 1 a day. */
+  labDaily?: any;
   /** Which shipped badge set this tenant has been migrated to (BADGE_SET_VERSION). */
   badgeSetVersion?: number;
 
@@ -343,6 +345,7 @@ const GamificationConfigSchema = new Schema<IGamificationConfig>(
 
     taskXp: { type: Schema.Types.Mixed, default: undefined },
     levelNames: { type: [String], default: undefined },
+    labDaily: { type: Schema.Types.Mixed, default: undefined },
     labStreak: {
       freezeEvery: { type: Number },
       freezeMax: { type: Number },

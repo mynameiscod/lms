@@ -259,6 +259,8 @@ export const passportApi = {
   deleteDemoPlan: async (id: string): Promise<void> => {
     await axios.delete(`${BASE}/demo-plans/${id}`, { headers: auth() });
   },
+  /** Both labs today: questions / tasks done, streaks, XP (My N Days, Communication Lab). */
+  labsToday: async (): Promise<LabsToday> => (await axios.get(`${BASE}/labs/today`, { headers: auth() })).data,
   /** Problem Bank → Thinking Lab: the shared question bank. */
   thinkingBankMeta: async (): Promise<ThinkingBankMeta> => (await axios.get(`${BASE}/thinking-bank/meta`, { headers: auth() })).data,
   thinkingBankList: async (f: { type?: string; difficulty?: string; year?: string; status?: string; q?: string; page?: number }): Promise<{ questions: ThinkingQuestionRow[]; total: number; page: number; pages: number }> =>
@@ -858,6 +860,10 @@ export const passportApi = {
     return data;
   },
   /** Admin: what each type of journey task pays. */
+  updateLabDaily: async (body: { thinking: Record<string, { perDay: number; codingPerDay: number }>; communication: Record<string, { perDay: number }> }): Promise<{ labDaily: LabDailySettings }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/lab-daily`, body, { headers: auth() });
+    return data;
+  },
   updateLabStreak: async (freezeEvery: number, freezeMax: number): Promise<{ labStreak: LabStreakSettings }> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/lab-streak`, { freezeEvery, freezeMax }, { headers: auth() });
     return data;
@@ -2153,6 +2159,8 @@ export interface DemoYearView {
   enabled: boolean; track: string; landingDay: number; interviewTypes: string[];
   practice: DemoPickItem[]; thinking: DemoPickItem[]; books: DemoPickItem[];
 }
+export interface LabTodayRow { target: number; done: number; streak: number; atRisk: boolean; freezes: number; dayXp: number; earned: number }
+export interface LabsToday { date: string; thinking: LabTodayRow; communication: LabTodayRow }
 export type ThinkingType = 'math' | 'logical' | 'critical' | 'coding';
 export type ThinkingStatus = 'DRAFT' | 'PUBLISHED' | 'RETIRED';
 export interface ThinkingBankMeta {
@@ -2691,6 +2699,13 @@ export interface AdminGamification {
   taskXpMax: number;
   /** Thinking Lab and Communication Lab streak freezes. */
   labStreak?: LabStreakSettings;
+  /** Thinking questions and Communication tasks a day, per year. */
+  labDaily?: LabDailySettings;
+}
+export interface LabDailySettings {
+  thinking: Record<string, { perDay: number; codingPerDay: number }>;
+  communication: Record<string, { perDay: number }>;
+  perDayMax?: number;
 }
 export interface LabStreakSettings { freezeEvery: number; freezeMax: number; everyMax: number; holdMax: number }
 

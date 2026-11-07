@@ -413,3 +413,14 @@
 /* Lab card (Thinking Lab and Communication Lab): the freeze settings sit under the two activities. */
 .xr-lab-rules { margin-top: 14px; }
 .xr-unit { font-size: 13px; font-weight: 700; color: var(--muted); }
+/* The daily set: questions and tasks a day, by year, under the lab activities. */
+.xr-labdaily { margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--soft); overflow-x: auto; }
+.xr-labdaily.unsaved { border-color: #E9B949; }
+.xr-labdaily-hd b { display: block; font-size: 15px; color: var(--ink); }
+.xr-labdaily-hd small { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+.xr-labdaily table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 560px; }
+.xr-labdaily th, .xr-labdaily td { text-align: left; padding: 8px 10px 8px 0; vertical-align: middle; }
+.xr-labdaily thead th { font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.xr-labdaily thead th small { display: block; text-transform: none; letter-spacing: 0; font-weight: 600; }
+.xr-labdaily tbody th { font-size: 14px; font-weight: 800; color: var(--navy); white-space: nowrap; }
+.xr-labdaily tbody tr + tr > * { border-top: 1px solid var(--line); }

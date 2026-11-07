@@ -3,6 +3,8 @@ import { communicationApi, CommProfile, CommAttempt, CommProgress } from '../../
 import CoachTab, { CoachResult, CoachState, CoachStep } from './CoachTab';
 import { isCounted } from './LabHome';
 import './communicationLab.css';
+import { useLocation } from 'react-router-dom';
+import DailyPracticeCard from '../Passport/DailyPracticeCard';
 
 const todayStr = () => {
   const d = new Date();
@@ -201,6 +203,9 @@ const ResultView: React.FC<{ a: CommAttempt; onClose: () => void }> = ({ a, onCl
 };
 
 const CommunicationLab: React.FC = () => {
+  // CareerPilot members see today's speaking goal; the LMS lab (/ai-communication-lab) does not.
+  const member = useLocation().pathname.startsWith('/careerpilot');
+  const [goalKey, setGoalKey] = useState(0);
   const [tab, setTab] = useState<Tab>('coach');
   const [coach, setCoach] = useState<CoachState | null>(null);
   const [coachLoading, setCoachLoading] = useState(true);
@@ -224,7 +229,7 @@ const CommunicationLab: React.FC = () => {
   useEffect(() => { loadToday(); loadOverview(); }, [loadToday, loadOverview]);
   useEffect(() => { if (tab === 'progress') communicationApi.progress().then(setProgress).catch(() => {}); if (tab === 'progress') communicationApi.history().then(setHistory).catch(() => {}); if (tab === 'leaderboard') communicationApi.achievements().then((r:any) => setAchievements(r.achievements || [])).catch(() => {}); if (tab === 'leaderboard') communicationApi.leaderboard().then(setBoard).catch(() => {}); }, [tab]);
 
-  const onDone = (a: CommAttempt) => { setRecording(false); setResult(a); loadToday(); loadOverview(); };
+  const onDone = (a: CommAttempt) => { setRecording(false); setResult(a); loadToday(); loadOverview(); setGoalKey(k => k + 1); };
   const streak = today?.currentStreak ?? progress?.currentStreak ?? 0;
   const counted = history.filter(isCounted);
   const practised = counted.length;
@@ -244,6 +249,7 @@ const CommunicationLab: React.FC = () => {
       </div>
     </header>
     <nav className="clx-tabs">{TABS.map(([k,l]) => <button key={k} className={`clx-tab ${tab===k?'on':''}`} onClick={()=>{setTab(k);setResult(null);}}>{l}</button>)}</nav>
+    {member && tab === 'coach' && <DailyPracticeCard key={goalKey} only="communication" className="clx-daily" />}
 
 
     {tab === 'coach' && !coachResult && today?.challenge && <div className="clx-card clx-panel" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
@@ -266,7 +272,7 @@ const CommunicationLab: React.FC = () => {
     {coachStep && <Recorder
       today={{ date: todayStr(), challenge: { _id: 'coach', title: coachStep.prompt.title, description: `${coachStep.prompt.ask} You can listen before you send. Once sent, this answer is final and cannot be redone.`, recordingModes: ['video', 'audio'], minSeconds: 20, maxSeconds: 180 } }}
       submitter={(blob, mode) => communicationApi.coachSubmit(coachStep.area, coachStep.index, blob, mode)}
-      onDone={(r: any) => { setCoachStep(null); setCoachResult({ a: r.attempt, next: r.next }); setCoach(r.next); loadOverview(); }}
+      onDone={(r: any) => { setCoachStep(null); setCoachResult({ a: r.attempt, next: r.next }); setCoach(r.next); loadOverview(); setGoalKey(k => k + 1); }}
       onClose={() => setCoachStep(null)} />}
     {recording && today?.challenge && <Recorder today={today} onDone={onDone} onClose={()=>setRecording(false)} />}
   </div>;

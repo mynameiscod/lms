@@ -44,9 +44,11 @@ export interface IThinkingQuestion extends Document {
   /** Serving order inside its type and year, lowest first; absent = after the numbered ones. */
   order?: number;
   status: typeof QUESTION_STATUSES[number];
-  source: 'manual' | 'ai' | 'migrated';
+  source: 'manual' | 'ai' | 'migrated' | 'seed';
   /** The ThinkingProblem it was copied from, when it came from the old per-institute bank. */
   migratedFrom?: string;
+  /** The seed file entry it came from (seeds/thinkingBank), so a re-seed updates rather than duplicates. */
+  seedKey?: string;
   timesServed: number;
   timesSolved: number;
   createdBy?: string;
@@ -87,8 +89,9 @@ const ThinkingQuestionSchema = new Schema<IThinkingQuestion>(
 
     order: { type: Number },
     status: { type: String, enum: QUESTION_STATUSES, default: 'DRAFT', index: true },
-    source: { type: String, enum: ['manual', 'ai', 'migrated'], default: 'manual' },
+    source: { type: String, enum: ['manual', 'ai', 'migrated', 'seed'], default: 'manual' },
     migratedFrom: { type: String, index: true, sparse: true },
+    seedKey: { type: String, unique: true, sparse: true },
     timesServed: { type: Number, default: 0 },
     timesSolved: { type: Number, default: 0 },
     createdBy: { type: String },

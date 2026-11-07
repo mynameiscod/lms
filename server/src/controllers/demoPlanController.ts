@@ -3,7 +3,8 @@ import mongoose from 'mongoose';
 import DemoPlan from '../models/DemoPlan';
 import User from '../models/User';
 import CodingProblem from '../models/CodingProblem';
-import ThinkingProblem from '../models/ThinkingProblem';
+import ThinkingQuestion from '../models/ThinkingQuestion';
+import { QUESTION_TYPE_LABEL } from '../data/thinkingBankPolicy';
 import { QuestionBook } from '../models/QuestionBook';
 import CareerTrack from '../models/CareerTrack';
 import { DEMO_YEARS, DEMO_YEAR_KEYS, DEMO_ROUND_TYPES, DEMO_MAX_PER_LIST, emptyYear } from '../data/demoPolicy';
@@ -30,12 +31,16 @@ async function lookups(plans: any[]) {
   const all = (field: string) => [...new Set(plans.flatMap((p) => DEMO_YEAR_KEYS.flatMap((k) => (p.years?.[k]?.[field] || []).map(String))))];
   const [problems, thinking, books] = await Promise.all([
     CodingProblem.find({ _id: { $in: all('practiceIds') } }).select('number title difficulty status').lean(),
-    ThinkingProblem.find({ _id: { $in: all('thinkingIds') } }).select('title category difficulty active').lean(),
+    // A plan saved before the shared bank holds old ids; those questions were copied in with migratedFrom.
+    ThinkingQuestion.find({ $or: [{ _id: { $in: all('thinkingIds') } }, { migratedFrom: { $in: all('thinkingIds') } }] }).select('title type subCategory difficulty status migratedFrom number').lean(),
     QuestionBook.find({ _id: { $in: all('bookIds') } }).select('title status').lean(),
   ]);
   return {
     problems: new Map((problems as any[]).map((r) => [String(r._id), { id: String(r._id), number: r.number, title: r.title, difficulty: r.difficulty, live: r.status === 'published' }])),
-    thinking: new Map((thinking as any[]).map((r) => [String(r._id), { id: String(r._id), title: r.title, category: r.category, difficulty: r.difficulty, live: r.active !== false }])),
+    thinking: new Map((thinking as any[]).flatMap((r) => {
+      const item = { id: String(r._id), number: r.number, title: r.title, category: [QUESTION_TYPE_LABEL[r.type as keyof typeof QUESTION_TYPE_LABEL], r.subCategory].filter(Boolean).join(' · '), difficulty: r.difficulty, live: r.status === 'PUBLISHED' };
+      return [[String(r._id), item], ...(r.migratedFrom ? [[String(r.migratedFrom), item]] : [])] as [string, any][];
+    })),
     books: new Map((books as any[]).map((r) => [String(r._id), { id: String(r._id), title: r.title, live: r.status === 'published' }])),
   };
 }
@@ -183,14 +188,14 @@ export const searchDemoProblems = async (req: Request, res: Response) => {
   }
 };
 
-/** GET /passport/demo-plans/options/thinking?q= — Thinking Lab questions that are switched on. */
+/** GET /passport/demo-plans/options/thinking?q= — published questions from the shared Thinking Lab bank. */
 export const searchDemoThinking = async (req: Request, res: Response) => {
   try {
     const q = String(req.query.q || '').trim().slice(0, 80);
-    const f: any = { active: { $ne: false } };
-    if (q) f.$or = [{ title: new RegExp(escapeRe(q), 'i') }, { category: new RegExp(escapeRe(q), 'i') }];
-    const rows: any[] = await ThinkingProblem.find(f).sort({ order: 1, createdAt: 1 }).limit(40).select('title category difficulty').lean();
-    res.json({ items: rows.map((r) => ({ id: String(r._id), title: r.title, category: r.category, difficulty: r.difficulty, live: true })) });
+    const f: any = { status: 'PUBLISHED' };
+    if (q) f.$or = [{ title: new RegExp(escapeRe(q), 'i') }, { subCategory: new RegExp(escapeRe(q), 'i') }, { type: q.toLowerCase() }];
+    const rows: any[] = await ThinkingQuestion.find(f).sort({ type: 1, number: 1 }).limit(40).select('title type subCategory difficulty number').lean();
+    res.json({ items: rows.map((r) => ({ id: String(r._id), number: r.number, title: r.title, category: [QUESTION_TYPE_LABEL[r.type as keyof typeof QUESTION_TYPE_LABEL], r.subCategory].filter(Boolean).join(' · '), difficulty: r.difficulty, live: true })) });
   } catch (e: any) {
     res.status(500).json({ message: 'Could not search the Thinking Lab questions.' });
   }

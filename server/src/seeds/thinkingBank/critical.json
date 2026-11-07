@@ -1,0 +1,1978 @@
+[
+  {
+    "seedKey": "critical-001",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The gym survey",
+    "statement": "A fitness app surveyed 500 members at three gyms in Pune. 82% said they exercise five or more days a week. The marketing team concludes that most young people in Pune exercise five or more days a week. What is the main flaw in this conclusion?",
+    "answerFormat": "choice",
+    "choices": [
+      "500 people is too small a number for any survey to be useful.",
+      "The survey should have been done online instead of at gyms.",
+      "The survey only asked gym members, who are far more likely to exercise than young people in general.",
+      "82% is not a large enough share to be called 'most'."
+    ],
+    "answer": "The survey only asked gym members, who are far more likely to exercise than young people in general.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices the survey only asked gym members.",
+      "Explains that gym members exercise more than the general population.",
+      "Concludes the sample does not represent all young people in Pune."
+    ],
+    "explanation": "The people surveyed were chosen in a way that makes regular exercise very likely, so their answers cannot stand in for all young people in the city. The sample size is not the problem here: even 5,000 gym members would give the same biased picture.",
+    "hints": [
+      "Who exactly was asked the question?",
+      "Would a gym member answer this question the same way as a random college student?",
+      "The group surveyed is not like the group the conclusion talks about."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-002",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Topper's notes",
+    "statement": "Ravi tells his friends: 'Every topper in our branch last year used Sharma sir's printed notes. So if I use those notes, I will top this year too.' What is the biggest problem with Ravi's reasoning?",
+    "answerFormat": "choice",
+    "choices": [
+      "Sharma sir may not teach the same subjects this year.",
+      "Toppers usually do not share how they studied.",
+      "Printed notes are less useful than videos.",
+      "He ignores that many students who did not top may also have used the same notes."
+    ],
+    "answer": "He ignores that many students who did not top may also have used the same notes.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Points out that the notes may have been used by non-toppers too.",
+      "Recognises that using the notes does not guarantee topping.",
+      "Notes that the toppers' own ability or effort may explain their results."
+    ],
+    "explanation": "Knowing that all toppers used the notes tells us nothing unless we know whether non-toppers used them too. If almost everyone used them, the notes cannot be what separated the toppers. The point about subjects changing is a side issue; the core error is treating a shared habit as the cause of success.",
+    "hints": [
+      "What about students who used the notes and did not top?",
+      "If almost every student used the notes, could the notes explain who topped?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-003",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Attack the speaker",
+    "statement": "At a hostel meeting, Priya proposes moving mess dinner from 7:30 pm to 8:30 pm so students returning from evening labs can eat. Arjun replies: 'Priya comes late to class every day, so her ideas about timing cannot be trusted.' What is wrong with Arjun's reply?",
+    "answerFormat": "choice",
+    "choices": [
+      "It does not say what time Arjun would prefer.",
+      "It is rude, but the argument itself is logically sound.",
+      "It attacks Priya's habits instead of addressing the reasons for the proposal.",
+      "It ignores that the mess staff may not agree."
+    ],
+    "answer": "It attacks Priya's habits instead of addressing the reasons for the proposal.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies that the reply targets the person, not the proposal.",
+      "Notes that Priya's punctuality is irrelevant to whether the timing helps lab students.",
+      "States that the proposal must be judged on its own reasons."
+    ],
+    "explanation": "Whether Priya is punctual has nothing to do with whether students returning from labs need a later dinner. Arjun never engages with that reason, so his reply gives no grounds to reject the proposal. Calling it rude but sound is wrong: the reply is not sound at all, because its premise is irrelevant to its conclusion.",
+    "hints": [
+      "Does Arjun say anything about the lab students?",
+      "Is Priya's habit connected to whether the proposal is a good one?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-004",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Weekend or nothing",
+    "statement": "The cultural club secretary says: 'Weekday events never get crowds, so either we hold the fest on the 14th–15th weekend or we cancel it completely.' The college auditorium is already booked that weekend. What is the main flaw in the secretary's reasoning?",
+    "answerFormat": "choice",
+    "choices": [
+      "It assumes students like cultural fests.",
+      "It does not mention the cost of the fest.",
+      "It should have asked the principal before deciding.",
+      "It presents only two options when others exist, such as a different weekend or a smaller weekday evening event."
+    ],
+    "answer": "It presents only two options when others exist, such as a different weekend or a smaller weekday evening event.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Spots that only two options are offered.",
+      "Names at least one realistic alternative, such as another weekend.",
+      "Notes that rejecting one option does not force the other."
+    ],
+    "explanation": "The secretary frames the choice as 'this weekend or cancel', which is a false either-or. Since the auditorium is booked, the reasoning pushes towards cancelling, when another weekend or a weekday evening format could work. The missing cost detail is a gap in planning, not a flaw in the logic.",
+    "hints": [
+      "Are there really only two possibilities?",
+      "What other dates or formats could the club consider?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-005",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "One bad phone",
+    "statement": "Sneha says: 'My cousin bought a phone from Brand X and it stopped working within a month. Brand X phones are clearly unreliable, so nobody should buy them.' What is the main flaw?",
+    "answerFormat": "choice",
+    "choices": [
+      "She draws a conclusion about all Brand X phones from a single case.",
+      "She does not say which model her cousin bought.",
+      "Her cousin may have dropped the phone, so Sneha is lying.",
+      "She should compare prices before talking about quality."
+    ],
+    "answer": "She draws a conclusion about all Brand X phones from a single case.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies that the evidence is a single example.",
+      "Explains that one failure says little about the failure rate of a whole brand.",
+      "Suggests that wider data, such as return or repair rates, would be needed."
+    ],
+    "explanation": "One faulty phone is an anecdote. It cannot show whether Brand X fails more often than other brands. The model detail would be useful, but even knowing it would leave the conclusion resting on one case. Saying Sneha is lying is an unsupported accusation, not a logical flaw.",
+    "hints": [
+      "How many phones is the conclusion based on?",
+      "What information would show whether a brand is unreliable?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-006",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Front-row marks",
+    "statement": "In a college survey, students who sit in the first two rows score on average 12 marks more than others. The principal plans to make every student sit in the front rows by rotation to raise marks. Which of these, if true, best explains the pattern without front seats themselves causing higher marks?",
+    "answerFormat": "choice",
+    "choices": [
+      "Students who are already more motivated tend to choose the front seats.",
+      "The front rows are closer to the fans.",
+      "Teachers ask more questions to the back rows.",
+      "Some classrooms have more rows than others."
+    ],
+    "answer": "Students who are already more motivated tend to choose the front seats.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Considers that students choose their own seats.",
+      "Identifies motivation as a factor that could drive both seat choice and marks.",
+      "Concludes that moving students may not raise their marks."
+    ],
+    "explanation": "If motivated students pick the front rows, the marks difference comes from who sits there, not from the seat itself, and rotating seats would change little. Teachers questioning the back rows more would, if anything, help back-benchers, so it does not explain the gap.",
+    "hints": [
+      "Who decides where each student sits now?",
+      "Could the same trait lead to both sitting in front and scoring well?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-007",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The big office",
+    "statement": "A founder reads a report showing that startups with larger offices earn higher revenue. She decides to rent a much bigger office so her startup's revenue will grow. What is the most likely flaw in her thinking?",
+    "answerFormat": "choice",
+    "choices": [
+      "Bigger offices are always in better locations.",
+      "The report did not include startups from her city.",
+      "Larger offices make employees work harder.",
+      "Higher revenue is more likely what allows startups to afford bigger offices, not the other way round."
+    ],
+    "answer": "Higher revenue is more likely what allows startups to afford bigger offices, not the other way round.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Recognises the cause may run in the opposite direction.",
+      "Explains that successful startups can afford larger spaces.",
+      "Notes that renting a bigger office would add cost without adding revenue."
+    ],
+    "explanation": "The data only shows that big offices and high revenue go together. The more natural reading is that companies move into bigger offices after they grow. Renting a large office early just raises costs. The idea that big offices make people work harder is an unsupported claim, not something the report shows.",
+    "hints": [
+      "Which usually comes first for a startup: the money or the big office?",
+      "Could the cause and effect be reversed?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-008",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Canteen sales drop",
+    "statement": "A college canteen launched a new menu on Monday. That week, sales fell by 35%. The manager wants to bring back the old menu. The same week was the study-leave week before semester exams, when most hostel and day-scholar students stay away from campus. What should the manager consider first?",
+    "answerFormat": "choice",
+    "choices": [
+      "The new menu was probably too expensive.",
+      "Students dislike change, so any new menu would fail.",
+      "Fewer students were on campus that week, which alone could explain the drop in sales.",
+      "Sales fall every Monday, so the timing does not matter."
+    ],
+    "answer": "Fewer students were on campus that week, which alone could explain the drop in sales.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices the study-leave week happened at the same time.",
+      "Explains that fewer people on campus means fewer sales regardless of menu.",
+      "Suggests comparing with a normal week before blaming the menu."
+    ],
+    "explanation": "The menu change and the study-leave week happened together, so the drop cannot be pinned on the menu. With most students away, sales would fall even with the old menu. Saying the menu was too expensive is a guess with no evidence in the scenario.",
+    "hints": [
+      "What else was different about that week?",
+      "Would the old menu have sold well with an empty campus?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-009",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Flyover traffic",
+    "statement": "After a new flyover opened in Hyderabad, travel time on that road dropped from 40 to 20 minutes. Six months later it is back to 38 minutes. Traffic counts show 45% more vehicles now use the road than before. What best explains why travel time went back up?",
+    "answerFormat": "choice",
+    "choices": [
+      "The flyover was built badly and has slowed down.",
+      "The faster road attracted many more drivers, which brought the congestion back.",
+      "Drivers have become more careless over six months.",
+      "Travel time measurements are always inaccurate."
+    ],
+    "answer": "The faster road attracted many more drivers, which brought the congestion back.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Uses the 45% rise in vehicles as evidence.",
+      "Links the initial speed-up to more people choosing the road.",
+      "Concludes that extra traffic, not the structure, caused the slowdown."
+    ],
+    "explanation": "The data says far more vehicles now use the road. A quicker route draws drivers from other roads, and the added traffic fills the new capacity. Nothing in the scenario suggests the flyover itself is faulty, so that option ignores the traffic count that explains the change.",
+    "hints": [
+      "What changed in the number of vehicles?",
+      "Why would more people start using this road?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-010",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Sixteen hours by Friday",
+    "statement": "Neha's mini-project needs about 16 hours of work. She says, 'I'll work 4 hours every evening from Monday to Thursday, so I'll finish by Friday.' Which assumption is her plan relying on?",
+    "answerFormat": "choice",
+    "choices": [
+      "The project carries a lot of marks.",
+      "Friday is the deadline set by her professor.",
+      "Working at night is better than working in the morning.",
+      "She will actually have 4 free hours every evening this week."
+    ],
+    "answer": "She will actually have 4 free hours every evening this week.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Calculates that 4 evenings of 4 hours gives 16 hours.",
+      "Identifies that the plan depends on every evening being free.",
+      "Notes that any lost evening means the plan fails."
+    ],
+    "explanation": "Four evenings of four hours gives exactly the 16 hours needed, with no spare time. So the plan only works if every one of those evenings stays free. The marks or the deadline-setter do not affect whether the hours add up, so they are not assumptions the plan depends on.",
+    "hints": [
+      "How much spare time does the plan leave?",
+      "What happens if one evening gets taken up by something else?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-011",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Forty percent off",
+    "statement": "A small electronics shop in Chennai announces: 'We are cutting prices by 40% this month, so our sales will surely double.' Which assumption does this claim depend on?",
+    "answerFormat": "choice",
+    "choices": [
+      "The shop's competitors will also cut prices.",
+      "Customers will come to know about the price cut and care enough about price to buy more.",
+      "The shop has enough staff to handle double the customers.",
+      "The products are of higher quality than other shops' products."
+    ],
+    "answer": "Customers will come to know about the price cut and care enough about price to buy more.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies that customers must know about the cut.",
+      "Identifies that customers must respond to lower prices by buying more.",
+      "Explains that without these, sales need not rise."
+    ],
+    "explanation": "Lower prices only raise sales if buyers hear about them and are willing to buy more because of them. If neither is true, sales will not double. Enough staff would matter for serving more customers, but it does not create the extra demand the claim predicts.",
+    "hints": [
+      "What must customers do for sales to double?",
+      "What if nobody notices the discount?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-012",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "95% placement claim",
+    "statement": "A coding institute's ad says: 'Our past students have a 95% placement rate. Join us and you will get placed.' Which assumption is hidden in this ad?",
+    "answerFormat": "choice",
+    "choices": [
+      "You are similar to past students, and the course itself, not their prior skills, produced their placements.",
+      "The institute charges a reasonable fee.",
+      "Companies hire only from coding institutes.",
+      "The 95% figure includes internships."
+    ],
+    "answer": "You are similar to past students, and the course itself, not their prior skills, produced their placements.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices that past students may differ from the reader.",
+      "Considers that students may have been placed because of skills they already had.",
+      "Concludes the ad assumes the course caused the placements."
+    ],
+    "explanation": "A high placement rate only predicts your result if you resemble the past students and the course is what got them hired. If the institute admitted already-strong candidates, the 95% says little about you. The fee has nothing to do with whether the promise holds.",
+    "hints": [
+      "Who were the past students?",
+      "Could they have been placed without the course?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-013",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Higher delivery fee",
+    "statement": "A food delivery startup plans to raise its delivery fee by ₹10 per order. The finance lead says, 'Revenue per order goes up, so our total revenue will rise.' Which assumption is the finance lead making?",
+    "answerFormat": "choice",
+    "choices": [
+      "Restaurants will agree to lower their prices.",
+      "Delivery partners will be paid more.",
+      "Competitors will not open in the same city.",
+      "The number of orders will not fall enough to cancel out the extra ₹10 per order."
+    ],
+    "answer": "The number of orders will not fall enough to cancel out the extra ₹10 per order.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that total revenue depends on both fee and number of orders.",
+      "Identifies that a higher fee may reduce orders.",
+      "States that the claim assumes orders stay roughly steady."
+    ],
+    "explanation": "Total revenue is revenue per order times the number of orders. If customers order much less because of the higher fee, total revenue can fall even though each order earns more. Restaurant prices and partner pay do not decide whether the fee rise increases revenue, so they are not the needed assumption.",
+    "hints": [
+      "Total revenue = revenue per order × ?",
+      "How might customers react to a higher fee?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-014",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "No Wi-Fi complaints",
+    "statement": "The hostel warden says: 'No student has filed a complaint about the Wi-Fi this month, so the Wi-Fi must be working well.' Which assumption is the warden making?",
+    "answerFormat": "choice",
+    "choices": [
+      "Students use the Wi-Fi every day.",
+      "Students who face Wi-Fi problems would file a complaint.",
+      "The Wi-Fi provider is reliable.",
+      "Last month there were many complaints."
+    ],
+    "answer": "Students who face Wi-Fi problems would file a complaint.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies that the argument relies on silence meaning satisfaction.",
+      "Considers that students may not complain even with problems.",
+      "Suggests checking actual speed or uptime instead."
+    ],
+    "explanation": "The warden treats 'no complaints' as 'no problems'. That only works if unhappy students actually complain. If they gave up or use mobile data instead, the silence means nothing. Whether last month had complaints does not affect what this month's silence shows.",
+    "hints": [
+      "Does 'no complaints' always mean 'no problems'?",
+      "Why might a student with slow Wi-Fi not complain?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-015",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Library till midnight",
+    "statement": "This semester the college kept its library open till midnight, and average exam scores rose by 8%. The librarian claims the longer hours caused the rise. Which of the following, if true, most weakens the claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "Many students said they liked the longer library hours.",
+      "The library bought 200 new books this semester.",
+      "The department confirmed that this semester's exam papers were easier than last semester's.",
+      "Some students studied in the library after 10 pm."
+    ],
+    "answer": "The department confirmed that this semester's exam papers were easier than last semester's.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Looks for another reason scores could rise.",
+      "Identifies easier papers as an alternative explanation.",
+      "Explains that this makes the library hours less likely to be the cause."
+    ],
+    "explanation": "If the papers were easier, scores would rise even with no change in library hours, so the librarian's explanation loses support. Students liking the hours, or using the library late, does not show the hours improved scores, and the late-study point slightly supports the claim rather than weakening it.",
+    "hints": [
+      "What else could make scores go up?",
+      "Which option gives a different reason for the rise?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-016",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "EMI reminder app",
+    "statement": "A fintech startup claims that its app's reminder notifications reduce missed EMI payments. Which of the following, if true, most strengthens this claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "Users who installed the app are mostly salaried employees.",
+      "Among similar users, those randomly chosen to get reminders missed fewer payments than those who did not get them.",
+      "The app has a 4.5 star rating on the app store.",
+      "Missed EMI payments are a common problem in India."
+    ],
+    "answer": "Among similar users, those randomly chosen to get reminders missed fewer payments than those who did not get them.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Looks for a fair comparison between users with and without reminders.",
+      "Values random assignment because it makes the groups similar.",
+      "Concludes the difference can then be linked to the reminders."
+    ],
+    "explanation": "Random assignment makes the two groups alike in everything except the reminders, so a gap in missed payments points to the reminders. A good rating shows users like the app, not that reminders change payment behaviour. Salaried users might miss fewer payments anyway, which would weaken the claim, not strengthen it.",
+    "hints": [
+      "What kind of evidence would show the reminders made the difference?",
+      "How could you compare two groups fairly?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-017",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Mall near the metro",
+    "statement": "A mall near a new metro station in Bengaluru saw footfall rise 30% in the year after the station opened. The mall's manager credits the metro. Which of the following, if true, most weakens the manager's claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "The metro station is only 300 metres from the mall.",
+      "The mall added a new food court during the year.",
+      "Metro tickets in Bengaluru became cheaper.",
+      "Malls in the same city far from any metro station saw a similar 30% rise in the same year."
+    ],
+    "answer": "Malls in the same city far from any metro station saw a similar 30% rise in the same year.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Seeks a comparison with malls not near the metro.",
+      "Notes that a similar rise elsewhere suggests a city-wide cause.",
+      "Concludes the metro may not explain the mall's increase."
+    ],
+    "explanation": "If malls with no metro nearby grew just as much, something city-wide is driving footfall and the metro adds little. The food court is another possible cause, but it only suggests a second factor; the comparison with other malls directly shows the rise happened without a metro. Cheaper tickets and closeness would support the claim.",
+    "hints": [
+      "What happened at malls without a metro station?",
+      "Which option shows the rise would have happened anyway?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-018",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Mock interviews work",
+    "statement": "The placement cell says its mock interview sessions improved students' selection rates in campus drives. Which of the following, if true, most strengthens this claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "More companies visited the campus this year.",
+      "Students with similar CGPA and skills who skipped the mock interviews were selected less often than those who attended.",
+      "The mock interviews were conducted by alumni.",
+      "Students said the sessions were helpful."
+    ],
+    "answer": "Students with similar CGPA and skills who skipped the mock interviews were selected less often than those who attended.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Looks for a comparison between attendees and non-attendees.",
+      "Notes the groups were matched on CGPA and skills.",
+      "Concludes that the gap is more likely due to the mock interviews."
+    ],
+    "explanation": "Comparing similar students who did and did not attend isolates the effect of the sessions. More companies visiting would raise selections for everyone, which is an alternative explanation, not support. Students finding the sessions helpful is an opinion, not evidence about selections.",
+    "hints": [
+      "What comparison would show the sessions mattered?",
+      "Why does it help that the two groups had similar CGPA?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-019",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The workshop certificate",
+    "statement": "Every student who attended the full-day cloud workshop received a certificate. Kiran did not receive a certificate. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Kiran registered for the workshop but was absent.",
+      "Some students who received certificates did not attend.",
+      "Kiran did not attend the full-day workshop.",
+      "The certificates were sent late."
+    ],
+    "answer": "Kiran did not attend the full-day workshop.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "States the rule: attending leads to a certificate.",
+      "Reasons that if Kiran had attended, he would have a certificate.",
+      "Concludes he did not attend, and nothing more."
+    ],
+    "explanation": "If attending always leads to a certificate, then having no certificate means Kiran did not attend. We cannot tell whether he registered, so that option goes beyond the facts. The rule says nothing about whether non-attendees could also get certificates.",
+    "hints": [
+      "What does the rule guarantee for every attendee?",
+      "If Kiran had attended, what would he have?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-020",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Weekday café",
+    "statement": "The campus café is open only on weekdays. Today the café is open. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Today is a weekday.",
+      "Tomorrow the café will also be open.",
+      "The café is open every weekday.",
+      "Today is Monday."
+    ],
+    "answer": "Today is a weekday.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Reads 'only on weekdays' as: open means weekday.",
+      "Concludes today is a weekday.",
+      "Notes the rule does not say it opens on every weekday."
+    ],
+    "explanation": "'Open only on weekdays' means it is never open on a weekend, so if it is open today, today is a weekday. The rule does not promise the café opens on every weekday, so neither tomorrow's opening nor the 'every weekday' option must be true.",
+    "hints": [
+      "What does 'only on weekdays' rule out?",
+      "Does 'only on weekdays' mean 'on every weekday'?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-021",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Who scored more",
+    "statement": "In an aptitude test, Ananya scored more than Bharat. Bharat scored more than Charu. Dev scored less than Charu. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Bharat scored the highest of the four.",
+      "Ananya scored more than Dev.",
+      "Dev scored the lowest of all students who took the test.",
+      "Charu scored less than Dev."
+    ],
+    "answer": "Ananya scored more than Dev.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Builds the order Ananya > Bharat > Charu > Dev.",
+      "Concludes Ananya scored more than Dev.",
+      "Notes that the order says nothing about other students who took the test."
+    ],
+    "explanation": "Chaining the facts gives Ananya > Bharat > Charu > Dev, so Ananya scored more than Dev. Bharat cannot be the highest because Ananya beat him. 'Dev scored the lowest of all students' is tempting, but other students also took the test and we know nothing about their scores.",
+    "hints": [
+      "Write the four names in order from highest to lowest.",
+      "Be careful about claims involving students not mentioned."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-022",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Hyderabad interns and SQL",
+    "statement": "Some interns at a Gurugram startup are from Hyderabad. All interns at the startup know SQL. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Everyone from Hyderabad knows SQL.",
+      "Some interns at the startup do not know SQL.",
+      "Some people from Hyderabad at the startup know SQL.",
+      "Only the interns from Hyderabad know SQL."
+    ],
+    "answer": "Some people from Hyderabad at the startup know SQL.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that the Hyderabad interns are interns.",
+      "Applies 'all interns know SQL' to them.",
+      "Avoids extending the claim beyond the startup's interns."
+    ],
+    "explanation": "The Hyderabad interns are interns, and all interns know SQL, so at least those people from Hyderabad know SQL. The facts say nothing about people from Hyderabad outside the startup, so 'everyone from Hyderabad knows SQL' goes too far.",
+    "hints": [
+      "Are the Hyderabad interns covered by the 'all interns' rule?",
+      "Do the facts talk about anyone outside the startup?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-023",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Laptop for the course",
+    "statement": "Farhan needs a laptop for a full-stack course that requires at least 16 GB RAM. His budget is ₹62,000. Laptop A costs ₹55,000 with 8 GB RAM that cannot be upgraded. Laptop B costs ₹60,000 with 16 GB RAM. Laptop C costs ₹70,000 with 32 GB RAM. Which should he choose?",
+    "answerFormat": "choice",
+    "choices": [
+      "Laptop A, because it is the cheapest.",
+      "Laptop C, because more RAM is always better.",
+      "Laptop A, and upgrade the RAM later.",
+      "Laptop B, because it is the only one that meets the RAM need within budget."
+    ],
+    "answer": "Laptop B, because it is the only one that meets the RAM need within budget.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Lists the two constraints: at least 16 GB RAM and ₹62,000 budget.",
+      "Rules out A for too little RAM that cannot be upgraded.",
+      "Rules out C for being over budget.",
+      "Chooses B as the only option meeting both."
+    ],
+    "explanation": "Laptop A fails the RAM requirement and cannot be upgraded, and Laptop C is ₹8,000 over budget. Only Laptop B satisfies both conditions. Picking A because it is cheapest ignores the course requirement.",
+    "hints": [
+      "What are Farhan's two must-haves?",
+      "Check each laptop against both of them."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-024",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Silent teammate",
+    "statement": "In a four-member group project, Rohan has missed two internal deadlines and hasn't replied in the group chat for three days. The final submission is in 10 days. What is the best first step for the team?",
+    "answerFormat": "choice",
+    "choices": [
+      "Report Rohan to the professor immediately.",
+      "Quietly divide Rohan's work among the others without telling him.",
+      "Contact Rohan directly to understand what is happening and agree on a revised plan for his part.",
+      "Remove Rohan's name from the project report."
+    ],
+    "answer": "Contact Rohan directly to understand what is happening and agree on a revised plan for his part.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Recognises there is still time to fix the problem.",
+      "Seeks to understand the reason before acting.",
+      "Proposes agreeing on a revised plan with Rohan.",
+      "Keeps escalation as a later option if this fails."
+    ],
+    "explanation": "With 10 days left, the team can still recover, and talking to Rohan first reveals whether there is a real problem (illness, family issue) or simply neglect. Going straight to the professor skips the simplest fix and may be unfair if there is a good reason. Silently taking over his work hides the problem instead of solving it.",
+    "hints": [
+      "Do you know why Rohan has gone quiet?",
+      "Which option tries the simplest fix first while time remains?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-025",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Two internship offers",
+    "statement": "Divya wants a backend developer job in placements next year. She has two internship offers. Offer 1 pays ₹15,000 a month for building APIs with a senior mentor. Offer 2 pays ₹20,000 a month for data entry. She can manage her expenses with either stipend. Which offer fits her goal best?",
+    "answerFormat": "choice",
+    "choices": [
+      "Offer 2, because it pays ₹5,000 more each month.",
+      "Offer 1, because it builds the backend skills and experience she needs for placements.",
+      "Offer 2, because any internship looks the same on a resume.",
+      "Neither, because she should wait for a better-paying backend internship."
+    ],
+    "answer": "Offer 1, because it builds the backend skills and experience she needs for placements.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies her stated goal: a backend job.",
+      "Notes that both stipends meet her needs.",
+      "Compares which internship builds relevant skills.",
+      "Chooses Offer 1 for skill and resume value."
+    ],
+    "explanation": "Her goal is a backend job, and money is not a constraint because both stipends cover her costs. Offer 1 gives directly relevant work and mentoring. The extra ₹5,000 in Offer 2 does not help her goal, and data entry adds little to a backend resume.",
+    "hints": [
+      "What is Divya trying to achieve?",
+      "Does the extra stipend matter if both cover her expenses?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-026",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Getting to the exam",
+    "statement": "Karthik's exam starts at 9:00 am and he must be seated by 8:50 am. The bus usually takes 50 minutes but can take up to 80 minutes on bad days. A cab takes 35 minutes and costs ₹300, which he would rather not spend. He can leave home any time after 7:00 am. What is his best plan?",
+    "answerFormat": "choice",
+    "choices": [
+      "Take the bus at 7:30 am, which reaches by 8:50 am even on a bad day.",
+      "Take the bus at 8:00 am, since it usually takes only 50 minutes.",
+      "Take a cab at 8:20 am to save time.",
+      "Take the bus at 7:50 am and hope traffic is light."
+    ],
+    "answer": "Take the bus at 7:30 am, which reaches by 8:50 am even on a bad day.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Plans for the worst-case travel time of 80 minutes.",
+      "Works back from 8:50 am to a latest bus departure of 7:30 am.",
+      "Notes the bus avoids the ₹300 cost he wants to save.",
+      "Rejects options that only work on a normal day."
+    ],
+    "explanation": "Planning for the worst case, the bus must leave by 7:30 am to arrive by 8:50 am, and he can leave that early, so he saves the cab fare. The 8:00 am bus works only on a normal day and could reach at 9:20 am. A cab at 8:20 am arrives at 8:55 am, which is too late to be seated by 8:50 am and costs money.",
+    "hints": [
+      "What is the longest the bus might take?",
+      "Count back 80 minutes from 8:50 am."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-027",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Orders above average",
+    "statement": "A cloud kitchen in Kochi recorded these orders in one week:\nMonday: 120 orders\nTuesday: 150 orders\nWednesday: 90 orders\nThursday: 140 orders\nFriday: 200 orders\nOn which days were orders above the average for these five days?",
+    "answerFormat": "choice",
+    "choices": [
+      "Tuesday and Friday",
+      "Tuesday, Thursday and Friday",
+      "Friday only",
+      "Monday, Tuesday and Friday"
+    ],
+    "answer": "Tuesday and Friday",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Adds the orders to get 700.",
+      "Divides by 5 to get an average of 140.",
+      "Compares each day with 140 and notes Thursday equals it, so it is not above.",
+      "Selects Tuesday and Friday."
+    ],
+    "explanation": "Total orders are 120 + 150 + 90 + 140 + 200 = 700, so the average is 700 ÷ 5 = 140. Only Tuesday (150) and Friday (200) are above 140. Thursday is exactly 140, which is equal to the average, not above it, so the option including Thursday is wrong.",
+    "hints": [
+      "First find the total for the week.",
+      "The average is 140. Is 140 'above' 140?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-028",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Samosa sales growth",
+    "statement": "A college canteen sold samosas as follows:\nJanuary: 400 samosas\nFebruary: 500 samosas\nBy what percentage did samosa sales increase from January to February?",
+    "answerFormat": "choice",
+    "choices": [
+      "25%",
+      "20%",
+      "100%",
+      "125%"
+    ],
+    "answer": "25%",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Finds the increase: 500 − 400 = 100.",
+      "Divides the increase by the starting value of 400.",
+      "Converts 0.25 to 25%."
+    ],
+    "explanation": "The increase is 100 samosas, and percentage increase is measured against the starting value: 100 ÷ 400 = 25%. The tempting 20% comes from dividing by the February figure (100 ÷ 500), which uses the wrong base.",
+    "hints": [
+      "How many more samosas were sold in February?",
+      "Divide the increase by the January figure, not the February one."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-029",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Lowest placement rate",
+    "statement": "Placement results for a college in Nagpur:\nCSE: 120 students, 96 placed\nECE: 80 students, 60 placed\nMECH: 100 students, 55 placed\nCIVIL: 50 students, 30 placed\nWhich branch had the lowest placement rate?",
+    "answerFormat": "choice",
+    "choices": [
+      "CIVIL",
+      "MECH",
+      "ECE",
+      "CSE"
+    ],
+    "answer": "MECH",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Computes each rate as placed divided by students.",
+      "Gets CSE 80%, ECE 75%, MECH 55%, CIVIL 60%.",
+      "Notes that CIVIL has the fewest placed students but not the lowest rate.",
+      "Selects MECH."
+    ],
+    "explanation": "Rates are CSE 96/120 = 80%, ECE 60/80 = 75%, MECH 55/100 = 55%, and CIVIL 30/50 = 60%. MECH is lowest. CIVIL is tempting because it has the smallest number placed, but it also has the fewest students, so its rate is higher.",
+    "hints": [
+      "Placement rate = placed ÷ total students.",
+      "Do not compare just the number placed."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-030",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Splitting the trip cost",
+    "statement": "Three friends went on a weekend trip to Coorg and agreed to share the cost equally.\nArun paid: ₹1,200\nBala paid: ₹600\nChitra paid: ₹0\nWhich payment settles everything fairly?",
+    "answerFormat": "choice",
+    "choices": [
+      "Chitra pays Arun ₹600; Bala owes nothing.",
+      "Chitra pays Arun ₹600 and Bala pays Arun ₹300.",
+      "Chitra pays Arun ₹400 and Bala ₹200.",
+      "Chitra pays Arun ₹1,200."
+    ],
+    "answer": "Chitra pays Arun ₹600; Bala owes nothing.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Adds the total spend: ₹1,800.",
+      "Divides by 3 to get a fair share of ₹600 each.",
+      "Sees Bala already paid exactly his share.",
+      "Concludes Chitra pays Arun the ₹600 he overpaid."
+    ],
+    "explanation": "The total is ₹1,800, so each person's share is ₹600. Bala paid exactly ₹600, Arun paid ₹600 extra, and Chitra paid ₹600 too little, so Chitra pays Arun ₹600. Splitting Chitra's payment between Arun and Bala would wrongly treat Bala as having overpaid.",
+    "hints": [
+      "What is each person's fair share?",
+      "Compare what each person paid with that share."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-031",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Dark mode engagement",
+    "statement": "A product manager at a Bengaluru app company finds that users who turned on dark mode spend 30% more time in the app per day. She proposes making dark mode the default for everyone to increase engagement. What is the main flaw in her reasoning?",
+    "answerFormat": "choice",
+    "choices": [
+      "Dark mode is harder to read in daylight.",
+      "30% is too small a difference to act on.",
+      "Heavy users are more likely to explore settings and switch on dark mode, so dark mode may not be what increases their time.",
+      "She did not check whether dark mode saves battery."
+    ],
+    "answer": "Heavy users are more likely to explore settings and switch on dark mode, so dark mode may not be what increases their time.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices users chose dark mode themselves.",
+      "Suggests heavy users are the ones who explore settings.",
+      "Explains that the link may not be causal.",
+      "Proposes testing by switching it on for a random group."
+    ],
+    "explanation": "The users who turned on dark mode chose to do so, and people who already use the app a lot are more likely to dig into settings. Their extra time may come from being heavy users, not from dark mode. Readability in daylight is a design point, but it does not address why the data cannot show cause.",
+    "hints": [
+      "Who decided which users have dark mode on?",
+      "What kind of user goes into the settings menu?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-032",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Dropouts who built empires",
+    "statement": "A blog lists ten college dropouts who founded billion-dollar companies and concludes: 'Dropping out of college improves your chances of building a successful startup.' What is the main flaw?",
+    "answerFormat": "choice",
+    "choices": [
+      "It looks only at dropouts who succeeded and ignores the far larger number who dropped out and did not.",
+      "Ten examples are enough, but they are all from the US.",
+      "It does not define what a billion-dollar company is.",
+      "Some of the founders later finished their degrees."
+    ],
+    "answer": "It looks only at dropouts who succeeded and ignores the far larger number who dropped out and did not.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies that only successful cases are counted.",
+      "Notes the missing data on dropouts who failed.",
+      "Explains that a success rate needs both successes and failures.",
+      "Notes the comparison with graduates is also missing."
+    ],
+    "explanation": "To say dropping out improves your chances, you need the success rate of dropouts compared with graduates. The blog counts only the winners, so it cannot show any rate at all. The location of the examples is a minor issue; even a global list of successes would leave out the failures.",
+    "hints": [
+      "What about dropouts whose startups failed?",
+      "What numbers would you need to compare 'chances'?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-033",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Theft rates in two cities",
+    "statement": "A news report says: 'Thefts in City A rose from 50 to 75 last year, a 50% jump, while City B went from 1,000 to 1,200, only a 20% rise. City A clearly has a much worse theft problem than City B.' What is the main flaw?",
+    "answerFormat": "choice",
+    "choices": [
+      "It uses only one year of data, which is never enough.",
+      "City A's figure should have been rounded first.",
+      "Both percentage figures are calculated incorrectly.",
+      "It judges the size of the problem by percentage growth alone, without looking at the actual number of thefts or each city's population."
+    ],
+    "answer": "It judges the size of the problem by percentage growth alone, without looking at the actual number of thefts or each city's population.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Checks the percentages and finds them correct.",
+      "Notes that City B has far more thefts in absolute terms.",
+      "Explains that a high growth rate from a small base can mislead.",
+      "Notes that population is needed to compare theft rates."
+    ],
+    "explanation": "The percentages are right (25/50 = 50%, 200/1,000 = 20%), but a fast rise from a small base does not mean a bigger problem. City B has 1,200 thefts against 75, and without population figures we cannot compare risk per person. Claiming the percentages are wrong fails a simple check.",
+    "hints": [
+      "Are the percentage figures correct?",
+      "Which city has more thefts in total?",
+      "What would you need to compare the risk to one resident?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-034",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Special session after a bad mock",
+    "statement": "A coaching centre picks the 10 students with the lowest scores in Mock Test 1 for a special weekend session. In Mock Test 2 their average rises by 12 marks. The coach says the session clearly works. The scores of students in this batch usually swing by 10–15 marks from test to test. Which alternative explanation should the coach rule out first?",
+    "answerFormat": "choice",
+    "choices": [
+      "Mock Test 2 may have been held on a weekday.",
+      "The students may have liked the coach more after the session.",
+      "Students picked for unusually low scores tend to score closer to their usual level next time, even without extra help.",
+      "The top students may have scored lower in Mock Test 2."
+    ],
+    "answer": "Students picked for unusually low scores tend to score closer to their usual level next time, even without extra help.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes the students were chosen because of one very low score.",
+      "Uses the 10–15 mark swing to show scores vary by chance.",
+      "Explains that an unusually low score tends to be followed by a more normal one.",
+      "Suggests comparing with similar low scorers who did not attend."
+    ],
+    "explanation": "Students were selected for a bad result on one test, and scores normally swing by 10–15 marks, so many would bounce back anyway. A 12-mark rise is within that normal swing, so it does not prove the session helped. How the top students did says nothing about whether the low scorers improved because of the session.",
+    "hints": [
+      "Why were these 10 students chosen?",
+      "What happens next time to someone who had an unusually bad day?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-035",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Cafés and startups",
+    "statement": "A report on Bengaluru finds that neighbourhoods with more cafés also have more startup offices. A columnist writes that opening cafés attracts startups to an area. Which of these is the best alternative explanation for the pattern?",
+    "answerFormat": "choice",
+    "choices": [
+      "Both cafés and startups are drawn to areas with many young professionals and good transport links.",
+      "Startup founders drink more coffee than other people.",
+      "Cafés are cheaper to open than startup offices.",
+      "Some cafés are run by former startup founders."
+    ],
+    "answer": "Both cafés and startups are drawn to areas with many young professionals and good transport links.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Considers a third factor behind both.",
+      "Names a plausible shared cause such as young workers or transport.",
+      "Explains that the link need not run from cafés to startups."
+    ],
+    "explanation": "A shared cause, such as a young workforce and good connectivity, would bring both cafés and startups to the same areas without either causing the other. Founders drinking more coffee would suggest startups attract cafés, the reverse direction, but it is a narrower and weaker explanation of where both are located.",
+    "hints": [
+      "Could something else attract both cafés and startups?",
+      "What kind of area do both businesses look for?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-036",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Library fine backfires",
+    "statement": "A college library started charging a ₹500 fine for each late return. Over the next semester, late returns fell by 60%, but the total number of books borrowed fell by 40%. Which explanation best accounts for both changes?",
+    "answerFormat": "choice",
+    "choices": [
+      "Students started avoiding borrowing books to avoid the risk of a heavy fine.",
+      "Students started returning books on time out of respect for the library.",
+      "The library bought fewer new books that semester.",
+      "Students now prefer e-books, which never have late returns."
+    ],
+    "answer": "Students started avoiding borrowing books to avoid the risk of a heavy fine.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Addresses both the fall in late returns and the fall in borrowing.",
+      "Links the high fine to students borrowing less.",
+      "Notes that fewer loans automatically means fewer late returns.",
+      "Checks that the explanation uses only the facts given."
+    ],
+    "explanation": "A large fine makes borrowing feel risky, so many students borrow less, and fewer loans naturally means fewer late returns. This explains both changes with one cause that is in the scenario. Students returning on time out of respect would explain fewer late returns but not the 40% fall in borrowing.",
+    "hints": [
+      "You need one explanation that fits both numbers.",
+      "How might a ₹500 fine change a student's choice to borrow at all?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-037",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Named survey on office policy",
+    "statement": "An IT company's HR team ran an internal survey on its new five-days-in-office policy. The survey form recorded each employee's name and team. The average rating was 4.2 out of 5. HR concludes that the policy is popular. Which assumption does HR's conclusion depend on?",
+    "answerFormat": "choice",
+    "choices": [
+      "Employees prefer working from office to working from home.",
+      "The survey was sent to every employee in the company.",
+      "A rating of 4.2 is higher than last year's ratings.",
+      "Employees gave honest ratings even though their names were recorded."
+    ],
+    "answer": "Employees gave honest ratings even though their names were recorded.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices that the survey was not anonymous.",
+      "Considers that employees may fear giving low ratings.",
+      "Identifies honesty of answers as the hidden assumption.",
+      "Suggests an anonymous survey to test the result."
+    ],
+    "explanation": "When names are recorded, employees may give high scores to stay safe, so the 4.2 only shows popularity if answers were honest. 'Employees prefer office work' is the conclusion itself, not an assumption behind it. Whether everyone received the survey matters less than whether the answers given can be trusted.",
+    "hints": [
+      "What was unusual about how the survey was collected?",
+      "Would you rate a policy honestly if your manager could see your name?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-038",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Notices on WhatsApp only",
+    "statement": "A college decides to stop putting printed notices on the board and post all notices only in an official WhatsApp group. The principal says this will ensure every student gets updates faster. Which assumption is this plan relying on?",
+    "answerFormat": "choice",
+    "choices": [
+      "WhatsApp is free to use.",
+      "Printed notices were often torn off the board.",
+      "Every student is in the group and checks its messages regularly.",
+      "Teachers prefer WhatsApp to notice boards."
+    ],
+    "answer": "Every student is in the group and checks its messages regularly.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies that students must be in the group.",
+      "Identifies that students must actually read the messages.",
+      "Notes that missing either breaks the claim about 'every student'."
+    ],
+    "explanation": "For 'every student' to get updates faster, all students must be in the group and actually read it. If some are not added or mute the group, they would miss notices entirely. Torn notices give a reason for change but are not something the plan's success relies on.",
+    "hints": [
+      "Who would miss a notice under the new system?",
+      "What has to be true of every student for the plan to work?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-039",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "AI tutor results",
+    "statement": "An ed-tech company reports that school students who used its AI tutoring app for three months improved their maths scores by 15%, while a comparison group improved by 5%. The company says the app caused the extra improvement. Which of the following, if true, most weakens this claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "The students who used the app also got two extra maths classes a week that the comparison group did not.",
+      "The app is available in five Indian languages.",
+      "Some students in the comparison group also improved by more than 15%.",
+      "The app costs ₹999 a month."
+    ],
+    "answer": "The students who used the app also got two extra maths classes a week that the comparison group did not.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Looks for a difference between the groups other than the app.",
+      "Identifies the extra classes as an alternative cause.",
+      "Explains that the 10-point gap can no longer be credited to the app."
+    ],
+    "explanation": "If app users also got extra classes, the 10-point gap could come from the classes rather than the app, so the comparison no longer isolates the app. A few comparison-group students improving a lot is normal variation and does not change the group averages that the claim is based on.",
+    "hints": [
+      "Were the two groups treated the same apart from the app?",
+      "Which option gives the app users another advantage?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-040",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Competitor or price rise",
+    "statement": "A biryani restaurant in Lucknow raised its prices on all days last month. Its weekend orders then fell by 30%. A new restaurant opened nearby the same month. The owner believes the new competitor, not the price rise, caused the drop. Which of the following, if true, most strengthens the owner's view?",
+    "answerFormat": "choice",
+    "choices": [
+      "The new restaurant has good online reviews.",
+      "The new restaurant opens only on weekends, and weekday orders, with the same new prices, did not fall.",
+      "The price rise was only ₹20 per plate.",
+      "Many customers said they found the old prices fair."
+    ],
+    "answer": "The new restaurant opens only on weekends, and weekday orders, with the same new prices, did not fall.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Compares weekend and weekday orders.",
+      "Notes the price rise applied on every day.",
+      "Notes the competitor only operates on weekends.",
+      "Concludes the drop matches the competitor, not the price."
+    ],
+    "explanation": "If the price rose every day but only weekend orders fell, and the competitor only competes at weekends, the pattern points to the competitor. A small ₹20 rise slightly supports the owner, but it does not rule out price sensitivity the way the weekday comparison does. Good reviews show the rival is liked, not that it caused this drop.",
+    "hints": [
+      "Did the price rise affect weekdays too?",
+      "Which option separates the two possible causes?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-041",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Speed cameras on Ring Road",
+    "statement": "The city traffic police say that installing speed cameras on Ring Road reduced accidents there by 25% over the past year. Which of the following, if true, most weakens this claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "Speed cameras cost ₹8 lakh each.",
+      "Ring Road was closed for repairs for four months of that year, sharply reducing traffic on it.",
+      "Some drivers still speed on Ring Road.",
+      "Accidents on other roads also fell slightly."
+    ],
+    "answer": "Ring Road was closed for repairs for four months of that year, sharply reducing traffic on it.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Looks for another reason accidents could fall.",
+      "Identifies the four-month closure as a major cause of fewer accidents.",
+      "Explains that less traffic means fewer accidents regardless of cameras."
+    ],
+    "explanation": "With the road closed for a third of the year, there was much less traffic, so accidents would drop even without cameras. A slight fall elsewhere also hints at outside factors, but a small general fall cannot explain a 25% drop the way the closure can. Some drivers still speeding does not show the cameras had no effect.",
+    "hints": [
+      "Was Ring Road used normally all year?",
+      "Fewer vehicles on a road usually means fewer what?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-042",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Who came to the meetup",
+    "statement": "Exactly three of five friends — Ravi, Sita, Tara, Uma and Vikram — attended a tech meetup. Uma attended. If Ravi attended, Sita did not. Sita and Tara either both attended or both did not. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Vikram attended.",
+      "Tara attended.",
+      "Exactly one of Ravi and Sita attended.",
+      "Ravi did not attend."
+    ],
+    "answer": "Exactly one of Ravi and Sita attended.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes Uma plus two others attended.",
+      "Considers the case where Sita and Tara both attended: then Ravi and Vikram did not.",
+      "Considers the case where neither attended: then Ravi and Vikram did.",
+      "Finds that in both cases exactly one of Ravi and Sita attended."
+    ],
+    "explanation": "With Uma in, two more attended. If Sita and Tara both came, Ravi could not, so the group is Uma, Sita, Tara. If neither came, the other two must be Ravi and Vikram. In both possible groups exactly one of Ravi and Sita is present. 'Vikram attended' is true in only one of the two cases, so it need not be true.",
+    "hints": [
+      "Split into two cases: Sita and Tara both in, or both out.",
+      "List the full group in each case and see what is common."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-043",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "On-call rotations",
+    "statement": "At a SaaS company, every senior developer has done at least one on-call rotation. No intern has ever done an on-call rotation. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Every developer who has done on-call is a senior developer.",
+      "No intern is a senior developer.",
+      "Some interns will become senior developers.",
+      "Junior developers have not done on-call rotations."
+    ],
+    "answer": "No intern is a senior developer.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "States that all senior developers have done on-call.",
+      "States that no intern has done on-call.",
+      "Concludes an intern cannot be a senior developer.",
+      "Avoids reversing the first rule."
+    ],
+    "explanation": "If an intern were a senior developer, that intern would have done on-call, which contradicts the second fact, so no intern is a senior developer. The first option reverses the rule: seniors have done on-call, but others, such as junior developers, may have done it too.",
+    "hints": [
+      "What would happen if some intern were also a senior developer?",
+      "Does 'all seniors did on-call' mean 'only seniors did on-call'?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-044",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Paneer or egg curry",
+    "statement": "A hostel mess serves paneer only on days when egg curry is not served. Egg curry is served every Tuesday and every Friday, and on some other days too. Today paneer is being served. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Today is a day when egg curry is served.",
+      "Paneer is served every day except Tuesday and Friday.",
+      "Today is neither Tuesday nor Friday.",
+      "Today is Wednesday."
+    ],
+    "answer": "Today is neither Tuesday nor Friday.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Reads the rule as: paneer means no egg curry today.",
+      "Links that egg curry is always served on Tuesday and Friday.",
+      "Concludes today cannot be Tuesday or Friday.",
+      "Notes we cannot name the exact day."
+    ],
+    "explanation": "Paneer is only served on days without egg curry, and egg curry is always served on Tuesday and Friday, so today cannot be either of those days. We cannot say which day it is, and the rule does not say paneer is served on every other day, especially since egg curry appears on some other days too.",
+    "hints": [
+      "If paneer is served, what can you say about egg curry today?",
+      "On which days is egg curry certain?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-045",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "T-shirts for the fest",
+    "statement": "The fest committee needs 300 T-shirts by the 10th of the month and has a budget of ₹65,000.\nVendor A: ₹180 per shirt, delivery on the 12th\nVendor B: ₹200 per shirt, delivery on the 8th\nVendor C: ₹170 per shirt, delivery on the 9th, minimum order 500 shirts\nWhich vendor should the committee choose?",
+    "answerFormat": "choice",
+    "choices": [
+      "Vendor A",
+      "Vendor C",
+      "Split the order between A and C",
+      "Vendor B"
+    ],
+    "answer": "Vendor B",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Checks each vendor's delivery date against the 10th.",
+      "Rules out A for delivering on the 12th.",
+      "Calculates C's minimum cost as 500 × ₹170 = ₹85,000, over budget.",
+      "Calculates B's cost as 300 × ₹200 = ₹60,000, within budget."
+    ],
+    "explanation": "Vendor A is cheapest per shirt but delivers two days late. Vendor C looks cheapest, but the 500-shirt minimum makes the bill ₹85,000, well over the ₹65,000 budget. Vendor B costs ₹60,000 and delivers on time, so it is the only vendor meeting every requirement.",
+    "hints": [
+      "Check the deadline first, then the budget.",
+      "What is the smallest bill Vendor C would send?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-046",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Bug before the demo",
+    "statement": "A startup has a client demo in two hours. A bug causes payment failures for about 2% of users in the live app. A developer has a fix ready, but it changes the payment code and no one has had time to test it. The demo will not touch payments. What is the best decision?",
+    "answerFormat": "choice",
+    "choices": [
+      "Release the untested fix to live users before the demo so the app is bug-free.",
+      "Run the demo on the current version, tell the client about the known payment issue, and release the fix only after testing.",
+      "Cancel the demo until the payment bug is fixed and tested.",
+      "Hide the bug from the client and fix it quietly next week."
+    ],
+    "answer": "Run the demo on the current version, tell the client about the known payment issue, and release the fix only after testing.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes the demo does not depend on payments.",
+      "Weighs the risk of an untested change to payment code.",
+      "Chooses to test the fix before release.",
+      "Includes being honest with the client about the known issue."
+    ],
+    "explanation": "The demo does not use payments, so the bug does not threaten it, while an untested change to payment code could break payments for far more than 2% of users. Testing first and being open with the client limits both risks. Rushing the fix out trades a small known problem for a possibly larger unknown one.",
+    "hints": [
+      "Does the bug affect the demo?",
+      "What could go wrong with an untested change to payment code?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-047",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Choosing the analyst",
+    "statement": "A logistics company is hiring a reporting analyst who will work alone writing SQL queries for daily reports; SQL is the main part of the job. The company offers free communication training to new hires but no SQL training. Candidate X scored 85/100 on the SQL test and has average communication skills. Candidate Y scored 50/100 on SQL and has excellent communication skills. Who should be hired?",
+    "answerFormat": "choice",
+    "choices": [
+      "Candidate Y, because communication skills matter in every job.",
+      "Candidate X, because SQL is the core of the job and communication can be improved through the training provided.",
+      "Candidate Y, because SQL can be learned quickly on the job.",
+      "Neither, because no candidate is strong in both areas."
+    ],
+    "answer": "Candidate X, because SQL is the core of the job and communication can be improved through the training provided.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies SQL as the main requirement of the role.",
+      "Notes the role involves working alone.",
+      "Uses the fact that only communication training is offered.",
+      "Concludes X's gap is easier to close than Y's."
+    ],
+    "explanation": "The role is mostly solo SQL work, so X's strong SQL score matters most, and the company can close X's communication gap with its own training. Y's weaker SQL would hurt daily output and the company offers no SQL training, so the claim that SQL can be learned quickly on the job is not supported by anything in the scenario.",
+    "hints": [
+      "What does the person do all day in this role?",
+      "Which skill gap can the company itself help fix?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-048",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Score needed in the final",
+    "statement": "A course is graded as follows:\nAssignments: 30% of the total\nMidterm: 30% of the total\nFinal exam: 40% of the total\nLakshmi scored 80 in assignments and 60 in the midterm (all out of 100). What is the minimum final exam score she needs for an overall score of 75?",
+    "answerFormat": "choice",
+    "choices": [
+      "75",
+      "85",
+      "82.5",
+      "90"
+    ],
+    "answer": "82.5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Calculates assignment contribution: 0.3 × 80 = 24.",
+      "Calculates midterm contribution: 0.3 × 60 = 18.",
+      "Sets up 24 + 18 + 0.4 × F = 75.",
+      "Solves F = 33 ÷ 0.4 = 82.5."
+    ],
+    "explanation": "Her current contribution is 24 + 18 = 42 points, so the final must add 33 points. Since the final counts 40%, she needs 33 ÷ 0.4 = 82.5. Answering 75 assumes she just needs the target score in the final, which ignores that her midterm pulls her average down.",
+    "hints": [
+      "How many weighted points has she already earned?",
+      "The final is worth 40%, so final score × 0.4 must cover the gap."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-049",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Monthly active users",
+    "statement": "A study-planner app recorded its monthly active users:\nJanuary: 2,000\nFebruary: 2,400\nMarch: 2,880\nApril: 3,168\nWhich statement is best supported by the data?",
+    "answerFormat": "choice",
+    "choices": [
+      "The growth rate stayed the same every month.",
+      "April added more new users than any other month.",
+      "Users doubled between January and April.",
+      "Users grew every month, but the growth rate fell in April."
+    ],
+    "answer": "Users grew every month, but the growth rate fell in April.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Computes monthly growth: 20%, 20%, 10%.",
+      "Computes new users added: 400, 480, 288.",
+      "Notes April's growth rate dropped to 10%.",
+      "Checks that 3,168 is less than double 2,000."
+    ],
+    "explanation": "Growth was 400/2,000 = 20%, 480/2,400 = 20%, and 288/2,880 = 10%, so users rose each month but April's rate halved. April added only 288 users, the fewest, and 3,168 is about 1.58 times 2,000, not double.",
+    "hints": [
+      "Calculate the number of new users each month.",
+      "Divide each increase by the previous month's users."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-050",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Funnel after improvements",
+    "statement": "An online course platform's funnel last month:\nWebsite visits: 10,000\nSign-ups: 800\nPaid students: 120\nNext month, visits are expected to rise by 25% with the same sign-up rate, and the share of sign-ups who pay is expected to rise to 20%. How many paid students should they expect?",
+    "answerFormat": "choice",
+    "choices": [
+      "150",
+      "160",
+      "180",
+      "200"
+    ],
+    "answer": "200",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Calculates the sign-up rate as 800 ÷ 10,000 = 8%.",
+      "Calculates new visits as 12,500 and new sign-ups as 1,000.",
+      "Applies 20% to get 200 paid students."
+    ],
+    "explanation": "Visits become 12,500, and at 8% that gives 1,000 sign-ups; 20% of those pay, so 200 paid students. The tempting 160 comes from applying the new 20% rate to the old 800 sign-ups and forgetting the rise in visits; 150 comes from raising 120 by 25% and ignoring the better paid rate.",
+    "hints": [
+      "Find the sign-up rate first.",
+      "Apply both changes: more visits and a higher paid rate."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-051",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Entrance test lifts JEE scores",
+    "statement": "A coaching centre advertises: 'After we introduced our new teaching method this year, our students' average JEE Main score rose from 140 to 165.' In the same year, the centre also began admitting students only if they cleared its own entrance test; earlier it admitted anyone who paid. What is the main flaw in crediting the teaching method?",
+    "answerFormat": "choice",
+    "choices": [
+      "A 25-mark rise is too small to be meaningful in JEE Main.",
+      "JEE Main papers differ every year, so no comparison is ever possible.",
+      "The centre now admits only students who pass a test, so the rise may reflect stronger students rather than better teaching.",
+      "The centre did not say how many teachers it has."
+    ],
+    "answer": "The centre now admits only students who pass a test, so the rise may reflect stronger students rather than better teaching.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices that the admission policy changed at the same time.",
+      "Explains that a selective entrance test raises the average intake ability.",
+      "Concludes the score rise cannot be credited to the teaching method alone.",
+      "Suggests comparing students of similar starting ability across years."
+    ],
+    "explanation": "When the centre started filtering students by test, the students themselves changed, so higher scores are expected even with the same teaching. That change, happening in the same year, is the main reason the ad's conclusion is unsafe. Paper differences add noise, but saying no comparison is ever possible goes too far and misses the specific problem here.",
+    "hints": [
+      "What else changed at the centre that year?",
+      "Who is in this year's batch compared with last year's?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-052",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "The compare button",
+    "statement": "An e-commerce company found that customers who used its 'compare products' feature returned 30% fewer items than other customers. It made the compare button three times bigger. Use of the feature tripled, but the overall return rate did not change. What best explains this result?",
+    "answerFormat": "choice",
+    "choices": [
+      "Customers who chose to compare earlier were careful shoppers who return less anyway; the feature itself had little effect on returns.",
+      "The bigger button annoyed customers, which raised returns and cancelled the benefit.",
+      "Returns take time to show, so the effect will appear after several years.",
+      "Tripling usage must have reduced returns, so the return data must be wrong."
+    ],
+    "answer": "Customers who chose to compare earlier were careful shoppers who return less anyway; the feature itself had little effect on returns.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes the original users chose to use the feature.",
+      "Suggests careful shoppers both compare and return less.",
+      "Uses the unchanged return rate after tripled usage as evidence.",
+      "Concludes the earlier link was mainly about who used the feature."
+    ],
+    "explanation": "If comparing truly cut returns, tripling its use should have lowered the return rate. It did not, which suggests the early link came from the kind of customer who compares, not from the feature. The 'annoyed customers' idea is invented to rescue the original belief, and nothing in the scenario supports it.",
+    "hints": [
+      "Who was using the compare feature before the change?",
+      "If the feature reduced returns, what should have happened when usage tripled?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-053",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Shorter videos, more finishers",
+    "statement": "An online learning company shortened its lecture videos from 20 minutes to 8 minutes. Course completion rose from 30% to 60% the following quarter. The company concludes that shorter videos make learners finish courses. Which assumption is this conclusion most dependent on?",
+    "answerFormat": "choice",
+    "choices": [
+      "Nothing else that affects the completion figure, such as how completion is counted or who enrols, changed in a way that would raise it on its own.",
+      "Learners prefer short videos to long videos.",
+      "All courses were shortened by exactly the same amount.",
+      "Eight minutes is the best possible length for a lecture video."
+    ],
+    "answer": "Nothing else that affects the completion figure, such as how completion is counted or who enrols, changed in a way that would raise it on its own.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Recognises the conclusion is causal: shorter videos caused the rise.",
+      "Identifies that other changes could also explain the rise.",
+      "Tests the options by negating them.",
+      "Shows that if the completion definition or learner mix changed, the conclusion collapses."
+    ],
+    "explanation": "If the company also changed how 'completion' is counted or attracted a different kind of learner, the rise could have nothing to do with video length, so the argument needs those things to have stayed the same. Learners preferring short videos sounds necessary but is not: even learners who dislike short videos might finish more because each step is quicker.",
+    "hints": [
+      "Try the negation test: if this option were false, would the conclusion fall apart?",
+      "What else could have doubled the completion figure?"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "critical-054",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Going fully remote",
+    "statement": "A Bengaluru startup pays ₹4 lakh a month for its office. The CEO plans to go fully remote and says: 'This saves ₹48 lakh a year, so our annual profit will increase by ₹48 lakh.' Which assumption is the CEO's conclusion most dependent on?",
+    "answerFormat": "choice",
+    "choices": [
+      "Employees prefer working from home to working from the office.",
+      "Office rents in Bengaluru will keep rising.",
+      "Going remote will not create new costs or reduce revenue enough to cancel out the rent savings.",
+      "The startup's competitors are also going remote."
+    ],
+    "answer": "Going remote will not create new costs or reduce revenue enough to cancel out the rent savings.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Checks the arithmetic: ₹4 lakh × 12 = ₹48 lakh.",
+      "Notes that profit depends on all costs and revenue, not just rent.",
+      "Identifies possible new costs, such as home-office allowances or co-working days.",
+      "Identifies possible revenue effects, such as lower productivity."
+    ],
+    "explanation": "The saving is correct, but profit rises by ₹48 lakh only if nothing else changes: no new remote-work costs and no hit to revenue. If productivity drops or new allowances are paid, profit rises by less. Employees preferring remote work might help, but the profit claim does not require it.",
+    "hints": [
+      "Profit = revenue − all costs. Which parts might change?",
+      "What new expenses or losses could remote work bring?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-055",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Bike lanes and road deaths",
+    "statement": "A study of Indian cities finds that cities with more kilometres of bike lanes have fewer traffic deaths per lakh people. A planner argues that building bike lanes saves lives. Which of the following, if true, most weakens the planner's argument?",
+    "answerFormat": "choice",
+    "choices": [
+      "Some cyclists still die in cities that have bike lanes.",
+      "Bike lanes cost more to build than ordinary road widening.",
+      "Cities with more bike lanes also have more cyclists.",
+      "Cities that built many bike lanes had already lowered speed limits, and their traffic deaths were falling before the lanes were built."
+    ],
+    "answer": "Cities that built many bike lanes had already lowered speed limits, and their traffic deaths were falling before the lanes were built.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the claim as causal.",
+      "Looks for an alternative cause of fewer deaths.",
+      "Notes that falling deaths before the lanes existed points to another cause.",
+      "Explains why the other options do not undermine the cause."
+    ],
+    "explanation": "If deaths were already falling because of lower speed limits before any lanes were built, the safer roads explain the pattern and the lanes may add little. Cyclists still dying does not show the lanes are useless, only that they are not perfect. More cyclists is ambiguous and could even make the lower death rate more impressive.",
+    "hints": [
+      "What could make a city safer apart from bike lanes?",
+      "What does it mean if deaths were falling before the lanes existed?"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "critical-056",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Two-reviewer rule",
+    "statement": "An engineering manager says a new rule requiring two code reviewers for every change caused production bugs in Team A to fall by 40% over six months. Which of the following, if true, most strengthens the manager's claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "Developers in Team A say they like the new rule.",
+      "Team B, which works on similar code and did not adopt the rule, saw no drop in bugs over the same period, while Team A released as often as before.",
+      "Team A also hired two senior developers during those six months.",
+      "Bugs in Team A fell most in the month the rule started."
+    ],
+    "answer": "Team B, which works on similar code and did not adopt the rule, saw no drop in bugs over the same period, while Team A released as often as before.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Looks for a comparison group without the rule.",
+      "Notes Team B is similar and saw no drop.",
+      "Rules out fewer releases as the reason for fewer bugs.",
+      "Explains why timing alone is weaker evidence."
+    ],
+    "explanation": "A similar team without the rule seeing no change rules out a general cause, and Team A releasing as often as before rules out 'fewer bugs because less was shipped'. Bugs falling right after the rule started supports the claim a little, but timing alone cannot exclude other changes. Hiring senior developers weakens the claim by offering another cause.",
+    "hints": [
+      "What would happen without the rule?",
+      "Could Team A have fewer bugs just because it shipped less?"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "critical-057",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Presentation schedule",
+    "statement": "Five interns — P, Q, R, S and T — each give one presentation, one per day from Monday to Friday. Q presents on some day before R. S presents on Wednesday. P presents on the day immediately after T. R does not present on Friday. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "T presents on Monday.",
+      "R presents on Thursday.",
+      "Q presents on Tuesday.",
+      "P presents on Friday."
+    ],
+    "answer": "P presents on Friday.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Places S on Wednesday.",
+      "Notes T and P must be Mon–Tue or Thu–Fri.",
+      "Shows Mon–Tue fails because Q and R would be Thu and Fri, putting R on Friday.",
+      "Concludes T is Thursday and P is Friday, with Q Monday and R Tuesday."
+    ],
+    "explanation": "With S fixed on Wednesday, the T-then-P pair fits only Monday–Tuesday or Thursday–Friday. If T and P took Monday–Tuesday, Q and R would fill Thursday–Friday with R on Friday, which is not allowed. So T is Thursday and P is Friday, leaving Q on Monday and R on Tuesday. 'T presents on Monday' is the arrangement that breaks the R rule.",
+    "hints": [
+      "Where can the T-P pair go if Wednesday is taken?",
+      "Try T and P on Monday–Tuesday: where must R go?"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "critical-058",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Safe plan or big bet",
+    "statement": "A startup with ₹5 lakh cash left must pick one plan for the next quarter.\nPlan A: a certain profit of ₹10 lakh.\nPlan B: a 50% chance of ₹30 lakh profit and a 50% chance of an ₹8 lakh loss.\nAny loss larger than its cash would force the startup to shut down. Which plan should it choose?",
+    "answerFormat": "choice",
+    "choices": [
+      "Plan B, because its expected profit of ₹11 lakh is higher.",
+      "Plan A, because Plan B's slightly higher expected profit comes with a 50% chance of shutting down.",
+      "Plan B, because the possible ₹30 lakh is three times Plan A's profit.",
+      "Either plan, because their expected profits are almost the same."
+    ],
+    "answer": "Plan A, because Plan B's slightly higher expected profit comes with a 50% chance of shutting down.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Calculates Plan B's expected profit: 0.5 × 30 + 0.5 × (−8) = ₹11 lakh.",
+      "Notes an ₹8 lakh loss exceeds the ₹5 lakh cash.",
+      "Recognises that shutting down is an outcome it cannot recover from.",
+      "Concludes the ₹1 lakh extra expected profit does not justify the risk."
+    ],
+    "explanation": "Plan B's expected profit is ₹11 lakh, only ₹1 lakh more than Plan A, but half the time it causes an ₹8 lakh loss that the startup cannot survive. When one outcome ends the company, comparing averages alone is misleading. Choosing B on expected value ignores that the startup gets only one try.",
+    "hints": [
+      "Work out Plan B's expected profit.",
+      "What happens to the startup in Plan B's bad case?"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "critical-059",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Which delivery hub is better",
+    "statement": "On-time deliveries last month for two hubs:\nHub X short routes: 45 of 50 on time\nHub X long routes: 120 of 200 on time\nHub Y short routes: 170 of 200 on time\nHub Y long routes: 25 of 50 on time\nWhich conclusion is best supported?",
+    "answerFormat": "choice",
+    "choices": [
+      "Hub Y is better overall, so it performs better on both route types.",
+      "Both hubs perform equally, because each handled 250 deliveries.",
+      "Hub X is better on short routes, but Hub Y is better on long routes.",
+      "Hub X is better on both short and long routes; Hub Y's higher overall rate comes from handling mostly short routes."
+    ],
+    "answer": "Hub X is better on both short and long routes; Hub Y's higher overall rate comes from handling mostly short routes.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Computes Hub X rates: short 90%, long 60%.",
+      "Computes Hub Y rates: short 85%, long 50%.",
+      "Computes overall rates: X 66%, Y 78%.",
+      "Explains that Y does mostly easier short routes, which lifts its overall rate."
+    ],
+    "explanation": "Hub X beats Hub Y on short routes (90% vs 85%) and long routes (60% vs 50%). Yet overall Y scores 195/250 = 78% against X's 165/250 = 66%, because 200 of Y's deliveries are easy short routes while 200 of X's are hard long ones. Judging by the overall rate alone gets the comparison backwards.",
+    "hints": [
+      "Compute the on-time rate for each hub and route type separately.",
+      "Then compute the overall rates. Why do they point the other way?",
+      "Look at what share of each hub's work is long routes."
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "seedKey": "critical-060",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Food truck break-even",
+    "statement": "A food truck in Pune has these monthly figures:\nFixed costs (rent, permit, salary): ₹36,000 per month\nSelling price: ₹120 per meal\nIngredient cost: ₹60 per meal\nDelivery app commission: 10% of the selling price on every meal\nThe truck operates 25 days a month and all meals are sold through the app. What is the minimum number of meals per day it must sell to avoid a loss?",
+    "answerFormat": "choice",
+    "choices": [
+      "30",
+      "24",
+      "27",
+      "34"
+    ],
+    "answer": "30",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Calculates commission as 10% of ₹120 = ₹12 per meal.",
+      "Calculates the margin per meal: ₹120 − ₹12 − ₹60 = ₹48.",
+      "Divides fixed costs by margin: ₹36,000 ÷ ₹48 = 750 meals a month.",
+      "Divides by 25 days to get 30 meals per day."
+    ],
+    "explanation": "Each meal earns ₹120 minus ₹12 commission minus ₹60 ingredients, leaving ₹48 to cover fixed costs. Covering ₹36,000 needs 750 meals, which is 30 a day over 25 days. The tempting 24 comes from forgetting the commission and using a ₹60 margin.",
+    "hints": [
+      "How much does each meal actually contribute after all per-meal costs?",
+      "Don't forget the app's 10% cut.",
+      "Monthly meals needed = fixed costs ÷ margin per meal; then divide by 25."
+    ],
+    "estimatedMinutes": 7
+  }
+]

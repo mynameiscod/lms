@@ -24,6 +24,7 @@ import * as demoPlans from '../controllers/demoPlanController';
 import * as demoAccess from '../controllers/demoAccessController';
 import * as jobOpenings from '../controllers/jobOpeningController';
 import * as thinkingBank from '../controllers/thinkingBankController';
+import * as labsToday from '../services/labTodayService';
 import * as interviewPlans from '../controllers/interviewPlanController';
 import * as activity from '../controllers/careerPilotActivityController';
 import * as learningUnits from '../controllers/conceptLearningUnitController';
@@ -382,6 +383,9 @@ router.put('/gamification/admin/levels',                MANAGE_FOR.cpSetup, gami
 router.put('/gamification/admin/leaderboard',           MANAGE_FOR.cpSetup, gamification.updateLeaderboardSettings);
 router.put('/gamification/admin/task-xp',               MANAGE_FOR.cpSetup, gamification.updateTaskXp);
 router.put('/gamification/admin/lab-streak',            MANAGE_FOR.cpSetup, gamification.updateLabStreak);
+router.put('/gamification/admin/lab-daily',             MANAGE_FOR.cpSetup, gamification.updateLabDaily);
+// Both labs' progress today, for My N Days and the Communication Lab (services/labTodayService).
+router.get('/labs/today',                               MEMBER, labsToday.labsToday);
 // One task's XP is set where the task is built, so content editors may price it too.
 router.get('/gamification/task-prices',                 MANAGE_FOR.cpContent, gamification.getTaskPrices);
 router.put('/gamification/task-prices/override',        MANAGE_FOR.cpContent, gamification.setTaskOverride);

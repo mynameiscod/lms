@@ -1,0 +1,1844 @@
+[
+  {
+    "seedKey": "logical-001",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Five friends on a park bench",
+    "statement": "Arjun, Bhavna, Chetan, Divya and Esha sit in a row on a park bench in Lalbagh, all facing north.\n- Chetan sits exactly in the middle.\n- Arjun sits at the extreme left end.\n- Esha sits immediately to the right of Chetan.\n- Divya does not sit next to Arjun.\nWho sits second from the left end?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Bhavna",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Chetan takes the middle (3rd) seat and Arjun the 1st seat.",
+      "Esha is immediately right of Chetan, so she takes the 4th seat.",
+      "Bhavna and Divya share seats 2 and 5.",
+      "Divya cannot be next to Arjun, so Divya is in seat 5 and Bhavna in seat 2."
+    ],
+    "explanation": "Number the seats 1 to 5 from the left. Chetan is in seat 3, Arjun in seat 1 and Esha in seat 4. Seats 2 and 5 remain for Bhavna and Divya; seat 2 is next to Arjun, so Divya takes seat 5. Bhavna is second from the left.",
+    "hints": [
+      "Number the seats 1 to 5 from left to right and place the fixed people first.",
+      "Only seats 2 and 5 are left after placing Chetan, Arjun and Esha.",
+      "Seat 2 touches Arjun's seat, so who cannot sit there?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-002",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Canteen queue order",
+    "statement": "Five students stand in a single queue at the college canteen counter: Ravi, Sita, Tarun, Uma and Vikram.\n- Tarun is first in the queue.\n- Vikram is last.\n- Ravi stands somewhere ahead of Sita but somewhere behind Uma.\nWho is third in the queue?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Ravi",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Tarun is 1st and Vikram is 5th.",
+      "Uma, Ravi and Sita fill positions 2, 3 and 4.",
+      "The order among them must be Uma, then Ravi, then Sita.",
+      "So Ravi is 3rd."
+    ],
+    "explanation": "Tarun takes position 1 and Vikram position 5. The remaining positions 2, 3 and 4 go to Uma, Ravi and Sita, and the clue forces the order Uma before Ravi before Sita. So Uma is 2nd, Ravi 3rd and Sita 4th.",
+    "hints": [
+      "Fix the first and last positions first.",
+      "Three people are left for three positions in the middle.",
+      "Ravi is behind Uma and ahead of Sita, so he must be in the middle of those three."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-003",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Four friends at a square table",
+    "statement": "Kiran, Lata, Mohan and Neha sit around a square table at a dhaba, one on each side, all facing the centre of the table.\n- Kiran sits opposite Mohan.\n- Lata sits on Kiran's immediate left.\nWho sits on Kiran's immediate right?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Neha",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Kiran and Mohan occupy opposite sides.",
+      "Lata takes the side on Kiran's left.",
+      "The only side left for Neha is on Kiran's right."
+    ],
+    "explanation": "With Kiran and Mohan opposite each other, the two remaining sides are Kiran's left and Kiran's right. Lata is on Kiran's left, so Neha must be on Kiran's right.",
+    "hints": [
+      "Draw the square and put Kiran at the bottom facing up.",
+      "Mohan is opposite Kiran, so two sides remain: Kiran's left and right.",
+      "Once Lata takes the left side, who is left for the right side?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-004",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Six colleagues at a round table",
+    "statement": "Six colleagues - Priya, Qadir, Rohan, Swati, Tanvi and Uday - sit around a round table in an office in Hyderabad, equally spaced and all facing the centre.\n- Priya sits exactly opposite Swati.\n- Rohan sits immediately to the left of Priya.\n- Uday sits second to the right of Rohan.\n- Tanvi sits next to Rohan.\nWho sits immediately to the right of Swati?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Tanvi",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Place Priya, then Swati exactly opposite her (three seats away).",
+      "Rohan is on Priya's immediate left.",
+      "Second to the right of Rohan is Priya's immediate right, so Uday sits there.",
+      "The two free seats are both next to Swati; Tanvi takes the one next to Rohan and Qadir the other.",
+      "Tanvi's seat is on Swati's immediate right."
+    ],
+    "explanation": "Fix Priya and put Swati opposite her. Rohan is on Priya's left and Uday, second to Rohan's right, lands on Priya's right. The two empty seats lie on either side of Swati; Tanvi must be next to Rohan, so she takes the seat between Rohan and Swati, and Qadir sits between Swati and Uday. For people facing the centre, the seat between Rohan and Swati is Swati's immediate right, so the answer is Tanvi.",
+    "hints": [
+      "Draw a circle with six seats and put Priya at the bottom facing the centre.",
+      "For someone facing the centre, their left is clockwise when viewed from above.",
+      "Uday ends up on Priya's right; which free seat is next to Rohan?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-005",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Seven in a row at a bus stop",
+    "statement": "Seven people - Aarav, Bhuvan, Charu, Dev, Ekta, Farhan and Gita - sit in a row on a long bench at a bus stop, all facing the road (north).\n- Dev sits exactly in the centre of the row.\n- Exactly two people sit between Aarav and Dev.\n- Gita sits immediately to the right of Aarav.\n- Farhan sits at one of the two ends.\n- Charu sits somewhere between Dev and Farhan, but not next to Farhan.\n- Ekta does not sit next to Gita.\nWho sits between Gita and Dev?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Bhuvan",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Dev is in seat 4, so Aarav is in seat 1 or seat 7.",
+      "Gita is immediately right of Aarav, so Aarav must be in seat 1 and Gita in seat 2.",
+      "Farhan takes the other end, seat 7.",
+      "Charu is between Dev and Farhan but not next to Farhan, so Charu is in seat 5.",
+      "Ekta cannot be in seat 3 (next to Gita), so Ekta is in seat 6 and Bhuvan in seat 3."
+    ],
+    "explanation": "Number seats 1 to 7 from the left. Dev is in seat 4, and two people between Aarav and Dev puts Aarav at seat 1 or 7; Gita on Aarav's right rules out seat 7, so Aarav is 1 and Gita 2. Farhan takes seat 7, and Charu must be in seat 5 (seat 6 touches Farhan). Seats 3 and 6 remain; Ekta cannot be in seat 3 beside Gita, so Bhuvan sits in seat 3, between Gita and Dev.",
+    "hints": [
+      "Dev's seat is fixed; count three seats away on each side to find Aarav's options.",
+      "If Aarav were at the right end, there would be no seat on his right for Gita.",
+      "After placing Farhan and Charu, only seats 3 and 6 are free."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-006",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Five floors of an apartment",
+    "statement": "Anjali, Balu, Chitra, Dinesh and Elango each live on a different floor of a five-storey apartment block in Chennai. Floor 1 is the lowest and floor 5 is the top.\n- Chitra lives above Dinesh but below Anjali.\n- Dinesh does not live on floor 1.\n- Anjali does not live on the top floor.\n- Elango lives on a lower floor than Balu.\nWho lives on floor 1?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Elango",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Dinesh, Chitra and Anjali are in increasing order of floors.",
+      "Dinesh is at least on floor 2 and Anjali at most on floor 4.",
+      "So Dinesh is on 2, Chitra on 3 and Anjali on 4.",
+      "Floors 1 and 5 are left; Elango is below Balu, so Elango is on floor 1."
+    ],
+    "explanation": "Dinesh < Chitra < Anjali in floor numbers. Dinesh is not on floor 1 and Anjali is not on floor 5, so the only fit is Dinesh 2, Chitra 3, Anjali 4. Balu and Elango take floors 1 and 5, and since Elango is lower, Elango lives on floor 1.",
+    "hints": [
+      "Write the three people in the 'above/below' chain in order.",
+      "That chain must fit between floor 2 and floor 4.",
+      "Which two floors are left, and who must be lower?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-007",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Eight guests around a wedding table",
+    "statement": "Eight guests - Arun, Bindu, Chandra, Deepa, Eshwar, Fathima, Gokul and Hema - sit around a circular table at a wedding reception in Madurai, equally spaced and all facing the centre.\n- Eshwar sits exactly opposite Arun.\n- Hema sits immediately to the left of Arun.\n- Deepa sits immediately to the right of Arun.\n- Exactly one person sits between Hema and Fathima.\n- Gokul sits immediately to the left of Bindu.\n- Bindu does not sit next to Deepa.\n- Chandra sits next to Hema.\nWho sits second to the right of Eshwar?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Chandra",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Fix Arun; Eshwar is four seats away, Hema on Arun's left and Deepa on Arun's right.",
+      "Chandra must be Hema's other neighbour, i.e. second to the left of Arun.",
+      "Fathima, with one person between her and Hema, takes the seat after Chandra (next to Eshwar).",
+      "On the other side, Gokul is on Bindu's left and Bindu is not next to Deepa, so Bindu sits next to Eshwar and Gokul next to Deepa.",
+      "Counting two seats to Eshwar's right lands on Chandra."
+    ],
+    "explanation": "Going round to the left from Arun (clockwise when viewed from above, since everyone faces the centre) the order is Arun, Hema, Chandra, Fathima, Eshwar, Bindu, Gokul, Deepa. Hema and Deepa flank Arun, Chandra must sit beside Hema, and Fathima, with one seat between her and Hema, fills the next seat. The two free seats between Eshwar and Deepa go to Bindu and Gokul; with Gokul on Bindu's left and Bindu away from Deepa, Bindu is beside Eshwar. Eshwar's immediate right is Fathima and his second to the right is Chandra.",
+    "hints": [
+      "Place Arun, Eshwar (opposite), Hema and Deepa first.",
+      "Hema's other neighbouring seat is the only one left for Chandra; then place Fathima.",
+      "Bindu cannot be next to Deepa, which fixes Bindu and Gokul."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-008",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Six floors, six favourite snacks",
+    "statement": "Rahul, Sneha, Tejas, Uma, Vivek and Wasim live on different floors of a six-storey building in Pune (floor 1 is the lowest, floor 6 the top). Each likes a different snack: Samosa, Dosa, Idli, Vada pav, Poha or Jalebi.\n- Sneha lives on the top floor.\n- The person who likes Idli lives immediately below Sneha.\n- The person who likes Poha lives on floor 1.\n- Uma lives immediately below the person who likes Dosa.\n- The person who likes Samosa lives exactly two floors above Tejas.\n- Wasim likes Jalebi and lives on an odd-numbered floor.\n- Vivek lives on a higher floor than Rahul.\n- Sneha likes neither Samosa nor Dosa.\nWhich snack does Sneha like?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Vada pav",
+    "acceptedAnswers": [
+      "Vada Pav",
+      "Vadapav",
+      "Vada-pav"
+    ],
+    "keySteps": [
+      "Sneha is on floor 6, the Idli lover on floor 5 and the Poha lover on floor 1, so Sneha likes neither Idli nor Poha.",
+      "Jalebi is Wasim's and the last clue removes Samosa and Dosa, leaving Vada pav for Sneha.",
+      "Cross-check with a full arrangement: Uma 1 (Poha), Tejas 2 (Dosa), Wasim 3 (Jalebi), Rahul 4 (Samosa), Vivek 5 (Idli), Sneha 6.",
+      "This is the only arrangement that satisfies every clue."
+    ],
+    "explanation": "Floor 6 is Sneha's, floor 5 belongs to the Idli lover and floor 1 to the Poha lover, so Sneha cannot like Idli or Poha; Jalebi is Wasim's, and the last clue removes Samosa and Dosa, leaving Vada pav. The full arrangement confirms the clues are consistent: Uma 1 (Poha), Tejas 2 (Dosa), Wasim 3 (Jalebi), Rahul 4 (Samosa), Vivek 5 (Idli), Sneha 6 (Vada pav).",
+    "hints": [
+      "Start with the floors you know: 6, 5 and 1.",
+      "List the six snacks and cross out the ones Sneha cannot like.",
+      "Only one snack survives; check it against a full arrangement."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-009",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The only son of my grandfather",
+    "statement": "Pointing to a girl in a photograph, Ramesh says, \"She is the daughter of my paternal grandfather's only son.\" How is the girl related to Ramesh?",
+    "answerFormat": "choice",
+    "choices": [
+      "Cousin",
+      "Sister",
+      "Aunt",
+      "Niece"
+    ],
+    "answer": "Sister",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Ramesh's paternal grandfather's only son is Ramesh's father.",
+      "The girl is the daughter of Ramesh's father.",
+      "A daughter of one's father is one's sister."
+    ],
+    "explanation": "Ramesh's paternal grandfather has only one son, and that son must be Ramesh's father. The girl is that man's daughter, so she is Ramesh's sister.",
+    "hints": [
+      "Who is the son of your father's father?",
+      "If the grandfather has only one son, that son is your father.",
+      "What do you call your father's daughter?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-010",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Kamala's children",
+    "statement": "Anil and Sunita are brother and sister with the same parents. Sunita is the daughter of Kamala. How is Kamala related to Anil?",
+    "answerFormat": "choice",
+    "choices": [
+      "Aunt",
+      "Grandmother",
+      "Mother",
+      "Sister"
+    ],
+    "answer": "Mother",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Kamala is Sunita's mother.",
+      "Anil and Sunita share the same parents.",
+      "So Kamala is Anil's mother too."
+    ],
+    "explanation": "Sunita is Kamala's daughter, so Kamala is Sunita's mother. Since Anil has the same parents as Sunita, Kamala is also Anil's mother.",
+    "hints": [
+      "What is Kamala to Sunita?",
+      "Anil and Sunita have the same parents.",
+      "So Kamala is the same relation to Anil."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-011",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Mohan's father",
+    "statement": "Gopal is a man. Mohan's father is the only son of Gopal's father. How is Gopal related to Mohan?",
+    "answerFormat": "choice",
+    "choices": [
+      "Uncle",
+      "Grandfather",
+      "Brother",
+      "Father"
+    ],
+    "answer": "Father",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Gopal is a son of Gopal's father.",
+      "Gopal's father has only one son, so that son is Gopal himself.",
+      "Mohan's father is therefore Gopal."
+    ],
+    "explanation": "Gopal is a man, so he is a son of his own father. That father has only one son, so the 'only son of Gopal's father' is Gopal. Mohan's father is Gopal.",
+    "hints": [
+      "Is Gopal himself a son of Gopal's father?",
+      "If there is only one son, who must it be?",
+      "Then whose father is Gopal?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-012",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Lakshmi and Kiran",
+    "statement": "Lakshmi is married to Venkat. Padma is Venkat's sister. Kiran is Padma's son. How is Kiran related to Lakshmi?",
+    "answerFormat": "choice",
+    "choices": [
+      "Son",
+      "Nephew",
+      "Cousin",
+      "Brother-in-law"
+    ],
+    "answer": "Nephew",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Padma is Lakshmi's sister-in-law (husband's sister).",
+      "Kiran is the son of Lakshmi's husband's sister.",
+      "A boy who is the son of one's sister-in-law is one's nephew."
+    ],
+    "explanation": "Padma is the sister of Lakshmi's husband Venkat. Kiran is Padma's son, which makes him Venkat's nephew, and so Lakshmi's nephew as well.",
+    "hints": [
+      "How is Padma related to Lakshmi?",
+      "Kiran is Venkat's sister's son - what is he to Venkat?",
+      "A husband's nephew is also the wife's nephew."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-013",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Symbol-coded family",
+    "statement": "In a code: A + B means A is the mother of B; A - B means A is the brother of B; A x B means A is the father of B; A / B means A is the sister of B.\nIf P x Q - R / S, how is P related to S?",
+    "answerFormat": "choice",
+    "choices": [
+      "Father",
+      "Uncle",
+      "Grandfather",
+      "Brother"
+    ],
+    "answer": "Father",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "P x Q: P is the father of Q.",
+      "Q - R: Q is the brother of R, so R is also P's child.",
+      "R / S: R is the sister of S, so S is also P's child.",
+      "Hence P is the father of S."
+    ],
+    "explanation": "P is Q's father. Q is R's brother and R is S's sister, so Q, R and S are siblings. P is the father of all three, so P is S's father.",
+    "hints": [
+      "Decode one symbol at a time, from left to right.",
+      "Q, R and S turn out to be siblings.",
+      "Whatever P is to Q, P is the same to S."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-014",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "The Reddy family photo",
+    "statement": "In the Reddy family, Suresh is married to Kavya. Their only son Harsha is married to Deepa. Deepa's brother is Naveen. Harsha and Deepa have a daughter named Ishita.\nHow is the mother-in-law of Naveen's sister related to Ishita?",
+    "answerFormat": "choice",
+    "choices": [
+      "Aunt",
+      "Grandmother",
+      "Mother",
+      "Great-aunt"
+    ],
+    "answer": "Grandmother",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Naveen's sister is Deepa.",
+      "Deepa's mother-in-law is Harsha's mother, Kavya.",
+      "Ishita is the daughter of Harsha, Kavya's son.",
+      "So Kavya is Ishita's (paternal) grandmother."
+    ],
+    "explanation": "Naveen's sister is Deepa, who is married to Harsha. Deepa's mother-in-law is Harsha's mother, Kavya. Ishita is Harsha's daughter, so Kavya is Ishita's grandmother.",
+    "hints": [
+      "First find who 'Naveen's sister' is.",
+      "Her mother-in-law is her husband's mother.",
+      "How is a father's mother related to a child?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-015",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Varun points at a girl",
+    "statement": "Pointing to a girl, Varun says, \"She is the daughter of the only daughter of my father's wife.\" Varun's father has been married only once. How is the girl related to Varun?",
+    "answerFormat": "choice",
+    "choices": [
+      "Sister",
+      "Cousin",
+      "Niece",
+      "Daughter"
+    ],
+    "answer": "Niece",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Varun's father's wife is Varun's mother.",
+      "The only daughter of Varun's mother is Varun's sister.",
+      "The girl is the daughter of Varun's sister.",
+      "A sister's daughter is one's niece."
+    ],
+    "explanation": "Since Varun's father married only once, his wife is Varun's mother. Her only daughter is Varun's sister, and the girl is that sister's daughter, so she is Varun's niece.",
+    "hints": [
+      "Who is your father's wife if he married only once?",
+      "Who is your mother's only daughter?",
+      "What is your sister's daughter called?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-016",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Seven members of the Sharma family",
+    "statement": "Seven members of the Sharma family - A, B, C, D, E, F and G - live together across three generations. There are exactly two married couples, each a man and a woman, and every child in the family is a child of one of these two couples.\n1. A is the grandfather of F.\n2. D is A's wife. A and D have exactly two children: B and E.\n3. E is a woman and is unmarried.\n4. G is the mother of C.\n5. C and F are brothers.\n6. G is not a child of A.\nHow is E related to C?",
+    "answerFormat": "choice",
+    "choices": [
+      "Mother",
+      "Aunt",
+      "Grandmother",
+      "Sister"
+    ],
+    "answer": "Aunt",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A and D are one couple; their only children are B and E.",
+      "C and F are not children of A and D, so they belong to the second couple, whose wife is G (C's mother).",
+      "G's husband cannot be A (married to D) or her own sons C and F, so he is B; B and G are C's parents.",
+      "E is B's sister, so she is C's father's sister - his aunt."
+    ],
+    "explanation": "A and D form one couple with children B and E. C and F must be children of the second couple, and since G is C's mother, G is the wife in that couple. Her husband cannot be A (D's husband) or her own sons, so he is B, which makes B the father of C and F (consistent with A being F's grandfather). E is B's sister, so she is C's paternal aunt.",
+    "hints": [
+      "Identify the two married couples first.",
+      "C and F cannot be A and D's children - so whose children are they?",
+      "Once you know C's father, E's relation follows."
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "seedKey": "logical-017",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Ravi's evening walk",
+    "statement": "Ravi leaves his house facing north. He walks 5 km north, turns right and walks 3 km, then turns right again and walks 5 km. How far is he now from his house, in km?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "3",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "After the first right turn Ravi faces east.",
+      "After the second right turn he faces south and walks back the 5 km he went north.",
+      "The north-south movement cancels, leaving him 3 km east of the house."
+    ],
+    "explanation": "Ravi goes 5 km north, then turns right to face east and walks 3 km, then turns right again to face south and walks 5 km. The 5 km north and 5 km south cancel, so he is 3 km east of his house.",
+    "hints": [
+      "Draw the path on paper with north at the top.",
+      "A right turn from north faces east; a right turn from east faces south.",
+      "Do the north and south distances cancel?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-018",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Meena in the school ground",
+    "statement": "Meena stands in a school ground facing east. She walks 10 m east, turns left and walks 6 m, then turns left again and walks 10 m. In which direction is she now from her starting point?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "North",
+    "acceptedAnswers": [
+      "N"
+    ],
+    "keySteps": [
+      "Turning left from east makes her face north.",
+      "Turning left from north makes her face west, and she walks back the 10 m.",
+      "The east-west distance cancels, leaving her 6 m north of the start."
+    ],
+    "explanation": "After walking 10 m east she turns left to face north and walks 6 m, then turns left again to face west and walks 10 m. The east and west movements cancel, so she is 6 m north of where she started.",
+    "hints": [
+      "Track her facing direction after each turn.",
+      "Left of east is north; left of north is west.",
+      "Which movement does not get cancelled?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-019",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Facing the morning sun",
+    "statement": "Early in the morning, Karthik stands on the terrace facing the rising sun. He then turns 90 degrees clockwise. Which direction is he facing now?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "South",
+    "acceptedAnswers": [
+      "S"
+    ],
+    "keySteps": [
+      "The sun rises in the east, so Karthik first faces east.",
+      "A 90-degree clockwise turn moves one step along North-East-South-West.",
+      "One step clockwise from east is south."
+    ],
+    "explanation": "The rising sun is in the east, so Karthik starts facing east. Turning 90 degrees clockwise from east brings him to face south.",
+    "hints": [
+      "Where does the sun rise?",
+      "Clockwise order is North, East, South, West.",
+      "One step clockwise from east is ...?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-020",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Shortcut across the field",
+    "statement": "Neha walks 4 km north from her village and then 3 km east to reach a temple. What is the shortest straight-line distance, in km, from her village to the temple?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The north and east paths are at right angles.",
+      "The straight-line distance is the hypotenuse of a right triangle with sides 4 and 3.",
+      "sqrt(4^2 + 3^2) = sqrt(25) = 5."
+    ],
+    "explanation": "The two legs of her walk form a right angle, so the direct distance is the hypotenuse of a right triangle. It equals sqrt(16 + 9) = sqrt(25) = 5 km.",
+    "hints": [
+      "Sketch the two legs - what angle do they make?",
+      "Use Pythagoras' theorem.",
+      "Compute sqrt(4 x 4 + 3 x 3)."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-021",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Priya leaves the school gate",
+    "statement": "Priya starts at her school gate facing south. She walks 20 m, turns left and walks 15 m, turns left again and walks 30 m, then turns right and walks 5 m. In which direction is she now from the school gate?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "North-East",
+    "acceptedAnswers": [
+      "NE",
+      "Northeast",
+      "North East"
+    ],
+    "keySteps": [
+      "She walks 20 m south first.",
+      "A left turn from south faces east (15 m); another left faces north (30 m); a right turn from north faces east (5 m).",
+      "Net movement: 30 - 20 = 10 m north and 15 + 5 = 20 m east.",
+      "Being both north and east of the gate means North-East."
+    ],
+    "explanation": "Facing south she walks 20 m. Turning left she faces east and walks 15 m, turning left again she faces north and walks 30 m, and turning right she faces east and walks 5 m. Overall she is 10 m north and 20 m east of the gate, so she is to its North-East.",
+    "hints": [
+      "Write the facing direction after each turn.",
+      "Add up north-south and east-west movements separately.",
+      "If the result is north and east, combine them."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-022",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Shadows at five in the evening",
+    "statement": "At about 5 pm on a sunny day, Anand and Bhanu stand facing each other in a park. Anand's shadow falls exactly to his right. Which direction is Bhanu facing?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "South",
+    "acceptedAnswers": [
+      "S"
+    ],
+    "keySteps": [
+      "In the evening the sun is in the west, so shadows fall towards the east.",
+      "Anand's right side points east, so Anand faces north.",
+      "Bhanu faces Anand, so Bhanu faces the opposite way: south."
+    ],
+    "explanation": "The evening sun is in the west, so shadows point east. If east is on Anand's right, Anand must be facing north. Bhanu stands facing him, so Bhanu faces south.",
+    "hints": [
+      "Where is the sun at 5 pm, and which way do shadows point?",
+      "If east is on your right, which way are you facing?",
+      "People facing each other face opposite directions."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-023",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Turning on a rooftop",
+    "statement": "Sahil stands on a rooftop facing north-west. He turns 135 degrees clockwise, and then turns 270 degrees anticlockwise. Which direction is he facing now?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "South",
+    "acceptedAnswers": [
+      "S"
+    ],
+    "keySteps": [
+      "North-west is 315 degrees measured clockwise from north.",
+      "Turning 135 degrees clockwise gives 315 + 135 = 450, i.e. 90 degrees (east).",
+      "Turning 270 degrees anticlockwise from east gives 90 - 270 = -180, i.e. 180 degrees (south)."
+    ],
+    "explanation": "Measure angles clockwise from north: north-west is 315 degrees. A 135-degree clockwise turn brings him to 450 = 90 degrees, which is east. A 270-degree anticlockwise turn from east is the same as a 90-degree clockwise turn, so he faces south.",
+    "hints": [
+      "Convert north-west into an angle from north.",
+      "Add clockwise turns, subtract anticlockwise turns, and reduce modulo 360.",
+      "A 270-degree anticlockwise turn equals a 90-degree clockwise turn."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-024",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Delivery route in Bengaluru",
+    "statement": "A delivery rider starts from a warehouse facing north. He rides 9 km, turns right and rides 6 km, turns right again and rides 3 km, turns left and rides 2 km, then turns left and rides 9 km. What is the straight-line distance, in km, between the rider and the warehouse now?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "17",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Directions in order: north 9, east 6, south 3, east 2, north 9.",
+      "Net north-south: 9 - 3 + 9 = 15 km north.",
+      "Net east-west: 6 + 2 = 8 km east.",
+      "Distance = sqrt(15^2 + 8^2) = sqrt(289) = 17 km."
+    ],
+    "explanation": "Tracking each turn, he rides north 9, east 6, south 3, east 2 and north 9. That is 15 km north and 8 km east of the warehouse overall. The straight-line distance is sqrt(225 + 64) = sqrt(289) = 17 km.",
+    "hints": [
+      "Write the compass direction of every leg before adding distances.",
+      "Right of north is east, right of east is south, left of south is east, left of east is north.",
+      "Combine 15 km north and 8 km east with Pythagoras."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "logical-025",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Pens, books and bags",
+    "statement": "Statements:\nAll pens are books.\nAll books are bags.\nConclusions:\nI. All pens are bags.\nII. Some bags are pens.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Both I and II follow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Pens lie inside books, and books lie inside bags.",
+      "So every pen is inside bags: conclusion I follows.",
+      "Pens exist and are all bags, so some bags are pens: conclusion II follows."
+    ],
+    "explanation": "Since pens are inside books and books inside bags, all pens are bags, so I follows. Because all pens are bags, the bags that are pens make 'some bags are pens' true, so II follows too.",
+    "hints": [
+      "Draw circles: pens inside books inside bags.",
+      "If all pens are bags, can you say some bags are pens?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-026",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Teachers, singers and dancers",
+    "statement": "Statements:\nSome teachers are singers.\nNo singer is a dancer.\nConclusions:\nI. Some teachers are not dancers.\nII. No teacher is a dancer.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The teachers who are singers cannot be dancers.",
+      "So some teachers are not dancers: I follows.",
+      "Other teachers (not singers) may still be dancers, so II does not follow."
+    ],
+    "explanation": "The teachers who are singers are definitely not dancers, so I follows. Teachers who are not singers could still be dancers, so 'no teacher is a dancer' is not certain.",
+    "hints": [
+      "Focus on the teachers who are also singers.",
+      "Can a teacher who is not a singer be a dancer?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-027",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Roses and red flowers",
+    "statement": "Statements:\nAll roses are flowers.\nSome flowers are red.\nConclusions:\nI. Some roses are red.\nII. All flowers are roses.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Neither I nor II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The red flowers may lie entirely outside the roses, so I is not certain.",
+      "Roses are inside flowers, but flowers need not all be roses, so II is not certain.",
+      "Neither conclusion is forced."
+    ],
+    "explanation": "The red flowers could all be non-rose flowers, so 'some roses are red' is not certain. 'All roses are flowers' does not reverse into 'all flowers are roses'. Neither conclusion follows.",
+    "hints": [
+      "Draw a diagram where the red part of flowers avoids the roses.",
+      "Does 'all A are B' mean 'all B are A'?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-028",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Cats, dogs and animals",
+    "statement": "Statements:\nNo cat is a dog.\nAll dogs are animals.\nConclusions:\nI. Some animals are not cats.\nII. No cat is an animal.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "All dogs are animals and no dog is a cat.",
+      "So the animals that are dogs are not cats: I follows.",
+      "Cats may or may not be animals, so II is not certain."
+    ],
+    "explanation": "Dogs are animals, and no dog is a cat, so those animals are not cats - I follows. Nothing stops cats from also being animals, so II does not follow.",
+    "hints": [
+      "Look at the animals that are dogs.",
+      "Is there any statement that keeps cats out of the animal circle?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-029",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Mangoes, apples, grapes and fruits",
+    "statement": "Statements:\nSome mangoes are apples.\nSome apples are grapes.\nAll grapes are fruits.\nConclusions:\nI. Some apples are fruits.\nII. Some mangoes are fruits.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The apples that are grapes are also fruits, so I follows.",
+      "The mangoes that are apples need not be the apples that are grapes.",
+      "Mangoes can lie entirely outside fruits, so II does not follow."
+    ],
+    "explanation": "Some apples are grapes and all grapes are fruits, so those apples are fruits - I follows. The mango-apples may be different apples from the grape-apples, and no statement puts any mango inside fruits, so II does not follow.",
+    "hints": [
+      "Chain 'some apples are grapes' with 'all grapes are fruits'.",
+      "Two 'some' statements in a row do not link mangoes to grapes.",
+      "Try drawing mangoes touching apples but away from grapes and fruits."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-030",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Engineers, graduates and coders",
+    "statement": "Statements:\nAll engineers are graduates.\nNo graduate is illiterate.\nSome engineers are coders.\nConclusions:\nI. Some coders are not illiterate.\nII. No engineer is illiterate.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Both I and II follow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Every engineer is a graduate, and no graduate is illiterate, so no engineer is illiterate: II follows.",
+      "Some coders are engineers.",
+      "Those coders are not illiterate, so I follows."
+    ],
+    "explanation": "Engineers sit inside graduates, which are completely separate from illiterates, so no engineer is illiterate (II). The coders who are engineers are therefore not illiterate, so some coders are not illiterate (I). Both follow.",
+    "hints": [
+      "Combine the first two statements first.",
+      "Then look at coders who are engineers."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-031",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Doctors, readers, runners, smokers",
+    "statement": "Statements:\nAll doctors are readers.\nSome readers are runners.\nNo runner is a smoker.\nConclusions:\nI. Some doctors are not smokers.\nII. Some readers are not smokers.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The readers who are runners cannot be smokers, so II follows.",
+      "The runner-readers need not include any doctor.",
+      "All doctors could be smokers without breaking any statement, so I does not follow."
+    ],
+    "explanation": "Some readers are runners and no runner smokes, so those readers are not smokers: II follows. The doctors are readers, but the runner-readers may be entirely different people, and every doctor could be a smoker without contradiction. So only II follows.",
+    "hints": [
+      "Which group is guaranteed to be away from smokers?",
+      "Do the doctors have to overlap with runners?",
+      "Try a diagram where every doctor is also a smoker."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-032",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Laptops, phones, tablets, gadgets",
+    "statement": "Statements:\nNo laptop is a phone.\nSome phones are tablets.\nAll tablets are gadgets.\nConclusions:\nI. Some gadgets are not laptops.\nII. Some tablets are not laptops.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Both I and II follow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Some phones are tablets, and those phones are not laptops.",
+      "So some tablets are not laptops: II follows.",
+      "Those same tablets are gadgets, so some gadgets are not laptops: I follows."
+    ],
+    "explanation": "Take the items that are both phones and tablets. Being phones, they are not laptops, so some tablets are not laptops (II). Being tablets, they are gadgets, so some gadgets are not laptops (I). Both follow.",
+    "hints": [
+      "Pick an item that is both a phone and a tablet.",
+      "What do you know about it from each statement?",
+      "Use the same item to test both conclusions."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-033",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "CAT becomes DBU",
+    "statement": "In a certain code, CAT is written as DBU. How is DOG written in that code?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "EPH",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Compare letters: C->D, A->B, T->U.",
+      "Each letter moves one step forward in the alphabet.",
+      "D->E, O->P, G->H gives EPH."
+    ],
+    "explanation": "Every letter of CAT is replaced by the next letter: C to D, A to B, T to U. Applying the same rule to DOG gives E, P, H, so DOG is written EPH.",
+    "hints": [
+      "Compare each letter with its code letter.",
+      "How many places does each letter move?",
+      "Shift D, O and G the same way."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-034",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "MANGO and GRAPE",
+    "statement": "In a certain code, MANGO is written as OCPIQ. How is GRAPE written in that code?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "ITCRG",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "M->O, A->C, N->P, G->I, O->Q.",
+      "Each letter moves two places forward.",
+      "G->I, R->T, A->C, P->R, E->G gives ITCRG."
+    ],
+    "explanation": "Each letter of MANGO moves two places forward (M to O, A to C and so on). Shifting each letter of GRAPE two places forward gives I, T, C, R, G, i.e. ITCRG.",
+    "hints": [
+      "Count the gap between M and O.",
+      "Check that every letter moves by the same amount.",
+      "Move each letter of GRAPE forward by two."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-035",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Cities written backwards",
+    "statement": "In a certain code, PUNE is written as ENUP and AGRA is written as ARGA. How is DELHI written in that code?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "IHLED",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "PUNE becomes ENUP: the letters are reversed.",
+      "AGRA becomes ARGA, which confirms the reversal.",
+      "Reversing DELHI gives IHLED."
+    ],
+    "explanation": "Both examples simply write the word backwards: P-U-N-E becomes E-N-U-P. Writing D-E-L-H-I backwards gives I-H-L-E-D.",
+    "hints": [
+      "Read the code word from right to left.",
+      "Is anything else changing besides the order?",
+      "Reverse DELHI."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-036",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Letter values add up",
+    "statement": "In a code, each letter stands for its position in the English alphabet (A = 1, B = 2, ..., Z = 26) and a word's code is the sum of its letters. For example, CAB = 3 + 1 + 2 = 6. What is the code for BEAD?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "12",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "B = 2, E = 5, A = 1, D = 4.",
+      "Add the values: 2 + 5 + 1 + 4.",
+      "The total is 12."
+    ],
+    "explanation": "Using alphabet positions, B = 2, E = 5, A = 1 and D = 4. Their sum is 12, so BEAD is coded as 12.",
+    "hints": [
+      "Write the alphabet position of each letter.",
+      "E is the 5th letter.",
+      "Add the four numbers."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-037",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Mirror alphabet code",
+    "statement": "In a certain code, GOOD is written as TLLW. How is BAD written in that code?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "YZW",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "G->T, O->L, D->W: each letter is replaced by its opposite letter.",
+      "Opposite pairs add up to 27 in position (A-Z, B-Y, C-X, ...).",
+      "B->Y, A->Z, D->W gives YZW."
+    ],
+    "explanation": "G (7) becomes T (20) and O (15) becomes L (12): each letter is swapped with its 'opposite' letter, whose position adds up to 27 with it. So B becomes Y, A becomes Z and D becomes W, giving YZW.",
+    "hints": [
+      "Find the positions of G and T. What do they add up to?",
+      "Check whether O and L add to the same number.",
+      "Pair A with Z, B with Y, and so on."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-038",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Reverse, then shift",
+    "statement": "In a certain code, CHENNAI is written as JBOOFID. How is KOLKATA written in that code?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "BUBLMPL",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Writing CHENNAI backwards gives IANNEHC.",
+      "Each letter of IANNEHC moves one step forward to give JBOOFID.",
+      "Reverse KOLKATA to get ATAKLOK.",
+      "Shift each letter one step forward: BUBLMPL."
+    ],
+    "explanation": "The code reverses the word and then moves every letter one place forward: CHENNAI -> IANNEHC -> JBOOFID. For KOLKATA, reversing gives ATAKLOK, and shifting each letter forward gives BUBLMPL.",
+    "hints": [
+      "Compare the first letter of the code with the last letter of the word.",
+      "The code seems to be built from the reversed word.",
+      "After reversing, check the shift of each letter."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-039",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Words in a secret language",
+    "statement": "In a secret language:\n'sun is bright' is written as 'ka la ma',\n'bright red flower' is written as 'pa ma tu',\n'red sun rises' is written as 'tu ka zo'.\nThe code words in each sentence may be in any order. What is the code for 'is'?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "la",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "'bright' appears in the first two sentences; the common code is 'ma'.",
+      "'sun' appears in the first and third sentences; the common code is 'ka'.",
+      "In the first sentence, 'sun' = ka and 'bright' = ma, so 'is' = la."
+    ],
+    "explanation": "The only word common to sentences 1 and 2 is 'bright', and their only common code is 'ma'. Sentences 1 and 3 share only 'sun' and 'ka'. In 'sun is bright' = 'ka la ma', the leftover word 'is' must be 'la'.",
+    "hints": [
+      "Compare two sentences that share exactly one word.",
+      "The shared code word belongs to the shared English word.",
+      "Remove the codes for 'sun' and 'bright' from the first sentence."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-040",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Growing shifts",
+    "statement": "In a certain code, TRAIN is written as UTDMS and BUS is written as CWV. How is METRO written in that code?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "NGWVT",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "T->U (+1), R->T (+2), A->D (+3), I->M (+4), N->S (+5).",
+      "The shift equals the letter's position in the word.",
+      "BUS -> CWV confirms it: +1, +2, +3.",
+      "M+1=N, E+2=G, T+3=W, R+4=V, O+5=T gives NGWVT."
+    ],
+    "explanation": "In TRAIN the first letter moves 1 place, the second 2 places, and so on up to 5 places for the fifth letter; BUS -> CWV follows the same rule. Applying +1, +2, +3, +4, +5 to M, E, T, R, O gives N, G, W, V, T, so METRO is NGWVT.",
+    "hints": [
+      "The shift is not the same for every letter.",
+      "Write the shift for each position in TRAIN.",
+      "The shift grows by 1 for each next letter."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-041",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Handshakes at a reunion",
+    "statement": "Eight school friends meet at a reunion in Kochi. Each person shakes hands exactly once with every other person. How many handshakes take place in total?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "28",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Each person shakes hands with 7 others.",
+      "8 x 7 = 56 counts every handshake twice (once for each person).",
+      "56 / 2 = 28 handshakes."
+    ],
+    "explanation": "Each of the 8 friends shakes 7 hands, giving 56, but every handshake involves two people and is counted twice. So the number of handshakes is 56 / 2 = 28.",
+    "hints": [
+      "How many hands does each person shake?",
+      "Multiplying counts each handshake from both sides.",
+      "Divide by 2 to correct for double counting."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-042",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Socks in the dark",
+    "statement": "During a power cut in the hostel, Imran reaches into a drawer that holds 6 black socks and 4 white socks, all mixed up. He cannot see the colours. What is the minimum number of socks he must take out to be sure of getting at least one matching pair?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "3",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "There are only two colours.",
+      "In the worst case the first two socks are of different colours.",
+      "The third sock must match one of them, so 3 socks guarantee a pair."
+    ],
+    "explanation": "With two colours, the unluckiest case is one black and one white in the first two draws. Any third sock is either black or white, so it completes a pair. Hence 3 socks are enough, and 2 are not.",
+    "hints": [
+      "Think about the unluckiest possible draws.",
+      "How many socks can you hold without a pair?",
+      "Add one to that number."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-043",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Ravi and Pooja's ages",
+    "statement": "Ravi is twice as old as his sister Pooja. Five years from now, the sum of their ages will be 40. How old is Pooja now?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "10",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let Pooja's age be x, so Ravi's age is 2x.",
+      "In 5 years their ages will be x + 5 and 2x + 5.",
+      "x + 5 + 2x + 5 = 40 gives 3x = 30, so x = 10."
+    ],
+    "explanation": "If Pooja is x years old, Ravi is 2x. In five years their ages add to (x + 5) + (2x + 5) = 3x + 10 = 40, so x = 10. Pooja is 10 now and Ravi is 20.",
+    "hints": [
+      "Use one variable for Pooja's age.",
+      "Both ages increase by 5 in five years.",
+      "Solve 3x + 10 = 40."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-044",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Farmer crosses the Godavari",
+    "statement": "A farmer must take a dog, a hen and a sack of grain across the Godavari in a small boat. The boat can carry the farmer and at most one of the three, and only the farmer can row. If left together without the farmer, the dog will attack the hen, and the hen will eat the grain. The dog does not eat grain. What is the minimum number of one-way boat crossings needed to get all three safely across?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "7",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The hen must go first: taking the dog leaves the hen with the grain, and taking the grain leaves the dog with the hen.",
+      "The farmer returns alone, takes the dog (or grain) across, and brings the hen back.",
+      "He then takes the grain (or dog) across, returns alone, and finally takes the hen.",
+      "Counting: hen over, back, dog over, hen back, grain over, back, hen over = 7 crossings."
+    ],
+    "explanation": "Take the hen across (1) and return alone (2). Take the dog across (3) and bring the hen back (4). Take the grain across (5) - the dog and grain are safe together - and return alone (6). Finally take the hen across (7). Fewer crossings are impossible because the hen must travel back once to avoid being left with the dog or the grain.",
+    "hints": [
+      "Which item conflicts with both of the others?",
+      "It is allowed to bring something back on a return trip.",
+      "Count every trip in either direction."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-045",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Truth-tellers of Kuttanad",
+    "statement": "In a village in Kuttanad, every person either always tells the truth or always lies. You meet three villagers:\nAjay says: \"Bala is a liar.\"\nBala says: \"Chitra is a liar.\"\nChitra says: \"Ajay and Bala are both liars.\"\nWho among them tells the truth?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Bala",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Assume Ajay tells the truth: then Bala lies, so Chitra tells the truth, so Ajay is a liar - a contradiction.",
+      "So Ajay is a liar, which means Bala tells the truth.",
+      "Bala's statement makes Chitra a liar.",
+      "Check Chitra: 'both Ajay and Bala lie' is false because Bala is truthful - consistent."
+    ],
+    "explanation": "If Ajay were truthful, Bala would be a liar, making Chitra truthful, but Chitra's claim would then make Ajay a liar - impossible. So Ajay lies, Bala is truthful and Chitra is a liar. Chitra's statement is indeed false since Bala tells the truth, so Bala is the only truth-teller.",
+    "hints": [
+      "Assume Ajay is truthful and follow the chain.",
+      "A contradiction tells you the assumption is wrong.",
+      "Check the final arrangement against all three statements."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-046",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "The heavy laddoo",
+    "statement": "A sweet shop in Kakinada has 12 laddoos that look identical. Eleven weigh exactly the same and one is slightly heavier. Using only a two-pan balance (no weights), what is the minimum number of weighings that guarantees finding the heavier laddoo?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "3",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Each weighing has 3 outcomes: left heavier, right heavier, or balance.",
+      "With k weighings you can tell apart at most 3^k laddoos; 3^2 = 9 < 12, so 2 weighings are not enough.",
+      "Three weighings work: weigh 4 vs 4, keep the group of 4 with the heavy one, then weigh 1 vs 1 (and if needed one more 1 vs 1)."
+    ],
+    "explanation": "A balance weighing has three outcomes, so two weighings can distinguish at most 9 possibilities, fewer than 12. Three weighings suffice: compare 4 against 4; the heavier pan or the unweighed 4 holds the heavy laddoo. Then compare 1 against 1 from that group; if they balance, compare the remaining two. So the minimum is 3.",
+    "hints": [
+      "How many different results can one weighing give?",
+      "How many laddoos can 2 weighings handle at most?",
+      "Try splitting 12 into three groups of 4."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-047",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Four friends, cities and sports",
+    "statement": "Asha, Bharat, Chaitra and Dilip are from four different cities - Pune, Mysuru, Kochi and Jaipur - and each plays a different sport - Cricket, Chess, Badminton and Kabaddi.\n1. Asha is from neither Pune nor Jaipur.\n2. The Chess player is from Kochi.\n3. Dilip plays Cricket, and he is not from Kochi.\n4. Bharat is not from Pune and does not play Badminton.\n5. Chaitra does not play Chess.\n6. The person from Mysuru plays neither Kabaddi nor Badminton.\nWho plays Kabaddi?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Bharat",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The Mysuru person plays Cricket or Chess; Chess belongs to Kochi, so the Mysuru person plays Cricket and is Dilip.",
+      "Asha is then from Kochi (not Pune, Jaipur or Mysuru), so Asha plays Chess.",
+      "Bharat is not from Pune, so Bharat is from Jaipur and Chaitra from Pune.",
+      "Bharat does not play Badminton, so Bharat plays Kabaddi and Chaitra plays Badminton."
+    ],
+    "explanation": "From clue 6 the Mysuru person plays Cricket or Chess, and Chess is played by the Kochi person, so the Mysuru person plays Cricket - that is Dilip. Asha cannot be from Pune, Jaipur or Mysuru, so she is from Kochi and plays Chess. Bharat is not from Pune, so he is from Jaipur and Chaitra is from Pune. Of Badminton and Kabaddi, Bharat cannot play Badminton, so Bharat plays Kabaddi.",
+    "hints": [
+      "Use clues 2 and 6 together to find what the Mysuru person plays.",
+      "Once Dilip's city is known, Asha's city follows from clue 1.",
+      "Only Badminton and Kabaddi remain for Bharat and Chaitra."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-048",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Measuring water at the well",
+    "statement": "At a village well, Lakshmi has two unmarked pots that hold exactly 7 litres and 4 litres, and unlimited water. Each of the following counts as one step: filling a pot completely from the well, emptying a pot completely, or pouring from one pot into the other until the first is empty or the second is full. Both pots start empty. What is the minimum number of steps needed so that one pot holds exactly 5 litres?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "8",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Fill the 4 L pot and pour it into the 7 L pot twice; the 7 L pot fills and 1 L is left in the 4 L pot (4 steps).",
+      "Empty the 7 L pot and pour the 1 L into it (2 more steps).",
+      "Fill the 4 L pot and pour it in: 1 + 4 = 5 L in the 7 L pot (2 more steps, 8 in total).",
+      "No shorter sequence of steps reaches exactly 5 L."
+    ],
+    "explanation": "Writing (7 L pot, 4 L pot): fill 4 (0,4), pour (4,0), fill 4 (4,4), pour (7,1), empty 7 (0,1), pour (1,0), fill 4 (1,4), pour (5,0). That is 8 steps. Checking every reachable state shows that none with 5 L can be reached in 7 steps or fewer, so 8 is the minimum.",
+    "hints": [
+      "Write the state as (litres in 7 L pot, litres in 4 L pot).",
+      "Aim to leave exactly 1 L somewhere, since 1 + 4 = 5.",
+      "Try both starting moves and count steps for each."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-049",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Doubling series",
+    "statement": "Find the next number in the series: 3, 6, 12, 24, ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "48",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Each term is twice the previous term.",
+      "6 = 3 x 2, 12 = 6 x 2, 24 = 12 x 2.",
+      "The next term is 24 x 2 = 48."
+    ],
+    "explanation": "Every term is double the one before it: 3, 6, 12, 24. Doubling 24 gives 48.",
+    "hints": [
+      "Compare each term with the one before it.",
+      "Is it adding or multiplying?",
+      "Multiply the last term by the same factor."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-050",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Squares plus one",
+    "statement": "Find the next number in the series: 2, 5, 10, 17, 26, ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "37",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The differences are 3, 5, 7, 9 - consecutive odd numbers.",
+      "The next difference is 11.",
+      "26 + 11 = 37 (equivalently 6 x 6 + 1)."
+    ],
+    "explanation": "The gaps between terms are 3, 5, 7, 9, increasing by 2 each time, so the next gap is 11 and the next term is 37. Equivalently, the terms are n x n + 1 for n = 1 to 6.",
+    "hints": [
+      "Write down the differences between consecutive terms.",
+      "What kind of numbers are the differences?",
+      "Add the next difference to 26."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-051",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Growing letter gaps",
+    "statement": "Find the next letter in the series: A, C, F, J, O, ?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "U",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Positions are 1, 3, 6, 10, 15.",
+      "The gaps are +2, +3, +4, +5.",
+      "The next gap is +6: 15 + 6 = 21, which is U."
+    ],
+    "explanation": "Converting letters to positions gives 1, 3, 6, 10, 15, with gaps of 2, 3, 4, 5. The next gap is 6, giving position 21, which is the letter U.",
+    "hints": [
+      "Convert each letter to its alphabet position.",
+      "Look at how the gaps change.",
+      "Which letter is at position 21?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-052",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Odd number out",
+    "statement": "Which number is the odd one out?\n121, 144, 169, 190, 225",
+    "answerFormat": "choice",
+    "choices": [
+      "121",
+      "169",
+      "190",
+      "225"
+    ],
+    "answer": "190",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "121 = 11^2, 144 = 12^2, 169 = 13^2, 225 = 15^2.",
+      "190 is not a perfect square (13^2 = 169, 14^2 = 196).",
+      "So 190 is the odd one out."
+    ],
+    "explanation": "121, 144, 169 and 225 are the squares of 11, 12, 13 and 15. 190 lies between 169 and 196 and is not a perfect square, so it is the odd one out.",
+    "hints": [
+      "Do these numbers remind you of a multiplication table?",
+      "Check which ones are perfect squares.",
+      "Which one is not?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-053",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Factorials plus one",
+    "statement": "Find the next number in the series: 2, 3, 7, 25, 121, ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "721",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Subtracting 1 from each term gives 1, 2, 6, 24, 120.",
+      "These are factorials: 1!, 2!, 3!, 4!, 5!.",
+      "The next term is 6! + 1 = 720 + 1 = 721."
+    ],
+    "explanation": "Each term is one more than a factorial: 2 = 1! + 1, 3 = 2! + 1, 7 = 3! + 1, 25 = 4! + 1, 121 = 5! + 1. The next is 6! + 1 = 721.",
+    "hints": [
+      "Try subtracting 1 from each term.",
+      "Do 1, 2, 6, 24, 120 look familiar?",
+      "Each is the previous one times the next counting number."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-054",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Letter triplets",
+    "statement": "Find the next group in the series: BDF, HJL, NPR, ?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "TVX",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Within each group, letters move +2: B, D, F.",
+      "Each group continues from the last: F, H and L, N follow the same +2 step.",
+      "After R come T, V and X."
+    ],
+    "explanation": "Each group is three letters spaced two apart, and the groups continue one unbroken +2 run: B D F H J L N P R. The next three letters in that run are T, V, X.",
+    "hints": [
+      "Write the letters as one long sequence.",
+      "What is the gap between consecutive letters?",
+      "Continue the sequence for three more letters."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-055",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Sum of the previous three",
+    "statement": "Find the next number in the series: 1, 3, 4, 8, 15, 27, ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "50",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Differences (2, 1, 4, 7, 12) do not follow a simple rule, so look at earlier terms.",
+      "1 + 3 + 4 = 8, 3 + 4 + 8 = 15, 4 + 8 + 15 = 27.",
+      "Each term from the fourth on is the sum of the three terms before it.",
+      "The next term is 8 + 15 + 27 = 50."
+    ],
+    "explanation": "From the fourth term on, each term is the sum of the previous three: 1 + 3 + 4 = 8, 3 + 4 + 8 = 15 and 4 + 8 + 15 = 27. So the next term is 8 + 15 + 27 = 50.",
+    "hints": [
+      "Simple differences do not help here.",
+      "Try adding two or three earlier terms together.",
+      "8 = 1 + 3 + 4. Does the same idea give 15?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-056",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Only six birthdays at 24",
+    "statement": "Sanjay from Nagpur turned 24 years old in 2024, yet he says he has had only 6 birthdays on his actual date of birth. He is telling the truth. What is the best explanation?",
+    "answerFormat": "choice",
+    "choices": [
+      "He was born on 29 February",
+      "He celebrates only on weekends",
+      "He was born in a different time zone",
+      "He lost count of his birthdays"
+    ],
+    "answer": "He was born on 29 February",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A birth date that does not occur every year must be involved.",
+      "29 February occurs only in leap years.",
+      "Born on 29 February 2000, the leap years 2004 to 2024 give exactly 6 such birthdays."
+    ],
+    "explanation": "If Sanjay was born on 29 February 2000, his exact birth date has come only in the leap years 2004, 2008, 2012, 2016, 2020 and 2024 - six times - even though he turned 24. The other three choices do not reduce the number of actual birth dates.",
+    "hints": [
+      "Is there a date that does not come every year?",
+      "Think about leap years.",
+      "Count leap years from 2001 to 2024."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-057",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Rahul's mother's children",
+    "statement": "Rahul's mother has four children. Three of them are named Ek, Do and Teen. What is the name of the fourth child?",
+    "answerFormat": "choice",
+    "choices": [
+      "Char",
+      "Rahul",
+      "Paanch",
+      "It cannot be determined"
+    ],
+    "answer": "Rahul",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The question says the mother is Rahul's mother.",
+      "So Rahul is one of her children.",
+      "Ek, Do and Teen are three; the fourth must be Rahul."
+    ],
+    "explanation": "The mother in question is Rahul's mother, so Rahul is one of her four children. Since the other three are Ek, Do and Teen, the fourth child is Rahul.",
+    "hints": [
+      "Read the first three words of the question again.",
+      "Whose mother is she?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-058",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Smoke from an electric train",
+    "statement": "An all-electric Vande Bharat train is running from Delhi towards Agra (southwards) while a strong wind blows from the west. In which direction will the smoke from the train's engine drift?",
+    "answerFormat": "choice",
+    "choices": [
+      "Towards the east",
+      "Towards the north",
+      "Towards the south",
+      "There is no smoke"
+    ],
+    "answer": "There is no smoke",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The train is electric.",
+      "Electric trains do not burn fuel in the engine.",
+      "So there is no smoke to drift in any direction."
+    ],
+    "explanation": "The train runs on electricity, so its engine produces no smoke at all. The direction of travel and the wind do not matter.",
+    "hints": [
+      "What powers this train?",
+      "Does that kind of engine produce smoke?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-059",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Three switches, one storeroom",
+    "statement": "In a college hostel, three switches on the ground floor are labelled 1, 2 and 3. Exactly one of them controls an ordinary filament bulb inside a closed storeroom on the third floor; the other two are not connected. You cannot see the bulb from the ground floor and may climb up to the storeroom only once. Which plan always tells you which switch controls the bulb?",
+    "answerFormat": "choice",
+    "choices": [
+      "Switch on all three switches and then go and check the bulb",
+      "Switch on switch 1 for ten minutes, switch it off, switch on switch 2, then go and check the bulb",
+      "Switch on switch 1, go and check, then come back and try switch 2",
+      "Switch on switches 1 and 2 together, then go and check the bulb"
+    ],
+    "answer": "Switch on switch 1 for ten minutes, switch it off, switch on switch 2, then go and check the bulb",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "You need three different observable outcomes from a single visit.",
+      "A filament bulb gets hot when it has been on for a while.",
+      "Bulb on means switch 2; bulb off but warm means switch 1; bulb off and cold means switch 3."
+    ],
+    "explanation": "Leave switch 1 on long enough to heat the bulb, then turn it off and turn on switch 2 before climbing up. If the bulb is lit, switch 2 controls it; if it is dark but warm, switch 1; if it is dark and cold, switch 3. The other plans give at most two distinguishable results from one visit or need a second trip.",
+    "hints": [
+      "One visit with only on/off gives just two outcomes, but you need three.",
+      "What else, besides light, does a filament bulb give off?",
+      "Use time to create a 'warm but off' state."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-060",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Lorry stuck under a bridge",
+    "statement": "A loaded lorry gets stuck under a low railway bridge near Vijayawada - its roof is jammed because it is just 2 cm too tall. The driver wants to free it quickly without damaging the bridge or the lorry and without unloading anything. Which is the most sensible quick fix?",
+    "answerFormat": "choice",
+    "choices": [
+      "Add more load to the front",
+      "Let some air out of the tyres",
+      "Drive forward at higher speed",
+      "Wait for the bridge to be raised"
+    ],
+    "answer": "Let some air out of the tyres",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The lorry only needs to become a little lower.",
+      "Reducing tyre pressure lowers the whole vehicle slightly.",
+      "This needs no damage to the bridge and no unloading."
+    ],
+    "explanation": "Letting some air out of the tyres lowers the lorry by a few centimetres, which frees the roof from the bridge. It needs no tools, no damage and no unloading, and the tyres can be refilled afterwards.",
+    "hints": [
+      "The lorry must become slightly shorter.",
+      "Which part of the lorry can be made lower easily?",
+      "Think about the tyres."
+    ],
+    "estimatedMinutes": 2
+  }
+]

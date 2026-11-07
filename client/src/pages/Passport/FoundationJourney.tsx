@@ -40,6 +40,7 @@ import './orientation.css';
 import './journeyDashboard.css';
 import { useProgramDays } from './useProgramDays';
 import { barWidth } from '../../utils/barWidth';
+import DailyPracticeCard from './DailyPracticeCard';
 
 /** Content types, in words a first-year recognises. */
 const TYPE_LABEL: Record<string, string> = {
@@ -1210,6 +1211,8 @@ const FoundationJourneyPage: React.FC = () => {
               <span className="jd-next-tx"><b>The last day</b><span>Finish it and your {stage} Journey is complete.</span></span>
             </div>
           )}
+          {/* Thinking Lab and Communication Lab, every day, alongside the roadmap. */}
+          <DailyPracticeCard />
         </aside>
       </div>
     </div>

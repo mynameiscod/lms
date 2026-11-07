@@ -6,6 +6,7 @@ import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { roleGuard } from '../middleware/roleGuard';
 import * as ctrl from '../controllers/thinkingLabController';
+import * as member from '../controllers/thinkingMemberController';
 import { requireCareerPilotFeature } from '../middleware/careerPilotEntitlement';
 
 const router = express.Router();
@@ -26,6 +27,13 @@ const voiceUpload = multer({
 // Student — daily challenge loop
 // A CareerPilot member needs membership (or a free 'thinking_lab' tier); LMS students are unaffected.
 const memberGate = requireCareerPilotFeature('thinking_lab');
+// CareerPilot members: the daily set from the shared bank (controllers/thinkingMemberController).
+router.get('/member/today', memberGate, member.today);
+router.get('/member/history', memberGate, member.history);
+router.post('/member/practice', memberGate, member.practice);
+router.post('/member/questions/:id/answer', memberGate, member.answer);
+router.post('/member/questions/:id/hint', memberGate, member.hint);
+router.post('/member/questions/:id/run', memberGate, member.run);
 router.get('/today', memberGate, ctrl.getToday);
 router.post('/next', memberGate, ctrl.nextChallenge);
 router.get('/stats', memberGate, ctrl.stats);

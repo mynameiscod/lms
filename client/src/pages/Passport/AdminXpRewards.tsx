@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import passportApi, { AdminGamification, CoinConfig, XpRewardsOverview, XpRuleRow } from '../../api/passportApi';
+import passportApi, { LabDailySettings, AdminGamification, CoinConfig, XpRewardsOverview, XpRuleRow } from '../../api/passportApi';
 import { RewardsTab, RedemptionsTab, BudgetTab, SaveBar, Skeleton, useLeaveWarning } from './AdminRewardsTabs';
 import { BadgesTab, LevelsTab } from './AdminBadgesLevels';
 import './adminXpRewards.css';
@@ -48,6 +48,11 @@ const EVENT_ICON: Record<string, string> = {
 };
 /** The labs pay once a day, so they get their own card with the streak freezes. */
 const LAB_EVENTS = ['THINKING_LAB_DAILY_COMPLETED', 'COMMUNICATION_DAILY_COMPLETED'];
+const LAB_YEARS: [string, string][] = [['foundation', 'Year 1'], ['build', 'Year 2'], ['specialize', 'Year 3'], ['placement', 'Year 4']];
+type DailyDraft = Record<string, { perDay: string; codingPerDay: string; comm: string }>;
+const dailyDraft = (d?: LabDailySettings): DailyDraft => Object.fromEntries(LAB_YEARS.map(([k]) => [k, {
+  perDay: String(d?.thinking?.[k]?.perDay ?? 1), codingPerDay: String(d?.thinking?.[k]?.codingPerDay ?? 0), comm: String(d?.communication?.[k]?.perDay ?? 1),
+}]));
 const n = (v: number) => (v || 0).toLocaleString('en-IN');
 
 const AdminXpRewards: React.FC = () => {
@@ -266,6 +271,7 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
       setTypes(Object.fromEntries(d.taskTypes.map(t => [t.key, String(t.xp)])));
       setRules(d.rules);
       setFreeze({ every: String(d.labStreak?.freezeEvery ?? 7), max: String(d.labStreak?.freezeMax ?? 2) });
+      setDaily(dailyDraft(d.labDaily));
       setErr('');
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not load the XP settings.');
@@ -279,6 +285,11 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
   const validLimit = (v: any) => String(v) !== '' && Number.isInteger(Number(v)) && Number(v) >= 0;
 
   const [freeze, setFreeze] = useState({ every: '7', max: '2' });
+  const [daily, setDaily] = useState<DailyDraft>(dailyDraft());
+  const dailyDirty = !!data?.labDaily && JSON.stringify(daily) !== JSON.stringify(dailyDraft(data.labDaily));
+  const perDayMax = data?.labDaily?.perDayMax ?? 5;
+  const wholeIn = (v: string, lo: number, hi: number) => v !== '' && Number.isInteger(Number(v)) && Number(v) >= lo && Number(v) <= hi;
+  const dailyValid = Object.values(daily).every((r) => wholeIn(r.perDay, 1, perDayMax) && wholeIn(r.comm, 1, perDayMax) && wholeIn(r.codingPerDay, 0, Number(r.perDay) || 0));
   const freezeDirty = !!data?.labStreak && (freeze.every !== String(data.labStreak.freezeEvery) || freeze.max !== String(data.labStreak.freezeMax));
   const freezeValid = (v: string, top: number) => v !== '' && Number.isInteger(Number(v)) && Number(v) >= 0 && Number(v) <= top;
   const ruleOf = (key: string) => rules.find(r => r.eventKey === key);
@@ -290,9 +301,9 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
 
   const dirtyTypes = useMemo(() => (data ? data.taskTypes.filter(t => String(t.xp) !== types[t.key]).map(t => t.key) : []), [data, types]);
   const dirtyRules = useMemo(() => (data ? data.rules.map(r => r.eventKey).filter(ruleDirty) : []), [data, ruleDirty]);
-  const dirtyCount = dirtyTypes.length + dirtyRules.length + (freezeDirty ? 1 : 0);
+  const dirtyCount = dirtyTypes.length + dirtyRules.length + (freezeDirty ? 1 : 0) + (dailyDirty ? 1 : 0);
   const allValid = Object.values(types).every(valid) && rules.every(r => valid(String(r.xp)) && validLimit(r.dailyLimit))
-    && freezeValid(freeze.every, data?.labStreak?.everyMax ?? 60) && freezeValid(freeze.max, data?.labStreak?.holdMax ?? 10);
+    && freezeValid(freeze.every, data?.labStreak?.everyMax ?? 60) && freezeValid(freeze.max, data?.labStreak?.holdMax ?? 10) && dailyValid;
   useLeaveWarning(dirtyCount > 0);
 
   const saveAll = async () => {
@@ -315,6 +326,14 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
         setData(d => (d ? { ...d, labStreak: r.labStreak } : d));
         setFreeze({ every: String(r.labStreak.freezeEvery), max: String(r.labStreak.freezeMax) });
       }
+      if (dailyDirty) {
+        const r = await passportApi.updateLabDaily({
+          thinking: Object.fromEntries(LAB_YEARS.map(([k]) => [k, { perDay: Number(daily[k].perDay), codingPerDay: Number(daily[k].codingPerDay) }])),
+          communication: Object.fromEntries(LAB_YEARS.map(([k]) => [k, { perDay: Number(daily[k].comm) }])),
+        });
+        setData(d => (d ? { ...d, labDaily: r.labDaily } : d));
+        setDaily(dailyDraft(r.labDaily));
+      }
       onSaved();
       flash(`Saved ${dirtyCount} change${dirtyCount === 1 ? '' : 's'}. Members see the new amounts the next time they open a page.`);
     } catch (e: any) {
@@ -328,6 +347,7 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
     setTypes(Object.fromEntries(data.taskTypes.map(t => [t.key, String(t.xp)])));
     setRules(data.rules);
     if (data.labStreak) setFreeze({ every: String(data.labStreak.freezeEvery), max: String(data.labStreak.freezeMax) });
+    if (data.labDaily) setDaily(dailyDraft(data.labDaily));
   };
 
   const resetOverride = async (refKind: 'content' | 'module', refId: string) => {
@@ -464,6 +484,22 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
           <div className="xr-dr-c"><b>Freezes a member can hold</b><small>Per lab. Once full, no more are earned until one is used.</small></div>
           <div className="xr-dr-ctl"><Stepper value={freeze.max} max={data.labStreak?.holdMax ?? 10} label="Most freezes held" onChange={x => setFreeze(f => ({ ...f, max: x }))} /></div>
         </div>
+      </div>
+      <div className={`xr-labdaily${dailyDirty ? ' unsaved' : ''}`}>
+        <div className="xr-labdaily-hd"><b>The daily set</b><small>How many questions and tasks a member is given each day, by year. Missed days do not pile up. Coding is never given in Year 1, and only after the track's basics.</small></div>
+        <table>
+          <thead><tr><th scope="col">Year</th><th scope="col">Thinking questions a day</th><th scope="col">of which coding <small>0 = takes its turn</small></th><th scope="col">Communication tasks a day</th></tr></thead>
+          <tbody>
+            {LAB_YEARS.map(([k, label]) => (
+              <tr key={k}>
+                <th scope="row">{label}</th>
+                <td><Stepper value={daily[k].perDay} max={perDayMax} label={`${label} Thinking questions a day`} onChange={x => setDaily(d => ({ ...d, [k]: { ...d[k], perDay: x, codingPerDay: String(Math.min(Number(d[k].codingPerDay) || 0, Number(x) || 0)) } }))} /></td>
+                <td>{k === 'foundation' ? <span className="xr-unit">None in Year 1</span> : <Stepper value={daily[k].codingPerDay} max={Number(daily[k].perDay) || 1} label={`${label} coding questions a day`} onChange={x => setDaily(d => ({ ...d, [k]: { ...d[k], codingPerDay: x } }))} />}</td>
+                <td><Stepper value={daily[k].comm} max={perDayMax} label={`${label} Communication tasks a day`} onChange={x => setDaily(d => ({ ...d, [k]: { ...d[k], comm: x } }))} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
       <p className="xr-foot">Daily limit 0 means no limit. Every completed question or task also counts toward the member's Day streak.</p>
     </section>}

@@ -281,6 +281,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [logout]);
 
+  /*
+   * Permissions change while people are logged in: a super admin ticks a box on the Roles screen.
+   * The menu, tabs and page guards read user.permissions, so refresh them whenever the tab comes
+   * back into view — the new access appears without logging out. Errors keep what we have.
+   */
+  const userId = (user as any)?._id || (user as any)?.id;
+  useEffect(() => {
+    if (!userId || !token) return;
+    const API_URL = process.env.REACT_APP_API_URL || '/api/v1';
+    let last = 0;
+    const refresh = async () => {
+      if (document.visibilityState !== 'visible' || Date.now() - last < 30000) return;
+      last = Date.now();
+      try {
+        const r = await fetch(`${API_URL}/users/me/permissions`, { headers: { Authorization: `Bearer ${token}`, 'X-Tenant-Id': localStorage.getItem('tenantId') || '' } });
+        if (!r.ok) return;
+        const next: string[] = (await r.json())?.data?.permissions || [];
+        setUser((prev) => {
+          if (!prev) return prev;
+          const before = (prev.permissions || []).slice().sort().join(',');
+          if (before === next.slice().sort().join(',')) return prev;
+          const updated = { ...prev, permissions: next };
+          localStorage.setItem('user', JSON.stringify(updated));
+          return updated;
+        });
+      } catch { /* keep the permissions we have */ }
+    };
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('focus', refresh);
+    return () => { document.removeEventListener('visibilitychange', refresh); window.removeEventListener('focus', refresh); };
+  }, [userId, token]);
+
   const updateProfile = (updates: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...updates };

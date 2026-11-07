@@ -548,16 +548,31 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
  *
  * Exported so a handler serving two audiences (an author and a student) decides by the same rule.
  */
-export const permissionsOf = async (user: { role: string; customRoleId?: any }): Promise<string[]> => {
+export const permissionsOf = async (user: { role: string; customRoleId?: any; tenantId?: any }): Promise<string[]> => {
+  // A super admin can do everything, always — a custom role on their account never narrows that.
+  if (user.role === 'SUPER_ADMIN') return ALL_PERMISSIONS;
+  const base = ROLE_PERMISSIONS[user.role] || [];
   if (user.customRoleId) {
     try {
       const customRole = await Role.findById(user.customRoleId);
-      return customRole ? customRole.permissions : (ROLE_PERMISSIONS[user.role] || []);
+      return customRole ? customRole.permissions : base;
     } catch {
-      return ROLE_PERMISSIONS[user.role] || [];
+      return base;
     }
   }
-  return ROLE_PERMISSIONS[user.role] || [];
+  /*
+   * A built-in role (TENANT_ADMIN, INSTRUCTOR, STAFF…) as edited on the Roles screen. Ticking a
+   * permission on the institute's role of that name gives it to everyone with that base role, which
+   * is what an admin expects from the screen. It only ADDS to the built-in defaults: the code relies
+   * on those, and a role record saved with fewer boxes must not quietly take them away.
+   */
+  if (!user.tenantId) return base;
+  try {
+    const named: any = await Role.findOne({ tenantId: user.tenantId, name: user.role }).select('permissions').lean();
+    return named?.permissions?.length ? Array.from(new Set([...base, ...named.permissions])) : base;
+  } catch {
+    return base;
+  }
 };
 
 /**

@@ -16,7 +16,7 @@ import AssessmentSubmission from '../models/AssessmentSubmission';
 import StudentProfile from '../models/StudentProfile';
 import { computeProfileCompleteness } from '../utils/profileCompleteness';
 import { collectStudentStats, EMPTY_STATS } from '../services/userExportService';
-import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
+import { ROLE_PERMISSIONS, permissionsOf } from '../middleware/roleGuard';
 import csvParser from 'csv-parser';
 import * as XLSX from 'xlsx';
 import { LMS_USERS_FILTER } from '../services/learnerAudience';
@@ -748,18 +748,13 @@ export const inviteStudent = async (req: AuthenticatedRequest, res: Response) =>
 
 export const getMyPermissions = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const user = await User.findById(req.user.id).select('role customRoleId');
+    const user = await User.findById(req.user.id).select('role customRoleId tenantId');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    let permissions: string[] = [];
-    if (user.customRoleId) {
-      const customRole = await Role.findById(user.customRoleId);
-      permissions = customRole ? customRole.permissions : (ROLE_PERMISSIONS[user.role] || []);
-    } else {
-      permissions = ROLE_PERMISSIONS[user.role] || [];
-    }
+    // The same rule every API check uses, so what the menu shows is what the server allows.
+    const permissions: string[] = await permissionsOf({ role: user.role, customRoleId: user.customRoleId, tenantId: user.tenantId });
 
     res.json({ success: true, data: { permissions } });
   } catch (error: any) {

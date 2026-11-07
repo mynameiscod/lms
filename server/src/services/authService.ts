@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 import User, { IUser } from '../models/User';
 import Tenant from '../models/Tenant';
 import Role from '../models/Role';
-import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
+import { ROLE_PERMISSIONS, permissionsOf } from '../middleware/roleGuard';
 import { jwtSecret } from '../config/secrets';
 
 export class AuthService {
@@ -186,17 +186,8 @@ export class AuthService {
     );
 
     // Resolve effective permissions
-    let permissions: string[] = [];
-    if (user.customRoleId) {
-      try {
-        const customRole = await Role.findById(user.customRoleId);
-        permissions = customRole ? customRole.permissions : (ROLE_PERMISSIONS[user.role] || []);
-      } catch {
-        permissions = ROLE_PERMISSIONS[user.role] || [];
-      }
-    } else {
-      permissions = ROLE_PERMISSIONS[user.role] || [];
-    }
+    // The same rule every API check uses (roleGuard.permissionsOf), so the menu never disagrees with the server.
+    const permissions: string[] = await permissionsOf({ role: user.role, customRoleId: user.customRoleId, tenantId: user.tenantId });
 
     return { 
       token, 

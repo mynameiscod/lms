@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { leadApi, leadPipelineApi, qualificationApi, followUpApi, userApi, meetingApi } from '../../../api';
+import { leadApi, leadPipelineApi, qualificationApi, followUpApi, meetingApi } from '../../../api';
 import { leadArchiveApi, archiveError } from '../../../api/leadArchiveApi';
 import { canChat } from '../../../api/whatsAppChatApi';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -179,7 +179,7 @@ const LeadDetailV3: React.FC = () => {
   };
   const openAssign = async () => {
     setMenu(null); setAssignTo(lead?.assignedTo?._id || ''); setModal('assign');
-    if (!staff.length) userApi.getUsers().then((r: any) => setStaff((r.data || []).filter((u: any) => ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(u.role) || u.customRoleId))).catch(() => {});
+    if (!staff.length) leadApi.getCounsellors().then((r: any) => setStaff(r.data || [])).catch(() => {});
   };
   const markTaskDone = (t: any) => run(() => followUpApi.completeFollowUp(t._id, { outcome: 'done' }), 'Follow-up marked done', false);
   const addNote = () => {

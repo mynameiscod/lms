@@ -22,6 +22,16 @@ import { scheduleDripOnStageEntry } from '../services/whatsAppDripService';
 import { changeStage, LifecycleError, StageChangeResult, enrolledStageFor } from '../services/leadLifecycleService';
 import { isMilestone, milestoneFromLegacy } from '../config/leadMilestones';
 import { onCallLogged } from '../services/leadAutomationService';
+import { listCounsellors, isCounsellor, COUNSELLOR_RULE_TEXT } from '../services/leadCounsellorService';
+
+/** GET /leads/counsellors — who can be assigned leads (Super Admin, System Admin, BDM roles). */
+export const getLeadCounsellors = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    res.json({ success: true, message: 'ok', data: await listCounsellors(String(req.tenantId)) });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to load counsellors', error: error.message });
+  }
+};
 import leadAIService from '../services/leadAIService';
 import { enqueueAICall } from '../services/aiCallQueueService';
 import AICallConfig from '../models/AICallConfig';
@@ -633,6 +643,10 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 
     const oldAssignedToId = currentLead.assignedTo ? String((currentLead.assignedTo as any)._id) : null;
     const newAssignedToId = assignedTo !== undefined ? (assignedTo || null) : oldAssignedToId;
+    // A NEW owner must be a counsellor (admins or a BDM role). Keeping the current owner is always fine.
+    if (newAssignedToId && String(newAssignedToId) !== String(oldAssignedToId || '') && !(await isCounsellor(String(req.tenantId), String(newAssignedToId)))) {
+      return res.status(400).json({ success: false, message: COUNSELLOR_RULE_TEXT });
+    }
     const oldStageId = currentLead.stageId ? String(currentLead.stageId) : null;
     const stageChanged = stageId && String(stageId) !== oldStageId;
 
@@ -1903,6 +1917,7 @@ export const bulkAssignLeads = async (req: AuthenticatedRequest, res: Response<A
       if (!mongoose.Types.ObjectId.isValid(String(assignedTo))) return res.status(400).json({ success: false, message: 'Invalid counsellor' });
       const u: any = await User.findOne({ _id: assignedTo, tenantId: req.tenantId, isActive: { $ne: false } }).select('firstName lastName role');
       if (!u || u.role === 'STUDENT') return res.status(400).json({ success: false, message: 'Pick an active staff member of this institute' });
+      if (!(await isCounsellor(String(req.tenantId), String(assignedTo)))) return res.status(400).json({ success: false, message: COUNSELLOR_RULE_TEXT });
       assigneeName = `${u.firstName || ''} ${u.lastName || ''}`.trim();
     }
     const actor: any = await User.findById(req.user!.id).select('firstName lastName');

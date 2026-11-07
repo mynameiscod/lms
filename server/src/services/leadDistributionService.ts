@@ -1,3 +1,4 @@
+import { listCounsellors } from './leadCounsellorService';
 import mongoose from 'mongoose';
 import { waitsForOutpero } from './outperoPolicyService';
 import { assignViaScoringConfig } from './leadScoringService';
@@ -70,7 +71,9 @@ async function getCandidates(tenantId: string, config: any): Promise<string[]> {
     userFilter.role = { $in: ['TENANT_ADMIN', 'STAFF'] };
   }
   const users = await User.find(userFilter, '_id').lean();
-  const userIds = users.map((u: any) => u._id.toString());
+  // Only counsellors (admins or a BDM role) ever receive leads automatically.
+  const counsellorIds = new Set((await listCounsellors(String(tenantId))).map(c => c._id));
+  const userIds = users.map((u: any) => u._id.toString()).filter(id => counsellorIds.has(id));
 
   if (userIds.length === 0) return [];
 

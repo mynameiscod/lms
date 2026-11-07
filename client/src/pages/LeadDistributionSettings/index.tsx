@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { leadDistributionApi, userApi } from '../../api';
+import { leadDistributionApi, leadApi } from '../../api';
 import './LeadDistributionSettings.css';
 
 type Mode = 'round_robin' | 'weighted' | 'manual';
@@ -48,7 +48,7 @@ const LeadDistributionSettings: React.FC = () => {
       try {
         const [cfgRes, usrRes] = await Promise.all([
           leadDistributionApi.get() as Promise<any>,
-          userApi.getUsers() as Promise<any>,
+          leadApi.getCounsellors() as Promise<any>,
         ]);
         if (cfgRes?.data) {
           setConfig({ ...defaultConfig, ...cfgRes.data });

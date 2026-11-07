@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { leadApi, leadReportApi, leadStageApi, userApi } from '../../api';
+import { leadApi, leadReportApi, leadStageApi } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Modal } from '../../components/common';
 import StageChangeDialog from '../../components/leads/StageChangeDialog';
@@ -112,7 +112,7 @@ const LeadDashboard: React.FC = () => {
 
   useEffect(() => {
     leadStageApi.getStages().then((r: any) => setStages(r.data || [])).catch(() => {});
-    userApi.getUsers().then((r: any) => setStaff((r.data || []).filter((u: any) => ['TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'].includes(u.role) || u.customRoleId))).catch(() => {});
+    leadApi.getCounsellors().then((r: any) => setStaff(r.data || [])).catch(() => {});
     leadApi.getSources().then((r: any) => setSources((r.data || []).map((s: any) => (typeof s === 'string' ? s : s._id || s.source)).filter(Boolean))).catch(() => {});
   }, []);
 

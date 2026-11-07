@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { leadApi, leadStageApi, userApi, leadFormConfigApi } from '../../api';
+import { leadApi, leadStageApi, leadFormConfigApi } from '../../api';
 import StageChangeDialog from '../../components/leads/StageChangeDialog';
 import { Modal } from '../../components/common';
 import './Leads.css';
@@ -385,7 +385,7 @@ const LeadsPage: React.FC = () => {
           leadFormConfigApi.getConfig(),
           leadFormConfigApi.getStatsCardsConfig(),
           leadFormConfigApi.getTableColumnsConfig(),
-          userApi.getUsers(),
+          leadApi.getCounsellors(),
           leadApi.getSources(),
           leadApi.getAds().catch(() => null),
         ]);
@@ -407,7 +407,7 @@ const LeadsPage: React.FC = () => {
         if (columnsRes.data?.length > 0) setTableColumnsConfig(columnsRes.data.filter((c: TableColumn) => c.enabled).sort((a: TableColumn, b: TableColumn) => a.order - b.order));
         setAds((adsRes?.data || []) as any);
         const users = usersRes.data || [];
-        setStaff(users.filter((u: any) => ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(u.role) || u.customRoleId));
+        setStaff(users); // counsellors only: Super Admin, System Admin, BDM roles
       } catch { /* config/users failure is non-fatal */ }
 
     } catch (error: any) {

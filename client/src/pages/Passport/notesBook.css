@@ -46,11 +46,18 @@
 /* Code keeps its monospace and its dark block. */
 .nb-flow .cp-notes pre, .nb-flow .cp-notes pre *, .nb-flow .cp-notes code, .nb-flow .cp-notes code * { font-family: 'JetBrains Mono', Consolas, ui-monospace, monospace !important; }
 .nb-flow .cp-notes pre { font-size: 13.5px; line-height: 20px; }
+/* A code block continues on the next page like any paragraph. As a scroll box (overflow-x: auto) it
+   could not be split across the page columns, so everything below the first page's foot was cut off,
+   and a long line ran off the page's right edge with no way to scroll to it. In the book a long line
+   wraps instead, and each piece of a split block keeps its dark box and padding. */
+.nb-flow .cp-notes pre { overflow: visible; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone; orphans: 2; widows: 2; }
 .nb-flow .cp-notes code { font-size: .78em; background: rgba(15, 23, 42, .07); }
 .nb-flow .cp-notes pre code { font-size: 13.5px; background: transparent; }
 .nb-flow .cp-notes th, .nb-flow .cp-notes td { border-color: #d9cdb3; }
 .nb-flow .cp-notes th { background: rgba(214, 196, 160, .25); }
-.nb-flow .cp-notes img { max-height: 380px; object-fit: contain; break-inside: avoid; border-radius: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, .12); }
+/* No taller than one page (NotesBook.tsx sets --flow-h): a picture cannot be split, so a taller one was cut. */
+.nb-flow .cp-notes img { max-width: 100%; max-height: min(380px, calc(var(--flow-h, 380px) - 12px)); object-fit: contain; break-inside: avoid; border-radius: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, .12); }
 /* A table keeps to one page when it fits. NotesContent wraps it in a horizontal scroll box, and a
    scroll box cannot be split across columns - a tall table was cut off at the page's foot. In the
    book it is an ordinary block instead: it continues on the next page, a row is never cut in half,
@@ -69,7 +76,14 @@
 .nb-flow .cp-notes .cp-table th { background-color: rgba(214, 196, 160, .25); }
 /* Too wide for the page (NotesBook.tsx measures): equal columns, words broken only when they must. */
 .nb-flow .cp-notes .cp-table table.nb-fit { table-layout: fixed; }
-.nb-flow .cp-notes .cp-table table.nb-fit th, .nb-flow .cp-notes .cp-table table.nb-fit td { overflow-wrap: anywhere; hyphens: auto; padding-left: 6px; padding-right: 6px; }
+/* The handwriting is wide, and in a narrow column it was broken mid-word ("wit h"). A table too wide
+   for the page is set in a smaller, narrow print face instead, and a word breaks only when it alone is
+   wider than its column. */
+.nb-flow .cp-notes .cp-table table.nb-fit th, .nb-flow .cp-notes .cp-table table.nb-fit td,
+.nb-flow .cp-notes .cp-table table.nb-fit th *, .nb-flow .cp-notes .cp-table table.nb-fit td * {
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif; font-size: max(11.5px, calc(var(--fs) * .66)); line-height: 1.4;
+  overflow-wrap: break-word; word-break: normal; hyphens: auto; }
+.nb-flow .cp-notes .cp-table table.nb-fit th, .nb-flow .cp-notes .cp-table table.nb-fit td { padding: 5px 5px; }
 
 .nb-pno { position: absolute; bottom: calc(var(--page-pad) * .55); font-family: var(--hand); font-size: 15px; color: #76716F; z-index: 1; }
 .nb-pno.left { left: var(--page-pad); }

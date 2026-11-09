@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import DemoPlan from '../models/DemoPlan';
+import { forgetDemoPlan } from '../services/demoService';
 import User from '../models/User';
 import CodingProblem from '../models/CodingProblem';
 import ThinkingQuestion from '../models/ThinkingQuestion';
@@ -148,6 +149,7 @@ export const saveDemoPlan = async (req: Request, res: Response) => {
     } else {
       doc = (await DemoPlan.create({ ...c.plan, updatedBy: by })).toObject();
     }
+    forgetDemoPlan(String(doc._id));
     res.json({ id: String(doc._id), missing: planProblems(doc), warnings: planWarnings(doc) });
   } catch (e: any) {
     console.error('[demo] save:', e?.message || e);
@@ -162,6 +164,7 @@ export const deleteDemoPlan = async (req: Request, res: Response) => {
     const held = await User.countDocuments({ 'passport.demo.planId': new mongoose.Types.ObjectId(req.params.id) });
     if (held) return res.status(409).json({ message: `${held} demo ${held === 1 ? 'account is' : 'accounts are'} on this plan. End their demo access first.` });
     await DemoPlan.deleteOne({ _id: req.params.id });
+    forgetDemoPlan(req.params.id);
     res.json({ deleted: true });
   } catch (e: any) {
     console.error('[demo] delete:', e?.message || e);

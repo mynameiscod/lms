@@ -97,24 +97,54 @@ export async function ensureDay(tenantId: string, studentId: string): Promise<{ 
   const date = today();
   const access = await codingFor(m);
   let day: any = await ThinkingDay.findOne({ tenantId, studentId: oid(studentId), date }).lean();
-  if (day) return { day, m, access };
 
-  // A demo account is shown exactly its plan's questions, all at once (data/demoPolicy.ts).
+  /*
+   * A DEMO ACCOUNT follows its plan live (data/demoPolicy.ts). Questions the admin picks show all at
+   * once, and the day is re-synced to the plan on every open: picking more before a college visit shows
+   * them straight away, not tomorrow. Answers live per question, so work on a question still in the plan
+   * is kept. A year with nothing picked gets the usual daily set — what the plan screen promises — still
+   * marked as a demo day, so attempt limits stay open and nothing counts in problem statistics.
+   */
   if (m.demoIds) {
-    const ids = await resolveDemoIds(m.demoIds);
-    const qs: any[] = await ThinkingQuestion.find({ _id: { $in: ids } }).select('type').lean();
-    const byId = new Map(qs.map((q) => [String(q._id), q.type]));
-    const items = ids.filter((id) => byId.has(String(id))).map((id) => ({ questionId: id, type: byId.get(String(id)) }));
-    day = await upsertDay(m, date, items, true);
+    const items = m.demoIds.length ? await planItems(m.demoIds) : [];
+    if (items.length) {
+      if (day && day.fromPlan && sameItems(day.items || [], items)) return { day, m, access };
+      if (day) {
+        await ThinkingDay.updateOne({ _id: day._id }, { $set: { items, demo: true, fromPlan: true, stage: m.stage } });
+        day = await ThinkingDay.findById(day._id).lean();
+      } else {
+        day = await upsertDay(m, date, items, { demo: true, fromPlan: true });
+      }
+      return { day, m, access };
+    }
+    // Nothing picked (or every pick has since been deleted): the usual set, rebuilt if today's came from the plan.
+    // (A day saved empty — from before an empty plan meant "the usual set" — is rebuilt too.)
+    if (day && !day.fromPlan && (day.items || []).length) return { day, m, access };
+    const usual = await usualItems(m, access);
+    if (day) {
+      await ThinkingDay.updateOne({ _id: day._id }, { $set: { items: usual, demo: true, fromPlan: false, stage: m.stage } });
+      day = await ThinkingDay.findById(day._id).lean();
+    } else {
+      day = await upsertDay(m, date, usual, { demo: true });
+    }
     return { day, m, access };
   }
+  if (day) return { day, m, access };
 
   const { trialAllowsAnother } = await import('./trialService');
   const trialStop = await trialAllowsAnother(tenantId, studentId, 'thinkingLab');
   if (trialStop && !trialStop.ok) throw new LabError(trialStop.status || 403, trialStop.body?.message || 'Your trial has used its Thinking Lab questions.', 'trial_limit');
 
-  const settings = (await labDailySettingsFor(tenantId)).thinking[m.stage] || { perDay: 1, codingPerDay: 0 };
-  const dayIndex = await ThinkingDay.countDocuments({ tenantId, studentId: oid(studentId), demo: { $ne: true } });
+  const items = await usualItems(m, access);
+  day = await upsertDay(m, date, items, {});
+  if (items.length) await ThinkingQuestion.updateMany({ _id: { $in: items.map((i) => i.questionId) } }, { $inc: { timesServed: 1 } });
+  return { day, m, access };
+}
+
+/** The usual daily set for a member's year: the admin's per-day mix, unseen questions, coding only once open. */
+async function usualItems(m: Member, access: CodingAccess): Promise<{ questionId: any; type: string }[]> {
+  const settings = (await labDailySettingsFor(m.tenantId)).thinking[m.stage] || { perDay: 1, codingPerDay: 0 };
+  const dayIndex = await ThinkingDay.countDocuments({ tenantId: m.tenantId, studentId: oid(m.studentId), demo: { $ne: true } });
   const seen = await seenIds(m);
   const items: { questionId: any; type: string }[] = [];
   for (const type of dayTypes(dayIndex, settings, access.open)) {
@@ -123,16 +153,28 @@ export async function ensureDay(tenantId: string, studentId: string): Promise<{ 
       || (type === 'coding' ? await pick(m, 'math', [...seen, ...items.map((i) => i.questionId)], access) : null);
     if (q) items.push({ questionId: q._id, type: q.type });
   }
-  day = await upsertDay(m, date, items, false);
-  if (items.length) await ThinkingQuestion.updateMany({ _id: { $in: items.map((i) => i.questionId) } }, { $inc: { timesServed: 1 } });
-  return { day, m, access };
+  return items;
 }
 
-async function upsertDay(m: Member, date: string, items: any[], demo: boolean) {
+/** The demo plan's questions that still exist, in the plan's order. */
+async function planItems(planIds: string[]): Promise<{ questionId: any; type: string }[]> {
+  const ids = await resolveDemoIds(planIds);
+  const qs: any[] = await ThinkingQuestion.find({ _id: { $in: ids } }).select('type').lean();
+  const byId = new Map(qs.map((q) => [String(q._id), q.type]));
+  const seen = new Set<string>();
+  return ids.filter((id) => { const k = String(id); if (!byId.has(k) || seen.has(k)) return false; seen.add(k); return true; })
+    .map((id) => ({ questionId: id, type: byId.get(String(id)) as string }));
+}
+
+/** Same questions in the same order. */
+export const sameItems = (a: { questionId: any }[], b: { questionId: any }[]): boolean =>
+  a.length === b.length && a.every((x, i) => String(x.questionId) === String(b[i].questionId));
+
+async function upsertDay(m: Member, date: string, items: any[], flags: { demo?: boolean; fromPlan?: boolean }) {
   // Upsert on the day, so two tabs opening the lab at once still get one set.
   await ThinkingDay.updateOne(
     { tenantId: m.tenantId, studentId: oid(m.studentId), date },
-    { $setOnInsert: { tenantId: m.tenantId, studentId: oid(m.studentId), date, stage: m.stage, items, practice: [], ...(demo ? { demo: true } : {}) } },
+    { $setOnInsert: { tenantId: m.tenantId, studentId: oid(m.studentId), date, stage: m.stage, items, practice: [], ...(flags.demo ? { demo: true } : {}), ...(flags.fromPlan ? { fromPlan: true } : {}) } },
     { upsert: true },
   );
   return ThinkingDay.findOne({ tenantId: m.tenantId, studentId: oid(m.studentId), date }).lean();

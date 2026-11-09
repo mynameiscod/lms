@@ -330,6 +330,9 @@ const SkillMappingPage = lazy(() => import('./pages/SkillMapping/SkillMappingPag
 // Scheduled Interview Module
 
 
+/** Help & Support desk: these open it for any base role; admins and coordinators still get in by role. */
+const SUPPORT_PERMS = ['support_agent', 'support_manager'];
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRoles?: string[];
@@ -684,13 +687,13 @@ const AppRoutes: React.FC = () => {
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_members']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
       } />
-      {/* Demo plans: what a demo account shows, year by year. Super admin only. */}
       {/* Opens for whoever holds manage_job_openings — a permission only a super admin can give a role. */}
       <Route path="/admin/passport/job-openings" element={
         <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_job_openings']}><Layout><PassportAdminJobOpenings /></Layout></ProtectedRoute>
       } />
+      {/* Demo plans: what a demo account shows, year by year. A super admin, or a role they gave manage_demo_accounts. */}
       <Route path="/admin/passport/demo-plans" element={
-        <ProtectedRoute requiredRoles={['SUPER_ADMIN']}><Layout><PassportAdminDemoPlans /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_demo_accounts']}><Layout><PassportAdminDemoPlans /></Layout></ProtectedRoute>
       } />
       {/* Trial plans: a few days of limited access, given to chosen students from Members. */}
       <Route path="/admin/passport/trial-plans" element={
@@ -2841,7 +2844,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/admin/support"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
             <Layout><AdminSupportDesk /></Layout>
           </ProtectedRoute>
         }
@@ -2849,7 +2852,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/admin/support/dashboard"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
             <Layout><AdminSupportDashboard /></Layout>
           </ProtectedRoute>
         }
@@ -2857,7 +2860,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/admin/support/errors"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
             <Layout><AdminSupportErrors /></Layout>
           </ProtectedRoute>
         }
@@ -2865,7 +2868,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/admin/support/errors/:id"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
             <Layout><AdminSupportErrorDetail /></Layout>
           </ProtectedRoute>
         }
@@ -2873,7 +2876,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/admin/support/settings"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
             <Layout><AdminSupportSettings /></Layout>
           </ProtectedRoute>
         }
@@ -2881,7 +2884,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/admin/support/faqs"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
             <Layout><AdminSupportFaqs /></Layout>
           </ProtectedRoute>
         }
@@ -2889,7 +2892,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/admin/support/tickets/:id"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
             <Layout><AdminSupportTicketPage /></Layout>
           </ProtectedRoute>
         }

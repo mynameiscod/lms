@@ -25,6 +25,16 @@ const HIDDEN_FROM_MENU = new Set<string>([
   '/qualification-settings',
 ]);
 
+/**
+ * Permissions that no built-in role holds by default — someone has to tick them on the Roles
+ * screen (the support ones, and the ones only a super admin can give). Holding one opens its menu
+ * item for any base role.
+ */
+const GIVEN_ONLY_PERMISSIONS = new Set([
+  'support_agent', 'support_manager',
+  'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
+]);
+
 interface MenuItem {
   label: string;
   path?: string;
@@ -227,7 +237,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'CareerPilot Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport', 'manage_passport_setup'] },
     { label: 'CareerPilot Members', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['view_passport_members', 'manage_passport', 'manage_passport_members'] },
     { label: 'CareerPilot Trials', path: '/admin/passport/trial-plans', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-hourglass-half', permissions: ['manage_passport', 'manage_passport_members'] },
-    { label: 'CareerPilot Demo Plans', path: '/admin/passport/demo-plans', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-person-chalkboard' },
+    { label: 'CareerPilot Demo Plans', path: '/admin/passport/demo-plans', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-person-chalkboard', permissions: ['manage_demo_accounts'] },
     { label: 'CareerPilot Job Openings', path: '/admin/passport/job-openings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', permissions: ['manage_job_openings'] },
     /* FIVE ENTRIES WERE REMOVED FROM HERE, NOT FIVE SCREENS.
        CareerPilot Missions, Learning Studio, Concept Bank, Career Stage Tagging and Paper
@@ -369,6 +379,12 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     const perms = user.permissions || [];
     const hasItemPermission = !!item.permissions && item.permissions.some(p => perms.includes(p));
 
+    // A permission no role has by default was ticked for this person on the Roles screen, so its
+    // page shows whatever their base role is (Student, Instructor, a custom role...). Without this,
+    // "Help & Support" given to an Instructor-based or Student-based role showed nothing.
+    const givenOnRolesScreen = user.role !== 'SUPER_ADMIN' && !!item.permissions
+      && item.permissions.some(p => GIVEN_ONLY_PERMISSIONS.has(p) && perms.includes(p));
+
     // A custom role (or STAFF) is decided by the permissions ticked in Roles, whatever the base
     // role — otherwise ticking "Leads" for an instructor-based role showed nothing. Student-only
     // items and items without permissions keep the role rule.
@@ -377,7 +393,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       && !!item.permissions && item.permissions.length > 0
       && item.roles.some(r => r !== 'STUDENT');
 
-    if (decidedByPermissions) {
+    if (givenOnRolesScreen) {
+      // shown; the module gate below still applies
+    } else if (decidedByPermissions) {
       if (!hasItemPermission) return false;
     } else {
       if (!roleAllowed) return false;

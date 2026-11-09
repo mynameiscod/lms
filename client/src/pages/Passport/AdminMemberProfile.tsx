@@ -5,6 +5,7 @@ import './adminMemberProfile.css';
 import MemberActivityCard from './MemberActivity';
 import AdminDemoAccess from './AdminDemoAccess';
 import { barWidth } from '../../utils/barWidth';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * CareerPilot admin → Members → one member's full profile.
@@ -29,10 +30,6 @@ const MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep
 
 type Load<T> = { data: T | null; error: string | null };
 const ok = <T,>(data: T): Load<T> => ({ data, error: null });
-/** The member's activity trail is shown to the platform super admin only. */
-const isSuperAdmin = (): boolean => {
-  try { return JSON.parse(localStorage.getItem('user') || '{}')?.role === 'SUPER_ADMIN'; } catch { return false; }
-};
 /** One marketing touch, in words: the campaign tags, the site that sent them, the page they landed on. */
 const TouchFields: React.FC<{ t: any }> = ({ t }) => (
   <dl className="amp-fields">
@@ -60,6 +57,9 @@ const Card: React.FC<{ title: string; icon: string; action?: React.ReactNode; cl
 const AdminMemberProfile: React.FC = () => {
   const { studentId = '' } = useParams<{ studentId: string }>();
   const nav = useNavigate();
+  const { user } = useAuth();
+  // A super admin, or a role a super admin gave the permission (the server checks the same keys).
+  const can = (perm: string) => user?.role === 'SUPER_ADMIN' || (user?.permissions || []).includes(perm);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Load<any>>({ data: null, error: null });
   const [skills, setSkills] = useState<Load<any>>({ data: null, error: null });
@@ -199,7 +199,7 @@ const AdminMemberProfile: React.FC = () => {
           ) : <p className="amp-muted">No payments recorded.</p>}
         </Card>
 
-        {isSuperAdmin() && <AdminDemoAccess studentId={studentId} />}
+        {can('manage_demo_accounts') && <AdminDemoAccess studentId={studentId} />}
 
         <Card title="Role readiness" icon="bi-bullseye" error={readiness.error}
           action={<Link className="amp-link" to={`/admin/passport/students/${studentId}/roadmap`}>Details</Link>}>
@@ -286,7 +286,7 @@ const AdminMemberProfile: React.FC = () => {
           </> : <p className="amp-muted">No link information was recorded — they joined before sign-up sources were tracked, or came straight to the join page with no link tags or referring site.</p>}
         </Card>
 
-        {isSuperAdmin() && <MemberActivityCard studentId={studentId} />}
+        {can('view_member_activity') && <MemberActivityCard studentId={studentId} />}
 
         <Card title={`Mission answers${answers.data ? ` (${answers.data.length})` : ''}`} icon="bi-chat-left-text" className="wide" error={answers.error}>
           {answers.data?.length ? (

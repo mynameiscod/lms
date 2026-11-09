@@ -171,16 +171,14 @@ const REROUTE = roleGuard(['reroute_passport_members']);
  * Writes to a GLOBAL, cross-tenant resource.
  *
  * The skill catalogue is deliberately not tenant-scoped, so one admin's edit is every
- * tenant's edit. A permission alone would not express that: manage_passport is held by
- * tenant admins whose authority stops at their own tenant. Same rule the platform already
- * applies to system settings.
+ * tenant's edit. manage_passport is held by tenant admins whose authority stops at their own
+ * tenant, so it cannot open these. Only a super admin, or a role a super admin gave the
+ * matching key below, can. These keys are in SUPER_ADMIN_GRANTED, so no institute admin can
+ * hand them out, and a super admin always holds them.
  */
-const SUPER_ADMIN = (req: any, res: any, next: any) => {
-  if (req.user?.role !== 'SUPER_ADMIN') {
-    return res.status(403).json({ message: 'The skill graph is shared across every tenant — super admin access is required to change it.' });
-  }
-  next();
-};
+const SKILL_CATALOGUE = roleGuard(['manage_skill_catalogue']);
+const MEMBER_ACTIVITY = roleGuard(['view_member_activity']);
+const DEMO_ACCOUNTS = roleGuard(['manage_demo_accounts']);
 
 // ── Drop-off funnel — who stopped where, and who to contact about it ──
 
@@ -272,7 +270,7 @@ router.post('/curriculum/:pathwayKey/draft',  MANAGE_FOR.cpContent, curriculum.d
  */
 router.get('/stage-skill-sets',         MANAGE_FOR.cpCareerMap,      stageSkills.list);
 router.get('/stage-skill-sets/:stage',  MANAGE_FOR.cpCareerMap,      stageSkills.get);
-router.put('/stage-skill-sets/:stage',  SUPER_ADMIN, stageSkills.save);
+router.put('/stage-skill-sets/:stage',  SKILL_CATALOGUE, stageSkills.save);
 
 /**
  * ── One stage, whole: modules, topics, the skills each teaches, and what can measure them ──
@@ -309,10 +307,10 @@ router.delete('/stage-curriculum/:stage/topics/:topicId',    MANAGE_FOR.cpCareer
 
 router.get('/skills',             MANAGE_FOR.cpCareerMap,        careerSkills.listSkills);
 router.get('/skills/:key/usage',  MANAGE_FOR.cpCareerMap,        careerSkills.skillUsage);
-router.post('/skills',            SUPER_ADMIN,   careerSkills.createSkill);
-router.put('/skills/:id',         SUPER_ADMIN,   careerSkills.updateSkill);
-router.delete('/skills/:id',      SUPER_ADMIN,   careerSkills.deleteSkill);
-router.post('/skills/seed',       SUPER_ADMIN,   careerSkills.seedSkills);
+router.post('/skills',            SKILL_CATALOGUE,   careerSkills.createSkill);
+router.put('/skills/:id',         SKILL_CATALOGUE,   careerSkills.updateSkill);
+router.delete('/skills/:id',      SKILL_CATALOGUE,   careerSkills.deleteSkill);
+router.post('/skills/seed',       SKILL_CATALOGUE,   careerSkills.seedSkills);
 
 // ── Role readiness (Module 8). Derived on every request from Skill DNA and the
 //    published blueprint — nothing is stored, so a new blueprint or new evidence changes
@@ -332,7 +330,7 @@ router.get('/students/:studentId/readiness',    MANAGE_FOR.cpMembers, readiness.
 // One member's full picture for staff: account, CareerPilot setup, membership, payments, progress.
 router.get('/admin/students/:studentId/profile', MANAGE_FOR.cpMembers, getMemberProfile);
 // Everything one member has done (pages, actions, API calls, videos) — the super admin's view.
-router.get('/admin/students/:studentId/activity', SUPER_ADMIN, getMemberActivity);
+router.get('/admin/students/:studentId/activity', MEMBER_ACTIVITY, getMemberActivity);
 
 // ── 90-day roadmap (Module 9). The PLANNING layer: what to achieve over the window, in
 //    canonical skills. Distinct from `/roadmap` below, which is the mission journey — that
@@ -698,18 +696,18 @@ router.post('/members/:userId/active', MANAGE_FOR.cpMembers, ctrl.setMemberActiv
  */
 router.post('/members/:userId/grant',    MANAGE_FOR.cpMembers, ctrl.grantMembership);
 // Demo plans and demo access: super admin only (controllers/demoPlanController, demoAccessController).
-router.get('/demo-plans',                     SUPER_ADMIN, demoPlans.listDemoPlans);
-router.get('/demo-plans/options/problems',    SUPER_ADMIN, demoPlans.searchDemoProblems);
-router.get('/demo-plans/options/thinking',    SUPER_ADMIN, demoPlans.searchDemoThinking);
-router.get('/demo-plans/options/books',       SUPER_ADMIN, demoPlans.searchDemoBooks);
-router.get('/demo-plans/options/tracks',      SUPER_ADMIN, demoPlans.listDemoTracks);
-router.post('/demo-plans',                    SUPER_ADMIN, demoPlans.saveDemoPlan);
-router.put('/demo-plans/:id',                 SUPER_ADMIN, demoPlans.saveDemoPlan);
-router.delete('/demo-plans/:id',              SUPER_ADMIN, demoPlans.deleteDemoPlan);
-router.get('/members/:userId/demo',           SUPER_ADMIN, demoAccess.memberDemo);
-router.post('/members/:userId/demo',          SUPER_ADMIN, demoAccess.giveDemo);
-router.delete('/members/:userId/demo',        SUPER_ADMIN, demoAccess.endDemo);
-router.post('/members/:userId/demo/reset',     SUPER_ADMIN, demoAccess.resetMemberDemo);
+router.get('/demo-plans',                     DEMO_ACCOUNTS, demoPlans.listDemoPlans);
+router.get('/demo-plans/options/problems',    DEMO_ACCOUNTS, demoPlans.searchDemoProblems);
+router.get('/demo-plans/options/thinking',    DEMO_ACCOUNTS, demoPlans.searchDemoThinking);
+router.get('/demo-plans/options/books',       DEMO_ACCOUNTS, demoPlans.searchDemoBooks);
+router.get('/demo-plans/options/tracks',      DEMO_ACCOUNTS, demoPlans.listDemoTracks);
+router.post('/demo-plans',                    DEMO_ACCOUNTS, demoPlans.saveDemoPlan);
+router.put('/demo-plans/:id',                 DEMO_ACCOUNTS, demoPlans.saveDemoPlan);
+router.delete('/demo-plans/:id',              DEMO_ACCOUNTS, demoPlans.deleteDemoPlan);
+router.get('/members/:userId/demo',           DEMO_ACCOUNTS, demoAccess.memberDemo);
+router.post('/members/:userId/demo',          DEMO_ACCOUNTS, demoAccess.giveDemo);
+router.delete('/members/:userId/demo',        DEMO_ACCOUNTS, demoAccess.endDemo);
+router.post('/members/:userId/demo/reset',     DEMO_ACCOUNTS, demoAccess.resetMemberDemo);
 router.get('/me/demo',                        MEMBER, demoAccess.myDemo);
 router.post('/me/demo/year',                  MEMBER, demoAccess.switchMyDemoYear);
 router.post('/me/demo/reset',                 MEMBER, demoAccess.resetMyDemo);

@@ -11,7 +11,7 @@ jest.mock('../models/Role', () => {
   };
 });
 
-import { permissionsOf, ROLE_PERMISSIONS, ALL_PERMISSIONS } from '../middleware/roleGuard';
+import { permissionsOf, ROLE_PERMISSIONS, ALL_PERMISSIONS, PLATFORM_ONLY, SUPER_ADMIN_GRANTED, PERMISSION_GROUPS } from '../middleware/roleGuard';
 const docs: any[] = (jest.requireMock('../models/Role') as any).docs;
 
 describe('who can do what (permissionsOf)', () => {
@@ -44,5 +44,21 @@ describe('who can do what (permissionsOf)', () => {
 
   it('no record and no tenant: the built-in defaults', async () => {
     expect(await permissionsOf({ role: 'INSTRUCTOR' })).toEqual(ROLE_PERMISSIONS.INSTRUCTOR);
+  });
+
+  it('platform keys on a role are ignored — holding "Manage All Tenants" means being a super admin', async () => {
+    docs.push({ _id: 'r5', name: 'Escalated', permissions: ['manage_tenants', 'manage_system_settings', 'view_reports'] });
+    expect(await permissionsOf({ role: 'TENANT_ADMIN', customRoleId: 'r5', tenantId: 't1' })).toEqual(['view_reports']);
+    docs.push({ _id: 'r6', name: 'TENANT_ADMIN', tenantId: 't1', permissions: ['manage_all_users'] });
+    expect(await permissionsOf({ role: 'TENANT_ADMIN', tenantId: 't1' })).not.toContain('manage_all_users');
+    expect(await permissionsOf({ role: 'SUPER_ADMIN' })).toEqual(expect.arrayContaining(PLATFORM_ONLY));
+  });
+
+  it('the features that used to check the role name can now be given, by a super admin only', async () => {
+    const shared = ['manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity'];
+    expect(SUPER_ADMIN_GRANTED).toEqual(expect.arrayContaining(shared));
+    expect(PERMISSION_GROUPS.sharedPlatform.permissions.map((p) => p.key)).toEqual(shared);
+    docs.push({ _id: 'r7', name: 'Demo helper', permissions: ['manage_demo_accounts'] });
+    expect(await permissionsOf({ role: 'STUDENT', customRoleId: 'r7', tenantId: 't1' })).toEqual(['manage_demo_accounts']);
   });
 });

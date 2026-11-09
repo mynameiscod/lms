@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import { RoleService } from '../services/roleService';
-import { PERMISSION_GROUPS, SUPER_ADMIN_GRANTED } from '../middleware/roleGuard';
+import { PERMISSION_GROUPS, SUPER_ADMIN_GRANTED, PLATFORM_ONLY } from '../middleware/roleGuard';
 
 const roleService = new RoleService();
 
@@ -12,6 +12,7 @@ const isSuper = (req: AuthenticatedRequest) => req.user?.role === 'SUPER_ADMIN';
  * they asked for except the super-admin-only ones, which stay exactly as the role already had them.
  */
 const guardGrants = (req: AuthenticatedRequest, requested: string[], existing: string[] = []): string[] => {
+  requested = (requested || []).filter((p) => !PLATFORM_ONLY.includes(p));
   if (isSuper(req)) return requested;
   const kept = existing.filter((p) => SUPER_ADMIN_GRANTED.includes(p));
   return [...requested.filter((p) => !SUPER_ADMIN_GRANTED.includes(p)), ...kept];
@@ -24,10 +25,11 @@ export const getAvailablePermissions = async (
   res.status(200).json({
     success: true,
     message: 'Available permissions fetched',
-    // An institute admin is not shown what they cannot give.
-    data: isSuper(req) ? PERMISSION_GROUPS : Object.fromEntries(Object.entries(PERMISSION_GROUPS).map(([k, g]) => [k, {
-      ...g, permissions: g.permissions.filter((p) => !SUPER_ADMIN_GRANTED.includes(p.key)),
-    }])),
+    // Nobody is shown what cannot be given: the platform keys never go on a role, and an institute
+    // admin does not see the super-admin-only ones.
+    data: Object.fromEntries(Object.entries(PERMISSION_GROUPS).map(([k, g]) => [k, {
+      ...g, permissions: g.permissions.filter((p) => !PLATFORM_ONLY.includes(p.key) && (isSuper(req) || !SUPER_ADMIN_GRANTED.includes(p.key))),
+    }]).filter(([, g]: any) => g.permissions.length > 0)),
   });
 };
 

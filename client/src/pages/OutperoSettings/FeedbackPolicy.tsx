@@ -26,7 +26,7 @@ export default function FeedbackPolicy({ stages }: { stages: LeadFilterOptions['
       <select id="feedback-timing" className="opo-input" value={policy.assignmentTiming} onChange={e => setPolicy({ ...policy, assignmentTiming: e.target.value as OutperoPolicy['assignmentTiming'] })}>
         <option value="on_creation">When the lead arrives</option><option value="after_call">After AI feedback (automatically sent leads)</option>
       </select>
-      <p className="opo-hint">While Outpero is calling, a lead has no owner. When the result arrives (any result), it is moved to the stage you map below and given to the next person by round robin, using Lead Distribution if it is on, otherwise Lead Scoring assignment. Existing owners are retained. No available owner: the lead waits below.</p>
+      <p className="opo-hint">While Outpero is calling, a lead has no owner. When the result arrives, it is moved to the stage you map below and given a counsellor using the Lead Assignment setting. Not interested, wrong number and opt-out results stay unassigned for an admin. Existing owners are retained. No available counsellor: the lead waits below.</p>
       <label className="opo-label" htmlFor="sent-stage">Stage while Outpero is calling</label>
       <select id="sent-stage" className="opo-input" value={policy.sentStageId || ''} onChange={e => setPolicy({ ...policy, sentStageId: e.target.value })}>
         <option value="">Keep current stage</option>{stages.map(stage => <option key={stage._id} value={stage._id}>{stage.name}</option>)}
@@ -50,7 +50,7 @@ export default function FeedbackPolicy({ stages }: { stages: LeadFilterOptions['
       <p className="opo-hint">Wrong numbers and opt-outs stop further LMS-triggered AI calls. Final stages and newer human stage changes are preserved. No-answer calls retry between 9 AM and 8 PM IST, up to the attempt limit, then go to human follow-up. Use one attempt to disable automatic retries.</p>
       <div className="opo-actions"><button className="opo-btn" disabled={busy} onClick={save}>{busy ? 'Saving...' : 'Save feedback policy'}</button></div>
     </>}
-    <p className="opo-hint"><a href="/lead-distribution-settings">Configure lead distribution</a></p>
+    <p className="opo-hint"><a href="/lead-assignment-settings">Configure lead assignment</a></p>
     <h3>Needs attention</h3>
     {queue.length ? <ul>{queue.map(lead => <li key={lead._id}><a href={'/leads/' + lead._id}>{lead.name || lead.phone}</a> - {lead.aiFeedback.state.replace(/_/g, ' ')} - {lead.aiFeedback.outcome.replace(/_/g, ' ')}</li>)}</ul> : <p className="opo-hint">No leads awaiting assignment or outcome review.</p>}
   </section>;

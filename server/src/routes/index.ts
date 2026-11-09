@@ -70,7 +70,7 @@ import placementDriveRoutes from '../placement/placementDriveRoutes';
 import alumniRoutes from '../alumni/alumniRoutes';
 import notificationRoutes from '../notifications/notificationRoutes';
 import meetingRoutes from './meetingRoutes';
-import leadDistributionRoutes from './leadDistributionRoutes';
+import leadAssignmentRoutes from './leadAssignmentRoutes';
 import whatsappDripConfigRoutes from './whatsappDripConfigRoutes';
 import salesCallRecordingRoutes from './salesCallRecordingRoutes';
 import googleAdsRoutes from './googleAdsRoutes';
@@ -299,7 +299,7 @@ router.use('/college/placement', placementDriveRoutes);
 router.use('/college/alumni', alumniRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/meetings', meetingRoutes);
-router.use('/lead-distribution-config', leadDistributionRoutes);
+router.use('/lead-assignment', leadAssignmentRoutes); // the one lead assignment setting
 router.use('/whatsapp-drip-config', whatsappDripConfigRoutes);
 router.use('/whatsapp-templates', whatsAppTemplateRoutes); // author Meta templates in the LMS + assign to system uses
 router.use('/problem-bank', problemBankRoutes); // single store of runnable coding problems

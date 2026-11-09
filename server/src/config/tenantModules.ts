@@ -88,7 +88,7 @@ export const API_MODULE_PREFIXES: [string, ModuleKey][] = [
   ['/leads', 'leads'], ['/lead-stages', 'leads'], ['/lead-pipeline', 'leads'], ['/lead-views', 'leads'], ['/lead-reports', 'leads'], ['/lead-automation', 'leads'], ['/lead-dispositions', 'leads'], ['/lead-form-config', 'leads'],
   ['/stage-history', 'leads'], ['/follow-ups', 'leads'], ['/lead-priority', 'leads'], ['/qualification', 'leads'],
   ['/sales-content', 'leads'], ['/lead-ai', 'leads'], ['/lost-reasons', 'leads'], ['/google-sheet-integrations', 'leads'],
-  ['/lead-scoring', 'leads'], ['/lead-source-config', 'leads'], ['/lead-distribution-config', 'leads'],
+  ['/lead-scoring', 'leads'], ['/lead-source-config', 'leads'], ['/lead-assignment', 'leads'],
   ['/whatsapp-drip-config', 'leads'], ['/meetings', 'leads'], ['/sales-call-recordings', 'leads'], ['/ai-calls', 'leads'],
   ['/outpero', 'leads'], ['/event-apis', 'leads'], ['/lead-archive', 'leads'], ['/meta-crm', 'leads'],
   ['/seat-reservations', 'feeManagement'], ['/fees', 'feeManagement'],

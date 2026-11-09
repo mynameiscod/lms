@@ -526,7 +526,6 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                 <div className="card border-0 mb-4" style={{ borderRadius: 10, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div className="card-body p-0">
                     {[
-                      { id: 'autoAssign', label: 'Auto-assign via Lead Scoring Engine', desc: 'New leads are automatically assigned to staff based on scoring rules', field: 'autoAssign', value: autoActions.autoAssign },
                       { id: 'notifyAdmin', label: 'Notify Admin on New Lead', desc: 'Send an email/WhatsApp notification to admin when a new lead arrives', field: 'notifyAdminOnNewLead', value: autoActions.notifyAdminOnNewLead },
                     ].map((item, idx) => (
                       <div key={item.id} className={`d-flex align-items-center justify-content-between p-3 ${idx > 0 ? 'border-top' : ''}`}>

@@ -16,7 +16,6 @@ import { initializeLeadStageHistory, recordStageTransition } from './leadStageHi
 import { linkLeadToCampaign } from './adCampaignController';
 import { scoreAndAssignLead } from '../services/leadScoringService';
 import { sendLeadWelcomeWhatsApp } from '../services/whatsAppWelcomeService';
-import { autoAssignLead } from '../services/leadDistributionService';
 import { pushLeadStageChange } from '../services/googleSheetSyncService';
 import { scheduleDripOnStageEntry } from '../services/whatsAppDripService';
 import { changeStage, LifecycleError, StageChangeResult, enrolledStageFor } from '../services/leadLifecycleService';
@@ -549,7 +548,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       );
     }
 
-    // Auto-score and auto-assign lead based on scoring rules
+    // Score the lead (priority + eligibility). Assignment is separate — see the Lead create hook.
     try {
       console.log(`[LEAD-CREATE] ===== SCORING START for lead ${lead._id} =====`);
       // Source and priority are what scoring turns on; the name and phone are the person.
@@ -568,10 +567,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       console.error('[LEAD-CREATE] WhatsApp welcome failed:', err)
     );
 
-    // Auto-distribute lead if tenant has distribution enabled (fire-and-forget)
-    autoAssignLead(req.tenantId!, lead._id.toString()).catch(err =>
-      console.error('[LEAD-CREATE] autoAssignLead failed:', err)
-    );
+    // Assignment: the Lead model's create hook runs the one assignment engine (leadAssignmentService).
 
     // AI Voice Qualification call — enqueue if enabled for this tenant (fire-and-forget)
     AICallConfig.findOne({ tenantId: req.tenantId, enabled: true })

@@ -171,7 +171,16 @@ export const deleteDemoPlan = async (req: Request, res: Response) => {
 
 // ── What a plan can name ─────────────────────────────────────────────────────────────────────
 
-/** GET /passport/demo-plans/options/problems?q= — published Problem Bank problems, from any library. */
+/*
+ * The pickers page through the whole bank. They used to return the first 40 and nothing else, so of
+ * 2,351 problems only #1–#40 could be added without guessing a search word, and Thinking Lab — sorted
+ * by type — offered only coding questions. Now: 50 a page, a total, and difficulty / type filters.
+ */
+const PICK_PAGE = 50;
+const pageOf = (req: Request) => Math.max(1, Math.min(1000, Number(req.query.page) || 1));
+const DIFFS = ['easy', 'medium', 'hard'];
+
+/** GET /passport/demo-plans/options/problems?q=&difficulty=&page= — published Problem Bank problems, from any library. */
 export const searchDemoProblems = async (req: Request, res: Response) => {
   try {
     const q = String(req.query.q || '').trim().slice(0, 80);
@@ -181,21 +190,38 @@ export const searchDemoProblems = async (req: Request, res: Response) => {
       if (/^#?\d{1,9}$/.test(q)) or.push({ number: Number(q.replace('#', '')) });
       and.push({ $or: or });
     }
-    const rows: any[] = await CodingProblem.find({ $and: and }).sort({ number: 1, _id: 1 }).limit(40).select('number title difficulty').lean();
-    res.json({ items: rows.map((r) => ({ id: String(r._id), number: r.number, title: r.title, difficulty: r.difficulty, live: true })) });
+    const diff = String(req.query.difficulty || '');
+    if (DIFFS.includes(diff)) and.push({ difficulty: diff });
+    const page = pageOf(req);
+    const [rows, total]: any = await Promise.all([
+      CodingProblem.find({ $and: and }).sort({ number: 1, _id: 1 }).skip((page - 1) * PICK_PAGE).limit(PICK_PAGE).select('number title difficulty').lean(),
+      CodingProblem.countDocuments({ $and: and }),
+    ]);
+    res.json({ total, page, hasMore: page * PICK_PAGE < total, items: (rows as any[]).map((r) => ({ id: String(r._id), number: r.number, title: r.title, difficulty: r.difficulty, live: true })) });
   } catch (e: any) {
     res.status(500).json({ message: 'Could not search the problems.' });
   }
 };
 
-/** GET /passport/demo-plans/options/thinking?q= — published questions from the shared Thinking Lab bank. */
+/** GET /passport/demo-plans/options/thinking?q=&type=&difficulty=&page= — published questions from the shared Thinking Lab bank. */
 export const searchDemoThinking = async (req: Request, res: Response) => {
   try {
     const q = String(req.query.q || '').trim().slice(0, 80);
     const f: any = { status: 'PUBLISHED' };
-    if (q) f.$or = [{ title: new RegExp(escapeRe(q), 'i') }, { subCategory: new RegExp(escapeRe(q), 'i') }, { type: q.toLowerCase() }];
-    const rows: any[] = await ThinkingQuestion.find(f).sort({ type: 1, number: 1 }).limit(40).select('title type subCategory difficulty number').lean();
-    res.json({ items: rows.map((r) => ({ id: String(r._id), number: r.number, title: r.title, category: [QUESTION_TYPE_LABEL[r.type as keyof typeof QUESTION_TYPE_LABEL], r.subCategory].filter(Boolean).join(' · '), difficulty: r.difficulty, live: true })) });
+    if (q) {
+      f.$or = [{ title: new RegExp(escapeRe(q), 'i') }, { subCategory: new RegExp(escapeRe(q), 'i') }, { type: q.toLowerCase() }];
+      if (/^(tq-?|#)?\d{1,6}$/i.test(q)) f.$or.push({ number: Number(q.replace(/^(tq-?|#)/i, '')) });
+    }
+    const type = String(req.query.type || '');
+    if ((['math', 'logical', 'critical', 'coding']).includes(type)) f.type = type;
+    const diff = String(req.query.difficulty || '');
+    if (DIFFS.includes(diff)) f.difficulty = diff;
+    const page = pageOf(req);
+    const [rows, total]: any = await Promise.all([
+      ThinkingQuestion.find(f).sort({ number: 1, _id: 1 }).skip((page - 1) * PICK_PAGE).limit(PICK_PAGE).select('title type subCategory difficulty number').lean(),
+      ThinkingQuestion.countDocuments(f),
+    ]);
+    res.json({ total, page, hasMore: page * PICK_PAGE < total, items: (rows as any[]).map((r) => ({ id: String(r._id), number: r.number, title: r.title, category: [QUESTION_TYPE_LABEL[r.type as keyof typeof QUESTION_TYPE_LABEL], r.subCategory].filter(Boolean).join(' · '), difficulty: r.difficulty, live: true })) });
   } catch (e: any) {
     res.status(500).json({ message: 'Could not search the Thinking Lab questions.' });
   }

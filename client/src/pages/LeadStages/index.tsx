@@ -40,7 +40,7 @@ const MILESTONE_HELP: Record<string, string> = {
   seat_reserved: 'Reservation payment verified.',
   enrolled: 'Admission confirmed / converted.',
   nurture: 'Interested, but later. Keeps the counsellor and a reactivation date.',
-  lost: 'Closed. Counsellors moving a lead here need manager approval.',
+  lost: 'Closed. The lead stops counting as active.',
   none: 'Not counted in the admissions funnel or sent to Meta.',
 };
 

@@ -146,10 +146,15 @@ const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<strin
   }
   if (dateFrom || dateTo) {
     filter.createdAt = {};
-    if (dateFrom) filter.createdAt.$gte = new Date(String(dateFrom));
+    // A bare YYYY-MM-DD is an IST calendar day, the same as the Lead Dashboard counts it —
+    // otherwise "Today" in the table would run 05:30 to 05:30 IST and disagree with the cards.
+    const isDay = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
+    if (dateFrom) { const s = String(dateFrom); filter.createdAt.$gte = isDay(s) ? new Date(`${s}T00:00:00.000+05:30`) : new Date(s); }
     if (dateTo) {
-      const endDate = new Date(String(dateTo));
-      endDate.setHours(23, 59, 59, 999);
+      const s = String(dateTo);
+      let endDate: Date;
+      if (isDay(s)) endDate = new Date(`${s}T23:59:59.999+05:30`);
+      else { endDate = new Date(s); endDate.setHours(23, 59, 59, 999); }
       filter.createdAt.$lte = endDate;
     }
   }

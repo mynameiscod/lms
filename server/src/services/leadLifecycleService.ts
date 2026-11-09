@@ -203,17 +203,7 @@ export async function changeStage(input: StageChangeInput): Promise<StageChangeR
 
   const shownReason = reason?.name || reasonText;
 
-  // ── manager approval for lost stages ──
-  if (!sameStage && stage.isLostStage && !ADMIN_ROLES.includes(actor.role) && (source === 'manual' || source === 'bulk' || source === 'edit')) {
-    lead.pendingApproval = {
-      stageId: stage._id, stageName: stage.name, requestedBy: actor.id, requestedAt: new Date(),
-      reason: [shownReason, reasonDetail].filter(Boolean).join(' — '),
-      subStageId: sub?._id, reasonId: reason?._id, reasonDetail: reasonDetail || undefined,
-      note: note || undefined, nextFollowUp: followUpAt || undefined,
-    };
-    await persistChanges(lead);
-    return { status: 'pending_approval', lead, fromStageName: fromStage?.name || 'Unknown', toStageName: stage.name };
-  }
+  // Moving a lead to a lost stage applies straight away — no manager approval (removed 2026-11-09).
 
   // ── apply ──
   const now = new Date();

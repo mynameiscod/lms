@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { leadApi, leadReportApi, leadStageApi } from '../../api';
+import { leadApi, leadPipelineApi, leadReportApi, leadStageApi } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Modal } from '../../components/common';
 import StageChangeDialog from '../../components/leads/StageChangeDialog';
@@ -16,10 +16,10 @@ import './LeadDashboard.css';
  * (see server/src/services/leadDashboardService.ts).
  */
 
-type RangeKey = 'this_month' | 'last_month' | '7' | '30' | '90' | 'all' | 'custom';
+type RangeKey = 'today' | 'yesterday' | 'this_month' | 'last_month' | '7' | '30' | '90' | 'all' | 'custom';
 type Tab = 'all' | 'mine' | 'dueToday' | 'overdue' | 'nurture' | 'lost';
 const RANGE_LABEL: Record<RangeKey, string> = {
-  this_month: 'This month', last_month: 'Last month', '7': 'Last 7 days', '30': 'Last 30 days', '90': 'Last 90 days', all: 'All time', custom: 'Custom',
+  today: 'Today', yesterday: 'Yesterday', this_month: 'This month', last_month: 'Last month', '7': 'Last 7 days', '30': 'Last 30 days', '90': 'Last 90 days', all: 'All time', custom: 'Custom',
 };
 const SOURCE_LABEL: Record<string, string> = {
   meta_form: 'Meta Ads', meta_ads: 'Meta Ads', facebook: 'Facebook', instagram: 'Instagram', google_ads: 'Google Ads', website: 'Website',
@@ -37,6 +37,8 @@ function rangeDates(key: RangeKey, custom: { from: string; to: string }): { from
   const y = ist.getUTCFullYear(); const m = ist.getUTCMonth();
   const iso = (yy: number, mm: number, dd: number) => new Date(Date.UTC(yy, mm, dd)).toISOString().slice(0, 10);
   switch (key) {
+    case 'today': return { from: istIso(now), to: istIso(now) };
+    case 'yesterday': { const d = istIso(new Date(now.getTime() - 86_400_000)); return { from: d, to: d }; }
     case 'this_month': return { from: iso(y, m, 1), to: istIso(now) };
     case 'last_month': return { from: iso(y, m - 1, 1), to: iso(y, m, 0) };
     case '7': case '30': case '90': return { from: istIso(new Date(now.getTime() - (Number(key) - 1) * 86_400_000)), to: istIso(now) };
@@ -77,7 +79,7 @@ const LeadDashboard: React.FC = () => {
   const [dash, setDash] = useState<any>(null);
   const [dashError, setDashError] = useState('');
   const [tab, setTab] = useState<Tab>('all');
-  const [filters, setFilters] = useState({ stageId: '', course: '', source: '', campaign: '', assignedTo: '' });
+  const [filters, setFilters] = useState({ stageId: '', subStageId: '', course: '', source: '', campaign: '', assignedTo: '' });
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -86,6 +88,8 @@ const LeadDashboard: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loadingLeads, setLoadingLeads] = useState(true);
   const [stages, setStages] = useState<any[]>([]);
+  // Sub-stages per stage id, for the second-level filter (shown once a stage is picked).
+  const [subStagesByStage, setSubStagesByStage] = useState<Record<string, { _id: string; name: string }[]>>({});
   const [staff, setStaff] = useState<any[]>([]);
   const [sources, setSources] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -129,6 +133,11 @@ const LeadDashboard: React.FC = () => {
 
   useEffect(() => {
     leadStageApi.getStages().then((r: any) => setStages(r.data || [])).catch(() => {});
+    leadPipelineApi.get().then((r: any) => {
+      const map: Record<string, { _id: string; name: string }[]> = {};
+      (r?.data?.stages || []).forEach((s: any) => { map[String(s._id)] = (s.subStages || []).filter((x: any) => x.isActive !== false); });
+      setSubStagesByStage(map);
+    }).catch(() => {});
     leadApi.getCounsellors().then((r: any) => setStaff(r.data || [])).catch(() => {});
     leadApi.getSources().then((r: any) => setSources((r.data || []).map((s: any) => (typeof s === 'string' ? s : s._id || s.source)).filter(Boolean))).catch(() => {});
     leadApi.getAds().then((r: any) => setAds(r?.data || [])).catch(() => {});
@@ -147,7 +156,7 @@ const LeadDashboard: React.FC = () => {
 
   // The table: tab + filters (+ the date range for the period tabs).
   const listParams = useMemo(() => {
-    const p: any = { page, limit: pageSize, search: search || undefined, stageId: filters.stageId || undefined, course: filters.course || undefined,
+    const p: any = { page, limit: pageSize, search: search || undefined, stageId: filters.stageId || undefined, subStageId: (filters.stageId && filters.subStageId) || undefined, course: filters.course || undefined,
       source: filters.source || undefined, campaign: filters.campaign || undefined, assignedTo: filters.assignedTo || undefined, sort: 'createdAt', dir: 'desc',
       priority: extra.priority || undefined, adId: extra.adId || undefined, reEnquiry: extra.reEnquiry || undefined };
     const period = { dateFrom: range.from, dateTo: range.to };
@@ -155,8 +164,8 @@ const LeadDashboard: React.FC = () => {
       case 'mine': Object.assign(p, period, { assignedTo: myId }); break;
       case 'dueToday': Object.assign(p, { followUp: 'today', openOnly: '1', sort: 'nextFollowUp', dir: 'asc' }); break;
       case 'overdue': Object.assign(p, { followUp: 'overdue', openOnly: '1', sort: 'nextFollowUp', dir: 'asc' }); break;
-      case 'nurture': Object.assign(p, { milestone: 'nurture', stageId: undefined }); break;
-      case 'lost': Object.assign(p, period, { milestone: 'lost', stageId: undefined }); break;
+      case 'nurture': Object.assign(p, { milestone: 'nurture', stageId: undefined, subStageId: undefined }); break;
+      case 'lost': Object.assign(p, period, { milestone: 'lost', stageId: undefined, subStageId: undefined }); break;
       default: Object.assign(p, period);
     }
     if (sort) Object.assign(p, { sort: sort.key, dir: sort.dir }); // a clicked column header wins
@@ -176,7 +185,8 @@ const LeadDashboard: React.FC = () => {
 
   const refreshAll = () => { loadDash(); loadLeads(); };
   const goTab = (t: Tab) => { setTab(t); setPage(1); tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
-  const setFilter = (k: keyof typeof filters, v: string) => { setFilters(f => ({ ...f, [k]: v })); setPage(1); };
+  // Changing the stage clears the sub-stage: sub-stages belong to one stage.
+  const setFilter = (k: keyof typeof filters, v: string) => { setFilters(f => ({ ...f, [k]: v, ...(k === 'stageId' ? { subStageId: '' } : {}) })); setPage(1); };
 
   const exportExcel = async () => {
     try {
@@ -261,7 +271,7 @@ const LeadDashboard: React.FC = () => {
     setTab((f.tab as Tab) || 'all');
     setRangeKey((f.rangeKey as RangeKey) || 'this_month');
     if (f.rangeKey === 'custom') setCustom({ from: f.dateFrom || '', to: f.dateTo || '' });
-    setFilters({ stageId: f.stageId || '', course: f.course || '', source: f.source || '', campaign: f.campaign || '', assignedTo: f.assignedTo || '' });
+    setFilters({ stageId: f.stageId || '', subStageId: f.subStageId || '', course: f.course || '', source: f.source || '', campaign: f.campaign || '', assignedTo: f.assignedTo || '' });
     setExtra({ priority: f.priority || '', adId: f.adId || '', reEnquiry: f.reEnquiry === 'true' });
     setSearchInput(f.search || ''); setSearch(f.search || '');
     setSort(f.sort ? { key: f.sort, dir: f.dir === 'asc' ? 'asc' : 'desc' } : null);
@@ -456,6 +466,12 @@ const LeadDashboard: React.FC = () => {
           <option value="">Stage: All</option>
           {stages.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
         </select>
+        {filters.stageId && tab !== 'nurture' && tab !== 'lost' && (subStagesByStage[filters.stageId] || []).length > 0 && (
+          <select value={filters.subStageId} onChange={e => setFilter('subStageId', e.target.value)} aria-label="Sub-stage">
+            <option value="">Sub-stage: All</option>
+            {subStagesByStage[filters.stageId].map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+          </select>
+        )}
         <select value={filters.course} onChange={e => setFilter('course', e.target.value)} aria-label="Course">
           <option value="">Course: All</option>
           {(dash?.options?.courses || []).map((c: string) => <option key={c} value={c}>{c}</option>)}

@@ -24,6 +24,9 @@ const MODULE_META: Record<string, { icon: string; tint: string; desc: string }> 
   leads:          { icon: '🎯', tint: 'pink',   desc: 'Lead creation, tracking and analytics' },
   marketing:      { icon: '📣', tint: 'green',  desc: 'Marketing dashboards and insights' },
   codingSnippets: { icon: '💻', tint: 'indigo', desc: 'Coding snippet assessments' },
+  careerPassport: { icon: '🧭', tint: 'teal',   desc: 'CareerPilot members, setup, content and assessment' },
+  sharedPlatform: { icon: '🌐', tint: 'purple', desc: 'Company job openings, Thinking Lab questions, demo accounts, skill catalogue, member activity' },
+  support:        { icon: '🛟', tint: 'blue',   desc: 'Work Help & Support tickets (agent) or run the desk (manager)' },
 };
 const CARD_TINTS = ['blue', 'green', 'purple', 'orange', 'cyan', 'pink', 'teal', 'indigo', 'red', 'amber'];
 const PAGE_SIZE = 6;

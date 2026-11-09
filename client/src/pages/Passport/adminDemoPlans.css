@@ -39,3 +39,17 @@
   .dp .dp-years li { flex-wrap: wrap; }
   .dp .dp-years li b { flex-basis: 100%; text-align: left; padding-left: 28px; }
 }
+/* Picker: filters, count, load more — the whole bank is reachable, not only its first 40. */
+.dp-filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dp-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: #EEF2F7; }
+.dp-seg button { border: 0; background: transparent; padding: 5px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 700; color: #2F3F56; cursor: pointer; }
+.dp-seg button.on { background: #fff; color: #0B3BBF; box-shadow: 0 1px 2px rgba(16, 42, 79, .12); }
+.dp-type { height: 32px; padding: 0 8px; border: 1px solid #D9E1EC; border-radius: 9px; background: #fff; font-size: 12.5px; font-weight: 600; color: #102A4F; }
+.dp-count { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; color: #2F3F56; font-weight: 600; }
+.dp-link { border: 0; background: none; padding: 0; color: #0B3BBF; font-weight: 700; font-size: 12.5px; cursor: pointer; }
+.dp-link:disabled { color: #8A97A8; cursor: default; }
+.dp-pick .tp-pk-list.dp-found { max-height: 340px; }
+.dp-pick .tp-pk-list li.dp-more-li { display: block; padding: 0; border: 0; background: none; }
+.dp-more { width: 100%; padding: 8px; border: 1px dashed #B9C6D8; border-radius: 9px; background: #F7F9FC; color: #0B3BBF; font-weight: 700; font-size: 12.5px; cursor: pointer; }
+.dp-more:hover:not(:disabled) { background: #EEF2FF; }
+.dp-seg button:focus-visible, .dp-more:focus-visible, .dp-link:focus-visible, .dp-type:focus-visible { outline: 2px solid #8DB4EA; outline-offset: 2px; }

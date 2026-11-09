@@ -14,6 +14,8 @@ export interface IThinkingDay extends Document {
   /** Extra questions from "Practice more": answered for practice, never paid. */
   practice: { questionId: mongoose.Types.ObjectId; type: string }[];
   demo?: boolean;
+  /** A demo day built from the demo plan's list; re-synced to the plan every time the lab opens. */
+  fromPlan?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +31,7 @@ const ThinkingDaySchema = new Schema<IThinkingDay>(
     items: { type: [Item], default: [] },
     practice: { type: [Item], default: [] },
     demo: { type: Boolean },
+    fromPlan: { type: Boolean },
   },
   { timestamps: true },
 );

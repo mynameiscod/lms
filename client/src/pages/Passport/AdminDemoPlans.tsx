@@ -254,17 +254,41 @@ const PlanEditor: React.FC<{ draft: Draft; years: DemoYearInfo[]; rounds: string
 /** Search one kind of content and build the year's ordered list of it. */
 const Picker: React.FC<{ kind: 'problems' | 'thinking' | 'books'; title: string; what: string; max: number; picked: DemoPickItem[]; onChange: (p: DemoPickItem[]) => void }> = ({ kind, title, what, max, picked, onChange }) => {
   const [q, setQ] = useState('');
+  const [diff, setDiff] = useState('');
+  const [type, setType] = useState('');
   const [found, setFound] = useState<DemoPickItem[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [more, setMore] = useState(false);
   const [err, setErr] = useState('');
+  const filters = kind === 'books' ? {} : { difficulty: diff || undefined, ...(kind === 'thinking' ? { type: type || undefined } : {}) };
+  // A new search or filter starts again at page 1.
   useEffect(() => {
     let live = true;
     const t = window.setTimeout(() => {
-      passportApi.searchDemoOptions(kind, q.trim())
-        .then((r) => { if (live) { setFound(r); setErr(''); } })
+      passportApi.searchDemoOptions(kind, q.trim(), { ...filters, page: 1 })
+        .then((r) => { if (live) { setFound(r.items); setTotal(r.total); setHasMore(r.hasMore); setPage(1); setErr(''); } })
         .catch((e) => { if (live) setErr(e?.response?.data?.message || 'Could not search.'); });
     }, q ? 250 : 0);
     return () => { live = false; window.clearTimeout(t); };
-  }, [q, kind]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, kind, diff, type]);
+  const loadMore = () => {
+    setMore(true);
+    passportApi.searchDemoOptions(kind, q.trim(), { ...filters, page: page + 1 })
+      .then((r) => {
+        setFound((prev) => { const ids = new Set((prev || []).map((p) => p.id)); return [...(prev || []), ...r.items.filter((p) => !ids.has(p.id))]; });
+        setPage(page + 1); setHasMore(r.hasMore); setTotal(r.total);
+      })
+      .catch((e) => setErr(e?.response?.data?.message || 'Could not load more.'))
+      .finally(() => setMore(false));
+  };
+  const addAllShown = () => {
+    const room = max - picked.length;
+    const add = (found || []).filter((p) => !has.has(p.id)).slice(0, Math.max(0, room));
+    if (add.length) onChange([...picked, ...add]);
+  };
   const has = new Set(picked.map((p) => p.id));
   const full = picked.length >= max;
   const move = (i: number, by: number) => {
@@ -284,18 +308,39 @@ const Picker: React.FC<{ kind: 'problems' | 'thinking' | 'books'; title: string;
         <span className="xr-search tp-pk-search"><i className="bi bi-search" />
           <input value={q} maxLength={80} placeholder={`Find ${what}`} onChange={(e) => setQ(e.target.value)} aria-label={`Search ${title}`} />
         </span>
+        {kind !== 'books' && <div className="dp-filters">
+          <div className="dp-seg" role="group" aria-label="Difficulty">
+            {[['', 'All'], ['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard']].map(([k, l]) =>
+              <button key={k || 'all'} type="button" className={diff === k ? 'on' : ''} aria-pressed={diff === k} onClick={() => setDiff(k)}>{l}</button>)}
+          </div>
+          {kind === 'thinking' && <select className="dp-type" value={type} onChange={(e) => setType(e.target.value)} aria-label="Question type">
+            <option value="">All types</option>
+            <option value="math">Math puzzle</option>
+            <option value="logical">Logical thinking</option>
+            <option value="critical">Critical thinking</option>
+            <option value="coding">Coding</option>
+          </select>}
+        </div>}
         {err ? <p className="tp-pk-note bad">{err}</p>
           : !found ? <p className="tp-pk-note">Loading…</p>
-          : !found.length ? <p className="tp-pk-note">{q ? 'Nothing matches.' : `No ${what} to choose from yet.`}</p>
-          : <ul className="tp-pk-list">
-            {found.map((p) => <li key={p.id}>
-              {row(p)}
-              <button type="button" className="tp-pk-btn" disabled={has.has(p.id) || full} onClick={() => onChange([...picked, p])}
-                aria-label={has.has(p.id) ? `${p.title} is chosen` : `Add ${p.title}`}>
-                <i className={`bi ${has.has(p.id) ? 'bi-check-lg' : 'bi-plus-lg'}`} />
-              </button>
-            </li>)}
-          </ul>}
+          : !found.length ? <p className="tp-pk-note">{q || diff || type ? 'Nothing matches.' : `No ${what} to choose from yet.`}</p>
+          : <>
+            <div className="dp-count">
+              <span>Showing {found.length.toLocaleString()} of {total.toLocaleString()}</span>
+              <button type="button" className="dp-link" disabled={full || found.every((p) => has.has(p.id))} onClick={addAllShown}>Add all shown</button>
+            </div>
+            <ul className="tp-pk-list dp-found">
+              {found.map((p) => <li key={p.id}>
+                {row(p)}
+                <button type="button" className="tp-pk-btn" disabled={has.has(p.id) || full} onClick={() => onChange([...picked, p])}
+                  aria-label={has.has(p.id) ? `${p.title} is chosen` : `Add ${p.title}`}>
+                  <i className={`bi ${has.has(p.id) ? 'bi-check-lg' : 'bi-plus-lg'}`} />
+                </button>
+              </li>)}
+              {hasMore && <li className="dp-more-li"><button type="button" className="dp-more" disabled={more} onClick={loadMore}>{more ? 'Loading…' : `Load ${Math.min(50, total - found.length)} more`}</button></li>}
+            </ul>
+            {full && <p className="tp-pk-note">This list is full ({max}). Remove one to add another.</p>}
+          </>}
       </div>
       <div className="tp-pk-col">
         {!picked.length ? <p className="tp-pk-note">Add {what} from the search. Only these show in the demo for this year.</p>

@@ -155,13 +155,15 @@ export async function getMemberProfile(req: Request, res: Response) {
 
 /**
  * GET /passport/admin/students/:studentId/activity — everything one member has done, newest first.
- * SUPER_ADMIN only (route guard). Read from the member's own tenant, so a super admin can open any.
+ * A super admin, or a role a super admin gave view_member_activity (route guard). A super admin can
+ * open any member; anyone else only members of their own institute, like the profile above.
  */
 export async function getMemberActivity(req: Request, res: Response) {
   try {
     const { studentId } = req.params;
     if (!mongoose.isValidObjectId(studentId)) return res.status(400).json({ success: false, message: 'That is not a member id.' });
-    const user: any = await User.findById(studentId).select('tenantId').lean();
+    const caller: any = (req as any).user || {};
+    const user: any = await User.findOne({ _id: studentId, ...(caller.role === 'SUPER_ADMIN' ? {} : { tenantId: caller.tenantId }) }).select('tenantId').lean();
     if (!user) return res.status(404).json({ success: false, message: 'Member not found.' });
     const kinds = String(req.query.kinds || '').split(',').map(k => k.trim()).filter(k => ['page', 'action', 'api', 'error'].includes(k));
     const data = await getUserTimeline(String(user.tenantId), studentId, {

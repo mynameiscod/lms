@@ -14,6 +14,8 @@ import { DEMO_YEARS, DEMO_YEAR_KEYS, DemoYearConfig, demoYearOf, isDemoPassport 
 const planCache = new Map<string, { at: number; plan: any }>();
 const PLAN_TTL_MS = 15_000;
 export const __clearDemoCache = () => planCache.clear();
+/** A plan was saved or deleted: the next read takes it fresh, so the change reaches demo accounts at once. */
+export const forgetDemoPlan = (planId: string) => { planCache.delete(String(planId)); };
 
 /** Is there a live database? Unit tests mock models and never connect. */
 const connected = () => mongoose.connection?.readyState === 1;

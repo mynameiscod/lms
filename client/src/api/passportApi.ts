@@ -242,9 +242,10 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/demo-plans`, { headers: auth() });
     return data;
   },
-  searchDemoOptions: async (kind: 'problems' | 'thinking' | 'books', q: string): Promise<DemoPickItem[]> => {
-    const { data } = await axios.get(`${BASE}/demo-plans/options/${kind}`, { params: { q }, headers: auth() });
-    return data.items || [];
+  searchDemoOptions: async (kind: 'problems' | 'thinking' | 'books', q: string, opts: { page?: number; difficulty?: string; type?: string } = {}): Promise<{ items: DemoPickItem[]; total: number; hasMore: boolean }> => {
+    const { data } = await axios.get(`${BASE}/demo-plans/options/${kind}`, { params: { q, ...opts }, headers: auth() });
+    const items: DemoPickItem[] = data.items || [];
+    return { items, total: Number(data.total ?? items.length), hasMore: !!data.hasMore };
   },
   listDemoTracks: async (): Promise<{ key: string; name: string }[]> => {
     const { data } = await axios.get(`${BASE}/demo-plans/options/tracks`, { headers: auth() });

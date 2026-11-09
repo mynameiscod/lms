@@ -253,12 +253,22 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       // see. Same reasoning as scoring categories above — editing content and rewriting
       // what existing members are doing are different levels of trust.
       { key: 'reroute_passport_members', label: 'Re-route Existing CareerPilot Members Between Pathways' },
-      // Not under manage_passport: an opening is shown to members of EVERY institute, so only a super
-      // admin can give this to a role (SUPER_ADMIN_GRANTED below).
-      { key: 'manage_job_openings', label: 'CareerPilot: post job openings for every member (super admin gives this)' },
-      // The Thinking Lab question bank is shared by every institute, so the same rule applies.
-      { key: 'manage_thinking_bank', label: 'CareerPilot: write and approve Thinking Lab questions for every member (super admin gives this)' },
       { key: 'use_passport', label: 'Use CareerPilot (Member Surfaces)' },
+    ]
+  },
+  /*
+   * Each of these acts on something every institute shares, so only a super admin can put them on
+   * a role (SUPER_ADMIN_GRANTED below). They used to be either buried in the CareerPilot list or not
+   * grantable at all (the role NAME was checked), which is why a super admin could not find them.
+   */
+  sharedPlatform: {
+    label: 'Shared Across Every Institute (only a super admin can give these)',
+    permissions: [
+      { key: 'manage_job_openings', label: 'Company Job Openings: post jobs that every CareerPilot member sees' },
+      { key: 'manage_thinking_bank', label: 'Thinking Lab Questions: write and approve the shared question bank' },
+      { key: 'manage_demo_accounts', label: 'Demo Accounts: demo plans, and give, reset or end a demo on a member' },
+      { key: 'manage_skill_catalogue', label: 'Skill Catalogue: add, edit and delete shared skills, and the skills set for each stage' },
+      { key: 'view_member_activity', label: "Member Activity Trail: see everything a member did, on their profile" },
     ]
   },
   /*
@@ -375,7 +385,18 @@ export const FEATURE_PERMISSIONS = [
  * Permissions only a super admin can put on a role. They act beyond one institute, so an
  * institute admin who manages roles must not be able to hand them out — or take them away.
  */
-export const SUPER_ADMIN_GRANTED = ['manage_job_openings', 'manage_thinking_bank'];
+export const SUPER_ADMIN_GRANTED = [
+  'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
+];
+
+/**
+ * The platform administrator's own keys. They are never on a role: holding "Manage All Tenants"
+ * is being a super admin, so that is done by making the person one. Before this an institute
+ * admin could tick them (they were not in SUPER_ADMIN_GRANTED) and the tenant list, tenant
+ * edits and plan limits would open for that role. They are hidden from the Roles screen and
+ * dropped from every non-super-admin's permissions, including roles saved earlier.
+ */
+export const PLATFORM_ONLY = ['manage_tenants', 'manage_all_users', 'manage_system_settings'];
 
 export const ALL_PERMISSIONS = Object.values(PERMISSION_GROUPS)
   .flatMap(group => group.permissions.map(p => p.key));
@@ -549,6 +570,11 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
  * Exported so a handler serving two audiences (an author and a student) decides by the same rule.
  */
 export const permissionsOf = async (user: { role: string; customRoleId?: any; tenantId?: any }): Promise<string[]> => {
+  if (user.role === 'SUPER_ADMIN') return ALL_PERMISSIONS;
+  return (await rolePermissions(user)).filter((p) => !PLATFORM_ONLY.includes(p));
+};
+
+const rolePermissions = async (user: { role: string; customRoleId?: any; tenantId?: any }): Promise<string[]> => {
   // A super admin can do everything, always — a custom role on their account never narrows that.
   if (user.role === 'SUPER_ADMIN') return ALL_PERMISSIONS;
   const base = ROLE_PERMISSIONS[user.role] || [];

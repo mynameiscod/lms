@@ -140,15 +140,35 @@ function buildReceiptHtml(d: ReceiptData): string {
       <td style="padding:11px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;text-align:right;color:${opts?.bold ? P : '#334155'};font-weight:${opts?.bold ? 700 : 400}">${inr2(amt).replace('₹', '')}</td>
     </tr>`;
 
-  const payRows = (d.payments || []).length
-    ? d.payments.map(p => `
+  // Every payment, oldest first, numbered, with the balance left after each one — so a fee paid in
+  // instalments reads clearly (e.g. ₹3,000 on one date, ₹32,000 on another), not as one lump sum.
+  const netFee = (d.totalAmount || 0) - (d.discount || 0);
+  const sortedPayments = [...(d.payments || [])]
+    .filter(p => p && Number(p.amount) !== 0)
+    .sort((a, b) => new Date(a.paymentDate || 0).getTime() - new Date(b.paymentDate || 0).getTime());
+  const td = (v: string, extra = '') => `<td style="padding:9px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#334155;${extra}">${v}</td>`;
+  let running = 0;
+  const payRows = sortedPayments.length
+    ? sortedPayments.map((p, i) => {
+      running += Number(p.amount) || 0;
+      const balance = Math.max(0, netFee - running);
+      return `
       <tr>
-        <td style="padding:9px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#334155">${fmtDate(p.paymentDate)}</td>
-        <td style="padding:9px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#334155">${PAY_METHOD_LABEL[p.paymentMethod] || p.paymentMethod || '—'}</td>
-        <td style="padding:9px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#334155">${p.transactionId || '—'}</td>
-        <td style="padding:9px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#16a34a;font-weight:600;text-align:right">${inr2(p.amount).replace('₹', '')}</td>
-      </tr>`).join('')
-    : `<tr><td colspan="4" style="padding:12px;text-align:center;border-bottom:1px solid #e5e7eb;color:#94a3b8;font-size:12px">No payments recorded yet</td></tr>`;
+        ${td(String(i + 1), 'text-align:center;color:#64748b')}
+        ${td(fmtDate(p.paymentDate))}
+        ${td(PAY_METHOD_LABEL[p.paymentMethod] || p.paymentMethod || '—')}
+        ${td(p.transactionId || '—')}
+        ${td(p.remarks ? String(p.remarks).replace(/</g, '&lt;') : '—', 'color:#64748b')}
+        ${td(inr2(p.amount).replace('₹', ''), 'text-align:right;color:#16a34a;font-weight:700')}
+        ${td(inr2(balance).replace('₹', ''), `text-align:right;color:${balance > 0 ? '#dc2626' : '#16a34a'};font-weight:600`)}
+      </tr>`;
+    }).join('') + `
+      <tr style="background:#eef2ff">
+        <td colspan="5" style="padding:10px;font-size:12px;color:${P};font-weight:800">TOTAL PAID (${sortedPayments.length} payment${sortedPayments.length === 1 ? '' : 's'})</td>
+        <td style="padding:10px;font-size:12.5px;text-align:right;color:#16a34a;font-weight:800">${inr2(running).replace('₹', '')}</td>
+        <td style="padding:10px;font-size:12.5px;text-align:right;color:${d.dueAmount > 0 ? '#dc2626' : '#16a34a'};font-weight:800">${inr2(d.dueAmount).replace('₹', '')}</td>
+      </tr>`
+    : `<tr><td colspan="7" style="padding:12px;text-align:center;border-bottom:1px solid #e5e7eb;color:#94a3b8;font-size:12px">No payments recorded yet</td></tr>`;
 
   const summaryLine = (label: string, value: string, color: string) => `
     <tr><td style="padding:9px 0 3px;font-size:11px;color:#64748b;font-weight:700;letter-spacing:.3px">${label}</td></tr>
@@ -270,29 +290,36 @@ function buildReceiptHtml(d: ReceiptData): string {
       </table>
     </div>
 
-    <!-- Payment history + signature -->
+    <!-- Payment history (full width) -->
     <div style="padding:18px 28px 0">
+      <div style="color:${P};font-weight:700;font-size:12px;letter-spacing:.4px;margin-bottom:10px">💳 PAYMENT HISTORY</div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+        <tr style="background:${P}">
+          <th style="padding:9px 10px;text-align:center;color:#fff;font-size:10.5px;letter-spacing:.4px">#</th>
+          <th style="padding:9px 10px;text-align:left;color:#fff;font-size:10.5px;letter-spacing:.4px">DATE</th>
+          <th style="padding:9px 10px;text-align:left;color:#fff;font-size:10.5px;letter-spacing:.4px">MODE</th>
+          <th style="padding:9px 10px;text-align:left;color:#fff;font-size:10.5px;letter-spacing:.4px">TRANSACTION ID</th>
+          <th style="padding:9px 10px;text-align:left;color:#fff;font-size:10.5px;letter-spacing:.4px">REMARKS</th>
+          <th style="padding:9px 10px;text-align:right;color:#fff;font-size:10.5px;letter-spacing:.4px">AMOUNT PAID (₹)</th>
+          <th style="padding:9px 10px;text-align:right;color:#fff;font-size:10.5px;letter-spacing:.4px">BALANCE (₹)</th>
+        </tr>
+        ${payRows}
+      </table>
+    </div>
+
+    <!-- QR + signature -->
+    <div style="padding:6px 28px 0">
       <table style="width:100%;border-collapse:collapse">
         <tr>
-          <td style="vertical-align:top;width:58%;padding-right:18px">
-            <div style="color:${P};font-weight:700;font-size:12px;letter-spacing:.4px;margin-bottom:10px">💳 PAYMENT HISTORY</div>
-            <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
-              <tr style="background:${P}">
-                <th style="padding:9px 12px;text-align:left;color:#fff;font-size:10.5px;letter-spacing:.4px">DATE</th>
-                <th style="padding:9px 12px;text-align:left;color:#fff;font-size:10.5px;letter-spacing:.4px">MODE</th>
-                <th style="padding:9px 12px;text-align:left;color:#fff;font-size:10.5px;letter-spacing:.4px">TRANSACTION ID</th>
-                <th style="padding:9px 12px;text-align:right;color:#fff;font-size:10.5px;letter-spacing:.4px">AMOUNT (₹)</th>
-              </tr>
-              ${payRows}
-            </table>
-          </td>
-          <td style="vertical-align:bottom;width:42%;text-align:center">
+          <td style="vertical-align:bottom;width:58%">
             ${B.showQr && B.qr ? `
-            <div style="text-align:center;padding-top:6px">
+            <div style="padding-top:6px">
               <div style="color:#475569;font-size:11px;margin-bottom:6px">Scan &amp; Pay${B.upiId ? ` · ${B.upiId}` : ''}</div>
               <img src="${B.qr}" alt="" onerror="this.style.display='none'" style="width:92px;height:92px;border:1px solid #e5e7eb;border-radius:8px;background:#fff" />
             </div>` : ''}
-            <div style="text-align:center;padding-top:18px">
+          </td>
+          <td style="vertical-align:bottom;width:42%;text-align:center">
+            <div style="text-align:center;padding-top:12px">
               ${B.signature ? `<img src="${B.signature}" alt="" onerror="this.style.display='none'" style="height:54px;display:inline-block" />` : ''}
               <div style="border-top:1px solid #cbd5e1;margin:4px auto 0;padding-top:6px;color:#0f172a;font-size:12px;font-weight:600;max-width:220px">${B.authorizedSignatory}</div>
               <div style="color:#64748b;font-size:11px">For ${B.name}</div>

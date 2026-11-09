@@ -65,24 +65,29 @@ const when = (iso?: string) => {
 const ageDays = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
 const fmtN = (n?: number | null) => (n === null || n === undefined ? '—' : n.toLocaleString('en-IN'));
 
+// Filters survive opening a lead and coming back (kept for this browser tab only).
+const SAVED_KEY = 'leadDashboard.state.v1';
+const loadSaved = (): any => { try { return JSON.parse(sessionStorage.getItem(SAVED_KEY) || '{}') || {}; } catch { return {}; } };
+
 const LeadDashboard: React.FC = () => {
+  const saved = useMemo(loadSaved, []);
   const navigate = useNavigate();
   const { user } = useAuth();
   const myId = (user as any)?._id || (user as any)?.id || '';
   const canBulk = !!user && (['SUPER_ADMIN', 'TENANT_ADMIN'].includes(user.role) || ((user as any).permissions || []).some((p: string) => ['manage_leads', 'assign_leads'].includes(p)));
 
-  const [rangeKey, setRangeKey] = useState<RangeKey>('this_month');
-  const [custom, setCustom] = useState({ from: '', to: '' });
+  const [rangeKey, setRangeKey] = useState<RangeKey>(saved.rangeKey && saved.rangeKey in RANGE_LABEL ? saved.rangeKey : 'this_month');
+  const [custom, setCustom] = useState<{ from: string; to: string }>(saved.custom || { from: '', to: '' });
   const [rangeOpen, setRangeOpen] = useState(false);
   const range = useMemo(() => rangeDates(rangeKey, custom), [rangeKey, custom]);
 
   const [dash, setDash] = useState<any>(null);
   const [dashError, setDashError] = useState('');
-  const [tab, setTab] = useState<Tab>('all');
-  const [filters, setFilters] = useState({ stageId: '', subStageId: '', course: '', source: '', campaign: '', assignedTo: '' });
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  const [tab, setTab] = useState<Tab>(saved.tab || 'all');
+  const [filters, setFilters] = useState({ stageId: '', subStageId: '', course: '', source: '', campaign: '', assignedTo: '', ...(saved.filters || {}) });
+  const [searchInput, setSearchInput] = useState<string>(saved.search || '');
+  const [search, setSearch] = useState<string>(saved.search || '');
+  const [page, setPage] = useState<number>(saved.page || 1);
   const [leads, setLeads] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -102,10 +107,10 @@ const LeadDashboard: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'danger'; text: string } | null>(null);
   // Everything the old "All Leads (list)" page offered, now here (single leads screen).
-  const [extra, setExtra] = useState<{ priority: string; adId: string; reEnquiry: boolean }>({ priority: '', adId: '', reEnquiry: false });
-  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
-  const [pageSize, setPageSize] = useState(25);
-  const [view, setView] = useState<'table' | 'board'>('table');
+  const [extra, setExtra] = useState<{ priority: string; adId: string; reEnquiry: boolean }>({ priority: '', adId: '', reEnquiry: false, ...(saved.extra || {}) });
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(saved.sort || null);
+  const [pageSize, setPageSize] = useState<number>(saved.pageSize || 25);
+  const [view, setView] = useState<'table' | 'board'>(saved.view === 'board' ? 'board' : 'table');
   const [ads, setAds] = useState<{ adId: string; adName?: string; campaignName?: string; adSetName?: string; leads: number }[]>([]);
   const [views, setViews] = useState<{ _id: string; name: string; filters: Record<string, string>; shared: boolean; mine: boolean }[]>([]);
   const [importOpen, setImportOpen] = useState(false);
@@ -128,7 +133,15 @@ const LeadDashboard: React.FC = () => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
-  useEffect(() => { const t = window.setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 350); return () => window.clearTimeout(t); }, [searchInput]);
+  // Only a changed search goes back to page 1 (so a restored page survives the first run).
+  useEffect(() => {
+    const t = window.setTimeout(() => { const q = searchInput.trim(); setSearch(prev => { if (prev !== q) setPage(1); return q; }); }, 350);
+    return () => window.clearTimeout(t);
+  }, [searchInput]);
+  // Remember the filters so opening a lead and pressing Back brings them back.
+  useEffect(() => {
+    try { sessionStorage.setItem(SAVED_KEY, JSON.stringify({ rangeKey, custom, tab, filters, extra, search: searchInput, sort, page, pageSize, view })); } catch { /* storage unavailable */ }
+  }, [rangeKey, custom, tab, filters, extra, searchInput, sort, page, pageSize, view]);
   useEffect(() => { const close = () => setMenuFor(null); window.addEventListener('click', close); return () => window.removeEventListener('click', close); }, []);
 
   useEffect(() => {
@@ -185,6 +198,11 @@ const LeadDashboard: React.FC = () => {
 
   const refreshAll = () => { loadDash(); loadLeads(); };
   const goTab = (t: Tab) => { setTab(t); setPage(1); tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  const clearFilters = () => {
+    setFilters({ stageId: '', subStageId: '', course: '', source: '', campaign: '', assignedTo: '' });
+    setExtra({ priority: '', adId: '', reEnquiry: false });
+    setSearchInput(''); setSearch(''); setSort(null); setPage(1);
+  };
   // Changing the stage clears the sub-stage: sub-stages belong to one stage.
   const setFilter = (k: keyof typeof filters, v: string) => { setFilters(f => ({ ...f, [k]: v, ...(k === 'stageId' ? { subStageId: '' } : {}) })); setPage(1); };
 
@@ -506,6 +524,9 @@ const LeadDashboard: React.FC = () => {
           <option value="__save">+ Save these filters as a view</option>
           {views.filter(v => v.mine).map(v => <option key={`d${v._id}`} value={`__del:${v._id}`}>Delete “{v.name}”</option>)}
         </select>
+        {(Object.values(filters).some(Boolean) || extra.priority || extra.adId || extra.reEnquiry || searchInput) && (
+          <button type="button" className="ldb-link" onClick={clearFilters} title="Reset every filter and the search"><i className="bi bi-x-circle" /> Clear filters</button>
+        )}
         <div className="ldb-filters-right">
           <button className="ldb-icon-btn" onClick={exportExcel} title="Export to Excel" aria-label="Export to Excel"><i className="bi bi-download" /></button>
         </div>

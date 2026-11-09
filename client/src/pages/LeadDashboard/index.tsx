@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { leadApi, leadReportApi, leadStageApi } from '../../api';
+import { leadApi, leadPipelineApi, leadReportApi, leadStageApi } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Modal } from '../../components/common';
 import StageChangeDialog from '../../components/leads/StageChangeDialog';
@@ -16,10 +16,10 @@ import './LeadDashboard.css';
  * (see server/src/services/leadDashboardService.ts).
  */
 
-type RangeKey = 'this_month' | 'last_month' | '7' | '30' | '90' | 'all' | 'custom';
+type RangeKey = 'today' | 'yesterday' | 'this_month' | 'last_month' | '7' | '30' | '90' | 'all' | 'custom';
 type Tab = 'all' | 'mine' | 'dueToday' | 'overdue' | 'nurture' | 'lost';
 const RANGE_LABEL: Record<RangeKey, string> = {
-  this_month: 'This month', last_month: 'Last month', '7': 'Last 7 days', '30': 'Last 30 days', '90': 'Last 90 days', all: 'All time', custom: 'Custom',
+  today: 'Today', yesterday: 'Yesterday', this_month: 'This month', last_month: 'Last month', '7': 'Last 7 days', '30': 'Last 30 days', '90': 'Last 90 days', all: 'All time', custom: 'Custom',
 };
 const SOURCE_LABEL: Record<string, string> = {
   meta_form: 'Meta Ads', meta_ads: 'Meta Ads', facebook: 'Facebook', instagram: 'Instagram', google_ads: 'Google Ads', website: 'Website',
@@ -37,6 +37,8 @@ function rangeDates(key: RangeKey, custom: { from: string; to: string }): { from
   const y = ist.getUTCFullYear(); const m = ist.getUTCMonth();
   const iso = (yy: number, mm: number, dd: number) => new Date(Date.UTC(yy, mm, dd)).toISOString().slice(0, 10);
   switch (key) {
+    case 'today': return { from: istIso(now), to: istIso(now) };
+    case 'yesterday': { const d = istIso(new Date(now.getTime() - 86_400_000)); return { from: d, to: d }; }
     case 'this_month': return { from: iso(y, m, 1), to: istIso(now) };
     case 'last_month': return { from: iso(y, m - 1, 1), to: iso(y, m, 0) };
     case '7': case '30': case '90': return { from: istIso(new Date(now.getTime() - (Number(key) - 1) * 86_400_000)), to: istIso(now) };
@@ -63,29 +65,36 @@ const when = (iso?: string) => {
 const ageDays = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
 const fmtN = (n?: number | null) => (n === null || n === undefined ? '—' : n.toLocaleString('en-IN'));
 
+// Filters survive opening a lead and coming back (kept for this browser tab only).
+const SAVED_KEY = 'leadDashboard.state.v1';
+const loadSaved = (): any => { try { return JSON.parse(sessionStorage.getItem(SAVED_KEY) || '{}') || {}; } catch { return {}; } };
+
 const LeadDashboard: React.FC = () => {
+  const saved = useMemo(loadSaved, []);
   const navigate = useNavigate();
   const { user } = useAuth();
   const myId = (user as any)?._id || (user as any)?.id || '';
   const canBulk = !!user && (['SUPER_ADMIN', 'TENANT_ADMIN'].includes(user.role) || ((user as any).permissions || []).some((p: string) => ['manage_leads', 'assign_leads'].includes(p)));
 
-  const [rangeKey, setRangeKey] = useState<RangeKey>('this_month');
-  const [custom, setCustom] = useState({ from: '', to: '' });
+  const [rangeKey, setRangeKey] = useState<RangeKey>(saved.rangeKey && saved.rangeKey in RANGE_LABEL ? saved.rangeKey : 'this_month');
+  const [custom, setCustom] = useState<{ from: string; to: string }>(saved.custom || { from: '', to: '' });
   const [rangeOpen, setRangeOpen] = useState(false);
   const range = useMemo(() => rangeDates(rangeKey, custom), [rangeKey, custom]);
 
   const [dash, setDash] = useState<any>(null);
   const [dashError, setDashError] = useState('');
-  const [tab, setTab] = useState<Tab>('all');
-  const [filters, setFilters] = useState({ stageId: '', course: '', source: '', campaign: '', assignedTo: '' });
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  const [tab, setTab] = useState<Tab>(saved.tab || 'all');
+  const [filters, setFilters] = useState({ stageId: '', subStageId: '', course: '', source: '', campaign: '', assignedTo: '', ...(saved.filters || {}) });
+  const [searchInput, setSearchInput] = useState<string>(saved.search || '');
+  const [search, setSearch] = useState<string>(saved.search || '');
+  const [page, setPage] = useState<number>(saved.page || 1);
   const [leads, setLeads] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loadingLeads, setLoadingLeads] = useState(true);
   const [stages, setStages] = useState<any[]>([]);
+  // Sub-stages per stage id, for the second-level filter (shown once a stage is picked).
+  const [subStagesByStage, setSubStagesByStage] = useState<Record<string, { _id: string; name: string }[]>>({});
   const [staff, setStaff] = useState<any[]>([]);
   const [sources, setSources] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -98,10 +107,10 @@ const LeadDashboard: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'danger'; text: string } | null>(null);
   // Everything the old "All Leads (list)" page offered, now here (single leads screen).
-  const [extra, setExtra] = useState<{ priority: string; adId: string; reEnquiry: boolean }>({ priority: '', adId: '', reEnquiry: false });
-  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
-  const [pageSize, setPageSize] = useState(25);
-  const [view, setView] = useState<'table' | 'board'>('table');
+  const [extra, setExtra] = useState<{ priority: string; adId: string; reEnquiry: boolean }>({ priority: '', adId: '', reEnquiry: false, ...(saved.extra || {}) });
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(saved.sort || null);
+  const [pageSize, setPageSize] = useState<number>(saved.pageSize || 25);
+  const [view, setView] = useState<'table' | 'board'>(saved.view === 'board' ? 'board' : 'table');
   const [ads, setAds] = useState<{ adId: string; adName?: string; campaignName?: string; adSetName?: string; leads: number }[]>([]);
   const [views, setViews] = useState<{ _id: string; name: string; filters: Record<string, string>; shared: boolean; mine: boolean }[]>([]);
   const [importOpen, setImportOpen] = useState(false);
@@ -124,11 +133,24 @@ const LeadDashboard: React.FC = () => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
-  useEffect(() => { const t = window.setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 350); return () => window.clearTimeout(t); }, [searchInput]);
+  // Only a changed search goes back to page 1 (so a restored page survives the first run).
+  useEffect(() => {
+    const t = window.setTimeout(() => { const q = searchInput.trim(); setSearch(prev => { if (prev !== q) setPage(1); return q; }); }, 350);
+    return () => window.clearTimeout(t);
+  }, [searchInput]);
+  // Remember the filters so opening a lead and pressing Back brings them back.
+  useEffect(() => {
+    try { sessionStorage.setItem(SAVED_KEY, JSON.stringify({ rangeKey, custom, tab, filters, extra, search: searchInput, sort, page, pageSize, view })); } catch { /* storage unavailable */ }
+  }, [rangeKey, custom, tab, filters, extra, searchInput, sort, page, pageSize, view]);
   useEffect(() => { const close = () => setMenuFor(null); window.addEventListener('click', close); return () => window.removeEventListener('click', close); }, []);
 
   useEffect(() => {
     leadStageApi.getStages().then((r: any) => setStages(r.data || [])).catch(() => {});
+    leadPipelineApi.get().then((r: any) => {
+      const map: Record<string, { _id: string; name: string }[]> = {};
+      (r?.data?.stages || []).forEach((s: any) => { map[String(s._id)] = (s.subStages || []).filter((x: any) => x.isActive !== false); });
+      setSubStagesByStage(map);
+    }).catch(() => {});
     leadApi.getCounsellors().then((r: any) => setStaff(r.data || [])).catch(() => {});
     leadApi.getSources().then((r: any) => setSources((r.data || []).map((s: any) => (typeof s === 'string' ? s : s._id || s.source)).filter(Boolean))).catch(() => {});
     leadApi.getAds().then((r: any) => setAds(r?.data || [])).catch(() => {});
@@ -147,7 +169,7 @@ const LeadDashboard: React.FC = () => {
 
   // The table: tab + filters (+ the date range for the period tabs).
   const listParams = useMemo(() => {
-    const p: any = { page, limit: pageSize, search: search || undefined, stageId: filters.stageId || undefined, course: filters.course || undefined,
+    const p: any = { page, limit: pageSize, search: search || undefined, stageId: filters.stageId || undefined, subStageId: (filters.stageId && filters.subStageId) || undefined, course: filters.course || undefined,
       source: filters.source || undefined, campaign: filters.campaign || undefined, assignedTo: filters.assignedTo || undefined, sort: 'createdAt', dir: 'desc',
       priority: extra.priority || undefined, adId: extra.adId || undefined, reEnquiry: extra.reEnquiry || undefined };
     const period = { dateFrom: range.from, dateTo: range.to };
@@ -155,8 +177,8 @@ const LeadDashboard: React.FC = () => {
       case 'mine': Object.assign(p, period, { assignedTo: myId }); break;
       case 'dueToday': Object.assign(p, { followUp: 'today', openOnly: '1', sort: 'nextFollowUp', dir: 'asc' }); break;
       case 'overdue': Object.assign(p, { followUp: 'overdue', openOnly: '1', sort: 'nextFollowUp', dir: 'asc' }); break;
-      case 'nurture': Object.assign(p, { milestone: 'nurture', stageId: undefined }); break;
-      case 'lost': Object.assign(p, period, { milestone: 'lost', stageId: undefined }); break;
+      case 'nurture': Object.assign(p, { milestone: 'nurture', stageId: undefined, subStageId: undefined }); break;
+      case 'lost': Object.assign(p, period, { milestone: 'lost', stageId: undefined, subStageId: undefined }); break;
       default: Object.assign(p, period);
     }
     if (sort) Object.assign(p, { sort: sort.key, dir: sort.dir }); // a clicked column header wins
@@ -176,7 +198,13 @@ const LeadDashboard: React.FC = () => {
 
   const refreshAll = () => { loadDash(); loadLeads(); };
   const goTab = (t: Tab) => { setTab(t); setPage(1); tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
-  const setFilter = (k: keyof typeof filters, v: string) => { setFilters(f => ({ ...f, [k]: v })); setPage(1); };
+  const clearFilters = () => {
+    setFilters({ stageId: '', subStageId: '', course: '', source: '', campaign: '', assignedTo: '' });
+    setExtra({ priority: '', adId: '', reEnquiry: false });
+    setSearchInput(''); setSearch(''); setSort(null); setPage(1);
+  };
+  // Changing the stage clears the sub-stage: sub-stages belong to one stage.
+  const setFilter = (k: keyof typeof filters, v: string) => { setFilters(f => ({ ...f, [k]: v, ...(k === 'stageId' ? { subStageId: '' } : {}) })); setPage(1); };
 
   const exportExcel = async () => {
     try {
@@ -261,7 +289,7 @@ const LeadDashboard: React.FC = () => {
     setTab((f.tab as Tab) || 'all');
     setRangeKey((f.rangeKey as RangeKey) || 'this_month');
     if (f.rangeKey === 'custom') setCustom({ from: f.dateFrom || '', to: f.dateTo || '' });
-    setFilters({ stageId: f.stageId || '', course: f.course || '', source: f.source || '', campaign: f.campaign || '', assignedTo: f.assignedTo || '' });
+    setFilters({ stageId: f.stageId || '', subStageId: f.subStageId || '', course: f.course || '', source: f.source || '', campaign: f.campaign || '', assignedTo: f.assignedTo || '' });
     setExtra({ priority: f.priority || '', adId: f.adId || '', reEnquiry: f.reEnquiry === 'true' });
     setSearchInput(f.search || ''); setSearch(f.search || '');
     setSort(f.sort ? { key: f.sort, dir: f.dir === 'asc' ? 'asc' : 'desc' } : null);
@@ -456,6 +484,12 @@ const LeadDashboard: React.FC = () => {
           <option value="">Stage: All</option>
           {stages.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
         </select>
+        {filters.stageId && tab !== 'nurture' && tab !== 'lost' && (subStagesByStage[filters.stageId] || []).length > 0 && (
+          <select value={filters.subStageId} onChange={e => setFilter('subStageId', e.target.value)} aria-label="Sub-stage">
+            <option value="">Sub-stage: All</option>
+            {subStagesByStage[filters.stageId].map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+          </select>
+        )}
         <select value={filters.course} onChange={e => setFilter('course', e.target.value)} aria-label="Course">
           <option value="">Course: All</option>
           {(dash?.options?.courses || []).map((c: string) => <option key={c} value={c}>{c}</option>)}
@@ -490,6 +524,9 @@ const LeadDashboard: React.FC = () => {
           <option value="__save">+ Save these filters as a view</option>
           {views.filter(v => v.mine).map(v => <option key={`d${v._id}`} value={`__del:${v._id}`}>Delete “{v.name}”</option>)}
         </select>
+        {(Object.values(filters).some(Boolean) || extra.priority || extra.adId || extra.reEnquiry || searchInput) && (
+          <button type="button" className="ldb-link" onClick={clearFilters} title="Reset every filter and the search"><i className="bi bi-x-circle" /> Clear filters</button>
+        )}
         <div className="ldb-filters-right">
           <button className="ldb-icon-btn" onClick={exportExcel} title="Export to Excel" aria-label="Export to Excel"><i className="bi bi-download" /></button>
         </div>

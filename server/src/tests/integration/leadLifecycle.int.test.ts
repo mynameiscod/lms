@@ -107,21 +107,13 @@ describe('validation', () => {
 });
 
 describe('approval, history, milestones', () => {
-  it('a counsellor moving to a lost stage waits for approval with the full request kept', async () => {
+  it('a counsellor moving to a lost stage moves straight away, no manager approval', async () => {
     const lead = await newLead();
     const r = await changeStage({ tenantId: String(T), leadId: String(lead._id), actor: STAFF, source: 'manual',
       stageId: String(lost._id), subStageId: String(notInterested._id), reasonId: String(feeHigh._id), note: 'Asked twice' });
-    expect(r.status).toBe('pending_approval');
-    const saved: any = await Lead.findById(lead._id).lean();
-    expect(String(saved.stageId)).toBe(String(fresh._id));
-    expect(saved.pendingApproval).toMatchObject({ stageName: 'Lost', note: 'Asked twice' });
-    expect(String(saved.pendingApproval.reasonId)).toBe(String(feeHigh._id));
-
-    // the approval applies it, without asking again
-    const a = await changeStage({ tenantId: String(T), leadId: String(lead._id), actor: ADMIN, source: 'approval',
-      stageId: String(lost._id), subStageId: String(notInterested._id), reasonId: String(feeHigh._id), note: 'Asked twice' });
-    expect(a.status).toBe('moved');
+    expect(r.status).toBe('moved');
     const after: any = await Lead.findById(lead._id).lean();
+    expect(String(after.stageId)).toBe(String(lost._id));
     expect(after.pendingApproval?.stageId).toBeUndefined();
     expect(after.lostReason).toBe('Fee too high');
   });

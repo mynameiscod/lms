@@ -36,6 +36,14 @@ services:
     networks:
       - lms-network
     restart: unless-stopped
+    # Docker's default open-file limit is 1024. The database holds ~1,600 files (a
+    # collection and each index are files), so a full mongodump on 2026-11-10 hit
+    # "Too many open files" and mongod aborted (exit 14), taking the LMS down with it.
+    # MongoDB recommends 64000.
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
     # ── Resource limits ────────────────────────────────────────────────────
     # Every container on this box ran with NanoCpus=0 and Memory=0, so nothing
     # stopped a compile storm from starving the database. These are CAPS, not

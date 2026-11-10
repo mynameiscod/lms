@@ -70,6 +70,25 @@ const RowActions: React.FC<{ items: MenuItem[] }> = ({ items }) => {
   );
 };
 
+type QuizProductTab = 'lms' | 'careerpilot' | 'all';
+const QUIZ_PRODUCT_TABS: { key: QuizProductTab; label: string }[] = [
+  { key: 'lms',         label: '🏫 LMS' },
+  { key: 'careerpilot', label: '🧭 CareerPilot' },
+  { key: 'all',         label: 'All quizzes' },
+];
+const QUIZ_PRODUCT_KEY = 'quizManagement.product';
+/** Rows drawn at a time: CareerPilot alone has a checkpoint for every unit. */
+const ROWS_PAGE = 100;
+/**
+ * Which tab a quiz lists under. A unit-bound quiz is CareerPilot's even if it was written before
+ * the audience label existed; 'all' (Both) shows in both tabs. Missing audience reads as LMS.
+ */
+const inProductTab = (q: any, tab: QuizProductTab): boolean => {
+  if (tab === 'all') return true;
+  const audience = q.unitCode ? (q.audience === 'all' ? 'all' : 'careerpilot') : audienceDef(q.audience).value;
+  return audience === 'all' || audience === tab;
+};
+
 const QuizManagementPage: React.FC = () => {
   const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -101,6 +120,19 @@ const QuizManagementPage: React.FC = () => {
   const [lessonFilter, setLessonFilter] = useState('');
   const [search, setSearch] = useState('');
   const [groupBy, setGroupBy] = useState<'none' | 'language' | 'lesson'>('none');
+  /**
+   * LMS / CareerPilot / All. CareerPilot has a checkpoint for every unit, thousands of them, and
+   * they buried the LMS's own quizzes. 'all' is the list as it always was. A quiz listed to both
+   * ('all' audience) shows in both tabs. Remembered per browser.
+   */
+  const [productTab, setProductTabState] = useState<QuizProductTab>(() => {
+    try { const v = localStorage.getItem(QUIZ_PRODUCT_KEY); return v === 'careerpilot' || v === 'all' ? v : 'lms'; } catch { return 'lms'; }
+  });
+  const setProductTab = (t: QuizProductTab) => {
+    setProductTabState(t); setShownRows(ROWS_PAGE);
+    try { localStorage.setItem(QUIZ_PRODUCT_KEY, t); } catch { /* private window */ }
+  };
+  const [shownRows, setShownRows] = useState(ROWS_PAGE);
   // Non-attendees modal
   const [nonAttendeesQuiz, setNonAttendeesQuiz] = useState<Quiz | null>(null);
   const [nonAttendeesData, setNonAttendeesData] = useState<any>(null);
@@ -594,7 +626,10 @@ const QuizManagementPage: React.FC = () => {
 
       {/* ── Active tab ── */}
       {activeTab === 'active' && (() => {
+        const productCounts = { lms: 0, careerpilot: 0, all: quizzes.length };
+        quizzes.forEach(q => { if (inProductTab(q, 'lms')) productCounts.lms++; if (inProductTab(q, 'careerpilot')) productCounts.careerpilot++; });
         const filtered = quizzes
+          .filter(q => inProductTab(q, productTab))
           .filter(q => !techFilter || (q as any).primaryTech === techFilter)
           .filter(q => !audienceFilter || audienceDef((q as any).audience).value === audienceFilter)
           .filter(q => !lessonFilter || String((q as any).chapterId?._id || (q as any).chapterId?.title || '') === lessonFilter)
@@ -610,6 +645,25 @@ const QuizManagementPage: React.FC = () => {
 
         return (
           <>
+            {/* Product tabs: LMS quizzes and CareerPilot checkpoints, each on its own */}
+            <div role="tablist" aria-label="Whose quizzes" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderBottom: '1.5px solid #e2e8f0', margin: '0 0 12px' }}>
+              {QUIZ_PRODUCT_TABS.map(t => (
+                <button key={t.key} role="tab" aria-selected={productTab === t.key} onClick={() => setProductTab(t.key)}
+                  style={{ border: 'none', background: 'none', padding: '9px 14px', marginBottom: -1.5, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7,
+                    color: productTab === t.key ? '#051D64' : '#64748b', borderBottom: `3px solid ${productTab === t.key ? '#051D64' : 'transparent'}` }}>
+                  {t.label}
+                  <span style={{ background: productTab === t.key ? '#051D64' : '#f1f5f9', color: productTab === t.key ? '#fff' : '#64748b', borderRadius: 10, padding: '1px 8px', fontSize: 11.5 }}>
+                    {productCounts[t.key].toLocaleString('en-IN')}
+                  </span>
+                </button>
+              ))}
+            </div>
+            {productTab === 'careerpilot' && (
+              <div style={{ fontSize: 12.5, color: '#475569', background: '#f5f3ff', border: '1px solid #e9e3ff', borderRadius: 8, padding: '8px 12px', marginBottom: 12, lineHeight: 1.5 }}>
+                These are CareerPilot unit checkpoints. Each one is built from its unit's questions, so a change made here is replaced the next time CareerPilot content is seeded. Change the questions in the CareerPilot Content Builder instead.
+              </div>
+            )}
+
             {/* Filter / Group bar */}
             <div className="lib-filterbar">
               <div className="lib-fb-top">
@@ -682,7 +736,7 @@ const QuizManagementPage: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {sorted.map(quiz => {
+                        {sorted.slice(0, shownRows).map(quiz => {
                           const gk = groupKeyOf(quiz);
                           const header = groupBy !== 'none' && gk !== lastKey ? (
                             <tr key={`grp-${gk}`} style={{ background: '#eef2f7' }}>
@@ -720,6 +774,7 @@ const QuizManagementPage: React.FC = () => {
                                   <div style={{ fontWeight: 700, color: '#0f172a' }}>{quiz.title}</div>
                                   <span style={{ display: 'inline-block', marginTop: 4, background: audience.bg, color: audience.color, borderRadius: 20, padding: '2px 9px', fontSize: 11.5, fontWeight: 600 }}>{audience.label}</span>
                                   <span title={`Listed to: ${product.label}`} style={{ display: 'inline-block', marginTop: 4, marginLeft: 6, background: product.bg, color: product.color, borderRadius: 20, padding: '2px 9px', fontSize: 11.5, fontWeight: 600 }}>{product.icon} {product.short}</span>
+                                  {(quiz as any).unitCode && <span title="The CareerPilot unit this checkpoint belongs to" style={{ display: 'inline-block', marginTop: 4, marginLeft: 6, color: '#64748b', fontSize: 11.5, fontWeight: 600, fontFamily: 'ui-monospace, Menlo, Consolas, monospace', overflowWrap: 'anywhere' }}>{(quiz as any).unitCode}</span>}
                                 </td>
                                 <td>
                                   {tech
@@ -743,6 +798,14 @@ const QuizManagementPage: React.FC = () => {
                         })}
                       </tbody>
                     </table>
+                  </div>
+                )}
+                {sorted.length > shownRows && (
+                  <div style={{ textAlign: 'center', margin: '16px 0 4px' }}>
+                    <button onClick={() => setShownRows(n => n + ROWS_PAGE)}
+                      style={{ border: '1.5px solid #cbd5e1', background: '#fff', color: '#051D64', borderRadius: 8, padding: '9px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                      Show more <span style={{ color: '#64748b', fontWeight: 600 }}>({(sorted.length - shownRows).toLocaleString('en-IN')} more)</span>
+                    </button>
                   </div>
                 )}
               </div>

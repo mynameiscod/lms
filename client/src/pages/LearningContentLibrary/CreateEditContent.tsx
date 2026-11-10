@@ -1086,6 +1086,18 @@ parent.postMessage({ type:'cb-activity-height', height }, '*');`}
                       ))}
                     </div>
                   </Field>
+                  {/* What the learner's editor opens with, per language. Without this the starter could only be set by import. */}
+                  {(pq.allowedLanguages || []).map(lang => (
+                    <Field key={`starter-${lang}`} label={`Starter code (${lang})`}>
+                      <textarea
+                        value={(pq.starterCode || {})[lang] || ''}
+                        onChange={e => setPQ(idx, 'starterCode', { ...(pq.starterCode || {}), [lang]: e.target.value })}
+                        placeholder={`Code the learner starts from in ${lang}. Leave empty for a blank editor.`}
+                        rows={6} spellCheck={false}
+                        style={{ ...inputStyle, resize: 'vertical', fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '12.5px' }}
+                      />
+                    </Field>
+                  ))}
                   <Field label="Test Cases">
                     {(pq.testCases || []).map((tc, tcIdx) => (
                       <div key={tcIdx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto auto', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
@@ -1101,6 +1113,15 @@ parent.postMessage({ type:'cb-activity-height', height }, '*');`}
                     <button onClick={() => addTestCase(idx)} style={{ ...addItemBtnStyle, fontSize: '12px', padding: '5px 12px' }}>
                       + Add Test Case
                     </button>
+                  </Field>
+                  <Field label="Answer (shown when the learner presses Show answer)">
+                    <textarea
+                      value={pq.explanation || ''}
+                      onChange={e => setPQ(idx, 'explanation', e.target.value)}
+                      placeholder={'A working solution and why it works. Markdown: put code between ``` lines.'}
+                      rows={6} spellCheck={false}
+                      style={{ ...inputStyle, resize: 'vertical' }}
+                    />
                   </Field>
                   <Field label="Grading">
                     <select value={pq.gradingMode} onChange={e => setPQ(idx, 'gradingMode', e.target.value)} style={inputStyle}>

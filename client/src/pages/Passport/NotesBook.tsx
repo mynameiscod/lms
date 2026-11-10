@@ -42,6 +42,8 @@ const NotesBook: React.FC<{ text: string; title?: string }> = ({ text, title }) 
     const per = parseInt(getComputedStyle(f).columnCount, 10) === 1 ? 1 : 2;
     const gap = parseFloat(getComputedStyle(f).columnGap) || 0;
     const pageW = (f.clientWidth + gap) / per;
+    // A picture cannot be split across pages, so it is held to one page's height (notesBook.css).
+    f.style.setProperty('--flow-h', `${f.clientHeight}px`);
     // A table wider than a page cannot scroll sideways inside the book: share the page between its
     // columns instead (nb-fit), so every column shows and long words wrap in their cells.
     f.querySelectorAll('.cp-table table').forEach(t => {

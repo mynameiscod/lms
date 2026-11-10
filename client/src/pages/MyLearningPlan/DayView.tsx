@@ -6,6 +6,7 @@ import { interactiveLessonApi } from '../../api/interactiveLessonApi';
 import InteractiveActivityViewer from './InteractiveActivityViewer';
 import { VideoPlayer } from './VideoPlayer';
 import { NotesContent, InlineNotes } from '../../components/content/NotesContent';
+import CodingPracticeQuestion from '../../components/practice/CodingPracticeQuestion';
 
 // ─── Video Player ─────────────────────────────────────────────────────────────
 // Moved to its own module when it grew seek controls and a Bunny Player.js bridge.
@@ -216,18 +217,12 @@ export function PracticeViewer({ content }: { content: any }) {
             );
           })()}
 
-          {/* Theory / Coding */}
-          {(q.type === 'theory' || q.type === 'coding') && (
+          {/* Coding: an editor, Run, Check against the tests, and the answer (components/practice). */}
+          {q.type === 'coding' && <CodingPracticeQuestion q={q} index={qi} contentId={content._id || content.id} />}
+
+          {/* Theory: the model answer, when one was written. A button that opens nothing is not shown. */}
+          {q.type === 'theory' && !!String(q.explanation || '').trim() && (
             <div>
-              {q.type === 'coding' && q.starterCode && (
-                <div style={{ background: '#0f172a', borderRadius: '8px', padding: '14px', marginBottom: '10px', overflowX: 'auto' }}>
-                  <pre style={{ margin: 0, color: '#e2e8f0', fontSize: '13px', fontFamily: 'monospace' }}>
-                    {Object.entries(q.starterCode as Record<string, string>).map(([lang, code]) => (
-                      `// ${lang}\n${code}`
-                    )).join('\n\n')}
-                  </pre>
-                </div>
-              )}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   onClick={() => setRevealed(prev => ({ ...prev, [qi]: !prev[qi] }))}
@@ -236,7 +231,7 @@ export function PracticeViewer({ content }: { content: any }) {
                   {revealed[qi] ? 'Hide' : 'Show'} Answer
                 </button>
               </div>
-              {revealed[qi] && q.explanation && (
+              {revealed[qi] && (
                 <div style={{ background: '#f8fafc', borderRadius: '7px', padding: '12px', marginTop: '8px' }}>
                   <NotesContent text={q.explanation} compact />
                 </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { leadSourceConfigApi, metaLeadsApi } from '../../api/index';
 import LinesTextarea from '../../components/common/LinesTextarea';
 
@@ -392,11 +393,14 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                       style={{ borderRadius: 10, background: '#eff6ff', color: '#1d4ed8' }}>
                       <i className="fa-solid fa-circle-info mt-1 flex-shrink-0"></i>
                       <div>
-                        <div className="fw-semibold mb-1">Setup via Google Sheets Integration Page</div>
+                        <div className="fw-semibold mb-1">Link your spreadsheets</div>
                         <div style={{ fontSize: '0.82rem' }}>
-                          Go to <strong>Lead Sources → Google Sheets</strong> to link specific spreadsheets.
-                          This toggle controls whether Sheet-imported leads appear in your pipeline.
+                          Choose which Google Sheets bring in leads and how their columns map. This toggle
+                          controls whether Sheet-imported leads appear in your pipeline.
                         </div>
+                        <Link to="/google-sheet-integration" className="btn btn-sm btn-primary mt-2" style={{ borderRadius: 8 }}>
+                          <i className="fa-solid fa-table me-1"></i> Open Google Sheets setup
+                        </Link>
                       </div>
                     </div>
                   </FieldGroup>

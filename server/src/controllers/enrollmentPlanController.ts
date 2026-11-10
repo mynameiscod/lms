@@ -27,6 +27,7 @@ import { isJourneyDayOpen, calendarAllowsDay } from '../data/journeyDayLadder';
 import { pacingClockFor, orientationBlocksLearning } from '../services/orientationService';
 import { opensAt as programmeDayOpensAt, programmeDayOfLearning } from '../data/dailyPacingPolicy';
 import { studentContentRow } from '../services/studentContentView';
+import { isLmsOnlyLearner, isCareerPilotItem, LMS_ONLY_LEARNER_FIELDS } from '../services/learnerAudience';
 import { reconcileJourneyDayXp, xpForJourneyItem } from '../services/foundationJourneyXpService';
 import { loadXpPricing, XpPricing } from '../services/xpPricingService';
 import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService';
@@ -682,8 +683,14 @@ export const markContentComplete = async (req: Request, res: Response) => {
 // each module's own targeting. Deduped against plan task keys (`kind:sourceId`).
 async function getAdhocTasks(sId: string, tId: string, planKeys: Set<string>): Promise<any[]> {
   const out: any[] = [];
-  const user = await User.findById(sId).select('batchId').lean() as any;
+  const user = await User.findById(sId).select(`batchId ${LMS_ONLY_LEARNER_FIELDS}`).lean() as any;
   const batchId = user?.batchId ? user.batchId.toString() : null;
+  /* A CareerPilot checkpoint or unit project is saved as accessibleTo 'everyone' so members can
+     open it from their day — which this list read as "assigned to every student in the tenant".
+     For a learner who has never been a member, such an item counts only when it was really given
+     to them (by name or by batch). Everyone else sees exactly what they saw before. */
+  const lmsOnly = isLmsOnlyLearner(user);
+  const reachesOnlyViaEveryone = (row: any) => lmsOnly && isCareerPilotItem(row) && row.accessibleTo === 'everyone';
   const oid = (x: string) => (mongoose.Types.ObjectId.isValid(x) ? new mongoose.Types.ObjectId(x) : x);
   const push = (kind: string, id: string, title: string, due: any, launch: string) => {
     if (planKeys.has(`${kind}:${id}`)) return;
@@ -702,7 +709,8 @@ async function getAdhocTasks(sId: string, tId: string, planKeys: Set<string>): P
     // appear in every student's in-app task feed. Only explicit assignment counts.
     const access: any[] = [{ accessibleTo: 'everyone' }, { accessibleTo: 'individual', selectedStudents: sId }];
     if (batchId) access.push({ accessibleTo: 'batch_wise', selectedBatches: batchId });
-    const quizzes = await Quiz.find({ tenantId: tId, isActive: true, isExternalQuiz: { $ne: true }, archivedAt: null, $or: access }).select('title endDate').lean();
+    const quizzes = await Quiz.find({ tenantId: tId, isActive: true, isExternalQuiz: { $ne: true }, archivedAt: null, $or: access }).select('title endDate unitCode audience accessibleTo').lean()
+      .then((rows: any[]) => rows.filter((q) => !reachesOnlyViaEveryone(q)));
     if (quizzes.length) {
       const ids = quizzes.map((q: any) => q._id.toString());
       const done = await QuizAttempt.find({ studentId: sId, quizId: { $in: ids }, status: 'submitted' }).select('quizId').lean();
@@ -715,7 +723,8 @@ async function getAdhocTasks(sId: string, tId: string, planKeys: Set<string>): P
   try {
     const access: any[] = [{ accessibleTo: 'everyone' }, { accessibleTo: 'individual', selectedStudents: sId }];
     if (batchId) access.push({ accessibleTo: 'batch_wise', batch: oid(batchId) });
-    const asgs = await Assignment.find({ tenant: oid(tId), status: 'published', $or: access }).select('title dueDate').lean();
+    const asgs = await Assignment.find({ tenant: oid(tId), status: 'published', $or: access }).select('title dueDate unitCode audience accessibleTo').lean()
+      .then((rows: any[]) => rows.filter((a) => !reachesOnlyViaEveryone(a)));
     if (asgs.length) {
       const ids = asgs.map((a: any) => a._id);
       const subs = await Submission.find({ student: oid(sId), assignment: { $in: ids }, status: { $in: ['submitted', 'graded'] } }).select('assignment').lean();

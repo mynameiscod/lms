@@ -81,3 +81,28 @@ export function audienceIncludes(kind: 'lms' | 'careerpilot', audience: any): bo
 export const LMS_USERS_FILTER = {
   $nor: [{ role: 'STUDENT', 'passport.product': { $nin: [null, ''] }, batchId: null }],
 };
+
+/**
+ * A learner who has never been a CareerPilot member or trialist: no passport — active, lapsed or
+ * trial.
+ *
+ * Narrower than `!learnerAudienceOf(u).careerpilot` on purpose. It keeps CareerPilot items out of
+ * an LMS student's My Tasks, and a lapsed or trial member must keep whatever they saw before —
+ * only the plain LMS student changes.
+ */
+export const LMS_ONLY_LEARNER_FIELDS = 'passport.active passport.product passport.trial.planId passport.trial.startedAt';
+export function isLmsOnlyLearner(user: any): boolean {
+  if (!user) return false;
+  const p = user.passport || {};
+  // An unused trial subdocument can still hold an empty practiceIds array; a real one has a plan.
+  const trial = !!(p.trial && (p.trial.planId || p.trial.startedAt));
+  return !p.active && !p.product && !trial;
+}
+
+/**
+ * A CareerPilot item: bound to a CareerPilot unit, or labelled for members only. The unitCode
+ * half covers rows written before `audience` existed (until backfillContentAudience has run).
+ */
+export function isCareerPilotItem(row: any): boolean {
+  return !!(row && ((row.unitCode && String(row.unitCode).trim()) || row.audience === 'careerpilot'));
+}

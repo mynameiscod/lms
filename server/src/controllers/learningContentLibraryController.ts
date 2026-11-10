@@ -9,6 +9,7 @@ import { getAllSkills } from '../services/careerSkillService';
 import { CAREER_DIRECTIONS, DIRECTION_ALL, isDirectionKey } from '../data/careerDirectionPolicy';
 import { videoUrlProblem } from '../data/videoUrlPolicy';
 import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
+import { isContentProduct, productCondition, stageCondition, withCareerPilotPlace, CP_STAGES } from '../services/contentProductService';
 
 /* ------------------------------------------------------------------ *
  * Adaptive fields (ADAPTIVE_CURRICULUM_V1)
@@ -160,7 +161,7 @@ async function readAdaptiveFields(body: any): Promise<Record<string, any>> {
 export const listContent = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
-    const { type, topic, course, search, published, source, skill, mapped } = req.query;
+    const { type, topic, course, search, published, source, skill, mapped, product, stage } = req.query;
 
     const query: any = { tenantId };
     /**
@@ -210,7 +211,28 @@ export const listContent = async (req: Request, res: Response) => {
       });
     }
 
+    /**
+     * The LMS / CareerPilot tabs (services/contentProductService.ts). Opt-in: with no `product`
+     * the list is exactly what it was, which is what the Curriculum Builder's picker relies on.
+     * `stage` narrows the CareerPilot tab to one year or track.
+     */
+    const cp = isContentProduct(product) ? product : null;
+    if (cp) and.push(productCondition(cp));
+    if (cp === 'careerpilot' && stage) {
+      const byStage = await stageCondition(String(tenantId), String(stage));
+      if (byStage) and.push(byStage);
+    }
+
     if (and.length) query.$and = and;
+
+    if (cp === 'careerpilot') {
+      // Lean so each row can carry the unit it is taught in; the list's fields are unchanged.
+      const rows = await LearningContentLibrary.find(query)
+        .sort({ createdAt: -1 })
+        .select('-notesContent -qaItems -practiceQuestions').lean();
+      const items = await withCareerPilotPlace(String(tenantId), rows.map((r: any) => ({ ...r, id: String(r._id) })));
+      return res.json({ items, total: items.length, stages: CP_STAGES });
+    }
 
     const items = await LearningContentLibrary.find(query)
       .sort({ createdAt: -1 })

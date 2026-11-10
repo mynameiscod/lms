@@ -6,6 +6,8 @@ export interface ContentLibraryItem {
   _id: string;
   tenantId: string;
   title: string;
+  unitCode?: string;
+  cpUnit?: CareerPilotPlace;
   description?: string;
   type: ContentLibraryType;
   topicTags: string[];
@@ -126,7 +128,14 @@ export interface ListFilters {
   skill?: string;
   /** 'false' is the authoring to-do list: rows the adaptive planner cannot see. */
   mapped?: 'true' | 'false';
+  /** The Content Library's LMS / CareerPilot tabs. Omitted = every row, as before. */
+  product?: 'lms' | 'careerpilot';
+  /** With product 'careerpilot': one year or track (CurriculumLearningUnit.stageKey). */
+  stage?: string;
 }
+
+/** Where a CareerPilot row is taught; set on rows listed with product 'careerpilot'. */
+export interface CareerPilotPlace { unitCode: string; title: string; stageKey: string; stageLabel: string }
 
 const authHeader = () => {
   const token    = localStorage.getItem('token');
@@ -138,7 +147,7 @@ const authHeader = () => {
 };
 
 export const learningContentLibraryApi = {
-  list: async (filters: ListFilters = {}): Promise<{ items: ContentLibraryItem[]; total: number }> => {
+  list: async (filters: ListFilters = {}): Promise<{ items: ContentLibraryItem[]; total: number; stages?: { key: string; label: string }[] }> => {
     const params = new URLSearchParams();
     if (filters.type)      params.set('type',      filters.type);
     if (filters.topic)     params.set('topic',      filters.topic);
@@ -148,6 +157,8 @@ export const learningContentLibraryApi = {
     if (filters.source)    params.set('source',     filters.source);
     if (filters.skill)     params.set('skill',      filters.skill);
     if (filters.mapped)    params.set('mapped',     filters.mapped);
+    if (filters.product)   params.set('product',    filters.product);
+    if (filters.stage)     params.set('stage',      filters.stage);
     const { data } = await axios.get(`${BASE}?${params}`, { headers: authHeader() });
     return data;
   },

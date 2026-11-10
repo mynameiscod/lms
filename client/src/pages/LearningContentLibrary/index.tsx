@@ -23,6 +23,16 @@ const ALL_TYPES: { key: ContentLibraryType | 'all'; label: string; icon: string 
   { key: 'interactive_lesson',label: 'Interactive',      icon: '🎮' },
 ];
 
+type Product = 'lms' | 'careerpilot' | 'all';
+const PRODUCTS: { key: Product; label: string }[] = [
+  { key: 'lms',         label: '🏫 LMS' },
+  { key: 'careerpilot', label: '🧭 CareerPilot' },
+  { key: 'all',         label: 'All content' },
+];
+const PRODUCT_KEY = 'contentLibrary.product';
+/** Cards drawn at a time: the CareerPilot tab alone holds thousands of rows. */
+const PAGE = 60;
+
 export default function LearningContentLibrary() {
   const navigate = useNavigate();
 
@@ -31,6 +41,19 @@ export default function LearningContentLibrary() {
   const [loading,     setLoading]     = useState(true);
   const [activeType,  setActiveType]  = useState<ContentLibraryType | 'all'>('all');
   const [sourceView,  setSourceView]  = useState<'curriculum' | 'generated'>('curriculum');
+  /**
+   * LMS / CareerPilot / All. CareerPilot's year-and-track lessons used to sit in "Curriculum
+   * content" beside the LMS's own class videos, thousands of them. 'all' is the old view, kept
+   * as it was. Remembered per browser; reuse is untouched: the Curriculum Builder's picker
+   * still offers every row.
+   */
+  const [product, setProductState] = useState<Product>(() => {
+    try { const v = localStorage.getItem(PRODUCT_KEY); return v === 'careerpilot' || v === 'all' ? v : 'lms'; } catch { return 'lms'; }
+  });
+  const setProduct = (p: Product) => { setProductState(p); try { localStorage.setItem(PRODUCT_KEY, p); } catch { /* private window */ } };
+  const [stage,       setStage]       = useState('');
+  const [stages,      setStages]      = useState<{ key: string; label: string }[]>([]);
+  const [shown,       setShown]       = useState(PAGE);
   const [search,      setSearch]      = useState('');
   const [topicFilter, setTopicFilter] = useState('');
   const [topicTags,   setTopicTags]   = useState<string[]>([]);
@@ -53,17 +76,21 @@ export default function LearningContentLibrary() {
       if (activeType !== 'all') filters.type  = activeType;
       if (search)               filters.search = search;
       if (topicFilter)          filters.topic  = topicFilter;
-      if (sourceView === 'generated') filters.source = 'generated';
+      if (product !== 'lms' && sourceView === 'generated') filters.source = 'generated';
       if (onlyUnmapped)         filters.mapped = 'false';
+      if (product !== 'all')    filters.product = product;
+      if (product === 'careerpilot' && sourceView === 'curriculum' && stage) filters.stage = stage;
       const res = await learningContentLibraryApi.list(filters);
       setItems(res.items);
       setTotal(res.total);
+      if (res.stages) setStages(res.stages);
+      setShown(PAGE);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [activeType, search, topicFilter, sourceView, onlyUnmapped]);
+  }, [activeType, search, topicFilter, sourceView, onlyUnmapped, product, stage]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -127,7 +154,7 @@ export default function LearningContentLibrary() {
             Reusable content for your 145-day learning plans
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             onClick={() => navigate('/live-class')}
             style={{
@@ -171,8 +198,46 @@ export default function LearningContentLibrary() {
         </div>
       </div>
 
-      {/* Source toggle — keep CareerPilot's auto-generated content out of the curriculum view */}
-      <div style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: 10, padding: 3, marginBottom: 14 }}>
+      {/* Product tabs: LMS content and CareerPilot content, each on its own */}
+      <div role="tablist" aria-label="Whose content" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderBottom: '1.5px solid #e2e8f0', marginBottom: 14 }}>
+        {PRODUCTS.map(p => (
+          <button key={p.key} role="tab" aria-selected={product === p.key} onClick={() => setProduct(p.key)}
+            style={{ border: 'none', background: 'none', padding: '9px 14px', marginBottom: -1.5, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              color: product === p.key ? '#051D64' : '#64748b', borderBottom: `3px solid ${product === p.key ? '#051D64' : 'transparent'}` }}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+      {product === 'lms' && (
+        <div style={{ fontSize: 12.5, color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', marginBottom: 14 }}>
+          Content made for your LMS batches. CareerPilot's lessons are in the CareerPilot tab, and you can still pick them in the Curriculum Builder.
+        </div>
+      )}
+      {product === 'careerpilot' && (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: 10, padding: 3, flexWrap: 'wrap' }}>
+            {([['curriculum', '🧭 Year & track lessons'], ['generated', '🤖 AI-generated']] as const).map(([k, label]) => (
+              <button key={k} onClick={() => setSourceView(k)}
+                style={{ border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  background: sourceView === k ? '#fff' : 'transparent', color: sourceView === k ? '#0f172a' : '#64748b',
+                  boxShadow: sourceView === k ? '0 1px 3px rgba(0,0,0,.1)' : 'none' }}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {sourceView === 'curriculum' && (
+            <select value={stage} onChange={e => setStage(e.target.value)} aria-label="Year or track"
+              style={{ padding: '8px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13.5, background: '#fff', minWidth: 190 }}>
+              <option value="">All years and tracks</option>
+              {stages.map(st => <option key={st.key} value={st.key}>{st.label}</option>)}
+            </select>
+          )}
+          <span style={{ fontSize: 12.5, color: '#64748b', flex: '1 1 220px' }}>Day-to-day editing of these lessons happens in the CareerPilot Content Builder.</span>
+        </div>
+      )}
+
+      {/* Source toggle (All content): keep CareerPilot's auto-generated content out of the curriculum view */}
+      {product === 'all' && <div style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: 10, padding: 3, marginBottom: 14 }}>
         {([['curriculum', '📚 Curriculum content'], ['generated', '🤖 AI-generated (CareerPilot)']] as const).map(([k, label]) => (
           <button key={k} onClick={() => setSourceView(k)}
             style={{ border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
@@ -181,8 +246,8 @@ export default function LearningContentLibrary() {
             {label}
           </button>
         ))}
-      </div>
-      {sourceView === 'generated' && (
+      </div>}
+      {product !== 'lms' && sourceView === 'generated' && (
         <div style={{ fontSize: 12.5, color: '#64748b', background: '#eef2ff', border: '1px solid #e0e7ff', borderRadius: 8, padding: '8px 12px', marginBottom: 14 }}>
           These lessons are auto-generated by the CareerPilot assessment funnel and are hidden from the Curriculum Builder to keep your offline-class content clean.
         </div>
@@ -291,7 +356,7 @@ export default function LearningContentLibrary() {
           gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
           gap: '16px',
         }}>
-          {items.map(item => (
+          {items.slice(0, shown).map(item => (
             <ContentCard
               key={item._id}
               item={item}
@@ -307,6 +372,14 @@ export default function LearningContentLibrary() {
               fmtDuration={fmtDuration}
             />
           ))}
+        </div>
+      )}
+      {!loading && items.length > shown && (
+        <div style={{ textAlign: 'center', margin: '20px 0 4px' }}>
+          <button onClick={() => setShown(n => n + PAGE)}
+            style={{ border: '1.5px solid #cbd5e1', background: '#fff', color: '#051D64', borderRadius: 8, padding: '9px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            Show more <span style={{ color: '#64748b', fontWeight: 600 }}>({(items.length - shown).toLocaleString('en-IN')} more)</span>
+          </button>
         </div>
       )}
 
@@ -383,6 +456,13 @@ function ContentCard({ item, onEdit, onPreview, onDelete, onTogglePublish, isDel
         }}>
           {item.title}
         </h3>
+
+        {/* Where a CareerPilot row is taught */}
+        {item.cpUnit && (
+          <div title={item.cpUnit.unitCode || undefined} style={{ margin: '0 0 8px', fontSize: '12px', color: '#1F6F7E', fontWeight: 600, lineHeight: 1.4 }}>
+            🧭 {item.cpUnit.stageLabel}{item.cpUnit.title ? ` · ${item.cpUnit.title}` : ''}
+          </div>
+        )}
 
         {/* Description */}
         {item.description && (

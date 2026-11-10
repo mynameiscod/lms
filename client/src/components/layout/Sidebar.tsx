@@ -533,7 +533,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'THINKING LAB',            labels: ['Thinking Lab', 'Thinking Lab — Bank'] },
     { title: 'ASSESSMENTS & INTERVIEWS',labels: ['Skill Assessment', 'Assessment Candidates', 'AI Interviews', 'Scheduled Interviews', 'Interview Q&A Bank'] },
     { title: 'CAREER',                  labels: ['Resume Builder', 'Career Profiles', 'Project Builder', 'Job Tracker', 'AI Mentor'] },
-    { title: 'CRM & GROWTH',            labels: ['Leads', 'Placement Partnership'] },
+    { title: 'CRM & GROWTH',            labels: ['Leads'] },
     { title: 'DRIVES & INTERVIEWS',     labels: ['Drives', 'Question Books'] },
     { title: 'BILLING',                 labels: ['Fees'] },
     { title: 'EMPLOYEES',               labels: ['Employee Portal', 'Employees', 'Employee Activity', 'Expenses'] },
@@ -555,10 +555,14 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       // Content
       'CareerPilot Assessment', 'Assessment Coverage', 'Paper Designer', 'CareerPilot Pathways', 'CareerPilot Pathway Rules',
       'CareerPilot Missions', 'Content Builder', 'Orientation', 'Learning Studio', 'Mega Curriculum', 'Concept Bank', 'Company Questions', 'CareerPilot News',
+      'Stage Curriculum', 'Skills by Stage', 'CareerPilot Question Drafting', 'CareerPilot Question Bank', 'CareerPilot Roadmap V2', 'CareerPilot Career Tracks',
       // Run and watch
-      'CareerPilot Members', 'CareerPilot Trials', 'Career Stage Tagging', 'XP & Rewards', 'CareerPilot Coins', 'CareerPilot Journey', 'CareerPilot Drop-off', 'Activity',
+      'CareerPilot Members', 'CareerPilot Trials', 'CareerPilot Demo Plans', 'CareerPilot Job Openings', 'Career Stage Tagging', 'XP & Rewards', 'CareerPilot Coins',
+      'CareerPilot Journey', 'CareerPilot Drop-off', 'Activity', 'CareerPilot Help & Support',
     ] },
-    { title: 'PLATFORM',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management', 'Platform Settings'] },
+    { title: 'PLATFORM',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management'] },
+    // Institute-wide setup in one place (owner decision 2026-11-10).
+    { title: 'SETTINGS',                labels: ['Placement Partnership', 'Branding', 'Integrations', 'Platform Settings', 'WhatsApp Templates'] },
   ];
   const adminSectionLabels = new Set(ADMIN_SECTIONS.flatMap(s => s.labels));
   const adminMiscItems = filteredItems.filter(i => !adminSectionLabels.has(i.label) && !supportItems.includes(i));
@@ -676,7 +680,14 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
           </>
         ) : (
           <>
-            {ADMIN_SECTIONS.map(sec => {
+            {/* SETTINGS renders last, below MORE, so it is always at the bottom of the menu. */}
+            {[...ADMIN_SECTIONS.filter(sec => sec.title !== 'SETTINGS'), null, ...ADMIN_SECTIONS.filter(sec => sec.title === 'SETTINGS')].map(sec => {
+              if (!sec) return adminMiscItems.length > 0 ? (
+                <div key="__more" className="nav-section">
+                  <span className="nav-section-label">MORE</span>
+                  <ul>{adminMiscItems.map(item => renderMenuItem(item))}</ul>
+                </div>
+              ) : null;
               const items = sec.labels
                 .map(l => filteredItems.find(i => i.label === l))
                 .filter(Boolean) as MenuItem[];
@@ -688,12 +699,6 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
                 </div>
               );
             })}
-            {adminMiscItems.length > 0 && (
-              <div className="nav-section">
-                <span className="nav-section-label">MORE</span>
-                <ul>{adminMiscItems.map(item => renderMenuItem(item))}</ul>
-              </div>
-            )}
             {supportItems.length > 0 && (
               <div className="nav-section">
                 <span className="nav-section-label">SUPPORT</span>

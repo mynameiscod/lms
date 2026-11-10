@@ -233,6 +233,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Tech Battles', path: '/admin/battles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-trophy', permissions: ['manage_battles', 'view_battles'] },
     // ── Hackathons (public team registrations, with a fee) ──
     { label: 'Hackathons', path: '/admin/hackathons', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-laptop-code', permissions: ['manage_hackathons', 'view_hackathons'] },
+    { label: 'Event APIs', path: '/event-apis', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-calendar-plus', permissions: ['manage_event_apis'] },
     // ── CareerPilot (separate product) ──
     { label: 'CareerPilot Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport', 'manage_passport_setup'] },
     { label: 'CareerPilot Members', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['view_passport_members', 'manage_passport', 'manage_passport_members'] },
@@ -359,7 +360,6 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'Lead Scoring', path: '/lead-scoring-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_leads'] },
         { label: 'Audit Logs', path: '/lead-audit-logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-clock-rotate-left', permissions: ['manage_leads'] },
         { label: 'Lead Archive', path: '/leads/archive', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-box-archive', permissions: ['archive_leads'] },
-        { label: 'Event APIs', path: '/event-apis', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-calendar-plus', permissions: ['manage_event_apis'] },
         { label: 'Outpero AI Calls', path: '/admin/outpero', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-robot', permissions: ['manage_leads'] },
         { label: 'AI Call Config', path: '/ai-call-config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-phone-volume', permissions: ['manage_leads'] },
       ]
@@ -537,7 +537,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'DRIVES & INTERVIEWS',     labels: ['Drives', 'Question Books'] },
     { title: 'BILLING',                 labels: ['Fees'] },
     { title: 'EMPLOYEES',               labels: ['Employee Portal', 'Employees', 'Employee Activity', 'Expenses'] },
-    { title: 'EVENTS',                  labels: ['Tech Battles', 'Hackathons'] },
+    { title: 'EVENTS',                  labels: ['Tech Battles', 'Hackathons', 'Event APIs'] },
     /**
      * Every CareerPilot screen, in the order an admin actually works through them:
      * set the role up, give it skills and evidence, check the paper, then run and watch it.

@@ -1821,39 +1821,61 @@ export const getMilestoneSummary = async (req: AuthenticatedRequest, res: Respon
 };
 
 /**
- * GET /leads/queue?tab=today|overdue|upcoming|unassigned|nurture&page= — the follow-up queue.
- * Closed leads (lost / enrolled stages) are left out of every tab except nurture.
+ * GET /leads/queue?tab=today|overdue|upcoming|unassigned|nurture&page=&limit=&stageId=&course=&assignedTo=&search=
+ * The follow-up queue. Returns one page of the chosen tab plus the count of every tab (same
+ * filters), so the cards and tab badges always agree with the table. "Today" is the India
+ * calendar day. Closed leads (lost / enrolled stages) are left out of every tab except nurture.
  */
+const QUEUE_TABS = ['today', 'overdue', 'upcoming', 'unassigned', 'nurture'] as const;
 export const getFollowUpQueue = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    const tab = String(req.query.tab || 'today');
+    const tab = (QUEUE_TABS as readonly string[]).includes(String(req.query.tab)) ? String(req.query.tab) : 'today';
     const page = Math.max(1, parseInt(String(req.query.page || '1'), 10) || 1);
-    const limit = 50;
+    const limit = Math.min(100, Math.max(5, parseInt(String(req.query.limit || '25'), 10) || 25));
     const scopeFilter = await buildLeadScopeFilter(req);
     const byMilestone = await stageIdsByMilestone(req.tenantId);
     const closed = [...(byMilestone.lost || []), ...(byMilestone.enrolled || [])];
     const now = new Date();
-    const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(now); dayEnd.setHours(23, 59, 59, 999);
-    const base: any = { tenantId: req.tenantId, ...scopeFilter, archivedAt: null };
-    let filter: any; let sort: Record<string, 1 | -1>;
-    switch (tab) {
-      case 'overdue': filter = { ...base, stageId: { $nin: closed }, nextFollowUp: { $lt: dayStart } }; sort = { nextFollowUp: 1 }; break;
-      case 'upcoming': filter = { ...base, stageId: { $nin: closed }, nextFollowUp: { $gt: dayEnd } }; sort = { nextFollowUp: 1 }; break;
-      case 'unassigned': filter = { ...base, stageId: { $nin: closed }, assignedTo: null }; sort = { createdAt: 1 }; break;
-      case 'nurture': {
-        const soon = new Date(now.getTime() + 7 * 86_400_000);
-        filter = { ...base, 'nurture.reactivateAt': { $lte: soon } }; sort = { 'nurture.reactivateAt': 1 }; break;
-      }
-      default: filter = { ...base, stageId: { $nin: closed }, nextFollowUp: { $gte: dayStart, $lte: dayEnd } }; sort = { nextFollowUp: 1 };
-    }
-    const [leads, total] = await Promise.all([
-      Lead.find(filter).select('name phone courseInterest source stageId subStageId reasonId assignedTo nextFollowUp lastContactedAt lastCallOutcome nurture createdAt priority')
+    const ist = new Date(now.getTime() + 330 * 60_000); ist.setUTCHours(0, 0, 0, 0);
+    const dayStart = new Date(ist.getTime() - 330 * 60_000);
+    const dayEnd = new Date(dayStart.getTime() + 86_400_000 - 1);
+    const weekEnd = new Date(dayEnd.getTime() + 7 * 86_400_000);
+
+    const { stageId, course, assignedTo, search } = req.query as any;
+    const q: any = {};
+    if (stageId && mongoose.Types.ObjectId.isValid(String(stageId))) q.stageId = String(stageId);
+    if (course) q.course = String(course);
+    if (assignedTo && assignedTo !== 'unassigned' && mongoose.Types.ObjectId.isValid(String(assignedTo))) q.assignedTo = String(assignedTo);
+    if (search) q.search = String(search).slice(0, 80);
+    const base: any = buildLeadFilter(q, req.tenantId!, scopeFilter);
+    if (assignedTo === 'unassigned') base.assignedTo = null;
+    const open = (extra: any) => { const f: any = { ...base, ...extra }; mergeMatch(f, { $and: [{ stageId: { $nin: closed } }] }); return f; };
+
+    const filters: Record<string, { filter: any; sort: Record<string, 1 | -1> }> = {
+      today: { filter: open({ nextFollowUp: { $gte: dayStart, $lte: dayEnd } }), sort: { nextFollowUp: 1 } },
+      overdue: { filter: open({ nextFollowUp: { $lt: dayStart } }), sort: { nextFollowUp: 1 } },
+      upcoming: { filter: open({ nextFollowUp: { $gt: dayEnd, $lte: weekEnd } }), sort: { nextFollowUp: 1 } },
+      unassigned: { filter: open({ assignedTo: null }), sort: { createdAt: 1 } },
+      nurture: { filter: { ...base, 'nurture.reactivateAt': { $lte: new Date(now.getTime() + 7 * 86_400_000) } }, sort: { 'nurture.reactivateAt': 1 } },
+    };
+    const { filter, sort } = filters[tab];
+    const [leads, countList, courses] = await Promise.all([
+      Lead.find(filter).select('name phone email courseInterest source stageId subStageId reasonId assignedTo nextFollowUp lastContactedAt lastCallOutcome nurture createdAt priority')
         .populate('stageId', 'name color').populate('subStageId', 'name').populate('assignedTo', 'firstName lastName')
         .sort({ ...sort, _id: 1 }).skip((page - 1) * limit).limit(limit).lean(),
-      Lead.countDocuments(filter),
+      Promise.all(QUEUE_TABS.map(t => Lead.countDocuments(filters[t].filter))),
+      Lead.distinct('courseInterest', { tenantId: req.tenantId, archivedAt: null }),
     ]);
-    res.json({ success: true, message: 'ok', data: { leads, total, page, totalPages: Math.ceil(total / limit) } });
+    const counts: Record<string, number> = {};
+    QUEUE_TABS.forEach((t, i) => { counts[t] = countList[i]; });
+    const total = counts[tab];
+    res.json({
+      success: true, message: 'ok',
+      data: {
+        leads, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)), counts,
+        options: { courses: (courses as any[]).filter(c => typeof c === 'string' && c.trim()).sort().slice(0, 200) },
+      },
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to load the queue', error: error.message });
   }

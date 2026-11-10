@@ -1960,8 +1960,10 @@ export const leadApi = {
     return authenticatedFetch(`${API_BASE_URL}/leads/milestone-summary?${params.toString()}`);
   },
   /** Follow-up queue: tab = today | overdue | upcoming | unassigned | nurture */
-  getQueue: async (tab: string, page = 1) => {
-    return authenticatedFetch(`${API_BASE_URL}/leads/queue?tab=${encodeURIComponent(tab)}&page=${page}`);
+  getQueue: async (tab: string, page = 1, opts: { limit?: number; stageId?: string; course?: string; assignedTo?: string; search?: string } = {}) => {
+    const params = new URLSearchParams({ tab, page: String(page) });
+    Object.entries(opts).forEach(([k, v]) => { if (v !== undefined && v !== '') params.set(k, String(v)); });
+    return authenticatedFetch(`${API_BASE_URL}/leads/queue?${params.toString()}`);
   },
   getSavedViews: async () => authenticatedFetch(`${API_BASE_URL}/lead-views`),
   saveView: async (name: string, filters: Record<string, string>, shared = false) =>

@@ -19,7 +19,7 @@ import Lead from '../models/Lead';
 import AICallConfig from '../models/AICallConfig';
 import { mapExotelStatus, ExotelCallbackPayload } from '../services/exotelService';
 import { enqueueAICallRetry } from '../services/aiCallQueueService';
-import { autoAssignLead } from '../services/leadDistributionService';
+import { assignLead } from '../services/leadAssignmentService';
 
 
 /**
@@ -304,7 +304,7 @@ JUNK = wrong number, not interested at all, abusive.`;
     const assignOnScore = config?.scoring?.assignOnScore ?? 40;
     if (aiScore >= assignOnScore) {
       console.log(`[AIWebhook] Lead ${leadId} qualified (${aiScore}), triggering assignment`);
-      autoAssignLead(tenantId, leadId).catch(err =>
+      assignLead(tenantId, leadId, { afterCall: true }).catch(err =>
         console.error('[AIWebhook] Auto-assign error:', err)
       );
     }

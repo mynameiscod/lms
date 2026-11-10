@@ -1,5 +1,3 @@
-import { waitsForOutpero } from './outperoPolicyService';
-import { listCounsellors } from './leadCounsellorService';
 import mongoose from 'mongoose';
 import Lead, { ILead, LeadPriority, LeadEligibility } from '../models/Lead';
 import LeadPriorityConfig, {
@@ -134,73 +132,6 @@ function evaluateQualification(lead: any, rules: IQualificationRule[]): { eligib
 }
 
 /**
- * Get next assignee via round robin (atomic update)
- */
-async function getNextRoundRobinAssignee(
-  tenantId: mongoose.Types.ObjectId,
-  members: mongoose.Types.ObjectId[],
-  indexField: string,
-  ruleIndex?: number
-): Promise<mongoose.Types.ObjectId | null> {
-  if (!members || members.length === 0) return null;
-  // Only counsellors (admins or a BDM role) receive leads, whoever is listed in older settings.
-  const counsellorIds = new Set((await listCounsellors(String(tenantId))).map(c => c._id));
-  members = members.filter(m => counsellorIds.has(String(m)));
-  if (members.length === 0) return null;
-
-  let config: ILeadScoringConfig | null;
-
-  if (indexField === 'roundRobinIndex') {
-    config = await LeadScoringConfig.findOneAndUpdate(
-      { tenantId },
-      { $inc: { roundRobinIndex: 1 } },
-      { new: true }
-    );
-    if (!config) return null;
-    return members[(config.roundRobinIndex - 1) % members.length];
-  } else if (indexField === 'fallbackIndex') {
-    config = await LeadScoringConfig.findOneAndUpdate(
-      { tenantId },
-      { $inc: { fallbackIndex: 1 } },
-      { new: true }
-    );
-    if (!config) return null;
-    return members[(config.fallbackIndex - 1) % members.length];
-  } else if (indexField === 'assignmentRule' && ruleIndex !== undefined) {
-    config = await LeadScoringConfig.findOneAndUpdate(
-      { tenantId },
-      { $inc: { [`assignmentRules.${ruleIndex}.currentIndex`]: 1 } },
-      { new: true }
-    );
-    if (!config || !config.assignmentRules[ruleIndex]) return null;
-    const rule = config.assignmentRules[ruleIndex];
-    return rule.assignToMembers[(rule.currentIndex - 1) % rule.assignToMembers.length];
-  }
-
-  return null;
-}
-
-/**
- * Find matching assignment rule for a lead
- */
-function findMatchingAssignmentRule(lead: any, config: ILeadScoringConfig): { ruleIndex: number; members: mongoose.Types.ObjectId[] } | null {
-  for (let i = 0; i < config.assignmentRules.length; i++) {
-    const rule = config.assignmentRules[i];
-    if (!rule.assignToMembers || rule.assignToMembers.length === 0) continue;
-
-    const allMatch = rule.conditions.every(cond => {
-      const fieldValue = getFieldValue(lead, cond.field);
-      return evaluateCondition(fieldValue, cond.operator, cond.value);
-    });
-
-    if (allMatch) {
-      return { ruleIndex: i, members: rule.assignToMembers };
-    }
-  }
-  return null;
-}
-
-/**
  * Main function: Score, qualify, and assign a lead
  * Call this after creating/importing a lead
  */
@@ -251,26 +182,8 @@ export async function scoreAndAssignLead(lead: any, tenantId: mongoose.Types.Obj
   const qualification = evaluateQualification(lead, config.qualificationRules);
   const eligibility = qualification.eligible ? 'eligible' : 'not_eligible';
 
-  // 4. Assignment
-  let assignedTo: mongoose.Types.ObjectId | undefined;
-
-  const canAssign = !lead.assignedTo && !lead.assignment?.assignedTo && !waitsForOutpero(lead, String(tenantId));
-  if (canAssign && config.assignmentMode === 'round_robin') {
-    const assignee = await getNextRoundRobinAssignee(tenantId, config.roundRobinMembers, 'roundRobinIndex');
-    if (assignee) assignedTo = assignee;
-  } else if (canAssign && config.assignmentMode === 'rule_based') {
-    lead.priority = priority;
-    lead.score = score;
-
-    const match = findMatchingAssignmentRule(lead, config);
-    if (match) {
-      const assignee = await getNextRoundRobinAssignee(tenantId, match.members, 'assignmentRule', match.ruleIndex);
-      if (assignee) assignedTo = assignee;
-    } else if (config.fallbackMembers && config.fallbackMembers.length > 0) {
-      const assignee = await getNextRoundRobinAssignee(tenantId, config.fallbackMembers, 'fallbackIndex');
-      if (assignee) assignedTo = assignee;
-    }
-  }
+  // 4. Assignment is NOT done here any more — see leadAssignmentService (one engine, 2026-11-09).
+  const assignedTo: mongoose.Types.ObjectId | undefined = undefined;
 
   // 5. Update lead
   const updateData: any = {
@@ -279,50 +192,11 @@ export async function scoreAndAssignLead(lead: any, tenantId: mongoose.Types.Obj
     eligibility,
     eligibilityReason: qualification.reason
   };
-  if (assignedTo) {
-    updateData.assignedTo = assignedTo;
-    updateData['assignment.assignedTo'] = assignedTo;
-    updateData['assignment.assignedAt'] = new Date();
-  }
-
-  const assignmentData: any = {};
-  for (const key of ['assignedTo', 'assignment.assignedTo', 'assignment.assignedAt']) {
-    if (key in updateData) { assignmentData[key] = updateData[key]; delete updateData[key]; }
-  }
   await lead.constructor.findByIdAndUpdate(lead._id, { $set: updateData });
-  if (assignedTo) {
-    const assigned = await Lead.updateOne({ _id: lead._id, tenantId, assignedTo: null, 'assignment.assignedTo': null }, { $set: assignmentData });
-    if (!assigned.modifiedCount) assignedTo = undefined;
-  }
 
   console.log(`[LEAD-SCORING] Lead ${lead._id}: score=${score}, priority=${priority}, eligibility=${eligibility}${assignedTo ? `, assigned=${assignedTo}` : ''}`);
 
   return { score, priority, eligibility, eligibilityReason: qualification.reason, assignedTo };
-}
-
-/**
- * Give an unassigned lead an owner using the institute's Lead Scoring assignment settings
- * (round robin or rule based). Used when a lead was held for Outpero and its result has arrived —
- * the same engine that would have assigned it on arrival, just later. Returns the new owner id.
- */
-export async function assignViaScoringConfig(lead: any, tenantId: mongoose.Types.ObjectId): Promise<mongoose.Types.ObjectId | null> {
-  if (lead.assignedTo || lead.assignment?.assignedTo) return null;
-  const config = await LeadScoringConfig.findOne({ tenantId, isActive: true });
-  if (!config) return null;
-  let assignee: mongoose.Types.ObjectId | null = null;
-  if (config.assignmentMode === 'round_robin') {
-    assignee = await getNextRoundRobinAssignee(tenantId, config.roundRobinMembers, 'roundRobinIndex');
-  } else if (config.assignmentMode === 'rule_based') {
-    const match = findMatchingAssignmentRule(lead, config);
-    if (match) assignee = await getNextRoundRobinAssignee(tenantId, match.members, 'assignmentRule', match.ruleIndex);
-    else if (config.fallbackMembers?.length) assignee = await getNextRoundRobinAssignee(tenantId, config.fallbackMembers, 'fallbackIndex');
-  }
-  if (!assignee) return null;
-  const res = await Lead.updateOne(
-    { _id: lead._id, tenantId, assignedTo: null, 'assignment.assignedTo': null },
-    { $set: { assignedTo: assignee, 'assignment.assignedTo': assignee, 'assignment.assignedAt': new Date() } },
-  );
-  return res.modifiedCount ? assignee : null;
 }
 
 /**
@@ -337,13 +211,12 @@ export async function rescoreAllLeads(tenantId: mongoose.Types.ObjectId): Promis
 
   const leads = await Lead.find({ tenantId, archivedAt: null });
   let scored = 0;
-  let assigned = 0;
+  const assigned = 0; // scoring no longer assigns (leadAssignmentService does)
 
   for (const lead of leads) {
     try {
       const result = await scoreAndAssignLead(lead, tenantId);
       if (result.score > 0) scored++;
-      if (result.assignedTo) assigned++;
     } catch (err: any) {
       console.error(`[LEAD-SCORING] Error rescoring lead ${lead._id}:`, err.message);
     }

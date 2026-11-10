@@ -1,7 +1,7 @@
 import { recordStageTransition } from '../controllers/leadStageHistoryController';
 import { stampMilestonesAfterExternalMove } from './leadLifecycleService';
 import { classifyOutcome, getPolicy } from './outperoPolicyService';
-import { autoAssignLead } from './leadDistributionService';
+import { assignLead } from './leadAssignmentService';
 import LeadStage from '../models/LeadStage';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
@@ -242,8 +242,10 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
   if (automate && outcome && !has('feedback_' + outcome)) {
     let state = outcome === 'needs_review' ? 'needs_review' : 'processed';
     if (retryNoAnswer) state = 'retry_scheduled';
-    if (!retryNoAnswer) { // every result gets an owner; only a no-answer that will be called again keeps waiting
-      const assigned = await autoAssignLead(tenantId, String(lead._id), true);
+    // Every result gets an owner, except: a no-answer that will be called again keeps waiting, and
+    // not interested / wrong number / opt-out stay unassigned for an admin (owner decision 2026-11-09).
+    if (!retryNoAnswer && !negative) {
+      const assigned = await assignLead(tenantId, String(lead._id), { afterCall: true, aiOutcome: outcome });
       if (assigned) lead.assignedTo = assigned;
       else if (!lead.assignedTo && !lead.assignment?.assignedTo) state = 'awaiting_assignment';
     }
@@ -273,8 +275,8 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
   }
   // Whatever the result, a lead that was waiting for Outpero gets its owner now — also when the stage
   // was left alone because a person had already moved it. A no-answer that will be retried keeps waiting.
-  if (policy.enabled && outcome && !retryNoAnswer && !lead.archivedAt && !lead.assignedTo && !lead.assignment?.assignedTo) {
-    const assigned = await autoAssignLead(tenantId, String(lead._id), true);
+  if (policy.enabled && outcome && !retryNoAnswer && !negative && !lead.archivedAt && !lead.assignedTo && !lead.assignment?.assignedTo) {
+    const assigned = await assignLead(tenantId, String(lead._id), { afterCall: true, aiOutcome: outcome });
     if (assigned) { lead.assignedTo = assigned; did.push('assigned'); }
     else if (!did.includes('awaiting_assignment')) did.push('awaiting_assignment');
   }

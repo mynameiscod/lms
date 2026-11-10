@@ -1960,8 +1960,10 @@ export const leadApi = {
     return authenticatedFetch(`${API_BASE_URL}/leads/milestone-summary?${params.toString()}`);
   },
   /** Follow-up queue: tab = today | overdue | upcoming | unassigned | nurture */
-  getQueue: async (tab: string, page = 1) => {
-    return authenticatedFetch(`${API_BASE_URL}/leads/queue?tab=${encodeURIComponent(tab)}&page=${page}`);
+  getQueue: async (tab: string, page = 1, opts: { limit?: number; stageId?: string; course?: string; assignedTo?: string; search?: string } = {}) => {
+    const params = new URLSearchParams({ tab, page: String(page) });
+    Object.entries(opts).forEach(([k, v]) => { if (v !== undefined && v !== '') params.set(k, String(v)); });
+    return authenticatedFetch(`${API_BASE_URL}/leads/queue?${params.toString()}`);
   },
   getSavedViews: async () => authenticatedFetch(`${API_BASE_URL}/lead-views`),
   saveView: async (name: string, filters: Record<string, string>, shared = false) =>
@@ -3022,19 +3024,14 @@ export const meetingApi = {
   },
 };
 
-// Lead Distribution Config API
-export const leadDistributionApi = {
-  get: async () => authenticatedFetch(`${API_BASE_URL}/lead-distribution-config`),
-  update: async (data: {
-    mode?: 'round_robin' | 'weighted' | 'manual';
-    enabled?: boolean;
-    eligibleRoles?: string[];
-    maxLeadsPerDayDefault?: number;
-    weights?: { userId: string; weight: number; maxLeadsPerDay?: number }[];
-  }) => authenticatedFetch(`${API_BASE_URL}/lead-distribution-config`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
+// Lead Assignment — the one setting for how new leads get a counsellor (manual | round robin | rules)
+export const leadAssignmentApi = {
+  get: async () => authenticatedFetch(`${API_BASE_URL}/lead-assignment`),
+  save: async (data: {
+    mode: 'manual' | 'round_robin' | 'rules';
+    members: { userId: string; available: boolean; maxPerDay: number | null }[];
+    rules: { name: string; enabled: boolean; sources: string[]; courses: string[]; members: string[] }[];
+  }) => authenticatedFetch(`${API_BASE_URL}/lead-assignment`, { method: 'PUT', body: JSON.stringify(data) }),
 };
 
 // Seat Reservation API (P5)

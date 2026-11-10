@@ -101,6 +101,8 @@ const LeadDashboard: React.FC = () => {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [stageDialog, setStageDialog] = useState<{ leadIds: string[]; currentStageId?: string; currentSubStageId?: string | null } | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
+  // Leads the Assign dialog acts on: one lead from its row menu, or null = the selected rows.
+  const [assignIds, setAssignIds] = useState<string[] | null>(null);
   const [assignTo, setAssignTo] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState({ name: '', phone: '', email: '', course: '', source: 'walkin' });
@@ -237,8 +239,8 @@ const LeadDashboard: React.FC = () => {
   const bulkAssign = async () => {
     setBusy(true);
     try {
-      const r: any = await leadApi.bulkAssign(Array.from(selected), assignTo || null);
-      notify('success', r.message || 'Assigned'); setAssignOpen(false); setSelected(new Set()); refreshAll();
+      const r: any = await leadApi.bulkAssign(assignIds || Array.from(selected), assignTo || null);
+      notify('success', r.message || 'Assigned'); setAssignOpen(false); if (!assignIds) setSelected(new Set()); setAssignIds(null); refreshAll();
     } catch (e: any) { notify('danger', e.message || 'Could not assign'); }
     finally { setBusy(false); }
   };
@@ -536,7 +538,7 @@ const LeadDashboard: React.FC = () => {
         <div className="ldb-bulk">
           <strong>{selected.size} selected</strong>
           {canBulk && <button onClick={() => setStageDialog({ leadIds: Array.from(selected) })}>Move stage</button>}
-          {canBulk && <button onClick={() => { setAssignTo(''); setAssignOpen(true); }}>Assign</button>}
+          {canBulk && <button onClick={() => { setAssignIds(null); setAssignTo(''); setAssignOpen(true); }}>Assign</button>}
           <button onClick={() => { setWaMsg(''); setWaOpen(true); }}><i className="bi bi-whatsapp" /> WhatsApp</button>
           <button className="ldb-link" onClick={() => setSelected(new Set())}>Clear</button>
         </div>
@@ -605,6 +607,7 @@ const LeadDashboard: React.FC = () => {
                       {menuFor === l._id && (
                         <div className="ldb-menu" role="menu">
                           <button role="menuitem" onClick={() => navigate(`/leads/${l._id}`)}>View details</button>
+                          {canBulk && <button role="menuitem" onClick={() => { setMenuFor(null); setAssignIds([l._id]); setAssignTo(l.assignedTo?._id || (typeof l.assignedTo === 'string' ? l.assignedTo : '') || ''); setAssignOpen(true); }}>{l.assignedTo ? 'Reassign' : 'Assign'}</button>}
                           <button role="menuitem" onClick={() => { setMenuFor(null); setStageDialog({ leadIds: [l._id], currentStageId: stage?._id, currentSubStageId: l.subStageId?._id || null }); }}>Move stage</button>
                           <a role="menuitem" href={`https://wa.me/${String(l.phone || '').replace(/\D/g, '')}`} target="_blank" rel="noreferrer">WhatsApp</a>
                           {canDelete && <button role="menuitem" className="ldb-menu-danger" onClick={() => deleteLead(l)}>Delete</button>}
@@ -665,7 +668,7 @@ const LeadDashboard: React.FC = () => {
         onDone={(outcome, message) => { notify('success', message); if (outcome === 'bulk') setSelected(new Set()); refreshAll(); }}
       />
 
-      <Modal isOpen={assignOpen} onClose={() => setAssignOpen(false)} title={`Assign ${selected.size} lead${selected.size === 1 ? '' : 's'}`} size="small">
+      <Modal isOpen={assignOpen} onClose={() => { setAssignOpen(false); setAssignIds(null); }} title={assignIds ? `Assign ${leads.find(x => x._id === assignIds[0])?.name || 'lead'}` : `Assign ${selected.size} lead${selected.size === 1 ? '' : 's'}`} size="small">
         <select className="form-select mb-3" value={assignTo} onChange={e => setAssignTo(e.target.value)} aria-label="Counsellor">
           <option value="">Unassign</option>
           {staff.map(u => <option key={u._id} value={u._id}>{`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email}</option>)}

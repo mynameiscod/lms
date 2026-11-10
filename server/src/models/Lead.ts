@@ -786,6 +786,13 @@ LeadSchema.post('save', function (doc: any) {
   import('../services/outperoForwardService')
     .then((m) => m.onLeadCreated(doc))
     .catch((e) => console.error('[outpero] could not queue new lead', e?.message));
+  // The one assignment engine (Lead Assignment settings) — for every source, so none is missed.
+  // An owner set at creation is kept; a lead held for Outpero is assigned when the call result arrives.
+  if (!doc.assignedTo && !doc.assignment?.assignedTo && doc.tenantId) {
+    import('../services/leadAssignmentService')
+      .then((m) => m.assignLead(String(doc.tenantId), String(doc._id)))
+      .catch((e) => console.error('[lead-assignment] could not assign new lead', e?.message));
+  }
 });
 
 export default mongoose.model<ILead>('Lead', LeadSchema);

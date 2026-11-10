@@ -233,6 +233,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Tech Battles', path: '/admin/battles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-trophy', permissions: ['manage_battles', 'view_battles'] },
     // ── Hackathons (public team registrations, with a fee) ──
     { label: 'Hackathons', path: '/admin/hackathons', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-laptop-code', permissions: ['manage_hackathons', 'view_hackathons'] },
+    { label: 'Event APIs', path: '/event-apis', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-calendar-plus', permissions: ['manage_event_apis'] },
     // ── CareerPilot (separate product) ──
     { label: 'CareerPilot Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport', 'manage_passport_setup'] },
     { label: 'CareerPilot Members', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['view_passport_members', 'manage_passport', 'manage_passport_members'] },
@@ -355,11 +356,10 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'Priority Settings', path: '/lead-priority-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-ranking-star', permissions: ['manage_leads'] },
         { label: 'Qualification Questions', path: '/qualification-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-circle-question', permissions: ['manage_leads'] },
         { label: 'Form Settings', path: '/lead-form-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-pen-to-square', permissions: ['manage_leads'] },
-        { label: 'Google Sheets', path: '/google-sheet-integration', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-table', permissions: ['manage_leads'] },
+        { label: 'Lead Assignment', path: '/lead-assignment-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-user-check', permissions: ['manage_leads'] },
         { label: 'Lead Scoring', path: '/lead-scoring-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_leads'] },
         { label: 'Audit Logs', path: '/lead-audit-logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-clock-rotate-left', permissions: ['manage_leads'] },
         { label: 'Lead Archive', path: '/leads/archive', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-box-archive', permissions: ['archive_leads'] },
-        { label: 'Event APIs', path: '/event-apis', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-calendar-plus', permissions: ['manage_event_apis'] },
         { label: 'Outpero AI Calls', path: '/admin/outpero', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-robot', permissions: ['manage_leads'] },
         { label: 'AI Call Config', path: '/ai-call-config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-phone-volume', permissions: ['manage_leads'] },
       ]
@@ -533,11 +533,11 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'THINKING LAB',            labels: ['Thinking Lab', 'Thinking Lab — Bank'] },
     { title: 'ASSESSMENTS & INTERVIEWS',labels: ['Skill Assessment', 'Assessment Candidates', 'AI Interviews', 'Scheduled Interviews', 'Interview Q&A Bank'] },
     { title: 'CAREER',                  labels: ['Resume Builder', 'Career Profiles', 'Project Builder', 'Job Tracker', 'AI Mentor'] },
-    { title: 'CRM & GROWTH',            labels: ['Leads', 'Placement Partnership'] },
+    { title: 'CRM & GROWTH',            labels: ['Leads'] },
     { title: 'DRIVES & INTERVIEWS',     labels: ['Drives', 'Question Books'] },
     { title: 'BILLING',                 labels: ['Fees'] },
     { title: 'EMPLOYEES',               labels: ['Employee Portal', 'Employees', 'Employee Activity', 'Expenses'] },
-    { title: 'EVENTS',                  labels: ['Tech Battles', 'Hackathons'] },
+    { title: 'EVENTS',                  labels: ['Tech Battles', 'Hackathons', 'Event APIs'] },
     /**
      * Every CareerPilot screen, in the order an admin actually works through them:
      * set the role up, give it skills and evidence, check the paper, then run and watch it.
@@ -555,10 +555,14 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       // Content
       'CareerPilot Assessment', 'Assessment Coverage', 'Paper Designer', 'CareerPilot Pathways', 'CareerPilot Pathway Rules',
       'CareerPilot Missions', 'Content Builder', 'Orientation', 'Learning Studio', 'Mega Curriculum', 'Concept Bank', 'Company Questions', 'CareerPilot News',
+      'Stage Curriculum', 'Skills by Stage', 'CareerPilot Question Drafting', 'CareerPilot Question Bank', 'CareerPilot Roadmap V2', 'CareerPilot Career Tracks',
       // Run and watch
-      'CareerPilot Members', 'CareerPilot Trials', 'Career Stage Tagging', 'XP & Rewards', 'CareerPilot Coins', 'CareerPilot Journey', 'CareerPilot Drop-off', 'Activity',
+      'CareerPilot Members', 'CareerPilot Trials', 'CareerPilot Demo Plans', 'CareerPilot Job Openings', 'Career Stage Tagging', 'XP & Rewards', 'CareerPilot Coins',
+      'CareerPilot Journey', 'CareerPilot Drop-off', 'Activity', 'CareerPilot Help & Support',
     ] },
-    { title: 'PLATFORM',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management', 'Platform Settings'] },
+    { title: 'PLATFORM',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management'] },
+    // Institute-wide setup in one place (owner decision 2026-11-10).
+    { title: 'SETTINGS',                labels: ['Placement Partnership', 'Branding', 'Integrations', 'Platform Settings', 'WhatsApp Templates'] },
   ];
   const adminSectionLabels = new Set(ADMIN_SECTIONS.flatMap(s => s.labels));
   const adminMiscItems = filteredItems.filter(i => !adminSectionLabels.has(i.label) && !supportItems.includes(i));
@@ -676,7 +680,14 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
           </>
         ) : (
           <>
-            {ADMIN_SECTIONS.map(sec => {
+            {/* SETTINGS renders last, below MORE, so it is always at the bottom of the menu. */}
+            {[...ADMIN_SECTIONS.filter(sec => sec.title !== 'SETTINGS'), null, ...ADMIN_SECTIONS.filter(sec => sec.title === 'SETTINGS')].map(sec => {
+              if (!sec) return adminMiscItems.length > 0 ? (
+                <div key="__more" className="nav-section">
+                  <span className="nav-section-label">MORE</span>
+                  <ul>{adminMiscItems.map(item => renderMenuItem(item))}</ul>
+                </div>
+              ) : null;
               const items = sec.labels
                 .map(l => filteredItems.find(i => i.label === l))
                 .filter(Boolean) as MenuItem[];
@@ -688,12 +699,6 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
                 </div>
               );
             })}
-            {adminMiscItems.length > 0 && (
-              <div className="nav-section">
-                <span className="nav-section-label">MORE</span>
-                <ul>{adminMiscItems.map(item => renderMenuItem(item))}</ul>
-              </div>
-            )}
             {supportItems.length > 0 && (
               <div className="nav-section">
                 <span className="nav-section-label">SUPPORT</span>

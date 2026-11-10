@@ -248,7 +248,7 @@ const QualificationSettingsPage = lazy(() => import('./pages/QualificationSettin
 const SalesContentLibraryPage = lazy(() => import('./pages/SalesContentLibrary'));
 const LeadAnalyticsPage = lazy(() => import('./pages/LeadAnalytics'));
 const MeetingsPage = lazy(() => import('./pages/Meetings'));
-const LeadDistributionSettingsPage = lazy(() => import('./pages/LeadDistributionSettings'));
+const LeadAssignmentSettingsPage = lazy(() => import('./pages/LeadAssignmentSettings'));
 const FollowUpCalendarPage = lazy(() => import('./pages/FollowUpCalendar'));
 const FollowUpQueuePage = lazy(() => import('./pages/FollowUpQueue'));
 const AdmissionsDashboardPage = lazy(() => import('./pages/AdmissionsDashboard'));
@@ -2432,15 +2432,17 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
-        path="/lead-distribution-settings"
+        path="/lead-assignment-settings"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
-              <LeadDistributionSettingsPage />
+              <LeadAssignmentSettingsPage />
             </Layout>
           </ProtectedRoute>
         }
       />
+      {/* Lead Distribution was merged into Lead Assignment (2026-11-09). */}
+      <Route path="/lead-distribution-settings" element={<Navigate to="/lead-assignment-settings" replace />} />
       <Route
         path="/ai-call-config"
         element={

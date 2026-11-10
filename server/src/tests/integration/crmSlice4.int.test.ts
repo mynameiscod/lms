@@ -85,4 +85,15 @@ describe('milestone summary + queue', () => {
     expect(await names('upcoming', staff)).toEqual([]); // belongs to the other counsellor
     expect(await names('today', staff)).toEqual(['Today']);
   });
+
+  it('queue returns every tab count and honours search + page size', async () => {
+    const r = await call(getFollowUpQueue, admin, { tab: 'today', limit: '5' });
+    expect(r.body.data.counts).toMatchObject({ today: 1, overdue: 1, upcoming: 1, unassigned: 2, nurture: 1 });
+    expect(r.body.data.limit).toBe(5);
+    const s = await call(getFollowUpQueue, admin, { tab: 'unassigned', search: 'Unowned' });
+    expect(s.body.data.leads.map((l: any) => l.name)).toEqual(['Unowned']);
+    expect(s.body.data.counts.unassigned).toBe(1);
+    const u = await call(getFollowUpQueue, admin, { tab: 'today', assignedTo: 'unassigned' });
+    expect(u.body.data.counts.today).toBe(0);
+  });
 });

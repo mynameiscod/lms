@@ -9,6 +9,7 @@ import { useTenantModules, TenantModules } from '../../contexts/TenantModulesCon
 import { useBatchModules } from '../../contexts/BatchModulesContext';
 import { StudentFeatureKey } from '../../config/studentFeatureCatalog';
 import visualizerApi from '../../api/visualizerApi';
+import { thinkingLabApi } from '../../api/thinkingLabApi';
 import './Sidebar.css';
 
 /**
@@ -85,6 +86,15 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     visualizerApi.access().then(a => alive && setVzAllowed(!!a.allowed)).catch(() => alive && setVzAllowed(false));
     return () => { alive = false; };
   }, [user?.role]);
+
+  /* An LMS student sees the Thinking Lab only once their batch has a daily lab track; until then it stays hidden. */
+  const [labAssigned, setLabAssigned] = useState(true);
+  useEffect(() => {
+    if (user?.role !== 'STUDENT') return;
+    let alive = true;
+    thinkingLabApi.assigned().then(a => alive && setLabAssigned(!!a.assigned)).catch(() => alive && setLabAssigned(true));
+    return () => { alive = false; };
+  }, [user?.role, (user as any)?.batchId]);
 
   const isActive = (path?: string) => path ? location.pathname === path : false;
 
@@ -418,6 +428,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     }
 
     if (user.role === 'STUDENT' && item.needsVisualizerGrant && !vzAllowed) return false;
+    if (user.role === 'STUDENT' && item.path === '/thinking-lab' && !labAssigned) return false;
 
     // Platform-level module gate (applies to ALL roles — set by SUPER_ADMIN per tenant). Every page
     // belongs to a module by its path (config/tenantModules); an explicit moduleKey still wins.

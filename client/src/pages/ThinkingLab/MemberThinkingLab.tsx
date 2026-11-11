@@ -312,8 +312,15 @@ const StateTag: React.FC<{ q: TQQuestion }> = ({ q }) => {
   return <span className="tl2-tag">New</span>;
 };
 
-const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; readOnly?: boolean; onBack: () => void; onUpdate: (q: TQQuestion, r: TQReward | null) => void; onNext: () => void; hasNext: boolean }> =
-  ({ q, practice, demo, readOnly, onBack, onUpdate, onNext, hasNext }) => {
+/** Where Solve sends answers, hints and code runs. CareerPilot members by default; an LMS lab-track puzzle passes its own. */
+export interface SolveApi {
+  answer: (id: string, body: { answer?: string; explanation: string; code?: string; language?: string }) => Promise<{ question: TQQuestion; reward: TQReward | null }>;
+  hint: (id: string) => Promise<{ hints: string[]; hintsTotal: number }>;
+  run: typeof memberLabApi.run;
+}
+
+export const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; readOnly?: boolean; onBack: () => void; onUpdate: (q: TQQuestion, r: TQReward | null) => void; onNext: () => void; hasNext: boolean; api?: SolveApi }> =
+  ({ q, practice, demo, readOnly, onBack, onUpdate, onNext, hasNext, api = memberLabApi }) => {
     const coding = q.type === 'coding';
     const finished = q.state === 'solved' || q.state === 'finished';
     const [answer, setAnswer] = useState(q.last?.answer || '');
@@ -334,19 +341,19 @@ const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; readOnl
       if (wc < MIN_WORDS) { setErr(`Explain your thinking in at least ${MIN_WORDS} words: what you noticed, what you worked out, and how you reached the answer.`); return; }
       setBusy('submit'); setErr('');
       try {
-        const r = await memberLabApi.answer(q.id, coding ? { code, language: q.language || 'python', explanation } : { answer, explanation });
+        const r = await api.answer(q.id, coding ? { code, language: q.language || 'python', explanation } : { answer, explanation });
         onUpdate(r.question, r.reward);
       } catch (e) { setErr(errOf(e, 'Could not check your answer.')); }
       setBusy('');
     };
     const hint = async () => {
       setBusy('hint');
-      try { const r = await memberLabApi.hint(q.id); setHints(r.hints); } catch (e) { setErr(errOf(e, 'No more hints.')); }
+      try { const r = await api.hint(q.id); setHints(r.hints); } catch (e) { setErr(errOf(e, 'No more hints.')); }
       setBusy('');
     };
     const runCode = async () => {
       setBusy('run'); setErr('');
-      try { setRun(await memberLabApi.run(q.id, code, q.language || 'python')); } catch (e) { setErr(errOf(e, 'Could not run your code.')); }
+      try { setRun(await api.run(q.id, code, q.language || 'python')); } catch (e) { setErr(errOf(e, 'Could not run your code.')); }
       setBusy('');
     };
 

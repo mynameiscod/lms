@@ -36,6 +36,9 @@ export interface TLChallenge {
   approach: string; approachWordCount: number; editorUnlocked: boolean; minApproachWords: number;
   code: string; language: string; attempts: number; hintsUsed: number; timeSpentSec: number;
   passed: boolean; score?: number; xpEarned: number; aiFeedback?: TLRubric; problem: TLProblem | null;
+  /** 'puzzle' = a shared-bank math / logical / critical question from a lab track, answered with an answer + explanation. */
+  kind?: 'puzzle' | 'code';
+  question?: TQQuestion;
 }
 export interface TLStats { /** A CareerPilot member with no batch: member bank, member leaderboard. */ member?: boolean; xpTotal: number; level: number; coins: number; streak: number; longestStreak: number; solvedTotal: number; solvedToday: number; badgeCount: number;
   /** CareerPilot members: streak freezes held, the day's XP, and whether today is already paid. */
@@ -95,6 +98,12 @@ export const thinkingLabApi = {
   leaderboard: async (scope: string): Promise<{ scope: string; leaderboard: TLLeaderRow[]; myRank: number | null }> => (await axios.get(`${BASE}/leaderboard`, { ...h(), params: { scope } })).data,
   saveApproach: async (id: string, approach: string): Promise<{ unlocked: boolean; wordCount: number; minApproachWords: number }> => (await axios.post(`${BASE}/${id}/approach`, { approach }, h())).data,
   revealHint: async (id: string): Promise<{ hint: string; hintsUsed: number; totalHints: number }> => (await axios.post(`${BASE}/${id}/hint`, {}, h())).data,
+  /** A lab-track puzzle from the shared bank: answer + explanation, marked like CareerPilot. */
+  puzzleAnswer: async (id: string, body: { answer?: string; explanation: string }): Promise<{ question: TQQuestion; reward: TQReward | null; status: string; xpEarned: number }> =>
+    (await axios.post(`${BASE}/${id}/puzzle-answer`, body, { ...h(), timeout: 60000 })).data,
+  puzzleHint: async (id: string): Promise<{ hints: string[]; hintsTotal: number }> => (await axios.post(`${BASE}/${id}/puzzle-hint`, {}, h())).data,
+  /** Whether this student has a daily Thinking Lab (their batch has a track). */
+  assigned: async (): Promise<{ assigned: boolean }> => (await axios.get(`${BASE}/assigned`, h())).data,
   run: async (id: string, code: string, language: string): Promise<TLRunResult> => (await axios.post(`${BASE}/${id}/run`, { code, language }, { ...h(), timeout: 120000 })).data,
   submit: async (id: string, code: string, language: string, timeSpentSec: number): Promise<TLSubmitResult> => (await axios.post(`${BASE}/${id}/submit`, { code, language, timeSpentSec }, { ...h(), timeout: 120000 })).data,
   voiceExplain: async (id: string, blob: Blob): Promise<{ voiceEval: TLVoiceEval; xpEarned: number; coinsEarned: number; newBadges: { key: string; name: string; icon: string }[] }> => {

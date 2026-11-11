@@ -248,10 +248,16 @@ export class WeeklyReportService {
     const empty = { communication: { assigned: 0, completed: 0, missed: 0 }, thinking: { assigned: 0, completed: 0, missed: 0 }, totalAssigned: 0, totalCompleted: 0, totalMissed: 0 };
     if (!batchId) return empty;
     const startYmd = ymd(start), endYmd = ymd(end);
+    // Each lab is counted against the batch that supplies it (a placement batch may take it over).
+    const { labBatchFor } = await import('./placementBatchService');
+    const [commBatch, thinkBatch] = await Promise.all([
+      labBatchFor(tenantId, studentId, batchId, 'communication'),
+      labBatchFor(tenantId, studentId, batchId, 'thinking'),
+    ]);
 
     // Communication Lab
     const [commSched, commDone] = await Promise.all([
-      CommunicationSchedule.find({ tenantId, batchId, date: { $gte: startYmd, $lte: endYmd } }).select('date').lean(),
+      CommunicationSchedule.find({ tenantId, batchId: commBatch, date: { $gte: startYmd, $lte: endYmd } }).select('date').lean(),
       CommunicationAttempt.find({ tenantId, studentId, status: 'completed', practiceDate: { $gte: startYmd, $lte: endYmd } }).select('practiceDate').lean(),
     ]);
     const commDates = new Set(commSched.map((s: any) => s.date));
@@ -261,7 +267,7 @@ export class WeeklyReportService {
 
     // Thinking Lab
     const [thinkSched, thinkDone] = await Promise.all([
-      ScheduledChallenge.find({ tenantId, batchId, date: { $gte: startYmd, $lte: endYmd } }).select('date').lean(),
+      ScheduledChallenge.find({ tenantId, batchId: thinkBatch, date: { $gte: startYmd, $lte: endYmd } }).select('date').lean(),
       DailyChallenge.find({ tenantId, studentId, date: { $gte: startYmd, $lte: endYmd }, $or: [{ passed: true }, { status: 'solved' }] }).select('date').lean(),
     ]);
     const thinkDates = new Set(thinkSched.map((s: any) => s.date));

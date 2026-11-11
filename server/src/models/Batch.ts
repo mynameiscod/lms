@@ -29,6 +29,11 @@ export interface IBatch extends Document {
   // A batch can only RESTRICT — it subtracts from what the tenant already allows,
   // it can never re-enable a tenant-disabled feature. Empty/absent = inherit all.
   disabledFeatures?: string[];
+  // 'placement' = an extra group drawn from students of other batches. Students keep their home
+  // batch (User.batchId) and are listed in User.placementBatchIds. The labs named in
+  // takesOverLabs come from this batch for its members instead of from their home batch.
+  kind?: 'regular' | 'placement';
+  takesOverLabs?: ('thinking' | 'communication')[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -133,7 +138,9 @@ const BatchSchema: Schema = new Schema(
     disabledFeatures: {
       type: [String], // student-feature keys turned off for this batch (see IBatch)
       default: []
-    }
+    },
+    kind: { type: String, enum: ['regular', 'placement'], default: 'regular' },
+    takesOverLabs: { type: [{ type: String, enum: ['thinking', 'communication'] }], default: [] }
   },
   { timestamps: true }
 );

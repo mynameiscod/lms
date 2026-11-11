@@ -16,6 +16,44 @@ const MILESTONE_LABEL: Record<string, string> = {
 const inr = (n: number) => `₹${(Math.round((n || 0) * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 const when = (d?: string | null) => (d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '—');
 
+const num = (n: number) => (n || 0).toLocaleString('en-IN');
+
+/** Spend rows at one level. Campaign names drill into that campaign's ads. */
+const SpendTable: React.FC<{ level: 'campaign' | 'adset' | 'ad'; rows: any[]; total: number; onCampaign: (id: string, name: string) => void }> = ({ level, rows, total, onCampaign }) => {
+  if (!rows.length) return <p className="text-muted small mb-0">No spend in this range.</p>;
+  const label = level === 'campaign' ? 'Campaign' : level === 'adset' ? 'Ad set' : 'Ad';
+  return (
+    <div className="table-responsive">
+      <table className="table table-sm align-middle mb-0 ms-spend-table">
+        <thead><tr><th>{label}</th><th className="text-end">Spend</th><th className="text-end">Share</th><th className="text-end">Impressions</th><th className="text-end">Clicks</th><th className="text-end">CTR</th><th className="text-end">CPC</th><th className="text-end">CPM</th></tr></thead>
+        <tbody>
+          {rows.map((r: any) => {
+            const ctr = r.impressions ? (r.clicks / r.impressions) * 100 : 0;
+            const share = total ? (r.spend / total) * 100 : 0;
+            return (
+              <tr key={r._id || 'none'}>
+                <td>
+                  {level === 'campaign'
+                    ? <button type="button" className="ms-link" title="Show this campaign's ads" onClick={() => onCampaign(r._id || '', r.name || '(no campaign)')}>{r.name || '(no campaign)'}</button>
+                    : <span className="fw-semibold">{r.name || '(unnamed)'}</span>}
+                  {level !== 'campaign' && <div className="ms-sub">{r.campaignName}{level === 'ad' && r.adSetName ? ` › ${r.adSetName}` : ''}</div>}
+                </td>
+                <td className="text-end">{inr(r.spend)}</td>
+                <td className="text-end"><div className="ms-share"><span style={{ width: `${Math.min(100, share)}%` }} /></div><small>{share.toFixed(1)}%</small></td>
+                <td className="text-end">{num(r.impressions)}</td>
+                <td className="text-end">{num(r.clicks)}</td>
+                <td className="text-end">{ctr.toFixed(2)}%</td>
+                <td className="text-end">{r.clicks ? inr(r.spend / r.clicks) : '—'}</td>
+                <td className="text-end">{r.impressions ? inr((r.spend / r.impressions) * 1000) : '—'}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 const MetaSync: React.FC = () => {
   const [summary, setSummary] = useState<any>(null);
   const [cfg, setCfg] = useState<any>(null);
@@ -25,6 +63,10 @@ const MetaSync: React.FC = () => {
   const [page, setPage] = useState(1);
   const [spend, setSpend] = useState<any>(null);
   const [spendJob, setSpendJob] = useState<any>(null);
+  // Spend breakdown: date range, level (campaign → ad set → ad) and an optional campaign drill-down.
+  const [spendDays, setSpendDays] = useState(30);
+  const [spendLevel, setSpendLevel] = useState<'campaign' | 'adset' | 'ad'>('campaign');
+  const [spendCampaign, setSpendCampaign] = useState<{ id: string; name: string } | null>(null);
   const [busy, setBusy] = useState('');
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -45,9 +87,12 @@ const MetaSync: React.FC = () => {
     catch (e: any) { notify('error', e.message || 'Could not load events'); }
   }, [statusFilter, page]);
   const loadSpend = useCallback(async () => {
-    try { const [s, j]: any = await Promise.all([metaCrmApi.spendSummary(), metaCrmApi.spendStatus()]); setSpend(s.data); setSpendJob(j.data); }
+    const to = new Date();
+    const from = new Date(to.getTime() - (spendDays - 1) * 86_400_000);
+    const ymd = (d: Date) => new Date(d.getTime() + 330 * 60_000).toISOString().slice(0, 10);
+    try { const [s, j]: any = await Promise.all([metaCrmApi.spendSummary(ymd(from), ymd(to)), metaCrmApi.spendStatus()]); setSpend(s.data); setSpendJob(j.data); }
     catch { /* no spend yet */ }
-  }, []);
+  }, [spendDays]);
 
   useEffect(() => { loadSummary(); loadSpend(); }, [loadSummary, loadSpend]);
   useEffect(() => { loadEvents(); }, [loadEvents]);
@@ -235,18 +280,30 @@ const MetaSync: React.FC = () => {
               <div><span>{(spend.totals.impressions || 0).toLocaleString('en-IN')}</span>impressions</div>
               <div><span>{(spend.totals.clicks || 0).toLocaleString('en-IN')}</span>clicks</div>
             </div>
-            {spend.byCampaign?.length > 0 && (
-              <div className="table-responsive">
-                <table className="table table-sm mb-0">
-                  <thead><tr><th>Campaign</th><th className="text-end">Spend</th><th className="text-end">Impressions</th><th className="text-end">Clicks</th></tr></thead>
-                  <tbody>
-                    {spend.byCampaign.map((c: any) => (
-                      <tr key={c._id || 'none'}><td>{c.name || '(no campaign)'}</td><td className="text-end">{inr(c.spend)}</td><td className="text-end">{(c.impressions || 0).toLocaleString('en-IN')}</td><td className="text-end">{(c.clicks || 0).toLocaleString('en-IN')}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="ms-spend-bar">
+              <div className="btn-group btn-group-sm" role="group" aria-label="Level">
+                {([['campaign', 'Campaigns'], ['adset', 'Ad sets'], ['ad', 'Ads']] as const).map(([k, l]) => (
+                  <button key={k} type="button" className={`btn ${spendLevel === k ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setSpendLevel(k)}>
+                    {l} <span className="ms-count">{(k === 'campaign' ? spend.byCampaign : k === 'adset' ? spend.byAdSet : spend.byAd)?.filter((r: any) => k === 'campaign' || !spendCampaign || r.campaignId === spendCampaign.id).length || 0}</span>
+                  </button>
+                ))}
               </div>
-            )}
+              {spendCampaign && spendLevel !== 'campaign' && (
+                <span className="ms-chip">Campaign: {spendCampaign.name} <button type="button" aria-label="Clear campaign filter" onClick={() => setSpendCampaign(null)}>×</button></span>
+              )}
+              <div className="btn-group btn-group-sm ms-auto" role="group" aria-label="Date range">
+                {[7, 30, 90].map(d => (
+                  <button key={d} type="button" className={`btn ${spendDays === d ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setSpendDays(d)}>{d} days</button>
+                ))}
+              </div>
+            </div>
+            <SpendTable
+              level={spendLevel}
+              rows={(spendLevel === 'campaign' ? spend.byCampaign : spendLevel === 'adset' ? spend.byAdSet : spend.byAd || [])
+                ?.filter((r: any) => spendLevel === 'campaign' || !spendCampaign || r.campaignId === spendCampaign.id) || []}
+              total={spend.totals.spend}
+              onCampaign={(id, name) => { setSpendCampaign({ id, name }); setSpendLevel('ad'); }}
+            />
           </>
         )}
       </section>

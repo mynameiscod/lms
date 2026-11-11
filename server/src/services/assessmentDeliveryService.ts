@@ -8,6 +8,7 @@
 //      until it's migrated onto a schedule.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { studentBatchIds } from './placementBatchService';
 import AssessmentSchedule from '../models/AssessmentSchedule';
 import Assignment from '../models/Assignment';
 import Quiz from '../models/Quiz';
@@ -115,9 +116,12 @@ export async function resolveForStudent(
   const batchId = await studentBatchId(studentId);
 
   if (batchId) {
-    const sched = await AssessmentSchedule.findOne({
-      tenantId, contentType, contentId, batchId, status: 'active',
-    }).lean() as any;
+    // Home batch first; a placement batch's schedule applies when the home batch has none.
+    const allBatches = await studentBatchIds(studentId, batchId);
+    const rows = await AssessmentSchedule.find({
+      tenantId, contentType, contentId, batchId: { $in: allBatches }, status: 'active',
+    }).lean() as any[];
+    const sched = rows.find((r) => String(r.batchId) === batchId) || rows[0];
     if (sched) {
       return {
         dueAt: sched.dueAt ? new Date(sched.dueAt) : null,
@@ -178,9 +182,17 @@ export async function studentSchedulesMap(
   contentType: ContentType,
 ): Promise<Map<string, any>> {
   const or: any[] = [{ studentIds: studentId }];
-  if (batchId) or.push({ batchId });
+  // Home batch plus any placement batches the student belongs to.
+  const allBatches = await studentBatchIds(studentId, batchId);
+  if (allBatches.length) or.push({ batchId: { $in: allBatches } });
   const rows = await AssessmentSchedule.find({ tenantId, contentType, status: 'active', $or: or }).lean();
-  return new Map(rows.map((r: any) => [String(r.contentId), r]));
+  // One row per content; the home batch's row wins over a placement batch's.
+  const map = new Map<string, any>();
+  for (const r of rows as any[]) {
+    const k = String(r.contentId);
+    if (!map.has(k) || (batchId && String(r.batchId) === String(batchId))) map.set(k, r);
+  }
+  return map;
 }
 
 /** Policy for a schedule row. */

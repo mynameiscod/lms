@@ -236,6 +236,9 @@ const PublicResumeView = lazy(() => import('./pages/ResumeBuilder/PublicResumeVi
 const CareerProfilePage = lazy(() => import('./pages/CareerProfile'));
 const CareerProfileAdmin = lazy(() => import('./pages/CareerProfile/Admin'));
 const PlacementPartnership = lazy(() => import('./pages/PartnerPipeline'));
+const PlacementDesk = lazy(() => import('./pages/PlacementDesk'));
+const PlacementDeskDrive = lazy(() => import('./pages/PlacementDesk/DriveDetail'));
+const PlacementDeskPublic = lazy(() => import('./pages/PlacementDesk/PublicSummary'));
 const FeesPage = lazy(() => import('./pages/Fees'));
 const TeamActivity = lazy(() => import('./pages/TeamActivity'));
 const LeadDetailPage = lazy(() => import('./pages/LeadDetail'));
@@ -592,6 +595,7 @@ const AppRoutes: React.FC = () => {
       {/* ── Public Tech Battles (no auth) ── */}
       {/* A live-class invitation link: guests join without an account */}
       <Route path="/live/:token" element={<LiveGuestJoin />} />
+      <Route path="/placements/:token" element={<PlacementDeskPublic />} />
       <Route path="/battles" element={<BattleList />} />
       <Route path="/battles/exam/:token" element={<BattleExam />} />
       <Route path="/battles/:slug/leaderboard" element={<BattleLeaderboard />} />
@@ -2136,6 +2140,28 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <CareerProfileAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Placement Desk (Admin) — daily company / drive / outcome register ─── */}
+      <Route
+        path="/placement-desk"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout>
+              <PlacementDesk />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/placement-desk/drives/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout>
+              <PlacementDeskDrive />
             </Layout>
           </ProtectedRoute>
         }

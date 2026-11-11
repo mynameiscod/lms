@@ -10,6 +10,7 @@ export interface IUser extends Document {
   role: string;
   tenantId: mongoose.Types.ObjectId;
   batchId?: mongoose.Types.ObjectId;
+  placementBatchIds?: mongoose.Types.ObjectId[]; // extra placement batches; home batch stays batchId
   batchJoinedDate?: Date;
   customRoleId?: mongoose.Types.ObjectId;
   managerId?: mongoose.Types.ObjectId;
@@ -189,6 +190,10 @@ const UserSchema: Schema = new Schema(
       type: mongoose.Types.ObjectId,
       ref: 'Batch',
       default: null
+    },
+    placementBatchIds: {
+      type: [{ type: mongoose.Types.ObjectId, ref: 'Batch' }],
+      default: undefined
     },
     batchJoinedDate: {
       type: Date,
@@ -440,5 +445,8 @@ UserSchema.set('toJSON', {
     return ret;
   },
 });
+
+// Placement batch member lists; sparse because almost nobody has one.
+UserSchema.index({ placementBatchIds: 1 }, { sparse: true });
 
 export default mongoose.model<IUser>('User', UserSchema);

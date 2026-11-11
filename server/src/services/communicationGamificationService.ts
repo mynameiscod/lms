@@ -86,7 +86,12 @@ export async function getAchievementsForStudent(tenantId: string, studentId: str
 /** Batch leaderboard ranked by average + streak + consistency (not one lucky attempt). */
 export async function computeLeaderboard(tenantId: string, callerId: string, batchId?: string) {
   const uFilter: any = { tenantId, role: 'STUDENT', isActive: { $ne: false } };
-  if (batchId && mongoose.isValidObjectId(batchId)) uFilter.batchId = new mongoose.Types.ObjectId(batchId);
+  // A batch's lab cohort: its own students minus those taken over by a placement batch, plus
+  // the members of a placement batch that takes the Communication Lab over.
+  if (batchId && mongoose.isValidObjectId(batchId)) {
+    const { labStudentIds } = await import('./placementBatchService');
+    uFilter._id = { $in: (await labStudentIds(tenantId, batchId, 'communication')).map((id) => new mongoose.Types.ObjectId(id)) };
+  }
   const students = await User.find(uFilter).select('firstName lastName batchId').lean();
   const ids = students.map((s: any) => s._id);
   if (!ids.length) return { rows: [], me: null };

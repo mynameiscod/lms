@@ -142,7 +142,7 @@ const PATH_MODULE: [string, ModuleKey][] = ([
   ['/coding-snippets', 'codeAssessments'], ['/admin/coding-snippets', 'codeAssessments'], ['/playground', 'codeAssessments'], ['/coding-practice', 'codeAssessments'],
   ['/my-learning', 'learningPlans'], ['/my-tasks', 'learningPlans'], ['/learning-library', 'learningPlans'],
   ['/curriculum-builder', 'learningPlans'], ['/enrollment-plans', 'learningPlans'], ['/batch-offerings', 'learningPlans'],
-  ['/drives', 'placement'], ['/admin/placement-partnership', 'placement'],
+  ['/drives', 'placement'], ['/admin/placement-partnership', 'placement'], ['/placement-desk', 'placement'],
   ['/admin/placement-program', 'placementProgram'], ['/placement-program/my-interviews', 'placementProgram'],
   ['/admin/interview-experiences', 'interviewHub'], ['/interview-experiences', 'interviewHub'],
   ['/question-books', 'interviewHub'], ['/admin/question-books', 'interviewHub'],

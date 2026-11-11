@@ -19,3 +19,5 @@
 .status-warn{margin:0;padding:8px 10px;border-radius:8px;background:#FFFBEB;color:#92400E;font-size:12px}
 .status-modal .modal-actions{display:flex;justify-content:flex-end;gap:8px}
 @media (max-width:640px){.status-options,.status-fields{grid-template-columns:1fr}}
+
+.placement-chip{display:inline-block;margin:2px 0 0 4px;padding:1px 7px;border-radius:99px;background:#EEF2FF;color:#4338CA;font-size:11px;white-space:nowrap}

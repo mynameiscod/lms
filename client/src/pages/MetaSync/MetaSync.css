@@ -52,3 +52,16 @@
 @media (max-width: 720px) { .ms-spend-form { grid-template-columns: 1fr; } }
 .ms-spend-total { display: flex; flex-wrap: wrap; gap: 24px; margin: 8px 0 12px; font-size: 0.82rem; color: var(--ms-muted); }
 .ms-spend-total span { display: block; font-size: 1.2rem; font-weight: 700; color: var(--ms-ink); }
+
+/* Spend breakdown: level + range toggles, drill-down chip, share bars */
+.ms-spend-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 10px; }
+.ms-count { display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 5px; border-radius: 9px; background: rgba(0,0,0,.08); font-size: .72rem; }
+.ms-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border-radius: 999px; background: #EEF2FF; color: #3730A3; font-size: .78rem; }
+.ms-chip button { border: 0; background: transparent; color: inherit; font-size: 1rem; line-height: 1; cursor: pointer; }
+.ms-link { border: 0; padding: 0; background: none; color: #0F4C81; font-weight: 600; text-align: left; cursor: pointer; }
+.ms-link:hover { text-decoration: underline; }
+.ms-sub { font-size: .74rem; color: var(--ms-muted); }
+.ms-spend-table td small { display: block; color: var(--ms-muted); font-size: .72rem; }
+.ms-share { width: 70px; height: 5px; margin-left: auto; border-radius: 3px; background: #E5E7EB; overflow: hidden; }
+.ms-share span { display: block; height: 100%; background: #359AAD; }
+@media (max-width: 640px) { .ms-spend-bar .ms-auto { margin-left: 0 !important; } }

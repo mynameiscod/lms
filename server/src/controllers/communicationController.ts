@@ -8,6 +8,7 @@ import CommunicationChallenge, { challengeAudienceFilter, CHALLENGE_AUDIENCES } 
 import { audienceServes, readMemberAudience } from '../models/memberAudience';
 import CommunicationSchedule from '../models/CommunicationSchedule';
 import { resolveLabDay } from '../services/labTrackService';
+import { labBatchFor } from '../services/placementBatchService';
 import CommunicationAttempt from '../models/CommunicationAttempt';
 import CommunicationStreak from '../models/CommunicationStreak';
 import User from '../models/User';
@@ -138,6 +139,8 @@ export const getToday = async (req: Request, res: Response) => {
         totalChallenges: memberChallenges.length,
       });
     }
+    // A placement batch that takes over this lab supplies it instead of the home batch.
+    me.batchId = await labBatchFor(String(tenantId), uId(req), me.batchId, 'communication');
     // Admin-scheduled batch challenge (may carry a time window) — IST-based.
     const now = istParts();
     let sc: any = await CommunicationSchedule.findOne({ tenantId, batchId: me.batchId, date: now.date }).lean();
@@ -272,9 +275,10 @@ export const submit = async (req: Request, res: Response) => {
 
     // Enforce the scheduled availability window (opt-in: only if a window is set for this batch+date).
     const meForWindow: any = await User.findById(uId(req)).select('batchId').lean();
-    if (meForWindow?.batchId) {
+    const labBatchId = meForWindow?.batchId ? await labBatchFor(String(tenantId), uId(req), meForWindow.batchId, 'communication') : null;
+    if (labBatchId) {
       const now = istParts();
-      const sc: any = await CommunicationSchedule.findOne({ tenantId, batchId: meForWindow.batchId, date: now.date }).lean();
+      const sc: any = await CommunicationSchedule.findOne({ tenantId, batchId: labBatchId, date: now.date }).lean();
       const w = windowStatus(sc, now.date, now.hm);
       if (w === 'upcoming') { cleanup(file.path); return res.status(403).json({ message: `This challenge opens at ${sc.startTime} (IST).` }); }
       if (w === 'closed') { cleanup(file.path); return res.status(403).json({ message: `This challenge's window closed at ${sc.endTime} (IST). Submissions are no longer accepted.` }); }
@@ -304,9 +308,9 @@ export const submit = async (req: Request, res: Response) => {
     const profile = await CommunicationProfile.findOne({ tenantId, studentId: uId(req) }).lean();
     const evaluation = await evaluateIntroduction(profile as any, challenge as any, transcript, durationSec, recordingType === 'audio' ? 'audio' : 'video', tenantId);
 
-    const u: any = await User.findById(uId(req)).select('batchId').lean();
+    // Stamp the batch that supplied the lab, so placement-batch lab reports count this attempt.
     const attempt = await CommunicationAttempt.create({
-      tenantId, studentId: uId(req), batchId: u?.batchId, challengeId,
+      tenantId, studentId: uId(req), batchId: labBatchId || meForWindow?.batchId, challengeId,
       challengeTitle: challenge.title, challengeType: challenge.challengeType, practiceDate,
       attemptNumber: priorCount + 1,
       recordingType: recordingType === 'audio' ? 'audio' : 'video',
@@ -651,7 +655,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
       return res.json({ enabled: false, rows: [], me: null });
     }
     let batchId = req.query.batchId ? String(req.query.batchId) : undefined;
-    if (!(await isAdminish(req))) { const me: any = await User.findById(uId(req)).select('batchId').lean(); batchId = me?.batchId ? String(me.batchId) : undefined; }
+    if (!(await isAdminish(req))) { const me: any = await User.findById(uId(req)).select('batchId').lean(); const lb = me?.batchId ? await labBatchFor(tenantId, uId(req), me.batchId, 'communication') : null; batchId = lb ? String(lb) : undefined; }
     const { rows, me } = await computeLeaderboard(tenantId, uId(req), batchId);
     res.json({ enabled: true, rows, me });
   } catch (err: any) { res.status(500).json({ message: err.message }); }

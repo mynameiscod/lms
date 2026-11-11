@@ -10,6 +10,7 @@ import User from '../models/User';
 import Content from '../models/Content';
 import { EmailService } from '../services/emailService';
 import AssessmentSchedule from '../models/AssessmentSchedule';
+import mongoose from 'mongoose';
 import { checkDeadlineGate, studentSchedulesMap, policyFromRow } from '../services/assessmentDeliveryService';
 import { computeStatus, mergePolicy, DEFAULT_POLICY } from '../services/deadlinePolicyService';
 import { resolveAssignedQuizzes } from '../services/studentWorkService';
@@ -890,7 +891,11 @@ async function quizAudience(quiz: any, tenantId: string): Promise<any[]> {
     (s.studentIds || []).forEach((id: any) => studentIds.add(String(id)));
   }
   const or: any[] = [];
-  if (batchIds.size) or.push({ batchId: { $in: [...batchIds] } });
+  if (batchIds.size) {
+    or.push({ batchId: { $in: [...batchIds] } });
+    // Members of a placement batch the quiz was assigned to (their home batch is elsewhere).
+    or.push({ placementBatchIds: { $in: [...batchIds].filter((b) => mongoose.isValidObjectId(b)).map((b) => new mongoose.Types.ObjectId(b)) } });
+  }
   if (studentIds.size) or.push({ _id: { $in: [...studentIds] } });
   if (!or.length) return [];
   return User.find({ ...base, $or: or }).select(select).lean();

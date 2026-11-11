@@ -19,7 +19,7 @@ import Tenant from '../models/Tenant';
 import { getAnthropic, getOpenAI, isAnthropicEnabled } from './aiClients';
 import { recordUsage } from './aiGateway';
 import * as settings from './settingsService';
-import { generateTemplate } from './communicationEvalService';
+import { generateTemplate, modelAnswerSpec } from './communicationEvalService';
 import { HesitationSignals } from './communicationSignalsService';
 import { STUDENT_FEEDBACK_STYLE } from '../data/feedbackStyle';
 
@@ -279,7 +279,7 @@ export async function evaluateCoachAnswer(o: {
     + `Profile facts: ${JSON.stringify({ name: o.profile?.fullName, degree: o.profile?.degree, college: o.profile?.college, skills: o.profile?.primarySkills, project: o.profile?.projectName, projectObjective: o.profile?.projectObjective, tech: o.profile?.projectTechnologies, role: o.profile?.projectResponsibilities, goal: o.profile?.shortTermGoal })}\n`
     + `Measured (do not contradict): spoke ${o.durationSec}s (asked ${prompt.targetSec}s), ${o.wordsPerMinute} words/min, ${signals.pauseCount} pauses of 1s+ (longest ${signals.longestPauseSec}s), first word after ${signals.timeToFirstWordSec}s, ${signals.restarts} restarts, ${signals.fillerPer100Words} filler words per 100 words, hesitation index ${signals.hesitationIndex}/100 (${signals.label}).\n\n`
     + `Transcript:\n"""${(o.transcript || '').slice(0, 5000)}"""\n\n`
-    + `Return JSON: {"overall":n,"fluency":n,"clarity":n,"structure":n,"content":n,"language":n,"strengths":["..."],"improve":["..."],"modelAnswer":"a natural, realistic answer to the same question in simple English, using ONLY the student's real facts (60-120 words)","coachMessage":"2-3 sentences","nextFocus":"one concrete thing for the next recording"}`;
+    + `Return JSON: {"overall":n,"fluency":n,"clarity":n,"structure":n,"content":n,"language":n,"strengths":["..."],"improve":["..."],"modelAnswer":"${modelAnswerSpec(prompt.targetSec)}","coachMessage":"2-3 sentences","nextFocus":"one concrete thing for the next recording"}`;
   const { parsed: p, provider } = await askJson(o.tenantId, system, user);
   return {
     overall: clamp(p.overall), fluency: clamp(p.fluency), clarity: clamp(p.clarity), structure: clamp(p.structure), content: clamp(p.content), language: clamp(p.language),

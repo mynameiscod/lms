@@ -121,6 +121,7 @@ const PassportAdminConfig = lazy(() => import('./pages/Passport/AdminConfig'));
 const PassportAdminStudents = lazy(() => import('./pages/Passport/AdminStudents'));
 const PassportAdminTrialPlans = lazy(() => import('./pages/Passport/AdminTrialPlans'));
 const PassportAdminDemoPlans = lazy(() => import('./pages/Passport/AdminDemoPlans'));
+const PassportAdminPlatformLimits = lazy(() => import('./pages/Passport/AdminPlatformLimits'));
 const PassportAdminJobOpenings = lazy(() => import('./pages/Passport/AdminJobOpenings'));
 const PassportAdminStudentRoadmap = lazy(() => import('./pages/Passport/AdminStudentRoadmap'));
 const PassportAdminStageSkills = lazy(() => import('./pages/Passport/AdminStageSkills'));
@@ -694,6 +695,10 @@ const AppRoutes: React.FC = () => {
       {/* Opens for whoever holds manage_job_openings — a permission only a super admin can give a role. */}
       <Route path="/admin/passport/job-openings" element={
         <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_job_openings']}><Layout><PassportAdminJobOpenings /></Layout></ProtectedRoute>
+      } />
+      {/* CareerPilot Limits: mock interview and Thinking Lab limits for every institute. A super admin, or a role they gave manage_careerpilot_limits. */}
+      <Route path="/admin/passport/limits" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_careerpilot_limits']}><Layout><PassportAdminPlatformLimits /></Layout></ProtectedRoute>
       } />
       {/* Demo plans: what a demo account shows, year by year. A super admin, or a role they gave manage_demo_accounts. */}
       <Route path="/admin/passport/demo-plans" element={

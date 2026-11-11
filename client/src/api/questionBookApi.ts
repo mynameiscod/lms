@@ -27,6 +27,8 @@ export interface ReadBook {
 export interface AdminBook {
   id: string; _id: string; scope: 'global' | 'tenant'; title: string; slug: string; kind: 'topic' | 'company'; subject: string;
   description: string; color: string; emblem: string; audience: 'all' | 'lms' | 'careerpilot'; status: 'draft' | 'published';
+  /** CareerPilot targeting: years (stage keys) and career track keys. Empty = everyone. */
+  stages?: string[]; tracks?: string[];
   chapters: { _id: string; title: string; order: number }[]; questionCount: number; order: number; canEdit?: boolean;
 }
 export interface AdminQ extends BookQ { order: number }
@@ -40,6 +42,7 @@ export const questionBookApi = {
 
   admin: {
     books: () => axios.get(`${BASE}/admin/books`, h()).then(d) as Promise<AdminBook[]>,
+    targets: () => axios.get(`${BASE}/admin/targets`, h()).then(d) as Promise<{ stages: { key: string; label: string }[]; tracks: { key: string; name: string }[] }>,
     create: (body: any) => axios.post(`${BASE}/admin/books`, body, h()).then(d) as Promise<AdminBook>,
     get: (id: string) => axios.get(`${BASE}/admin/books/${id}`, h()).then(d) as Promise<{ book: AdminBook; questions: AdminQ[] }>,
     update: (id: string, body: any) => axios.put(`${BASE}/admin/books/${id}`, body, h()).then(d) as Promise<AdminBook>,

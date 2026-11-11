@@ -92,6 +92,21 @@ function stripJson(s: string): string {
   return String(s || '').replace(/```json/gi, '').replace(/```/g, '').trim();
 }
 
+/**
+ * What the "good answer to the same question" must look like — shared by the daily challenge and the coach.
+ * It answers THE question asked (not always an introduction), in three short parts the student can follow,
+ * at a length they could say in about the time asked, with only their real facts and a [bracket] where one is missing.
+ */
+export function modelAnswerSpec(targetSec?: number): string {
+  const words = Math.max(70, Math.min(200, Math.round(((targetSec || 60) / 60) * 130)));
+  return `a model spoken answer to EXACTLY the question asked (not a generic self-introduction unless that is the question), ` +
+    `about ${words} words (what a calm speaker says in ~${targetSec || 60}s), in simple spoken English a fresher would really say. ` +
+    `Exactly three short paragraphs separated by a blank line: (1) one opening sentence that directly answers the question, ` +
+    `(2) one concrete example or detail from the student's real facts, (3) one closing line (what they learned or why it matters). ` +
+    `Use ONLY the student's real facts; where a fact is needed but missing write a short placeholder in square brackets like [your project name]. ` +
+    `Keep what the student said well, fix what was weak. No headings, no labels, no bullet points`;
+}
+
 function buildPrompt(profile: Partial<ICommunicationProfile> | null, challenge: Partial<ICommunicationChallenge>, transcript: string, metrics: any, recordingType: string) {
   const profileCtx = profile
     ? `Student profile (use ONLY these facts — never invent skills, projects, companies, or education):\n${JSON.stringify({
@@ -107,7 +122,7 @@ function buildPrompt(profile: Partial<ICommunicationProfile> | null, challenge: 
 
   const system =
     'You are a warm but honest communication coach for Indian engineering freshers preparing for job interviews. ' +
-    'You evaluate a student\'s spoken self-introduction. Be constructive and encouraging — never insulting or demotivating. ' +
+    'You evaluate a student\'s spoken answer to the speaking challenge given below (often a self-introduction, but judge it against the question actually asked). Be constructive and encouraging — never insulting or demotivating. ' +
     'Base your evaluation ONLY on the transcript and the given profile facts. Never invent skills, projects, companies, ' +
     'responsibilities, or education the student did not provide. Keep suggestions realistic and in simple professional English. ' +
     'Respond with STRICT JSON only — no markdown, no commentary.\n' + STUDENT_FEEDBACK_STYLE;
@@ -124,7 +139,7 @@ function buildPrompt(profile: Partial<ICommunicationProfile> | null, challenge: 
     `"careerGoalScore":n,"greetingScore":n,"closingScore":n,` +
     `"strengths":["..."],"areasToImprove":["..."],"missingSections":["..."],` +
     `"grammarCorrections":[{"original":"...","improved":"..."}],"sentenceImprovements":[{"original":"...","improved":"..."}],` +
-    `"improvedIntroduction":"a realistic, natural rewrite using ONLY the student's real facts","dailyCoachMessage":"2-3 encouraging sentences","nextPracticeFocus":"one concrete focus for tomorrow"}`;
+    `"improvedIntroduction":"${modelAnswerSpec(challenge.targetSeconds)}","dailyCoachMessage":"2-3 encouraging sentences","nextPracticeFocus":"one concrete focus for tomorrow"}`;
 
   return { system, user };
 }

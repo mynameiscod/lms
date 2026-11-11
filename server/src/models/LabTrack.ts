@@ -56,7 +56,9 @@ export interface ILabTrackItem extends Document {
   tenantId: string;
   trackId: mongoose.Types.ObjectId;
   dayIndex: number;             // 1..totalDays
-  contentId: mongoose.Types.ObjectId;   // ThinkingProblem | CommunicationChallenge
+  contentId: mongoose.Types.ObjectId;   // ThinkingProblem | ThinkingQuestion | CommunicationChallenge
+  /** Thinking tracks: 'question' = the shared Thinking Lab bank (ThinkingQuestion), 'problem' = an LMS ThinkingProblem. */
+  contentKind?: 'problem' | 'question';
   concept?: string;
   optional: boolean;            // counts for streak but never gates
   createdAt: Date;
@@ -68,6 +70,8 @@ const LabTrackItemSchema = new Schema<ILabTrackItem>({
   trackId: { type: Schema.Types.ObjectId, ref: 'LabTrack', required: true, index: true },
   dayIndex: { type: Number, required: true, min: 1 },
   contentId: { type: Schema.Types.ObjectId, required: true },
+  // Old rows have no kind and are LMS problems, so every existing track keeps working unchanged.
+  contentKind: { type: String, enum: ['problem', 'question'], default: 'problem' },
   concept: String,
   optional: { type: Boolean, default: false },
 }, { timestamps: true });

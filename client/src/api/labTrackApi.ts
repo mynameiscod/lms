@@ -31,7 +31,9 @@ export interface Track {
 export interface TrackItem {
   _id?: string; dayIndex: number; week?: number;
   contentId: string; concept?: string; optional?: boolean;
-  content?: { _id: string; title: string; category?: string; difficulty?: string; challengeType?: string } | null;
+  /** Thinking tracks: 'question' = the shared Thinking Lab bank, 'problem' = an LMS problem. */
+  contentKind?: 'question' | 'problem';
+  content?: { _id: string; title: string; category?: string; difficulty?: string; challengeType?: string; type?: string; kind?: string } | null;
   missing?: boolean;
 }
 
@@ -50,10 +52,19 @@ export const deleteTrack = (id: string): Promise<void> =>
 export const getTrack = (id: string): Promise<{ track: Track; items: TrackItem[]; filledDays: number }> =>
   call(`/${id}`);
 
-export const library = (lab: Lab, q = ''): Promise<any[]> =>
-  call(`/library?lab=${lab}${q ? `&q=${encodeURIComponent(q)}` : ''}`);
+export interface LibraryFilters { source?: 'bank' | 'lms'; type?: string; difficulty?: string; year?: string }
+export const library = (lab: Lab, q = '', f: LibraryFilters = {}): Promise<any[]> => {
+  const p = new URLSearchParams({ lab });
+  if (q) p.set('q', q);
+  for (const [k, v] of Object.entries(f)) if (v) p.set(k, v);
+  return call(`/library?${p.toString()}`);
+};
+/** "Fill the track for me": fills the days from the shared Thinking Lab bank. */
+export const autofill = (id: string, body: { year: string; mix: Record<string, number>; ramp: boolean; onlyEmpty: boolean }):
+  Promise<{ filled: number; filledDays: number; totalDays: number; byType?: Record<string, number>; byLevel?: Record<string, number>; short?: number; message?: string }> =>
+  call(`/${id}/autofill`, { method: 'POST', body: JSON.stringify(body) });
 
-export const setItems = (id: string, items: { dayIndex: number; contentId: string | null }[]) =>
+export const setItems = (id: string, items: { dayIndex: number; contentId: string | null; contentKind?: 'question' | 'problem' }[]) =>
   call(`/${id}/items`, { method: 'PUT', body: JSON.stringify({ items }) });
 
 export const listAssignments = (batchId?: string): Promise<any[]> =>

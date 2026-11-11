@@ -55,7 +55,7 @@ describe('who can do what (permissionsOf)', () => {
   });
 
   it('the features that used to check the role name can now be given, by a super admin only', async () => {
-    const shared = ['manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity'];
+    const shared = ['manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_careerpilot_limits', 'manage_skill_catalogue', 'view_member_activity'];
     expect(SUPER_ADMIN_GRANTED).toEqual(expect.arrayContaining(shared));
     expect(PERMISSION_GROUPS.sharedPlatform.permissions.map((p) => p.key)).toEqual(shared);
     docs.push({ _id: 'r7', name: 'Demo helper', permissions: ['manage_demo_accounts'] });

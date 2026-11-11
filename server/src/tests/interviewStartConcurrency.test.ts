@@ -197,6 +197,12 @@ jest.mock('../models/InterviewPlan', () => ({
   ROUND_TYPES: jest.requireActual('../models/InterviewPlan').ROUND_TYPES,
   ROUND_TYPE_LABEL: jest.requireActual('../models/InterviewPlan').ROUND_TYPE_LABEL,
   PLAN_BOUNDS: jest.requireActual('../models/InterviewPlan').PLAN_BOUNDS,
+  PLATFORM_PLAN_TENANT: jest.requireActual('../models/InterviewPlan').PLATFORM_PLAN_TENANT,
+}));
+// No super-admin limits saved: the default stale window (6 hours).
+jest.mock('../models/PlatformLimits', () => ({
+  __esModule: true, PLATFORM_LIMITS_KEY: 'careerpilot',
+  default: { findOne: () => ({ select: () => ({ lean: async () => null }) }) },
 }));
 jest.mock('../services/aiClients', () => ({ __esModule: true, getOpenAI: () => null }));
 jest.mock('../services/aiGateway', () => ({ __esModule: true, recordUsage: async () => {} }));

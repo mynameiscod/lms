@@ -1,0 +1,1632 @@
+[
+  {
+    "seedKey": "logical-061",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Son of my mother's only brother",
+    "statement": "Pointing to a young man at a wedding, Swathi says, \"He is the son of my mother's only brother.\" How is the young man related to Swathi?",
+    "answerFormat": "choice",
+    "choices": [
+      "Brother",
+      "Nephew",
+      "Cousin",
+      "Uncle"
+    ],
+    "answer": "Cousin",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Swathi's mother's only brother is Swathi's maternal uncle.",
+      "The young man is the son of Swathi's maternal uncle.",
+      "The child of an uncle is a cousin, so he is Swathi's cousin."
+    ],
+    "explanation": "Swathi's mother's brother is her maternal uncle. The son of an uncle is a cousin. He is not her brother, because his parent is her uncle, not her own parent.",
+    "hints": [
+      "Start from Swathi's mother and move one step at a time.",
+      "Who is your mother's brother to you?",
+      "What do you call the son of your uncle?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-062",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Ramaswamy and Aditya's mother",
+    "statement": "Ramaswamy has only one son, Kishore. Kishore is married to Deepika, and Kishore and Deepika have a son named Aditya. How is Ramaswamy related to Aditya's mother?",
+    "answerFormat": "choice",
+    "choices": [
+      "Father",
+      "Father-in-law",
+      "Grandfather",
+      "Uncle"
+    ],
+    "answer": "Father-in-law",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Aditya's mother is Deepika.",
+      "Deepika is the wife of Kishore, who is Ramaswamy's son.",
+      "The father of one's husband is one's father-in-law, so Ramaswamy is Deepika's father-in-law."
+    ],
+    "explanation": "Aditya's mother is Deepika. Ramaswamy is the father of Deepika's husband Kishore, so he is her father-in-law. He is Aditya's grandfather, but the question asks about Aditya's mother, not Aditya.",
+    "hints": [
+      "First work out who Aditya's mother is.",
+      "How is Ramaswamy connected to Deepika's husband?",
+      "Your husband's father is your ...?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-063",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Ganesh, Ramya and Kumar",
+    "statement": "Ganesh is Ramya's brother. Ramya is Kumar's mother. How is Ganesh related to Kumar?",
+    "answerFormat": "choice",
+    "choices": [
+      "Father",
+      "Maternal uncle",
+      "Paternal uncle",
+      "Grandfather"
+    ],
+    "answer": "Maternal uncle",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Ramya is Kumar's mother.",
+      "Ganesh is the brother of Kumar's mother.",
+      "A mother's brother is a maternal uncle, so Ganesh is Kumar's maternal uncle."
+    ],
+    "explanation": "Ganesh is the brother of Kumar's mother Ramya. A mother's brother is a maternal uncle. He is not a paternal uncle, since the link goes through Kumar's mother, not his father.",
+    "hints": [
+      "Is the link through Kumar's father or his mother?",
+      "Ganesh is the brother of Kumar's mother.",
+      "Maternal means on the mother's side."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-064",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Meera and Parvathi",
+    "statement": "Meera is the wife of Sunil. Sunil's mother is Parvathi. How is Meera related to Parvathi?",
+    "answerFormat": "choice",
+    "choices": [
+      "Daughter",
+      "Daughter-in-law",
+      "Sister-in-law",
+      "Niece"
+    ],
+    "answer": "Daughter-in-law",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Parvathi is Sunil's mother.",
+      "Meera is married to Parvathi's son Sunil.",
+      "A son's wife is a daughter-in-law, so Meera is Parvathi's daughter-in-law."
+    ],
+    "explanation": "Meera is the wife of Parvathi's son Sunil. The wife of one's son is one's daughter-in-law. She would be Parvathi's daughter only if she were Parvathi's own child.",
+    "hints": [
+      "Draw Parvathi at the top and Sunil below her.",
+      "Meera joins the tree as Sunil's wife.",
+      "What do you call your son's wife?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-065",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "My father's only son-in-law",
+    "statement": "Suresh, a man, says, \"Kavitha's father is my father's only son-in-law.\" How is Kavitha related to Suresh?",
+    "answerFormat": "choice",
+    "choices": [
+      "Daughter",
+      "Niece",
+      "Sister",
+      "Cousin"
+    ],
+    "answer": "Niece",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A son-in-law of Suresh's father is the husband of one of his daughters, that is, the husband of Suresh's sister (Suresh is a man, so it cannot be Suresh's own husband).",
+      "So Kavitha's father is Suresh's sister's husband (Suresh's brother-in-law).",
+      "Kavitha is therefore the daughter of Suresh's sister.",
+      "A sister's daughter is a niece, so Kavitha is Suresh's niece."
+    ],
+    "explanation": "The son-in-law of Suresh's father must be married to Suresh's sister, because Suresh himself is a man. That man is Kavitha's father, so Kavitha is the daughter of Suresh's sister. Your sister's daughter is your niece.",
+    "hints": [
+      "Who can be a son-in-law of Suresh's father?",
+      "He is married to a daughter of Suresh's father, that is, to Suresh's sister.",
+      "Kavitha is the daughter of Suresh's sister."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-066",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Mother of my son's only sister",
+    "statement": "Pointing to a woman in a photograph, Balu says, \"She is the mother of my son's only sister.\" Balu has married only once and all his children are from that marriage. How is the woman related to Balu?",
+    "answerFormat": "choice",
+    "choices": [
+      "Mother",
+      "Wife",
+      "Sister",
+      "Daughter-in-law"
+    ],
+    "answer": "Wife",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Balu's son's sister is also Balu's child, so she is Balu's daughter.",
+      "All of Balu's children are from his only marriage, so the daughter's mother is Balu's wife.",
+      "Therefore the woman in the photograph is Balu's wife."
+    ],
+    "explanation": "The only sister of Balu's son is Balu's daughter. Since Balu married once and all his children come from that marriage, her mother is Balu's wife. The tempting answer 'mother' would need the link to go up a generation, but it goes down to Balu's children and back to their mother.",
+    "hints": [
+      "Who is the sister of your son?",
+      "The sister of Balu's son is Balu's daughter.",
+      "Who is the mother of Balu's daughter?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-067",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Left, left, right",
+    "statement": "Arun is standing facing south. He turns left, then turns left again, and then turns right. Which direction is he facing now?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "East",
+    "acceptedAnswers": [
+      "EAST",
+      "east"
+    ],
+    "keySteps": [
+      "Facing south, a left turn makes him face east.",
+      "Facing east, another left turn makes him face north.",
+      "Facing north, a right turn makes him face east."
+    ],
+    "explanation": "South, then left is east, then left is north, then right is east. Check: two lefts and one right cancel to a single left turn, and a left turn from south faces east.",
+    "hints": [
+      "Track the direction after each turn, one at a time.",
+      "When you face south, your left hand points east.",
+      "Two left turns and one right turn equal one left turn."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-068",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The bus that came back south",
+    "statement": "A bus starts from a depot and travels 30 km east, then 20 km north, then 30 km west, and finally 50 km south. How far is the bus from the depot now, in km?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "30",
+    "acceptedAnswers": [
+      "30 km",
+      "30km"
+    ],
+    "keySteps": [
+      "The 30 km east and 30 km west cancel, so there is no east-west distance left.",
+      "North-south: 20 km north and then 50 km south leaves 30 km south.",
+      "So the bus is 30 km due south of the depot."
+    ],
+    "explanation": "East and west cancel (30 - 30 = 0). North-south, the bus went 20 km north and 50 km south, so it is 50 - 20 = 30 km south of the depot. The distance is 30 km.",
+    "hints": [
+      "Add up the east-west moves and the north-south moves separately.",
+      "The east and west moves are equal.",
+      "20 km north and 50 km south leaves how much?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-069",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Temple, house and school",
+    "statement": "Sunita's house is to the north of the temple. Her school is to the east of her house. In which direction is the temple from the school?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "South-west",
+    "acceptedAnswers": [
+      "Southwest",
+      "South west",
+      "southwest",
+      "south west",
+      "SW",
+      "sw",
+      "south-west",
+      "SOUTH-WEST"
+    ],
+    "keySteps": [
+      "Place the temple, then the house to its north.",
+      "Place the school to the east of the house.",
+      "From the school, the temple is to the south (it is below the house level) and to the west (it is in line with the house).",
+      "So the temple is to the south-west of the school."
+    ],
+    "explanation": "Draw the temple, put the house above it (north) and the school to the right of the house (east). From the school you must go west to line up with the house and south to reach the temple, so the temple is south-west of the school.",
+    "hints": [
+      "Draw a small sketch with north at the top.",
+      "Put the temple first, then the house above it, then the school to the right of the house.",
+      "From the school, do you go left or right, up or down, to reach the temple?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-070",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Vijay's cycle ride",
+    "statement": "Vijay leaves his home facing west. He cycles 5 km, turns right and cycles 10 km, turns left and cycles 3 km, then turns left again and cycles 4 km. How far is he from his home now, in km (straight-line distance)?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "10",
+    "acceptedAnswers": [
+      "10 km",
+      "10km"
+    ],
+    "keySteps": [
+      "5 km west, then right means north: 10 km north.",
+      "Then left (from north) means west: 3 km, so 8 km west in total.",
+      "Then left (from west) means south: 4 km, so 10 - 4 = 6 km north in total.",
+      "He is 8 km west and 6 km north of home: distance = sqrt(8^2 + 6^2) = 10 km."
+    ],
+    "explanation": "Facing west, a right turn faces north and a left turn from north faces west, then a left from west faces south. Net position: 5 + 3 = 8 km west and 10 - 4 = 6 km north. By Pythagoras the distance is sqrt(64 + 36) = 10 km.",
+    "hints": [
+      "Write the direction of each leg before adding distances.",
+      "Right of west is north; left of north is west; left of west is south.",
+      "He ends 8 km west and 6 km north of home."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-071",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "From P to T",
+    "statement": "Q is 6 m east of P. R is 4 m north of Q. S is 6 m west of R. T is 2 m south of S. Where is T with respect to P?",
+    "answerFormat": "choice",
+    "choices": [
+      "2 m North",
+      "2 m South",
+      "4 m North",
+      "6 m East"
+    ],
+    "answer": "2 m North",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Put P at (0, 0); then Q is at (6, 0).",
+      "R is at (6, 4) and S is at (0, 4).",
+      "T is 2 m south of S, so T is at (0, 2).",
+      "T is directly 2 m north of P."
+    ],
+    "explanation": "Using coordinates with P at the origin: Q (6, 0), R (6, 4), S (0, 4), T (0, 2). T has the same east-west position as P and is 2 m higher, so it is 2 m north of P.",
+    "hints": [
+      "Use coordinates, starting with P at (0, 0).",
+      "S ends up directly above P.",
+      "T is 2 m below S, and S is 4 m above P."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-072",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "hard",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The growing spiral walk",
+    "statement": "Ravi starts facing east. He walks 1 km, turns left and walks 2 km, turns left and walks 3 km, turns left and walks 4 km, turns left and walks 5 km, and finally turns left and walks 6 km. How far is he from his starting point now, in km (straight-line distance)?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5",
+    "acceptedAnswers": [
+      "5 km",
+      "5km"
+    ],
+    "keySteps": [
+      "Every left turn cycles the direction east -> north -> west -> south -> east -> north.",
+      "East-west: +1 (east) - 3 (west) + 5 (east) = 3 km east.",
+      "North-south: +2 (north) - 4 (south) + 6 (north) = 4 km north.",
+      "Distance = sqrt(3^2 + 4^2) = 5 km."
+    ],
+    "explanation": "The legs go east 1, north 2, west 3, south 4, east 5, north 6. East-west gives 1 - 3 + 5 = 3 km east and north-south gives 2 - 4 + 6 = 4 km north. The straight-line distance is sqrt(9 + 16) = 5 km.",
+    "hints": [
+      "List the direction of each leg first: each left turn moves one step anticlockwise.",
+      "Add the east and west legs separately from the north and south legs.",
+      "He ends 3 km east and 4 km north of the start."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-073",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Letters become positions",
+    "statement": "In a certain code, each letter is replaced by its position in the English alphabet and the numbers are written one after another. For example, BAD is written as 214 (B = 2, A = 1, D = 4). How is HEAD written in that code?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "8514",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Work out the rule from the example: BAD becomes 2, 1, 4 because B, A and D are letters 2, 1 and 4 of the alphabet.",
+      "Find each letter's position: H = 8, E = 5, A = 1, D = 4.",
+      "Write the numbers one after another in the same order: 8514."
+    ],
+    "explanation": "H is the 8th letter, E the 5th, A the 1st and D the 4th. Written side by side, HEAD becomes 8514, just as BAD became 2, 1, 4.",
+    "hints": [
+      "Count each letter's place in the alphabet.",
+      "H is the 8th letter.",
+      "Write 8, 5, 1, 4 side by side."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-074",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Swapping neighbour letters",
+    "statement": "In a certain code, MOTHER is written as OMHTRE. How is FATHER written in that code?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "AFHTRE",
+    "acceptedAnswers": [
+      "Afhtre",
+      "afhtre"
+    ],
+    "keySteps": [
+      "Split MOTHER into pairs: MO, TH, ER.",
+      "Each pair is reversed: OM, HT, RE gives OMHTRE.",
+      "Split FATHER into FA, TH, ER and reverse each pair: AF, HT, RE.",
+      "So FATHER is written AFHTRE."
+    ],
+    "explanation": "The rule swaps each pair of neighbouring letters: MO-TH-ER becomes OM-HT-RE. Applying it to FA-TH-ER gives AF-HT-RE, so the code is AFHTRE.",
+    "hints": [
+      "Compare MOTHER and OMHTRE two letters at a time.",
+      "MO became OM.",
+      "Swap FA, TH and ER."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-075",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Where do fish live?",
+    "statement": "In a certain code language, 'sky' is called 'sea', 'sea' is called 'water', 'water' is called 'air' and 'air' is called 'cloud'. In this language, where do fish live?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "air",
+    "acceptedAnswers": [
+      "AIR",
+      "Air"
+    ],
+    "keySteps": [
+      "In real life, fish live in water.",
+      "In this code, 'water' is called 'air'.",
+      "So the answer is 'air'."
+    ],
+    "explanation": "Fish live in water. The code language calls water 'air', so the answer is 'air'. The trap is answering 'water', which in this language is the name for the sea.",
+    "hints": [
+      "First answer the real-life question.",
+      "Fish live in water.",
+      "What is 'water' called in this language?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-076",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Up one, down one",
+    "statement": "In a certain code, PENCIL is written as QDOBJK. How is RUBBER written in that code?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "STCAFQ",
+    "acceptedAnswers": [
+      "Stcafq",
+      "stcafq"
+    ],
+    "keySteps": [
+      "Compare letter by letter: P->Q (+1), E->D (-1), N->O (+1), C->B (-1), I->J (+1), L->K (-1).",
+      "The rule alternates: +1 for the 1st, 3rd, 5th letters and -1 for the 2nd, 4th, 6th.",
+      "RUBBER: R+1 = S, U-1 = T, B+1 = C, B-1 = A, E+1 = F, R-1 = Q.",
+      "So RUBBER is written STCAFQ."
+    ],
+    "explanation": "Each letter in an odd position moves one step forward and each letter in an even position moves one step back. Applying this to RUBBER gives S, T, C, A, F, Q. Check with PENCIL: P->Q, E->D, N->O fits the same pattern.",
+    "hints": [
+      "Compare each letter of PENCIL with the letter below it.",
+      "The shifts alternate between +1 and -1.",
+      "Start RUBBER with R + 1 = S, then U - 1 = T."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-077",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "ROSE, CHAIR and PREACH",
+    "statement": "In a certain code, ROSE is written as 6821, CHAIR as 73456 and PREACH as 961473. Each letter always has the same digit. How is SEARCH written in that code?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "214673",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "From ROSE = 6821: R = 6, O = 8, S = 2, E = 1.",
+      "From CHAIR = 73456: C = 7, H = 3, A = 4, I = 5 (R = 6 confirms).",
+      "From PREACH = 961473: P = 9 and the rest agree.",
+      "SEARCH = S E A R C H = 2 1 4 6 7 3 = 214673."
+    ],
+    "explanation": "Each word is a letter-by-letter substitution. Reading off the digits gives S = 2, E = 1, A = 4, R = 6, C = 7, H = 3, so SEARCH is 214673. PREACH checks the table: P9 R6 E1 A4 C7 H3.",
+    "hints": [
+      "Match each letter to its digit position by position.",
+      "R is 6 in both ROSE and CHAIR.",
+      "Write S, E, A, R, C, H using the table."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-078",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Digit code with a swap rule",
+    "statement": "Digits are coded as letters as follows:\n1 = K, 2 = M, 3 = P, 4 = R, 5 = T, 6 = W, 7 = B, 8 = D, 9 = F\nConditions:\n(i) If the first digit is even and the last digit is odd, the codes of the first and last digits are interchanged.\n(ii) If both the first and last digits are odd, both are coded as X.\n(iii) If both the first and last digits are even, the first digit is coded as Z.\nWhat is the code for 4537?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "BTPR",
+    "acceptedAnswers": [
+      "Btpr",
+      "btpr"
+    ],
+    "keySteps": [
+      "Direct coding: 4 = R, 5 = T, 3 = P, 7 = B, giving RTPB.",
+      "First digit 4 is even and last digit 7 is odd, so condition (i) applies.",
+      "Conditions (ii) and (iii) do not apply.",
+      "Interchanging the first and last codes gives BTPR."
+    ],
+    "explanation": "Coding directly gives R T P B. Since the number starts with an even digit and ends with an odd one, condition (i) swaps the first and last codes, giving BTPR. Neither (ii) nor (iii) fits, so nothing else changes.",
+    "hints": [
+      "First code each digit straight from the table.",
+      "Check whether the first and last digits are odd or even.",
+      "4 is even and 7 is odd: which condition is that?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-079",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Four friends on a bench",
+    "statement": "Asha, Bala, Chand and Devi sit in a row on a bench, all facing north.\n- Bala sits at the extreme right end.\n- Chand sits immediately to the left of Bala.\n- Asha does not sit at the extreme left end.\nWho sits at the extreme left end?",
+    "answerFormat": "choice",
+    "choices": [
+      "Asha",
+      "Bala",
+      "Chand",
+      "Devi"
+    ],
+    "answer": "Devi",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Number seats 1 to 4 from the left; Bala is in seat 4.",
+      "Chand is immediately left of Bala, so Chand is in seat 3.",
+      "Asha and Devi share seats 1 and 2; Asha is not at the left end, so Asha is in seat 2.",
+      "Devi takes seat 1, the extreme left end."
+    ],
+    "explanation": "Bala is in seat 4 and Chand in seat 3. Seats 1 and 2 are left for Asha and Devi, and Asha cannot take seat 1. So the order from the left is Devi, Asha, Chand, Bala.",
+    "hints": [
+      "Number the seats 1 to 4 from the left.",
+      "Place Bala and Chand first.",
+      "Only seats 1 and 2 remain; which one can Asha not take?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-080",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Five friends at a round table",
+    "statement": "Five friends - Prakash, Queenie, Rahim, Sneha and Tarun - sit around a circular table, equally spaced and all facing the centre.\n- Queenie sits immediately to the left of Prakash.\n- Rahim sits immediately to the right of Prakash.\n- Sneha does not sit next to Rahim.\nWho sits immediately to the right of Rahim?",
+    "answerFormat": "choice",
+    "choices": [
+      "Prakash",
+      "Queenie",
+      "Sneha",
+      "Tarun"
+    ],
+    "answer": "Tarun",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Fix Prakash; when facing the centre, his left neighbour is clockwise and his right neighbour is anticlockwise.",
+      "Queenie is on Prakash's left and Rahim on his right, leaving two seats between Queenie and Rahim.",
+      "The seat next to Rahim cannot be Sneha's, so Tarun sits next to Rahim and Sneha next to Queenie.",
+      "Going clockwise: Prakash, Queenie, Sneha, Tarun, Rahim; Rahim's right neighbour is Tarun."
+    ],
+    "explanation": "With Queenie and Rahim on either side of Prakash, the two empty seats lie between Queenie and Rahim. Sneha cannot be next to Rahim, so she sits beside Queenie and Tarun beside Rahim. Going clockwise the order is Prakash, Queenie, Sneha, Tarun, Rahim, so the person on Rahim's right is Tarun.",
+    "hints": [
+      "Draw a circle and place Prakash first.",
+      "For people facing the centre, left is clockwise.",
+      "Two seats are free between Queenie and Rahim. Who cannot sit beside Rahim?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-081",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Rahul's place in the row",
+    "statement": "In a row of students facing the stage, Rahul is 7th from the left end and 12th from the right end. How many students are there in the row?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "18",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "There are 6 students to Rahul's left (7 - 1).",
+      "There are 11 students to Rahul's right (12 - 1).",
+      "Total = 6 + 1 + 11 = 18."
+    ],
+    "explanation": "Rahul has 6 students on his left and 11 on his right. Adding Rahul himself gives 6 + 11 + 1 = 18. The shortcut is 7 + 12 - 1, since Rahul is counted from both ends.",
+    "hints": [
+      "How many students stand to the left of Rahul?",
+      "Rahul is counted in both positions.",
+      "Total = 7 + 12 - 1."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-082",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Six friends at the canteen bench",
+    "statement": "Anu, Babu, Charu, Dinesh, Ezhil and Fiza sit in a row on a canteen bench, all facing north.\n- Charu sits at one of the two ends.\n- Exactly two people sit between Charu and Fiza.\n- Babu sits immediately to the right of Fiza.\n- Anu sits second from the left end.\n- Dinesh does not sit next to Babu.\n- Ezhil does not sit at either end.\nWho sits at the extreme left end?",
+    "answerFormat": "choice",
+    "choices": [
+      "Anu",
+      "Charu",
+      "Dinesh",
+      "Ezhil"
+    ],
+    "answer": "Dinesh",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Anu is in seat 2 (seats 1 to 6 from the left). If Charu were in seat 1, Fiza would be in seat 4 and Babu in seat 5.",
+      "That leaves seats 3 and 6 for Dinesh and Ezhil; Ezhil cannot be at the end, so Ezhil 3 and Dinesh 6, but Dinesh would then sit next to Babu - contradiction.",
+      "So Charu is in seat 6, Fiza in seat 3 and Babu in seat 4.",
+      "Seats 1 and 5 remain for Dinesh and Ezhil; Ezhil is not at an end, so Ezhil is in seat 5 and Dinesh in seat 1 (not next to Babu, which fits)."
+    ],
+    "explanation": "Try both ends for Charu. With Charu at the left end, Fiza and Babu take seats 4 and 5, and the leftover seats force Dinesh next to Babu, which breaks a rule. With Charu at the right end, Fiza is in seat 3, Babu in seat 4, Ezhil in seat 5 and Dinesh in seat 1. Final order: Dinesh, Anu, Fiza, Babu, Ezhil, Charu.",
+    "hints": [
+      "Anu's seat is fixed. Then try Charu at each end.",
+      "Charu at the left end forces Dinesh next to Babu.",
+      "With Charu at the right end, Fiza is in seat 3."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-083",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Two rows of three",
+    "statement": "Six friends sit in two rows of three chairs, the rows facing each other. One row faces north and the other faces south, so each person directly faces someone in the other row.\n- Arun sits in the middle of the north-facing row.\n- Dev sits directly facing Arun.\n- Bela sits immediately to Arun's left.\n- Farah sits diagonally opposite Bela, at the far end of the other row.\n- Esha sits in the north-facing row.\nThe sixth friend is Chris. Who sits immediately to Dev's right?",
+    "answerFormat": "choice",
+    "choices": [
+      "Chris",
+      "Farah",
+      "Esha",
+      "Bela"
+    ],
+    "answer": "Chris",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Arun faces north, so his left is west: Bela is at the west end of the north-facing row and Esha takes the east end.",
+      "Dev sits in the middle of the south-facing row, facing Arun.",
+      "Diagonally opposite Bela (west end, north-facing row) is the east end of the south-facing row, which is Farah. Chris takes the west end of that row.",
+      "Dev faces south, so his right hand points west, where Chris sits."
+    ],
+    "explanation": "In the north-facing row the order from west to east is Bela, Arun, Esha. In the south-facing row it is Chris, Dev, Farah. Because Dev faces south, his right is to the west, where Chris sits. The trap is using the same left/right as people in the north-facing row.",
+    "hints": [
+      "Draw two rows with north at the top; the lower row faces north.",
+      "For someone facing north, left is west. For someone facing south, right is west.",
+      "Farah is at the east end of the south-facing row, so where is Chris?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-084",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Nitin and Vasu",
+    "statement": "Vasu is the husband of Nitin's father's sister. How is Vasu related to Nitin?",
+    "answerFormat": "choice",
+    "choices": [
+      "Father-in-law",
+      "Uncle",
+      "Grandfather",
+      "Cousin"
+    ],
+    "answer": "Uncle",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Nitin's father's sister is Nitin's paternal aunt.",
+      "Vasu is married to Nitin's paternal aunt.",
+      "An aunt's husband is an uncle, so Vasu is Nitin's uncle."
+    ],
+    "explanation": "Nitin's father's sister is his paternal aunt, and the husband of an aunt is an uncle. Vasu is not Nitin's father-in-law or grandfather, because neither of those is married to an aunt.",
+    "hints": [
+      "Who is your father's sister to you?",
+      "She is your aunt.",
+      "What do you call your aunt's husband?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-085",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Six members, one sister-in-law",
+    "statement": "In a family of six members - A, B, C, D, E and F:\n- A is the mother of B.\n- B is the sister of C.\n- C is the father of D.\n- E is the wife of C.\n- F is the sister of D.\nHow is E related to B?",
+    "answerFormat": "choice",
+    "choices": [
+      "Sister",
+      "Sister-in-law",
+      "Mother-in-law",
+      "Niece"
+    ],
+    "answer": "Sister-in-law",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "C is a man (he is D's father), and B is C's sister.",
+      "E is C's wife.",
+      "The wife of one's brother is one's sister-in-law.",
+      "So E is B's sister-in-law (A, D and F are not needed for this link)."
+    ],
+    "explanation": "C is the father of D, so C is male, and B is C's sister. E is married to C, so E is the wife of B's brother, which makes E B's sister-in-law. Choosing 'sister' is wrong because E joins the family by marrying C.",
+    "hints": [
+      "Find the link between E and B: it goes through C.",
+      "C is B's brother and E's husband.",
+      "What is your brother's wife to you?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-086",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Ankit's grandfather",
+    "statement": "Sarojini is the mother-in-law of Ankit's mother. Ankit's parents are married to each other, and each has married only once. Sarojini's husband is Raman. How is Raman related to Ankit?",
+    "answerFormat": "choice",
+    "choices": [
+      "Grandfather",
+      "Father",
+      "Uncle",
+      "Great-grandfather"
+    ],
+    "answer": "Grandfather",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Ankit's mother's mother-in-law is her husband's mother.",
+      "Her husband is Ankit's father, so Sarojini is Ankit's father's mother, Ankit's paternal grandmother.",
+      "Raman is Sarojini's husband, so he is Ankit's paternal grandfather."
+    ],
+    "explanation": "A woman's mother-in-law is her husband's mother. Ankit's mother is married to Ankit's father, so Sarojini is Ankit's father's mother, his grandmother. Her husband Raman is therefore Ankit's grandfather (on his father's side).",
+    "hints": [
+      "Whose mother is a married woman's mother-in-law?",
+      "Sarojini is the mother of Ankit's father.",
+      "Who is your father's father?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-087",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Two cars from the same spot",
+    "statement": "Two cars start from the same petrol pump. Car A goes 15 km east and then 5 km north. Car B goes 10 km west and then 5 km north. How far apart are the two cars now, in km?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "25",
+    "acceptedAnswers": [
+      "25 km",
+      "25km"
+    ],
+    "keySteps": [
+      "Both cars are 5 km north of the petrol pump, so they are level north-south.",
+      "Car A is 15 km east and Car B is 10 km west of the pump.",
+      "Distance between them = 15 + 10 = 25 km."
+    ],
+    "explanation": "Both cars end 5 km north of the pump, so they lie on the same east-west line. One is 15 km east and the other is 10 km west, so they are 15 + 10 = 25 km apart.",
+    "hints": [
+      "Compare the north-south positions of the two cars first.",
+      "They are both 5 km north.",
+      "Add the east and west distances."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-088",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Where is D from A?",
+    "statement": "Point A is 5 m to the west of point B. Point C is 10 m to the north of B. Point D is 5 m to the east of C. In which direction is D from A?",
+    "answerFormat": "choice",
+    "choices": [
+      "North-east",
+      "North-west",
+      "South-east",
+      "North"
+    ],
+    "answer": "North-east",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Place B at (0, 0); then A is at (-5, 0).",
+      "C is at (0, 10) and D is at (5, 10).",
+      "From A to D: 10 m east and 10 m north.",
+      "Equal east and north moves mean D is exactly north-east of A."
+    ],
+    "explanation": "With B at the origin, A is (-5, 0) and D is (5, 10). Going from A to D is 10 m east and 10 m north, an exact 45-degree line, so D is to the north-east of A. 'North' alone is wrong because D is also 10 m to the east.",
+    "hints": [
+      "Use coordinates with B at the origin.",
+      "Write down the positions of A and D.",
+      "Compare how far east and how far north D is from A."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-089",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Which way did Hema start?",
+    "statement": "Hema walks 3 km, turns left and walks 4 km, then turns left again and walks 3 km. She now finds she is exactly 4 km east of where she started. In which direction did she start walking?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "South",
+    "acceptedAnswers": [
+      "south",
+      "SOUTH",
+      "S",
+      "s"
+    ],
+    "keySteps": [
+      "The first and third legs (3 km each) are in opposite directions after two left turns, so they cancel.",
+      "So her final position comes only from the 4 km second leg, which must have been towards the east.",
+      "The second leg is one left turn from the first direction, so a left turn from her starting direction gives east.",
+      "Facing south, your left hand points east, so she started walking south."
+    ],
+    "explanation": "Two left turns reverse her direction, so the two 3 km legs cancel and the 4 km middle leg must point east. That leg came after one left turn, and the direction whose left is east is south. Check: south 3, east 4, north 3 ends 4 km east of the start.",
+    "hints": [
+      "What happens to your direction after two left turns?",
+      "The two 3 km legs cancel out.",
+      "Which direction has east on its left?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-090",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Anu and Banu split up",
+    "statement": "Anu and Banu start from the same bus stop. Anu walks 8 km north, turns right and walks 6 km, then turns right again and walks 3 km. Banu walks 7 km south, turns left and walks 15 km. What is the straight-line distance between Anu and Banu now, in km?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "15",
+    "acceptedAnswers": [
+      "15 km",
+      "15km"
+    ],
+    "keySteps": [
+      "Anu: 8 km north, right means east: 6 km, right again means south: 3 km. Position: 6 km east, 5 km north.",
+      "Banu: 7 km south, then left while facing south means east: 15 km. Position: 15 km east, 7 km south.",
+      "Difference: 15 - 6 = 9 km east-west and 5 + 7 = 12 km north-south.",
+      "Distance = sqrt(9^2 + 12^2) = 15 km."
+    ],
+    "explanation": "Put the bus stop at (0, 0). Anu ends at (6, 5) and Banu at (15, -7). The gaps are 9 km and 12 km, so the distance is sqrt(81 + 144) = sqrt(225) = 15 km. A common slip is turning Banu west: facing south, a left turn faces east.",
+    "hints": [
+      "Find each person's final position separately, using coordinates.",
+      "Facing south, a left turn points you east.",
+      "Anu is at (6, 5) and Banu is at (15, -7)."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-091",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Numbers back to letters",
+    "statement": "In a code, each letter is written as its position in the English alphabet (A = 1, B = 2, ..., Z = 26), with hyphens between letters. A message reads 19-16-1-3-5. What is the word?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "SPACE",
+    "acceptedAnswers": [
+      "Space",
+      "space"
+    ],
+    "keySteps": [
+      "Recognise the code: each number is a letter's position in the alphabet (A = 1 ... Z = 26).",
+      "19 = S, 16 = P, 1 = A, 3 = C, 5 = E.",
+      "Reading them in order gives SPACE."
+    ],
+    "explanation": "Convert each number to a letter: 19 is S, 16 is P, 1 is A, 3 is C and 5 is E. The word is SPACE. Check: S is the 19th letter (J = 10, so S = 10 + 9).",
+    "hints": [
+      "Turn each number into the letter at that position.",
+      "Use landmarks: E = 5, J = 10, O = 15, T = 20.",
+      "19 is one before T."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-092",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Halves turned around",
+    "statement": "In a certain code, PLANET is written as ALPTEN. How is MARKET written in that code?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "RAMTEK",
+    "acceptedAnswers": [
+      "Ramtek",
+      "ramtek"
+    ],
+    "keySteps": [
+      "Split PLANET into two halves: PLA and NET.",
+      "Each half is written backwards: ALP and TEN, giving ALPTEN.",
+      "Split MARKET into MAR and KET and reverse each: RAM and TEK.",
+      "So MARKET is written RAMTEK."
+    ],
+    "explanation": "The code reverses each half of the six-letter word separately. PLA-NET becomes ALP-TEN, and MAR-KET becomes RAM-TEK. Reversing the whole word (TEKRAM) is the tempting wrong rule; it does not match PLANET -> ALPTEN.",
+    "hints": [
+      "Is the whole word reversed, or only parts of it?",
+      "Look at the first three letters and the last three letters separately.",
+      "PLA became ALP."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-093",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Decode the shifted message",
+    "statement": "In a code, every letter is moved 3 places forward in the alphabet (after Z it wraps round: X becomes A, Y becomes B, Z becomes C). A coded message arrives as ZDWHU. What was the original word?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "WATER",
+    "acceptedAnswers": [
+      "Water",
+      "water"
+    ],
+    "keySteps": [
+      "To decode, move each letter 3 places back.",
+      "Z -> W, D -> A, W -> T, H -> E, U -> R.",
+      "The original word is WATER."
+    ],
+    "explanation": "Decoding reverses the rule, so each letter moves 3 places back: Z to W, D to A, W to T, H to E and U to R, giving WATER. Check by coding WATER forward: W+3 = Z, A+3 = D, T+3 = W, E+3 = H, R+3 = U.",
+    "hints": [
+      "To decode, do the opposite of the coding rule.",
+      "Move each letter 3 places backwards.",
+      "D goes back to A."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-094",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Alternate shifts, then reverse",
+    "statement": "In a certain code, GARDEN is written as MGCTZI and PLANET is written as SGMCKR. How is ORANGE written in that code?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "DIMCQQ",
+    "acceptedAnswers": [
+      "Dimcqq",
+      "dimcqq"
+    ],
+    "keySteps": [
+      "Reverse the code MGCTZI to get IZTCGM and compare it with GARDEN: G->I (+2), A->Z (-1), R->T (+2), D->C (-1), E->G (+2), N->M (-1).",
+      "Rule: letters in odd positions move +2, letters in even positions move -1, then the whole word is reversed.",
+      "Check with PLANET: R K C M G S, reversed SGMCKR - correct.",
+      "ORANGE: O+2 = Q, R-1 = Q, A+2 = C, N-1 = M, G+2 = I, E-1 = D, giving QQCMID; reversed it is DIMCQQ."
+    ],
+    "explanation": "The code word is the original shifted (+2, -1, +2, -1, ...) and then written backwards. Reversing MGCTZI gives IZTCGM, which is GARDEN with those shifts, and PLANET confirms the rule. ORANGE shifts to QQCMID, which reversed is DIMCQQ.",
+    "hints": [
+      "Try writing the code word backwards before comparing.",
+      "MGCTZI backwards is IZTCGM. Compare it with GARDEN.",
+      "The shifts alternate +2 and -1, and the result is reversed at the end."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "logical-095",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Manoj and Rekha in the queue",
+    "statement": "Students stand in a single queue at the library counter. Manoj is 5th from the front. Exactly three students stand between Manoj and Rekha, and Rekha is behind Manoj. Rekha is 4th from the back of the queue. How many students are in the queue?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "12",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Three students between Manoj (5th) and Rekha means Rekha is 5 + 3 + 1 = 9th from the front.",
+      "Rekha is also 4th from the back.",
+      "Total = 9 + 4 - 1 = 12."
+    ],
+    "explanation": "Rekha is behind Manoj with three people in between, so she is 9th from the front. Being 4th from the back means 3 people stand behind her. Total = 9 + 3 = 12.",
+    "hints": [
+      "First find Rekha's position from the front.",
+      "Rekha is 9th from the front.",
+      "Rekha is counted from both ends: 9 + 4 - 1."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-096",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Ritu and Sonu swap places",
+    "statement": "In a row of students, Ritu is 10th from the left end and Sonu is 15th from the right end. When Ritu and Sonu swap places, Ritu becomes 18th from the left end. How many students are in the row?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "32",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "After the swap, Ritu stands in Sonu's old place.",
+      "So Sonu's old place is 18th from the left.",
+      "That same place is 15th from the right.",
+      "Total = 18 + 15 - 1 = 32."
+    ],
+    "explanation": "When they swap, Ritu moves into Sonu's old seat, so that seat is 18th from the left and 15th from the right. The row has 18 + 15 - 1 = 32 students. Ritu's original position (10th) is extra information here.",
+    "hints": [
+      "Whose old position does Ritu take after the swap?",
+      "Sonu's old place is 18th from the left and 15th from the right.",
+      "A place counted from both ends: add the two and subtract 1."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-097",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Six around the dinner table",
+    "statement": "Kavin, Latha, Mani, Nila, Om and Priya sit around a circular table, equally spaced and all facing the centre.\n- Kavin sits second to the left of Mani.\n- Nila sits exactly opposite Mani.\n- Om sits immediately to the right of Mani.\n- Latha does not sit next to Kavin.\nWho sits immediately to the left of Nila?",
+    "answerFormat": "choice",
+    "choices": [
+      "Latha",
+      "Kavin",
+      "Priya",
+      "Om"
+    ],
+    "answer": "Latha",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Number the seats clockwise 0 to 5 with Mani at 0. Facing the centre, left is clockwise, so Kavin is at seat 2.",
+      "Nila is opposite Mani at seat 3, and Om, on Mani's right (anticlockwise), is at seat 5.",
+      "Seats 1 and 4 remain; seat 1 is next to Kavin, so Latha takes seat 4 and Priya seat 1.",
+      "Nila's left is clockwise from seat 3, which is seat 4: Latha."
+    ],
+    "explanation": "With Mani at seat 0, the clockwise order is Mani, Priya, Kavin, Nila, Latha, Om. For people facing the centre, the left neighbour is the next seat clockwise, so the person on Nila's left is Latha.",
+    "hints": [
+      "Fix Mani and number the seats clockwise.",
+      "For people facing the centre, left means clockwise.",
+      "Seat 1 touches Kavin, so Latha cannot sit there."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-098",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Seven on a bench, facing both ways",
+    "statement": "Aditi, Bharat, Charan, Dhruv, Ekta, Firoz and Gauri sit in a straight row. Some face north and some face south.\n- Dhruv sits exactly in the middle of the row and faces north.\n- Aditi sits third to the right of Dhruv.\n- Exactly one person sits between Aditi and Gauri.\n- Gauri faces the opposite direction to Dhruv.\n- Bharat sits immediately to the left of Gauri and faces the same direction as Gauri.\n- Charan sits third to the right of Bharat.\n- Ekta sits at one end of the row and faces the same direction as Aditi.\n- Firoz sits immediately to the right of Ekta and faces south.\n- Charan faces the same direction as Dhruv.\nHow many of the seven people face north?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Seats 1 to 7 from west to east. Dhruv (north) is in seat 4, so his right is east and Aditi is in seat 7. Gauri, one seat away from Aditi, is in seat 5 and faces south.",
+      "Gauri faces south, so her left is east: Bharat is in seat 6, facing south. Facing south, Bharat's right is west, so Charan (third to his right) is in seat 3, facing north.",
+      "Ekta and Firoz take seats 1 and 2. Ekta is at the end (seat 1), and Firoz in seat 2 is on her right, so Ekta faces north. Aditi faces the same way as Ekta: north.",
+      "North-facing: Ekta, Charan, Dhruv, Aditi = 4 (Firoz, Gauri and Bharat face south)."
+    ],
+    "explanation": "The final row from west to east is Ekta (N), Firoz (S), Charan (N), Dhruv (N), Gauri (S), Bharat (S), Aditi (N). The key idea is that for someone facing south, right and left are reversed (right is west). Four people - Ekta, Charan, Dhruv and Aditi - face north.",
+    "hints": [
+      "Place Dhruv in the middle and use his direction to place Aditi.",
+      "For a south-facing person, the left is east and the right is west.",
+      "Ekta must face north for Firoz to be on her right inside the row."
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "seedKey": "logical-099",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Which expression means maternal grandmother?",
+    "statement": "In a code:\nP x Q means P is the father of Q.\nP / Q means P is the daughter of Q.\nP + Q means P is the sister of Q.\nP - Q means P is the wife of Q.\nWhich of the following expressions means that K is the maternal grandmother of T?",
+    "answerFormat": "choice",
+    "choices": [
+      "T / M / K - L",
+      "K - L x M x T",
+      "T + M / K - L",
+      "K + L x M / T"
+    ],
+    "answer": "T / M / K - L",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "T / M / K - L: T is the daughter of M, M is the daughter of K, and K is the wife of L, so K is female.",
+      "So K is the mother of T's mother M: K is T's maternal grandmother.",
+      "K - L x M x T: M is the father of T, so K is T's paternal (not maternal) grandmother - the tempting wrong option.",
+      "T + M / K - L makes K the mother of T, and K + L x M / T makes K the sister of L, so neither fits."
+    ],
+    "explanation": "Only T / M / K - L links T to K through T's mother: T is M's daughter, M is K's daughter, and K is a wife, so K is female. K - L x M x T also gives a grandmother, but through T's father M, so she is the paternal grandmother. The other two give mother and a non-grandparent.",
+    "hints": [
+      "Read each expression from left to right, one symbol at a time.",
+      "Maternal means the link must pass through T's mother.",
+      "In K - L x M x T, is M a man or a woman?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-100",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Arjun's family tree",
+    "statement": "Read the facts about one family:\n1. Arjun and Bhavani are a married couple with exactly two children, Chetan and Divya.\n2. Esha is Arjun's daughter-in-law.\n3. Farhan is Bhavani's son-in-law.\n4. Chetan is the father of Gauri.\n5. Harsh is Arjun's grandson, but he is not Chetan's son.\nEvery married couple is a man and a woman, and each person has married only once. How is Esha related to Harsh?",
+    "answerFormat": "choice",
+    "choices": [
+      "Mother",
+      "Aunt",
+      "Grandmother",
+      "Sister-in-law"
+    ],
+    "answer": "Aunt",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Chetan is Gauri's father, so Chetan is Arjun's son; with exactly two children, Divya must be the daughter.",
+      "Esha, the daughter-in-law, is married to the only son Chetan; Farhan, the son-in-law, is married to the only daughter Divya.",
+      "Harsh is Arjun's grandson but not Chetan's son, so he is Divya's son.",
+      "Esha is the wife of Harsh's mother's brother, so she is Harsh's aunt (maternal uncle's wife)."
+    ],
+    "explanation": "Fact 4 shows Chetan is male, so the two children are a son (Chetan) and a daughter (Divya). The daughter-in-law Esha must be Chetan's wife and the son-in-law Farhan must be Divya's husband. Harsh is a grandson but not Chetan's son, so he is Divya's son. Esha is married to Harsh's mother's brother, which makes her his aunt, not his mother.",
+    "hints": [
+      "First decide which of Chetan and Divya is the son.",
+      "A daughter-in-law marries a son and a son-in-law marries a daughter.",
+      "Harsh must be Divya's son. Who is Esha married to?"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "logical-101",
+    "type": "logical",
+    "subCategory": "Blood relations",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "How many women in the family?",
+    "statement": "A family has seven members: P, Q, R, S, T, U and V. Every married couple is a man and a woman.\n- S is the mother of Q, R and V, and these are her only children.\n- P is S's husband.\n- T is Q's wife.\n- U is S's grandson.\n- R has only one brother.\n- V has exactly one sister.\nHow many female members are there in the family?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "S is female and her husband P is male; T is Q's wife, so T is female and Q is male; U is a grandson, so U is male.",
+      "R's siblings are Q and V. Q is already a brother, and R has only one brother, so V is female.",
+      "V's siblings are Q and R. Q is male and V has exactly one sister, so R is female.",
+      "Females: S, T, V, R = 4 (males: P, Q, U)."
+    ],
+    "explanation": "S, T are female and P, Q, U are male from the direct facts. R has only one brother, and Q is already that brother, so V must be a woman. V has exactly one sister, and Q is a man, so R must be a woman. That gives four women: S, T, R and V.",
+    "hints": [
+      "Mark every gender you can read directly first.",
+      "Q is male because he has a wife. Who are R's siblings?",
+      "Use 'R has only one brother' to fix V, then use V's clue to fix R."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "logical-102",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Directions written in symbols",
+    "statement": "In a code:\nA # B means A is 5 m north of B.\nA @ B means A is 4 m east of B.\nA % B means A is 2 m south of B.\nIf M # N, N @ O and O % R, what is the straight-line distance between M and R, in metres?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5",
+    "acceptedAnswers": [
+      "5 m",
+      "5m"
+    ],
+    "keySteps": [
+      "Place R at (0, 0). O % R: O is 2 m south of R, so O is at (0, -2).",
+      "N @ O: N is 4 m east of O, so N is at (4, -2).",
+      "M # N: M is 5 m north of N, so M is at (4, 3).",
+      "Distance from R to M = sqrt(4^2 + 3^2) = 5 m."
+    ],
+    "explanation": "Working back from R: O is at (0, -2), N at (4, -2) and M at (4, 3). M is 4 m east and 3 m north of R, so the distance is sqrt(16 + 9) = 5 m.",
+    "hints": [
+      "Start from R, the only point not described relative to another.",
+      "Turn each symbol into a move on a grid.",
+      "M ends 4 m east and 3 m north of R."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-103",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "A compass turned round",
+    "statement": "In a strange city, every direction has been renamed by turning the whole compass through the same angle. In this city, south-east is called north, and north-east is called west. What is west called?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "South-east",
+    "acceptedAnswers": [
+      "Southeast",
+      "South east",
+      "southeast",
+      "south east",
+      "SE",
+      "se",
+      "south-east",
+      "SOUTH-EAST"
+    ],
+    "keySteps": [
+      "South-east (135 degrees from north, clockwise) is called north (0 degrees), so every name is shifted by 225 degrees clockwise (or 135 degrees anticlockwise).",
+      "Check: north-east (45 degrees) + 225 = 270 degrees = west. Correct.",
+      "West is 270 degrees; 270 + 225 = 495 = 135 degrees (subtracting 360).",
+      "135 degrees is south-east, so west is called south-east."
+    ],
+    "explanation": "Measure directions clockwise from north: SE is 135 and N is 0, so the renaming adds 225 degrees. NE (45) becomes 270, which is W, confirming the rule. W (270) becomes 495 - 360 = 135, which is SE.",
+    "hints": [
+      "Write each direction as an angle measured clockwise from north.",
+      "Find the angle that turns SE into N, and check it on NE.",
+      "Add 225 degrees to west's angle."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-104",
+    "type": "logical",
+    "subCategory": "Direction sense",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Back to back on the ground",
+    "statement": "Arjun and Bhim stand back to back on a cricket ground. Arjun faces east. Arjun walks 10 m, turns left and walks 4 m, then turns right and walks 2 m. Bhim walks 8 m, turns right and walks 19 m. What is the straight-line distance between them now, in metres?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "25",
+    "acceptedAnswers": [
+      "25 m",
+      "25m"
+    ],
+    "keySteps": [
+      "Back to back with Arjun facing east means Bhim faces west.",
+      "Arjun: 10 m east, left (north) 4 m, right (east) 2 m: he is at (12, 4).",
+      "Bhim: 8 m west, then right while facing west means north: 19 m. He is at (-8, 19).",
+      "Gaps: 12 - (-8) = 20 m and 19 - 4 = 15 m, so distance = sqrt(20^2 + 15^2) = 25 m."
+    ],
+    "explanation": "Bhim starts facing west. Arjun ends at (12, 4) and Bhim at (-8, 19). The horizontal gap is 20 m and the vertical gap is 15 m, so the distance is sqrt(400 + 225) = sqrt(625) = 25 m.",
+    "hints": [
+      "Which way does Bhim face if they are back to back?",
+      "Facing west, a right turn points you north.",
+      "Arjun ends at (12, 4) and Bhim at (-8, 19)."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "logical-105",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Vowels up, consonants down",
+    "statement": "In a certain code, every vowel (A, E, I, O, U) is replaced by the next letter of the alphabet and every consonant is replaced by the previous letter. Y is treated as a consonant. How is INFOSYS written in this code?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "JMEPRXR",
+    "acceptedAnswers": [
+      "Jmeprxr",
+      "jmeprxr"
+    ],
+    "keySteps": [
+      "I is a vowel: I -> J.",
+      "N, F are consonants: N -> M, F -> E.",
+      "O is a vowel: O -> P.",
+      "S, Y, S are consonants: S -> R, Y -> X, S -> R. Result: JMEPRXR."
+    ],
+    "explanation": "Apply the rule letter by letter: I (vowel) +1 = J, N -1 = M, F -1 = E, O (vowel) +1 = P, S -1 = R, Y -1 = X, S -1 = R. The code is JMEPRXR.",
+    "hints": [
+      "Mark each letter as a vowel or a consonant first.",
+      "Vowels go forward one letter; consonants go back one.",
+      "I becomes J and N becomes M."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-106",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Positions boiled down to one digit",
+    "statement": "In a code, each letter is replaced by its alphabet position (A = 1, ..., Z = 26), and any two-digit number is reduced to a single digit by adding its digits again and again until one digit is left. For example, GOLD is written as 7634 (G = 7, O = 15 -> 6, L = 12 -> 3, D = 4). How is SILVER written?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "193459",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "S = 19 -> 1 + 9 = 10 -> 1 + 0 = 1.",
+      "I = 9, L = 12 -> 3, V = 22 -> 4.",
+      "E = 5, R = 18 -> 9.",
+      "Written in order: 1 9 3 4 5 9 = 193459."
+    ],
+    "explanation": "S is 19, which reduces to 10 and then to 1. I stays 9, L (12) becomes 3, V (22) becomes 4, E stays 5 and R (18) becomes 9. So SILVER is 193459. The trap is stopping S at 10.",
+    "hints": [
+      "Write the alphabet position of each letter.",
+      "Keep adding the digits until only one digit is left.",
+      "S = 19 becomes 10, and then 1."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-107",
+    "type": "logical",
+    "subCategory": "Coding and decoding",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Letters, symbols and four conditions",
+    "statement": "Letters are coded as follows:\nA = 7, B = 3, D = #, E = 1, F = @, H = 9, K = 5, M = %, P = 2, R = $, T = 8, U = 4\nConditions (apply (i) to (iii) first, then (iv)):\n(i) If the first letter is a vowel and the last letter is a consonant, their codes are interchanged.\n(ii) If both the first and last letters are consonants, both are coded as the code of the last letter.\n(iii) If the first letter is a consonant and the last letter is a vowel, both are coded as &.\n(iv) If the word has more than two vowels, the whole code is written in reverse order.\nWhat is the code for EMBUAK?",
+    "answerFormat": "choice",
+    "choices": [
+      "1743%5",
+      "5%3471",
+      "1%3475",
+      "5743%1"
+    ],
+    "answer": "1743%5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Direct coding: E = 1, M = %, B = 3, U = 4, A = 7, K = 5, giving 1%3475.",
+      "E is a vowel and K is a consonant, so condition (i) swaps the first and last codes: 5%3471. (ii) and (iii) do not apply.",
+      "EMBUAK has three vowels (E, U, A), which is more than two, so condition (iv) reverses the code.",
+      "5%3471 reversed is 1743%5."
+    ],
+    "explanation": "Code each letter: 1 % 3 4 7 5. The word starts with a vowel and ends with a consonant, so (i) swaps the ends to give 5 % 3 4 7 1. With three vowels, (iv) then reverses everything, giving 1 7 4 3 % 5. The option 5%3471 is the trap of forgetting condition (iv).",
+    "hints": [
+      "Code the letters directly first, then check the conditions in order.",
+      "E is a vowel and K is a consonant.",
+      "Count the vowels: E, U, A. Does (iv) apply?"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "logical-108",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Seven at a round table",
+    "statement": "Ajith, Bala, Chitra, Durga, Elan, Farida and Ganesh sit around a circular table, equally spaced and all facing the centre.\n- Bala sits third to the left of Ajith.\n- Chitra sits second to the right of Bala.\n- Durga is an immediate neighbour of Ajith but not of Chitra.\n- Farida sits immediately to the right of Elan.\nWho sits immediately to the left of Bala?",
+    "answerFormat": "choice",
+    "choices": [
+      "Farida",
+      "Ganesh",
+      "Elan",
+      "Chitra"
+    ],
+    "answer": "Farida",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Seats 0 to 6 clockwise with Ajith at 0; facing the centre, left is clockwise, so Bala is at seat 3.",
+      "Chitra is second to the right (anticlockwise) of Bala: seat 1. Durga neighbours Ajith (seat 1 or 6) but not Chitra, so Durga is at seat 6.",
+      "Seats 2, 4, 5 remain. Farida must be on Elan's right (one seat anticlockwise): only Elan 5 and Farida 4 works (Elan 2 or 4 would put Farida on Chitra's or Bala's seat).",
+      "Ganesh takes seat 2. Bala's left is seat 4: Farida."
+    ],
+    "explanation": "Clockwise from Ajith the order is Ajith, Chitra, Ganesh, Bala, Farida, Elan, Durga. For people facing the centre, each person's left neighbour is the next seat clockwise, so Farida sits on Bala's left.",
+    "hints": [
+      "Fix Ajith and number the seats clockwise.",
+      "For people facing the centre, left means clockwise and right means anticlockwise.",
+      "Try each free seat for Elan; Farida must be one seat anticlockwise of him."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "logical-109",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Two rows of five",
+    "statement": "Ten people sit in two parallel rows of five, each person directly facing one person in the other row. In Row 1, Anil, Balu, Chetan, Dinesh and Eshwar sit facing south. In Row 2, Pooja, Rani, Sita, Tanvi and Uma sit facing north.\n- Balu sits at an extreme end of his row and faces the person who sits second to the right of Sita.\n- Exactly one person sits between Sita and Uma.\n- Dinesh faces Uma.\n- Chetan sits second to the left of Dinesh.\n- Rani sits at an extreme end of her row.\n- Anil sits immediately to the right of Chetan.\n- Pooja does not face Eshwar.\nWho faces the person sitting immediately to the right of Sita?",
+    "answerFormat": "choice",
+    "choices": [
+      "Eshwar",
+      "Anil",
+      "Balu",
+      "Chetan"
+    ],
+    "answer": "Eshwar",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Number positions 1 to 5 from west to east. Row 2 faces north (right = east); Row 1 faces south (right = west, left = east).",
+      "Balu is at an end and faces the person second to the right of Sita, so that person is at position 5 and Sita at 3; Balu is at 5. Uma is at 1 or 5.",
+      "Dinesh faces Uma; Uma at 5 would put Dinesh on Balu's seat, so Uma and Dinesh are at 1. Chetan, second to Dinesh's left (east), is at 3; Anil, on Chetan's right (west), is at 2; Eshwar takes 4.",
+      "Rani is at 5, so Pooja and Tanvi share 2 and 4; Pooja does not face Eshwar (4), so Pooja 2 and Tanvi 4.",
+      "Sita's right is position 4 (Tanvi), who is faced by Eshwar."
+    ],
+    "explanation": "Row 2 (west to east): Uma, Pooja, Sita, Tanvi, Rani. Row 1 (west to east): Dinesh, Anil, Chetan, Eshwar, Balu. Sita faces north, so her right neighbour is Tanvi at position 4, and the person facing Tanvi is Eshwar. The usual mistake is giving the south-facing row the same left and right as the north-facing row.",
+    "hints": [
+      "Number the positions west to east and remember the two rows have opposite left and right.",
+      "Balu's clue fixes Sita in the middle and Balu at the east end.",
+      "Dinesh and Uma must both be at the west end."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-110",
+    "type": "logical",
+    "subCategory": "Seating arrangement",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Eight around a table, facing in and out",
+    "statement": "Aarti, Bhanu, Chirag, Deepa, Eswar, Fatima, Gopal and Hema sit around a circular table, equally spaced. Some face the centre and some face away from it.\n- Aarti faces the centre. Bhanu sits second to the right of Aarti.\n- Chirag sits exactly opposite Bhanu and faces away from the centre.\n- Deepa sits immediately to the left of Chirag.\n- Eswar sits second to the right of Deepa and faces the same direction as Deepa.\n- Fatima sits exactly opposite Aarti and faces the same direction as Chirag.\n- Gopal sits immediately to the right of Fatima and faces the centre.\n- Hema faces the opposite direction to Gopal, and Aarti sits immediately to the right of Hema.\n- Bhanu faces the opposite direction to Aarti.\nHow many of the eight people face the centre?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Seats 0 to 7 clockwise, Aarti at 0 facing in (her right is anticlockwise): Bhanu at 6, Chirag at 2 facing out, Fatima at 4 facing out.",
+      "Chirag faces out, so his left is anticlockwise: Deepa at 1. Fatima faces out, so her right is clockwise: Gopal at 5, facing in.",
+      "Hema faces out (opposite to Gopal) and Aarti is on her right (clockwise), so Hema is at 7; Eswar takes seat 3.",
+      "Eswar at 3 is second to the right of Deepa at 1 only if Deepa faces out (right = clockwise), so Deepa and Eswar face out; Bhanu faces out (opposite to Aarti).",
+      "Facing the centre: Aarti and Gopal only = 2."
+    ],
+    "explanation": "Clockwise from seat 0: Aarti (in), Deepa (out), Chirag (out), Eswar (out), Fatima (out), Gopal (in), Bhanu (out), Hema (out). For someone facing away from the centre, left and right swap, which is what fixes Deepa, Gopal and Hema. Only Aarti and Gopal face the centre.",
+    "hints": [
+      "Facing the centre, right is anticlockwise; facing outwards, right is clockwise.",
+      "Place Aarti, Bhanu, Chirag and Fatima first.",
+      "Deepa's direction is decided by where Eswar can still sit."
+    ],
+    "estimatedMinutes": 9
+  }
+]

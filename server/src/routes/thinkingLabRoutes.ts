@@ -36,6 +36,7 @@ router.post('/member/questions/:id/answer', memberGate, member.answer);
 router.post('/member/questions/:id/hint', memberGate, member.hint);
 router.post('/member/questions/:id/run', memberGate, member.run);
 router.get('/today', memberGate, ctrl.getToday);
+router.get('/assigned', memberGate, ctrl.assigned);
 router.post('/next', memberGate, ctrl.nextChallenge);
 router.get('/stats', memberGate, ctrl.stats);
 router.get('/badges', memberGate, ctrl.badges);
@@ -44,6 +45,8 @@ router.get('/profile', memberGate, ctrl.getProfile);
 router.get('/analytics', memberGate, ctrl.analytics);
 router.post('/:id/approach', memberGate, ctrl.saveApproach);   // think-first gate (>=30 words)
 router.post('/:id/hint', memberGate, ctrl.revealHint);
+router.post('/:id/puzzle-answer', memberGate, ctrl.puzzleAnswer);
+router.post('/:id/puzzle-hint', memberGate, ctrl.puzzleHint);
 router.post('/:id/run', memberGate, ctrl.run);
 router.post('/:id/submit', memberGate, ctrl.submit);
 router.post('/:id/voice', memberGate, voiceUpload.single('recording'), ctrl.voiceExplain);

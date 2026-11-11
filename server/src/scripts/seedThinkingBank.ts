@@ -21,10 +21,30 @@ import math from '../seeds/thinkingBank/math.json';
 import logical from '../seeds/thinkingBank/logical.json';
 import critical from '../seeds/thinkingBank/critical.json';
 import coding from '../seeds/thinkingBank/coding.json';
+// The 2026-11 expansion (+640): one file per writer batch, joined to their type below.
+import math2a from '../seeds/thinkingBank/math2a.json';
+import math2b from '../seeds/thinkingBank/math2b.json';
+import math2c from '../seeds/thinkingBank/math2c.json';
+import math2d from '../seeds/thinkingBank/math2d.json';
+import logical2a from '../seeds/thinkingBank/logical2a.json';
+import logical2b from '../seeds/thinkingBank/logical2b.json';
+import logical2c from '../seeds/thinkingBank/logical2c.json';
+import logical2d from '../seeds/thinkingBank/logical2d.json';
+import critical2a from '../seeds/thinkingBank/critical2a.json';
+import critical2b from '../seeds/thinkingBank/critical2b.json';
+import critical2c from '../seeds/thinkingBank/critical2c.json';
+import coding2a from '../seeds/thinkingBank/coding2a.json';
+import coding2b from '../seeds/thinkingBank/coding2b.json';
+import coding2c from '../seeds/thinkingBank/coding2c.json';
 
 dotenv.config();
 
-export const SEED_FILES: Record<string, any[]> = { math, logical, critical, coding } as any;
+export const SEED_FILES: Record<string, any[]> = {
+  math: [...(math as any[]), ...(math2a as any[]), ...(math2b as any[]), ...(math2c as any[]), ...(math2d as any[])],
+  logical: [...(logical as any[]), ...(logical2a as any[]), ...(logical2b as any[]), ...(logical2c as any[]), ...(logical2d as any[])],
+  critical: [...(critical as any[]), ...(critical2a as any[]), ...(critical2b as any[]), ...(critical2c as any[])],
+  coding: [...(coding as any[]), ...(coding2a as any[]), ...(coding2b as any[]), ...(coding2c as any[])],
+};
 const SEEDER = 'seed';
 
 (async () => {

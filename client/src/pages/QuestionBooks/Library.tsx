@@ -21,16 +21,23 @@ export function useBooksBase() {
 const COVERS: [RegExp, string, string][] = [
   [/java(?!script)|spring|jvm/i, '#051D64', 'bi-cup-hot'],
   [/python|django|flask|fastapi/i, '#1D5FB4', 'bi-filetype-py'],
-  [/sql|dbms|database|mongo/i, '#17885D', 'bi-database'],
+  [/\.net|c#|asp\.net/i, '#3E3A8C', 'bi-filetype-cs'],
+  [/sql|dbms|database|mongo|data engineer/i, '#17885D', 'bi-database'],
+  [/mobile|react native|android/i, '#287F91', 'bi-phone'],
   [/react|frontend|html|css|javascript|\bjs\b|typescript|node/i, '#287F91', 'bi-filetype-jsx'],
   [/dsa|algorithm|data structure|coding/i, '#B86B00', 'bi-diagram-3'],
-  [/hr|behaviour|aptitude|communication/i, '#9A4D1A', 'bi-people'],
-  [/system design|cloud|devops|ai|ml/i, '#0B6E7F', 'bi-cpu'],
+  [/aptitude|reasoning/i, '#B86B00', 'bi-calculator'],
+  [/\bhr\b|behaviou?r|communication/i, '#9A4D1A', 'bi-people'],
+  [/security|cyber/i, '#3E5672', 'bi-shield-lock'],
+  [/\bqa\b|sdet|test/i, '#17885D', 'bi-bug'],
+  [/analytics|data science/i, '#1D5FB4', 'bi-bar-chart-line'],
+  [/system design|cloud|devops|mlops|\bai\b|\bml\b|agentic|generative/i, '#0B6E7F', 'bi-cpu'],
 ];
 const FALLBACK = ['#051D64', '#287F91', '#17885D', '#1D5FB4', '#B86B00', '#3E5672'];
 export function coverFor(b: { title: string; subject?: string; kind?: string }): { color: string; icon: string } {
   const text = `${b.title} ${b.subject || ''}`;
-  const hit = COVERS.find(([rx]) => rx.test(text));
+  // A company book is about the employer, whatever its title mentions.
+  const hit = b.kind === 'company' ? undefined : COVERS.find(([rx]) => rx.test(text));
   if (hit) return { color: hit[1], icon: hit[2] };
   let h = 0; for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
   return { color: FALLBACK[h % FALLBACK.length], icon: b.kind === 'company' ? 'bi-building' : 'bi-journal-bookmark' };

@@ -117,6 +117,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (permResponse.ok) {
                 const permData = await permResponse.json();
                 freshUser.permissions = permData.data?.permissions || [];
+                if (permData.data?.role) freshUser.role = permData.data.role;
+                freshUser.customRoleId = permData.data?.customRoleId || undefined;
+                freshUser.customRoleName = permData.data?.customRoleName || null;
               }
             } catch (permError) {
               console.error('Failed to fetch permissions:', permError);
@@ -297,12 +300,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const r = await fetch(`${API_URL}/users/me/permissions`, { headers: { Authorization: `Bearer ${token}`, 'X-Tenant-Id': localStorage.getItem('tenantId') || '' } });
         if (!r.ok) return;
-        const next: string[] = (await r.json())?.data?.permissions || [];
+        const data = (await r.json())?.data || {};
+        const next: string[] = data.permissions || [];
         setUser((prev) => {
           if (!prev) return prev;
-          const before = (prev.permissions || []).slice().sort().join(',');
-          if (before === next.slice().sort().join(',')) return prev;
-          const updated = { ...prev, permissions: next };
+          // A role given or changed while this tab was open: the role, the custom role and its permissions all move
+          // together, so the menu (which looks at all three) shows what the Users screen just gave.
+          const key = (u: any) => [u.role, u.customRoleId || '', u.customRoleName || '', (u.permissions || []).slice().sort().join(',')].join('|');
+          const updated: any = { ...prev, permissions: next, role: data.role || prev.role, customRoleId: data.customRoleId || undefined, customRoleName: data.customRoleName || null };
+          if (key(prev) === key(updated)) return prev;
           localStorage.setItem('user', JSON.stringify(updated));
           return updated;
         });

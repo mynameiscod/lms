@@ -7,6 +7,7 @@ import './resumeCenter.css';
 import './resumeCenterRedesign.css';
 import { ResumeDocument, TEMPLATES } from '../ResumeBuilder/templates';
 import type { ResumeTemplate } from '../../api/resumeApi';
+import { RichTextEditor } from '../ResumeBuilder/RichText';
 
 /** ?focus= on a mission link → the section it should land on. 'title' is the target title
  *  field, which lives inside Contact Information. */
@@ -96,6 +97,24 @@ const SectionTitle: React.FC<{ icon: string; title: string; subtitle: string; do
   </div>
 );
 
+/** Plain text of a description's bullets, for comparing and showing a rewrite. */
+const bulletsOf = (html: string): string[] => {
+  const t = String(html || '').replace(/<li[^>]*>/gi, '\n').replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li)>/gi, '\n').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ');
+  return t.split('\n').map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+};
+const same = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x.trim() === (b[i] || '').trim());
+
+/** Every place the AI rewrite differs from the resume, one checkbox each. */
+function rewriteChanges(cur: ResumeSections, next: ResumeSections): { key: string; title: string; index?: number; before: string[]; after: string[] }[] {
+  const out: { key: string; title: string; index?: number; before: string[]; after: string[] }[] = [];
+  if ((next.summary || '').trim() && (next.summary || '').trim() !== (cur.summary || '').trim()) out.push({ key: 'summary', title: 'Professional summary', before: cur.summary ? [cur.summary] : [], after: [next.summary] });
+  cur.experience.forEach((e, i) => { const n = next.experience[i]; if (n && !same(e.bullets || [], n.bullets || [])) out.push({ key: `exp:${i}`, index: i, title: `Experience — ${[e.role, e.company].filter(Boolean).join(' at ') || `entry ${i + 1}`}`, before: e.bullets || [], after: n.bullets || [] }); });
+  cur.projects.forEach((p, i) => { const n = next.projects[i]; if (n && !same(bulletsOf(p.description), bulletsOf(n.description))) out.push({ key: `proj:${i}`, index: i, title: `Project — ${p.name || `entry ${i + 1}`}`, before: bulletsOf(p.description), after: bulletsOf(n.description) }); });
+  const sk = (s: ResumeSections) => s.skills.map(g => `${g.category}: ${g.items.join(', ')}`);
+  if (!same(sk(cur), sk(next))) out.push({ key: 'skills', title: 'Skills (regrouped — same skills)', before: sk(cur), after: sk(next) });
+  return out;
+}
+
 const ResumeCenter: React.FC = () => {
   const [sections, setSections] = useState<ResumeSections>(BLANK);
   const [importing, setImporting] = useState(false);
@@ -109,6 +128,12 @@ const ResumeCenter: React.FC = () => {
   const [improving, setImproving] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err' | 'info'; text: string } | null>(null);
   const [preview, setPreview] = useState<ResumeSections | null>(null);
+  /** Which parts of the AI rewrite to apply (all on by default; the member can untick any). */
+  const [accept, setAccept] = useState<Record<string, boolean>>({});
+  /** What an import read, waiting for the member to choose how to use it. Nothing is saved until they do. */
+  const [importDraft, setImportDraft] = useState<{ parsed: ResumeSections; found: Record<string, number | boolean>; fileName: string } | null>(null);
+  /** The resume as it was when last scored, so the page can say when the score is out of date. */
+  const [scoredSnapshot, setScoredSnapshot] = useState<string>('');
   /** Set when the server says scoring/rewriting have no AI provider: said once, plainly, instead of a failure per click. */
   const [aiOff, setAiOff] = useState(false);
   /** Build (the editor) or Preview & download (templates + the page as it will print). */
@@ -124,8 +149,10 @@ const ResumeCenter: React.FC = () => {
   const load = useCallback(async () => {
     try {
       const r = await passportApi.getResume();
-      setSections({ ...BLANK, ...r.resume.sections });
+      const loaded = { ...BLANK, ...r.resume.sections };
+      setSections(loaded);
       setScore(r.resume.score);
+      if (r.resume.score) setScoredSnapshot(JSON.stringify(loaded));
     } catch (e: any) {
       if (e?.response?.status === 403) setLocked({ priceInr: e?.response?.data?.priceInr });
       else setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not load your resume.' });
@@ -162,12 +189,41 @@ const ResumeCenter: React.FC = () => {
     setImporting(true); setMsg(null);
     try {
       const r = await passportApi.importResume(file);
-      setSections({ ...BLANK, ...r.sections });
-      setMsg({ kind: 'ok', text: `Imported from ${file.name}. Check each section below — anything you had already typed was kept.` });
+      setImportDraft({ parsed: { ...BLANK, ...r.parsed, contact: { ...BLANK.contact, ...(r.parsed?.contact || {}) } }, found: r.found || {}, fileName: file.name });
     } catch (e: any) {
       setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not read that file.' });
     }
     setImporting(false);
+  };
+
+  /**
+   * Use what the import read. "Replace" swaps the resume for the file's content; "fill" only fills sections and
+   * contact fields that are still empty, so nothing the member typed is overwritten. Either way it is saved.
+   */
+  const applyImport = async (mode: 'replace' | 'fill') => {
+    if (!importDraft) return;
+    const p = importDraft.parsed;
+    let next: ResumeSections;
+    if (mode === 'replace') {
+      next = { ...BLANK, ...p, contact: { ...BLANK.contact, ...p.contact } };
+    } else {
+      const c: any = { ...sections.contact };
+      for (const [k, v] of Object.entries(p.contact || {})) if (!String(c[k] || '').trim() && v) c[k] = v;
+      next = {
+        ...sections, contact: c,
+        summary: sections.summary.trim() ? sections.summary : p.summary,
+        experience: sections.experience.length ? sections.experience : p.experience,
+        education: sections.education.length ? sections.education : p.education,
+        skills: sections.skills.some(g => g.items?.length) ? sections.skills : p.skills,
+        projects: sections.projects.length ? sections.projects : p.projects,
+        certifications: sections.certifications.length ? sections.certifications : p.certifications,
+      };
+    }
+    setSections(next); setImportDraft(null); setView('build');
+    try {
+      await passportApi.saveResume(next);
+      setMsg({ kind: 'ok', text: mode === 'replace' ? `Your resume now holds what was read from ${importDraft.fileName}. Check each section below.` : `Filled the empty sections from ${importDraft.fileName}. Everything you had typed was kept.` });
+    } catch (e: any) { setMsg({ kind: 'err', text: e?.response?.data?.message || 'Imported, but could not save. Press Save Resume.' }); }
   };
 
   const save = async () => {
@@ -189,7 +245,9 @@ const ResumeCenter: React.FC = () => {
     if (!src) return;
     const clean = (x?: string) => (x || '').trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
     const name = [clean(sections.contact.name) || 'Resume', clean(sections.contact.title), 'Resume'].filter(Boolean).join('_');
-    const styles = Array.from(document.head.querySelectorAll('style, link[rel="stylesheet"]')).map(n => n.outerHTML).join('');
+    // Only the resume's own stylesheet (inside ResumeDocument) goes into the print page. Copying every app stylesheet
+    // made printing wait on dozens of files and let app styles leak into the page.
+    const styles = '';
     const frame = document.createElement('iframe');
     frame.setAttribute('aria-hidden', 'true');
     /*
@@ -249,13 +307,14 @@ const ResumeCenter: React.FC = () => {
       await passportApi.saveResume(sections);
       const r = await passportApi.scoreResume();
       setScore(r.score);
+      setScoredSnapshot(JSON.stringify(sections));
       setMsg({
         kind: r.atsReady ? 'ok' : 'info',
         text: r.atsReady
           ? `ATS-ready — you scored ${r.score.total}/100.${r.xpAwarded ? ` +${r.xpAwarded} XP!` : ''}`
           : `Scored ${r.score.total}/100. Your roadmap targets ${r.goodScore}+ — work the fixes below.${r.xpAwarded ? ` +${r.xpAwarded} XP!` : ''}`,
       });
-    } catch (e: any) { if (e?.response?.data?.aiMissing) setAiOff(true); else setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not score the resume.' }); }
+    } catch (e: any) { setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not score the resume.' }); }
     setScoring(false);
   };
 
@@ -264,16 +323,28 @@ const ResumeCenter: React.FC = () => {
     try {
       await passportApi.saveResume(sections);
       const r = await passportApi.improveResume();
-      setPreview(r.sections);
+      const improved = { ...BLANK, ...r.sections } as ResumeSections;
+      const keys = rewriteChanges(sections, improved).map(c => c.key);
+      if (!keys.length) setMsg({ kind: 'info', text: 'The AI found nothing to reword without changing your facts. Your resume is unchanged.' });
+      else { setPreview(improved); setAccept(Object.fromEntries(keys.map(k => [k, true]))); }
     } catch (e: any) { if (e?.response?.data?.aiMissing) setAiOff(true); else setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not improve the resume.' }); }
     setImproving(false);
   };
 
+  /** Apply only the parts of the rewrite the member kept ticked. */
   const acceptImproved = () => {
     if (!preview) return;
-    setSections({ ...BLANK, ...preview });
+    const next: ResumeSections = JSON.parse(JSON.stringify(sections));
+    for (const ch of rewriteChanges(sections, preview)) {
+      if (!accept[ch.key]) continue;
+      if (ch.key === 'summary') next.summary = preview.summary;
+      else if (ch.key === 'skills') next.skills = preview.skills;
+      else if (ch.key.startsWith('exp:')) next.experience[ch.index!] = { ...next.experience[ch.index!], bullets: preview.experience[ch.index!].bullets };
+      else if (ch.key.startsWith('proj:')) next.projects[ch.index!] = { ...next.projects[ch.index!], description: preview.projects[ch.index!].description };
+    }
+    setSections(next);
     setPreview(null);
-    setMsg({ kind: 'ok', text: 'Applied the AI rewrite — review it, then Save.' });
+    setMsg({ kind: 'ok', text: 'Applied the parts you kept — review them, then Save.' });
   };
 
   const completed = useMemo(() => ({
@@ -310,11 +381,16 @@ const ResumeCenter: React.FC = () => {
     if (!score?.breakdown) return 'Build your resume';
     const rows = Object.entries(score.breakdown).filter(([k]) => k !== 'ats');
     if (!rows.length) return 'Build your resume';
-    const [key] = rows.sort((a, b) => (Number(b[1]) / (SECTION_MAX[b[0]] || 20)) - (Number(a[1]) / (SECTION_MAX[a[0]] || 20)))[0];
+    const mx = (k: string) => (score.maxes as any)?.[k] ?? SECTION_MAX[k] ?? 20;
+    const counted = rows.filter(([k]) => mx(k) > 0);
+    if (!counted.length) return 'Build your resume';
+    const [key] = counted.sort((a, b) => (Number(b[1]) / mx(b[0])) - (Number(a[1]) / mx(a[0])))[0];
     return SECTION_META[key]?.label || key;
   }, [score]);
   const hasTargetTitle = !!sections.contact.title?.trim();
   const targetRole = sections.contact.title?.trim() || '';
+  const maxOf = (k: string) => (score?.maxes as any)?.[k] ?? SECTION_MAX[k] ?? 20;
+  const scoreStale = !!score && !!scoredSnapshot && scoredSnapshot !== JSON.stringify(sections);
   const atsLabel = !score ? 'Not scored yet' : score.total >= 75 ? 'ATS Ready' : score.total >= 60 ? 'Getting stronger' : 'Needs improvement';
 
   if (loading) return <PassportShell><div className="pm-loading">Loading your resume…</div></PassportShell>;
@@ -338,7 +414,7 @@ const ResumeCenter: React.FC = () => {
                 <i className="bi bi-upload" /> <span><b>{importing ? 'Reading your file…' : 'Import resume'}</b><small>PDF or Word (.docx)</small></span>
                 <input type="file" accept=".pdf,.doc,.docx" hidden disabled={importing} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) runImport(f); }} />
               </label>
-              <button className="rc-action" onClick={runScore} disabled={scoring}><i className="bi bi-bar-chart-fill" /><span><b>{scoring ? 'Scoring…' : 'Score resume'}</b><small>{aiOff ? 'Needs an AI key' : 'ATS score + fix list'}</small></span></button>
+              <button className="rc-action" onClick={runScore} disabled={scoring}><i className="bi bi-bar-chart-fill" /><span><b>{scoring ? 'Scoring…' : 'Score resume'}</b><small>ATS score + fix list</small></span></button>
               <button className="rc-action" onClick={download}><i className="bi bi-download" /><span><b>Download PDF</b><small>Pick a template first</small></span></button>
               <button className="rc-action" onClick={runImprove} disabled={improving}><i className="bi bi-stars" /><span><b>{improving ? 'Rewriting…' : 'Improve with AI'}</b><small>{aiOff ? 'Needs an AI key' : 'Sharper wording, same facts'}</small></span></button>
             </div>
@@ -384,10 +460,37 @@ const ResumeCenter: React.FC = () => {
         </section>
 
         {msg && <div className={`pm-msg ${msg.kind} rc-message`}>{msg.text}</div>}
+        {importDraft && (
+          <section className="rc-import-review" role="dialog" aria-label="Review imported resume">
+            <div className="rc-import-head">
+              <span className="rc-ai-icon"><i className="bi bi-file-earmark-check" /></span>
+              <div><h3>We read {importDraft.fileName}</h3><p>Nothing is saved yet. Check what was found, then choose how to use it.</p></div>
+              <button onClick={() => setImportDraft(null)} aria-label="Close"><i className="bi bi-x-lg" /></button>
+            </div>
+            <div className="rc-import-grid">
+              {[
+                ['Contact details', `${importDraft.found.contact || 0} found`, importDraft.parsed.contact.name],
+                ['Summary', importDraft.found.summary ? 'Found' : 'Not found', importDraft.parsed.summary.slice(0, 90)],
+                ['Education', `${importDraft.found.education || 0}`, importDraft.parsed.education.map(e => e.degree).filter(Boolean).join(' · ')],
+                ['Skills', `${importDraft.found.skills || 0}`, importDraft.parsed.skills.flatMap(g => g.items).slice(0, 6).join(', ')],
+                ['Experience', `${importDraft.found.experience || 0}`, importDraft.parsed.experience.map(e => [e.role, e.company].filter(Boolean).join(' at ')).join(' · ')],
+                ['Projects', `${importDraft.found.projects || 0}`, importDraft.parsed.projects.map(p => p.name).join(' · ')],
+                ['Certifications', `${importDraft.found.certifications || 0}`, importDraft.parsed.certifications.map(c => c.name).slice(0, 3).join(' · ')],
+              ].map(([label, count, sample]) => (
+                <div key={label as string} className={`rc-import-row${String(count).startsWith('0') || count === 'Not found' ? ' none' : ''}`}><b>{label}</b><em>{count}</em><span>{sample || '—'}</span></div>
+              ))}
+            </div>
+            <div className="rc-ai-actions">
+              <button className="rc-btn primary" onClick={() => applyImport('replace')}><i className="bi bi-arrow-repeat" /> Replace my resume with this</button>
+              <button className="rc-btn" onClick={() => applyImport('fill')}><i className="bi bi-plus-square" /> Only fill my empty sections</button>
+              <button className="rc-btn" onClick={() => setImportDraft(null)}>Cancel</button>
+            </div>
+          </section>
+        )}
         {aiOff && (
           <div className="rc2-aioff">
             <i className="bi bi-plug" />
-            <div><b>AI scoring and rewriting are not switched on yet</b><span>No AI provider is set up for your institute — ask your admin to add an Anthropic or OpenAI key in Platform Settings. Importing, editing and saving your resume all work.</span></div>
+            <div><b>AI rewriting is not switched on yet</b><span>No AI provider is set up for your institute — ask your admin to add an Anthropic or OpenAI key in Platform Settings. Importing, scoring, editing and downloading all work.</span></div>
           </div>
         )}
 
@@ -398,17 +501,31 @@ const ResumeCenter: React.FC = () => {
           <div className="rc-stat"><span className="rc-stat-icon red"><i className="bi bi-exclamation-triangle-fill" /></span><div><small>Priority Fixes</small><strong>{score?.suggestions?.length || 0}</strong><span>{score?.suggestions?.length ? 'Need attention' : 'Score to identify'}</span></div></div>
         </section>
 
-        {preview && (
+        {preview && (() => {
+          const changes = rewriteChanges(sections, preview);
+          const on = changes.filter(c => accept[c.key]).length;
+          return (
           <section className="rc-ai-preview">
-            <div className="rc-ai-head"><div><span className="rc-ai-icon"><i className="bi bi-stars" /></span><div><h3>AI Rewrite Assistant <em>Beta</em></h3><p>Your facts stay untouched. Only the wording is sharpened.</p></div></div><button onClick={() => setPreview(null)} aria-label="Close"><i className="bi bi-x-lg" /></button></div>
-            <div className="rc-ai-compare">
-              <div><span>Original</span><p>{sections.summary || '(No summary yet)'}</p></div>
-              <i className="bi bi-arrow-right rc-ai-arrow" />
-              <div className="improved"><span><i className="bi bi-stars" /> AI Improved</span><p>{preview.summary || '(unchanged)'}</p></div>
+            <div className="rc-ai-head"><div><span className="rc-ai-icon"><i className="bi bi-stars" /></span><div><h3>AI Rewrite Assistant</h3><p>Only the wording changes — your facts, numbers and skills stay the same. Untick anything you want to keep as it was.</p></div></div><button onClick={() => setPreview(null)} aria-label="Close"><i className="bi bi-x-lg" /></button></div>
+            <div className="rc-ai-changes">
+              {changes.map(ch => (
+                <label key={ch.key} className={`rc-ai-change${accept[ch.key] ? ' on' : ''}`}>
+                  <input type="checkbox" checked={!!accept[ch.key]} onChange={e => setAccept(a => ({ ...a, [ch.key]: e.target.checked }))} />
+                  <div className="rc-ai-change-body">
+                    <b>{ch.title}</b>
+                    <div className="rc-ai-compare">
+                      <div><span>Now</span>{ch.before.length ? <ul>{ch.before.map((t, j) => <li key={j}>{t}</li>)}</ul> : <p>(empty)</p>}</div>
+                      <i className="bi bi-arrow-right rc-ai-arrow" />
+                      <div className="improved"><span><i className="bi bi-stars" /> Suggested</span><ul>{ch.after.map((t, j) => <li key={j}>{t}</li>)}</ul></div>
+                    </div>
+                  </div>
+                </label>
+              ))}
             </div>
-            <div className="rc-ai-actions"><button className="rc-btn primary" onClick={acceptImproved}><i className="bi bi-check-lg" /> Apply Rewrite</button><button className="rc-btn" onClick={() => setPreview(null)}>Discard</button></div>
+            <div className="rc-ai-actions"><button className="rc-btn primary" onClick={acceptImproved} disabled={!on}><i className="bi bi-check-lg" /> Apply {on} of {changes.length}</button><button className="rc-btn" onClick={() => setPreview(null)}>Discard all</button></div>
           </section>
-        )}
+          );
+        })()}
 
         <div className="rc-workspace">
           <main className="rc-editor">
@@ -462,7 +579,7 @@ const ResumeCenter: React.FC = () => {
 
             <section className="rs-section rc-section-card" id="rc-experience"><SectionTitle icon="bi-briefcase" title="Experience / Internships" subtitle="Your work experience and responsibilities" done={completed.experience} /><div className="rc-fields">{sections.experience.map((x, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.experience.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Company" value={x.company} onChange={v => patch(s => { s.experience[i].company = v; })} /><Field label="Role" value={x.role} onChange={v => patch(s => { s.experience[i].role = v; })} /></div><div className="rs-row"><Field label="From" value={x.from} onChange={v => patch(s => { s.experience[i].from = v; })} placeholder="Jun 2025" /><Field label="To" value={x.to} onChange={v => patch(s => { s.experience[i].to = v; })} placeholder="Aug 2025" /></div><ListField label="Bullets (one per line)" area sep={'\n'} items={x.bullets} placeholder={'Built the payment screen in React\nCut page load from 4s to 1.2s'} onChange={v => patch(s => { s.experience[i].bullets = v; })} /></div>)}<button className="rs-add" onClick={() => patch(s => { s.experience.push({ company: '', role: '', from: '', to: '', current: false, bullets: [] }); })}>+ Add experience</button></div></section>
 
-            <section className="rs-section rc-section-card" id="rc-projects"><SectionTitle icon="bi-folder2-open" title="Projects" subtitle="Key projects and achievements" done={completed.projects} /><div className="rc-fields">{sections.projects.map((p, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.projects.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Name" value={p.name} onChange={v => patch(s => { s.projects[i].name = v; })} /><ListField label="Tech (comma separated)" items={p.tech} onChange={v => patch(s => { s.projects[i].tech = v; })} /></div><Field label="What it does & what you built" area value={p.description} onChange={v => patch(s => { s.projects[i].description = v; })} /><Field label="Link" value={p.link || ''} onChange={v => patch(s => { s.projects[i].link = v; })} placeholder="https://github.com/…" /></div>)}<button className="rs-add" onClick={() => patch(s => { s.projects.push({ name: '', tech: [], description: '', link: '' }); })}>+ Add project</button></div></section>
+            <section className="rs-section rc-section-card" id="rc-projects"><SectionTitle icon="bi-folder2-open" title="Projects" subtitle="Key projects and achievements" done={completed.projects} /><div className="rc-fields">{sections.projects.map((p, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.projects.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Name" value={p.name} onChange={v => patch(s => { s.projects[i].name = v; })} /><ListField label="Tech (comma separated)" items={p.tech} onChange={v => patch(s => { s.projects[i].tech = v; })} /></div><div className="rs-field"><label>What it does &amp; what you built</label><RichTextEditor value={p.description} onChange={v => patch(s => { s.projects[i].description = v; })} placeholder="Use the bullet list: the problem, what you built, the result." rows={3} /></div><Field label="Link" value={p.link || ''} onChange={v => patch(s => { s.projects[i].link = v; })} placeholder="https://github.com/…" /></div>)}<button className="rs-add" onClick={() => patch(s => { s.projects.push({ name: '', tech: [], description: '', link: '' }); })}>+ Add project</button></div></section>
 
             <section className="rs-section rc-section-card" id="rc-certifications"><SectionTitle icon="bi-award" title="Certifications" subtitle="Certifications and achievements" done={completed.certifications} /><div className="rc-fields">{sections.certifications.map((c, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.certifications.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Name" value={c.name} onChange={v => patch(s => { s.certifications[i].name = v; })} /><Field label="Issuer" value={c.issuer} onChange={v => patch(s => { s.certifications[i].issuer = v; })} /></div><Field label="Year" value={c.year || ''} onChange={v => patch(s => { s.certifications[i].year = v; })} /></div>)}<button className="rs-add" onClick={() => patch(s => { s.certifications.push({ name: '', issuer: '', year: '' }); })}>+ Add certification</button></div></section>
             </>)}
@@ -471,10 +588,10 @@ const ResumeCenter: React.FC = () => {
           <aside className="rc-intelligence">
             <section className="rc-panel rc-score-panel">
               <div className="rc-panel-head"><h3>Resume Intelligence</h3><span>{score ? 'Live score' : 'Not scored'}</span></div>
-              {!score ? <div className="rc-score-empty"><span><i className="bi bi-bar-chart" /></span><h4>Score your resume</h4><p>Get an honest ATS read, section scores and a prioritized fix list.</p><button className="rc-btn primary" onClick={runScore}>Score My Resume</button></div> : <><div className="rc-mini-score"><div className="rc-score-ring small" style={{ '--score': `${score.total}%` } as React.CSSProperties}><div><strong>{score.total}</strong><span>/100</span></div></div><div><small>ATS Score</small><h3>{atsLabel}</h3><p>Keep improving toward a recruiter-ready resume.</p></div></div><div className="rc-breakdown">{Object.entries(score.breakdown || {}).map(([k, v]) => { const max = SECTION_MAX[k] || 20; const pct = Math.min(100, (Number(v) / max) * 100); return <div className="rc-break-row" key={k}><div><span>{SECTION_META[k]?.label || k}</span><b>{v as number}/{max}</b></div><div className="rc-break-bar"><i style={{ width: `${pct}%` }} /></div></div>; })}</div></>}
+              {!score ? <div className="rc-score-empty"><span><i className="bi bi-bar-chart" /></span><h4>Score your resume</h4><p>Get an honest ATS read, section scores and a prioritized fix list.</p><button className="rc-btn primary" onClick={runScore}>Score My Resume</button></div> : <><div className="rc-mini-score"><div className="rc-score-ring small" style={{ '--score': `${score.total}%` } as React.CSSProperties}><div><strong>{score.total}</strong><span>/100</span></div></div><div><small>ATS Score</small><h3>{atsLabel}</h3><p>Keep improving toward a recruiter-ready resume.</p></div></div>{scoreStale && <div className="rc2-stale"><i className="bi bi-arrow-repeat" /> You have edited your resume since this score. <button type="button" onClick={runScore} disabled={scoring}>{scoring ? 'Scoring…' : 'Score again'}</button></div>}<div className="rc-breakdown">{Object.keys(SECTION_META).filter(k => k in (score.breakdown || {})).map(k => { const v = Number((score.breakdown as any)[k] || 0); const max = maxOf(k); const checks = (score.checks || []).filter(c => c.section === k); if (!max) return <div className="rc-break-row muted" key={k}><div><span>{SECTION_META[k]?.label || k}</span><b>Not counted</b></div><small className="rc-break-note">No internship yet, so projects carry this weight.</small></div>; const pct = Math.min(100, (v / max) * 100); return <details className="rc-break-row" key={k}><summary><div><span>{SECTION_META[k]?.label || k}</span><b>{v}/{max}</b></div><div className="rc-break-bar"><i style={{ width: `${pct}%` }} /></div></summary>{!!checks.length && <ul className="rc-checks">{checks.map((c, j) => <li key={j} className={c.got >= c.max ? 'ok' : c.got > 0 ? 'part' : 'no'}><i className={`bi ${c.got >= c.max ? 'bi-check-circle-fill' : c.got > 0 ? 'bi-dash-circle-fill' : 'bi-x-circle-fill'}`} /><span>{c.label}</span><b>{Math.round(c.got)}/{Math.round(c.max)}</b></li>)}</ul>}</details>; })}</div><p className="rc-score-how">The score is worked out from your resume itself — every point is one of the checks above, so the same resume always gets the same score. Tap a section to see its checks.</p></>}
             </section>
 
-            {!!score?.suggestions?.length && <section className="rc-panel"><div className="rc-panel-head"><h3><i className="bi bi-exclamation-circle text-danger" /> Fix These First</h3></div><div className="rc-fix-list">{score.suggestions.slice(0, 5).map((s, i) => <div className="rc-fix-item" key={i}><span className="rc-fix-dot"><i className="bi bi-bullseye" /></span><div><b>{s.issue}</b><p>{s.fix}</p></div><em>{i < 2 ? 'High' : 'Medium'}</em></div>)}</div></section>}
+            {!!score?.suggestions?.length && <section className="rc-panel"><div className="rc-panel-head"><h3><i className="bi bi-exclamation-circle text-danger" /> Fix These First</h3></div><div className="rc-fix-list">{score.suggestions.slice(0, 8).map((s, i) => <div className="rc-fix-item" key={i}><span className="rc-fix-dot"><i className={`bi ${s.section === 'wording' ? 'bi-pencil' : 'bi-bullseye'}`} /></span><div><b>{s.issue}</b><p>{s.fix}</p></div><em>{s.section === 'wording' ? 'Wording' : i < 2 ? 'High' : i < 5 ? 'Medium' : 'Low'}</em></div>)}</div></section>}
 
             {!!score?.atsWarnings?.length && <section className="rc-panel"><div className="rc-panel-head"><h3>ATS Warnings</h3></div><ul className="rc-warning-list">{score.atsWarnings.map((w, i) => <li key={i}><i className="bi bi-shield-exclamation" /> {w}</li>)}</ul></section>}
 

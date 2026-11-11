@@ -77,6 +77,18 @@ const MemberThinkingLab: React.FC = () => {
     memberLabApi.today().then(setDay).catch(() => { /* the screen already shows the result */ });
   };
 
+  // Practise More follows the super admin's limit: one at a time, up to practiceLimit a day (0 = off).
+  const practiceLimit = day?.practiceLimit ?? 0;
+  const practiceUsed = day?.practiceUsed ?? (day?.practice.length || 0);
+  const practiceLeft = Math.max(0, practiceLimit - practiceUsed);
+  const openPractice = day?.practiceOpen ? day.practice[day.practice.length - 1] : undefined;
+  const canPractice = !!day && setDone && !busy && !day.demo && practiceLeft > 0 && !openPractice;
+  const practiceWhy = !day ? '' : day.demo ? 'Practice is not part of this demo.'
+    : !setDone ? 'Opens once today’s questions are done'
+      : practiceLimit <= 0 ? 'Practise More is not open for your year.'
+        : openPractice ? 'Finish your practice question first.'
+          : practiceLeft <= 0 ? `That is ${practiceLimit} practice question${practiceLimit === 1 ? '' : 's'} today. Come back tomorrow.` : '';
+
   const practice = async (t?: TQType) => {
     setBusy(true);
     try {
@@ -127,8 +139,9 @@ const MemberThinkingLab: React.FC = () => {
         </div>
         <div className="plh-bar">
           <div className="plh-actions">
-            <button type="button" className="plh-btn primary" disabled={!nextUp && !setDone} onClick={() => (nextUp ? (setTab('today'), setOpenId(nextUp.id)) : practice())}>
-              <i className={`bi ${nextUp ? 'bi-play-fill' : 'bi-plus-lg'}`} aria-hidden /> {nextUp ? (nextUp.state === 'trying' ? 'Continue Today’s Question' : 'Start Today’s Question') : 'Practise More'}
+            <button type="button" className="plh-btn primary" disabled={!nextUp && !openPractice && !canPractice} title={nextUp || openPractice ? '' : practiceWhy}
+              onClick={() => (nextUp ? (setTab('today'), setOpenId(nextUp.id)) : openPractice ? (setTab('practice'), setOpenId(openPractice.id)) : practice())}>
+              <i className={`bi ${nextUp || openPractice ? 'bi-play-fill' : 'bi-plus-lg'}`} aria-hidden /> {nextUp ? (nextUp.state === 'trying' ? 'Continue Today’s Question' : 'Start Today’s Question') : openPractice ? 'Continue Practice Question' : 'Practise More'}
             </button>
             <button type="button" className="plh-btn" disabled={!setDone || busy || day.demo} title={setDone ? '' : 'Opens once today’s questions are done'} onClick={() => setTab('practice')}>
               <i className="bi bi-collection" aria-hidden /> Practice Questions
@@ -170,8 +183,8 @@ const MemberThinkingLab: React.FC = () => {
               </button>
             ))}
             <span className="grow" />
-            <button className="pl-btn plh-random" disabled={!setDone || busy || day.demo} title={setDone ? 'Add another question for practice' : 'Opens once today’s questions are done'} onClick={() => practice()}>
-              <i className="bi bi-shuffle" aria-hidden /> Practise More
+            <button className="pl-btn plh-random" disabled={!canPractice} title={canPractice ? 'Add another question for practice' : practiceWhy} onClick={() => practice()}>
+              <i className="bi bi-shuffle" aria-hidden /> Practise More{practiceLimit > 0 && !day.demo ? ` (${practiceLeft} left)` : ''}
             </button>
           </div>
 
@@ -192,7 +205,7 @@ const MemberThinkingLab: React.FC = () => {
 
           <div className="pl-meta">
             <span>{shown ? `Showing ${shown} question${shown === 1 ? '' : 's'}` : 'No questions'}</span>
-            <span className="tl3-meta-r">{tab === 'today' ? `${day.done} of ${day.items.length || day.perDay} done today` : tab === 'practice' ? 'Practice earns no XP' : `${(history || []).filter((h) => h.correct).length} solved`}</span>
+            <span className="tl3-meta-r">{tab === 'today' ? `${day.done} of ${day.items.length || day.perDay} done today` : tab === 'practice' ? `Practice earns no XP${practiceLimit > 0 && !day.demo ? ` · ${practiceUsed} of ${practiceLimit} today` : ''}` : `${(history || []).filter((h) => h.correct).length} solved`}</span>
           </div>
 
           {tab === 'history' && <Calendar days={day.calendar} best={s.longestStreak} />}
@@ -201,8 +214,8 @@ const MemberThinkingLab: React.FC = () => {
             <div className="pl-empty">
               {filtered ? <><h3>No questions match</h3><p>Try removing a filter.</p></>
                 : tab === 'today' ? <><h3>{day.bankEmpty ? 'No new questions for you right now' : 'Nothing today'}</h3><p>{day.bankEmpty ? 'You have answered everything we have for your year. New questions are added regularly.' : 'Come back tomorrow.'}</p></>
-                  : <><h3>No practice questions yet</h3><p>{setDone ? 'Pick a kind of question to practise. Practice earns no XP.' : 'Finish today’s questions first, then practise as much as you like.'}</p>
-                    {setDone && !day.demo && <div className="tl3-pick">{(Object.keys(TYPE) as TQType[]).filter((t) => t !== 'coding' || day.coding.open).map((t) => (
+                  : <><h3>No practice questions yet</h3><p>{!setDone ? `Finish today’s questions first${practiceLimit > 0 ? `, then practise up to ${practiceLimit} more` : ''}.` : canPractice ? 'Pick a kind of question to practise. Practice earns no XP.' : practiceWhy}</p>
+                    {canPractice && <div className="tl3-pick">{(Object.keys(TYPE) as TQType[]).filter((t) => t !== 'coding' || day.coding.open).map((t) => (
                       <button key={t} className="plh-btn" disabled={busy} onClick={() => practice(t)}><i className={`bi ${TYPE[t].icon}`} aria-hidden /> {SHORT[t]}</button>
                     ))}</div>}</>}
             </div>
@@ -299,8 +312,15 @@ const StateTag: React.FC<{ q: TQQuestion }> = ({ q }) => {
   return <span className="tl2-tag">New</span>;
 };
 
-const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; readOnly?: boolean; onBack: () => void; onUpdate: (q: TQQuestion, r: TQReward | null) => void; onNext: () => void; hasNext: boolean }> =
-  ({ q, practice, demo, readOnly, onBack, onUpdate, onNext, hasNext }) => {
+/** Where Solve sends answers, hints and code runs. CareerPilot members by default; an LMS lab-track puzzle passes its own. */
+export interface SolveApi {
+  answer: (id: string, body: { answer?: string; explanation: string; code?: string; language?: string }) => Promise<{ question: TQQuestion; reward: TQReward | null }>;
+  hint: (id: string) => Promise<{ hints: string[]; hintsTotal: number }>;
+  run: typeof memberLabApi.run;
+}
+
+export const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; readOnly?: boolean; onBack: () => void; onUpdate: (q: TQQuestion, r: TQReward | null) => void; onNext: () => void; hasNext: boolean; api?: SolveApi }> =
+  ({ q, practice, demo, readOnly, onBack, onUpdate, onNext, hasNext, api = memberLabApi }) => {
     const coding = q.type === 'coding';
     const finished = q.state === 'solved' || q.state === 'finished';
     const [answer, setAnswer] = useState(q.last?.answer || '');
@@ -321,19 +341,19 @@ const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; readOnl
       if (wc < MIN_WORDS) { setErr(`Explain your thinking in at least ${MIN_WORDS} words: what you noticed, what you worked out, and how you reached the answer.`); return; }
       setBusy('submit'); setErr('');
       try {
-        const r = await memberLabApi.answer(q.id, coding ? { code, language: q.language || 'python', explanation } : { answer, explanation });
+        const r = await api.answer(q.id, coding ? { code, language: q.language || 'python', explanation } : { answer, explanation });
         onUpdate(r.question, r.reward);
       } catch (e) { setErr(errOf(e, 'Could not check your answer.')); }
       setBusy('');
     };
     const hint = async () => {
       setBusy('hint');
-      try { const r = await memberLabApi.hint(q.id); setHints(r.hints); } catch (e) { setErr(errOf(e, 'No more hints.')); }
+      try { const r = await api.hint(q.id); setHints(r.hints); } catch (e) { setErr(errOf(e, 'No more hints.')); }
       setBusy('');
     };
     const runCode = async () => {
       setBusy('run'); setErr('');
-      try { setRun(await memberLabApi.run(q.id, code, q.language || 'python')); } catch (e) { setErr(errOf(e, 'Could not run your code.')); }
+      try { setRun(await api.run(q.id, code, q.language || 'python')); } catch (e) { setErr(errOf(e, 'Could not run your code.')); }
       setBusy('');
     };
 

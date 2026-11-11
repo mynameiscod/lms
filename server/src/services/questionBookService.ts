@@ -23,14 +23,49 @@ async function readerFilter(tenantId: string, userId: string) {
   const demo = await demoContext(userId);
   const chosen = (demo?.config?.bookIds || []).map(String);
   if (chosen.length) return { status: 'published', _id: { $in: chosen } };
-  const u: any = await User.findById(userId).select(LEARNER_AUDIENCE_FIELDS).lean();
+  const u: any = await User.findById(userId).select(`${LEARNER_AUDIENCE_FIELDS} passport.stage passport.careerTrack.key`).lean();
   /* Shared CareerPilot rule (learnerAudience.ts): unlike the old inline `passport.active` test it
      also honours expiry, so a lapsed member reads as LMS here, exactly like a never-member. */
   const cp = learnerAudienceOf(u).careerpilot;
-  return {
+  const base: any = {
     status: 'published',
     $or: [{ scope: 'global' }, { scope: 'tenant', tenantId }],
     audience: { $in: ['all', cp ? 'careerpilot' : 'lms'] },
+  };
+  if (!cp) return base;
+  // A CareerPilot member sees the books for their year and, from Year 3, their career track.
+  const { stage, track } = readerTarget(u);
+  const open = (field: string) => [{ [field]: { $exists: false } }, { [field]: { $size: 0 } }];
+  base.$and = [
+    { $or: [...open('stages'), { stages: stage }] },
+    { $or: [...open('tracks'), ...(track ? [{ tracks: track }] : [])] },
+  ];
+  return base;
+}
+
+/**
+ * The year and track a member's books are chosen by. Year 3 and 4 members see their track's books; one
+ * who has not chosen a track yet is matched as Year 2, so they still get the language and SQL books.
+ */
+export function readerTarget(u: any): { stage: string; track: string | null } {
+  const raw = String(u?.passport?.stage || 'foundation');
+  const stage = raw === 'job_seeker' ? 'placement' : raw;
+  const track = u?.passport?.careerTrack?.key ? String(u.passport.careerTrack.key) : null;
+  if ((stage === 'specialize' || stage === 'placement') && !track) return { stage: 'build', track: null };
+  return { stage, track };
+}
+
+export const BOOK_STAGES = ['foundation', 'build', 'specialize', 'placement'] as const;
+
+/** The years and career tracks a book can be shown to, for the admin form. */
+export async function bookTargets() {
+  const { TRACKS } = await import('../seeds/careerPilot/careerTrackDefinitions');
+  return {
+    stages: [
+      { key: 'foundation', label: 'Year 1' }, { key: 'build', label: 'Year 2' },
+      { key: 'specialize', label: 'Year 3' }, { key: 'placement', label: 'Year 4' },
+    ],
+    tracks: [...TRACKS].sort((a: any, b: any) => (a.order || 0) - (b.order || 0)).map((t: any) => ({ key: t.key, name: t.name })),
   };
 }
 
@@ -67,6 +102,8 @@ export async function saveBook(a: Actor, id: string | null, b: any) {
     color: /^#[0-9a-f]{6}$/i.test(b.color) ? b.color : COLORS[title.length % COLORS.length],
     emblem: str(b.emblem, 4),
     audience: ['all', 'lms', 'careerpilot'].includes(b.audience) ? b.audience : 'all',
+    stages: (Array.isArray(b.stages) ? b.stages : []).map(String).filter((x: string) => (BOOK_STAGES as readonly string[]).includes(x)),
+    tracks: (Array.isArray(b.tracks) ? b.tracks : []).map((x: any) => str(x, 60)).filter(Boolean).slice(0, 30),
     status: b.status === 'published' ? 'published' : 'draft',
     order: Number(b.order) || 0,
   };

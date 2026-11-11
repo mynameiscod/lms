@@ -1,0 +1,2159 @@
+[
+  {
+    "seedKey": "coding-061",
+    "type": "coding",
+    "subCategory": "Arrays",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Rotate the Queue Right",
+    "statement": "Students stand in a queue for the lab. Every minute the last student walks to the front. After k minutes, what does the queue look like?\n\nInput: line 1 has n and k (1 <= n <= 1000, 0 <= k <= 100000). Line 2 has n integers, the roll numbers from front to back.\nOutput: the n roll numbers after k rotations, separated by single spaces.\n\nExample: for n = 5, k = 2 and 1 2 3 4 5, after two moves the queue is 4 5 1 2 3.",
+    "language": "python",
+    "starterCode": "n, k = map(int, input().split())\nrolls = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "5 2\n1 2 3 4 5",
+        "expectedOutput": "4 5 1 2 3",
+        "explanation": "4 then 5 move to the front."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5 2\n1 2 3 4 5",
+        "expectedOutput": "4 5 1 2 3",
+        "hidden": false
+      },
+      {
+        "input": "4 0\n7 8 9 10",
+        "expectedOutput": "7 8 9 10",
+        "hidden": false
+      },
+      {
+        "input": "1 99\n42",
+        "expectedOutput": "42",
+        "hidden": true
+      },
+      {
+        "input": "3 3\n1 2 3",
+        "expectedOutput": "1 2 3",
+        "hidden": true
+      },
+      {
+        "input": "6 8\n10 20 30 40 50 60",
+        "expectedOutput": "50 60 10 20 30 40",
+        "hidden": true
+      },
+      {
+        "input": "2 1\n5 6",
+        "expectedOutput": "6 5",
+        "hidden": true
+      },
+      {
+        "input": "5 100001\n1 2 3 4 5",
+        "expectedOutput": "5 1 2 3 4",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n, k = map(int, input().split())\nrolls = list(map(int, input().split()))\nk = k % n\nresult = rolls[n - k:] + rolls[:n - k]\nprint(' '.join(map(str, result)))\n",
+    "topics": [
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "Rotating n times brings the queue back to where it started, so only k % n matters.",
+      "The last k % n students move to the front: join rolls[n-k:] and rolls[:n-k]."
+    ],
+    "explanation": "Reduce k to k % n because n rotations change nothing. The last k students end up in front, followed by the rest in their old order, so the answer is rolls[n-k:] + rolls[:n-k]. Print it joined by spaces.",
+    "estimatedMinutes": 8,
+    "order": 61
+  },
+  {
+    "seedKey": "coding-062",
+    "type": "coding",
+    "subCategory": "Arrays",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Days Above the Average",
+    "statement": "A shop records its sales for n days. Count the days on which sales were strictly greater than the average sale.\n\nInput: line 1 has n (1 <= n <= 1000). Line 2 has n integers (0 <= sale <= 100000).\nOutput: one integer, the number of days with sales strictly above the average.\n\nExample: for 10 20 30 40 the average is 25, and 30 and 40 are above it, so print 2.",
+    "language": "python",
+    "starterCode": "n = int(input())\nsales = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "4\n10 20 30 40",
+        "expectedOutput": "2",
+        "explanation": "Average 25; only 30 and 40 beat it."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "4\n10 20 30 40",
+        "expectedOutput": "2",
+        "hidden": false
+      },
+      {
+        "input": "3\n5 5 5",
+        "expectedOutput": "0",
+        "hidden": false
+      },
+      {
+        "input": "1\n100",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "5\n1 2 3 4 100",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "4\n1 2 2 2",
+        "expectedOutput": "3",
+        "hidden": true
+      },
+      {
+        "input": "6\n0 0 0 0 0 1",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "2\n7 8",
+        "expectedOutput": "1",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nsales = list(map(int, input().split()))\ntotal = sum(sales)\ncount = 0\nfor s in sales:\n    if s * n > total:\n        count += 1\nprint(count)\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "First find the total and the average.",
+      "To avoid decimals, s > total / n is the same as s * n > total."
+    ],
+    "explanation": "Compute the total of all sales. A day is above average when s > total / n, which is the same as s * n > total and avoids floating point. Count such days. If every day is equal, nobody is above average and the answer is 0.",
+    "estimatedMinutes": 6,
+    "order": 62
+  },
+  {
+    "seedKey": "coding-063",
+    "type": "coding",
+    "subCategory": "Prefix sums",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Running Total of Steps",
+    "statement": "Kavya's fitness band records her steps each day. Print the running total after each day.\n\nInput: line 1 has n (1 <= n <= 1000). Line 2 has n integers (0 <= steps <= 50000).\nOutput: n integers separated by single spaces; the i-th is the total of days 1 to i.\n\nExample: for 3000 4500 2000 the running totals are 3000 7500 9500.",
+    "language": "python",
+    "starterCode": "n = int(input())\nsteps = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "3\n3000 4500 2000",
+        "expectedOutput": "3000 7500 9500",
+        "explanation": "3000, then 3000+4500, then 7500+2000."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3\n3000 4500 2000",
+        "expectedOutput": "3000 7500 9500",
+        "hidden": false
+      },
+      {
+        "input": "1\n500",
+        "expectedOutput": "500",
+        "hidden": false
+      },
+      {
+        "input": "4\n0 0 0 0",
+        "expectedOutput": "0 0 0 0",
+        "hidden": true
+      },
+      {
+        "input": "5\n1 2 3 4 5",
+        "expectedOutput": "1 3 6 10 15",
+        "hidden": true
+      },
+      {
+        "input": "2\n50000 50000",
+        "expectedOutput": "50000 100000",
+        "hidden": true
+      },
+      {
+        "input": "6\n10 0 10 0 10 0",
+        "expectedOutput": "10 10 20 20 30 30",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nsteps = list(map(int, input().split()))\nrunning = []\ntotal = 0\nfor s in steps:\n    total += s\n    running.append(total)\nprint(' '.join(map(str, running)))\n",
+    "topics": [
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "Keep one variable that holds the total so far.",
+      "Add each day to the total, then append the total to a result list."
+    ],
+    "explanation": "Walk through the list keeping a running total. After adding each day's steps, store the total. The list of stored totals is the prefix-sum list; print it joined by spaces.",
+    "estimatedMinutes": 5,
+    "order": 63
+  },
+  {
+    "seedKey": "coding-064",
+    "type": "coding",
+    "subCategory": "Two pointers",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Move Zeros to the End",
+    "statement": "In a list of exam marks, 0 means absent. Move all the zeros to the end while keeping the other marks in their original order.\n\nInput: line 1 has n (1 <= n <= 1000). Line 2 has n integers (0 <= mark <= 100).\nOutput: the n marks after moving the zeros, separated by single spaces.\n\nExample: for 0 45 0 78 12 the result is 45 78 12 0 0.",
+    "language": "python",
+    "starterCode": "n = int(input())\nmarks = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "5\n0 45 0 78 12",
+        "expectedOutput": "45 78 12 0 0",
+        "explanation": "45, 78, 12 keep their order; the two zeros go last."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5\n0 45 0 78 12",
+        "expectedOutput": "45 78 12 0 0",
+        "hidden": false
+      },
+      {
+        "input": "3\n1 2 3",
+        "expectedOutput": "1 2 3",
+        "hidden": false
+      },
+      {
+        "input": "1\n0",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "4\n0 0 0 0",
+        "expectedOutput": "0 0 0 0",
+        "hidden": true
+      },
+      {
+        "input": "1\n9",
+        "expectedOutput": "9",
+        "hidden": true
+      },
+      {
+        "input": "6\n5 0 0 7 0 8",
+        "expectedOutput": "5 7 8 0 0 0",
+        "hidden": true
+      },
+      {
+        "input": "2\n0 3",
+        "expectedOutput": "3 0",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nmarks = list(map(int, input().split()))\npos = 0\nfor i in range(n):\n    if marks[i] != 0:\n        marks[pos], marks[i] = marks[i], marks[pos]\n        pos += 1\nprint(' '.join(map(str, marks)))\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Keep a pointer pos to where the next non-zero mark should go.",
+      "When you see a non-zero mark, swap it into position pos and move pos forward."
+    ],
+    "explanation": "Use a write pointer pos starting at 0. Scan the list; whenever a mark is non-zero, swap it to index pos and increase pos. Non-zero marks keep their order and all zeros collect at the end.",
+    "estimatedMinutes": 7,
+    "order": 64
+  },
+  {
+    "seedKey": "coding-065",
+    "type": "coding",
+    "subCategory": "Matrices",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Row Totals of a Marks Sheet",
+    "statement": "A marks sheet has r students (rows) and c subjects (columns). Print each student's total.\n\nInput: line 1 has r and c (1 <= r, c <= 50). The next r lines each have c integers (0 <= mark <= 100).\nOutput: r lines, the total of each row.\n\nExample: for 2 rows 50 60 70 and 80 90 100, print 180 and 270 on separate lines.",
+    "language": "python",
+    "starterCode": "r, c = map(int, input().split())\ngrid = []\nfor _ in range(r):\n    grid.append(list(map(int, input().split())))\n# your code here\n",
+    "examples": [
+      {
+        "input": "2 3\n50 60 70\n80 90 100",
+        "expectedOutput": "180\n270",
+        "explanation": "50+60+70 = 180 and 80+90+100 = 270."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "2 3\n50 60 70\n80 90 100",
+        "expectedOutput": "180\n270",
+        "hidden": false
+      },
+      {
+        "input": "1 1\n0",
+        "expectedOutput": "0",
+        "hidden": false
+      },
+      {
+        "input": "3 1\n5\n6\n7",
+        "expectedOutput": "5\n6\n7",
+        "hidden": true
+      },
+      {
+        "input": "1 4\n10 20 30 40",
+        "expectedOutput": "100",
+        "hidden": true
+      },
+      {
+        "input": "3 2\n0 0\n100 100\n1 2",
+        "expectedOutput": "0\n200\n3",
+        "hidden": true
+      },
+      {
+        "input": "2 2\n99 1\n1 99",
+        "expectedOutput": "100\n100",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "r, c = map(int, input().split())\ngrid = []\nfor _ in range(r):\n    grid.append(list(map(int, input().split())))\nfor row in grid:\n    total = 0\n    for x in row:\n        total += x\n    print(total)\n",
+    "topics": [
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "Read the grid as a list of lists, one list per row.",
+      "For each row, add up its values and print the sum."
+    ],
+    "explanation": "Store the sheet as a list of rows. Loop over the rows, add the c values in each one and print that sum on its own line.",
+    "estimatedMinutes": 6,
+    "order": 65
+  },
+  {
+    "seedKey": "coding-066",
+    "type": "coding",
+    "subCategory": "Matrices",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Transpose the Seating Chart",
+    "statement": "A classroom seating chart has r rows and c columns. Print its transpose: row i of the answer is column i of the chart.\n\nInput: line 1 has r and c (1 <= r, c <= 50). The next r lines each have c integers.\nOutput: c lines, each with r integers separated by single spaces.\n\nExample: for the 2 x 3 chart 1 2 3 / 4 5 6, print 1 4, then 2 5, then 3 6.",
+    "language": "python",
+    "starterCode": "r, c = map(int, input().split())\ngrid = []\nfor _ in range(r):\n    grid.append(list(map(int, input().split())))\n# your code here\n",
+    "examples": [
+      {
+        "input": "2 3\n1 2 3\n4 5 6",
+        "expectedOutput": "1 4\n2 5\n3 6",
+        "explanation": "Column 1 is 1 4, column 2 is 2 5, column 3 is 3 6."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "2 3\n1 2 3\n4 5 6",
+        "expectedOutput": "1 4\n2 5\n3 6",
+        "hidden": false
+      },
+      {
+        "input": "1 1\n7",
+        "expectedOutput": "7",
+        "hidden": false
+      },
+      {
+        "input": "1 4\n1 2 3 4",
+        "expectedOutput": "1\n2\n3\n4",
+        "hidden": true
+      },
+      {
+        "input": "3 1\n8\n9\n10",
+        "expectedOutput": "8 9 10",
+        "hidden": true
+      },
+      {
+        "input": "3 3\n1 2 3\n4 5 6\n7 8 9",
+        "expectedOutput": "1 4 7\n2 5 8\n3 6 9",
+        "hidden": true
+      },
+      {
+        "input": "2 2\n-1 0\n5 -6",
+        "expectedOutput": "-1 5\n0 -6",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "r, c = map(int, input().split())\ngrid = []\nfor _ in range(r):\n    grid.append(list(map(int, input().split())))\nfor j in range(c):\n    col = []\n    for i in range(r):\n        col.append(grid[i][j])\n    print(' '.join(map(str, col)))\n",
+    "topics": [
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "The answer has c rows and r columns.",
+      "Row j of the answer is grid[0][j], grid[1][j], ..., grid[r-1][j]."
+    ],
+    "explanation": "Loop over the column index j from 0 to c-1. For each j, collect grid[i][j] for every row i and print that list. Each printed line is one column of the original chart.",
+    "estimatedMinutes": 7,
+    "order": 66
+  },
+  {
+    "seedKey": "coding-067",
+    "type": "coding",
+    "subCategory": "Arrays",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Remove Repeated Readings",
+    "statement": "A temperature sensor sometimes sends the same reading several times in a row. Keep only the first of each run of equal consecutive readings.\n\nInput: line 1 has n (1 <= n <= 1000). Line 2 has n integers.\nOutput: the cleaned readings separated by single spaces.\n\nExample: for 30 30 31 31 31 30 32 the result is 30 31 30 32 (30 appears again later, which is a new run).",
+    "language": "python",
+    "starterCode": "n = int(input())\nreadings = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "7\n30 30 31 31 31 30 32",
+        "expectedOutput": "30 31 30 32",
+        "explanation": "Each run of equal neighbours shrinks to one value."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "7\n30 30 31 31 31 30 32",
+        "expectedOutput": "30 31 30 32",
+        "hidden": false
+      },
+      {
+        "input": "3\n1 2 3",
+        "expectedOutput": "1 2 3",
+        "hidden": false
+      },
+      {
+        "input": "1\n25",
+        "expectedOutput": "25",
+        "hidden": true
+      },
+      {
+        "input": "5\n4 4 4 4 4",
+        "expectedOutput": "4",
+        "hidden": true
+      },
+      {
+        "input": "6\n1 1 2 1 1 2",
+        "expectedOutput": "1 2 1 2",
+        "hidden": true
+      },
+      {
+        "input": "4\n-3 -3 0 0",
+        "expectedOutput": "-3 0",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nreadings = list(map(int, input().split()))\nclean = [readings[0]]\nfor i in range(1, n):\n    if readings[i] != readings[i - 1]:\n        clean.append(readings[i])\nprint(' '.join(map(str, clean)))\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "The first reading is always kept.",
+      "Keep readings[i] only when it differs from readings[i-1]."
+    ],
+    "explanation": "Start the result with the first reading. For every later reading, compare it with the reading just before it; keep it only if they differ. Equal values that are not next to each other are separate runs and are both kept.",
+    "estimatedMinutes": 6,
+    "order": 67
+  },
+  {
+    "seedKey": "coding-068",
+    "type": "coding",
+    "subCategory": "Matrices",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Diagonal Difference",
+    "statement": "For a square n x n matrix, find the absolute difference between the sum of the main diagonal (top-left to bottom-right) and the sum of the other diagonal (top-right to bottom-left).\n\nInput: line 1 has n (1 <= n <= 50). The next n lines each have n integers (-100 <= value <= 100).\nOutput: one integer, the absolute difference.\n\nExample: for 1 2 3 / 4 5 6 / 9 8 9 the main diagonal is 1+5+9 = 15 and the other is 3+5+9 = 17, so print 2.",
+    "language": "python",
+    "starterCode": "n = int(input())\ngrid = []\nfor _ in range(n):\n    grid.append(list(map(int, input().split())))\n# your code here\n",
+    "examples": [
+      {
+        "input": "3\n1 2 3\n4 5 6\n9 8 9",
+        "expectedOutput": "2",
+        "explanation": "15 versus 17."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3\n1 2 3\n4 5 6\n9 8 9",
+        "expectedOutput": "2",
+        "hidden": false
+      },
+      {
+        "input": "2\n1 2\n3 4",
+        "expectedOutput": "0",
+        "hidden": false
+      },
+      {
+        "input": "1\n-7",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "3\n1 1 1\n1 1 1\n1 1 1",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "4\n1 0 0 2\n0 3 4 0\n0 5 6 0\n7 0 0 8",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "2\n-100 100\n100 -100",
+        "expectedOutput": "400",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\ngrid = []\nfor _ in range(n):\n    grid.append(list(map(int, input().split())))\nmain = 0\nother = 0\nfor i in range(n):\n    main += grid[i][i]\n    other += grid[i][n - 1 - i]\nprint(abs(main - other))\n",
+    "topics": [
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "The main diagonal is grid[i][i].",
+      "The other diagonal is grid[i][n-1-i]; take abs of the difference at the end."
+    ],
+    "explanation": "In one loop over i, add grid[i][i] to the main sum and grid[i][n-1-i] to the other sum. Print the absolute value of their difference.",
+    "estimatedMinutes": 6,
+    "order": 68
+  },
+  {
+    "seedKey": "coding-069",
+    "type": "coding",
+    "subCategory": "Prefix sums",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Range Sum Queries",
+    "statement": "A cricket team's runs per over are given. Answer q questions of the form: how many runs were scored from over L to over R (inclusive)? Use prefix sums so each question is answered quickly.\n\nInput: line 1 has n (1 <= n <= 100000). Line 2 has n integers (0 <= runs <= 36). Line 3 has q (1 <= q <= 100000). The next q lines each have L and R (1 <= L <= R <= n).\nOutput: q lines, the total runs for each question.\n\nExample: for runs 4 6 1 0 12 and questions (2, 4) and (1, 5), print 7 and 23.",
+    "language": "python",
+    "starterCode": "n = int(input())\nruns = list(map(int, input().split()))\nq = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "5\n4 6 1 0 12\n2\n2 4\n1 5",
+        "expectedOutput": "7\n23",
+        "explanation": "6+1+0 = 7 and 4+6+1+0+12 = 23."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5\n4 6 1 0 12\n2\n2 4\n1 5",
+        "expectedOutput": "7\n23",
+        "hidden": false
+      },
+      {
+        "input": "1\n9\n1\n1 1",
+        "expectedOutput": "9",
+        "hidden": false
+      },
+      {
+        "input": "4\n0 0 0 0\n2\n1 4\n2 3",
+        "expectedOutput": "0\n0",
+        "hidden": true
+      },
+      {
+        "input": "6\n1 2 3 4 5 6\n3\n1 1\n6 6\n3 5",
+        "expectedOutput": "1\n6\n12",
+        "hidden": true
+      },
+      {
+        "input": "3\n36 36 36\n2\n1 3\n2 2",
+        "expectedOutput": "108\n36",
+        "hidden": true
+      },
+      {
+        "input": "5\n5 4 3 2 1\n4\n1 2\n2 3\n4 5\n1 5",
+        "expectedOutput": "9\n7\n3\n15",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nruns = list(map(int, input().split()))\nq = int(input())\nprefix = [0] * (n + 1)\nfor i in range(n):\n    prefix[i + 1] = prefix[i] + runs[i]\nout = []\nfor _ in range(q):\n    L, R = map(int, input().split())\n    out.append(str(prefix[R] - prefix[L - 1]))\nprint('\\n'.join(out))\n",
+    "topics": [
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "Build prefix where prefix[i] is the total of the first i overs, with prefix[0] = 0.",
+      "The sum from L to R is prefix[R] - prefix[L-1]."
+    ],
+    "explanation": "Build a prefix list of length n+1 with prefix[0] = 0 and prefix[i+1] = prefix[i] + runs[i]. Then the total of overs L..R is prefix[R] - prefix[L-1], which takes constant time per question.",
+    "estimatedMinutes": 12,
+    "order": 69
+  },
+  {
+    "seedKey": "coding-070",
+    "type": "coding",
+    "subCategory": "Prefix sums",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Balance Point of the Array",
+    "statement": "Find the first position i (1-based) such that the sum of the elements before i equals the sum of the elements after i. The element at i itself is in neither sum; an empty side has sum 0.\n\nInput: line 1 has n (1 <= n <= 100000). Line 2 has n integers (-1000 <= value <= 1000).\nOutput: the first such position, or -1 if there is none.\n\nExample: for 2 3 -1 8 4, position 4 works because 2+3-1 = 4 and the right side is 4. Print 4.",
+    "language": "python",
+    "starterCode": "n = int(input())\na = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "5\n2 3 -1 8 4",
+        "expectedOutput": "4",
+        "explanation": "Left 2+3-1 = 4 and right 4 are equal at position 4."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5\n2 3 -1 8 4",
+        "expectedOutput": "4",
+        "hidden": false
+      },
+      {
+        "input": "3\n1 2 3",
+        "expectedOutput": "-1",
+        "hidden": false
+      },
+      {
+        "input": "1\n5",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "3\n1 0 1",
+        "expectedOutput": "2",
+        "hidden": true
+      },
+      {
+        "input": "4\n0 0 0 0",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "5\n1 2 3 4 6",
+        "expectedOutput": "4",
+        "hidden": true
+      },
+      {
+        "input": "4\n-1 3 -4 5",
+        "expectedOutput": "-1",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\na = list(map(int, input().split()))\ntotal = sum(a)\nleft = 0\nanswer = -1\nfor i in range(n):\n    right = total - left - a[i]\n    if left == right:\n        answer = i + 1\n        break\n    left += a[i]\nprint(answer)\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Compute the total once. As you walk, keep the sum of elements to the left.",
+      "The right sum at i is total - left - a[i]."
+    ],
+    "explanation": "Find the total first. Walk left to right holding the sum of everything before i; the sum after i is total - left - a[i]. Stop at the first i where they match. A single element always balances (both sides are empty).",
+    "estimatedMinutes": 12,
+    "order": 70
+  },
+  {
+    "seedKey": "coding-071",
+    "type": "coding",
+    "subCategory": "Sliding window",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Best K-Day Sales Window",
+    "statement": "Find the largest total sale over any k consecutive days. Use a sliding window: add the new day and drop the oldest one instead of re-adding k numbers every time.\n\nInput: line 1 has n and k (1 <= k <= n <= 100000). Line 2 has n integers (-10000 <= sale <= 10000; negative means a refund-heavy day).\nOutput: one integer, the maximum sum of k consecutive days.\n\nExample: for k = 3 and 2 1 5 1 3 2, the windows sum to 8, 7, 9, 6, so print 9.",
+    "language": "python",
+    "starterCode": "n, k = map(int, input().split())\nsales = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "6 3\n2 1 5 1 3 2",
+        "expectedOutput": "9",
+        "explanation": "Windows 2+1+5, 1+5+1, 5+1+3, 1+3+2 give 8, 7, 9, 6."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "6 3\n2 1 5 1 3 2",
+        "expectedOutput": "9",
+        "hidden": false
+      },
+      {
+        "input": "4 4\n1 2 3 4",
+        "expectedOutput": "10",
+        "hidden": false
+      },
+      {
+        "input": "1 1\n-5",
+        "expectedOutput": "-5",
+        "hidden": true
+      },
+      {
+        "input": "5 1\n3 -1 7 2 0",
+        "expectedOutput": "7",
+        "hidden": true
+      },
+      {
+        "input": "5 2\n-3 -2 -6 -1 -4",
+        "expectedOutput": "-5",
+        "hidden": true
+      },
+      {
+        "input": "7 3\n1 1 1 10 1 1 1",
+        "expectedOutput": "12",
+        "hidden": true
+      },
+      {
+        "input": "3 2\n10000 -10000 10000",
+        "expectedOutput": "0",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n, k = map(int, input().split())\nsales = list(map(int, input().split()))\nwindow = sum(sales[:k])\nbest = window\nfor i in range(k, n):\n    window += sales[i] - sales[i - k]\n    if window > best:\n        best = window\nprint(best)\n",
+    "topics": [
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "Start with the sum of the first k days.",
+      "Moving the window one step right adds sales[i] and removes sales[i-k]."
+    ],
+    "explanation": "Sum the first k days as the first window. For each next day i, add sales[i] and subtract sales[i-k], which slides the window by one. Track the largest window sum. This is O(n) instead of O(n*k).",
+    "estimatedMinutes": 10,
+    "order": 71
+  },
+  {
+    "seedKey": "coding-072",
+    "type": "coding",
+    "subCategory": "Matrices",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Spiral Walk of a Matrix",
+    "statement": "Print the elements of an r x c matrix in clockwise spiral order, starting at the top-left: across the top row, down the right column, back along the bottom row, up the left column, and so on inwards.\n\nInput: line 1 has r and c (1 <= r, c <= 50). The next r lines each have c integers.\nOutput: all r*c values in spiral order, separated by single spaces.\n\nExample: for 1 2 3 / 4 5 6 / 7 8 9 print 1 2 3 6 9 8 7 4 5.",
+    "language": "python",
+    "starterCode": "r, c = map(int, input().split())\ngrid = []\nfor _ in range(r):\n    grid.append(list(map(int, input().split())))\n# your code here\n",
+    "examples": [
+      {
+        "input": "3 3\n1 2 3\n4 5 6\n7 8 9",
+        "expectedOutput": "1 2 3 6 9 8 7 4 5",
+        "explanation": "Outer ring 1 2 3 6 9 8 7 4, then the centre 5."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3 3\n1 2 3\n4 5 6\n7 8 9",
+        "expectedOutput": "1 2 3 6 9 8 7 4 5",
+        "hidden": false
+      },
+      {
+        "input": "3 4\n1 2 3 4\n5 6 7 8\n9 10 11 12",
+        "expectedOutput": "1 2 3 4 8 12 11 10 9 5 6 7",
+        "hidden": false
+      },
+      {
+        "input": "1 1\n5",
+        "expectedOutput": "5",
+        "hidden": true
+      },
+      {
+        "input": "1 4\n1 2 3 4",
+        "expectedOutput": "1 2 3 4",
+        "hidden": true
+      },
+      {
+        "input": "4 1\n1\n2\n3\n4",
+        "expectedOutput": "1 2 3 4",
+        "hidden": true
+      },
+      {
+        "input": "2 2\n1 2\n3 4",
+        "expectedOutput": "1 2 4 3",
+        "hidden": true
+      },
+      {
+        "input": "4 3\n1 2 3\n4 5 6\n7 8 9\n10 11 12",
+        "expectedOutput": "1 2 3 6 9 12 11 10 7 4 5 8",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "r, c = map(int, input().split())\ngrid = []\nfor _ in range(r):\n    grid.append(list(map(int, input().split())))\ntop, bottom, left, right = 0, r - 1, 0, c - 1\nout = []\nwhile top <= bottom and left <= right:\n    for j in range(left, right + 1):\n        out.append(grid[top][j])\n    top += 1\n    for i in range(top, bottom + 1):\n        out.append(grid[i][right])\n    right -= 1\n    if top <= bottom:\n        for j in range(right, left - 1, -1):\n            out.append(grid[bottom][j])\n        bottom -= 1\n    if left <= right:\n        for i in range(bottom, top - 1, -1):\n            out.append(grid[i][left])\n        left += 1\nprint(' '.join(map(str, out)))\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Keep four boundaries: top, bottom, left and right.",
+      "After walking each side, move that boundary inwards.",
+      "Before walking the bottom row and the left column, check the boundaries have not crossed, or single rows/columns get printed twice."
+    ],
+    "explanation": "Maintain top, bottom, left and right boundaries. Walk the top row left to right and move top down; walk the right column and move right in; if rows remain, walk the bottom row right to left and move bottom up; if columns remain, walk the left column upwards and move left in. Repeat until the boundaries cross.",
+    "estimatedMinutes": 15,
+    "order": 72
+  },
+  {
+    "seedKey": "coding-073",
+    "type": "coding",
+    "subCategory": "Two pointers",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Merge Two Sorted Lists",
+    "statement": "Two sections each have their roll-call times already sorted in increasing order. Merge them into one sorted list using two pointers (do not use sort).\n\nInput: line 1 has n (1 <= n <= 1000). Line 2 has n sorted integers. Line 3 has m (1 <= m <= 1000). Line 4 has m sorted integers.\nOutput: all n+m values in non-decreasing order, separated by single spaces.\n\nExample: for 1 4 9 and 2 3 10 12 print 1 2 3 4 9 10 12.",
+    "language": "python",
+    "starterCode": "n = int(input())\na = list(map(int, input().split()))\nm = int(input())\nb = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "3\n1 4 9\n4\n2 3 10 12",
+        "expectedOutput": "1 2 3 4 9 10 12",
+        "explanation": "Pick the smaller front each time."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3\n1 4 9\n4\n2 3 10 12",
+        "expectedOutput": "1 2 3 4 9 10 12",
+        "hidden": false
+      },
+      {
+        "input": "2\n1 1\n2\n1 1",
+        "expectedOutput": "1 1 1 1",
+        "hidden": false
+      },
+      {
+        "input": "1\n5\n1\n3",
+        "expectedOutput": "3 5",
+        "hidden": true
+      },
+      {
+        "input": "3\n1 2 3\n3\n4 5 6",
+        "expectedOutput": "1 2 3 4 5 6",
+        "hidden": true
+      },
+      {
+        "input": "3\n7 8 9\n2\n1 2",
+        "expectedOutput": "1 2 7 8 9",
+        "hidden": true
+      },
+      {
+        "input": "4\n-5 0 0 7\n3\n-6 0 8",
+        "expectedOutput": "-6 -5 0 0 0 7 8",
+        "hidden": true
+      },
+      {
+        "input": "1\n100\n5\n1 2 3 4 5",
+        "expectedOutput": "1 2 3 4 5 100",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\na = list(map(int, input().split()))\nm = int(input())\nb = list(map(int, input().split()))\ni = j = 0\nout = []\nwhile i < n and j < m:\n    if a[i] <= b[j]:\n        out.append(a[i])\n        i += 1\n    else:\n        out.append(b[j])\n        j += 1\nout.extend(a[i:])\nout.extend(b[j:])\nprint(' '.join(map(str, out)))\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Keep index i in the first list and j in the second.",
+      "Append the smaller of a[i] and b[j] and advance that index; when one list runs out, append the rest of the other."
+    ],
+    "explanation": "Use two indices starting at 0. While both lists have elements, append the smaller front element and advance its index. When one list is exhausted, the remaining part of the other is already sorted and is appended as it is.",
+    "estimatedMinutes": 10,
+    "order": 73
+  },
+  {
+    "seedKey": "coding-074",
+    "type": "coding",
+    "subCategory": "Stacks and queues",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Balanced Brackets",
+    "statement": "A code editor checks whether brackets are balanced. A string of the characters ( ) [ ] { } is balanced if every opening bracket is closed by the same type, in the correct order.\n\nInput: one line, a string of brackets (1 <= length <= 10000).\nOutput: YES if it is balanced, otherwise NO.\n\nExample: for ([]{}) print YES; for ([)] print NO, because ] arrives while ( is the latest open bracket.",
+    "language": "python",
+    "starterCode": "s = input().strip()\n# your code here\n",
+    "examples": [
+      {
+        "input": "([]{})",
+        "expectedOutput": "YES",
+        "explanation": "Every closer matches the latest opener."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "([]{})",
+        "expectedOutput": "YES",
+        "hidden": false
+      },
+      {
+        "input": "([)]",
+        "expectedOutput": "NO",
+        "hidden": false
+      },
+      {
+        "input": "(",
+        "expectedOutput": "NO",
+        "hidden": true
+      },
+      {
+        "input": ")",
+        "expectedOutput": "NO",
+        "hidden": true
+      },
+      {
+        "input": "{[()()]}",
+        "expectedOutput": "YES",
+        "hidden": true
+      },
+      {
+        "input": "((()",
+        "expectedOutput": "NO",
+        "hidden": true
+      },
+      {
+        "input": "[]{}()",
+        "expectedOutput": "YES",
+        "hidden": true
+      },
+      {
+        "input": "}{",
+        "expectedOutput": "NO",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "s = input().strip()\nopens = '([{'\ncloses = ')]}'\nstack = []\nok = True\nfor ch in s:\n    if ch in opens:\n        stack.append(ch)\n    else:\n        if not stack or stack[-1] != opens[closes.index(ch)]:\n            ok = False\n            break\n        stack.pop()\nif stack:\n    ok = False\nprint('YES' if ok else 'NO')\n",
+    "topics": [
+      "lists",
+      "strings",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Push each opening bracket on a stack (a Python list).",
+      "On a closing bracket, the top of the stack must be the matching opener; otherwise it is NO.",
+      "At the end the stack must be empty."
+    ],
+    "explanation": "Scan the string. Push opening brackets onto a list used as a stack. For a closing bracket, the stack must be non-empty and its top must be the matching opener; pop it. Anything left on the stack at the end is unclosed, so the answer is NO.",
+    "estimatedMinutes": 10,
+    "order": 74
+  },
+  {
+    "seedKey": "coding-075",
+    "type": "coding",
+    "subCategory": "Stacks and queues",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Evaluate a Postfix Expression",
+    "statement": "Evaluate an expression written in postfix (Reverse Polish) notation, where each operator comes after its two operands. Operators are + - * and / (integer division that truncates toward zero, like most calculators).\n\nInput: one line of tokens separated by spaces; each token is an integer (0 to 1000) or one of + - * /. The expression is valid and never divides by zero.\nOutput: one integer, the value.\n\nExample: for 2 3 + 4 * the steps are 2+3 = 5, then 5*4 = 20, so print 20.",
+    "language": "python",
+    "starterCode": "tokens = input().split()\n# your code here\n",
+    "examples": [
+      {
+        "input": "2 3 + 4 *",
+        "expectedOutput": "20",
+        "explanation": "2 3 + gives 5, then 5 4 * gives 20."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "2 3 + 4 *",
+        "expectedOutput": "20",
+        "hidden": false
+      },
+      {
+        "input": "5 1 2 + 4 * + 3 -",
+        "expectedOutput": "14",
+        "hidden": false
+      },
+      {
+        "input": "42",
+        "expectedOutput": "42",
+        "hidden": true
+      },
+      {
+        "input": "10 3 /",
+        "expectedOutput": "3",
+        "hidden": true
+      },
+      {
+        "input": "3 10 - 2 /",
+        "expectedOutput": "-3",
+        "hidden": true
+      },
+      {
+        "input": "4 13 5 / +",
+        "expectedOutput": "6",
+        "hidden": true
+      },
+      {
+        "input": "7 0 *",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "2 3 4 * -",
+        "expectedOutput": "-10",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "tokens = input().split()\nstack = []\nfor t in tokens:\n    if t in ('+', '-', '*', '/'):\n        b = stack.pop()\n        a = stack.pop()\n        if t == '+':\n            stack.append(a + b)\n        elif t == '-':\n            stack.append(a - b)\n        elif t == '*':\n            stack.append(a * b)\n        else:\n            q = abs(a) // abs(b)\n            if (a < 0) != (b < 0):\n                q = -q\n            stack.append(q)\n    else:\n        stack.append(int(t))\nprint(stack[0])\n",
+    "topics": [
+      "lists",
+      "strings",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Push numbers onto a stack.",
+      "On an operator, pop b first and then a, and push a op b. Order matters for - and /.",
+      "For truncation toward zero, divide the absolute values and fix the sign."
+    ],
+    "explanation": "Read tokens left to right. Numbers are pushed. An operator pops the right operand b and then the left operand a, computes a op b and pushes it. For division, divide absolute values and make the result negative when exactly one operand is negative. The last value on the stack is the answer.",
+    "estimatedMinutes": 12,
+    "order": 75
+  },
+  {
+    "seedKey": "coding-076",
+    "type": "coding",
+    "subCategory": "Stacks and queues",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Pass the Parcel",
+    "statement": "n children numbered 1 to n sit in a circle and play pass the parcel. Counting starts at child 1; every k-th child counted is out and leaves, and counting continues from the next child. Use a list as a queue: move a child from the front to the back for each count, and remove the k-th.\n\nInput: one line with n and k (1 <= n <= 1000, 1 <= k <= 1000).\nOutput: the children in the order they leave, separated by single spaces (the last number is the winner).\n\nExample: for n = 5, k = 2 the order is 2 4 1 5 3, so child 3 wins.",
+    "language": "python",
+    "starterCode": "n, k = map(int, input().split())\n# your code here\n",
+    "examples": [
+      {
+        "input": "5 2",
+        "expectedOutput": "2 4 1 5 3",
+        "explanation": "Counting 2 each time removes 2, 4, 1, 5 and leaves 3."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5 2",
+        "expectedOutput": "2 4 1 5 3",
+        "hidden": false
+      },
+      {
+        "input": "7 3",
+        "expectedOutput": "3 6 2 7 5 1 4",
+        "hidden": false
+      },
+      {
+        "input": "1 5",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "4 1",
+        "expectedOutput": "1 2 3 4",
+        "hidden": true
+      },
+      {
+        "input": "3 5",
+        "expectedOutput": "2 3 1",
+        "hidden": true
+      },
+      {
+        "input": "6 6",
+        "expectedOutput": "6 1 3 2 5 4",
+        "hidden": true
+      },
+      {
+        "input": "2 2",
+        "expectedOutput": "2 1",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n, k = map(int, input().split())\nqueue = list(range(1, n + 1))\norder = []\nwhile queue:\n    for _ in range(k - 1):\n        queue.append(queue.pop(0))\n    order.append(queue.pop(0))\nprint(' '.join(map(str, order)))\n",
+    "topics": [
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "Start with the queue [1, 2, ..., n].",
+      "Move k-1 children from the front to the back, then remove the child now at the front."
+    ],
+    "explanation": "Keep the circle as a list used as a queue. For each round, rotate k-1 children from the front to the back; the child now at the front is the k-th counted and leaves. Repeat until the queue is empty; the last child removed is the winner.",
+    "estimatedMinutes": 12,
+    "order": 76
+  },
+  {
+    "seedKey": "coding-077",
+    "type": "coding",
+    "subCategory": "Stacks and queues",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Next Warmer Day",
+    "statement": "For each day's temperature, find the first later day with a strictly higher temperature and print that temperature, or -1 if there is none. Use a stack so the whole thing runs in one pass.\n\nInput: line 1 has n (1 <= n <= 100000). Line 2 has n integers.\nOutput: n integers separated by single spaces.\n\nExample: for 30 25 28 35 33 the answer is 35 28 35 -1 -1.",
+    "language": "python",
+    "starterCode": "n = int(input())\ntemps = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "5\n30 25 28 35 33",
+        "expectedOutput": "35 28 35 -1 -1",
+        "explanation": "25 waits for 28; 30 and 28 both wait for 35; 35 and 33 have nothing warmer later."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5\n30 25 28 35 33",
+        "expectedOutput": "35 28 35 -1 -1",
+        "hidden": false
+      },
+      {
+        "input": "4\n1 2 3 4",
+        "expectedOutput": "2 3 4 -1",
+        "hidden": false
+      },
+      {
+        "input": "1\n20",
+        "expectedOutput": "-1",
+        "hidden": true
+      },
+      {
+        "input": "4\n40 30 20 10",
+        "expectedOutput": "-1 -1 -1 -1",
+        "hidden": true
+      },
+      {
+        "input": "5\n5 5 5 5 6",
+        "expectedOutput": "6 6 6 6 -1",
+        "hidden": true
+      },
+      {
+        "input": "6\n2 7 3 5 4 6",
+        "expectedOutput": "7 -1 5 6 6 -1",
+        "hidden": true
+      },
+      {
+        "input": "3\n-1 -2 0",
+        "expectedOutput": "0 0 -1",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\ntemps = list(map(int, input().split()))\nans = [-1] * n\nstack = []\nfor i in range(n):\n    while stack and temps[stack[-1]] < temps[i]:\n        ans[stack.pop()] = temps[i]\n    stack.append(i)\nprint(' '.join(map(str, ans)))\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Keep a stack of indices of days still waiting for a warmer day.",
+      "When today is warmer than the day on top of the stack, today is that day's answer; pop and repeat."
+    ],
+    "explanation": "Walk through the days keeping a stack of indices whose answer is not known yet; their temperatures are non-increasing from bottom to top. For each new day, pop every waiting day that is colder and set its answer to today's temperature, then push today. Days left on the stack get -1. Each index is pushed and popped once, so it is O(n).",
+    "estimatedMinutes": 12,
+    "order": 77
+  },
+  {
+    "seedKey": "coding-078",
+    "type": "coding",
+    "subCategory": "Matrices",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Rotate the Photo Clockwise",
+    "statement": "An image is stored as an n x n grid of pixel values. Rotate it 90 degrees clockwise.\n\nInput: line 1 has n (1 <= n <= 50). The next n lines each have n integers.\nOutput: n lines, the rotated grid, values separated by single spaces.\n\nExample: for 1 2 3 / 4 5 6 / 7 8 9 the rotated grid is 7 4 1 / 8 5 2 / 9 6 3.",
+    "language": "python",
+    "starterCode": "n = int(input())\ngrid = []\nfor _ in range(n):\n    grid.append(list(map(int, input().split())))\n# your code here\n",
+    "examples": [
+      {
+        "input": "3\n1 2 3\n4 5 6\n7 8 9",
+        "expectedOutput": "7 4 1\n8 5 2\n9 6 3",
+        "explanation": "Column 1 read upwards is 7 4 1, and so on."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3\n1 2 3\n4 5 6\n7 8 9",
+        "expectedOutput": "7 4 1\n8 5 2\n9 6 3",
+        "hidden": false
+      },
+      {
+        "input": "2\n1 2\n3 4",
+        "expectedOutput": "3 1\n4 2",
+        "hidden": false
+      },
+      {
+        "input": "1\n9",
+        "expectedOutput": "9",
+        "hidden": true
+      },
+      {
+        "input": "4\n1 2 3 4\n5 6 7 8\n9 10 11 12\n13 14 15 16",
+        "expectedOutput": "13 9 5 1\n14 10 6 2\n15 11 7 3\n16 12 8 4",
+        "hidden": true
+      },
+      {
+        "input": "2\n0 0\n0 1",
+        "expectedOutput": "0 0\n1 0",
+        "hidden": true
+      },
+      {
+        "input": "3\n-1 0 1\n2 3 4\n5 6 -7",
+        "expectedOutput": "5 2 -1\n6 3 0\n-7 4 1",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\ngrid = []\nfor _ in range(n):\n    grid.append(list(map(int, input().split())))\nfor j in range(n):\n    row = []\n    for i in range(n - 1, -1, -1):\n        row.append(grid[i][j])\n    print(' '.join(map(str, row)))\n",
+    "topics": [
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "The first row of the answer is the first column read from bottom to top.",
+      "Row j of the answer is grid[n-1][j], grid[n-2][j], ..., grid[0][j]."
+    ],
+    "explanation": "After a clockwise turn, the old first column becomes the new first row, read from the bottom up. So for each column j, collect grid[i][j] for i from n-1 down to 0 and print it as a row. (Equivalently: transpose, then reverse each row.)",
+    "estimatedMinutes": 12,
+    "order": 78
+  },
+  {
+    "seedKey": "coding-079",
+    "type": "coding",
+    "subCategory": "Sliding window",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Shortest Window Reaching the Target",
+    "statement": "A delivery rider earns some positive amount on each trip. Find the smallest number of consecutive trips whose earnings add up to at least a target S.\n\nInput: line 1 has n and S (1 <= n <= 100000, 1 <= S <= 10^9). Line 2 has n positive integers (1 <= earning <= 10000).\nOutput: the length of the shortest such run of trips, or 0 if even all trips together do not reach S.\n\nExample: for S = 7 and 2 3 1 2 4 3, the trips 4 3 reach 7, so print 2.",
+    "language": "python",
+    "starterCode": "n, S = map(int, input().split())\nearn = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "6 7\n2 3 1 2 4 3",
+        "expectedOutput": "2",
+        "explanation": "4 + 3 = 7 is the shortest run that reaches 7."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "6 7\n2 3 1 2 4 3",
+        "expectedOutput": "2",
+        "hidden": false
+      },
+      {
+        "input": "3 100\n10 20 30",
+        "expectedOutput": "0",
+        "hidden": false
+      },
+      {
+        "input": "1 5\n5",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "1 6\n5",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "5 11\n1 2 3 4 5",
+        "expectedOutput": "3",
+        "hidden": true
+      },
+      {
+        "input": "4 4\n1 4 4 1",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "5 15\n1 2 3 4 5",
+        "expectedOutput": "5",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n, S = map(int, input().split())\nearn = list(map(int, input().split()))\nbest = n + 1\nleft = 0\nwindow = 0\nfor right in range(n):\n    window += earn[right]\n    while window >= S:\n        if right - left + 1 < best:\n            best = right - left + 1\n        window -= earn[left]\n        left += 1\nprint(best if best <= n else 0)\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Grow the window by moving the right end and adding earnings.",
+      "While the window total is at least S, record its length and shrink it from the left.",
+      "Because all earnings are positive, shrinking can only lower the total."
+    ],
+    "explanation": "Use two pointers. Move right forward, adding each earning. Whenever the total reaches S, record the window length and shrink from the left until the total falls below S again. Each index enters and leaves the window once, so it is O(n). If no window ever reached S, print 0.",
+    "estimatedMinutes": 14,
+    "order": 79
+  },
+  {
+    "seedKey": "coding-080",
+    "type": "coding",
+    "subCategory": "Prefix sums",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Subarrays Summing to K",
+    "statement": "Count the number of contiguous subarrays whose sum is exactly K. Values can be negative, so a sliding window does not work; use prefix sums and compare every pair of prefix positions.\n\nInput: line 1 has n and K (1 <= n <= 1000, -10^6 <= K <= 10^6). Line 2 has n integers (-1000 <= value <= 1000).\nOutput: one integer, the number of subarrays with sum K.\n\nExample: for K = 3 and 1 2 1 -1 3, the subarrays 1 2, 2 1, 1 2 1 -1, 1 -1 3 and 3 each sum to 3, so print 5.",
+    "language": "python",
+    "starterCode": "n, K = map(int, input().split())\na = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "5 3\n1 2 1 -1 3",
+        "expectedOutput": "5",
+        "explanation": "1 2, 2 1, 1 2 1 -1, 1 -1 3 and 3 each sum to 3."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5 3\n1 2 1 -1 3",
+        "expectedOutput": "5",
+        "hidden": false
+      },
+      {
+        "input": "3 2\n1 1 1",
+        "expectedOutput": "2",
+        "hidden": false
+      },
+      {
+        "input": "1 5\n5",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "1 4\n5",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "4 0\n0 0 0 0",
+        "expectedOutput": "10",
+        "hidden": true
+      },
+      {
+        "input": "5 0\n1 -1 1 -1 1",
+        "expectedOutput": "6",
+        "hidden": true
+      },
+      {
+        "input": "4 -2\n-1 -1 2 -2",
+        "expectedOutput": "3",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n, K = map(int, input().split())\na = list(map(int, input().split()))\nprefix = [0] * (n + 1)\nfor i in range(n):\n    prefix[i + 1] = prefix[i] + a[i]\ncount = 0\nfor j in range(1, n + 1):\n    for i in range(j):\n        if prefix[j] - prefix[i] == K:\n            count += 1\nprint(count)\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Build prefix sums with prefix[0] = 0.",
+      "The subarray from i+1 to j has sum prefix[j] - prefix[i].",
+      "Count all pairs i < j where that difference equals K."
+    ],
+    "explanation": "Build the prefix-sum list. Every subarray corresponds to a pair i < j of prefix positions with sum prefix[j] - prefix[i]. Check all pairs and count those equal to K. That is O(n^2), fine for n up to 1000, and it handles negative values, unlike a sliding window.",
+    "estimatedMinutes": 14,
+    "order": 80
+  },
+  {
+    "seedKey": "coding-081",
+    "type": "coding",
+    "subCategory": "Stacks and queues",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Text Editor with Undo",
+    "statement": "A simple text editor starts empty and supports three commands:\nTYPE w  - add the word w (lowercase letters) to the end of the text\nDELETE k - remove the last k characters (or everything, if the text is shorter than k)\nUNDO - cancel the most recent TYPE or DELETE that has not already been undone (does nothing if there is none)\nUse a stack of previous texts.\n\nInput: line 1 has q (1 <= q <= 1000). The next q lines each have one command.\nOutput: the final text, or EMPTY if it is empty.\n\nExample: TYPE code, TYPE begun, DELETE 3, UNDO, DELETE 5 gives code -> codebegun -> codebe -> codebegun -> code, so print code.",
+    "language": "python",
+    "starterCode": "q = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "5\nTYPE code\nTYPE begun\nDELETE 3\nUNDO\nDELETE 5",
+        "expectedOutput": "code",
+        "explanation": "The UNDO restores codebegun, then DELETE 5 leaves code."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5\nTYPE code\nTYPE begun\nDELETE 3\nUNDO\nDELETE 5",
+        "expectedOutput": "code",
+        "hidden": false
+      },
+      {
+        "input": "1\nUNDO",
+        "expectedOutput": "EMPTY",
+        "hidden": false
+      },
+      {
+        "input": "2\nTYPE abc\nDELETE 10",
+        "expectedOutput": "EMPTY",
+        "hidden": true
+      },
+      {
+        "input": "3\nTYPE a\nUNDO\nUNDO",
+        "expectedOutput": "EMPTY",
+        "hidden": true
+      },
+      {
+        "input": "4\nTYPE hello\nTYPE world\nUNDO\nUNDO",
+        "expectedOutput": "EMPTY",
+        "hidden": true
+      },
+      {
+        "input": "6\nTYPE india\nDELETE 2\nTYPE ore\nUNDO\nUNDO\nTYPE x",
+        "expectedOutput": "indiax",
+        "hidden": true
+      },
+      {
+        "input": "3\nTYPE ab\nDELETE 1\nTYPE cd",
+        "expectedOutput": "acd",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "q = int(input())\ntext = ''\nhistory = []\nfor _ in range(q):\n    parts = input().split()\n    if parts[0] == 'TYPE':\n        history.append(text)\n        text = text + parts[1]\n    elif parts[0] == 'DELETE':\n        history.append(text)\n        k = int(parts[1])\n        text = text[:max(0, len(text) - k)]\n    else:\n        if history:\n            text = history.pop()\nprint(text if text else 'EMPTY')\n",
+    "topics": [
+      "lists",
+      "strings",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Before every TYPE or DELETE, push the current text on a stack.",
+      "UNDO pops the stack and restores that text; with an empty stack it does nothing.",
+      "Slicing text[:len(text)-k] removes the last k characters; guard against k larger than the length."
+    ],
+    "explanation": "Keep the current text and a stack (list) of earlier texts. Every TYPE or DELETE first pushes the current text, then changes it. UNDO pops the most recent saved text and restores it, so undos go back step by step. Print EMPTY when nothing is left.",
+    "estimatedMinutes": 14,
+    "order": 81
+  },
+  {
+    "seedKey": "coding-082",
+    "type": "coding",
+    "subCategory": "Matrices",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Lucky Number in a Matrix",
+    "statement": "In a matrix of distinct numbers, a lucky number is one that is the smallest in its row and the largest in its column. Print all lucky numbers in row-major order (top row first, left to right).\n\nInput: line 1 has r and c (1 <= r, c <= 50). The next r lines each have c distinct integers (all values in the matrix are different).\nOutput: the lucky numbers separated by single spaces, or -1 if there are none.\n\nExample: for 3 7 8 / 9 11 13 / 15 16 17, the value 15 is the smallest in its row and the largest in its column, so print 15.",
+    "language": "python",
+    "starterCode": "r, c = map(int, input().split())\ngrid = []\nfor _ in range(r):\n    grid.append(list(map(int, input().split())))\n# your code here\n",
+    "examples": [
+      {
+        "input": "3 3\n3 7 8\n9 11 13\n15 16 17",
+        "expectedOutput": "15",
+        "explanation": "15 is the minimum of row 3 and the maximum of column 1."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3 3\n3 7 8\n9 11 13\n15 16 17",
+        "expectedOutput": "15",
+        "hidden": false
+      },
+      {
+        "input": "2 2\n1 2\n4 3",
+        "expectedOutput": "3",
+        "hidden": false
+      },
+      {
+        "input": "1 1\n5",
+        "expectedOutput": "5",
+        "hidden": true
+      },
+      {
+        "input": "1 4\n4 2 9 7",
+        "expectedOutput": "2",
+        "hidden": true
+      },
+      {
+        "input": "4 1\n4\n2\n9\n7",
+        "expectedOutput": "9",
+        "hidden": true
+      },
+      {
+        "input": "2 2\n7 8\n1 2",
+        "expectedOutput": "7",
+        "hidden": true
+      },
+      {
+        "input": "3 2\n10 2\n3 8\n5 1",
+        "expectedOutput": "-1",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "r, c = map(int, input().split())\ngrid = []\nfor _ in range(r):\n    grid.append(list(map(int, input().split())))\nlucky = []\nfor i in range(r):\n    for j in range(c):\n        v = grid[i][j]\n        if v == min(grid[i]):\n            col_max = max(grid[k][j] for k in range(r))\n            if v == col_max:\n                lucky.append(v)\nprint(' '.join(map(str, lucky)) if lucky else -1)\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "For each cell, check whether it is the minimum of its row.",
+      "If it is, compare it with every value in its column; it must be the column's maximum."
+    ],
+    "explanation": "Loop over every cell. Skip it unless it equals the minimum of its row. For a row minimum, find the maximum of its column by scanning grid[k][j] for every row k; if they match, it is lucky. Collect them in row-major order and print -1 when none exist.",
+    "estimatedMinutes": 14,
+    "order": 82
+  },
+  {
+    "seedKey": "coding-083",
+    "type": "coding",
+    "subCategory": "Strings",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Longest Stretch Without a Repeat",
+    "statement": "Find the length of the longest substring (contiguous) of a lowercase word in which no letter repeats. Use a sliding window and a list of 26 'last seen' positions.\n\nInput: one line, a string of lowercase letters (1 <= length <= 100000).\nOutput: one integer, the length of the longest substring with all distinct letters.\n\nExample: for abcabcbb the longest such substring is abc, so print 3.",
+    "language": "python",
+    "starterCode": "s = input().strip()\n# your code here\n",
+    "examples": [
+      {
+        "input": "abcabcbb",
+        "expectedOutput": "3",
+        "explanation": "abc is the longest stretch with no repeated letter."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "abcabcbb",
+        "expectedOutput": "3",
+        "hidden": false
+      },
+      {
+        "input": "bbbbb",
+        "expectedOutput": "1",
+        "hidden": false
+      },
+      {
+        "input": "a",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "pwwkew",
+        "expectedOutput": "3",
+        "hidden": true
+      },
+      {
+        "input": "abcdefghijklmnopqrstuvwxyz",
+        "expectedOutput": "26",
+        "hidden": true
+      },
+      {
+        "input": "abba",
+        "expectedOutput": "2",
+        "hidden": true
+      },
+      {
+        "input": "dvdf",
+        "expectedOutput": "3",
+        "hidden": true
+      },
+      {
+        "input": "tmmzuxt",
+        "expectedOutput": "5",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "s = input().strip()\nlast = [-1] * 26\nstart = 0\nbest = 0\nfor i in range(len(s)):\n    idx = ord(s[i]) - ord('a')\n    if last[idx] >= start:\n        start = last[idx] + 1\n    last[idx] = i\n    if i - start + 1 > best:\n        best = i - start + 1\nprint(best)\n",
+    "topics": [
+      "strings",
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Keep the window start and, for each letter, the last index where it appeared.",
+      "If the current letter was last seen inside the window (at or after start), move start just past that position.",
+      "The window length is i - start + 1."
+    ],
+    "explanation": "Slide a window over the string. last[letter] stores the last index of each letter. When the current letter was last seen at or after start, the window would contain it twice, so move start to one past that index. Update last and the best length at every step. Each character is processed once.",
+    "estimatedMinutes": 14,
+    "order": 83
+  },
+  {
+    "seedKey": "coding-084",
+    "type": "coding",
+    "subCategory": "Two pointers",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Trapping Rain Water",
+    "statement": "Bars of width 1 stand side by side with the given heights. After heavy rain, water is trapped between taller bars. Find the total units of water trapped. Water above bar i rises to min(tallest bar on its left, tallest bar on its right), counting bar i itself.\n\nInput: line 1 has n (1 <= n <= 100000). Line 2 has n integers (0 <= height <= 10000).\nOutput: one integer, the total water trapped.\n\nExample: for 0 1 0 2 1 0 1 3 2 1 2 1 the trapped water is 6.",
+    "language": "python",
+    "starterCode": "n = int(input())\nh = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "12\n0 1 0 2 1 0 1 3 2 1 2 1",
+        "expectedOutput": "6",
+        "explanation": "Water fills the dips between the bars of heights 1, 2 and 3."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "12\n0 1 0 2 1 0 1 3 2 1 2 1",
+        "expectedOutput": "6",
+        "hidden": false
+      },
+      {
+        "input": "6\n4 2 0 3 2 5",
+        "expectedOutput": "9",
+        "hidden": false
+      },
+      {
+        "input": "1\n5",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "2\n3 3",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "5\n1 2 3 4 5",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "5\n5 0 0 0 5",
+        "expectedOutput": "15",
+        "hidden": true
+      },
+      {
+        "input": "7\n3 0 2 0 4 0 1",
+        "expectedOutput": "8",
+        "hidden": true
+      },
+      {
+        "input": "4\n0 0 0 0",
+        "expectedOutput": "0",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nh = list(map(int, input().split()))\nleft, right = 0, n - 1\nleft_max = right_max = 0\nwater = 0\nwhile left < right:\n    if h[left] < h[right]:\n        if h[left] >= left_max:\n            left_max = h[left]\n        else:\n            water += left_max - h[left]\n        left += 1\n    else:\n        if h[right] >= right_max:\n            right_max = h[right]\n        else:\n            water += right_max - h[right]\n        right -= 1\nprint(water)\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Water at bar i is min(max height to the left, max height to the right) - h[i].",
+      "You can precompute left-max and right-max lists, or use two pointers.",
+      "With two pointers, always move the side whose bar is lower: its water level is fixed by its own side's maximum."
+    ],
+    "explanation": "Use two pointers from both ends with left_max and right_max. If h[left] < h[right], the water above left is limited by left_max (the right side is guaranteed to have something at least as tall), so add left_max - h[left] or update left_max, then move left. Otherwise do the same on the right. Total is O(n) time and O(1) extra space. Check on 4 2 0 3 2 5: water is 2+4+1+2 = 9.",
+    "estimatedMinutes": 20,
+    "order": 84
+  },
+  {
+    "seedKey": "coding-085",
+    "type": "coding",
+    "subCategory": "Stacks and queues",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Largest Rectangle in a Histogram",
+    "statement": "A histogram has n bars of width 1 with the given heights. Find the area of the largest rectangle that fits entirely inside the histogram (it spans consecutive bars and its height is at most the shortest of them).\n\nInput: line 1 has n (1 <= n <= 100000). Line 2 has n integers (0 <= height <= 10000).\nOutput: one integer, the largest area.\n\nExample: for 2 1 5 6 2 3 the best rectangle covers the bars 5 and 6 with height 5, so the area is 10.",
+    "language": "python",
+    "starterCode": "n = int(input())\nh = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "6\n2 1 5 6 2 3",
+        "expectedOutput": "10",
+        "explanation": "Height 5 over 2 bars gives 10."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "6\n2 1 5 6 2 3",
+        "expectedOutput": "10",
+        "hidden": false
+      },
+      {
+        "input": "5\n1 1 1 1 1",
+        "expectedOutput": "5",
+        "hidden": false
+      },
+      {
+        "input": "1\n7",
+        "expectedOutput": "7",
+        "hidden": true
+      },
+      {
+        "input": "1\n0",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "5\n1 2 3 4 5",
+        "expectedOutput": "9",
+        "hidden": true
+      },
+      {
+        "input": "4\n6 2 5 4",
+        "expectedOutput": "8",
+        "hidden": true
+      },
+      {
+        "input": "7\n6 2 5 4 5 1 6",
+        "expectedOutput": "12",
+        "hidden": true
+      },
+      {
+        "input": "3\n0 0 0",
+        "expectedOutput": "0",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nh = list(map(int, input().split()))\nstack = []\nbest = 0\nfor i in range(n + 1):\n    cur = h[i] if i < n else 0\n    while stack and h[stack[-1]] >= cur:\n        height = h[stack.pop()]\n        left = stack[-1] + 1 if stack else 0\n        area = height * (i - left)\n        if area > best:\n            best = area\n    stack.append(i)\nprint(best)\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "For each bar, the widest rectangle using its height stretches until a shorter bar on each side.",
+      "Keep a stack of indices with increasing heights. When a shorter bar arrives, pop: the popped bar's rectangle ends just before the current index and starts just after the new stack top.",
+      "Add a 0-height bar at the end so everything left on the stack gets popped."
+    ],
+    "explanation": "Scan bars with a stack of indices in increasing height order. When bar i is not taller than the top, pop it: its height can extend right up to i-1 and left to one past the new top (or 0 if the stack is empty), giving area height * (i - left). A sentinel 0 at the end flushes the stack. Every index is pushed and popped once, so it is O(n). Check 6 2 5 4: the best is 4 * 2 = 8 over bars 5 and 4.",
+    "estimatedMinutes": 22,
+    "order": 85
+  },
+  {
+    "seedKey": "coding-086",
+    "type": "coding",
+    "subCategory": "Sliding window",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Sliding Window Maximum",
+    "statement": "A stock price is recorded every minute. For every window of k consecutive minutes, print the highest price in that window. Aim for O(n) with a deque (a list of indices plus a head pointer) whose prices are kept in decreasing order.\n\nInput: line 1 has n and k (1 <= k <= n <= 100000). Line 2 has n integers.\nOutput: n-k+1 integers separated by single spaces, the maximum of each window from left to right.\n\nExample: for k = 3 and 1 3 -1 -3 5 3 6 7 the maxima are 3 3 5 5 6 7.",
+    "language": "python",
+    "starterCode": "n, k = map(int, input().split())\nprice = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "8 3\n1 3 -1 -3 5 3 6 7",
+        "expectedOutput": "3 3 5 5 6 7",
+        "explanation": "Windows [1 3 -1], [3 -1 -3], [-1 -3 5], ... have maxima 3, 3, 5, 5, 6, 7."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "8 3\n1 3 -1 -3 5 3 6 7",
+        "expectedOutput": "3 3 5 5 6 7",
+        "hidden": false
+      },
+      {
+        "input": "4 1\n4 2 12 3",
+        "expectedOutput": "4 2 12 3",
+        "hidden": false
+      },
+      {
+        "input": "1 1\n9",
+        "expectedOutput": "9",
+        "hidden": true
+      },
+      {
+        "input": "5 5\n2 9 4 1 3",
+        "expectedOutput": "9",
+        "hidden": true
+      },
+      {
+        "input": "6 2\n5 4 3 2 1 0",
+        "expectedOutput": "5 4 3 2 1",
+        "hidden": true
+      },
+      {
+        "input": "6 3\n1 1 1 1 1 1",
+        "expectedOutput": "1 1 1 1",
+        "hidden": true
+      },
+      {
+        "input": "7 4\n1 2 3 4 3 2 1",
+        "expectedOutput": "4 4 4 4",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n, k = map(int, input().split())\nprice = list(map(int, input().split()))\ndq = []\nhead = 0\nout = []\nfor i in range(n):\n    while len(dq) > head and price[dq[-1]] <= price[i]:\n        dq.pop()\n    dq.append(i)\n    if dq[head] <= i - k:\n        head += 1\n    if i >= k - 1:\n        out.append(price[dq[head]])\nprint(' '.join(map(str, out)))\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Store indices, not values, so you can tell when one slides out of the window.",
+      "Before adding index i, remove indices from the back whose price is <= price[i]; they can never be a maximum again.",
+      "If the front index is <= i-k it has left the window; the front is always the current maximum."
+    ],
+    "explanation": "Keep a deque of indices whose prices decrease from front to back. For each new index i, pop from the back every index with a price not greater than price[i], then append i. If the front index has fallen out of the window (<= i-k), drop it by moving the head. Once i >= k-1, the front holds the window maximum. Each index is added and removed at most once, so it is O(n).",
+    "estimatedMinutes": 22,
+    "order": 86
+  },
+  {
+    "seedKey": "coding-087",
+    "type": "coding",
+    "subCategory": "Prefix sums",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Rectangle Sum Queries",
+    "statement": "A farm is divided into an r x c grid with the crop yield of each plot. Answer q questions: what is the total yield of the rectangle with top-left corner (r1, c1) and bottom-right corner (r2, c2)? Rows and columns are numbered from 1. Use a 2D prefix-sum table so each question is answered in constant time.\n\nInput: line 1 has r and c (1 <= r, c <= 300). The next r lines each have c integers (-1000 <= yield <= 1000). Then a line with q (1 <= q <= 100000), then q lines with r1 c1 r2 c2 (r1 <= r2, c1 <= c2).\nOutput: q lines, one sum per question.\n\nExample: for the grid 1 2 3 / 4 5 6 / 7 8 9 and questions (1 1 2 2) and (2 2 3 3), print 12 and 28.",
+    "language": "python",
+    "starterCode": "r, c = map(int, input().split())\ngrid = []\nfor _ in range(r):\n    grid.append(list(map(int, input().split())))\nq = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "3 3\n1 2 3\n4 5 6\n7 8 9\n2\n1 1 2 2\n2 2 3 3",
+        "expectedOutput": "12\n28",
+        "explanation": "1+2+4+5 = 12 and 5+6+8+9 = 28."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3 3\n1 2 3\n4 5 6\n7 8 9\n2\n1 1 2 2\n2 2 3 3",
+        "expectedOutput": "12\n28",
+        "hidden": false
+      },
+      {
+        "input": "1 1\n-5\n1\n1 1 1 1",
+        "expectedOutput": "-5",
+        "hidden": false
+      },
+      {
+        "input": "2 3\n1 1 1\n1 1 1\n3\n1 1 2 3\n2 2 2 2\n1 3 2 3",
+        "expectedOutput": "6\n1\n2",
+        "hidden": true
+      },
+      {
+        "input": "3 3\n1 2 3\n4 5 6\n7 8 9\n3\n1 1 3 3\n2 1 2 3\n1 2 3 2",
+        "expectedOutput": "45\n15\n15",
+        "hidden": true
+      },
+      {
+        "input": "1 5\n3 -1 4 -1 5\n2\n1 2 1 4\n1 1 1 5",
+        "expectedOutput": "2\n10",
+        "hidden": true
+      },
+      {
+        "input": "4 1\n2\n0\n-2\n7\n2\n1 1 4 1\n2 1 3 1",
+        "expectedOutput": "7\n-2",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "r, c = map(int, input().split())\ngrid = []\nfor _ in range(r):\n    grid.append(list(map(int, input().split())))\nP = [[0] * (c + 1) for _ in range(r + 1)]\nfor i in range(1, r + 1):\n    for j in range(1, c + 1):\n        P[i][j] = grid[i - 1][j - 1] + P[i - 1][j] + P[i][j - 1] - P[i - 1][j - 1]\nq = int(input())\nout = []\nfor _ in range(q):\n    r1, c1, r2, c2 = map(int, input().split())\n    s = P[r2][c2] - P[r1 - 1][c2] - P[r2][c1 - 1] + P[r1 - 1][c1 - 1]\n    out.append(str(s))\nprint('\\n'.join(out))\n",
+    "topics": [
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "Let P[i][j] be the sum of the rectangle from (1,1) to (i,j), with an extra row and column of zeros.",
+      "P[i][j] = grid value + P[i-1][j] + P[i][j-1] - P[i-1][j-1] (the overlap was added twice).",
+      "A query is P[r2][c2] - P[r1-1][c2] - P[r2][c1-1] + P[r1-1][c1-1]."
+    ],
+    "explanation": "Build a (r+1) x (c+1) prefix table where P[i][j] is the sum of everything above and to the left, inclusive, using inclusion-exclusion. A query rectangle is the big rectangle P[r2][c2] minus the strip above it and the strip to its left, plus the top-left corner that was subtracted twice. Building takes O(r*c) and each query O(1). Check: (1 1 3 3) on the 1..9 grid gives 45.",
+    "estimatedMinutes": 22,
+    "order": 87
+  },
+  {
+    "seedKey": "coding-088",
+    "type": "coding",
+    "subCategory": "Arrays",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Best Circular Run of Profits",
+    "statement": "A food stall's daily profit (possibly negative) is recorded for n days arranged in a cycle, so day n is followed by day 1 again. Find the maximum total of a non-empty run of consecutive days, where the run may wrap around from the end to the start (each day used at most once).\n\nInput: line 1 has n (1 <= n <= 100000). Line 2 has n integers (-10000 <= profit <= 10000).\nOutput: one integer, the maximum circular run total.\n\nExample: for 5 -3 5 the best run wraps around: 5 (day 3) + 5 (day 1) = 10, so print 10.",
+    "language": "python",
+    "starterCode": "n = int(input())\np = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "3\n5 -3 5",
+        "expectedOutput": "10",
+        "explanation": "The wrapping run day 3 + day 1 beats any straight run."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3\n5 -3 5",
+        "expectedOutput": "10",
+        "hidden": false
+      },
+      {
+        "input": "4\n1 -2 3 -2",
+        "expectedOutput": "3",
+        "hidden": false
+      },
+      {
+        "input": "1\n-7",
+        "expectedOutput": "-7",
+        "hidden": true
+      },
+      {
+        "input": "3\n-3 -2 -1",
+        "expectedOutput": "-1",
+        "hidden": true
+      },
+      {
+        "input": "5\n8 -1 -3 -4 9",
+        "expectedOutput": "17",
+        "hidden": true
+      },
+      {
+        "input": "4\n2 2 2 2",
+        "expectedOutput": "8",
+        "hidden": true
+      },
+      {
+        "input": "6\n-1 4 -6 2 -1 3",
+        "expectedOutput": "7",
+        "hidden": true
+      },
+      {
+        "input": "2\n-5 10",
+        "expectedOutput": "10",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\np = list(map(int, input().split()))\ndef kadane_max(a):\n    best = cur = a[0]\n    for x in a[1:]:\n        cur = max(x, cur + x)\n        best = max(best, cur)\n    return best\ndef kadane_min(a):\n    best = cur = a[0]\n    for x in a[1:]:\n        cur = min(x, cur + x)\n        best = min(best, cur)\n    return best\nmax_straight = kadane_max(p)\nif max_straight < 0:\n    print(max_straight)\nelse:\n    print(max(max_straight, sum(p) - kadane_min(p)))\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions",
+      "functions"
+    ],
+    "hints": [
+      "The best run either does not wrap (ordinary maximum subarray, Kadane) or it wraps.",
+      "A wrapping run is the total minus some non-wrapping run in the middle, so make that middle run as small as possible (minimum subarray).",
+      "If every value is negative, the wrap formula would pick an empty run; return the largest single value instead."
+    ],
+    "explanation": "Compute the best straight run with Kadane's algorithm and the smallest straight run with the same idea using min. A wrapping run equals total minus the skipped middle run, so its best value is total - min_run. The answer is the larger of the two, except when all values are negative (the straight maximum is negative), where the answer is the straight maximum. Check 8 -1 -3 -4 9: total - min(-8) = 9 - (-8) = 17, which is 9 + 8 wrapping.",
+    "estimatedMinutes": 22,
+    "order": 88
+  },
+  {
+    "seedKey": "coding-089",
+    "type": "coding",
+    "subCategory": "Stacks and queues",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Asteroid Collision",
+    "statement": "Asteroids move along a line. Each is given by a non-zero integer: the absolute value is its size, the sign its direction (positive = right, negative = left). All move at the same speed. When a right-moving asteroid meets a left-moving one, the smaller one explodes; if they are the same size, both explode. Asteroids moving in the same direction never meet. Find the asteroids that survive, in order.\n\nInput: line 1 has n (1 <= n <= 100000). Line 2 has n non-zero integers (-1000 to 1000).\nOutput: the survivors separated by single spaces, or EMPTY if none survive.\n\nExample: for 5 10 -5, the -5 hits 10 and explodes; 5 and 10 never meet, so print 5 10.",
+    "language": "python",
+    "starterCode": "n = int(input())\na = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "3\n5 10 -5",
+        "expectedOutput": "5 10",
+        "explanation": "-5 meets 10 and is destroyed; 5 is behind 10."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3\n5 10 -5",
+        "expectedOutput": "5 10",
+        "hidden": false
+      },
+      {
+        "input": "2\n8 -8",
+        "expectedOutput": "EMPTY",
+        "hidden": false
+      },
+      {
+        "input": "1\n-4",
+        "expectedOutput": "-4",
+        "hidden": true
+      },
+      {
+        "input": "4\n-2 -1 1 2",
+        "expectedOutput": "-2 -1 1 2",
+        "hidden": true
+      },
+      {
+        "input": "3\n10 2 -5",
+        "expectedOutput": "10",
+        "hidden": true
+      },
+      {
+        "input": "5\n1 2 3 4 -10",
+        "expectedOutput": "-10",
+        "hidden": true
+      },
+      {
+        "input": "6\n3 -3 4 -1 -5 6",
+        "expectedOutput": "-5 6",
+        "hidden": true
+      },
+      {
+        "input": "4\n-1 3 -2 -3",
+        "expectedOutput": "-1",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\na = list(map(int, input().split()))\nstack = []\nfor x in a:\n    alive = True\n    while alive and x < 0 and stack and stack[-1] > 0:\n        if stack[-1] < -x:\n            stack.pop()\n        elif stack[-1] == -x:\n            stack.pop()\n            alive = False\n        else:\n            alive = False\n    if alive:\n        stack.append(x)\nprint(' '.join(map(str, stack)) if stack else 'EMPTY')\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Only a right-mover on the left followed by a left-mover on the right can collide.",
+      "Keep the survivors so far on a stack. A new negative asteroid fights the stack top while the top is positive.",
+      "Three cases: the top is smaller (pop and keep fighting), equal (both die), or bigger (the new one dies)."
+    ],
+    "explanation": "Process asteroids left to right with a stack of survivors. A positive one, or a negative one when the top is negative or the stack is empty, is just pushed. A negative asteroid keeps colliding with a positive top: if the top is smaller it is popped and the fight continues; if equal both are destroyed; if bigger the new asteroid is destroyed. The stack at the end lists the survivors in order. Check 3 -3 4 -1 -5 6: 3 and -3 cancel, -1 dies on 4, -5 destroys 4, giving -5 6.",
+    "estimatedMinutes": 20,
+    "order": 89
+  },
+  {
+    "seedKey": "coding-090",
+    "type": "coding",
+    "subCategory": "Sliding window",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Longest Working Streak with K Fixes",
+    "statement": "A machine log has 1 for a working hour and 0 for a breakdown hour. A technician can fix at most k breakdown hours (turning those 0s into 1s). Find the length of the longest run of consecutive working hours possible.\n\nInput: line 1 has n and k (1 <= n <= 100000, 0 <= k <= n). Line 2 has n values, each 0 or 1.\nOutput: one integer, the longest possible run of 1s.\n\nExample: for k = 2 and 1 1 1 0 0 0 1 1 1 1 0, fixing the 0s at positions 5 and 6 (1-based) makes positions 5 to 10 all ones, a run of 6, and no run of 7 is possible, so print 6.",
+    "language": "python",
+    "starterCode": "n, k = map(int, input().split())\nlog = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "11 2\n1 1 1 0 0 0 1 1 1 1 0",
+        "expectedOutput": "6",
+        "explanation": "Positions 5 to 10 become six ones once their two 0s are fixed."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "11 2\n1 1 1 0 0 0 1 1 1 1 0",
+        "expectedOutput": "6",
+        "hidden": false
+      },
+      {
+        "input": "5 0\n1 1 0 1 1",
+        "expectedOutput": "2",
+        "hidden": false
+      },
+      {
+        "input": "1 0\n0",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "1 1\n0",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "4 0\n0 0 0 0",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "6 6\n0 1 0 1 0 1",
+        "expectedOutput": "6",
+        "hidden": true
+      },
+      {
+        "input": "10 3\n0 0 1 1 0 0 1 1 1 0",
+        "expectedOutput": "8",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n, k = map(int, input().split())\nlog = list(map(int, input().split()))\nleft = 0\nzeros = 0\nbest = 0\nfor right in range(n):\n    if log[right] == 0:\n        zeros += 1\n    while zeros > k:\n        if log[left] == 0:\n            zeros -= 1\n        left += 1\n    if right - left + 1 > best:\n        best = right - left + 1\nprint(best)\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Think of a window that may contain at most k zeros; all its zeros get fixed.",
+      "Move the right end forward and count zeros. When the count exceeds k, move the left end until it is back to k.",
+      "The answer is the largest window length seen."
+    ],
+    "explanation": "Slide a window [left, right] and count the zeros inside. Extend right one step at a time; if zeros exceed k, advance left (decreasing the count when a 0 leaves) until zeros <= k. Every valid window can be fully fixed, so the best window length is the answer. Each index moves at most twice, so it is O(n). Check 0 0 1 1 0 0 1 1 1 0 with k = 3: positions 3 to 10 (1 1 0 0 1 1 1 0) contain exactly 3 zeros, giving 8, and every 9-hour window has 4 zeros.",
+    "estimatedMinutes": 20,
+    "order": 90
+  }
+]

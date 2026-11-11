@@ -28,6 +28,14 @@ export interface IQuestionBook extends Document {
   color: string;
   emblem: string;
   audience: 'all' | 'lms' | 'careerpilot';
+  /**
+   * WHO AMONG CAREERPILOT MEMBERS sees it (LMS readers ignore both). Empty means everyone.
+   * stages: foundation | build | specialize | placement — a member's year.
+   * tracks: career track keys (JAVA_FULLSTACK_AI …) — only members on one of these tracks.
+   * Both must hold. A Year 3/4 member with no track yet is matched as Year 2 (build).
+   */
+  stages: string[];
+  tracks: string[];
   status: 'draft' | 'published';
   chapters: IBookChapter[];
   questionCount: number;
@@ -52,6 +60,8 @@ const BookSchema = new Schema<IQuestionBook>({
   color: { type: String, default: '#4f46e5' },
   emblem: { type: String, default: '' },
   audience: { type: String, enum: ['all', 'lms', 'careerpilot'], default: 'all' },
+  stages: { type: [String], default: [] },
+  tracks: { type: [String], default: [] },
   status: { type: String, enum: ['draft', 'published'], default: 'draft' },
   chapters: { type: [ChapterSchema], default: [] },
   questionCount: { type: Number, default: 0 },

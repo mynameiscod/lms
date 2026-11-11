@@ -5,6 +5,7 @@ import { toast } from '../../components/feedback/appFeedback';
 import '../Passport/interviewDashboard.css';
 import './thinkingLab.css';
 import { barWidth } from '../../utils/barWidth';
+import { Solve, SolveApi } from './MemberThinkingLab';
 
 /*
  * One page, two homes. The LMS mounts it inside its Layout with the colours it always had;
@@ -434,7 +435,28 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
         />
       )}
 
-      {tab === 'challenge' && p && challenge && open && (
+      {/* A shared-bank puzzle from the batch's lab track: a final answer and the reasoning, marked step by step. */}
+      {tab === 'challenge' && challenge?.kind === 'puzzle' && challenge.question && open && (
+        <div className="pl pl2x plh tl3 tl-puzzle">
+          <Solve
+            q={challenge.question} practice={false} demo={false} hasNext={false}
+            api={{
+              answer: (id, body) => thinkingLabApi.puzzleAnswer(challenge.challengeId, body).then((r) => ({ question: r.question, reward: r.reward })),
+              hint: () => thinkingLabApi.puzzleHint(challenge.challengeId),
+              run: (() => { throw new Error('Puzzles are not run.'); }) as unknown as SolveApi['run'],
+            }}
+            onBack={() => setOpen(false)}
+            onNext={() => setOpen(false)}
+            onUpdate={(q, r) => {
+              const finished = q.state === 'solved' || q.state === 'finished';
+              setChallenge(c => c ? { ...c, question: q, status: finished ? (q.state === 'solved' ? 'solved' : 'submitted') : c.status, passed: q.state === 'solved', xpEarned: r?.xpNow ?? c.xpEarned } : c);
+              if (finished) { toast(q.state === 'solved' ? `Solved${r?.xpNow ? ` · +${r.xpNow} XP` : ''}` : `Done for today${r?.xpNow ? ` · +${r.xpNow} XP for your reasoning` : ''}`, 'success'); thinkingLabApi.stats().then(setStats).catch(() => {}); }
+            }}
+          />
+        </div>
+      )}
+
+      {tab === 'challenge' && p && challenge && open && challenge.kind !== 'puzzle' && (
         <>
           {cp && (
             <button type="button" className="tl-back" onClick={() => setOpen(false)}>

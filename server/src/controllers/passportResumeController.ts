@@ -87,14 +87,16 @@ const aiMissing = (e: any) => /no ai provider|api_key|api key|not configured/i.t
 
 export const score = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, cfg, entitled } = await gate(req);
+    const { tenantId, studentId, cfg, entitled, user } = await gate(req);
     if (!entitled) return res.status(403).json({ locked: true, priceInr: cfg?.priceInr ?? 499, message: 'Membership required.' });
 
     const doc = await PassportResume.findOne({ tenantId, studentId });
     if (!doc) return res.status(404).json({ message: 'Fill in your resume first.' });
     if (!doc.sections?.contact?.name) return res.status(400).json({ message: 'Add at least your name and contact details before scoring.' });
 
-    const result = await scoreResume(doc.sections);
+    // The resume's own target title comes first; the member's CareerPilot role or track fills in when it is blank.
+    const targetRole = String(user?.passport?.careerTrack?.key || user?.passport?.primaryRole || '').replace(/_/g, ' ');
+    const result = await scoreResume(doc.sections, { targetRole });
     const firstScore = !doc.score;
     doc.score = result as any;
     doc.scoredAt = new Date();
@@ -162,23 +164,19 @@ export const importResume = async (req: Request, res: Response) => {
       });
     }
 
-    const parsed = await parseResumeText(text);
-    const doc = await PassportResume.findOne({ tenantId, studentId });
-    const current: any = doc?.sections || {};
-
-    // Field-by-field merge: keep anything already present, fill only the gaps.
-    const merged: any = { ...current };
-    merged.contact = { ...(parsed.contact || {}), ...(current.contact || {}) };
-    merged.summary = current.summary || parsed.summary || '';
-    for (const key of ['experience', 'education', 'skills', 'projects', 'certifications'] as const) {
-      const mine = Array.isArray(current[key]) ? current[key] : [];
-      merged[key] = mine.length ? mine : ((parsed as any)[key] || []);
-    }
-
-    if (doc) { doc.sections = merged; await doc.save(); }
-    else await PassportResume.create({ tenantId, studentId, sections: merged });
-
-    res.json({ sections: merged, importedChars: text.length });
+    const parsed: any = await parseResumeText(text);
+    // NOT SAVED HERE. The member sees what was read and chooses: replace their resume with it, or only fill the
+    // sections that are still empty. Writing it straight in is how an import silently changed work they had typed.
+    const found = {
+      contact: ['name', 'email', 'phone', 'linkedin', 'github', 'location'].filter(k => parsed.contact?.[k]).length,
+      summary: !!parsed.summary,
+      experience: (parsed.experience || []).length,
+      education: (parsed.education || []).length,
+      skills: (parsed.skills || []).reduce((n: number, g: any) => n + (g.items || []).length, 0),
+      projects: (parsed.projects || []).length,
+      certifications: (parsed.certifications || []).length,
+    };
+    res.json({ parsed, found, importedChars: text.length });
   } catch (e: any) {
     console.error('[passport] resume import:', e?.message || e);
     res.status(500).json({ message: e?.message || 'Could not read that file' });

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { communicationApi, CommProfile, CommAttempt, CommProgress } from '../../api/communicationApi';
 import CoachTab, { CoachResult, CoachState, CoachStep } from './CoachTab';
 import { isCounted } from './LabHome';
@@ -6,6 +6,7 @@ import './communicationLab.css';
 import { useLocation } from 'react-router-dom';
 import DailyPracticeCard from '../Passport/DailyPracticeCard';
 import SpeakingFeedback from './SpeakingFeedback';
+import Recorder from './Recorder';
 
 const todayStr = () => {
   const d = new Date();
@@ -19,13 +20,6 @@ const scoreColor = (s?: number | null) => {
   return '#c93737';
 };
 
-const pickMime = (video: boolean) => {
-  const list = video
-    ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']
-    : ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
-  for (const m of list) if ((window as any).MediaRecorder?.isTypeSupported?.(m)) return m;
-  return '';
-};
 
 // Three tabs only: practise, see how you are improving, see how you compare. Profile is a link, not a tab.
 const TABS = [['coach', 'Practice'], ['progress', 'Progress'], ['leaderboard', 'Leaderboard']] as const;
@@ -36,152 +30,6 @@ const ScoreCard: React.FC<{ label: string; value: number | null | undefined }> =
   <div className="clx-card clx-score-card"><b style={{ color: scoreColor(value) }}>{value ?? '—'}</b><span>{label}</span></div>
 );
 
-const Recorder: React.FC<{ today: any; onDone: (a: any) => void; onClose: () => void; submitter?: (blob: Blob, mode: 'video' | 'audio') => Promise<any> }> = ({ today, onDone, onClose, submitter }) => {
-  const ch = today.challenge;
-  const [mode, setMode] = useState<'video' | 'audio'>(ch?.recordingModes?.includes('video') ? 'video' : 'audio');
-  const [phase, setPhase] = useState<'setup' | 'ready' | 'count' | 'rec' | 'done' | 'submitting'>('setup');
-  const [err, setErr] = useState('');
-  const [elapsed, setElapsed] = useState(0);
-  const [count, setCount] = useState(3);
-  const [playUrl, setPlayUrl] = useState('');
-  const streamRef = useRef<MediaStream | null>(null);
-  const recRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const blobRef = useRef<Blob | null>(null);
-  const previewRef = useRef<HTMLVideoElement>(null);
-  const timerRef = useRef<any>(null);
-  const [streamTick, setStreamTick] = useState(0);
-
-  // Is the microphone really picking up a voice? A live level bar before and during recording, and a check afterwards.
-  const [level, setLevel] = useState(0);
-  const [silent, setSilent] = useState(false);
-  const peakRef = useRef(0);
-  const phaseRef = useRef(phase);
-  phaseRef.current = phase;
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const rafRef = useRef(0);
-  const stopMeter = () => { cancelAnimationFrame(rafRef.current); audioCtxRef.current?.close().catch(() => {}); audioCtxRef.current = null; };
-  const startMeter = (stream: MediaStream) => {
-    try {
-      const AC = window.AudioContext || (window as any).webkitAudioContext;
-      const ctx: AudioContext = new AC();
-      const an = ctx.createAnalyser(); an.fftSize = 1024;
-      ctx.createMediaStreamSource(stream).connect(an);
-      audioCtxRef.current = ctx;
-      const buf = new Uint8Array(an.fftSize); let last = 0;
-      const tick = (t: number) => {
-        an.getByteTimeDomainData(buf);
-        let sum = 0; for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
-        const rms = Math.sqrt(sum / buf.length);
-        if (phaseRef.current === 'rec') peakRef.current = Math.max(peakRef.current, rms);
-        if (t - last > 90) { last = t; setLevel(Math.min(1, rms * 5)); }
-        rafRef.current = requestAnimationFrame(tick);
-      };
-      rafRef.current = requestAnimationFrame(tick);
-    } catch { /* no meter: the server still refuses a silent recording */ }
-  };
-  const stopStream = () => { stopMeter(); streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; };
-  useEffect(() => () => { clearInterval(timerRef.current); stopStream(); if (playUrl) URL.revokeObjectURL(playUrl); }, [playUrl]);
-
-  useEffect(() => {
-    const v = previewRef.current;
-    if (v && streamRef.current && mode === 'video' && phase !== 'setup' && phase !== 'done') {
-      v.srcObject = streamRef.current;
-      v.play?.().catch(() => {});
-    }
-  }, [phase, mode, streamTick]);
-
-  const check = async () => {
-    setErr('');
-    try {
-      streamRef.current = await navigator.mediaDevices.getUserMedia({ video: mode === 'video', audio: true });
-      startMeter(streamRef.current); setStreamTick(x => x + 1); setPhase('ready');
-    } catch {
-      setErr(mode === 'video' ? 'Camera or microphone access is blocked. Allow access and retry.' : 'Microphone access is blocked. Allow access and retry.');
-    }
-  };
-
-  const start = () => {
-    if (!streamRef.current) return;
-    setPhase('count'); setCount(3);
-    let n = 3;
-    const cd = setInterval(() => {
-      n -= 1; setCount(n);
-      if (n > 0) return;
-      clearInterval(cd);
-      const mime = pickMime(mode === 'video');
-      chunksRef.current = [];
-      const rec = new MediaRecorder(streamRef.current!, mime ? { mimeType: mime } : undefined);
-      rec.ondataavailable = e => { if (e.data.size) chunksRef.current.push(e.data); };
-      peakRef.current = 0; setSilent(false);
-      rec.onstop = () => {
-        if (peakRef.current < 0.012) setSilent(true); // not a whisper, not a murmur: the microphone heard nothing
-        const blob = new Blob(chunksRef.current, { type: mime || (mode === 'video' ? 'video/webm' : 'audio/webm') });
-        blobRef.current = blob;
-        setPlayUrl(URL.createObjectURL(blob));
-        clearInterval(timerRef.current);
-        setPhase('done');
-      };
-      rec.start(1000); recRef.current = rec; setElapsed(0); setPhase('rec');
-      timerRef.current = setInterval(() => setElapsed(x => {
-        const next = x + 1;
-        if (ch?.maxSeconds && next >= ch.maxSeconds) try { rec.stop(); } catch {}
-        return next;
-      }), 1000);
-    }, 1000);
-  };
-
-  const submit = async () => {
-    if (!blobRef.current) return;
-    if (elapsed < (ch?.minSeconds || 0)) { setErr(`Please speak for at least ${ch.minSeconds} seconds.`); return; }
-    setPhase('submitting'); stopStream(); setErr('');
-    try { onDone(submitter ? await submitter(blobRef.current, mode) : await communicationApi.submit(ch._id, today.date, mode, blobRef.current)); }
-    catch (e: any) { setErr(e?.response?.data?.message || 'Submission failed. Please try again.'); setPhase('done'); }
-  };
-
-  return (
-    <div className="clx-modal">
-      <div className="clx-modal-card">
-        <div className="clx-modal-head"><div><h3>{ch?.title}</h3></div><button className="clx-close" onClick={() => { stopStream(); onClose(); }}><i className="bi bi-x-lg" /></button></div>
-        {err && <div className="pm-msg err" style={{ marginBottom: 12 }}>{err}</div>}
-        {phase === 'setup' ? (
-          <>
-            <p>{ch?.description}</p>
-            <div className="clx-actions">
-              {ch?.recordingModes?.includes('video') && <button className={`clx-btn ${mode === 'video' ? 'primary' : ''}`} onClick={() => setMode('video')}><i className="bi bi-camera-video" /> Video + Audio</button>}
-              {ch?.recordingModes?.includes('audio') && <button className={`clx-btn ${mode === 'audio' ? 'primary' : ''}`} onClick={() => setMode('audio')}><i className="bi bi-mic" /> Audio only</button>}
-            </div>
-            <button className="clx-btn teal" style={{ width: '100%', marginTop: 16 }} onClick={check}><i className="bi bi-shield-check" /> Check device & continue</button>
-          </>
-        ) : (
-          <>
-            <div className="clx-preview">
-              {mode === 'video' && phase !== 'done' && <video ref={previewRef} autoPlay muted playsInline />}
-              {mode === 'video' && phase === 'done' && <video src={playUrl} controls playsInline />}
-              {mode === 'audio' && phase === 'done' && <audio src={playUrl} controls style={{ width: '88%' }} />}
-              {mode === 'audio' && phase !== 'done' && <i className="bi bi-mic" style={{ fontSize: 42 }} />}
-              {phase === 'count' && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.45)', color: '#fff', fontSize: 64, fontWeight: 900 }}>{count}</div>}
-              {phase === 'rec' && <span className="clx-rec-status"><i className="bi bi-record-circle" /> REC {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>}
-            </div>
-            {(phase === 'ready' || phase === 'rec') && (
-              <div style={{ margin: '4px 0 12px' }}>
-                <div style={{ height: 8, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}><div style={{ width: `${Math.round(level * 100)}%`, height: '100%', background: level > 0.08 ? '#16a34a' : '#f59e0b', transition: 'width .08s' }} /></div>
-                <small style={{ color: '#2F3F56' }}>{phase === 'ready' ? 'Say a few words: this bar should move. If it does not, your microphone is muted or the wrong one is selected.' : 'Microphone level'}</small>
-              </div>
-            )}
-            {phase === 'done' && silent && <div className="pm-msg err" style={{ marginBottom: 12 }}>We could not hear your voice in this recording. Check that your microphone is not muted and the right one is selected, then record again. A silent recording cannot be scored.</div>}
-            <div className="clx-actions" style={{ justifyContent: 'center' }}>
-              {phase === 'ready' && <button className="clx-btn primary" onClick={start}><i className="bi bi-mic-fill" /> Start recording</button>}
-              {phase === 'rec' && <button className="clx-btn primary" onClick={() => recRef.current?.stop()}><i className="bi bi-stop-fill" /> Stop</button>}
-              {phase === 'done' && <><button className="clx-btn" onClick={() => { setPlayUrl(''); blobRef.current = null; setElapsed(0); setSilent(false); setPhase('ready'); }}><i className="bi bi-arrow-counterclockwise" /> Re-record</button><button className="clx-btn teal" onClick={submit} disabled={silent} title={silent ? 'No voice was heard in this recording' : ''}><i className="bi bi-stars" /> Submit for AI feedback</button></>}
-              {phase === 'submitting' && <span style={{ color: '#2F3F56', fontSize: 13 }}><i className="bi bi-hourglass-split" /> Transcribing and evaluating…</span>}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
 
 const ProfileForm: React.FC = () => {
   const [p, setP] = useState<CommProfile>({});
@@ -205,6 +53,7 @@ const ResultView: React.FC<{ a: CommAttempt; onClose: () => void }> = ({ a, onCl
     title={a.challengeTitle || 'Your recording'} score={e.overallScore ?? 0} level={e.readinessLevel}
     message={e.dailyCoachMessage} strengths={e.strengths} improve={e.areasToImprove}
     nextFocus={e.nextPracticeFocus} betterAnswer={e.improvedIntroduction}
+    fixes={[...(e.grammarCorrections || []), ...(e.sentenceImprovements || [])]}
     onBack={onClose} backLabel="Back"
     measures={[
       { label: 'Words per minute', value: wpm ?? '—', hint: e.speakingSpeed?.recommendedRange ? `Comfortable range: ${e.speakingSpeed.recommendedRange}` : undefined },
@@ -288,7 +137,7 @@ const CommunicationLab: React.FC = () => {
     {tab === 'leaderboard' && <div className="clx-card">{!board ? <div className="clx-empty">Loading leaderboard…</div> : !board.enabled ? <div className="clx-empty"><i className="bi bi-bar-chart"/><h3>Leaderboard unavailable</h3><p>The leaderboard is turned off for your institute.</p></div> : board.rows?.length ? board.rows.map((r:any)=><div className={`clx-rank ${r.me?'me':''}`} key={r.studentId}><span className="place">{r.rank <= 3 ? <i className="bi bi-trophy-fill" style={{ color: ['#d4a017', '#94a3b8', '#b4733a'][r.rank - 1] }} /> : r.rank}</span><span className="name">{r.name}{r.me?' (You)':''}</span><span className="stat">{r.days} day{r.days === 1 ? '' : 's'} practised{r.streak > 0 ? <> · <i className="bi bi-fire"/> {r.streak}-day streak</> : ''}</span><strong style={{color:scoreColor(r.avg)}} title="Average score">{r.avg}</strong></div>) : <div className="clx-empty"><i className="bi bi-people"/><h3>No rankings yet</h3><p>Complete a practice session to get started.</p></div>}</div>}
 
     {coachStep && <Recorder
-      today={{ date: todayStr(), challenge: { _id: 'coach', title: coachStep.prompt.title, description: `${coachStep.prompt.ask} You can listen before you send. Once sent, this answer is final and cannot be redone.`, recordingModes: ['video', 'audio'], minSeconds: 20, maxSeconds: 180 } }}
+      today={{ date: todayStr(), challenge: { _id: 'coach', title: coachStep.prompt.title, description: coachStep.prompt.ask, minSeconds: 20, maxSeconds: 180 } }}
       submitter={(blob, mode) => communicationApi.coachSubmit(coachStep.area, coachStep.index, blob, mode)}
       onDone={(r: any) => { setCoachStep(null); setCoachResult({ a: r.attempt, next: r.next }); setCoach(r.next); loadOverview(); setGoalKey(k => k + 1); }}
       onClose={() => setCoachStep(null)} />}

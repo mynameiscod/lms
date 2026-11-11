@@ -1,6 +1,7 @@
 import { getAnthropic, getOpenAI, isAnthropicEnabled } from './aiClients';
 import * as settings from './settingsService';
 import { IResumeSections, IResumeScore } from '../models/Resume';
+import { scoreByRubric, stripHtml, descriptionBullets } from './resumeRubric';
 
 /**
  * Resume ATS scoring + AI auto-improve.
@@ -16,7 +17,7 @@ const stripJson = (s: string) => s.replace(/```json\n?/gi, '').replace(/```\n?/g
 const clamp = (n: any, max: number) => Math.max(0, Math.min(Number(n) || 0, max));
 
 /** Call the best available model (Claude preferred, OpenAI fallback) → raw text. */
-async function aiComplete(prompt: string, maxTokens = 1800): Promise<string> {
+async function aiComplete(prompt: string, maxTokens = 1800, temperature = 0.3): Promise<string> {
   // Anthropic first, OpenAI as a fallback — and the fallback must cover a client that
   // EXISTS but whose call fails. The old check only fell through when the client was
   // absent, so an expired key or an exhausted credit balance took the whole feature down
@@ -27,7 +28,7 @@ async function aiComplete(prompt: string, maxTokens = 1800): Promise<string> {
     if (anth) {
       try {
         const model = settings.getStr('INTERVIEW_AI_MODEL', 'claude-sonnet-4-6');
-        const r: any = await anth.messages.create({ model, max_tokens: maxTokens, temperature: 0.3, messages: [{ role: 'user', content: prompt }] });
+        const r: any = await anth.messages.create({ model, max_tokens: maxTokens, temperature, messages: [{ role: 'user', content: prompt }] });
         const block = (r.content || []).find((b: any) => b.type === 'text');
         if (block?.text) return block.text;
         anthropicError = new Error('Anthropic returned no text');
@@ -44,59 +45,58 @@ async function aiComplete(prompt: string, maxTokens = 1800): Promise<string> {
       || new Error('No AI provider configured (set ANTHROPIC_API_KEY or OPENAI_API_KEY).');
   }
   const model = settings.getStr('OPENAI_MODEL', 'gpt-4o-mini');
-  const resp = await openai.chat.completions.create({ model, temperature: 0.3, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] });
+  const resp = await openai.chat.completions.create({ model, temperature, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] });
   return resp.choices[0]?.message?.content || '';
 }
 
-export async function scoreResume(sections: IResumeSections): Promise<IResumeScore> {
-  const prompt = `You are a real-world ATS (Applicant Tracking System) + senior technical recruiter. Score this resume HONESTLY for a software role — reward what is genuinely good and penalise what is genuinely weak. Do NOT default to a middle score.
-
-Score each section against these criteria (partial credit; be critical):
-- contact (max 10): name, professional email, phone; LinkedIn + GitHub links present.
-- summary (max 15): a sharp 2-3 line summary naming the target role + key skills. Generic, filler, or repeated text scores near 0.
-- experience (max 20): strong action verbs AND quantified impact (%, numbers, scale). Vague duties with no metrics score low.
-- education (max 15): degree, institution, year, CGPA/%.
-- skills (max 20): relevant, grouped, enough breadth + depth; role-relevant keywords.
-- projects (max 10): real projects with tech stack AND outcomes/impact; links a plus.
-- ats (max 10): single-column, parseable, standard headings, role keywords, no fluff.
-
-Score bands (calibrate the total to these): a weak/incomplete resume 35-55; an average one 60-75; a strong, complete one 80-90; and a fully ATS-optimised resume — all sections complete, quantified achievements, rich role keywords, clean single-column structure, no filler — 92-98. Do NOT inflate weak resumes, but DO reward a genuinely polished, complete, keyword-rich resume with a score in the 90s. Penalise missing quantification, filler/duplicate text, missing keywords and thin content.
-
-Return ONLY valid JSON (no markdown, no commentary) in exactly this shape — compute EVERY number yourself from THIS resume; never copy an example:
-{"breakdown": {"contact": <0-10>, "summary": <0-15>, "experience": <0-20>, "education": <0-15>, "skills": <0-20>, "projects": <0-10>, "ats": <0-10>}, "suggestions": [{"section": "<section>", "issue": "<specific problem>", "fix": "<specific, actionable fix>"}], "atsWarnings": ["<warning>"], "keywordsFound": ["<kw>"], "keywordsMissing": ["<kw>"]}
-
-Give max 6 of the most impactful, specific suggestions; flag only real issues.
-
-Resume data (JSON):
-${JSON.stringify(sections, null, 2).slice(0, 5000)}`;
-
-  // Deliberately NOT caught into a zero score. A resume with every section filled in was
-  // being returned as 0/100 across the board because the AI call failed — and a member
-  // cannot tell "our AI is down" from "your resume is worthless". The caller already
-  // turns a thrown error into an honest message, so let it.
-  const raw = await aiComplete(prompt);
-  let parsed: any;
-  try { parsed = JSON.parse(stripJson(raw)); }
-  catch {
-    console.error('[resume] unparseable AI response:', String(raw).slice(0, 300));
-    throw new Error('The scoring service returned an unreadable response. Please try again.');
-  }
-
-  const b = parsed.breakdown || {};
-  const breakdown = {
-    contact: clamp(b.contact, 10), summary: clamp(b.summary, 15), experience: clamp(b.experience, 20),
-    education: clamp(b.education, 15), skills: clamp(b.skills, 20), projects: clamp(b.projects, 10), ats: clamp(b.ats, 10),
-  };
-  // The total is the sum of the (clamped) breakdown — it can't be inflated or anchored.
-  const total = Math.min(100, Object.values(breakdown).reduce((a, n) => a + n, 0));
+/**
+ * The ATS score: computed by the rubric (resumeRubric.ts), so the same resume always gets the same number and every
+ * point is a check the member can see. When an AI model is available it adds up to three wording suggestions on
+ * top — specific to this resume — but it never changes the score, and the score does not need it.
+ */
+export async function scoreResume(sections: IResumeSections, opts: { targetRole?: string } = {}): Promise<IResumeScore> {
+  const plain: any = JSON.parse(JSON.stringify(sections || {}));
+  const r = scoreByRubric(plain, opts);
+  const suggestions = [...r.suggestions];
+  try {
+    const ai = await aiWordingTips(plain);
+    for (const t of ai) if (suggestions.length < 10) suggestions.push(t);
+  } catch { /* the rubric's fix list stands on its own */ }
   return {
-    total,
-    breakdown,
-    suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions.slice(0, 6) : [],
-    atsWarnings: Array.isArray(parsed.atsWarnings) ? parsed.atsWarnings : [],
-    keywordsFound: Array.isArray(parsed.keywordsFound) ? parsed.keywordsFound : [],
-    keywordsMissing: Array.isArray(parsed.keywordsMissing) ? parsed.keywordsMissing : [],
-  };
+    total: r.total,
+    breakdown: r.breakdown as any,
+    maxes: r.maxes as any,
+    fresher: r.fresher,
+    checks: r.checks.map(c => ({ section: c.section, label: c.label, got: c.got, max: Math.round(c.max * 10) / 10 })),
+    suggestions,
+    atsWarnings: r.atsWarnings,
+    keywordsFound: r.keywordsFound,
+    keywordsMissing: r.keywordsMissing,
+  } as any;
+}
+
+/** Up to three concrete rewording tips from the model, about lines that are actually in the resume. Best effort. */
+async function aiWordingTips(sections: any): Promise<{ section: string; issue: string; fix: string }[]> {
+  const lines: string[] = [
+    ...(sections.experience || []).flatMap((e: any) => (e.bullets || []).map((b: string) => stripHtml(b))),
+    ...(sections.projects || []).flatMap((p: any) => descriptionBullets(p.description || '')),
+  ].filter(Boolean).slice(0, 30);
+  if (!lines.length) return [];
+  const prompt = `You are a resume coach for Indian engineering freshers. Below are lines from ONE resume. Pick the (at most) 3 weakest lines and show how to reword each one more strongly.
+Rules: keep every fact true — do NOT add numbers, tools, employers or results that are not already in the line; you may reorder, tighten, and start with a strong verb. If a number would help, say "add the real number (e.g. how many users)" instead of inventing one.
+Return ONLY JSON: {"tips":[{"line":"<the original line, copied exactly>","better":"<the reworded line>","why":"<one short reason>"}]}
+
+Lines:
+${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
+  const raw = await aiComplete(prompt, 900, 0);
+  const parsed = JSON.parse(stripJson(raw));
+  const known = new Set(lines.map(l => l.toLowerCase().trim()));
+  return (Array.isArray(parsed?.tips) ? parsed.tips : [])
+    .filter((t: any) => t && typeof t.line === 'string' && typeof t.better === 'string' && known.has(t.line.toLowerCase().trim()))
+    // A tip that slips in a number the line did not have is dropped: invented metrics are never suggested.
+    .filter((t: any) => { const nums = (x: string) => (String(x).match(/\d+(?:[.,]\d+)*/g) || []).map(n => n.replace(/,/g, '')); const have = new Set(nums(t.line)); return nums(t.better).every(n => have.has(n)); })
+    .slice(0, 3)
+    .map((t: any) => ({ section: 'wording', issue: `Reword: "${String(t.line).slice(0, 120)}${String(t.line).length > 120 ? '…' : ''}"`, fix: `Try: "${String(t.better).slice(0, 220)}"${t.why ? ` — ${String(t.why).slice(0, 120)}` : ''}` }));
 }
 
 /**
@@ -110,52 +110,92 @@ export async function improveResume(sectionsInput: IResumeSections): Promise<IRe
   // not the real fields (which dropped e.g. certifications and crashed the client).
   // Round-trip to a plain object first so { ...sections } keeps every field.
   const sections: any = JSON.parse(JSON.stringify(sectionsInput || {}));
-  const prompt = `You are an expert resume writer producing a COMPLETE, ATS-optimised, one-page software resume that will score in the 90s. Rewrite the content to be rich, keyword-dense and impact/metric-driven, and make it substantial enough to fill a full page — WITHOUT inventing false facts (no fake companies, degrees or job titles). Keep it truthful to the person's real experience and projects; you may reasonably quantify impact with plausible numbers.
+  const prompt = `You are an expert resume writer improving a fresher's software resume for ATS and recruiters.
 
-Rewrite and EXPAND:
-- summary: a strong 3-4 line professional summary for their target role, packed with the most relevant skills and technologies.
-- experience[].bullets: 3-5 strong action-verb, quantified bullets per role (metrics, %, scale). Keep the same jobs.
-- projects[].description: return RICH HTML as a bullet list of 3-4 quantified impact points, e.g. "<ul><li>Built X using <b>Spring Boot</b>, cutting Y by 40%</li><li>...</li></ul>". Each project should read like a mini case study.
-- skills: keep the person's real skills, grouped into clear categories, and ADD clearly-implied relevant industry keywords so the resume is comprehensive (aim for good breadth across each category).
+STRICT TRUTH RULES (the member's facts must not change):
+- Do NOT invent numbers, percentages, users, scale, employers, tools, technologies, results or awards. Keep every number that is already there exactly as written. If a line has no number, rewrite it strongly WITHOUT adding one.
+- Do NOT add skills the person did not list. You may regroup their existing skills into clearer categories.
+- Do NOT change contact, education, certifications, company names, role titles, project names, tech lists or dates.
 
-Do NOT change: contact, education, certifications, company/role names, project names, tech lists, or dates.
+Improve the wording:
+- summary: 2-3 sharp lines naming their target role and strongest real skills/evidence; no "I/my", no cliches.
+- experience[].bullets: start each with a strong action verb, make the impact clear, keep 2-5 bullets per role, same facts.
+- projects[].bullets: 2-4 bullets per project (problem, what they built with which of THEIR tech, the result they stated).
+- skills: same items, grouped into clear categories (Languages, Frameworks, Databases, Tools, Cloud, ...).
 
-Return ONLY valid JSON with the SAME structure as the input (include all fields). The projects[].description fields must contain the HTML bullet-list strings described above. No markdown fences.
+Return ONLY valid JSON: {"summary":"","experience":[{"bullets":[""]}],"projects":[{"bullets":[""]}],"skills":[{"category":"","items":[""]}]}
+The experience and projects arrays must be in the same order and length as the input. No markdown fences.
 
 Current resume (JSON):
-${JSON.stringify(sections, null, 2).slice(0, 6000)}`;
+${JSON.stringify(compactForPrompt(sections), null, 1).slice(0, 12000)}`;
 
   let parsed: any;
   // Returning `sections` unchanged on failure meant "Improve with AI" quietly did
   // nothing, which a member reads as the AI judging their resume already perfect.
-  try { parsed = JSON.parse(stripJson(await aiComplete(prompt, 4096))); }
+  try { parsed = JSON.parse(stripJson(await aiComplete(prompt, 4096, 0.2))); }
   catch (e: any) {
     console.error('[resume] improve failed:', String(e?.message || e).slice(0, 200));
     throw new Error('Could not improve the resume right now. Please try again shortly.');
   }
 
-  const skillsOk = Array.isArray(parsed.skills) && parsed.skills.every((g: any) => g && typeof g.category === 'string' && Array.isArray(g.items));
+  // Guards, in code, for what the prompt asks: numbers the resume never had are refused line by line, and skills it
+  // never listed are dropped. A rewrite that breaks a rule falls back to the member's own line.
+  const sourceText = JSON.stringify(sections).toLowerCase();
+  // Whole numbers only: "5" must be a number the resume has, not the 5 inside "2025". "10,000" and "10000" match.
+  const numTokens = (t: string) => (String(t).match(/\d+(?:[.,]\d+)*/g) || []).map(n => n.replace(/,/g, ''));
+  const sourceNumbers = new Set(numTokens(sourceText));
+  const numbersOk = (line: string) => numTokens(line).every(n => sourceNumbers.has(n));
+  const known = new Set<string>((sections.skills || []).flatMap((g: any) => g.items || []).map((x: string) => String(x).toLowerCase().trim()));
+  const skillsShapeOk = Array.isArray(parsed.skills) && parsed.skills.every((g: any) => g && typeof g.category === 'string' && Array.isArray(g.items));
+  const skills = skillsShapeOk
+    ? parsed.skills.map((g: any) => ({ category: g.category.trim(), items: g.items.map((x: any) => String(x).trim()).filter((x: string) => known.has(x.toLowerCase())) })).filter((g: any) => g.items.length)
+    : [];
+  const kept = new Set(skills.flatMap((g: any) => g.items.map((x: string) => x.toLowerCase())));
+  const lost = Array.from(known).filter(k => !kept.has(k));
+  const summary = typeof parsed.summary === 'string' && parsed.summary.trim() && numbersOk(parsed.summary) ? parsed.summary.trim() : sections.summary;
   return {
     ...sections,
-    summary: typeof parsed.summary === 'string' && parsed.summary.trim() ? parsed.summary : sections.summary,
-    experience: mergeExperience(sections.experience, parsed.experience),
-    projects: mergeProjects(sections.projects, parsed.projects),
-    skills: skillsOk && parsed.skills.length ? parsed.skills : sections.skills,
+    summary,
+    experience: mergeExperience(sections.experience, parsed.experience, numbersOk),
+    projects: mergeProjects(sections.projects, parsed.projects, numbersOk),
+    // Regrouping is welcome; losing a skill is not — if any went missing, keep the member's own grouping.
+    skills: skills.length && !lost.length ? skills : sections.skills,
   };
 }
 
-function mergeExperience(orig: any[], improved: any): any[] {
+/** The resume as the model needs to see it: plain text, no HTML, no ids. */
+function compactForPrompt(s: any) {
+  return {
+    title: s.contact?.title || '',
+    summary: stripHtml(s.summary || ''),
+    experience: (s.experience || []).map((e: any) => ({ role: e.role, company: e.company, bullets: (e.bullets || []).map(stripHtml) })),
+    projects: (s.projects || []).map((p: any) => ({ name: p.name, tech: p.tech || [], bullets: descriptionBullets(p.description || '') })),
+    skills: s.skills || [],
+  };
+}
+
+const escHtml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function mergeExperience(orig: any[], improved: any, numbersOk: (l: string) => boolean): any[] {
   if (!Array.isArray(improved)) return orig || [];
   return (orig || []).map((e, i) => {
     const im = improved[i];
-    return im && Array.isArray(im.bullets) && im.bullets.filter(Boolean).length ? { ...e, bullets: im.bullets.filter(Boolean) } : e;
+    const bullets = im && Array.isArray(im.bullets) ? im.bullets.map((b: any) => String(b || '').trim()).filter(Boolean) : [];
+    if (!bullets.length) return e;
+    // A bullet with an invented number is replaced by the original bullet in the same position (or dropped).
+    const safe = bullets.map((b: string, j: number) => (numbersOk(b) ? b : (e.bullets || [])[j])).filter(Boolean);
+    return safe.length ? { ...e, bullets: safe } : e;
   });
 }
-function mergeProjects(orig: any[], improved: any): any[] {
+function mergeProjects(orig: any[], improved: any, numbersOk: (l: string) => boolean): any[] {
   if (!Array.isArray(improved)) return orig || [];
   return (orig || []).map((p, i) => {
     const im = improved[i];
-    return im && typeof im.description === 'string' && im.description.trim() ? { ...p, description: im.description } : p;
+    const bullets = im && Array.isArray(im.bullets) ? im.bullets.map((b: any) => String(b || '').trim()).filter(Boolean) : [];
+    if (!bullets.length) return p;
+    const original = descriptionBullets(p.description || '');
+    const safe = bullets.map((b: string, j: number) => (numbersOk(b) ? b : original[j])).filter(Boolean);
+    return safe.length ? { ...p, description: `<ul>${safe.map((b: string) => `<li>${escHtml(b)}</li>`).join('')}</ul>` } : p;
   });
 }
 

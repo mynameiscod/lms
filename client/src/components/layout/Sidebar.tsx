@@ -9,6 +9,7 @@ import { useTenantModules, TenantModules } from '../../contexts/TenantModulesCon
 import { useBatchModules } from '../../contexts/BatchModulesContext';
 import { StudentFeatureKey } from '../../config/studentFeatureCatalog';
 import visualizerApi from '../../api/visualizerApi';
+import { thinkingLabApi } from '../../api/thinkingLabApi';
 import './Sidebar.css';
 
 /**
@@ -33,6 +34,7 @@ const HIDDEN_FROM_MENU = new Set<string>([
 const GIVEN_ONLY_PERMISSIONS = new Set([
   'support_agent', 'support_manager',
   'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
+  'manage_careerpilot_limits',
 ]);
 
 interface MenuItem {
@@ -84,6 +86,15 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     visualizerApi.access().then(a => alive && setVzAllowed(!!a.allowed)).catch(() => alive && setVzAllowed(false));
     return () => { alive = false; };
   }, [user?.role]);
+
+  /* An LMS student sees the Thinking Lab only once their batch has a daily lab track; until then it stays hidden. */
+  const [labAssigned, setLabAssigned] = useState(true);
+  useEffect(() => {
+    if (user?.role !== 'STUDENT') return;
+    let alive = true;
+    thinkingLabApi.assigned().then(a => alive && setLabAssigned(!!a.assigned)).catch(() => alive && setLabAssigned(true));
+    return () => { alive = false; };
+  }, [user?.role, (user as any)?.batchId]);
 
   const isActive = (path?: string) => path ? location.pathname === path : false;
 
@@ -238,6 +249,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'CareerPilot Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport', 'manage_passport_setup'] },
     { label: 'CareerPilot Members', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['view_passport_members', 'manage_passport', 'manage_passport_members'] },
     { label: 'CareerPilot Trials', path: '/admin/passport/trial-plans', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-hourglass-half', permissions: ['manage_passport', 'manage_passport_members'] },
+    { label: 'CareerPilot Limits', path: '/admin/passport/limits', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-gauge-high', permissions: ['manage_careerpilot_limits'] },
     { label: 'CareerPilot Demo Plans', path: '/admin/passport/demo-plans', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-person-chalkboard', permissions: ['manage_demo_accounts'] },
     { label: 'CareerPilot Job Openings', path: '/admin/passport/job-openings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', permissions: ['manage_job_openings'] },
     /* FIVE ENTRIES WERE REMOVED FROM HERE, NOT FIVE SCREENS.
@@ -394,7 +406,19 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       && !!item.permissions && item.permissions.length > 0
       && item.roles.some(r => r !== 'STUDENT');
 
-    if (givenOnRolesScreen) {
+    /*
+     * A custom role on a STUDENT base — people are invited as students, then given a role on the Users screen. They
+     * keep the student pages they had, and also get every staff page their role's permissions open. Before, the menu
+     * judged them as a plain student: the role was saved and the server allowed its pages, but none of them showed.
+     */
+    const studentWithRole = user.role === 'STUDENT' && !!user.customRoleId;
+
+    if (studentWithRole) {
+      // The role decides: a page that needs a permission shows only if the role has it (staff pages and student
+      // pages alike); a student page that needs none stays, as it does for every student.
+      const needsPermission = !!item.permissions && item.permissions.length > 0;
+      if (needsPermission ? !hasItemPermission : !roleAllowed) return false;
+    } else if (givenOnRolesScreen) {
       // shown; the module gate below still applies
     } else if (decidedByPermissions) {
       if (!hasItemPermission) return false;
@@ -405,6 +429,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     }
 
     if (user.role === 'STUDENT' && item.needsVisualizerGrant && !vzAllowed) return false;
+    if (user.role === 'STUDENT' && item.path === '/thinking-lab' && !labAssigned) return false;
 
     // Platform-level module gate (applies to ALL roles — set by SUPER_ADMIN per tenant). Every page
     // belongs to a module by its path (config/tenantModules); an explicit moduleKey still wins.

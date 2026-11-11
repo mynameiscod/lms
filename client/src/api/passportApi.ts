@@ -1411,6 +1411,8 @@ export const passportApi = {
     const { data } = await axios.post(`${BASE}/interview/start`, body, { headers: auth() });
     return data;
   },
+  /** One sitting, fresh from the server (History opens it with this rather than the list snapshot). */
+  getInterviewSession: async (id: string): Promise<{ session: InterviewSession }> => (await axios.get(`${BASE}/interview/${id}`, { headers: auth() })).data,
   interviewTurn: async (id: string, answer: string): Promise<{ say: string; kind: string; endInterview: boolean; session: InterviewSession }> => {
     const { data } = await axios.post(`${BASE}/interview/${id}/turn`, { answer }, { headers: auth() });
     return data;
@@ -1460,7 +1462,8 @@ export const passportApi = {
   },
 
   /** Import an existing CV. Parsed fields fill gaps only — they never overwrite typed work. */
-  importResume: async (file: File): Promise<{ sections: ResumeSections; importedChars: number }> => {
+  /** Reads the file and returns what it found — NOT saved: the member chooses to replace or fill gaps, then saves. */
+  importResume: async (file: File): Promise<{ parsed: ResumeSections; found: Record<string, number | boolean>; importedChars: number }> => {
     const fd = new FormData();
     fd.append('file', file);
     const { data } = await axios.post(`${BASE}/resume/import`, fd, { headers: auth() });
@@ -1926,30 +1929,35 @@ export const passportApi = {
     });
   },
 
-  // ── Mock interview plans (admin) ──
-  listInterviewPlans: async (): Promise<InterviewPlansResponse> => {
-    const { data } = await axios.get(`${BASE}/interview-plans`, { headers: auth() });
+  // ── Mock interview plans (admin). `platform`: the super admin's plans for every institute (CareerPilot Limits). ──
+  listInterviewPlans: async (platform = false): Promise<InterviewPlansResponse> => {
+    const { data } = await axios.get(`${BASE}${platform ? '/platform' : ''}/interview-plans`, { headers: auth() });
     return data;
   },
-  createInterviewPlan: async (payload: InterviewPlanInput): Promise<{ plan: InterviewPlan }> => {
-    const { data } = await axios.post(`${BASE}/interview-plans`, payload, { headers: auth() });
+  createInterviewPlan: async (payload: InterviewPlanInput, platform = false): Promise<{ plan: InterviewPlan }> => {
+    const { data } = await axios.post(`${BASE}${platform ? '/platform' : ''}/interview-plans`, payload, { headers: auth() });
     return data;
   },
-  updateInterviewPlan: async (id: string, payload: InterviewPlanInput): Promise<{ plan: InterviewPlan }> => {
-    const { data } = await axios.put(`${BASE}/interview-plans/${id}`, payload, { headers: auth() });
+  updateInterviewPlan: async (id: string, payload: InterviewPlanInput, platform = false): Promise<{ plan: InterviewPlan }> => {
+    const { data } = await axios.put(`${BASE}${platform ? '/platform' : ''}/interview-plans/${id}`, payload, { headers: auth() });
     return data;
   },
-  deleteInterviewPlan: async (id: string): Promise<void> => {
-    await axios.delete(`${BASE}/interview-plans/${id}`, { headers: auth() });
+  deleteInterviewPlan: async (id: string, platform = false): Promise<void> => {
+    await axios.delete(`${BASE}${platform ? '/platform' : ''}/interview-plans/${id}`, { headers: auth() });
   },
-  reorderInterviewPlans: async (ids: string[]): Promise<{ plans: InterviewPlan[]; warnings: PlanWarning[] }> => {
-    const { data } = await axios.put(`${BASE}/interview-plans/reorder`, { ids }, { headers: auth() });
+  reorderInterviewPlans: async (ids: string[], platform = false): Promise<{ plans: InterviewPlan[]; warnings: PlanWarning[] }> => {
+    const { data } = await axios.put(`${BASE}${platform ? '/platform' : ''}/interview-plans/reorder`, { ids }, { headers: auth() });
     return data;
   },
-  previewInterviewPlan: async (studentId: string): Promise<InterviewPlanPreview> => {
-    const { data } = await axios.get(`${BASE}/interview-plans/preview`, { headers: auth(), params: { studentId } });
+  previewInterviewPlan: async (studentId: string, platform = false): Promise<InterviewPlanPreview> => {
+    const { data } = await axios.get(`${BASE}${platform ? '/platform' : ''}/interview-plans/preview`, { headers: auth(), params: { studentId } });
     return data;
   },
+
+  // ── CareerPilot Limits (super admin): Thinking Lab day and the left-open interview window. ──
+  getPlatformLimits: async (): Promise<PlatformLimits> => (await axios.get(`${BASE}/platform/limits`, { headers: auth() })).data,
+  savePlatformLimits: async (payload: { thinking?: PlatformLimits['thinking']; interviewStaleHours?: number }): Promise<PlatformLimits> =>
+    (await axios.put(`${BASE}/platform/limits`, payload, { headers: auth() })).data,
 
 };
 
@@ -2002,6 +2010,15 @@ export interface PlanBounds {
   priority: { min: number; max: number };
 }
 
+export interface PlatformLimits {
+  thinking: Record<string, { perDay: number; codingPerDay: number; practicePerDay: number }>;
+  thinkingSaved: boolean;
+  interviewStaleHours: number;
+  years: string[];
+  bounds: { perDayMax: number; practicePerDayMax: number; staleHours: { min: number; max: number } };
+  updatedAt: string | null;
+}
+
 export interface InterviewPlansResponse {
   plans: InterviewPlan[];
   warnings: PlanWarning[];
@@ -2011,6 +2028,10 @@ export interface InterviewPlansResponse {
   bounds: PlanBounds;
   roundTypes: { key: InterviewRoundType; label: string }[];
   defaultShape: { rounds: InterviewRound[]; totals: { questions: number; minutes: number } };
+  /** True on an institute's screen: the limits are the super admin's. */
+  readOnly?: boolean;
+  /** True once the super admin has written plans, which then apply to every institute. */
+  managedByPlatform?: boolean;
 }
 
 export interface PlanTraceRow {
@@ -2363,7 +2384,7 @@ export interface InterviewSession {
   /** Which plan round this was, and what it was called at the time. Null on untyped mocks. */
   planRoundKey?: string | null;
   planRoundLabel?: string | null;
-  maxQuestions: number; askedCount: number; status: 'in_progress' | 'completed' | 'abandoned';
+  maxQuestions: number; askedCount: number; status: 'in_progress' | 'finalizing' | 'completed' | 'abandoned';
   transcript: InterviewTurn[];
   evaluation?: {
     overallScore: number; readinessLevel: string; summary: string;
@@ -2387,6 +2408,11 @@ export interface ResumeSections {
 export interface ResumeScore {
   total: number;
   breakdown: { contact: number; summary: number; experience: number; education: number; skills: number; projects: number; ats: number };
+  /** Each section's maximum for this resume; a fresher's experience weight moves to projects (experience max 0). */
+  maxes?: { contact: number; summary: number; experience: number; education: number; skills: number; projects: number; ats: number };
+  fresher?: boolean;
+  /** Every rubric check the score is made of. */
+  checks?: { section: string; label: string; got: number; max: number }[];
   suggestions: { section: string; issue: string; fix: string }[];
   atsWarnings: string[]; keywordsFound: string[]; keywordsMissing: string[];
 }

@@ -18,11 +18,18 @@ describe('Thinking Lab day', () => {
 
   it('settings: 1 a day by default, never coding in Year 1, coding never more than the day', () => {
     const s = labDailySettings(undefined);
-    expect(s.thinking.build).toEqual({ perDay: 1, codingPerDay: 0 });
+    expect(s.thinking.build).toEqual({ perDay: 1, codingPerDay: 0, practicePerDay: 10 });
     expect(s.communication.placement).toEqual({ perDay: 1 });
     const t = labDailySettings({ thinking: { foundation: { perDay: 3, codingPerDay: 2 }, build: { perDay: 2, codingPerDay: 4 } } });
-    expect(t.thinking.foundation).toEqual({ perDay: 3, codingPerDay: 0 });
-    expect(t.thinking.build).toEqual({ perDay: 2, codingPerDay: 2 });
+    expect(t.thinking.foundation).toEqual({ perDay: 3, codingPerDay: 0, practicePerDay: 10 });
+    expect(t.thinking.build).toEqual({ perDay: 2, codingPerDay: 2, practicePerDay: 10 });
+  });
+
+  it('practice per day: 10 by default, 0 turns it off, never above the maximum', () => {
+    const t = labDailySettings({ thinking: { foundation: { perDay: 1, practicePerDay: 0 }, build: { perDay: 1, practicePerDay: 99 }, placement: { perDay: 1, practicePerDay: 4 } } });
+    expect(t.thinking.foundation.practicePerDay).toBe(0);
+    expect(t.thinking.build.practicePerDay).toBe(10);
+    expect(t.thinking.placement.practicePerDay).toBe(4);
   });
 
   it('coding opens from Year 2 once every basics unit in the roadmap is done', () => {

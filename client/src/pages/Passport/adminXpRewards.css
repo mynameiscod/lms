@@ -424,3 +424,16 @@
 .xr-labdaily thead th small { display: block; text-transform: none; letter-spacing: 0; font-weight: 600; }
 .xr-labdaily tbody th { font-size: 14px; font-weight: 800; color: var(--navy); white-space: nowrap; }
 .xr-labdaily tbody tr + tr > * { border-top: 1px solid var(--line); }
+.xr-locked { font-weight: 800; color: #051D64; font-size: 15px; }
+
+/* The daily set on phones: each year as a card, so the Communication column the institute sets is not off-screen. */
+@media (max-width: 640px) {
+  .careerpilot-admin-surface .xr-labdaily table, .xr-labdaily table { min-width: 0; }
+  .xr-labdaily thead { display: none; }
+  .xr-labdaily table, .xr-labdaily tbody, .xr-labdaily tr, .xr-labdaily tbody th, .xr-labdaily td { display: block; width: 100%; }
+  .xr-labdaily tbody tr { padding: 10px 0; }
+  .xr-labdaily tbody tr + tr > * { border-top: 0; }
+  .xr-labdaily tbody tr + tr { border-top: 1px solid var(--line); }
+  .xr-labdaily td { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; }
+  .xr-labdaily td::before { content: attr(data-label); font-size: 13px; font-weight: 700; color: var(--muted); }
+}

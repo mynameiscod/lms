@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import { LabTrack, LabTrackItem, LabTrackAssignment } from '../models/LabTrack';
+import ThinkingQuestion from '../models/ThinkingQuestion';
 import ThinkingProblem, { audienceFilter } from '../models/ThinkingProblem';
 import CommunicationChallenge from '../models/CommunicationChallenge';
 import { AuthRequest } from '../types/express';
@@ -109,9 +110,22 @@ export const getTrack = async (req: AuthRequest, res: Response) => {
 
     const items = await LabTrackItem.find({ trackId: track._id }).sort({ dayIndex: 1 }).lean();
     const ids = items.map((i: any) => i.contentId);
-    const bank: any[] = track.lab === 'thinking'
-      ? await ThinkingProblem.find({ _id: { $in: ids } }).select('title category difficulty').lean()
-      : await CommunicationChallenge.find({ _id: { $in: ids } }).select('title challengeType').lean();
+    let bank: any[];
+    if (track.lab === 'thinking') {
+      // A day names either a shared-bank question or an LMS problem; both are shown with a title, type and level.
+      const qIds = items.filter((i: any) => i.contentKind === 'question').map((i: any) => i.contentId);
+      const pIds = items.filter((i: any) => i.contentKind !== 'question').map((i: any) => i.contentId);
+      const [qs, ps] = await Promise.all([
+        ThinkingQuestion.find({ _id: { $in: qIds } }).select('title type subCategory difficulty years status').lean(),
+        ThinkingProblem.find({ _id: { $in: pIds } }).select('title category difficulty').lean(),
+      ]);
+      bank = [
+        ...qs.map((q: any) => ({ ...q, kind: 'question', category: q.subCategory || q.type })),
+        ...ps.map((x: any) => ({ ...x, kind: 'problem', type: 'coding' })),
+      ];
+    } else {
+      bank = await CommunicationChallenge.find({ _id: { $in: ids } }).select('title challengeType').lean();
+    }
     const byId = new Map(bank.map((b: any) => [String(b._id), b]));
 
     res.json({
@@ -139,11 +153,25 @@ export const libraryFor = async (req: AuthRequest, res: Response) => {
     const rx = search ? new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
 
     if (lab === 'thinking') {
-      // The admin assigns Thinking Lab work, so the pickable list is the LMS audience.
-      const q: any = { tenantId: tid(req), ...audienceFilter('lms') };
-      if (rx) q.title = rx;
-      const rows = await ThinkingProblem.find(q).select('title category difficulty').sort({ title: 1 }).limit(500).lean();
-      return res.json({ success: true, data: rows });
+      if (String(req.query.source || 'bank') === 'lms') {
+        // The institute's own LMS problems (the older library).
+        const q: any = { tenantId: tid(req), ...audienceFilter('lms') };
+        if (rx) q.title = rx;
+        const rows = await ThinkingProblem.find(q).select('title category difficulty').sort({ title: 1 }).limit(500).lean();
+        return res.json({ success: true, data: rows.map((r: any) => ({ ...r, kind: 'problem', type: 'coding' })) });
+      }
+      // The shared Thinking Lab bank (the same questions CareerPilot uses), published only.
+      const q: any = { status: 'PUBLISHED' };
+      if (rx) q.$or = [{ title: rx }, { statement: rx }, { subCategory: rx }];
+      for (const [k, field] of [['type', 'type'], ['difficulty', 'difficulty'], ['subCategory', 'subCategory']] as const) {
+        const v = String(req.query[k] || '').trim();
+        if (v) q[field] = v;
+      }
+      const year = String(req.query.year || '').trim();
+      if (year) q.$and = [{ $or: [{ years: { $size: 0 } }, { years: year }] }];
+      const rows = await ThinkingQuestion.find(q).select('title type subCategory difficulty years number').sort({ type: 1, difficulty: 1, number: 1 }).limit(300).lean();
+      const total = await ThinkingQuestion.countDocuments(q);
+      return res.json({ success: true, data: rows.map((r: any) => ({ ...r, kind: 'question', category: r.subCategory || r.type })), total });
     }
     if (lab === 'communication') {
       const q: any = { tenantId: oid(tid(req)) };
@@ -187,6 +215,7 @@ export const setTrackItems = async (req: AuthRequest, res: Response) => {
               tenantId: tid(req), trackId: track._id, dayIndex: day,
               contentId: oid(it.contentId), concept: it.concept || undefined,
               optional: !!it.optional,
+              ...(track.lab === 'thinking' ? { contentKind: it.contentKind === 'question' ? 'question' : 'problem' } : {}),
             },
           },
           upsert: true,
@@ -196,6 +225,86 @@ export const setTrackItems = async (req: AuthRequest, res: Response) => {
     await LabTrackItem.bulkWrite(ops, { ordered: false });
     const filled = await LabTrackItem.countDocuments({ trackId: track._id });
     res.json({ success: true, data: { filledDays: filled, totalDays: track.totalDays } });
+  } catch (e: any) { fail(res, 500, e.message); }
+};
+
+
+/*
+ * POST /lab-tracks/:id/autofill — "Fill the track for me".
+ * Body: { year, mix: { math, logical, critical, coding }, ramp?: true, onlyEmpty?: true }
+ *
+ * Fills the track's days from the shared Thinking Lab bank: questions for that year only, the types in the asked
+ * mix (a weighted rotation, so the mix holds across every week), easy → medium → hard across the track when ramp is
+ * on, and never the same question twice in one track. Year 1 gets no coding. Days already filled are kept unless
+ * onlyEmpty is false. The admin can still swap any day by hand afterwards.
+ */
+export const autofillTrack = async (req: AuthRequest, res: Response) => {
+  try {
+    const track: any = await LabTrack.findOne({ _id: req.params.id, tenantId: tid(req) }).lean();
+    if (!track) return fail(res, 404, 'Track not found');
+    if (track.lab !== 'thinking') return fail(res, 400, 'Only Thinking Lab tracks can be filled from the question bank.');
+    const YEARS = ['foundation', 'build', 'specialize', 'placement'];
+    const year = String(req.body?.year || '');
+    if (!YEARS.includes(year)) return fail(res, 400, 'Choose the year this track is for.');
+    const onlyEmpty = req.body?.onlyEmpty !== false;
+    const ramp = req.body?.ramp !== false;
+    const rawMix = req.body?.mix || {};
+    const types = ['math', 'logical', 'critical', 'coding'] as const;
+    const mix: Record<string, number> = {};
+    for (const t of types) mix[t] = Math.max(0, Math.min(10, Math.round(Number(rawMix[t]) || 0)));
+    if (year === 'foundation') mix.coding = 0;
+    if (!types.some(t => mix[t] > 0)) return fail(res, 400, 'Pick at least one type of question.');
+
+    const existing: any[] = await LabTrackItem.find({ trackId: track._id }).select('dayIndex contentId contentKind').lean();
+    const filledDays = new Set(existing.map((i: any) => i.dayIndex));
+    const used = new Set(existing.filter((i: any) => i.contentKind === 'question' && (onlyEmpty || false)).map((i: any) => String(i.contentId)));
+    const days: number[] = [];
+    for (let d = 1; d <= track.totalDays; d++) if (!onlyEmpty || !filledDays.has(d)) days.push(d);
+    if (!days.length) return res.json({ success: true, data: { filled: 0, message: 'Every day already has a question.' } });
+
+    // The pool: published, for this year, by type and difficulty, in a stable shuffled order (seeded by the track).
+    const pool: any[] = await ThinkingQuestion.find({ status: 'PUBLISHED', type: { $in: types.filter(t => mix[t] > 0) }, $or: [{ years: { $size: 0 } }, { years: year }] })
+      .select('_id type difficulty number').lean();
+    let seed = 0; for (const ch of String(track._id)) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+    const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    const buckets: Record<string, Record<string, any[]>> = {};
+    for (const t of types) buckets[t] = { easy: [], medium: [], hard: [] };
+    for (const q of pool) if (!used.has(String(q._id)) && buckets[q.type]?.[q.difficulty]) buckets[q.type][q.difficulty].push(q);
+    for (const t of types) for (const d of ['easy', 'medium', 'hard']) buckets[t][d].sort(() => rnd() - 0.5);
+
+    // Weighted rotation of types: each day goes to the type furthest behind its share.
+    const total = types.reduce((n, t) => n + mix[t], 0);
+    const given: Record<string, number> = { math: 0, logical: 0, critical: 0, coding: 0 };
+    const order = ['easy', 'medium', 'hard'];
+    const target = (pos: number) => (!ramp ? null : pos < 0.4 ? 'easy' : pos < 0.8 ? 'medium' : 'hard');
+    const take = (type: string, want: string | null) => {
+      const prefs = want ? [want, ...order.filter(x => x !== want).sort((a, b) => Math.abs(order.indexOf(a) - order.indexOf(want)) - Math.abs(order.indexOf(b) - order.indexOf(want)))] : order.slice().sort(() => rnd() - 0.5);
+      for (const d of prefs) { const q = buckets[type][d].shift(); if (q) return q; }
+      return null;
+    };
+    const ops: any[] = [];
+    const byType: Record<string, number> = {}; const byLevel: Record<string, number> = {};
+    let short = 0;
+    days.forEach((day, i) => {
+      const pos = days.length > 1 ? i / (days.length - 1) : 0;
+      const ranked = types.filter(t => mix[t] > 0).sort((a, b) => (given[a] / mix[a]) - (given[b] / mix[b]) || mix[b] - mix[a]);
+      let q: any = null;
+      for (const t of ranked) { q = take(t, target(pos)); if (q) { given[t]++; break; } }
+      if (!q) { short++; return; }
+      byType[q.type] = (byType[q.type] || 0) + 1; byLevel[q.difficulty] = (byLevel[q.difficulty] || 0) + 1;
+      ops.push({ updateOne: {
+        filter: { trackId: track._id, dayIndex: day },
+        update: { $set: { tenantId: tid(req), trackId: track._id, dayIndex: day, contentId: q._id, contentKind: 'question', optional: false } },
+        upsert: true,
+      } });
+    });
+    if (ops.length) await LabTrackItem.bulkWrite(ops, { ordered: false });
+    const filled = await LabTrackItem.countDocuments({ trackId: track._id });
+    void total;
+    res.json({ success: true, data: {
+      filled: ops.length, filledDays: filled, totalDays: track.totalDays, byType, byLevel,
+      short, message: short ? `${short} day(s) could not be filled — the bank has no more unused questions of the chosen types for this year.` : undefined,
+    } });
   } catch (e: any) { fail(res, 500, e.message); }
 };
 

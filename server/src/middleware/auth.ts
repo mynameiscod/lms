@@ -23,7 +23,7 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     console.log(`[AUTH] Token valid for user: ${decoded.id}`);
     
     // Check if user still exists and is active
-    const user = await User.findById(decoded.id).select('isActive customRoleId');
+    const user = await User.findById(decoded.id).select('isActive customRoleId role');
     if (!user) {
       console.log('[AUTH] User not found in database');
       return res.status(401).json({ 
@@ -42,7 +42,9 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
       });
     }
     
-    req.user = { ...decoded, customRoleId: user.customRoleId?.toString() || null };
+    // The role and custom role come from the account, not the token: a role changed on the Users screen applies
+    // on the person's next request instead of after they next log in.
+    req.user = { ...decoded, role: (user as any).role || decoded.role, customRoleId: user.customRoleId?.toString() || null };
     next();
   } catch (error) {
     console.log(`[AUTH] Token verification failed: ${error}`);

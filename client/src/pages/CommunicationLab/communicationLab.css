@@ -105,3 +105,26 @@
 /* CareerPilot members: today's speaking goal (DailyPracticeCard) above the coach. */
 .clx .clx-daily { margin: 0 0 16px; padding: 12px; border-radius: 16px; background: #fff; border: 1px solid #E2EAF2; }
 .clx .clx-daily .dp-labs { margin-top: 0; }
+
+/* Recorder: two video takes, watch back, send the better one */
+.clx-steps { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.clx-steps li { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; color: #2F3F56; line-height: 1.45; }
+.clx-steps li i { color: #005897; font-size: 16px; flex: 0 0 18px; margin-top: 1px; }
+.clx-preview video.clx-live { transform: scaleX(-1); }
+.clx-count { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.45); color: #fff; font-size: 64px; font-weight: 900; }
+.clx-take-tag { position: absolute; top: 12px; left: 12px; background: rgba(5,29,100,.85); color: #fff; border-radius: 99px; padding: 5px 10px; font-size: 11.5px; font-weight: 800; }
+.clx-meter { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+.clx-meter i { display: block; height: 100%; transition: width .08s; }
+.clx-review { margin-top: 12px; }
+.clx-review-hint { margin: 0; font-size: 13px; color: #2F3F56; line-height: 1.5; }
+.clx-review-hint i { color: #005897; margin-right: 4px; }
+.clx-takes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.clx-take { border: 1px solid #c8d8e6; background: #fff; color: #051d64; border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 750; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; min-height: 40px; }
+.clx-take.on { border-color: #005897; background: #eef6fb; color: #005897; box-shadow: 0 0 0 2px rgba(0,88,151,.15); }
+.clx-take:disabled { opacity: .6; cursor: not-allowed; }
+.clx-final-note { margin: 10px 0 0; text-align: center; font-size: 12px; color: #2F3F56; }
+@media (max-width: 520px) {
+  .clx-modal { padding: 12px 10px; }
+  .clx-modal-card { padding: 16px; }
+  .clx-modal-card .clx-actions .clx-btn { width: 100%; }
+}

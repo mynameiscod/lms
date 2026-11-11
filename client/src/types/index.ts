@@ -9,6 +9,8 @@ export interface User {
   batchName?: string;
   batchJoinedDate?: string;
   customRoleId?: string;
+  /** The custom role's name, shown in the top bar instead of the base role. */
+  customRoleName?: string | null;
   isActive: boolean;
   profilePicture?: string;
   createdAt?: string;

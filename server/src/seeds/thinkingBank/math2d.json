@@ -1,0 +1,1594 @@
+[
+  {
+    "seedKey": "math-211",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Tiling the classroom floor",
+    "statement": "A classroom floor is a rectangle 8 m long and 6 m wide. It is to be covered with square tiles of side 0.5 m (50 cm), with no gaps and no cutting.\nHow many tiles are needed?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "192",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Area of the floor = 8 x 6 = 48 square metres.",
+      "Area of one tile = 0.5 x 0.5 = 0.25 square metres.",
+      "Number of tiles = 48 / 0.25 = 192."
+    ],
+    "explanation": "The floor has area 48 m^2 and each tile covers 0.25 m^2, so 48 / 0.25 = 192 tiles. Check by rows: 8 / 0.5 = 16 tiles along the length and 6 / 0.5 = 12 along the width, and 16 x 12 = 192.",
+    "hints": [
+      "Find the area of the floor and the area of one tile.",
+      "One tile covers 0.25 square metres.",
+      "Divide 48 by 0.25, or count 16 tiles along one side and 12 along the other."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-212",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Fence around a circular park",
+    "statement": "A circular park in Vijayawada has a radius of 14 m. The municipality wants to put a fence along its boundary.\nHow many metres of fencing are needed? (Use pi = 22/7.)",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "88",
+    "acceptedAnswers": [
+      "88 m",
+      "88 metres"
+    ],
+    "keySteps": [
+      "The boundary of a circle is its circumference, 2 x pi x r.",
+      "Substitute r = 14: 2 x 22/7 x 14.",
+      "14 / 7 = 2, so the length is 2 x 22 x 2 = 88 m."
+    ],
+    "explanation": "The fence runs along the circumference, 2 x pi x r = 2 x 22/7 x 14 = 88 m. Check with the diameter: pi x d = 22/7 x 28 = 88 m.",
+    "hints": [
+      "The fence goes around the edge of the circle.",
+      "Circumference = 2 x pi x r.",
+      "2 x 22/7 x 14 - cancel the 7 first."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-213",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Ladder against the hostel wall",
+    "statement": "A 13 m long ladder leans against a vertical hostel wall. Its foot is 5 m away from the base of the wall on level ground.\nHow high up the wall does the top of the ladder reach (in metres)?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "12",
+    "acceptedAnswers": [
+      "12 m"
+    ],
+    "keySteps": [
+      "The wall, the ground and the ladder form a right-angled triangle with the ladder as the hypotenuse.",
+      "By Pythagoras, height^2 = 13^2 - 5^2 = 169 - 25 = 144.",
+      "Height = square root of 144 = 12 m."
+    ],
+    "explanation": "The ladder is the hypotenuse, so height^2 + 5^2 = 13^2, giving height^2 = 144 and height = 12 m. Check: 5, 12, 13 is a well-known Pythagorean triple (25 + 144 = 169).",
+    "hints": [
+      "Draw the picture - which angle is 90 degrees?",
+      "The ladder is the longest side of a right triangle.",
+      "Compute 13^2 - 5^2 and take the square root."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-214",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Outfits for the farewell party",
+    "statement": "Kavya has 4 shirts, 3 trousers and 2 pairs of shoes that all go well together. An outfit is one shirt, one pair of trousers and one pair of shoes.\nHow many different outfits can she make?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "24",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The three choices are independent of each other.",
+      "By the multiplication principle, multiply the number of options: 4 x 3 x 2.",
+      "4 x 3 x 2 = 24 outfits."
+    ],
+    "explanation": "Each shirt can go with any of the 3 trousers (12 shirt-trouser pairs), and each pair can go with either pair of shoes, so 12 x 2 = 24 outfits.",
+    "hints": [
+      "Fix one shirt and count how many ways you can finish the outfit.",
+      "One shirt gives 3 x 2 = 6 outfits.",
+      "Multiply 4 x 3 x 2."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-215",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Rearranging the word CODER",
+    "statement": "In how many different ways can the 5 letters of the word CODER be arranged (each arrangement uses every letter exactly once; it does not need to be a real word)?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "120",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "All 5 letters are different.",
+      "The first position has 5 choices, then 4, 3, 2 and 1.",
+      "5! = 5 x 4 x 3 x 2 x 1 = 120."
+    ],
+    "explanation": "Since the letters C, O, D, E, R are all distinct, the number of arrangements is 5! = 120. Check: if C is fixed first, the other 4 letters give 4! = 24, and each of the 5 letters can be first, so 5 x 24 = 120.",
+    "hints": [
+      "Are any letters repeated?",
+      "Fill the 5 positions one at a time.",
+      "5 x 4 x 3 x 2 x 1."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-216",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Handshakes at the club meeting",
+    "statement": "Ten students attend the first meeting of the coding club. Every student shakes hands exactly once with every other student.\nHow many handshakes take place in total?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "45",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A handshake is decided by choosing 2 students out of 10; order does not matter.",
+      "Number of handshakes = C(10, 2) = (10 x 9) / 2.",
+      "(10 x 9) / 2 = 45."
+    ],
+    "explanation": "Each handshake is a pair of students, so the count is C(10, 2) = 45. Check: each student shakes 9 hands, giving 10 x 9 = 90, but every handshake was counted twice, so 90 / 2 = 45.",
+    "hints": [
+      "Each handshake involves exactly two people.",
+      "How many hands does each person shake? Is anything counted twice?",
+      "10 x 9 / 2."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-217",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Prime number on a die",
+    "statement": "Sneha rolls one fair six-sided die. What is the probability that the number shown is a prime number?",
+    "answerFormat": "choice",
+    "choices": [
+      "1/3",
+      "1/2",
+      "2/3",
+      "1/6"
+    ],
+    "answer": "1/2",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The possible outcomes are 1, 2, 3, 4, 5, 6 - six equally likely outcomes.",
+      "The prime numbers among them are 2, 3 and 5 (1 is not prime).",
+      "Probability = 3/6 = 1/2."
+    ],
+    "explanation": "Of the six faces, only 2, 3 and 5 are prime, so the probability is 3/6 = 1/2. Remember that 1 is not a prime number, and 4 and 6 are composite.",
+    "hints": [
+      "List the faces of the die.",
+      "Is 1 a prime number?",
+      "There are three primes on a die."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-218",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Drawing a king from a deck",
+    "statement": "A card is drawn at random from a well-shuffled standard deck of 52 playing cards. What is the probability that it is a king?",
+    "answerFormat": "choice",
+    "choices": [
+      "1/4",
+      "1/13",
+      "1/26",
+      "1/52"
+    ],
+    "answer": "1/13",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A standard deck has 52 equally likely cards.",
+      "There are 4 kings, one in each suit.",
+      "Probability = 4/52 = 1/13."
+    ],
+    "explanation": "There are 4 kings among 52 cards, so the probability is 4/52 = 1/13. Check: each of the 13 ranks is equally likely, and king is one of them.",
+    "hints": [
+      "How many kings are in a deck?",
+      "There is one king per suit.",
+      "Simplify 4/52."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-219",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Picking an E from ENGINEERING",
+    "statement": "Each letter of the word ENGINEERING is written on a separate card, and the 11 cards are shuffled. Ravi picks one card at random.\nWhat is the probability that the card shows the letter E?",
+    "answerFormat": "choice",
+    "choices": [
+      "1/11",
+      "3/11",
+      "1/3",
+      "3/8"
+    ],
+    "answer": "3/11",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Count the total number of cards: E-N-G-I-N-E-E-R-I-N-G has 11 letters.",
+      "Count the Es: there are 3 (positions 1, 6 and 7).",
+      "Probability = 3/11."
+    ],
+    "explanation": "There are 11 cards, 3 of which show E, so the probability is 3/11. Check the letter count: E3 + N3 + G2 + I2 + R1 = 11.",
+    "hints": [
+      "First count all the letters, including repeats.",
+      "How many times does E appear?",
+      "3 favourable cards out of 11."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-220",
+    "type": "math",
+    "subCategory": "Guesstimates",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Tea at Secunderabad station",
+    "statement": "Guesstimate: Secunderabad railway station in Hyderabad handles roughly 1.5 to 2 lakh passengers a day.\nAbout how many cups of tea are sold on the station premises (stalls and platform vendors) in one day?",
+    "answerFormat": "choice",
+    "choices": [
+      "About 300",
+      "About 3,000",
+      "About 30,000",
+      "About 3,00,000"
+    ],
+    "answer": "About 30,000",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Assume about 1.8 lakh passengers pass through the station each day.",
+      "Assume roughly 1 in 5 or 1 in 6 of them buys a cup of tea while waiting (some buy two, many buy none).",
+      "1.8 lakh / 6 is about 30,000 cups, and adding people who see others off keeps it in the tens of thousands.",
+      "300 or 3,000 is far too low for so many people, and 3,00,000 would mean every passenger buys almost two cups."
+    ],
+    "explanation": "With about 1.8 lakh passengers and roughly one in five or six buying tea, sales come to around 30,000 to 36,000 cups a day. The nearest order of magnitude is 30,000; 3 lakh would need every passenger to drink almost two cups, which is unrealistic.",
+    "hints": [
+      "Start from the number of passengers.",
+      "What fraction of travellers actually buys tea?",
+      "Try about 1 in 6 of 1.8 lakh."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-221",
+    "type": "math",
+    "subCategory": "Guesstimates",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Scooter petrol for a month",
+    "statement": "Guesstimate: Pooja rides her scooter from home to her engineering college in Hyderabad and back on every college day.\nAbout how much petrol does she use in a month?",
+    "answerFormat": "choice",
+    "choices": [
+      "About 1 litre",
+      "About 10 litres",
+      "About 100 litres",
+      "About 1,000 litres"
+    ],
+    "answer": "About 10 litres",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Assume a one-way distance of about 10 to 15 km, so 20 to 30 km a day.",
+      "Assume about 25 college days a month, giving roughly 500 to 750 km.",
+      "A scooter gives about 45 to 50 km per litre, so she needs about 10 to 15 litres.",
+      "1 litre would cover only about 50 km, and 100 litres would mean about 5,000 km a month."
+    ],
+    "explanation": "A typical round trip is 20 to 30 km, so 25 college days give 500 to 750 km a month. At about 50 km per litre that is 10 to 15 litres, closest to 10 litres. 100 litres would need around 5,000 km of riding, which is far too much.",
+    "hints": [
+      "Estimate how far she rides each day.",
+      "Multiply by the number of college days in a month.",
+      "A scooter runs about 50 km on a litre."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-222",
+    "type": "math",
+    "subCategory": "Guesstimates",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Phone hours in a year",
+    "statement": "Guesstimate: About how many hours does a typical Indian college student spend on their smartphone in one year (calls, social media, videos, games and study apps together)?",
+    "answerFormat": "choice",
+    "choices": [
+      "About 15 hours",
+      "About 150 hours",
+      "About 1,500 hours",
+      "About 15,000 hours"
+    ],
+    "answer": "About 1,500 hours",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Assume about 3 to 5 hours of phone use per day; take 4 hours.",
+      "There are 365 days in a year.",
+      "4 x 365 = 1,460, which is about 1,500 hours.",
+      "150 hours would be only about 25 minutes a day, and 15,000 hours is more than the 8,760 hours in a year."
+    ],
+    "explanation": "At about 4 hours a day, a year gives 4 x 365 = 1,460 hours, roughly 1,500. 15,000 is impossible because a year has only 8,760 hours, and 150 would be under half an hour a day.",
+    "hints": [
+      "Estimate the hours per day first.",
+      "Multiply by 365.",
+      "4 hours a day for 365 days."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-223",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Square plot from its perimeter",
+    "statement": "Mr. Reddy fences a square plot of land using exactly 64 m of wire for one round.\nWhat is the area of the plot in square metres?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "256",
+    "acceptedAnswers": [
+      "256 sq m",
+      "256 m2"
+    ],
+    "keySteps": [
+      "A square has 4 equal sides, so side = 64 / 4 = 16 m.",
+      "Area of a square = side x side.",
+      "Area = 16 x 16 = 256 square metres."
+    ],
+    "explanation": "One round of fencing is the perimeter, so each side is 64 / 4 = 16 m and the area is 16 x 16 = 256 m^2. Check: 4 x 16 = 64 m of wire.",
+    "hints": [
+      "The wire goes around the plot once - that is the perimeter.",
+      "Find the length of one side.",
+      "Square the side 16."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-224",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Rolling a double in Ludo",
+    "statement": "In a game of Ludo, Arun rolls two fair dice together. What is the probability that both dice show the same number?",
+    "answerFormat": "choice",
+    "choices": [
+      "1/36",
+      "1/12",
+      "1/6",
+      "1/3"
+    ],
+    "answer": "1/6",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Two dice give 6 x 6 = 36 equally likely ordered outcomes.",
+      "The doubles are (1,1), (2,2), (3,3), (4,4), (5,5), (6,6) - 6 outcomes.",
+      "Probability = 6/36 = 1/6."
+    ],
+    "explanation": "There are 36 ordered outcomes and 6 of them are doubles, so the probability is 6/36 = 1/6. Check another way: whatever the first die shows, the second matches it with probability 1/6.",
+    "hints": [
+      "How many outcomes are there for two dice?",
+      "List the outcomes where both numbers are equal.",
+      "Or: whatever the first die shows, what is the chance the second matches?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-225",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Two green balls with replacement",
+    "statement": "A bag contains 4 red balls and 6 green balls. Deepa draws one ball, notes its colour, puts it back, and then draws a second ball.\nWhat is the probability that both balls are green? Give your answer as a decimal.",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "0.36",
+    "acceptedAnswers": [
+      "9/25",
+      ".36"
+    ],
+    "keySteps": [
+      "Because the ball is replaced, the two draws are independent.",
+      "P(green) on each draw = 6/10 = 0.6.",
+      "P(both green) = 0.6 x 0.6 = 0.36."
+    ],
+    "explanation": "With replacement the bag is the same for both draws, so P(both green) = (6/10) x (6/10) = 36/100 = 0.36, i.e. 9/25. Check by counting: 6 x 6 = 36 green-green ordered pairs out of 10 x 10 = 100.",
+    "hints": [
+      "Does the first draw change the bag for the second draw?",
+      "Find the chance of green on one draw.",
+      "Multiply 0.6 by 0.6."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-226",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Three-digit codes from five digits",
+    "statement": "How many 3-digit numbers can be formed using the digits 1, 2, 3, 4 and 5 if no digit may be repeated within a number?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "60",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The hundreds place can be any of the 5 digits.",
+      "The tens place can be any of the remaining 4 digits.",
+      "The units place can be any of the remaining 3 digits.",
+      "Total = 5 x 4 x 3 = 60."
+    ],
+    "explanation": "Filling the places in order gives 5, then 4, then 3 choices, so there are 5 x 4 x 3 = 60 numbers. Check: this is P(5, 3) = 5! / 2! = 120 / 2 = 60. Zero is not among the digits, so no number starts with 0.",
+    "hints": [
+      "Fill the hundreds, tens and units places one by one.",
+      "Once a digit is used it cannot be used again.",
+      "5 x 4 x 3."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-227",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Choosing the fest committee",
+    "statement": "A class has 8 students who have volunteered for the college fest. The class teacher has to choose a committee of 3 of them (all members have the same role).\nIn how many ways can the committee be chosen?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "56",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The order of choosing does not matter, so this is a combination.",
+      "Number of ways = C(8, 3) = (8 x 7 x 6) / (3 x 2 x 1).",
+      "336 / 6 = 56."
+    ],
+    "explanation": "Since all members have the same role, we count selections, not arrangements: C(8, 3) = 336 / 6 = 56. Check: ordered choices are 8 x 7 x 6 = 336, and each committee appears 3! = 6 times among them.",
+    "hints": [
+      "Does the order in which members are picked matter?",
+      "Count ordered picks first, then remove repeats.",
+      "8 x 7 x 6 divided by 3 x 2 x 1."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-228",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Water in a cylindrical tank",
+    "statement": "A cylindrical water tank on a house terrace has an inner radius of 0.7 m and a height of 2 m.\nHow many litres of water can it hold when full? (Use pi = 22/7 and 1 cubic metre = 1000 litres.)",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "3080",
+    "acceptedAnswers": [
+      "3080 litres",
+      "3,080"
+    ],
+    "keySteps": [
+      "Volume of a cylinder = pi x r^2 x h.",
+      "r^2 = 0.7 x 0.7 = 0.49, so volume = 22/7 x 0.49 x 2.",
+      "22/7 x 0.49 = 1.54, and 1.54 x 2 = 3.08 cubic metres.",
+      "3.08 x 1000 = 3080 litres."
+    ],
+    "explanation": "The volume is 22/7 x 0.49 x 2 = 3.08 m^3, which is 3.08 x 1000 = 3080 litres. Check in centimetres: 22/7 x 70 x 70 x 200 = 30,80,000 cm^3 = 3080 litres.",
+    "hints": [
+      "Use the cylinder volume formula.",
+      "0.49 divided by 7 is 0.07.",
+      "Convert cubic metres to litres by multiplying by 1000."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-229",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Path around the garden",
+    "statement": "A rectangular garden measures 20 m by 15 m. A path 2 m wide is built all around it, on the outside.\nWhat is the area of the path in square metres?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "156",
+    "acceptedAnswers": [
+      "156 sq m",
+      "156 m2"
+    ],
+    "keySteps": [
+      "With the path, the outer rectangle is (20 + 4) by (15 + 4) = 24 m by 19 m.",
+      "Outer area = 24 x 19 = 456 square metres.",
+      "Garden area = 20 x 15 = 300 square metres.",
+      "Path area = 456 - 300 = 156 square metres."
+    ],
+    "explanation": "The path adds 2 m on every side, so the outer rectangle is 24 m x 19 m = 456 m^2. Subtracting the garden's 300 m^2 leaves 156 m^2. Check by pieces: two strips 20 x 2, two strips 15 x 2 and four 2 x 2 corners give 80 + 60 + 16 = 156.",
+    "hints": [
+      "The path adds width on both sides of each dimension.",
+      "Find the area of the big rectangle including the path.",
+      "Big area minus garden area."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-230",
+    "type": "math",
+    "subCategory": "Guesstimates",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Milk drunk in Hyderabad daily",
+    "statement": "Guesstimate: Hyderabad has roughly 1 crore people. About how many litres of milk (including milk used for tea, coffee and curd at home) does the city consume in one day?",
+    "answerFormat": "choice",
+    "choices": [
+      "About 25,000 litres",
+      "About 2.5 lakh litres",
+      "About 25 lakh litres",
+      "About 2.5 crore litres"
+    ],
+    "answer": "About 25 lakh litres",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Assume about 1 crore people (10 million).",
+      "Assume average milk use of about 200 to 300 ml per person per day, across children, adults, tea, coffee and curd; take 250 ml.",
+      "1 crore x 0.25 litres = 25 lakh litres per day.",
+      "2.5 lakh would be only 25 ml per person, and 2.5 crore would be 2.5 litres per person - both unrealistic."
+    ],
+    "explanation": "At about a quarter litre per person per day, 1 crore people use about 25 lakh litres. 2.5 lakh litres means a few spoonfuls each, and 2.5 crore litres means 2.5 litres each, so 25 lakh litres is the reasonable order.",
+    "hints": [
+      "Estimate how much milk one person uses in a day, including tea.",
+      "A glass of milk is about 200 ml; a cup of tea uses about 50 ml.",
+      "Multiply about 0.25 litres by 1 crore."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-231",
+    "type": "math",
+    "subCategory": "Guesstimates",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Hair salons in a small town",
+    "statement": "Guesstimate: A town in Andhra Pradesh has about 2 lakh people. About how many hair-cutting salons does it have?",
+    "answerFormat": "choice",
+    "choices": [
+      "About 15",
+      "About 150",
+      "About 1,500",
+      "About 15,000"
+    ],
+    "answer": "About 150",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Assume about 1 lakh males; most get a haircut roughly once a month, and add some women and shaves - about 1 lakh salon visits a month.",
+      "Assume one chair serves about 12 to 15 customers a day for about 26 days, so roughly 350 a month.",
+      "A typical small-town salon has about 2 chairs, so about 700 customers a month.",
+      "1 lakh / 700 is about 140, so roughly 150 salons."
+    ],
+    "explanation": "Demand is about 1 lakh visits a month, and a 2-chair salon can serve about 700 a month, so the town needs about 140 salons, roughly 150. 15 salons would each need 6,700 customers a month, and 1,500 would each get only about 2 customers a day.",
+    "hints": [
+      "Estimate the number of haircuts the town needs each month.",
+      "How many customers can one salon handle in a month?",
+      "Divide demand by one salon's capacity."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-232",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Group photo with best friends together",
+    "statement": "Five friends - Ravi, Sita, Anil, Bhavya and Charan - stand in a row for a photo. Ravi and Sita insist on standing next to each other.\nIn how many ways can the five stand in the row?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "48",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Treat Ravi and Sita as one block, so there are 4 units to arrange.",
+      "The 4 units can be arranged in 4! = 24 ways.",
+      "Inside the block, Ravi and Sita can stand in 2 orders.",
+      "Total = 24 x 2 = 48."
+    ],
+    "explanation": "Gluing Ravi and Sita into one block gives 4 units and 4! = 24 orders, and the pair itself can be RS or SR, so 24 x 2 = 48. Check: of all 5! = 120 rows, the pair is adjacent in 4 x 2 x 3! = 48 of them.",
+    "hints": [
+      "Think of Ravi and Sita as a single person for a moment.",
+      "How many units are there then, and how many orders?",
+      "Do not forget that the pair can swap places."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-233",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "hard",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Exactly one faulty bulb, given a fault",
+    "statement": "A box has 10 LED bulbs, of which 3 are defective. Two bulbs are taken out together at random. The shopkeeper tests them and tells you that at least one of the two is defective.\nGiven this, what is the probability that exactly one of the two bulbs is defective?",
+    "answerFormat": "choice",
+    "choices": [
+      "7/15",
+      "8/15",
+      "7/8",
+      "1/8"
+    ],
+    "answer": "7/8",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Total ways to pick 2 bulbs = C(10, 2) = 45.",
+      "Exactly one defective = 3 x 7 = 21 ways; both defective = C(3, 2) = 3 ways.",
+      "At least one defective = 21 + 3 = 24 ways (check: 45 - C(7, 2) = 45 - 21 = 24).",
+      "Given at least one is defective, P(exactly one) = 21 / 24 = 7/8."
+    ],
+    "explanation": "Once we know at least one bulb is defective, only those 24 of the 45 pairs remain possible. Of them, 21 have exactly one defective bulb, so the probability is 21/24 = 7/8. The tempting answer 21/45 = 7/15 ignores the information we were given.",
+    "hints": [
+      "The information 'at least one is defective' shrinks the set of possible pairs.",
+      "Count pairs with exactly one defective and pairs with two defectives.",
+      "Divide 21 by 24."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-234",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Cube from its surface area",
+    "statement": "A cube-shaped gift box has a total surface area of 150 square centimetres.\nWhat is its volume in cubic centimetres?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "125",
+    "acceptedAnswers": [
+      "125 cm3",
+      "125 cubic cm"
+    ],
+    "keySteps": [
+      "A cube has 6 equal square faces, so 6 x side^2 = 150.",
+      "side^2 = 25, so side = 5 cm.",
+      "Volume = side^3 = 5 x 5 x 5 = 125 cubic centimetres."
+    ],
+    "explanation": "Each face has area 150 / 6 = 25 cm^2, so the side is 5 cm and the volume is 5^3 = 125 cm^3. Check: 6 x 5 x 5 = 150.",
+    "hints": [
+      "How many faces does a cube have?",
+      "Find the area of one face, then its side.",
+      "Cube the side length 5."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-235",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Diagonals of an octagon",
+    "statement": "How many diagonals does a regular octagon (8-sided polygon) have?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "20",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Any 2 of the 8 vertices can be joined by a line segment: C(8, 2) = 28.",
+      "8 of these segments are the sides of the octagon, not diagonals.",
+      "Diagonals = 28 - 8 = 20."
+    ],
+    "explanation": "Joining any two vertices gives C(8, 2) = 28 segments; removing the 8 sides leaves 20 diagonals. Check with the formula n(n - 3)/2 = 8 x 5 / 2 = 20.",
+    "hints": [
+      "Count all segments joining two vertices.",
+      "Some of those segments are sides.",
+      "C(8, 2) minus 8."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-236",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Fifty-three Sundays in a leap year",
+    "statement": "A leap year is chosen at random. What is the probability that it has 53 Sundays?",
+    "answerFormat": "choice",
+    "choices": [
+      "1/7",
+      "2/7",
+      "1/52",
+      "53/366"
+    ],
+    "answer": "2/7",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A leap year has 366 days = 52 full weeks + 2 extra days.",
+      "The 52 weeks give exactly 52 Sundays; the 2 extra days decide the 53rd.",
+      "The extra pair can be (Sun, Mon), (Mon, Tue), ..., (Sat, Sun): 7 equally likely pairs.",
+      "Two pairs contain a Sunday, so the probability is 2/7."
+    ],
+    "explanation": "366 days is 52 weeks and 2 days. The two leftover consecutive days form one of 7 equally likely pairs, and exactly two of them - (Sat, Sun) and (Sun, Mon) - include a Sunday. So the probability is 2/7. For a non-leap year it would be 1/7.",
+    "hints": [
+      "How many full weeks are in 366 days?",
+      "What matters is the 2 leftover days.",
+      "Which of the 7 possible leftover pairs contain Sunday?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-237",
+    "type": "math",
+    "subCategory": "Guesstimates",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Words written in B.Tech exams",
+    "statement": "Guesstimate: About how many words does a typical B.Tech student write in all their end-semester theory exams over the 4 years of the degree?",
+    "answerFormat": "choice",
+    "choices": [
+      "About 15,000 words",
+      "About 1.5 lakh words",
+      "About 15 lakh words",
+      "About 1.5 crore words"
+    ],
+    "answer": "About 1.5 lakh words",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Assume 8 semesters with about 6 theory exams each, so about 48 exams.",
+      "Assume a 3-hour exam with about 150 minutes of actual writing at around 20 words per minute, so about 3,000 words per exam.",
+      "48 x 3,000 = 1,44,000, which is about 1.5 lakh words.",
+      "15,000 words would be only about 300 words per exam, and 15 lakh would be about 30,000 words per exam."
+    ],
+    "explanation": "About 48 exams at roughly 3,000 words each gives about 1.44 lakh words, so about 1.5 lakh. 15,000 would mean 300 words per 3-hour paper (far too few), and 15 lakh would mean 30,000 words per paper (impossible by hand).",
+    "hints": [
+      "First count the number of exams over 4 years.",
+      "How many words can you write in one 3-hour paper?",
+      "About 48 exams x 3,000 words."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-238",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Arrangements of BANANA",
+    "statement": "In how many different ways can the letters of the word BANANA be arranged?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "60",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "BANANA has 6 letters: B once, A three times, N twice.",
+      "If all letters were different there would be 6! = 720 arrangements.",
+      "Divide by 3! for the identical As and 2! for the identical Ns.",
+      "720 / (6 x 2) = 60."
+    ],
+    "explanation": "With repeated letters, the count is 6! / (3! x 2!) = 720 / 12 = 60. Check another way: choose positions for the 3 As in C(6, 3) = 20 ways, then the 2 Ns among the remaining 3 positions in C(3, 2) = 3 ways, and B goes in the last spot: 20 x 3 = 60.",
+    "hints": [
+      "Count how many times each letter appears.",
+      "Swapping two identical letters does not create a new arrangement.",
+      "6! divided by (3! x 2!)."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-239",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Quiz team with exactly two girls",
+    "statement": "A department has 6 boys and 4 girls interested in an inter-college quiz. A team of 5 must be selected so that it contains exactly 2 girls.\nIn how many ways can the team be selected?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "120",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Exactly 2 girls means exactly 3 boys in the team of 5.",
+      "Ways to choose 2 girls from 4 = C(4, 2) = 6.",
+      "Ways to choose 3 boys from 6 = C(6, 3) = 20.",
+      "Total = 6 x 20 = 120."
+    ],
+    "explanation": "The team must be 2 girls and 3 boys. The girls can be chosen in C(4, 2) = 6 ways and the boys in C(6, 3) = 20 ways, so there are 6 x 20 = 120 teams. Each choice of girls pairs with each choice of boys, which is why we multiply.",
+    "hints": [
+      "If there are exactly 2 girls, how many boys are there?",
+      "Choose the girls and the boys separately.",
+      "C(4, 2) x C(6, 3)."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-240",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Two aces without replacement",
+    "statement": "Two cards are drawn one after another, without replacement, from a well-shuffled deck of 52 cards. What is the probability that both are aces?",
+    "answerFormat": "choice",
+    "choices": [
+      "1/169",
+      "1/221",
+      "1/26",
+      "2/13"
+    ],
+    "answer": "1/221",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "P(first card is an ace) = 4/52 = 1/13.",
+      "After one ace is removed, 3 aces remain among 51 cards, so P(second ace) = 3/51 = 1/17.",
+      "P(both aces) = 1/13 x 1/17 = 1/221."
+    ],
+    "explanation": "Multiplying the chances step by step gives (4/52) x (3/51) = 1/221. Check with combinations: C(4, 2) / C(52, 2) = 6 / 1326 = 1/221. The answer 1/169 would be correct only with replacement.",
+    "hints": [
+      "The deck changes after the first card.",
+      "How many aces and cards remain for the second draw?",
+      "Multiply 4/52 by 3/51."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-241",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Two-digit number divisible by 7",
+    "statement": "A two-digit number (from 10 to 99) is chosen at random. What is the probability that it is divisible by 7?",
+    "answerFormat": "choice",
+    "choices": [
+      "1/7",
+      "13/90",
+      "14/90",
+      "13/99"
+    ],
+    "answer": "13/90",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "There are 99 - 10 + 1 = 90 two-digit numbers.",
+      "Multiples of 7 up to 99: 99 / 7 gives 14 (up to 98); remove 7 itself, which has one digit.",
+      "So there are 13 two-digit multiples of 7 (14, 21, ..., 98).",
+      "Probability = 13/90."
+    ],
+    "explanation": "Two-digit numbers run from 10 to 99, giving 90 numbers. The multiples of 7 among them are 14, 21, ..., 98, which is 14 - 1 = 13 numbers. So the probability is 13/90. A common slip is to use 14 by forgetting that 7 is not a two-digit number.",
+    "hints": [
+      "How many two-digit numbers are there?",
+      "Count multiples of 7 from 14 to 98.",
+      "98 = 7 x 14 and 14 = 7 x 2."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-242",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Ice-cream cone capacity",
+    "statement": "A conical ice-cream cone has a base radius of 3 cm and a height of 14 cm.\nWhat volume of ice cream (in cubic cm) does it hold when filled exactly to the brim? (Use pi = 22/7.)",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "132",
+    "acceptedAnswers": [
+      "132 cm3",
+      "132 cubic cm"
+    ],
+    "keySteps": [
+      "Volume of a cone = (1/3) x pi x r^2 x h.",
+      "r^2 = 9, so volume = (1/3) x 22/7 x 9 x 14.",
+      "22/7 x 14 = 44, and 44 x 9 = 396.",
+      "396 / 3 = 132 cubic cm."
+    ],
+    "explanation": "The cone holds (1/3) x 22/7 x 9 x 14 = 132 cm^3. Check: a cylinder with the same base and height holds 22/7 x 9 x 14 = 396 cm^3, and a cone is exactly one third of that.",
+    "hints": [
+      "Recall the cone volume formula - it has a 1/3 in it.",
+      "Cancel 14 with 7 first.",
+      "One third of 396."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-243",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Wheel turns on a 1.1 km ride",
+    "statement": "The wheel of a bicycle has a radius of 35 cm. How many complete turns does the wheel make when the bicycle travels 1.1 km without slipping? (Use pi = 22/7.)",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "500",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "In one turn the wheel covers its circumference: 2 x 22/7 x 35 = 220 cm.",
+      "Convert the distance: 1.1 km = 1,10,000 cm.",
+      "Number of turns = 1,10,000 / 220 = 500."
+    ],
+    "explanation": "Each revolution moves the bicycle 220 cm (the circumference), and 1.1 km is 110000 cm, so the wheel turns 110000 / 220 = 500 times. Check: 500 x 2.2 m = 1100 m = 1.1 km.",
+    "hints": [
+      "How far does the bicycle move in one full turn of the wheel?",
+      "Work in the same unit - convert km to cm.",
+      "Divide 110000 by 220."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-244",
+    "type": "math",
+    "subCategory": "Guesstimates",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Delivery riders at dinner peak",
+    "statement": "Guesstimate: Hyderabad has about 1 crore people. About how many delivery riders does ONE major food-delivery app need on the road in Hyderabad during the dinner peak (roughly 7:30 pm to 9:30 pm)?",
+    "answerFormat": "choice",
+    "choices": [
+      "About 300",
+      "About 3,000",
+      "About 30,000",
+      "About 3,00,000"
+    ],
+    "answer": "About 30,000",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Assume about 1 crore people in roughly 25 lakh households.",
+      "Assume about 5 percent of households order dinner through this app on a typical night: about 1.25 lakh orders.",
+      "Most dinner orders fall in a 2-hour peak, and a rider can complete about 2 orders an hour, so about 4 orders per rider in the peak.",
+      "1.25 lakh / 4 is about 31,000 riders, so about 30,000."
+    ],
+    "explanation": "About 25 lakh households with 5 percent ordering gives about 1.25 lakh dinner orders, mostly in a 2-hour window. At about 4 deliveries per rider in that window, the app needs roughly 30,000 riders. 3,000 riders would each need about 40 deliveries in 2 hours, and 3 lakh would mean most riders are idle.",
+    "hints": [
+      "Estimate how many dinner orders come in on a normal night.",
+      "How many orders can one rider deliver in the 2-hour peak?",
+      "Divide orders by deliveries per rider."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-245",
+    "type": "math",
+    "subCategory": "Guesstimates",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Pages printed by a college",
+    "statement": "Guesstimate: An engineering college has about 3,000 students. Counting lab records, assignments, project reports and exam-prep notes, about how many pages are printed or photocopied for students in one semester?",
+    "answerFormat": "choice",
+    "choices": [
+      "About 7,000 pages",
+      "About 70,000 pages",
+      "About 7 lakh pages",
+      "About 7 crore pages"
+    ],
+    "answer": "About 7 lakh pages",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Assume about 15 pages per student per week on average (lab records and assignment copies are the bulk).",
+      "A semester is about 16 weeks, so about 15 x 16 = 240 pages per student.",
+      "3,000 students x 240 pages = 7,20,000 pages, about 7 lakh.",
+      "70,000 pages would be only about 23 pages per student for a whole semester, and 7 crore would be over 20,000 each."
+    ],
+    "explanation": "At about 240 pages per student over a 16-week semester, 3,000 students need around 7.2 lakh pages, so about 7 lakh. 70,000 would be about 23 pages each for the whole semester - less than one lab record - while 7 crore would be over 20,000 pages each.",
+    "hints": [
+      "Estimate pages per student per week.",
+      "Multiply by the weeks in a semester.",
+      "Then multiply by 3,000 students."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-246",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Round table, two must not sit together",
+    "statement": "Six friends sit around a circular dining table for a farewell dinner. Two of them, Manoj and Nikhil, have had a quarrel and must NOT sit next to each other. Seatings that differ only by a rotation are considered the same.\nIn how many ways can the six be seated?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "72",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Total circular arrangements of 6 people = (6 - 1)! = 120.",
+      "Arrangements with Manoj and Nikhil together: treat them as one unit, giving (5 - 1)! = 24 circular arrangements.",
+      "The pair can sit in 2 orders, so 24 x 2 = 48 arrangements have them together.",
+      "Not together = 120 - 48 = 72."
+    ],
+    "explanation": "There are 5! = 120 circular seatings in all and 4! x 2 = 48 with the two side by side, so 72 keep them apart. Check directly: fix Manoj's seat; of the 5 other seats, 3 are not next to him, so Nikhil has 3 choices and the other 4 friends fill the rest in 4! = 24 ways, giving 3 x 24 = 72.",
+    "hints": [
+      "For circular seating of n people, fix one person: (n - 1)!.",
+      "Count the seatings where the two ARE together and subtract.",
+      "120 - 48."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-247",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Which box did the red ball come from?",
+    "statement": "Box A contains 3 red and 2 blue balls. Box B contains 1 red and 4 blue balls. A box is chosen by tossing a fair coin, and one ball is drawn from it at random. The ball is red.\nWhat is the probability that it came from Box A? Give your answer as a decimal.",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "0.75",
+    "acceptedAnswers": [
+      "3/4",
+      ".75"
+    ],
+    "keySteps": [
+      "P(A) = P(B) = 1/2; P(red | A) = 3/5 and P(red | B) = 1/5.",
+      "P(A and red) = 1/2 x 3/5 = 3/10; P(B and red) = 1/2 x 1/5 = 1/10.",
+      "P(red) = 3/10 + 1/10 = 4/10.",
+      "P(A | red) = (3/10) / (4/10) = 3/4 = 0.75."
+    ],
+    "explanation": "By Bayes' theorem, P(A | red) = (1/2 x 3/5) / (1/2 x 3/5 + 1/2 x 1/5) = (3/10) / (4/10) = 0.75. Check by counting: the two boxes together have 4 red balls, equally weighted since each box has 5 balls, and 3 of those 4 red balls are in Box A.",
+    "hints": [
+      "Find the chance of picking a red ball by each route (via A and via B).",
+      "Add the two routes to get the total chance of red.",
+      "Divide the 'via A' chance by the total chance of red."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-248",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Square between two circles",
+    "statement": "A square is drawn inside a circle of radius 14 cm so that all four corners of the square touch the circle. Then a smaller circle is drawn inside the square so that it touches all four sides.\nWhat is the area (in square cm) of the region that lies inside the square but outside the smaller circle? (Use pi = 22/7.)",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "84",
+    "acceptedAnswers": [
+      "84 sq cm",
+      "84 cm2"
+    ],
+    "keySteps": [
+      "The diagonal of the square equals the diameter of the big circle: 28 cm.",
+      "Area of the square = diagonal^2 / 2 = 784 / 2 = 392 square cm (side = 14 x root 2).",
+      "The small circle's radius is half the side: r = 7 x root 2, so r^2 = 98.",
+      "Small circle area = 22/7 x 98 = 308; required area = 392 - 308 = 84 square cm."
+    ],
+    "explanation": "The square's diagonal is 28 cm, so its area is 28^2 / 2 = 392 cm^2. Its side is 14 root 2, so the inscribed circle has radius 7 root 2 and area 22/7 x 98 = 308 cm^2. The region between them is 392 - 308 = 84 cm^2. Check: the inner circle's area is pi/4 of the square, and 392 x (22/28) = 308.",
+    "hints": [
+      "The square's diagonal is a diameter of the big circle.",
+      "Area of a square = (diagonal^2) / 2.",
+      "The small circle's diameter equals the square's side, so r^2 = side^2 / 4 = 98."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-249",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "LEADER with vowels together",
+    "statement": "In how many different ways can the letters of the word LEADER be arranged so that all the vowels always come together?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "72",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The vowels are E, A, E (3 letters, with E repeated); the consonants are L, D, R.",
+      "Treat the vowel group as one block: block + L + D + R = 4 distinct units, arranged in 4! = 24 ways.",
+      "Inside the block, E, A, E can be arranged in 3! / 2! = 3 ways.",
+      "Total = 24 x 3 = 72."
+    ],
+    "explanation": "Gluing the vowels E, A, E into one block leaves 4 distinct units, which give 4! = 24 orders. The block itself can be EAE, EEA or AEE, so the total is 24 x 3 = 72. The common slip is to use 3! = 6 inside the block and get 144, forgetting that the two Es are identical.",
+    "hints": [
+      "Identify the vowels and notice any repeated letter.",
+      "Treat all the vowels as a single block.",
+      "Inside the block, the two Es are identical: 3! / 2!."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-250",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Perfect square or perfect cube",
+    "statement": "A number is picked at random from 1 to 100 (both included). What is the probability that it is a perfect square or a perfect cube? Give your answer as a decimal.",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "0.12",
+    "acceptedAnswers": [
+      "3/25",
+      ".12",
+      "12/100"
+    ],
+    "keySteps": [
+      "Perfect squares from 1 to 100: 1, 4, 9, ..., 100 - that is 10 numbers.",
+      "Perfect cubes from 1 to 100: 1, 8, 27, 64 - that is 4 numbers.",
+      "Numbers that are both (sixth powers): 1 and 64 - 2 numbers.",
+      "Square or cube = 10 + 4 - 2 = 12, so probability = 12/100 = 0.12."
+    ],
+    "explanation": "By inclusion-exclusion, there are 10 squares and 4 cubes, but 1 and 64 are in both lists, so 10 + 4 - 2 = 12 numbers qualify. The probability is 12/100 = 0.12 (= 3/25). Forgetting the overlap gives the wrong 0.14.",
+    "hints": [
+      "List the squares and the cubes up to 100.",
+      "Some numbers appear in both lists.",
+      "Use 10 + 4 - (overlap)."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-251",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Rhombus perimeter from its diagonals",
+    "statement": "The diagonals of a rhombus-shaped floor tile are 16 cm and 12 cm long.\nWhat is the perimeter of the tile in cm?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "40",
+    "acceptedAnswers": [
+      "40 cm"
+    ],
+    "keySteps": [
+      "The diagonals of a rhombus bisect each other at right angles.",
+      "Half-diagonals are 8 cm and 6 cm, forming a right triangle with one side of the rhombus as hypotenuse.",
+      "Side = square root of (8^2 + 6^2) = square root of 100 = 10 cm.",
+      "Perimeter = 4 x 10 = 40 cm."
+    ],
+    "explanation": "Since the diagonals bisect each other at right angles, each side is the hypotenuse of a right triangle with legs 8 and 6, so the side is 10 cm and the perimeter is 40 cm. Check: area by diagonals = 16 x 12 / 2 = 96, and four 6-8-10 triangles of area 24 each also give 96.",
+    "hints": [
+      "What special property do the diagonals of a rhombus have?",
+      "Use half of each diagonal.",
+      "6, 8, 10 is a Pythagorean triple."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-252",
+    "type": "math",
+    "subCategory": "Guesstimates",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Monthly sales of an IT-park tea stall",
+    "statement": "Guesstimate: A tea stall right outside the main gate of a large IT park in Hyderabad stays busy from 7 am to 10 pm, selling tea at about Rs 15 a cup.\nAbout how much money does it collect from tea in a month?",
+    "answerFormat": "choice",
+    "choices": [
+      "About Rs 2,700",
+      "About Rs 27,000",
+      "About Rs 2.7 lakh",
+      "About Rs 27 lakh"
+    ],
+    "answer": "About Rs 2.7 lakh",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Assume a busy stall serves about 40 cups an hour over 15 hours, so about 600 cups a day.",
+      "At Rs 15 a cup, daily tea sales are about 600 x 15 = Rs 9,000.",
+      "Over 30 days, that is about Rs 2,70,000 - roughly Rs 2.7 lakh.",
+      "Rs 27,000 would be only about 60 cups a day, and Rs 27 lakh would be about 6,000 cups a day from one stall."
+    ],
+    "explanation": "A busy stall selling about 600 cups a day at Rs 15 takes about Rs 9,000 a day, or roughly Rs 2.7 lakh a month. Rs 27,000 implies only 60 cups a day (not 'busy'), and Rs 27 lakh implies 6,000 cups a day, which one stall cannot brew and serve.",
+    "hints": [
+      "Estimate how many cups the stall sells in an hour.",
+      "Multiply by its working hours and the price per cup.",
+      "About Rs 9,000 a day for 30 days."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-253",
+    "type": "math",
+    "subCategory": "Guesstimates",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Weddings in India every year",
+    "statement": "Guesstimate: India has about 140 crore people. About how many weddings take place in India in one year?",
+    "answerFormat": "choice",
+    "choices": [
+      "About 1 lakh",
+      "About 10 lakh",
+      "About 1 crore",
+      "About 10 crore"
+    ],
+    "answer": "About 1 crore",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Assume an average lifespan of about 70 years, so about 140 crore / 70 = 2 crore people reach marriageable age each year.",
+      "Assume nearly everyone marries once.",
+      "Each wedding involves 2 people, so about 2 crore / 2 = 1 crore weddings a year.",
+      "10 lakh would leave about 90 percent of people unmarried, and 10 crore would mean 20 crore people marrying every year."
+    ],
+    "explanation": "With roughly 2 crore people entering marriageable age every year and each wedding joining two of them, there are about 1 crore weddings a year. 10 crore weddings would need 20 crore people marrying annually - one in seven Indians every year - which is impossible.",
+    "hints": [
+      "How many people turn about 25 each year?",
+      "Divide the population by the average lifespan.",
+      "Each wedding uses two people."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-254",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Four-digit even numbers, no repeats",
+    "statement": "How many 4-digit even numbers can be formed using the digits 0 to 9 if no digit is repeated?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2296",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Split by the units digit, because 0 also restricts the first digit.",
+      "Units digit 0: the other three places take 9 x 8 x 7 = 504 numbers.",
+      "Units digit 2, 4, 6 or 8 (4 choices): the first digit has 8 choices (not 0, not the units digit), then 8 x 7 for the middle two: 4 x 8 x 8 x 7 = 1792.",
+      "Total = 504 + 1792 = 2296."
+    ],
+    "explanation": "Ending in 0 gives 9 x 8 x 7 = 504 numbers; ending in 2, 4, 6 or 8 gives 4 x 8 x 8 x 7 = 1792, since the first digit cannot be 0 or the digit already used. Total 2296. Check: all 4-digit numbers without repeats are 9 x 9 x 8 x 7 = 4536, the odd ones are 5 x 8 x 8 x 7 = 2240, and 4536 - 2240 = 2296.",
+    "hints": [
+      "Fill the units place first, since it must be even.",
+      "The case where the units digit is 0 behaves differently - why?",
+      "Add 9 x 8 x 7 and 4 x 8 x 8 x 7."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-255",
+    "type": "math",
+    "subCategory": "Permutations and combinations",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Sharing ten chocolates, everyone gets one",
+    "statement": "Ten identical chocolates are to be shared among three children - Anu, Bala and Chinnu - so that each child gets at least one chocolate. All chocolates must be given out.\nIn how many ways can this be done?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "36",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "We need the number of solutions of a + b + c = 10 with a, b, c each at least 1.",
+      "Give each child 1 chocolate first; 7 chocolates remain to be shared freely (a', b', c' >= 0).",
+      "By stars and bars, the number of ways = C(7 + 2, 2) = C(9, 2).",
+      "C(9, 2) = 36."
+    ],
+    "explanation": "Handing one chocolate to each child leaves 7 to distribute with no restriction, which by stars and bars is C(9, 2) = 36. Check another way: place 2 dividers in the 9 gaps between 10 chocolates in a line, which is again C(9, 2) = 36.",
+    "hints": [
+      "Write it as a + b + c = 10 with each at least 1.",
+      "First give every child one chocolate.",
+      "Stars and bars: distributing 7 identical items into 3 groups is C(9, 2)."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-256",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Two numbers with an even sum",
+    "statement": "Two different numbers are chosen at random from 1 to 20 (both included). What is the probability that their sum is even?",
+    "answerFormat": "choice",
+    "choices": [
+      "1/2",
+      "9/19",
+      "10/19",
+      "9/20"
+    ],
+    "answer": "9/19",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A sum is even only when both numbers are even or both are odd.",
+      "There are 10 even and 10 odd numbers: both even = C(10, 2) = 45, both odd = 45.",
+      "Total pairs = C(20, 2) = 190.",
+      "Probability = 90 / 190 = 9/19."
+    ],
+    "explanation": "The sum is even exactly when both numbers have the same parity, which happens in 45 + 45 = 90 of the 190 possible pairs, giving 9/19. Check sequentially: after the first number, 9 of the remaining 19 numbers share its parity. The tempting 1/2 ignores that the numbers must be different.",
+    "hints": [
+      "When is the sum of two numbers even?",
+      "Count pairs that are both even and both odd.",
+      "After picking one number, how many of the remaining 19 share its parity?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-257",
+    "type": "math",
+    "subCategory": "Probability",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "First to roll a six wins",
+    "statement": "Arjun and Bhanu take turns rolling a fair die, with Arjun going first. The first person to roll a 6 wins the game.\nWhat is the probability that Arjun wins?",
+    "answerFormat": "choice",
+    "choices": [
+      "1/2",
+      "6/11",
+      "5/11",
+      "1/6"
+    ],
+    "answer": "6/11",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Arjun can win on his 1st, 2nd, 3rd ... turn; before each of his turns, both players must have missed in every earlier round.",
+      "P(Arjun wins) = 1/6 + (5/6)^2 x 1/6 + (5/6)^4 x 1/6 + ... - a geometric series with ratio 25/36.",
+      "Sum = (1/6) / (1 - 25/36) = (1/6) x (36/11).",
+      "= 6/11."
+    ],
+    "explanation": "Let p be Arjun's winning chance. He wins at once with probability 1/6; otherwise, if both miss (probability 25/36), the game restarts, so p = 1/6 + (25/36)p, giving (11/36)p = 1/6 and p = 6/11. Check: Bhanu's chance is 5/11, and the 6 : 5 ratio matches Bhanu needing Arjun to miss first (5/6 of Arjun's chance).",
+    "hints": [
+      "Arjun wins straight away with probability 1/6. What if both miss?",
+      "After both miss, the game is exactly as it was at the start.",
+      "Solve p = 1/6 + (25/36)p."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-258",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Melting a cylinder into spheres",
+    "statement": "A solid metal cylinder of radius 6 cm and height 32 cm is melted and recast into solid spherical balls, each of radius 2 cm. No metal is wasted.\nHow many balls are made?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "108",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Volume of the cylinder = pi x 6^2 x 32 = 1152 pi cubic cm.",
+      "Volume of one sphere = (4/3) x pi x 2^3 = (32/3) pi cubic cm.",
+      "Number of balls = 1152 pi / ((32/3) pi) = 1152 x 3 / 32.",
+      "= 36 x 3 = 108."
+    ],
+    "explanation": "Volume is conserved, so the number of balls is (pi x 36 x 32) / ((4/3) x pi x 8) = 1152 / (32/3) = 108. Pi cancels, so no approximation is needed. Check: 108 x (32/3) = 1152.",
+    "hints": [
+      "Total volume stays the same when metal is melted.",
+      "Write both volumes with pi and let it cancel.",
+      "Divide 1152 by 32/3."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-259",
+    "type": "math",
+    "subCategory": "Geometry and mensuration",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Four goats at the corners",
+    "statement": "A square field has a side of 14 m. A goat is tied at each of the four corners with a rope 7 m long. Each goat can graze everything within reach of its rope inside the field.\nWhat area of the field (in square m) is left ungrazed? (Use pi = 22/7.)",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "42",
+    "acceptedAnswers": [
+      "42 sq m",
+      "42 m2"
+    ],
+    "keySteps": [
+      "Each goat at a corner (90-degree angle) grazes a quarter circle of radius 7 m inside the field.",
+      "Since 7 m is half the side, neighbouring quarter circles only touch at the midpoints of the sides - they do not overlap.",
+      "Four quarter circles = one full circle: 22/7 x 7 x 7 = 154 square m.",
+      "Ungrazed area = 14 x 14 - 154 = 196 - 154 = 42 square m."
+    ],
+    "explanation": "The four quarter circles of radius 7 m do not overlap and together make one full circle of area 154 m^2. The field is 196 m^2, so 196 - 154 = 42 m^2 is left ungrazed. Check: the ungrazed fraction is 1 - pi/4, and 196 x (1 - 22/28) = 196 x 6/28 = 42.",
+    "hints": [
+      "What shape does a goat tied at a corner graze?",
+      "Do the grazed regions of neighbouring goats overlap?",
+      "Four quarter circles make one full circle."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-260",
+    "type": "math",
+    "subCategory": "Guesstimates",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Auto-rickshaws in Hyderabad",
+    "statement": "Guesstimate: Hyderabad has about 1 crore people. About how many auto-rickshaws operate in the city?",
+    "answerFormat": "choice",
+    "choices": [
+      "About 1,000",
+      "About 10,000",
+      "About 1 lakh",
+      "About 10 lakh"
+    ],
+    "answer": "About 1 lakh",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Assume each person makes about 1.5 to 2 trips a day on average: roughly 1.5 to 2 crore person-trips daily.",
+      "Assume autos carry about 8 to 10 percent of these trips: about 15 lakh person-trips, or about 10 lakh auto rides at about 1.5 passengers per ride.",
+      "Assume one auto completes about 12 to 15 rides in a working day.",
+      "10 lakh / about 12 rides is roughly 80,000 to 1 lakh autos - about 1 lakh.",
+      "10,000 autos would each need about 100 rides a day, and 10 lakh would each get only about 1 ride a day."
+    ],
+    "explanation": "About 1.5 crore daily trips with roughly a tenth by auto gives about 15 lakh passenger trips, or about 10 lakh rides at 1.5 passengers each. At 12 to 15 rides per auto per day, the city needs on the order of 1 lakh autos. 10,000 would mean about 100 rides per auto per day, and 10 lakh would mean about one ride each, so 1 lakh is the reasonable answer.",
+    "hints": [
+      "Start with how many trips the whole city makes each day.",
+      "What share of those trips are by auto?",
+      "Divide auto rides by the rides one auto can do in a day."
+    ],
+    "estimatedMinutes": 6
+  }
+]

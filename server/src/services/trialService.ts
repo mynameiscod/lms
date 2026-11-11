@@ -3,6 +3,7 @@ import User from '../models/User';
 import PassportInterview from '../models/PassportInterview';
 import CommunicationAttempt from '../models/CommunicationAttempt';
 import DailyChallenge from '../models/DailyChallenge';
+import ThinkingDay from '../models/ThinkingDay';
 import ProblemSubmission from '../models/ProblemSubmission';
 import {
   TRIAL_ITEMS, TrialItemKey, TrialItemSetting, trialActive, trialItem, TRIAL_LIMIT_CODE,
@@ -29,11 +30,22 @@ async function usedSince(tenantId: string, studentId: string, key: TrialItemKey,
   const sid = oid(studentId);
   switch (key) {
     case 'interview':
-      return PassportInterview.countDocuments({ tenantId, studentId: sid, createdAt: { $gte: since } });
+      // An interview closed with no answers (abandoned) is not one they used.
+      return PassportInterview.countDocuments({ tenantId, studentId: sid, createdAt: { $gte: since }, status: { $ne: 'abandoned' } });
     case 'communication':
       return CommunicationAttempt.countDocuments({ tenantId, studentId: sid, createdAt: { $gte: since } });
-    case 'thinkingLab':
-      return DailyChallenge.countDocuments({ tenantId, studentId: sid, createdAt: { $gte: since } });
+    case 'thinkingLab': {
+      // Every question the member was given: the day's set and Practise More (ThinkingDay), plus the
+      // old daily challenges from before the day-by-day lab. Counting only the old ones never stopped anybody.
+      const [legacy, days] = await Promise.all([
+        DailyChallenge.countDocuments({ tenantId, studentId: sid, createdAt: { $gte: since } }),
+        ThinkingDay.aggregate([
+          { $match: { tenantId: String(tenantId), studentId: sid, demo: { $ne: true }, createdAt: { $gte: since } } },
+          { $group: { _id: null, n: { $sum: { $add: [{ $size: { $ifNull: ['$items', []] } }, { $size: { $ifNull: ['$practice', []] } }] } } } },
+        ]),
+      ]);
+      return legacy + (days[0]?.n || 0);
+    }
     case 'practice': {
       // Problems solved among the ones the trial shows.
       const ids = (passport?.trial?.practiceIds || []).map(String);

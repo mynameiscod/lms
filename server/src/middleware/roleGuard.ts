@@ -268,6 +268,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'manage_job_openings', label: 'Company Job Openings: post jobs that every CareerPilot member sees' },
       { key: 'manage_thinking_bank', label: 'Thinking Lab Questions: write and approve the shared question bank' },
       { key: 'manage_demo_accounts', label: 'Demo Accounts: demo plans, and give, reset or end a demo on a member' },
+      { key: 'manage_careerpilot_limits', label: 'CareerPilot Limits: mock interview and Thinking Lab limits for every institute' },
       { key: 'manage_skill_catalogue', label: 'Skill Catalogue: add, edit and delete shared skills, and the skills set for each stage' },
       { key: 'view_member_activity', label: "Member Activity Trail: see everything a member did, on their profile" },
     ]
@@ -395,6 +396,7 @@ export const FEATURE_PERMISSIONS = [
  */
 export const SUPER_ADMIN_GRANTED = [
   'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
+  'manage_careerpilot_limits',
 ];
 
 /**

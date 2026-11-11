@@ -9,6 +9,7 @@ import {
 import { ensureGamificationDefaults } from '../services/gamificationEngine';
 import { labStreakSettings, LAB_FREEZE_EVERY_MAX, LAB_FREEZE_HOLD_MAX } from '../data/labStreakPolicy';
 import { labDailySettings, PER_DAY_MAX } from '../data/thinkingDailyPolicy';
+import { labDailySettingsFor } from '../services/thinkingDailyService';
 import { getLeaderboard, rankSummary } from '../services/leaderboardService';
 import { levelFromXp } from '../services/passportGamificationService';
 import { levelNamesFor, invalidateLevelNames } from '../services/levelNameService';
@@ -190,7 +191,8 @@ export const getAdminGamification = async (req: Request, res: Response) => {
       /** Thinking Lab and Communication Lab streak freezes. */
       labStreak: { ...labStreakSettings(cfg?.labStreak), everyMax: LAB_FREEZE_EVERY_MAX, holdMax: LAB_FREEZE_HOLD_MAX },
       /** Questions and tasks a day, per year. */
-      labDaily: { ...labDailySettings(cfg?.labDaily), perDayMax: PER_DAY_MAX },
+      // The Thinking Lab numbers shown are the ones in effect: the super admin's (CareerPilot Limits).
+      labDaily: { ...(await labDailySettingsFor(tenantId)), perDayMax: PER_DAY_MAX, thinkingManagedByPlatform: true },
       supportedScopes: ['COLLEGE', 'GLOBAL'],
     });
   } catch (e: any) {
@@ -463,11 +465,14 @@ export const updateLabStreak = async (req: Request, res: Response) => {
 export const updateLabDaily = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
-    const next = labDailySettings(req.body || {});
-    const cfg = await GamificationConfig.findOneAndUpdate(
+    // An institute sets only its Communication Lab numbers. The Thinking Lab day is the super admin's,
+    // the same for every institute (CareerPilot Limits), so what was saved here before is kept untouched.
+    const prev: any = await GamificationConfig.findOne({ tenantId }).select('labDaily').lean();
+    const next = labDailySettings({ thinking: prev?.labDaily?.thinking, communication: req.body?.communication });
+    await GamificationConfig.findOneAndUpdate(
       { tenantId }, { $set: { labDaily: next, updatedBy: String((req as any).user?.id || '') } }, { new: true, upsert: true },
-    ).lean() as any;
-    res.json({ labDaily: { ...labDailySettings(cfg?.labDaily), perDayMax: PER_DAY_MAX } });
+    );
+    res.json({ labDaily: { ...(await labDailySettingsFor(tenantId)), perDayMax: PER_DAY_MAX, thinkingManagedByPlatform: true } });
   } catch (e: any) {
     console.error('[gamification] lab daily:', e?.message || e);
     res.status(500).json({ message: 'Could not save the daily set.' });

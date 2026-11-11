@@ -4,6 +4,7 @@ import ThinkingDay, { ThinkingAnswer } from '../models/ThinkingDay';
 import StudentGameStats from '../models/StudentGameStats';
 import User from '../models/User';
 import { GamificationConfig, XpLedger } from '../models/GamificationModels';
+import PlatformLimits, { PLATFORM_LIMITS_KEY } from '../models/PlatformLimits';
 import { istToday, ymd } from '../utils/planSchedule';
 import { aiComplete } from './aiGateway';
 import { runAgainstTests } from './drillService';
@@ -22,13 +23,22 @@ import {
 
 export const today = () => ymd(istToday());
 const oid = (id: string) => new mongoose.Types.ObjectId(id);
-const PRACTICE_PER_DAY = 10;
 
 export class LabError extends Error { constructor(public status: number, message: string, public code?: string) { super(message); } }
 
+/**
+ * The lab's daily numbers for a tenant. The Thinking Lab part is the super admin's, the same for every
+ * institute (CareerPilot Limits); until that screen is saved, the institute's own older numbers apply.
+ * The Communication Lab part stays the institute's.
+ */
 export async function labDailySettingsFor(tenantId: string): Promise<LabDailySettings> {
-  const cfg: any = await GamificationConfig.findOne({ tenantId }).select('labDaily').lean();
-  return labDailySettings(cfg?.labDaily);
+  const [cfg, platform]: any = await Promise.all([
+    GamificationConfig.findOne({ tenantId }).select('labDaily').lean(),
+    PlatformLimits.findOne({ key: PLATFORM_LIMITS_KEY }).select('thinking').lean(),
+  ]);
+  const raw = { ...(cfg?.labDaily || {}) };
+  if (platform?.thinking) raw.thinking = platform.thinking;
+  return labDailySettings(raw);
 }
 
 interface Member { tenantId: string; studentId: string; name: string; stage: string; demoIds: string[] | null }
@@ -143,7 +153,7 @@ export async function ensureDay(tenantId: string, studentId: string): Promise<{ 
 
 /** The usual daily set for a member's year: the admin's per-day mix, unseen questions, coding only once open. */
 async function usualItems(m: Member, access: CodingAccess): Promise<{ questionId: any; type: string }[]> {
-  const settings = (await labDailySettingsFor(m.tenantId)).thinking[m.stage] || { perDay: 1, codingPerDay: 0 };
+  const settings = (await labDailySettingsFor(m.tenantId)).thinking[m.stage] || { perDay: 1, codingPerDay: 0, practicePerDay: 0 };
   const dayIndex = await ThinkingDay.countDocuments({ tenantId: m.tenantId, studentId: oid(m.studentId), demo: { $ne: true } });
   const seen = await seenIds(m);
   const items: { questionId: any; type: string }[] = [];
@@ -244,11 +254,16 @@ export async function todayView(tenantId: string, studentId: string) {
   const aById = new Map((answers as any[]).map((a) => [String(a.questionId), a]));
   const view = (list: any[]) => list.map((i) => qById.get(String(i.questionId))).filter(Boolean).map((q: any) => memberQuestion(q, aById.get(String(q._id)) || null));
   const items = view(day.items || []);
-  const settings = (await labDailySettingsFor(tenantId)).thinking[m.stage] || { perDay: 1, codingPerDay: 0 };
+  const settings = (await labDailySettingsFor(tenantId)).thinking[m.stage] || { perDay: 1, codingPerDay: 0, practicePerDay: 0 };
+  const practiceList = view(day.practice || []);
+  const lastPractice = practiceList[practiceList.length - 1];
   return {
     date: day.date, stage: m.stage, demo: !!day.demo,
-    items, practice: view(day.practice || []),
+    items, practice: practiceList,
     perDay: day.demo ? items.length : settings.perDay,
+    // Practise More: how many a day (0 = off), how many used, and whether the last one is still open.
+    practiceLimit: settings.practicePerDay, practiceUsed: practiceList.length,
+    practiceOpen: !!lastPractice && lastPractice.state !== 'solved' && lastPractice.state !== 'finished',
     done: items.filter((q) => q.state === 'solved' || q.state === 'finished').length,
     coding: { open: access.open, reason: access.reason, basicsDone: access.basicsDone, basicsTotal: access.basicsTotal },
     bankEmpty: !items.length,
@@ -265,7 +280,7 @@ export async function memberSummary(tenantId: string, studentId: string) {
     labDayXp(tenantId, 'thinking'),
     XpLedger.aggregate([{ $match: { tenantId, studentId: sid, eventKey: { $in: ['THINKING_LAB_DAILY_COMPLETED', 'THINKING_LAB_XP_MOVED'] } } }, { $group: { _id: null, n: { $sum: '$amount' } } }]),
     XpLedger.findOne({ tenantId, studentId: sid, eventKey: 'THINKING_LAB_DAILY_COMPLETED', sourceId: date }).select('amount').lean(),
-    ThinkingAnswer.countDocuments({ tenantId, studentId: sid, correct: true }),
+    ThinkingAnswer.countDocuments({ tenantId, studentId: sid, correct: true, practice: { $ne: true } }),
   ]);
   const view = labStreakToday({ current: gs?.currentStreak || 0, longest: gs?.longestStreak || 0, lastDate: gs?.lastSolvedDate, freezes: gs?.freezes || 0 }, date);
   return {
@@ -434,18 +449,38 @@ export async function runCode(tenantId: string, studentId: string, questionId: s
   };
 }
 
-/** One more question for practice: never paid, at most PRACTICE_PER_DAY a day. */
+/**
+ * One more question for practice: never paid, at most the super admin's practicePerDay a day (0 = off),
+ * one at a time — the last practice question must be finished before the next is given.
+ */
 export async function practiceMore(tenantId: string, studentId: string, type?: string) {
   const { day, m, access } = await ensureDay(tenantId, studentId);
   if ((day.items || []).length && !(await setFinished(tenantId, studentId, day))) {
     throw new LabError(409, 'Finish today’s questions first.');
   }
-  if ((day.practice || []).length >= PRACTICE_PER_DAY) throw new LabError(429, `That is ${PRACTICE_PER_DAY} practice questions today. Come back tomorrow.`);
-  const want = ['math', 'logical', 'critical', 'coding'].includes(String(type)) ? String(type) : (['math', 'logical', 'critical'][(day.practice || []).length % 3]);
+  const limit = (await labDailySettingsFor(tenantId)).thinking[m.stage]?.practicePerDay ?? 0;
+  if (limit <= 0) throw new LabError(403, 'Practise More is not open for your year.');
+  const used = (day.practice || []).length;
+  if (used >= limit) throw new LabError(429, `That is ${limit} practice question${limit === 1 ? '' : 's'} today. Come back tomorrow.`);
+  const last = (day.practice || [])[used - 1];
+  if (last && !(await ThinkingAnswer.exists({ tenantId, studentId: oid(studentId), questionId: last.questionId, finished: true }))) {
+    throw new LabError(409, 'Finish your last practice question first.');
+  }
+  if (!m.demoIds) {
+    const { trialAllowsAnother } = await import('./trialService');
+    const trialStop = await trialAllowsAnother(tenantId, studentId, 'thinkingLab');
+    if (trialStop && !trialStop.ok) throw new LabError(trialStop.status || 403, trialStop.body?.message || 'Your trial has used its Thinking Lab questions.', 'trial_limit');
+  }
+  const want = ['math', 'logical', 'critical', 'coding'].includes(String(type)) ? String(type) : (['math', 'logical', 'critical'][used % 3]);
   if (want === 'coding' && !access.open) throw new LabError(403, 'Coding opens once you finish the basics in your roadmap.');
   const q = await pick(m, want, await seenIds(m), access);
   if (!q) throw new LabError(404, 'You have answered every question we have for now. New ones are added regularly.');
-  await ThinkingDay.updateOne({ _id: day._id }, { $push: { practice: { questionId: q._id, type: q.type } } });
+  // Pushed only while still under the limit, in one step, so two quick clicks cannot both get through.
+  const r = await ThinkingDay.updateOne(
+    { _id: day._id, [`practice.${limit - 1}`]: { $exists: false }, practice: { $not: { $elemMatch: { questionId: q._id } } } },
+    { $push: { practice: { questionId: q._id, type: q.type } } },
+  );
+  if (!r.modifiedCount) throw new LabError(409, 'That practice question was just given. Open it from the Practice tab.');
   await ThinkingQuestion.updateOne({ _id: q._id }, { $inc: { timesServed: 1 } });
   return todayView(tenantId, studentId);
 }

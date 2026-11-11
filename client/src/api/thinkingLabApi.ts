@@ -68,6 +68,8 @@ export interface TQQuestion {
 export interface TQSummary { streak: number; streakAtRisk: boolean; longestStreak: number; freezes: number; freezeEvery: number; freezeMax: number; labXp: number; dayXp: number; paidToday: number; solvedTotal: number }
 export interface TQToday {
   date: string; stage: string; demo: boolean; items: TQQuestion[]; practice: TQQuestion[]; perDay: number; done: number;
+  /** Practise More: per day (0 = off, set by the super admin), used today, and whether the last one is unfinished. */
+  practiceLimit?: number; practiceUsed?: number; practiceOpen?: boolean;
   coding: { open: boolean; reason: 'year1' | 'basics' | 'open'; basicsDone: number; basicsTotal: number }; bankEmpty: boolean;
   summary: TQSummary; calendar: { date: string; state: 'done' | 'frozen' | 'none' }[];
 }

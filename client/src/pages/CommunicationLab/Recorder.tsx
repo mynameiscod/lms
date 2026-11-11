@@ -182,7 +182,7 @@ const Recorder: React.FC<{
               <li><i className="bi bi-arrow-repeat" /> Not happy? Record once more. You get {MAX_TAKES} takes.</li>
               <li><i className="bi bi-send-check" /> Send the better take. Once sent, it is final.</li>
             </ol>
-            <button className="clx-btn teal" style={{ width: '100%', marginTop: 16 }} onClick={toReady}><i className="bi bi-camera-video" /> Turn on camera &amp; microphone</button>
+            <button className="clx-btn primary" style={{ width: "100%", marginTop: 16 }} onClick={toReady}><i className="bi bi-camera-video" /> Turn on camera &amp; microphone</button>
           </>
         ) : (
           <>
@@ -228,7 +228,7 @@ const Recorder: React.FC<{
               {phase === 'review' && (
                 <>
                   {left > 0 && <button className="clx-btn" onClick={toReady}><i className="bi bi-arrow-counterclockwise" /> Record again ({left} left)</button>}
-                  <button className="clx-btn teal" onClick={submit} disabled={!chosen || tooShort}><i className="bi bi-stars" /> Send {takes.length > 1 ? `take ${pick + 1}` : 'this take'} for AI feedback</button>
+                  <button className="clx-btn primary" onClick={submit} disabled={!chosen || tooShort}><i className="bi bi-stars" /> Send {takes.length > 1 ? `take ${pick + 1}` : 'this take'} for AI feedback</button>
                 </>
               )}
               {phase === 'submitting' && <span style={{ color: '#2F3F56', fontSize: 13 }}><i className="bi bi-hourglass-split" /> Transcribing and evaluating… this can take a minute.</span>}

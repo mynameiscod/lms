@@ -26,6 +26,7 @@ import { resolveCompanyProfile } from '../services/companyFitService';
 import * as bunny from '../services/bunnyStorageService';
 import fs from 'fs';
 import crypto from 'crypto';
+import { interviewStaleHours } from './platformLimitsController';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -55,7 +56,7 @@ const INTRO_LIMIT_SEC = 120;
  * returns to a mock interview the next day. Without this the one-live-session lock turns a
  * single forgotten sitting into a permanent block on ever starting another.
  */
-const STALE_LIVE_HOURS = 6;
+/** How long a left-open sitting stays resumable is the super admin's (CareerPilot Limits); 6 hours by default. */
 /**
  * How long a session recording is kept before the retention sweep deletes it from Bunny.
  * This is a student's face and voice, so it expires on a schedule rather than living
@@ -136,7 +137,7 @@ async function entitlementFor(tenantId: string, studentId: string, user: any): P
   const [resolved, sittings] = await Promise.all([
     resolvePlanForMember(tenantId, audienceOf(user)),
     PassportInterview.find({ tenantId, studentId, createdAt: { $gte: since } })
-      .select('planRoundKey createdAt transcript.role').lean(),
+      .select('planRoundKey createdAt transcript.role status').lean(),
   ]);
   /**
    * A demo account: no monthly limit, no waiting between rounds, and only the rounds its demo plan
@@ -158,7 +159,8 @@ async function entitlementFor(tenantId: string, studentId: string, user: any): P
     (sittings as any[]).map(s => ({
       planRoundKey: s.planRoundKey,
       createdAt: s.createdAt,
-      engaged: (s.transcript || []).some((t: any) => t.role === 'candidate'),
+      // A sitting closed with no feedback (abandoned) does not use up the allowance.
+      engaged: s.status !== 'abandoned' && (s.transcript || []).some((t: any) => t.role === 'candidate'),
     })),
   );
 }
@@ -187,6 +189,9 @@ export const list = async (req: Request, res: Response) => {
     const { tenantId, studentId, user, cfg, entitled } = await gate(req);
     if (!entitled) return res.json({ locked: true, priceInr: cfg?.priceInr ?? 499 });
 
+    // Sittings left open past the stale window are graded in the background (or closed, if
+    // unanswered); until that lands they show as "being graded" in History.
+    closeStaleSittings(tenantId, studentId).catch(() => {});
     const [sessions, entitlement] = await Promise.all([
       PassportInterview.find({ tenantId, studentId }).sort({ createdAt: -1 }).limit(20).lean(),
       entitlementFor(tenantId, studentId, user),
@@ -246,7 +251,7 @@ export const start = async (req: Request, res: Response) => {
        * So the live session only wins when it is BOTH current and the thing being asked for.
        */
       const startedAt = new Date((existing as any).startedAt || (existing as any).createdAt || Date.now());
-      const stale = Date.now() - startedAt.getTime() > STALE_LIVE_HOURS * 3600_000;
+      const stale = Date.now() - startedAt.getTime() > (await interviewStaleHours()) * 3600_000;
       const engaged = ((existing as any).transcript || []).some((t: any) => t.role === 'candidate');
       /**
        * A plan round is its OWN mode, checked before `focus`.
@@ -267,13 +272,18 @@ export const start = async (req: Request, res: Response) => {
         || (!!wantRound && wantRound !== ((existing as any).planRoundKey || ''));
 
       /**
-       * Discarded only when nothing would be lost: a sitting older than STALE_LIVE_HOURS is
+       * Discarded only when nothing would be lost: a sitting older than the stale window is
        * abandoned in fact whatever its status says, and one the member never answered has
        * nothing in it to come back to. A session they actually engaged with today is kept
        * and resumed — but `mismatched` tells the client it is not the round that was
        * requested, so the screen can say so instead of quietly running the wrong interview.
        */
-      if (stale || (mismatched && !engaged)) {
+      if (stale && engaged) {
+        // Left open with answers in it: grade what was said, so the member gets feedback for it in
+        // History, rather than throwing it away. (Awaited: the one-live-interview lock frees only
+        // once this sitting is closed.)
+        await finalizeInterview(tenantId, studentId, String((existing as any)._id));
+      } else if (stale || (mismatched && !engaged)) {
         await PassportInterview.updateOne(
           { _id: (existing as any)._id },
           { $set: { status: 'abandoned', finalizeToken: null, finalizingAt: null, live: false } },
@@ -714,12 +724,14 @@ export const playRecording = async (req: Request, res: Response) => {
   }
 };
 
-export const finish = async (req: Request, res: Response) => {
-  try {
-    const { tenantId, studentId, cfg, entitled } = await gate(req);
-    if (!entitled) return res.status(403).json({ locked: true, priceInr: cfg?.priceInr ?? 499, message: 'Membership required.' });
-
-    const id = req.params.id;
+/**
+ * Close one sitting and grade whatever was answered. Used by finish(), and for a sitting the member left
+ * open: when it goes stale (start(), and the history list), its answers are graded rather than thrown
+ * away, so a left-mid-way interview still gives feedback for what was said.
+ * Returns the HTTP status and body finish() would send.
+ */
+async function finalizeInterview(tenantId: string, studentId: any, id: string): Promise<{ code: number; body: any }> {
+  {
     const now = new Date();
     const token = newFinalizeToken();
 
@@ -740,15 +752,15 @@ export const finish = async (req: Request, res: Response) => {
       // We did not get the claim. Either this interview is finished, somebody else is
       // finishing it, or it does not exist. Read it and answer honestly.
       const current: any = await PassportInterview.findOne({ _id: id, tenantId, studentId });
-      if (!current) return res.status(404).json({ message: 'Interview not found' });
+      if (!current) return { code: 404, body: { message: 'Interview not found' } };
 
       // The retry case, and the common one: return what was stored rather than doing any
       // of it again.
       if (current.status === 'completed') {
-        return res.json({ session: publicSession(current), alreadyCompleted: true });
+        return { code: 200, body: { session: publicSession(current), alreadyCompleted: true } };
       }
       if (current.status === 'abandoned') {
-        return res.json({ session: publicSession(current), message: 'Interview closed — no answers were given.' });
+        return { code: 200, body: { session: publicSession(current), message: 'Interview closed — no answers were given.' } };
       }
 
       /**
@@ -770,11 +782,11 @@ export const finish = async (req: Request, res: Response) => {
       );
 
       if (!reclaimed) {
-        return res.status(202).json({
+        return { code: 202, body: {
           finalizing: true,
           session: publicSession(current),
           message: 'We are still grading this interview. Give it a few seconds.',
-        });
+        } };
       }
       session = reclaimed;
     }
@@ -796,7 +808,7 @@ export const finish = async (req: Request, res: Response) => {
         { new: true },
       );
       const out: any = closed || await PassportInterview.findOne({ _id: id, tenantId, studentId });
-      return res.json({ session: publicSession(out), message: 'Interview closed — no answers were given.' });
+      return { code: 200, body: { session: publicSession(out), message: 'Interview closed — no answers were given.' } };
     }
 
     const evalResult = await evaluateTranscript({
@@ -885,7 +897,7 @@ export const finish = async (req: Request, res: Response) => {
     if (!saved) {
       // Our claim was taken over mid-grading. Somebody else owns the outcome.
       const current: any = await PassportInterview.findOne({ _id: id, tenantId, studentId });
-      return res.json({ session: publicSession(current), alreadyCompleted: true });
+      return { code: 200, body: { session: publicSession(current), alreadyCompleted: true } };
     }
 
     // Close today's mock-interview mission automatically. The member has just done the
@@ -937,15 +949,40 @@ export const finish = async (req: Request, res: Response) => {
       }
     }
 
-    res.json({
+    return { code: 200, body: {
       session: publicSession(saved), scored: !!evalResult, coins: coin.awarded,
       xpAwarded, interviewReadiness,
-    });
+    } };
+  }
+}
+
+export const finish = async (req: Request, res: Response) => {
+  try {
+    const { tenantId, studentId, cfg, entitled } = await gate(req);
+    if (!entitled) return res.status(403).json({ locked: true, priceInr: cfg?.priceInr ?? 499, message: 'Membership required.' });
+    const r = await finalizeInterview(tenantId, studentId, req.params.id);
+    res.status(r.code).json(r.body);
   } catch (e: any) {
     console.error('[passport] interview finish:', e);
     res.status(500).json({ message: e.message || 'Could not finish the interview' });
   }
 };
+
+/**
+ * Grade, in the background, this member's sittings that were left open past the stale window and have
+ * answers in them. Ones with no answers are closed. Called when the history list loads, so a member who
+ * closed the tab finds their feedback (or a clear "Incomplete") there instead of a row that will not open.
+ */
+async function closeStaleSittings(tenantId: string, studentId: any): Promise<void> {
+  const hours = await interviewStaleHours();
+  const before = new Date(Date.now() - hours * 3600_000);
+  const stale: any[] = await PassportInterview.find({ tenantId, studentId, status: 'in_progress', startedAt: { $lte: before } }).select('_id').lean();
+  for (const s of stale) {
+    try { await finalizeInterview(tenantId, studentId, String(s._id)); }
+    catch (e: any) { console.error('[passport] close stale interview:', e?.message || e); }
+  }
+}
+
 
 /** GET /passport/interview/:id — one session with its full transcript + feedback. */
 export const get = async (req: Request, res: Response) => {

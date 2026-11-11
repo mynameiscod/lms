@@ -26,6 +26,7 @@ import * as jobOpenings from '../controllers/jobOpeningController';
 import * as thinkingBank from '../controllers/thinkingBankController';
 import * as labsToday from '../services/labTodayService';
 import * as interviewPlans from '../controllers/interviewPlanController';
+import * as platformLimits from '../controllers/platformLimitsController';
 import * as activity from '../controllers/careerPilotActivityController';
 import * as learningUnits from '../controllers/conceptLearningUnitController';
 import * as resume from '../controllers/passportResumeController';
@@ -179,6 +180,8 @@ const REROUTE = roleGuard(['reroute_passport_members']);
 const SKILL_CATALOGUE = roleGuard(['manage_skill_catalogue']);
 const MEMBER_ACTIVITY = roleGuard(['view_member_activity']);
 const DEMO_ACCOUNTS = roleGuard(['manage_demo_accounts']);
+/** CareerPilot Limits: mock interview and Thinking Lab limits for every institute. Only a super admin can give this key. */
+const LIMITS = roleGuard(['manage_careerpilot_limits']);
 
 // ── Drop-off funnel — who stopped where, and who to contact about it ──
 
@@ -246,6 +249,15 @@ router.post('/interview-plans',         MANAGE_FOR.cpContent, interviewPlans.cre
 router.put('/interview-plans/reorder',  MANAGE_FOR.cpContent, interviewPlans.reorder);
 router.put('/interview-plans/:id',      MANAGE_FOR.cpContent, interviewPlans.update);
 router.delete('/interview-plans/:id',   MANAGE_FOR.cpContent, interviewPlans.remove);
+// The super admin's limits for every institute: interview plans (same editor, platform scope) and the rest.
+router.get('/platform/limits',                    LIMITS, platformLimits.getLimits);
+router.put('/platform/limits',                    LIMITS, platformLimits.updateLimits);
+router.get('/platform/interview-plans',           LIMITS, interviewPlans.asPlatform, interviewPlans.list);
+router.get('/platform/interview-plans/preview',   LIMITS, interviewPlans.asPlatform, interviewPlans.preview);
+router.post('/platform/interview-plans',          LIMITS, interviewPlans.asPlatform, interviewPlans.create);
+router.put('/platform/interview-plans/reorder',   LIMITS, interviewPlans.asPlatform, interviewPlans.reorder);
+router.put('/platform/interview-plans/:id',       LIMITS, interviewPlans.asPlatform, interviewPlans.update);
+router.delete('/platform/interview-plans/:id',    LIMITS, interviewPlans.asPlatform, interviewPlans.remove);
 // ── Day-by-day curriculum per pathway. Authored days override the generator. ──
 router.get('/curriculum',                     MANAGE_FOR.cpContent, curriculum.listPathwayCurricula);
 router.get('/curriculum/:pathwayKey',         MANAGE_FOR.cpContent, curriculum.getPathwayCurriculum);

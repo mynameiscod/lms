@@ -325,8 +325,15 @@ const Interview: React.FC = () => {
     return () => window.removeEventListener('beforeunload', warn);
   }, [session?.id, session?.status]);
 
-  const openPast = async (s: InterviewSession) => {
+  const openPast = async (s0: InterviewSession) => {
+    // A sitting that is not finished is re-read: it may have been graded or closed since the list loaded.
+    let s = s0;
+    if (s0.status !== 'completed') {
+      try { s = (await passportApi.getInterviewSession(s0.id)).session; } catch { /* show what the list had */ }
+    }
     setSession(s);
+    // Resuming a sitting left open: the camera comes back on with it.
+    if (s.status === 'in_progress') { setNotice(''); await startRecording(); }
     setPlayUrl(u => { if (u) URL.revokeObjectURL(u); return ''; });
     if (s.hasRecording) {
       try { setPlayUrl(await passportApi.interviewRecordingUrl(s.id)); }
@@ -489,6 +496,54 @@ const Interview: React.FC = () => {
               <button className="pm-btn cp-iv-full" onClick={() => navigate('/careerpilot/placement')}>Go to placement readiness</button>
             </div>
           </div>
+        </div>
+      </PassportShell>
+    );
+  }
+
+  /**
+   * A sitting that ended without feedback (closed with no answers), or one still being graded. Before,
+   * neither had a screen, so tapping it in History did nothing.
+   */
+  if (session && (session.status === 'abandoned' || session.status === 'finalizing')) {
+    const grading = session.status === 'finalizing';
+    const answers = session.transcript.filter(t => t.role === 'candidate').length;
+    return (
+      <PassportShell>
+        <div className="cp-iv-page">
+          <button className="pm-btn ghost" onClick={() => { setSession(null); load(); }}>← Back to mock interviews</button>
+          <div className="cp-iv-feedback-head">
+            <div>
+              <span className="cp-iv-kicker">{grading ? 'Being graded' : 'Incomplete interview'}</span>
+              <h1>{grading ? 'We are grading this interview' : 'This interview ended without feedback'}</h1>
+              <p>
+                {session.planRoundLabel || session.role} · {new Date(session.startedAt).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                {' · '}{answers} answer{answers === 1 ? '' : 's'} given
+              </p>
+            </div>
+          </div>
+          <div className="pm-card cp-iv-card">
+            <p style={{ margin: '0 0 12px', lineHeight: 1.6 }}>
+              {grading
+                ? 'Your answers are being graded. This usually takes under a minute. Check again shortly to see your feedback.'
+                : 'It was closed before any question was answered, so there was nothing to grade. It does not count against your interviews. Start a new one when you are ready.'}
+            </p>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {grading && <button className="pm-btn primary" onClick={() => openPast(session)}><i className="bi bi-arrow-clockwise" aria-hidden /> Check again</button>}
+              <button className="pm-btn" onClick={() => { setSession(null); load(); }}>Back to mock interviews</button>
+            </div>
+          </div>
+          {session.transcript.length > 0 && (
+            <div className="pm-card cp-iv-card">
+              <h3>Transcript</h3>
+              {session.transcript.map((t, i) => (
+                <div className={`iv-turn ${t.role}`} key={i} style={{ marginBottom: 10 }}>
+                  <span className="av">{t.role === 'interviewer' ? '🎙️' : '🙋'}</span>
+                  <div className="bub">{t.text}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </PassportShell>
     );
@@ -730,7 +785,7 @@ const Interview: React.FC = () => {
                       <span className="ivh-hrow-res">
                         {s.status === 'completed' && score != null
                           ? <><em className={`ivh-pill ${scoreTone(score)}`}>{score}%</em><small>Completed</small></>
-                          : <><em className="ivh-pill wait">{s.status === 'in_progress' ? 'Resume' : '—'}</em><small>{s.status === 'in_progress' ? 'In progress' : 'Not completed'}</small></>}
+                          : <><em className="ivh-pill wait">{s.status === 'in_progress' ? 'Resume' : s.status === 'finalizing' ? 'Grading' : 'Incomplete'}</em><small>{s.status === 'in_progress' ? 'In progress' : s.status === 'finalizing' ? 'Being graded' : 'No answers given'}</small></>}
                       </span>
                       <i className="bi bi-chevron-right ivh-chev" aria-hidden />
                     </button>

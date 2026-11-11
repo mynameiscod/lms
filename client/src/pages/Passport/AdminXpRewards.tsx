@@ -486,16 +486,16 @@ const XpTab: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
         </div>
       </div>
       <div className={`xr-labdaily${dailyDirty ? ' unsaved' : ''}`}>
-        <div className="xr-labdaily-hd"><b>The daily set</b><small>How many questions and tasks a member is given each day, by year. Missed days do not pile up. Coding is never given in Year 1, and only after the track's basics.</small></div>
+        <div className="xr-labdaily-hd"><b>The daily set</b><small>How many questions and tasks a member is given each day, by year. Missed days do not pile up. The Thinking Lab numbers are set by the CodeBegun super admin for every institute (CareerPilot Limits); you set the Communication Lab tasks.</small></div>
         <table>
-          <thead><tr><th scope="col">Year</th><th scope="col">Thinking questions a day</th><th scope="col">of which coding <small>0 = takes its turn</small></th><th scope="col">Communication tasks a day</th></tr></thead>
+          <thead><tr><th scope="col">Year</th><th scope="col">Thinking questions a day <small><i className="bi bi-lock-fill" aria-hidden /> super admin</small></th><th scope="col">of which coding <small><i className="bi bi-lock-fill" aria-hidden /> super admin</small></th><th scope="col">Communication tasks a day</th></tr></thead>
           <tbody>
             {LAB_YEARS.map(([k, label]) => (
               <tr key={k}>
                 <th scope="row">{label}</th>
-                <td><Stepper value={daily[k].perDay} max={perDayMax} label={`${label} Thinking questions a day`} onChange={x => setDaily(d => ({ ...d, [k]: { ...d[k], perDay: x, codingPerDay: String(Math.min(Number(d[k].codingPerDay) || 0, Number(x) || 0)) } }))} /></td>
-                <td>{k === 'foundation' ? <span className="xr-unit">None in Year 1</span> : <Stepper value={daily[k].codingPerDay} max={Number(daily[k].perDay) || 1} label={`${label} coding questions a day`} onChange={x => setDaily(d => ({ ...d, [k]: { ...d[k], codingPerDay: x } }))} />}</td>
-                <td><Stepper value={daily[k].comm} max={perDayMax} label={`${label} Communication tasks a day`} onChange={x => setDaily(d => ({ ...d, [k]: { ...d[k], comm: x } }))} /></td>
+                <td data-label="Thinking questions a day"><b className="xr-locked">{daily[k].perDay}</b></td>
+                <td data-label="Of which coding">{k === 'foundation' ? <span className="xr-unit">None in Year 1</span> : (Number(daily[k].codingPerDay) || 0 ? <b className="xr-locked">{daily[k].codingPerDay}</b> : <span className="xr-unit">Takes its turn</span>)}</td>
+                <td data-label="Communication tasks a day"><Stepper value={daily[k].comm} max={perDayMax} label={`${label} Communication tasks a day`} onChange={x => setDaily(d => ({ ...d, [k]: { ...d[k], comm: x } }))} /></td>
               </tr>
             ))}
           </tbody>

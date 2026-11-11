@@ -12,14 +12,21 @@ import './book.css';
  * chapters; students read them notebook-style. A super admin can also write CodeBegun books
  * that every institute sees.
  */
+const YEAR_SHORT: Record<string, string> = { foundation: 'Year 1', build: 'Year 2', specialize: 'Year 3', placement: 'Year 4' };
 const COLORS = ['#4f46e5', '#0d9488', '#be123c', '#b45309', '#0369a1', '#7c3aed', '#15803d', '#c2410c', '#1e293b'];
 const EMBLEMS = ['☕', '🐍', '🗄️', '🧮', '🌐', '⚛️', '🧠', '💬', '🏢', '🧩', '📊', '🔐'];
 
 const BookForm: React.FC<{ book?: AdminBook; onClose: () => void; onSaved: (b: AdminBook) => void }> = ({ book, onClose, onSaved }) => {
   const { user } = useAuth() as any;
-  const [f, setF] = useState<any>(book ? { ...book } : { title: '', kind: 'topic', subject: '', description: '', color: COLORS[0], emblem: '☕', audience: 'all', scope: 'tenant', chaptersText: 'Basics\nIntermediate\nAdvanced' });
+  const [f, setF] = useState<any>(book ? { ...book } : { title: '', kind: 'topic', subject: '', description: '', color: COLORS[0], emblem: '☕', audience: 'all', stages: [], tracks: [], scope: 'tenant', chaptersText: 'Basics\nIntermediate\nAdvanced' });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [targets, setTargets] = useState<{ stages: { key: string; label: string }[]; tracks: { key: string; name: string }[] } | null>(null);
+  useEffect(() => { questionBookApi.admin.targets().then(setTargets).catch(() => setTargets(null)); }, []);
+  const toggle = (field: 'stages' | 'tracks', key: string) => {
+    const cur: string[] = f[field] || [];
+    setF({ ...f, [field]: cur.includes(key) ? cur.filter((x) => x !== key) : [...cur, key] });
+  };
   const save = async () => {
     setBusy(true); setErr('');
     try {
@@ -67,6 +74,16 @@ const BookForm: React.FC<{ book?: AdminBook; onClose: () => void; onSaved: (b: A
             <option value="tenant">This institute</option><option value="global">CodeBegun — every institute</option>
           </select></div>}
       </div>
+      {f.audience !== 'lms' && targets && <>
+        <label className="pb-label">CareerPilot years <small>none ticked = every year</small></label>
+        <div className="pb-row" style={{ flexWrap: 'wrap', gap: 6 }}>
+          {targets.stages.map((t) => <button key={t.key} type="button" className={`pb-chip ${(f.stages || []).includes(t.key) ? 'on' : ''}`} aria-pressed={(f.stages || []).includes(t.key)} onClick={() => toggle('stages', t.key)}>{t.label}</button>)}
+        </div>
+        <label className="pb-label">Career tracks <small>none ticked = every member; ticked = only members on those tracks (Year 3 and 4)</small></label>
+        <div className="pb-row" style={{ flexWrap: 'wrap', gap: 6 }}>
+          {targets.tracks.map((t) => <button key={t.key} type="button" className={`pb-chip ${(f.tracks || []).includes(t.key) ? 'on' : ''}`} aria-pressed={(f.tracks || []).includes(t.key)} onClick={() => toggle('tracks', t.key)}>{t.name}</button>)}
+        </div>
+      </>}
       {!book && <>
         <label className="pb-label">Chapters <small>one per line — you can change them later</small></label>
         <textarea className="pb-textarea" rows={4} value={f.chaptersText} onChange={(e) => setF({ ...f, chaptersText: e.target.value })} />
@@ -292,7 +309,13 @@ const QuestionBooksAdmin: React.FC = () => {
                   <td>{b.kind === 'company' ? 'Company' : 'Topic'}</td>
                   <td>{b.questionCount}</td>
                   <td>{b.chapters.length}</td>
-                  <td className="pb-muted">{b.audience === 'all' ? 'LMS + CareerPilot' : b.audience === 'lms' ? 'LMS' : 'CareerPilot'}</td>
+                  <td className="pb-muted">{b.audience === 'all' ? 'LMS + CareerPilot' : b.audience === 'lms' ? 'LMS' : 'CareerPilot'}
+                    {b.audience !== 'lms' && ((b.stages || []).length > 0 || (b.tracks || []).length > 0) && (
+                      <div className="pb-faint" style={{ fontSize: 12 }}>
+                        {(b.tracks || []).length ? `${b.tracks!.length === 1 ? '1 career track' : `${b.tracks!.length} career tracks`}` : (b.stages || []).map((st) => YEAR_SHORT[st] || st).join(', ')}
+                      </div>
+                    )}
+                  </td>
                   <td><span className={`pb-pill ${b.status === 'published' ? 'pb-badge-ok' : 'pb-badge-neutral'}`}>{b.status === 'published' ? 'Published' : 'Draft'}</span></td>
                 </tr>
               ))}</tbody>

@@ -33,6 +33,7 @@ const HIDDEN_FROM_MENU = new Set<string>([
 const GIVEN_ONLY_PERMISSIONS = new Set([
   'support_agent', 'support_manager',
   'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
+  'manage_careerpilot_limits',
 ]);
 
 interface MenuItem {
@@ -238,6 +239,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'CareerPilot Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport', 'manage_passport_setup'] },
     { label: 'CareerPilot Members', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['view_passport_members', 'manage_passport', 'manage_passport_members'] },
     { label: 'CareerPilot Trials', path: '/admin/passport/trial-plans', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-hourglass-half', permissions: ['manage_passport', 'manage_passport_members'] },
+    { label: 'CareerPilot Limits', path: '/admin/passport/limits', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-gauge-high', permissions: ['manage_careerpilot_limits'] },
     { label: 'CareerPilot Demo Plans', path: '/admin/passport/demo-plans', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-person-chalkboard', permissions: ['manage_demo_accounts'] },
     { label: 'CareerPilot Job Openings', path: '/admin/passport/job-openings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', permissions: ['manage_job_openings'] },
     /* FIVE ENTRIES WERE REMOVED FROM HERE, NOT FIVE SCREENS.

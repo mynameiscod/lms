@@ -23,6 +23,7 @@ const staff = roleGuard(['manage_interview_hub', 'create_courses', 'edit_courses
 
 // ── Staff ──
 router.get('/admin/books', staff, wrap((req) => svc.adminBooks(actor(req))));
+router.get('/admin/targets', staff, wrap(() => svc.bookTargets()));
 router.post('/admin/books', staff, wrap((req) => svc.saveBook(actor(req), null, req.body || {})));
 router.get('/admin/books/:id', staff, wrap((req) => svc.adminBook(actor(req), req.params.id)));
 router.put('/admin/books/:id', staff, wrap((req) => svc.saveBook(actor(req), req.params.id, req.body || {})));

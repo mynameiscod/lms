@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import InterviewPlan, { IInterviewPlan, PLAN_BOUNDS, ROUND_TYPES, ROUND_TYPE_LABEL, DEFAULT_PLAN_SHAPE } from '../models/InterviewPlan';
+import InterviewPlan, { IInterviewPlan, PLAN_BOUNDS, ROUND_TYPES, ROUND_TYPE_LABEL, DEFAULT_PLAN_SHAPE, PLATFORM_PLAN_TENANT } from '../models/InterviewPlan';
 import PassportInterview from '../models/PassportInterview';
 import AiUsage from '../models/AiUsage';
 import User from '../models/User';
 import { AudienceMember } from '../models/memberAudience';
-import { normalizePlanInput, resolvePlan, validatePlans, planTotals } from '../services/interviewPlanService';
+import { normalizePlanInput, resolvePlan, validatePlans, planTotals, plansInForce } from '../services/interviewPlanService';
 import { istToday, ymd } from '../utils/planSchedule';
 
 /**
@@ -18,10 +18,21 @@ import { istToday, ymd } from '../utils/planSchedule';
  * is what they will get.
  */
 
-const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
+/**
+ * TWO SCOPES. The super admin's screen (CareerPilot Limits, routes under /platform/interview-plans,
+ * marked by `asPlatform`) writes the plans every institute uses. An institute's own screen only reads
+ * the plans in force for it: limits are the super admin's alone.
+ */
+export const asPlatform = (req: Request, _res: Response, next: () => void) => { (req as any).planScopePlatform = true; next(); };
+const isPlatform = (req: Request): boolean => !!(req as any).planScopePlatform;
+const realTenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
+const tenantOf = (req: Request): string => (isPlatform(req) ? PLATFORM_PLAN_TENANT : realTenantOf(req));
+const READ_ONLY = { message: 'Mock interview limits are set by the CodeBegun super admin for every institute (CareerPilot Limits).' };
 
-/** The canonical "is a CareerPilot member" filter, same as the members screen. */
-const MEMBER_FILTER = (tenantId: string) => ({ tenantId, 'passport.product': { $exists: true, $ne: null } });
+/** The canonical "is a CareerPilot member" filter, same as the members screen. Platform scope: every institute. */
+const MEMBER_FILTER = (tenantId: string) => (tenantId === PLATFORM_PLAN_TENANT
+  ? { 'passport.product': { $exists: true, $ne: null } }
+  : { tenantId, 'passport.product': { $exists: true, $ne: null } });
 
 /**
  * The AiUsage modules that make up one mock interview's bill.
@@ -85,13 +96,14 @@ async function observedCostPerInterview(tenantId: string): Promise<{ costInr: nu
 
   // AiUsage.tenantId is an ObjectId; PassportInterview.tenantId is a string. Both are the
   // same tenant, and getting that wrong returns a confident zero.
+  const all = tenantId === PLATFORM_PLAN_TENANT;
   const usageTenant = mongoose.isValidObjectId(tenantId) ? new mongoose.Types.ObjectId(tenantId) : null;
-  if (!usageTenant) return { costInr: null, sample: 0 };
+  if (!usageTenant && !all) return { costInr: null, sample: 0 };
 
   const [spend, sittings] = await Promise.all([
     AiUsage.aggregate([
       { $match: {
-        tenantId: usageTenant, product: INTERVIEW_SPEND_PRODUCT,
+        ...(all ? {} : { tenantId: usageTenant }), product: INTERVIEW_SPEND_PRODUCT,
         module: { $in: INTERVIEW_SPEND_MODULES }, date: { $gte: ymd(from), $lte: ymd(to) },
       } },
       { $group: { _id: null, costInr: { $sum: '$costInr' } } },
@@ -99,7 +111,7 @@ async function observedCostPerInterview(tenantId: string): Promise<{ costInr: nu
     // The same definition the quota uses: a sitting the member actually engaged with. An
     // opened-and-abandoned session cost a turn call and belongs in the average.
     PassportInterview.countDocuments({
-      tenantId,
+      ...(all ? {} : { tenantId }),
       createdAt: { $gte: from },
       'transcript.role': 'candidate',
     }),
@@ -121,8 +133,10 @@ async function observedCostPerInterview(tenantId: string): Promise<{ costInr: nu
 export const list = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
+    // An institute sees the plans in force for it (the super admin's, once written), read-only.
+    const inForce = isPlatform(req) ? { plans: await loadPlans(tenantId), platform: true } : await plansInForce(tenantId);
     const [plans, members, cost] = await Promise.all([
-      loadPlans(tenantId),
+      Promise.resolve(inForce.plans),
       User.find(MEMBER_FILTER(tenantId)).select('passport.yearOfStudy passport.degree passport.program passport.branch passport.primaryRole passport.secondaryRole passport.stage').lean(),
       observedCostPerInterview(tenantId),
     ]);
@@ -145,6 +159,8 @@ export const list = async (req: Request, res: Response) => {
     res.json({
       plans: plans.map(p => ({ ...publicPlan(p), members: won.get(String(p._id)) || 0 })),
       warnings: validatePlans(plans),
+      readOnly: !isPlatform(req),
+      managedByPlatform: inForce.platform,
       totals: { members: members.length, onDefault },
       cost: { perInterviewInr: cost.costInr, sample: cost.sample, windowDays: SPEND_WINDOW_DAYS },
       bounds: PLAN_BOUNDS,
@@ -159,6 +175,7 @@ export const list = async (req: Request, res: Response) => {
 
 /** POST /passport/interview-plans */
 export const create = async (req: Request, res: Response) => {
+  if (!isPlatform(req)) return res.status(403).json(READ_ONLY);
   try {
     const tenantId = tenantOf(req);
     const input = normalizePlanInput(req.body);
@@ -178,6 +195,7 @@ export const create = async (req: Request, res: Response) => {
 
 /** PUT /passport/interview-plans/:id */
 export const update = async (req: Request, res: Response) => {
+  if (!isPlatform(req)) return res.status(403).json(READ_ONLY);
   try {
     const tenantId = tenantOf(req);
     const input = normalizePlanInput(req.body);
@@ -194,6 +212,7 @@ export const update = async (req: Request, res: Response) => {
 
 /** DELETE /passport/interview-plans/:id */
 export const remove = async (req: Request, res: Response) => {
+  if (!isPlatform(req)) return res.status(403).json(READ_ONLY);
   try {
     const tenantId = tenantOf(req);
     const r = await InterviewPlan.deleteOne({ _id: req.params.id, tenantId });
@@ -212,6 +231,7 @@ export const remove = async (req: Request, res: Response) => {
  * failed, and the half-applied order is a config nobody chose.
  */
 export const reorder = async (req: Request, res: Response) => {
+  if (!isPlatform(req)) return res.status(403).json(READ_ONLY);
   try {
     const tenantId = tenantOf(req);
     const ids: string[] = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : [];
@@ -245,8 +265,8 @@ export const preview = async (req: Request, res: Response) => {
     if (!mongoose.isValidObjectId(studentId)) return res.status(400).json({ message: 'Choose a student first.' });
 
     const [user, plans] = await Promise.all([
-      User.findOne({ _id: studentId, tenantId }).select('firstName lastName email passport').lean() as any,
-      loadPlans(tenantId),
+      User.findOne(isPlatform(req) ? { _id: studentId } : { _id: studentId, tenantId }).select('firstName lastName email passport').lean() as any,
+      isPlatform(req) ? loadPlans(tenantId) : plansInForce(tenantId).then(r => r.plans),
     ]);
     if (!user) return res.status(404).json({ message: 'Student not found' });
 

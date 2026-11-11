@@ -17,15 +17,18 @@ import { QuestionType } from './thinkingBankPolicy';
 
 export const LAB_YEARS = ['foundation', 'build', 'specialize', 'placement'] as const;
 
-export interface ThinkingYearSettings { perDay: number; codingPerDay: number }
+/** practicePerDay: extra, unpaid questions after the day's set is done. 0 turns Practise More off. */
+export interface ThinkingYearSettings { perDay: number; codingPerDay: number; practicePerDay: number }
 export interface LabDailySettings {
   thinking: Record<string, ThinkingYearSettings>;
   communication: Record<string, { perDay: number }>;
 }
 export const PER_DAY_MAX = 5;
+export const PRACTICE_PER_DAY_MAX = 30;
+export const PRACTICE_PER_DAY_DEFAULT = 10;
 
 export const LAB_DAILY_DEFAULTS: LabDailySettings = {
-  thinking: Object.fromEntries(LAB_YEARS.map((y) => [y, { perDay: 1, codingPerDay: 0 }])),
+  thinking: Object.fromEntries(LAB_YEARS.map((y) => [y, { perDay: 1, codingPerDay: 0, practicePerDay: PRACTICE_PER_DAY_DEFAULT }])),
   communication: Object.fromEntries(LAB_YEARS.map((y) => [y, { perDay: 1 }])),
 };
 
@@ -37,7 +40,11 @@ export function labDailySettings(raw: any): LabDailySettings {
   for (const y of LAB_YEARS) {
     const t = raw?.thinking?.[y] || {};
     const perDay = intIn(t.perDay, 1, PER_DAY_MAX, 1);
-    out.thinking[y] = { perDay, codingPerDay: y === 'foundation' ? 0 : Math.min(perDay, intIn(t.codingPerDay, 0, PER_DAY_MAX, 0)) };
+    out.thinking[y] = {
+      perDay,
+      codingPerDay: y === 'foundation' ? 0 : Math.min(perDay, intIn(t.codingPerDay, 0, PER_DAY_MAX, 0)),
+      practicePerDay: intIn(t.practicePerDay, 0, PRACTICE_PER_DAY_MAX, PRACTICE_PER_DAY_DEFAULT),
+    };
     out.communication[y] = { perDay: intIn(raw?.communication?.[y]?.perDay, 1, PER_DAY_MAX, 1) };
   }
   return out;
@@ -49,7 +56,7 @@ const PUZZLES: QuestionType[] = ['math', 'logical', 'critical'];
  * The kinds of question for one day, in order. `dayIndex` is how many days this member has had before,
  * so the rotation carries on from where they left off rather than restarting.
  */
-export function dayTypes(dayIndex: number, s: ThinkingYearSettings, codingOpen: boolean): QuestionType[] {
+export function dayTypes(dayIndex: number, s: Pick<ThinkingYearSettings, 'perDay' | 'codingPerDay'>, codingOpen: boolean): QuestionType[] {
   const coding = codingOpen ? s.codingPerDay : 0;
   // With no fixed coding count, coding (once open) simply takes a turn in the rotation.
   const pool: QuestionType[] = codingOpen && s.codingPerDay === 0 ? [...PUZZLES, 'coding'] : PUZZLES;

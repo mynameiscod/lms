@@ -1032,6 +1032,8 @@ export const assigned = async (req: Request, res: Response) => {
     if (!u) return res.json({ assigned: false });
     if (u.role !== 'STUDENT' || (!u.batchId && isCareerPilotMember(u.passport))) return res.json({ assigned: true });
     if (!u.batchId) return res.json({ assigned: false });
+    // A placement batch that takes the Thinking Lab over supplies it (same rule as getToday).
+    u.batchId = await labBatchFor(tId(req), uId(req), u.batchId, 'thinking');
     const { LabTrackAssignment, LabTrack } = await import('../models/LabTrack');
     const a: any = await LabTrackAssignment.findOne({ tenantId: tId(req), batchId: u.batchId, lab: 'thinking', status: 'active' }).select('trackId').lean();
     const track: any = a ? await LabTrack.findById(a.trackId).select('status').lean() : null;

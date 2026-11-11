@@ -124,8 +124,8 @@ export async function getSpendSummary(tenantId: string, from: Date, to: Date) {
   const match = { tenantId: new mongoose.Types.ObjectId(tenantId), day: { $gte: istDay(from), $lte: istDay(to) } };
   const group = (key: string, name: string) => AdSpendDaily.aggregate([
     { $match: match }, { $sort: { day: -1 } },
-    { $group: { _id: `$${key}`, name: { $first: `$${name}` }, campaignName: { $first: '$campaignName' }, spend: { $sum: '$spend' }, impressions: { $sum: '$impressions' }, clicks: { $sum: '$clicks' } } },
-    { $sort: { spend: -1 } }, { $limit: 200 },
+    { $group: { _id: `$${key}`, name: { $first: `$${name}` }, campaignId: { $first: '$campaignId' }, campaignName: { $first: '$campaignName' }, adSetId: { $first: '$adSetId' }, adSetName: { $first: '$adSetName' }, spend: { $sum: '$spend' }, impressions: { $sum: '$impressions' }, clicks: { $sum: '$clicks' } } },
+    { $sort: { spend: -1 } }, { $limit: 500 },
   ]);
   const [byCampaign, byAdSet, byAd, totals, last] = await Promise.all([
     group('campaignId', 'campaignName'), group('adSetId', 'adSetName'), group('adId', 'adName'),

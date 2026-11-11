@@ -631,6 +631,17 @@ export const userApi = {
     return response.json();
   },
 
+  setStudentStatus: async (userId: string, body: { status: 'active' | 'inactive' | 'discontinued'; date?: string; reason?: string; note?: string }) => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/student-status`, {
+      method: 'PATCH',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.message || 'Failed to change status');
+    return json;
+  },
+
   deactivateUser: async (userId: string) => {
     const response = await fetch(`${API_BASE_URL}/users/${userId}/deactivate`, {
       method: 'PATCH',

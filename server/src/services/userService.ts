@@ -90,7 +90,8 @@ export class UserService {
   async activateUser(userId: string): Promise<IUser | null> {
     return await User.findByIdAndUpdate(
       userId,
-      { isActive: true },
+      // A student switched back on is Active again, whatever status they had.
+      { $set: { isActive: true }, $unset: { studentStatusReason: 1, studentStatusNote: 1, studentStatus: 1 } },
       { new: true }
     );
   }

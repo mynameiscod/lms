@@ -8,6 +8,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     label: 'Users & Roles',
     permissions: [
       { key: 'manage_tenant_users', label: 'Manage Users (Create, Edit, Delete, Invite)' },
+      { key: 'change_student_status', label: 'Change Student Status (Active / Inactive / Discontinued)' },
       { key: 'manage_roles', label: 'Manage Roles & Permissions' },
       { key: 'manage_instructors', label: 'Manage Instructors' },
       { key: 'view_enrolled_students', label: 'View Enrolled Students' },
@@ -405,7 +406,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   SUPER_ADMIN: ALL_PERMISSIONS, // Super admin gets everything
   TENANT_ADMIN: [
     // Users & Roles
-    'manage_tenant_users', 'manage_roles', 'manage_instructors', 'view_enrolled_students',
+    'manage_tenant_users', 'manage_roles', 'manage_instructors', 'view_enrolled_students', 'change_student_status',
     // Courses & Content
     'create_courses', 'edit_courses', 'delete_courses', 'view_courses',
     'manage_own_courses', 'create_lessons', 'manage_enrollments', 'enroll_courses',

@@ -121,6 +121,13 @@ export interface IUser extends Document {
     customFields?: Record<string, string>;
   };
   phone?: string;
+  // Student enrolment status. Inactive = never really attended; Discontinued = joined, then
+  // stopped coming. Both also set isActive=false (login blocked, left out of reports).
+  studentStatus?: 'active' | 'inactive' | 'discontinued';
+  studentStatusAt?: Date;
+  studentStatusReason?: string;
+  studentStatusNote?: string;
+  studentStatusBy?: mongoose.Types.ObjectId;
   avatar?: string;
   bio?: string;
   linkedin?: string;
@@ -354,6 +361,11 @@ const UserSchema: Schema = new Schema(
       type: String,
       default: null
     },
+    studentStatus: { type: String, enum: ['active', 'inactive', 'discontinued'] },
+    studentStatusAt: { type: Date },
+    studentStatusReason: { type: String, trim: true },
+    studentStatusNote: { type: String, trim: true, maxlength: 500 },
+    studentStatusBy: { type: Schema.Types.ObjectId, ref: 'User' },
     avatar: {
       type: String,
       default: null

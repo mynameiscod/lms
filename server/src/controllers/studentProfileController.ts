@@ -79,7 +79,8 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
       data: {
         ...myObj,
         exists: true,
-        completeness: myObj.profileCompletionPercentage ?? computeProfileCompleteness(myObj),
+        completeness: computeProfileCompleteness(myObj),
+        profileCompletionPercentage: computeProfileCompleteness(myObj), // stored value predates the photo rule
         missing: computeProfileMissing(myObj),
       },
     });
@@ -316,7 +317,7 @@ export const getProfileByUserId = async (req: AuthRequest, res: Response) => {
     const obj = profile.toObject();
     res.json({
       success: true,
-      data: { ...obj, completeness: obj.profileCompletionPercentage ?? computeProfileCompleteness(obj), missing: computeProfileMissing(obj) },
+      data: { ...obj, completeness: computeProfileCompleteness(obj), profileCompletionPercentage: computeProfileCompleteness(obj), missing: computeProfileMissing(obj) },
     });
   } catch (error) {
     console.error('Get profile by user ID error:', error);

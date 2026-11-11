@@ -144,7 +144,7 @@ export async function getMemberProfile(req: Request, res: Response) {
           interviews: { completed: ivBy.completed || 0, started: Object.values(ivBy).reduce((a, b) => a + b, 0) },
         },
         resume: resume ? { score: resume.score?.total ?? null, scoredAt: resume.scoredAt || null, updatedAt: resume.updatedAt } : null,
-        lmsProfile: lmsProfile ? { completeness: lmsProfile.profileCompletionPercentage ?? computeProfileCompleteness(lmsProfile), updatedAt: lmsProfile.updatedAt } : null,
+        lmsProfile: lmsProfile ? { completeness: computeProfileCompleteness(lmsProfile), updatedAt: lmsProfile.updatedAt } : null,
       },
     });
   } catch (e: any) {

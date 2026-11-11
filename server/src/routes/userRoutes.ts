@@ -10,6 +10,7 @@ import {
   deleteUser,
   deactivateUser,
   activateUser,
+  setStudentStatus,
   inviteStudent,
   setupPassword,
   updateProfile,
@@ -80,6 +81,7 @@ router.patch('/:userId/deactivate', roleGuard(['manage_tenant_users']), deactiva
 
 // Activate user
 router.patch('/:userId/activate', roleGuard(['manage_tenant_users']), activateUser);
+router.patch('/:userId/student-status', roleGuard(['change_student_status']), setStudentStatus);
 
 // Delete user
 router.delete('/:userId', roleGuard(['manage_tenant_users']), deleteUser);

@@ -1069,3 +1069,54 @@ export const downloadBulkTemplate = async (req: AuthenticatedRequest, res: Respo
     });
   }
 };
+
+// ─── Student status ──────────────────────────────────────────────────────────
+// Active / Inactive (never really attended) / Discontinued (joined, then stopped).
+// Only Active can log in; the other two set isActive=false, so every report, reminder
+// and Non-Attendees count that already skips inactive accounts leaves them out.
+export const STUDENT_STATUSES = ['active', 'inactive', 'discontinued'] as const;
+export const setStudentStatus = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { status, date, reason, note } = req.body || {};
+    if (!STUDENT_STATUSES.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Status must be active, inactive or discontinued' });
+    }
+    if (!(await targetInOwnTenant(req, userId))) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const target: any = await User.findById(userId).select('role');
+    if (!target) return res.status(404).json({ success: false, message: 'User not found' });
+    if (target.role !== 'STUDENT') {
+      return res.status(400).json({ success: false, message: 'Status applies to students only' });
+    }
+    const reasonText = typeof reason === 'string' ? reason.trim().slice(0, 100) : '';
+    if (status !== 'active' && !reasonText) {
+      return res.status(400).json({ success: false, message: 'Pick a reason' });
+    }
+    let at = date ? new Date(date) : new Date();
+    if (isNaN(at.getTime())) at = new Date();
+    if (at.getTime() > Date.now() + 24 * 3600 * 1000) {
+      return res.status(400).json({ success: false, message: 'Date cannot be in the future' });
+    }
+    const update: any = {
+      studentStatus: status,
+      studentStatusAt: at,
+      studentStatusBy: req.user?.id || req.userId,
+      isActive: status === 'active',
+    };
+    if (status === 'active') {
+      update.$unset = { studentStatusReason: 1, studentStatusNote: 1 };
+    } else {
+      update.studentStatusReason = reasonText;
+      update.studentStatusNote = typeof note === 'string' ? note.trim().slice(0, 500) : '';
+      update.resetToken = null;
+      update.resetTokenExpires = null;
+    }
+    const { $unset, ...set } = update;
+    const user = await User.findByIdAndUpdate(userId, $unset ? { $set: set, $unset } : { $set: set }, { new: true });
+    res.json({ success: true, message: `Student marked ${status}`, data: stripSecrets(user) });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'Failed to change status' });
+  }
+};

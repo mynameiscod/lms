@@ -4,6 +4,8 @@ import { userApi, roleApi, batchApi } from '../../api';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
 import { Button, Modal, Input, Alert, Spinner } from '../../components/common';
 import { User, Role } from '../../types';
+import { useAuth } from '../../hooks';
+import { userCan } from '../../utils/permissions';
 import './UsersPage.css';
 
 interface Batch {
@@ -13,6 +15,13 @@ interface Batch {
 }
 
 const FILTER_KEY = 'usersPage.filters.v1';
+
+type StudentStatus = 'active' | 'inactive' | 'discontinued';
+const STATUS_LABEL: Record<StudentStatus, string> = { active: 'Active', inactive: 'Inactive', discontinued: 'Discontinued' };
+const STATUS_REASONS = ['Fees / financial', 'Got a job', 'Personal / family', 'Health', 'Relocated', 'Not interested', 'Joined another institute', 'Never attended', 'Other'];
+// Login on = Active. Login off = Discontinued when marked so, otherwise Inactive (incl. deleted).
+const effectiveStatus = (u: any): StudentStatus => (u.isActive ? 'active' : (u.studentStatus === 'discontinued' ? 'discontinued' : 'inactive'));
+const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
 
 const UsersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,7 +38,13 @@ const UsersPage: React.FC = () => {
   const [batchFilter, setBatchFilter] = useState<string>(saved.batchFilter ?? 'all');
   const [roleFilter, setRoleFilter] = useState<string>(saved.roleFilter ?? 'all');
   // Deleted users are soft-deleted (inactive), so the list defaults to active people only.
-  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>(saved.activeFilter ?? 'active');
+  const [activeFilter, setActiveFilter] = useState<'all' | StudentStatus>(saved.activeFilter ?? 'active');
+  const { user: me } = useAuth();
+  const canChangeStatus = userCan(me as any, ['change_student_status'], ['TENANT_ADMIN']);
+  const [statusUser, setStatusUser] = useState<User | null>(null);
+  const [statusForm, setStatusForm] = useState<{ status: StudentStatus; date: string; reason: string; note: string }>({ status: 'discontinued', date: '', reason: '', note: '' });
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState<number>(saved.currentPage ?? 1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(saved.itemsPerPage ?? 20);
@@ -114,7 +129,7 @@ const UsersPage: React.FC = () => {
     const matchesSearch = haystack.includes(searchTerm.trim().toLowerCase());
     const matchesBatch = batchFilter === 'all' || user.batchId === batchFilter;
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesActive = activeFilter === 'all' || (activeFilter === 'active' ? user.isActive : !user.isActive);
+    const matchesActive = activeFilter === 'all' || effectiveStatus(user) === activeFilter;
     return matchesSearch && matchesBatch && matchesRole && matchesActive;
   }), [users, searchTerm, batchFilter, roleFilter, activeFilter]);
 
@@ -242,6 +257,26 @@ const UsersPage: React.FC = () => {
     catch (err: any) { setError(err.message || 'Failed to delete user'); }
   };
 
+  const openStatusModal = (user: User) => {
+    const cur = effectiveStatus(user);
+    setStatusUser(user);
+    setStatusError('');
+    setStatusForm({ status: cur === 'active' ? 'discontinued' : 'active', date: todayISO(), reason: '', note: '' });
+  };
+  const saveStatus = async () => {
+    if (!statusUser) return;
+    if (statusForm.status !== 'active' && !statusForm.reason) { setStatusError('Pick a reason'); return; }
+    setStatusSaving(true); setStatusError('');
+    try {
+      const res = await userApi.setStudentStatus(statusUser._id, { status: statusForm.status, date: statusForm.date || undefined, reason: statusForm.reason || undefined, note: statusForm.note || undefined });
+      const updated = res.data || {};
+      setUsers(prev => prev.map(u => (u._id === statusUser._id ? { ...u, ...updated } : u)));
+      setSuccess(`${statusUser.firstName} ${statusUser.lastName} is now ${STATUS_LABEL[statusForm.status]}`);
+      setStatusUser(null);
+    } catch (err: any) { setStatusError(err.message || 'Failed to change status'); }
+    finally { setStatusSaving(false); }
+  };
+
   if (loading) return <Spinner fullScreen />;
 
   const statCards = [
@@ -280,7 +315,7 @@ const UsersPage: React.FC = () => {
         <div className="users-search"><i className="bi bi-search" /><input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search by name, email or mobile..." /></div>
         <div className={`filters-cluster ${showFilters ? 'mobile-open' : ''}`}>
           <label><span>Role</span><select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}><option value="all">All Roles</option>{Array.from(new Set(users.map(u => u.role))).map(r => <option value={r} key={r}>{prettyRole(r)}</option>)}</select></label>
-          <label><span>Status</span><select value={activeFilter} onChange={e => setActiveFilter(e.target.value as any)}><option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+          <label><span>Status</span><select value={activeFilter} onChange={e => setActiveFilter(e.target.value as any)}><option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="discontinued">Discontinued</option></select></label>
           <label><span>Batch</span><select value={batchFilter} onChange={e => setBatchFilter(e.target.value)}><option value="all">All Batches</option>{batches.map(b => <option value={b._id} key={b._id}>{b.name}</option>)}</select></label>
         </div>
         <button className="mobile-filter-button" onClick={() => setShowFilters(v => !v)}><i className="bi bi-funnel" /> Filters</button>
@@ -301,9 +336,9 @@ const UsersPage: React.FC = () => {
                 <td data-label="Contact"><div className="contact-cell"><span><i className="bi bi-envelope" />{user.email}</span>{user.phone && <span><i className="bi bi-telephone" />{user.phone}</span>}</div></td>
                 <td data-label="Role"><span className={`role-badge ${user.role.toLowerCase()}`}>{prettyRole(user.role)}</span>{user.customRoleId && <span className="role-badge custom">{roles.find(r => r._id === user.customRoleId)?.name || 'Custom'}</span>}{(user as { employeeCode?: string }).employeeCode && <span className="role-badge employee" title="This login belongs to an employee. They can open the Employee Portal.">Employee · {(user as { employeeCode?: string }).employeeCode}</span>}</td>
                 <td data-label="Batch"><span className="batch-cell">{batchName(user)}</span></td>
-                <td data-label="Status"><span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>{user.isActive ? 'Active' : 'Inactive'}</span></td>
+                <td data-label="Status"><StatusBadge user={user} fmt={formatJoined} /></td>
                 <td data-label="Joined On"><span className="joined-cell">{formatJoined(user.createdAt)}</span></td>
-                <td data-label="Actions" className="actions-col"><details className="row-actions"><summary aria-label={`Actions for ${user.firstName} ${user.lastName}`}><i className="bi bi-three-dots-vertical" /></summary><div>{user.role === 'STUDENT' && <button onClick={() => navigate(`/users/${user._id}`, { state: { user } })}><i className="bi bi-eye" /> View details</button>}<button onClick={() => openEditModal(user)}><i className="bi bi-person-gear" /> Change role</button>{user.isActive ? <button onClick={() => handleDeactivateUser(user)}><i className="bi bi-person-dash" /> Deactivate</button> : <button onClick={() => handleActivateUser(user)}><i className="bi bi-person-check" /> Activate</button>}<button className="danger" onClick={() => handleDeleteUser(user)}><i className="bi bi-trash3" /> Delete</button></div></details></td>
+                <td data-label="Actions" className="actions-col"><details className="row-actions"><summary aria-label={`Actions for ${user.firstName} ${user.lastName}`}><i className="bi bi-three-dots-vertical" /></summary><div>{user.role === 'STUDENT' && <button onClick={() => navigate(`/users/${user._id}`, { state: { user } })}><i className="bi bi-eye" /> View details</button>}<button onClick={() => openEditModal(user)}><i className="bi bi-person-gear" /> Change role</button>{user.role === 'STUDENT' && canChangeStatus ? <button onClick={() => openStatusModal(user)}><i className="bi bi-person-lines-fill" /> Change status</button> : user.isActive ? <button onClick={() => handleDeactivateUser(user)}><i className="bi bi-person-dash" /> Deactivate</button> : <button onClick={() => handleActivateUser(user)}><i className="bi bi-person-check" /> Activate</button>}<button className="danger" onClick={() => handleDeleteUser(user)}><i className="bi bi-trash3" /> Delete</button></div></details></td>
               </tr>)}</tbody>
             </table>
           </div>
@@ -347,8 +382,39 @@ const UsersPage: React.FC = () => {
       <Modal isOpen={isRoleModalOpen} onClose={closeRoleModal} title="Change User Role" size="medium">
         {editingUser && <div className="role-modal-content"><div className="user-info"><strong>{editingUser.firstName} {editingUser.lastName}</strong><span>{editingUser.email}</span></div><div className="form-group"><label>Base Role</label><select value={selectedRole} onChange={e => setSelectedRole(e.target.value)} className="form-select"><option value="">Select a role</option><option value="STUDENT">Student</option><option value="INSTRUCTOR">Instructor</option><option value="STAFF">Staff</option><option value="TENANT_ADMIN">Tenant Admin</option></select></div><div className="form-group"><label>Custom Permission Role <span className="optional-label">(Optional)</span></label><select value={selectedCustomRoleId} onChange={e => setSelectedCustomRoleId(e.target.value)} className="form-select"><option value="">Use default permissions</option>{roles.map(r => <option key={r._id} value={r._id}>{r.name} ({r.permissions.length} permissions)</option>)}</select></div><div className="modal-actions"><Button type="button" onClick={closeRoleModal} className="btn-secondary">Cancel</Button><Button type="button" onClick={handleRoleChange} loading={submitting} className="btn-primary">Update Role</Button></div></div>}
       </Modal>
+
+      <Modal isOpen={!!statusUser} onClose={() => setStatusUser(null)} title="Change Student Status" size="medium">
+        {statusUser && <div className="status-modal">
+          <div className="user-info"><strong>{statusUser.firstName} {statusUser.lastName}</strong><span>{statusUser.email} · now <b>{STATUS_LABEL[effectiveStatus(statusUser)]}</b></span></div>
+          <div className="status-options">
+            {([['active', 'Attending classes. Can log in.'], ['inactive', 'Never really came to classes. Login off.'], ['discontinued', 'Joined, then stopped coming. Login off.']] as [StudentStatus, string][]).map(([k, hint]) => (
+              <label key={k} className={`status-option ${statusForm.status === k ? 'on' : ''}`}>
+                <input type="radio" name="student-status" checked={statusForm.status === k} onChange={() => setStatusForm(f => ({ ...f, status: k }))} />
+                <span><span className={`status-badge ${k}`}>{STATUS_LABEL[k]}</span><small>{hint}</small></span>
+              </label>
+            ))}
+          </div>
+          <div className="status-fields">
+            <label><span>{statusForm.status === 'active' ? 'Active from' : 'Since'}</span><input type="date" max={todayISO()} value={statusForm.date} onChange={e => setStatusForm(f => ({ ...f, date: e.target.value }))} /></label>
+            {statusForm.status !== 'active' && <label><span>Reason *</span><select value={statusForm.reason} onChange={e => setStatusForm(f => ({ ...f, reason: e.target.value }))}><option value="">Select a reason</option>{STATUS_REASONS.map(r => <option key={r} value={r}>{r}</option>)}</select></label>}
+          </div>
+          {statusForm.status !== 'active' && <label className="status-note"><span>Note (optional)</span><textarea rows={2} maxLength={500} value={statusForm.note} onChange={e => setStatusForm(f => ({ ...f, note: e.target.value }))} placeholder="Anything the team should know" /></label>}
+          {statusForm.status !== 'active' && <p className="status-warn"><i className="bi bi-info-circle" /> The student cannot log in and is left out of attendance, reports and reminders. Switch back to Active any time.</p>}
+          {statusError && <Alert type="error" message={statusError} />}
+          <div className="modal-actions"><Button className="btn-secondary" onClick={() => setStatusUser(null)} disabled={statusSaving}>Cancel</Button><Button className="btn-primary" onClick={saveStatus} disabled={statusSaving}>{statusSaving ? 'Saving...' : 'Save status'}</Button></div>
+        </div>}
+      </Modal>
     </div>
   );
+};
+
+// Status chip; hovering an Inactive/Discontinued chip shows the reason, date and note.
+const StatusBadge: React.FC<{ user: any; fmt: (d?: string) => string }> = ({ user, fmt }) => {
+  const st = effectiveStatus(user);
+  const tip = st !== 'active' && user.studentStatusReason
+    ? `${user.studentStatusReason}${user.studentStatusAt ? ' · since ' + fmt(user.studentStatusAt) : ''}${user.studentStatusNote ? ' — ' + user.studentStatusNote : ''}`
+    : undefined;
+  return <span className={`status-badge ${st}`} title={tip}>{STATUS_LABEL[st]}</span>;
 };
 
 export default UsersPage;

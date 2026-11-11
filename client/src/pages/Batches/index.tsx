@@ -7,6 +7,7 @@ import {
   FEATURE_META, FEATURE_MODULE_MAP, GROUP_ORDER, STUDENT_FEATURE_KEYS, StudentFeatureKey
 } from '../../config/studentFeatureCatalog';
 import { Batch, User } from '../../types';
+import PlacementModal from './PlacementModal';
 import './BatchesPage.css';
 
 interface Department { _id: string; name: string; code: string; }
@@ -34,6 +35,9 @@ const BatchesPage: React.FC = () => {
 
   // Per-batch module control (Batches → Modules)
   const [modulesBatch, setModulesBatch] = useState<Batch | null>(null);
+  // Placement batches (Batches → 🎯): members drawn from other batches
+  const [placementBatch, setPlacementBatch] = useState<Batch | null>(null);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [tenantModules, setTenantModules] = useState<Record<string, boolean>>({});
 
   const [view, setView] = useState<'list' | 'wizard'>('list');
@@ -65,6 +69,7 @@ const BatchesPage: React.FC = () => {
       setBatches(b.data || []);
       setCourses(c.data || []);
       setDepartments(d.data || []);
+      setAllUsers(u.data || []);
       setInstructors((u.data || []).filter((x: User) => ['INSTRUCTOR', 'TENANT_ADMIN', 'SUPER_ADMIN'].includes((x.role || '').toUpperCase())));
       // Tenant module flags — used to lock batch toggles whose parent module is off tenant-wide.
       if (user?.tenantId) {
@@ -76,6 +81,9 @@ const BatchesPage: React.FC = () => {
     } catch (err: any) { setError(err.message || 'Failed to fetch data'); }
     finally { setLoading(false); }
   };
+
+  // Members of a placement batch = students who list it in placementBatchIds.
+  const placementMembers = (batchId: string) => allUsers.filter((x: any) => (x.placementBatchIds || []).map(String).includes(batchId)).length;
 
   // Reflect a saved module change back into the local batch list (no refetch needed).
   const onModulesSaved = (batchId: string, disabled: string[]) => {
@@ -392,13 +400,14 @@ const BatchesPage: React.FC = () => {
                   <div className="bm-batch-top">
                     <span className={`bm-batch-ic ${tint}`}>👥</span>
                     <div className="bm-batch-title">
-                      <div className="bm-batch-name">{batch.name} <span className={`bm-badge ${batch.isActive ? 'active' : 'inactive'}`}>{batch.isActive ? 'Active' : 'Inactive'}</span></div>
+                      <div className="bm-batch-name">{batch.name} <span className={`bm-badge ${batch.isActive ? 'active' : 'inactive'}`}>{batch.isActive ? 'Active' : 'Inactive'}</span>{(batch as any).kind === 'placement' && <span className="bm-badge placement">🎯 Placement</span>}</div>
                       {cTitle && <div className="bm-batch-course">{cTitle}</div>}
                       <div className="bm-batch-dates">{fmtDate(batch.startDate)} - {fmtDate(batch.endDate)}</div>
                     </div>
                     <div className="bm-batch-actions">
                       <button className="bm-icon-btn" onClick={() => openEdit(batch)} title="Edit">✏️</button>
                       <button className="bm-icon-btn" onClick={() => setModulesBatch(batch)} title="Modules for this batch">🧩</button>
+                      <button className="bm-icon-btn" onClick={() => setPlacementBatch(batch)} title="Placement batch: members from other batches">🎯</button>
                       <button className="bm-icon-btn del" onClick={() => handleDelete(batch)} title="Delete">🗑️</button>
                     </div>
                   </div>
@@ -416,6 +425,12 @@ const BatchesPage: React.FC = () => {
                     <div className="bm-meta-label">Instructor</div>
                     <div className="bm-meta-val">👤 {batch.instructors.length ? batch.instructors.map(x => `${x.firstName} ${x.lastName}`).join(', ') : '—'}</div>
                   </div>
+                  {(batch as any).kind === 'placement' && (
+                    <div className="bm-meta">
+                      <div className="bm-meta-label">Placement</div>
+                      <div className="bm-meta-val">🎯 {placementMembers(batch._id)} member{placementMembers(batch._id) === 1 ? '' : 's'} from other batches{((batch as any).takesOverLabs || []).length ? ` · runs ${((batch as any).takesOverLabs as string[]).map(l => (l === 'thinking' ? 'Thinking' : 'Communication')).join(' + ')} Lab` : ''}</div>
+                    </div>
+                  )}
                   {(batch.disabledFeatures?.length || 0) > 0 && (
                     <div className="bm-meta">
                       <div className="bm-meta-label">Modules</div>
@@ -435,6 +450,16 @@ const BatchesPage: React.FC = () => {
             </div>
           )}
         </>
+      )}
+
+      {placementBatch && (
+        <PlacementModal
+          batch={placementBatch}
+          batches={batches}
+          students={allUsers}
+          onClose={() => { setPlacementBatch(null); fetchData(); }}
+          onChanged={(msg) => setSuccess(msg)}
+        />
       )}
 
       {modulesBatch && (

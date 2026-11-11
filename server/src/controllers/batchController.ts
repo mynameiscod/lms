@@ -4,6 +4,12 @@ import { BatchService } from '../services/batchService';
 import Batch from '../models/Batch';
 import User from '../models/User';
 import { STUDENT_FEATURE_KEYS as SHARED_STUDENT_FEATURE_KEYS } from '../data/studentFeatureKeys';
+import mongoose from 'mongoose';
+import { labBatchFor, LAB_KINDS, LabKind } from '../services/placementBatchService';
+import { LabTrackAssignment } from '../models/LabTrack';
+
+// The student-feature key that shows each lab in the menu.
+const LAB_FEATURE: Record<LabKind, string> = { thinking: 'thinkingLab', communication: 'aiCommunicationLab' };
 
 const batchService = new BatchService();
 
@@ -393,10 +399,19 @@ export const getMyBatchModules = async (
     }
 
     const batch = await Batch.findById(batchId).select('disabledFeatures');
+    let disabled: string[] = (batch as any)?.disabledFeatures || [];
+    // A placement batch that takes over a lab turns that lab back on for its members, even
+    // when the home batch switched it off. (The tenant-level switch still applies.)
+    if (disabled.length) {
+      for (const lab of LAB_KINDS) {
+        const lb = await labBatchFor(String(req.tenantId), req.user?.id, batchId, lab);
+        if (lb && String(lb) !== String(batchId)) disabled = disabled.filter((k) => k !== LAB_FEATURE[lab]);
+      }
+    }
     res.status(200).json({
       success: true,
       message: 'Batch modules fetched successfully',
-      data: { disabledFeatures: (batch as any)?.disabledFeatures || [] }
+      data: { disabledFeatures: disabled }
     });
   } catch (error: any) {
     // Fail-open — never let a lookup error hide the whole menu
@@ -443,3 +458,91 @@ export const removeInstructor = async (
     });
   }
 };
+
+// ─────────────────────────── Placement batches ───────────────────────────
+// A placement batch is a regular batch marked kind='placement'. Its members are students of other
+// batches (listed in User.placementBatchIds); their home batch never changes. Labs ticked in
+// takesOverLabs are supplied by this batch for its members (see placementBatchService).
+
+const isOid = (v: any) => mongoose.isValidObjectId(String(v));
+
+async function placementView(tenantId: string, batchId: string) {
+  const batch: any = await Batch.findOne({ _id: batchId, tenantId }).select('name kind takesOverLabs isActive').lean();
+  if (!batch) return null;
+  const members: any[] = await User.find({ tenantId, role: 'STUDENT', placementBatchIds: new mongoose.Types.ObjectId(batchId) })
+    .select('firstName lastName email phone batchId isActive').populate('batchId', 'name').lean();
+  const tracks: any[] = await LabTrackAssignment.find({ tenantId: String(tenantId), batchId: new mongoose.Types.ObjectId(batchId), status: 'active' })
+    .select('lab').lean();
+  return {
+    _id: String(batch._id), name: batch.name, kind: batch.kind || 'regular', isActive: batch.isActive !== false,
+    takesOverLabs: batch.takesOverLabs || [],
+    labsWithTrack: [...new Set(tracks.map((t) => t.lab))],
+    members: members.map((m) => ({
+      _id: String(m._id), name: [m.firstName, m.lastName].filter(Boolean).join(' ') || m.email, email: m.email, phone: m.phone,
+      isActive: m.isActive !== false, homeBatchId: m.batchId?._id ? String(m.batchId._id) : null, homeBatchName: m.batchId?.name || '',
+    })).sort((a, b) => a.name.localeCompare(b.name)),
+  };
+}
+
+// GET /batches/:batchId/placement
+export const getPlacement = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!isOid(req.params.batchId)) return res.status(400).json({ success: false, message: 'Invalid batch' });
+    const view = await placementView(String(req.tenantId), req.params.batchId);
+    if (!view) return res.status(404).json({ success: false, message: 'Batch not found' });
+    res.json({ success: true, data: view });
+  } catch (error: any) { res.status(400).json({ success: false, message: error.message }); }
+};
+
+// PATCH /batches/:batchId/placement  { kind, takesOverLabs }
+export const updatePlacement = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { batchId } = req.params;
+    if (!isOid(batchId)) return res.status(400).json({ success: false, message: 'Invalid batch' });
+    const kind = req.body?.kind === 'placement' ? 'placement' : 'regular';
+    const labs = Array.isArray(req.body?.takesOverLabs)
+      ? [...new Set((req.body.takesOverLabs as any[]).map(String).filter((l) => (LAB_KINDS as string[]).includes(l)))]
+      : [];
+    const tenantId = String(req.tenantId);
+    const bid = new mongoose.Types.ObjectId(batchId);
+    if (kind === 'placement') {
+      // A placement batch draws students from other batches; it must not be anyone's home batch.
+      const home = await User.countDocuments({ tenantId, role: 'STUDENT', batchId: bid });
+      if (home) return res.status(400).json({ success: false, message: `${home} student(s) have this as their home batch. Move them to another batch first, then make it a placement batch.` });
+    } else {
+      const members = await User.countDocuments({ tenantId, placementBatchIds: bid });
+      if (members) return res.status(400).json({ success: false, message: `Remove the ${members} placement member(s) first.` });
+    }
+    const batch = await Batch.findOneAndUpdate({ _id: batchId, tenantId }, { $set: { kind, takesOverLabs: kind === 'placement' ? labs : [] } }, { new: true });
+    if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+    res.json({ success: true, message: 'Placement settings saved', data: await placementView(tenantId, batchId) });
+  } catch (error: any) { res.status(400).json({ success: false, message: error.message }); }
+};
+
+// POST /batches/:batchId/members  { studentIds }   — add (home batch unchanged)
+// DELETE /batches/:batchId/members { studentIds }  — remove
+const changeMembers = (add: boolean) => async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { batchId } = req.params;
+    if (!isOid(batchId)) return res.status(400).json({ success: false, message: 'Invalid batch' });
+    const tenantId = String(req.tenantId);
+    const batch: any = await Batch.findOne({ _id: batchId, tenantId }).select('kind').lean();
+    if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+    if (add && batch.kind !== 'placement') return res.status(400).json({ success: false, message: 'Only a placement batch can take members from other batches.' });
+    const ids = (Array.isArray(req.body?.studentIds) ? req.body.studentIds : []).filter(isOid).slice(0, 500)
+      .map((id: string) => new mongoose.Types.ObjectId(id));
+    if (!ids.length) return res.status(400).json({ success: false, message: 'Pick at least one student' });
+    const bid = new mongoose.Types.ObjectId(batchId);
+    const filter: any = { _id: { $in: ids }, tenantId, role: 'STUDENT' };
+    const r = add
+      ? await User.updateMany({ ...filter, batchId: { $ne: bid } }, { $addToSet: { placementBatchIds: bid } })
+      : await User.updateMany(filter, { $pull: { placementBatchIds: bid } });
+    res.json({
+      success: true,
+      message: `${r.modifiedCount} student(s) ${add ? 'added' : 'removed'}`,
+      data: await placementView(tenantId, batchId),
+    });
+  } catch (error: any) { res.status(400).json({ success: false, message: error.message }); }
+};
+export const addPlacementMembers = changeMembers(true);
+export const removePlacementMembers = changeMembers(false);

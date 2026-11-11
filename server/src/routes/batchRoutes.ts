@@ -10,7 +10,11 @@ import {
   addInstructor,
   removeInstructor,
   updateBatchModules,
-  getMyBatchModules
+  getMyBatchModules,
+  getPlacement,
+  updatePlacement,
+  addPlacementMembers,
+  removePlacementMembers
 } from '../controllers/batchController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -33,6 +37,12 @@ router.get('/:batchId', authMiddleware, tenantResolver, getBatchById);
 
 // Update which student-features a batch turns off (requires manage_tenant_courses)
 router.patch('/:batchId/modules', authMiddleware, tenantResolver, roleGuard(['manage_tenant_courses']), updateBatchModules);
+
+// Placement batch: settings + members drawn from other batches (home batch unchanged)
+router.get('/:batchId/placement', authMiddleware, tenantResolver, roleGuard(['manage_tenant_courses']), getPlacement);
+router.patch('/:batchId/placement', authMiddleware, tenantResolver, roleGuard(['manage_tenant_courses']), updatePlacement);
+router.post('/:batchId/members', authMiddleware, tenantResolver, roleGuard(['manage_tenant_courses']), addPlacementMembers);
+router.delete('/:batchId/members', authMiddleware, tenantResolver, roleGuard(['manage_tenant_courses']), removePlacementMembers);
 
 // Update batch (requires manage_tenant_courses permission)
 router.put('/:batchId', authMiddleware, tenantResolver, roleGuard(['manage_tenant_courses']), updateBatch);

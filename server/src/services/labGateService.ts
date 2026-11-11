@@ -4,6 +4,7 @@ import DailyChallenge from '../models/DailyChallenge';
 import CommunicationAttempt from '../models/CommunicationAttempt';
 import { LabTrackAssignment, LabKind } from '../models/LabTrack';
 import { resolveLabDay, expectedDaysSoFar, ymdIn } from './labTrackService';
+import { labBatchFor, LAB_KINDS } from './placementBatchService';
 
 /**
  * Decides whether a student is held at the door until they finish today's lab work.
@@ -104,9 +105,12 @@ export async function resolveLabGate(studentId: string, tenantId: string): Promi
   const user: any = await User.findById(sOid).select('batchId').lean();
   if (!user?.batchId) return OPEN;
 
-  const assignments: any[] = await LabTrackAssignment.find({
-    tenantId, batchId: user.batchId, status: 'active',
-  }).lean();
+  // Each lab is gated by the batch that supplies it — a placement batch that takes the lab
+  // over, else the home batch — so a placement student is never gated twice for one lab.
+  const assignments: any[] = (await Promise.all(LAB_KINDS.map(async (lab) => {
+    const bid = await labBatchFor(tenantId, sOid, user.batchId, lab);
+    return bid ? LabTrackAssignment.findOne({ tenantId, batchId: bid, lab, status: 'active' }).lean() : null;
+  }))).filter(Boolean);
   if (!assignments.length) return OPEN;
 
   const rank: GateMode[] = ['off', 'banner', 'interstitial', 'block'];
@@ -126,7 +130,7 @@ export async function resolveLabGate(studentId: string, tenantId: string): Promi
     }
     if (a.gate?.mode === 'off') continue;
 
-    const resolved: any = await resolveLabDay(tenantId, String(user.batchId), a.lab);
+    const resolved: any = await resolveLabDay(tenantId, String(a.batchId), a.lab);
     // Nothing due today (rest day, plan not started, empty track) → nothing to hold.
     if (!resolved?.contentId) continue;
 

@@ -10,6 +10,7 @@ import ThinkingProfile from '../models/ThinkingProfile';
 import ScheduledChallenge from '../models/ScheduledChallenge';
 import User from '../models/User';
 import { resolveLabDay } from '../services/labTrackService';
+import { labBatchFor, labStudentIds } from '../services/placementBatchService';
 import { istToday, ymd } from '../utils/planSchedule';
 import * as lab from '../services/thinkingLabService';
 import * as game from '../services/gamificationService';
@@ -232,6 +233,8 @@ export const getToday = async (req: Request, res: Response) => {
   try {
     const d = today();
     const u: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
+    // A placement batch that takes over this lab supplies it instead of the home batch.
+    if (u?.batchId) u.batchId = await labBatchFor(tId(req), uId(req), u.batchId, 'thinking');
     // Admin-scheduled batch challenge (may carry a time window) takes priority.
     let sc: any = u?.batchId ? await ScheduledChallenge.findOne({ tenantId: tId(req), batchId: u.batchId, date: d }).lean() : null;
 
@@ -546,7 +549,11 @@ export const leaderboard = async (req: Request, res: Response) => {
     } else {
       const q: any = { tenantId: tId(req) };
       if (onlyIds) q.studentId = { $in: onlyIds };
-      else if (scope === 'batch' && me?.batchId) q.batchId = me.batchId;
+      else if (scope === 'batch' && me?.batchId) {
+        // The student's lab cohort — their placement batch when it takes the lab over.
+        const lb = await labBatchFor(tId(req), uId(req), me.batchId, 'thinking');
+        q.studentId = { $in: (await labStudentIds(tId(req), lb, 'thinking')).map((id) => new mongoose.Types.ObjectId(id)) };
+      }
       const gsRows = await StudentGameStats.find(q).sort({ xpTotal: -1 }).limit(limit)
         .select('studentId studentName xpTotal level solvedTotal currentStreak').lean();
       rows = gsRows.map((r: any) => ({ studentId: String(r.studentId), name: r.studentName || 'Student', xp: r.xpTotal, level: r.level, solved: r.solvedTotal, streak: r.currentStreak }));

@@ -994,6 +994,30 @@ export const batchApi = {
     return response.json();
   },
 
+  // Placement batch: settings + members drawn from other batches (home batch unchanged)
+  getPlacement: async (batchId: string) => {
+    const response = await fetch(`${API_BASE_URL}/batches/${batchId}/placement`, { headers: getAuthHeaders() });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.message || 'Failed to load placement settings');
+    return json;
+  },
+  updatePlacement: async (batchId: string, body: { kind: 'regular' | 'placement'; takesOverLabs: string[] }) => {
+    const response = await fetch(`${API_BASE_URL}/batches/${batchId}/placement`, {
+      method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(body),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.message || 'Failed to save placement settings');
+    return json;
+  },
+  changePlacementMembers: async (batchId: string, studentIds: string[], add: boolean) => {
+    const response = await fetch(`${API_BASE_URL}/batches/${batchId}/members`, {
+      method: add ? 'POST' : 'DELETE', headers: getAuthHeaders(), body: JSON.stringify({ studentIds }),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.message || 'Failed to update members');
+    return json;
+  },
+
   // Disabled-feature set for the requesting student's own batch (for menu gating)
   getMyBatchModules: async () => {
     const response = await fetch(`${API_BASE_URL}/batches/my/modules`, {

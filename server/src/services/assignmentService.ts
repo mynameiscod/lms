@@ -599,10 +599,12 @@ class AssignmentService {
     // their batch, or them individually. Legacy records (no accessibleTo) count ONLY when
     // their `batch` matches this student's batch. "everyone" delivers to nobody: publishing
     // puts an assignment in the bank, it is not an assignment to the whole institute.
+    const { studentBatchIds } = await import('./placementBatchService');
+    const allBatches = batchIdStr ? await studentBatchIds(studentIdStr, batchIdStr) : [];
     const accessOr: any[] = [
       { accessibleTo: 'individual', selectedStudents: studentIdStr },
       ...(batchIdStr ? [
-        { accessibleTo: 'batch_wise', selectedBatches: batchIdStr },
+        { accessibleTo: 'batch_wise', selectedBatches: { $in: allBatches } },
         { accessibleTo: { $exists: false }, batch: resolvedBatch },
       ] : []),
     ];

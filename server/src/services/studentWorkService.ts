@@ -67,6 +67,8 @@ export async function resolveAssignedQuizzes(
   }).lean();
 
   const schedMap = await studentSchedulesMap(tenantId, studentId, batchId, 'quiz');
+  const { studentBatchIds } = await import('./placementBatchService');
+  const allBatches = await studentBatchIds(studentId, batchId);
 
   const visible = all.filter((quiz: any) => {
     /* A CareerPilot unit's checkpoint is delivered through the member's day, not this list.
@@ -78,7 +80,7 @@ export async function resolveAssignedQuizzes(
        until backfillContentAudience has run everywhere. An explicit schedule still delivers. */
     if (!audienceIncludes('lms', quiz.audience)) return schedMap.has(String(quiz._id));
     if (quiz.accessibleTo === 'batch_wise') {
-      if (batchId && (quiz.selectedBatches || []).includes(batchId)) return true;
+      if (allBatches.some((b) => (quiz.selectedBatches || []).includes(b))) return true;
     } else if (quiz.accessibleTo === 'individual') {
       if ((quiz.selectedStudents || []).includes(studentId)) return true;
     } else if (quiz.accessibleTo === 'everyone') {

@@ -317,6 +317,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Resume Builder', path: '/resume-builder', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-file-lines', featureKey: 'resumeBuilder' as keyof StudentFeatures, permissions: ['enroll_courses', 'submit_assignments', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Career Profile', path: '/career-profile', roles: ['STUDENT'], icon: 'fa-solid fa-id-badge', moduleKey: 'careerPilot', featureKey: 'careerProfile' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Career Profiles', path: '/admin/career-profiles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-id-badge', moduleKey: 'careerPilot', permissions: ['manage_career_pilot', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
+    { label: 'Placement Desk', path: '/placement-desk', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', permissions: ['manage_placement_desk', 'view_placement_desk', 'manage_tenant'] },
     { label: 'Placement Partnership', path: '/admin/placement-partnership', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-handshake', permissions: ['manage_placement_partners', 'manage_leads', 'manage_tenant'] },
     {
       label: 'AI Interviews',
@@ -534,7 +535,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'ASSESSMENTS & INTERVIEWS',labels: ['Skill Assessment', 'Assessment Candidates', 'AI Interviews', 'Scheduled Interviews', 'Interview Q&A Bank'] },
     { title: 'CAREER',                  labels: ['Resume Builder', 'Career Profiles', 'Project Builder', 'Job Tracker', 'AI Mentor'] },
     { title: 'CRM & GROWTH',            labels: ['Leads'] },
-    { title: 'DRIVES & INTERVIEWS',     labels: ['Drives', 'Question Books'] },
+    { title: 'DRIVES & INTERVIEWS',     labels: ['Placement Desk', 'Drives', 'Question Books'] },
     { title: 'BILLING',                 labels: ['Fees'] },
     { title: 'EMPLOYEES',               labels: ['Employee Portal', 'Employees', 'Employee Activity', 'Expenses'] },
     { title: 'EVENTS',                  labels: ['Tech Battles', 'Hackathons', 'Event APIs'] },

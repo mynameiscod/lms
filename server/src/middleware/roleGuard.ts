@@ -285,6 +285,13 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'manage_placement_partners', label: 'Manage Placement Partners (hiring-company outreach)' },
     ]
   },
+  placementDesk: {
+    label: 'Placement Desk',
+    permissions: [
+      { key: 'manage_placement_desk', label: 'Placement Desk — enter companies, drives, candidates and outcomes' },
+      { key: 'view_placement_desk', label: 'Placement Desk — view drives and reports (read only)' },
+    ]
+  },
   interviewHub: {
     label: 'Interview Hub',
     permissions: [
@@ -376,7 +383,7 @@ export const FEATURE_PERMISSIONS = [
   'manage_placement_program', 'manage_placement_partners', 'manage_interview_hub', 'manage_whatsapp_templates',
   'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans',
   'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests', 'manage_concerns', 'view_activity_logs',
-  'chat_whatsapp', 'manage_event_apis', 'view_admin_dashboard',
+  'chat_whatsapp', 'manage_event_apis', 'view_admin_dashboard', 'manage_placement_desk', 'view_placement_desk',
   'view_employees', 'manage_employees', 'view_employee_sensitive', 'review_employee_activity',
   'view_expenses', 'approve_expenses', 'manage_expenses', 'use_employee_portal',
 ];

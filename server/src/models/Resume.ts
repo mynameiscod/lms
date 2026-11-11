@@ -73,6 +73,9 @@ export interface IResumeSuggestion {
 export interface IResumeScore {
   total: number;
   breakdown: IResumeScoreBreakdown;
+  maxes?: IResumeScoreBreakdown;
+  fresher?: boolean;
+  checks?: { section: string; label: string; got: number; max: number }[];
   suggestions: IResumeSuggestion[];
   atsWarnings: string[];
   keywordsFound: string[];
@@ -132,6 +135,11 @@ const ResumeScoreSchema = new Schema({
     projects: { type: Number, default: 0 },
     ats: { type: Number, default: 0 },
   },
+  /** Each section's maximum for this resume (a fresher's experience weight moves to projects). */
+  maxes: { type: Schema.Types.Mixed, default: undefined },
+  fresher: { type: Boolean },
+  /** Every rubric check: what it measured, points got and possible. */
+  checks: { type: [Schema.Types.Mixed], default: undefined },
   suggestions: [{ section: String, issue: String, fix: String }],
   atsWarnings: [String],
   keywordsFound: [String],

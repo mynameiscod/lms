@@ -1462,7 +1462,8 @@ export const passportApi = {
   },
 
   /** Import an existing CV. Parsed fields fill gaps only — they never overwrite typed work. */
-  importResume: async (file: File): Promise<{ sections: ResumeSections; importedChars: number }> => {
+  /** Reads the file and returns what it found — NOT saved: the member chooses to replace or fill gaps, then saves. */
+  importResume: async (file: File): Promise<{ parsed: ResumeSections; found: Record<string, number | boolean>; importedChars: number }> => {
     const fd = new FormData();
     fd.append('file', file);
     const { data } = await axios.post(`${BASE}/resume/import`, fd, { headers: auth() });
@@ -2407,6 +2408,11 @@ export interface ResumeSections {
 export interface ResumeScore {
   total: number;
   breakdown: { contact: number; summary: number; experience: number; education: number; skills: number; projects: number; ats: number };
+  /** Each section's maximum for this resume; a fresher's experience weight moves to projects (experience max 0). */
+  maxes?: { contact: number; summary: number; experience: number; education: number; skills: number; projects: number; ats: number };
+  fresher?: boolean;
+  /** Every rubric check the score is made of. */
+  checks?: { section: string; label: string; got: number; max: number }[];
   suggestions: { section: string; issue: string; fix: string }[];
   atsWarnings: string[]; keywordsFound: string[]; keywordsMissing: string[];
 }

@@ -25,7 +25,7 @@ function scoreGrade(n: number) {
 }
 
 const BREAKDOWN_LABELS: Record<string, { label: string; max: number }> = {
-  contact: { label: 'Content', max: 10 },
+  contact: { label: 'Contact', max: 10 },
   summary: { label: 'Summary', max: 15 },
   experience: { label: 'Experience', max: 20 },
   education: { label: 'Education', max: 15 },
@@ -120,7 +120,10 @@ const ScorePanel: React.FC<{
         <div className="rb-breakdown-title">Score Breakdown</div>
         {Object.entries(BREAKDOWN_LABELS).map(([key, meta]) => {
           const val = (breakdown as any)[key] ?? 0;
-          const pct = Math.round((val / meta.max) * 100);
+          // The score's own maximums (a fresher's experience weight moves to projects); old scores use the fixed ones.
+          const max = (score as any).maxes?.[key] ?? meta.max;
+          if (!max) return <div key={key} className="rb-bar-row"><span className="rb-bar-label">{meta.label}</span><span className="rb-bar-val" style={{ flex: 1, textAlign: 'right' }}>Not counted for freshers</span></div>;
+          const pct = Math.round((val / max) * 100);
           return (
             <div key={key} className="rb-bar-row">
               <span className="rb-bar-label">{meta.label}</span>

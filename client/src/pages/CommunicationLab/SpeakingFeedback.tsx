@@ -21,6 +21,8 @@ export interface SpeakingFeedbackProps {
   tips?: string[];
   nextFocus?: string;
   betterAnswer?: string;
+  /** What they said → how to say it better (grammar and sentence fixes from the AI). */
+  fixes?: { original: string; improved: string }[];
   /** How they sounded: label → value, already formatted. */
   measures?: { label: string; value: React.ReactNode; hint?: string }[];
   measuresNote?: string;
@@ -34,11 +36,24 @@ export interface SpeakingFeedbackProps {
 
 const tone = (n: number) => (n >= 70 ? 'good' : n >= 50 ? 'mid' : 'low');
 
+/** "[your project name]" is a gap the student fills with their own fact: show it as one. */
+const withGaps = (text: string) =>
+  text.split(/(\[[^\]\n]{1,60}\])/g).map((part, i) =>
+    /^\[.*\]$/.test(part) ? <mark key={i} className="sfb-gap" title="Put your own fact here">{part.slice(1, -1)}</mark> : <React.Fragment key={i}>{part}</React.Fragment>);
+
+const PART_LABELS = ['Open with the answer', 'Give one real example', 'Close it'];
+
 const SpeakingFeedback: React.FC<SpeakingFeedbackProps> = (p) => {
   const strengths = cleanList(p.strengths);
   const improve = cleanList(p.improve);
   const tips = cleanList(p.tips);
   const scores = (p.scores || []).filter((s) => typeof s.value === 'number');
+  const parts = p.betterAnswer ? cleanFeedback(p.betterAnswer).split(/\n\n+/).map((x) => x.trim()).filter(Boolean) : [];
+  const seen = new Set<string>();
+  const fixes = (p.fixes || [])
+    .map((f) => ({ original: cleanFeedback(f?.original), improved: cleanFeedback(f?.improved) }))
+    .filter((f) => f.original && f.improved && f.original !== f.improved && !seen.has(f.original) && !!seen.add(f.original))
+    .slice(0, 5);
   return (
     <div className="sfb">
       <section className="sfb-card sfb-head">
@@ -80,11 +95,32 @@ const SpeakingFeedback: React.FC<SpeakingFeedbackProps> = (p) => {
         </section>
       )}
 
-      {p.betterAnswer && (
+      {!!parts.length && (
         <section className="sfb-card sfb-better">
           <h3><i className="bi bi-chat-quote-fill" aria-hidden /> A good answer to the same question</h3>
-          <blockquote>{cleanFeedback(p.betterAnswer)}</blockquote>
-          <p className="sfb-note">Read it once, then say it in your own words. Do not memorise it.</p>
+          {parts.length === 3 ? (
+            <ol className="sfb-parts">
+              {parts.map((t, i) => <li key={i}><span className="sfb-part-label">{PART_LABELS[i]}</span><p>{withGaps(t)}</p></li>)}
+            </ol>
+          ) : (
+            <blockquote>{parts.map((t, i) => <p key={i}>{withGaps(t)}</p>)}</blockquote>
+          )}
+          <p className="sfb-note">Read it once, then say it in your own words. Do not memorise it.{/\[[^\]]+\]/.test(p.betterAnswer || '') ? ' The highlighted parts are for your own details.' : ''}</p>
+        </section>
+      )}
+
+      {!!fixes.length && (
+        <section className="sfb-card sfb-fixes">
+          <h3><i className="bi bi-pencil-square" aria-hidden /> Say it better</h3>
+          <ul>
+            {fixes.map((f, i) => (
+              <li key={i}>
+                <span className="was"><small>You said</small>{f.original}</span>
+                <i className="bi bi-arrow-right" aria-hidden />
+                <span className="now"><small>Try</small>{f.improved}</span>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

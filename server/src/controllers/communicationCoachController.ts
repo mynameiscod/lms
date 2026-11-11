@@ -46,6 +46,8 @@ export const submitCoach = async (req: Request, res: Response) => {
   let locked = false;
   try {
     if (!file) return res.status(400).json({ message: 'A recording is required' });
+    // Students watch their own takes before sending, so every answer is video with sound — audio-only is no longer taken.
+    if (req.body?.recordingType !== 'video') { cleanup(file.path); return res.status(400).json({ message: 'Please record with your camera and microphone on. Audio-only answers are not accepted.' }); }
     if (!bunny.isBunnyStorageConfigured()) { cleanup(file.path); return res.status(400).json({ message: 'Recording storage is not configured (Bunny Storage).' }); }
     const area = String(req.body?.area || '') as Area;
     if (!AREAS.includes(area)) { cleanup(file.path); return res.status(400).json({ message: 'Unknown practice area' }); }

@@ -316,7 +316,10 @@ const QuizManagementPage: React.FC = () => {
   const getAudienceBadge = (quiz: Quiz) => {
     const q = quiz as any;
     if (q.isExternalQuiz) return { label: '🌐 Public Link', color: '#f97316', bg: '#fff7ed' };
-    if (q.accessibleTo === 'batch_wise') return { label: `📦 ${q.selectedBatches?.length || 0} Batch${(q.selectedBatches?.length || 0) !== 1 ? 'es' : ''}`, color: '#7c3aed', bg: '#f5f3ff' };
+    if (q.accessibleTo === 'batch_wise') {
+      const n = (q as any).assignedBatchCount ?? q.selectedBatches?.length ?? 0;
+      return { label: `📦 ${n} Batch${n !== 1 ? 'es' : ''}`, color: '#7c3aed', bg: '#f5f3ff' };
+    }
     if (q.accessibleTo === 'individual') return { label: `👤 ${q.selectedStudents?.length || 0} Student${(q.selectedStudents?.length || 0) !== 1 ? 's' : ''}`, color: '#0891b2', bg: '#ecfeff' };
     return { label: '🌍 All Students', color: '#059669', bg: '#ecfdf5' };
   };
@@ -549,6 +552,13 @@ const QuizManagementPage: React.FC = () => {
                       </Button>
                     </div>
                   </>
+                ) : nonAttendeesData.total === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px 20px', background: '#f9fafb', borderRadius: 10 }}>
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>📭</div>
+                    <div style={{ fontWeight: 700, color: '#374151' }}>No students are assigned to this quiz yet</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>Use "Assign to batches" to give it to a batch.</div>
+                    <button onClick={() => setNonAttendeesQuiz(null)} style={{ marginTop: 16, padding: '8px 20px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Close</button>
+                  </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '30px 20px', background: '#f0fdf4', borderRadius: 10 }}>
                     <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>

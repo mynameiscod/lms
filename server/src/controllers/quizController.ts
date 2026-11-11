@@ -9,6 +9,7 @@ import Question from '../models/Question';
 import User from '../models/User';
 import Content from '../models/Content';
 import { EmailService } from '../services/emailService';
+import AssessmentSchedule from '../models/AssessmentSchedule';
 import { checkDeadlineGate, studentSchedulesMap, policyFromRow } from '../services/assessmentDeliveryService';
 import { computeStatus, mergePolicy, DEFAULT_POLICY } from '../services/deadlinePolicyService';
 import { resolveAssignedQuizzes } from '../services/studentWorkService';
@@ -151,7 +152,18 @@ export const getQuizzes = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;
     const quizzes = await quizService.getQuizzes(tenantId, req.query);
-    res.json(quizzes);
+    // Batches reached through Assign-to-Batches schedules, so the list chip isn't "0 Batches"
+    // for quizzes that were assigned the new way.
+    const rows = await AssessmentSchedule.aggregate([
+      { $match: { tenantId: String(tenantId), contentType: 'quiz', status: 'active', batchId: { $ne: null }, contentId: { $in: quizzes.map((q: any) => q._id) } } },
+      { $group: { _id: '$contentId', batches: { $addToSet: '$batchId' } } },
+    ]);
+    const byQuiz = new Map(rows.map((r: any) => [String(r._id), r.batches.map(String)]));
+    res.json(quizzes.map((q: any) => {
+      const legacy = (q.selectedBatches || []).map(String);
+      const all = new Set([...legacy, ...(byQuiz.get(String(q._id)) || [])]);
+      return { ...q.toJSON(), assignedBatchCount: all.size };
+    }));
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -857,6 +869,33 @@ export const getArchivedQuizzes = async (req: Request, res: Response) => {
 };
 
 // ─── Non-Attendees ────────────────────────────────────────────────────────────
+// The students a quiz was given to: its own audience (everyone / batches / students) PLUS
+// every active Assign-to-Batches schedule (batch rows and individual-student rows). Most
+// quizzes are now assigned through schedules and keep an empty selectedBatches, so reading
+// only the quiz's own fields reported "0 audience".
+async function quizAudience(quiz: any, tenantId: string): Promise<any[]> {
+  const select = '_id firstName lastName email batchId';
+  const base = { tenantId, role: 'STUDENT', isActive: true };
+  if (quiz.accessibleTo === 'everyone' && quiz.access !== 'private') {
+    return User.find(base).select(select).lean();
+  }
+  const schedules = await AssessmentSchedule.find({ tenantId: String(tenantId), contentType: 'quiz', contentId: quiz._id, status: 'active' })
+    .select('batchId studentIds').lean();
+  const batchIds = new Set<string>();
+  const studentIds = new Set<string>();
+  if (quiz.accessibleTo === 'batch_wise') (quiz.selectedBatches || []).forEach((b: any) => b && batchIds.add(String(b)));
+  if (quiz.accessibleTo === 'individual') (quiz.selectedStudents || []).forEach((id: any) => id && studentIds.add(String(id)));
+  for (const s of schedules as any[]) {
+    if (s.batchId) batchIds.add(String(s.batchId));
+    (s.studentIds || []).forEach((id: any) => studentIds.add(String(id)));
+  }
+  const or: any[] = [];
+  if (batchIds.size) or.push({ batchId: { $in: [...batchIds] } });
+  if (studentIds.size) or.push({ _id: { $in: [...studentIds] } });
+  if (!or.length) return [];
+  return User.find({ ...base, $or: or }).select(select).lean();
+}
+
 // Returns students who were in the quiz's target audience but never submitted.
 export const getNonAttendees = async (req: Request, res: Response) => {
   try {
@@ -866,30 +905,7 @@ export const getNonAttendees = async (req: Request, res: Response) => {
     const quiz = await Quiz.findOne({ _id: quizId, tenantId });
     if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found' });
 
-    // Build the target audience
-    let targetStudents: any[] = [];
-    if (quiz.accessibleTo === 'individual') {
-      targetStudents = await User.find({
-        _id: { $in: quiz.selectedStudents },
-        tenantId,
-        role: 'STUDENT',
-        isActive: true,
-      }).select('_id firstName lastName email batchId').lean();
-    } else if (quiz.accessibleTo === 'batch_wise') {
-      targetStudents = await User.find({
-        tenantId,
-        role: 'STUDENT',
-        isActive: true,
-        batchId: { $in: quiz.selectedBatches },
-      }).select('_id firstName lastName email batchId').lean();
-    } else {
-      // everyone
-      targetStudents = await User.find({
-        tenantId,
-        role: 'STUDENT',
-        isActive: true,
-      }).select('_id firstName lastName email batchId').lean();
-    }
+    const targetStudents = await quizAudience(quiz, tenantId);
 
     // Find students who have submitted
     const submitted = await QuizAttempt.find({
@@ -906,7 +922,7 @@ export const getNonAttendees = async (req: Request, res: Response) => {
       success: true,
       data: {
         total: targetStudents.length,
-        submitted: submittedSet.size,
+        submitted: targetStudents.length - nonAttendees.length,
         notAttempted: nonAttendees.length,
         nonAttendees,
       },
@@ -926,15 +942,7 @@ export const reassignNonAttendees = async (req: Request, res: Response) => {
     const quiz = await Quiz.findOne({ _id: quizId, tenantId });
     if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found' });
 
-    // Build non-attendees (same logic as getNonAttendees)
-    let targetStudents: any[] = [];
-    if (quiz.accessibleTo === 'individual') {
-      targetStudents = await User.find({ _id: { $in: quiz.selectedStudents }, tenantId, role: 'STUDENT', isActive: true }).select('_id firstName lastName email').lean();
-    } else if (quiz.accessibleTo === 'batch_wise') {
-      targetStudents = await User.find({ tenantId, role: 'STUDENT', isActive: true, batchId: { $in: quiz.selectedBatches } }).select('_id firstName lastName email').lean();
-    } else {
-      targetStudents = await User.find({ tenantId, role: 'STUDENT', isActive: true }).select('_id firstName lastName email').lean();
-    }
+    const targetStudents = await quizAudience(quiz, tenantId);
     const submitted = await QuizAttempt.find({ quizId, status: { $in: ['submitted', 'grading'] } }).distinct('studentId');
     const submittedSet = new Set(submitted.map((id: any) => id.toString()));
     const nonAttendees = targetStudents.filter((s: any) => !submittedSet.has(s._id.toString()));
@@ -956,6 +964,12 @@ export const reassignNonAttendees = async (req: Request, res: Response) => {
       isActive: true,
       archivedAt: null,
     });
+    // Schedule rows carry their own deadline, which is what students on them are held to.
+    if (extendDays > 0) {
+      const ms = extendDays * 24 * 60 * 60 * 1000;
+      const rows = await AssessmentSchedule.find({ tenantId: String(tenantId), contentType: 'quiz', contentId: quiz._id, status: 'active', dueAt: { $ne: null } }).select('_id dueAt').lean();
+      await Promise.all((rows as any[]).map(r => AssessmentSchedule.updateOne({ _id: r._id }, { $set: { dueAt: new Date(new Date(r.dueAt).getTime() + ms) } })));
+    }
 
     // Send reminder emails
     const emailService = new EmailService();

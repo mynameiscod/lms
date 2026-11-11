@@ -395,7 +395,19 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       && !!item.permissions && item.permissions.length > 0
       && item.roles.some(r => r !== 'STUDENT');
 
-    if (givenOnRolesScreen) {
+    /*
+     * A custom role on a STUDENT base — people are invited as students, then given a role on the Users screen. They
+     * keep the student pages they had, and also get every staff page their role's permissions open. Before, the menu
+     * judged them as a plain student: the role was saved and the server allowed its pages, but none of them showed.
+     */
+    const studentWithRole = user.role === 'STUDENT' && !!user.customRoleId;
+
+    if (studentWithRole) {
+      // The role decides: a page that needs a permission shows only if the role has it (staff pages and student
+      // pages alike); a student page that needs none stays, as it does for every student.
+      const needsPermission = !!item.permissions && item.permissions.length > 0;
+      if (needsPermission ? !hasItemPermission : !roleAllowed) return false;
+    } else if (givenOnRolesScreen) {
       // shown; the module gate below still applies
     } else if (decidedByPermissions) {
       if (!hasItemPermission) return false;

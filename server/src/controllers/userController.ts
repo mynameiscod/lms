@@ -755,8 +755,14 @@ export const getMyPermissions = async (req: AuthenticatedRequest, res: Response)
 
     // The same rule every API check uses, so what the menu shows is what the server allows.
     const permissions: string[] = await permissionsOf({ role: user.role, customRoleId: user.customRoleId, tenantId: user.tenantId });
-
-    res.json({ success: true, data: { permissions } });
+    // The role itself too, so an open session picks up a role given (or changed) after it logged in.
+    let customRoleName: string | null = null;
+    if (user.customRoleId) {
+      const RoleModel = (await import('../models/Role')).default;
+      const r: any = await RoleModel.findById(user.customRoleId).select('name').lean();
+      customRoleName = r?.name || null;
+    }
+    res.json({ success: true, data: { permissions, role: user.role, customRoleId: user.customRoleId ? String(user.customRoleId) : null, customRoleName } });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -188,6 +188,12 @@ export class AuthService {
     // Resolve effective permissions
     // The same rule every API check uses (roleGuard.permissionsOf), so the menu never disagrees with the server.
     const permissions: string[] = await permissionsOf({ role: user.role, customRoleId: user.customRoleId, tenantId: user.tenantId });
+    let customRoleName: string | null = null;
+    if (user.customRoleId) {
+      const RoleModel = (await import('../models/Role')).default;
+      const r: any = await RoleModel.findById(user.customRoleId).select('name').lean();
+      customRoleName = r?.name || null;
+    }
 
     return { 
       token, 
@@ -199,6 +205,7 @@ export class AuthService {
         role: user.role,
         tenantId: user.tenantId,
         customRoleId: user.customRoleId || null,
+        customRoleName,
         isActive: user.isActive,
         // Student screens (attendance, batch work) key off this. Without it a student who
         // logged in and went straight to My Attendance saw 0 classes until a page reload.

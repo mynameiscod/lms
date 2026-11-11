@@ -1,0 +1,1466 @@
+[
+  {
+    "seedKey": "math-111",
+    "type": "math",
+    "subCategory": "Percentages and ratios",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Number from its percentage",
+    "statement": "35% of a number is 84. What is the number?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "240",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Write the condition as 0.35 × N = 84.",
+      "Find 1% of the number: 84 ÷ 35 = 2.4.",
+      "Multiply by 100 to get the whole number: 2.4 × 100 = 240."
+    ],
+    "explanation": "If 35% of N is 84, then 1% of N is 84 ÷ 35 = 2.4, so 100% of N is 240. Check: 35% of 240 = 0.35 × 240 = 84.",
+    "hints": [
+      "Think of what 1% of the number must be.",
+      "84 is 35 parts out of 100.",
+      "84 ÷ 35 = 2.4 is 1%; now find 100%."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-112",
+    "type": "math",
+    "subCategory": "Percentages and ratios",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Chaining two ratios",
+    "statement": "In a college club, the ratio of first-years to second-years is 2 : 3, and the ratio of second-years to third-years is 4 : 5.\nWhat is the ratio of first-years to third-years?",
+    "answerFormat": "choice",
+    "choices": [
+      "8 : 15",
+      "2 : 5",
+      "8 : 5",
+      "15 : 8"
+    ],
+    "answer": "8 : 15",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Make the common term (second-years) equal in both ratios: LCM of 3 and 4 is 12.",
+      "Scale 2 : 3 to 8 : 12 and 4 : 5 to 12 : 15.",
+      "So first : second : third = 8 : 12 : 15, giving first : third = 8 : 15."
+    ],
+    "explanation": "Second-years appear in both ratios, so scale them to the same number, 12. Then 2 : 3 becomes 8 : 12 and 4 : 5 becomes 12 : 15, so the combined ratio is 8 : 12 : 15 and first-years to third-years is 8 : 15. Check: 8/12 = 2/3 and 12/15 = 4/5.",
+    "hints": [
+      "Second-years are in both ratios — make their number the same.",
+      "The LCM of 3 and 4 is 12.",
+      "2 : 3 = 8 : 12 and 4 : 5 = 12 : 15."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-113",
+    "type": "math",
+    "subCategory": "Percentages and ratios",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Price before the cut",
+    "statement": "After a 20% price cut, a pair of earphones costs Rs 640.\nWhat was the price before the cut, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "800",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "After a 20% cut the new price is 80% of the old price.",
+      "So 0.8 × old price = 640.",
+      "Old price = 640 ÷ 0.8 = 800."
+    ],
+    "explanation": "A 20% cut leaves 80% of the original price, so 0.8 × P = 640 and P = 800. Check: 20% of 800 is 160, and 800 − 160 = 640.",
+    "hints": [
+      "Rs 640 is not 80% of 640 — it is 80% of the old price.",
+      "Write 0.8 × P = 640.",
+      "Divide 640 by 0.8."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-114",
+    "type": "math",
+    "subCategory": "Mixtures and alligation",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Water to make milk half and half",
+    "statement": "A can holds 40 litres of a milk and water mixture in the ratio 3 : 1.\nHow many litres of water must be added so that milk and water become equal?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "20",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Milk = 3/4 × 40 = 30 litres and water = 10 litres.",
+      "Milk does not change when water is added, so water must also become 30 litres.",
+      "Water to add = 30 − 10 = 20 litres."
+    ],
+    "explanation": "The can has 30 L milk and 10 L water. Adding water keeps the milk at 30 L, so for a 1 : 1 ratio the water must reach 30 L, which needs 20 L more. Check: 30 : 30 = 1 : 1.",
+    "hints": [
+      "First find how much milk and water there is now.",
+      "Milk stays at 30 litres.",
+      "Water must go from 10 to 30 litres."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-115",
+    "type": "math",
+    "subCategory": "Mixtures and alligation",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Price of mixed rice",
+    "statement": "A kirana shop mixes 3 kg of rice costing Rs 40 per kg with 2 kg of rice costing Rs 50 per kg.\nWhat is the cost of the mixture per kg, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "44",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Total cost = 3 × 40 + 2 × 50 = 120 + 100 = Rs 220.",
+      "Total weight = 3 + 2 = 5 kg.",
+      "Cost per kg = 220 ÷ 5 = Rs 44."
+    ],
+    "explanation": "The mixture costs 3 × 40 + 2 × 50 = Rs 220 for 5 kg, so Rs 44 per kg. Check: 44 lies between 40 and 50, closer to 40 because there is more of the cheaper rice.",
+    "hints": [
+      "Find the total cost and total weight.",
+      "Total cost is Rs 220.",
+      "Divide Rs 220 by 5 kg."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-116",
+    "type": "math",
+    "subCategory": "Mixtures and alligation",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Alligation ratio for rice",
+    "statement": "Rice costing Rs 30 per kg is mixed with rice costing Rs 45 per kg so that the mixture costs Rs 36 per kg.\nIn what ratio (cheaper : dearer) must they be mixed?",
+    "answerFormat": "choice",
+    "choices": [
+      "3 : 2",
+      "2 : 3",
+      "1 : 2",
+      "3 : 1"
+    ],
+    "answer": "3 : 2",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Cheaper rice is Rs 6 below the mean (36 − 30).",
+      "Dearer rice is Rs 9 above the mean (45 − 36).",
+      "By alligation, cheaper : dearer = 9 : 6 = 3 : 2."
+    ],
+    "explanation": "By alligation, cheaper : dearer = (45 − 36) : (36 − 30) = 9 : 6 = 3 : 2. Check: 3 kg at Rs 30 plus 2 kg at Rs 45 costs 90 + 90 = Rs 180 for 5 kg, which is Rs 36 per kg.",
+    "hints": [
+      "Compare each price with the target price Rs 36.",
+      "The differences are 6 and 9.",
+      "The ratio is the differences crossed over: 9 : 6."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-117",
+    "type": "math",
+    "subCategory": "Profit and loss",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Profit on a second-hand cycle",
+    "statement": "Vinod bought a second-hand cycle for Rs 2,500 and sold it for Rs 2,900.\nWhat was his profit percentage?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "16",
+    "acceptedAnswers": [
+      "16%"
+    ],
+    "keySteps": [
+      "Profit = 2900 − 2500 = Rs 400.",
+      "Profit % is always on cost price: 400 ÷ 2500 × 100.",
+      "400 ÷ 2500 × 100 = 16%."
+    ],
+    "explanation": "His profit was Rs 400 on a cost of Rs 2,500, so the profit percentage is 400/2500 × 100 = 16%. Check: 16% of 2500 = 400, and 2500 + 400 = 2900.",
+    "hints": [
+      "Find the profit in rupees first.",
+      "Profit is Rs 400.",
+      "Divide by the cost price, not the selling price."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-118",
+    "type": "math",
+    "subCategory": "Profit and loss",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Cost price from a loss",
+    "statement": "A shopkeeper sold a mixer grinder for Rs 1,140 and made a loss of 5%.\nWhat was the cost price, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "1200",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A 5% loss means selling price = 95% of cost price.",
+      "So 0.95 × CP = 1140.",
+      "CP = 1140 ÷ 0.95 = 1200."
+    ],
+    "explanation": "With a 5% loss, the selling price is 95% of the cost price, so CP = 1140 ÷ 0.95 = Rs 1,200. Check: 5% of 1200 is 60, and 1200 − 60 = 1140.",
+    "hints": [
+      "The loss percent is measured on the cost price.",
+      "Rs 1,140 is 95% of the cost price.",
+      "Divide 1140 by 0.95."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-119",
+    "type": "math",
+    "subCategory": "Profit and loss",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Selling price for 25% profit",
+    "statement": "A ceiling fan costs a shopkeeper Rs 1,600. He wants to make a profit of 25%.\nAt what price, in rupees, should he sell it?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2000",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Profit wanted = 25% of 1600 = Rs 400.",
+      "Selling price = cost + profit = 1600 + 400.",
+      "Selling price = Rs 2,000 (same as 1.25 × 1600)."
+    ],
+    "explanation": "25% of Rs 1,600 is Rs 400, so the selling price is 1600 + 400 = Rs 2,000. Check: 1.25 × 1600 = 2000.",
+    "hints": [
+      "Profit percent is on the cost price.",
+      "25% is one quarter.",
+      "One quarter of 1600 is 400; add it on."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-120",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Simple interest on a deposit",
+    "statement": "Swathi deposits Rs 5,000 in a scheme paying 8% simple interest per year.\nHow much interest, in rupees, does she earn in 3 years?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "1200",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Use SI = P × R × T ÷ 100.",
+      "SI = 5000 × 8 × 3 ÷ 100.",
+      "SI = Rs 1,200."
+    ],
+    "explanation": "Simple interest is P × R × T / 100 = 5000 × 8 × 3 / 100 = Rs 1,200. Check: interest per year is Rs 400, and 3 years give Rs 1,200.",
+    "hints": [
+      "Find one year's interest first.",
+      "8% of 5000 is 400.",
+      "Simple interest is the same every year — multiply by 3."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-121",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Principal from the amount",
+    "statement": "A sum of money lent at 10% simple interest per year becomes Rs 7,200 after 2 years.\nWhat was the sum lent, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "6000",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "In 2 years at 10% SI, the interest is 20% of the principal.",
+      "So amount = 120% of principal: 1.2 × P = 7200.",
+      "P = 7200 ÷ 1.2 = 6000."
+    ],
+    "explanation": "Two years at 10% simple interest add 20% of the principal, so 1.2P = 7200 and P = Rs 6,000. Check: interest = 6000 × 10 × 2 / 100 = 1200, and 6000 + 1200 = 7200.",
+    "hints": [
+      "Amount = principal + interest.",
+      "Total interest over 2 years is 20% of the principal.",
+      "7200 is 120% of the principal."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-122",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Compound interest for two years",
+    "statement": "Rs 10,000 is invested at 10% per year, compounded annually.\nHow much compound interest, in rupees, is earned in 2 years?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2100",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Year 1 interest = 10% of 10000 = Rs 1,000, making Rs 11,000.",
+      "Year 2 interest = 10% of 11000 = Rs 1,100, making Rs 12,100.",
+      "Compound interest = 12100 − 10000 = Rs 2,100."
+    ],
+    "explanation": "The first year earns Rs 1,000 and the second year earns 10% of Rs 11,000 = Rs 1,100, so the total compound interest is Rs 2,100. Check: 10000 × 1.1² = 12100.",
+    "hints": [
+      "In the second year, interest is earned on the interest too.",
+      "After one year the money is Rs 11,000.",
+      "Add 10% of 11,000 to the first year's Rs 1,000."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-123",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Rate to double the money",
+    "statement": "At what rate of simple interest per year will a sum of money double itself in 8 years?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "12.5",
+    "acceptedAnswers": [
+      "12.5%",
+      "25/2"
+    ],
+    "keySteps": [
+      "Doubling means the interest equals the principal, i.e. 100% of P.",
+      "Over 8 years, 100% interest means 100 ÷ 8 per year.",
+      "Rate = 12.5% per year."
+    ],
+    "explanation": "To double, the interest must equal the principal, which is 100% of it. Spread over 8 years that is 100/8 = 12.5% per year. Check: 12.5 × 8 = 100%.",
+    "hints": [
+      "Doubling means you earn interest equal to what you put in.",
+      "That is 100% interest in total.",
+      "Divide 100% by 8 years."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-124",
+    "type": "math",
+    "subCategory": "Profit and loss",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Pens bought by fours, sold by threes",
+    "statement": "A stationery shop buys pens at 4 for Rs 20 and sells them at 3 for Rs 18.\nWhat is the profit percentage?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "20",
+    "acceptedAnswers": [
+      "20%"
+    ],
+    "keySteps": [
+      "Cost price per pen = 20 ÷ 4 = Rs 5.",
+      "Selling price per pen = 18 ÷ 3 = Rs 6.",
+      "Profit per pen = Rs 1 on a cost of Rs 5, so profit % = 1/5 × 100 = 20%."
+    ],
+    "explanation": "Each pen costs Rs 5 and sells for Rs 6, so the profit is Rs 1 on Rs 5, which is 20%. Check with 12 pens: cost Rs 60, sale Rs 72, profit Rs 12 = 20% of 60.",
+    "hints": [
+      "Bring both prices to the same number of pens.",
+      "Find the price of one pen in each case.",
+      "Cost Rs 5, selling Rs 6."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-125",
+    "type": "math",
+    "subCategory": "Percentages and ratios",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Two raises in a row",
+    "statement": "A trainee's stipend is increased by 10%, and a few months later the new stipend is increased by 20%.\nWhat is the total percentage increase over the original stipend?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "32",
+    "acceptedAnswers": [
+      "32%"
+    ],
+    "keySteps": [
+      "Take the original stipend as 100.",
+      "After 10%: 110. After a further 20% of 110 (= 22): 132.",
+      "Total increase = 132 − 100 = 32%, not 30%."
+    ],
+    "explanation": "Starting from 100, a 10% rise gives 110, and 20% of 110 is 22, giving 132. So the total rise is 32%. Check with the formula a + b + ab/100 = 10 + 20 + 2 = 32.",
+    "hints": [
+      "The second raise is on the new stipend, not the original.",
+      "Start with 100 to make it easy.",
+      "100 → 110 → 132."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-126",
+    "type": "math",
+    "subCategory": "Percentages and ratios",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "College election margin",
+    "statement": "In a college election between two candidates, the winner got 58% of the votes and won by 2,240 votes. Every vote was valid.\nHow many votes were cast in total?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "14000",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The loser got 100 − 58 = 42% of the votes.",
+      "The winning margin is 58% − 42% = 16% of the total.",
+      "16% of total = 2240, so total = 2240 ÷ 0.16 = 14000."
+    ],
+    "explanation": "With two candidates, the loser has 42%, so the margin is 16% of all votes. Total = 2240 ÷ 0.16 = 14,000. Check: winner 8,120, loser 5,880, difference 2,240.",
+    "hints": [
+      "What percentage did the loser get?",
+      "The margin is the difference of the two percentages.",
+      "2,240 votes are 16% of the total."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-127",
+    "type": "math",
+    "subCategory": "Mixtures and alligation",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Adding milk to change the ratio",
+    "statement": "A dairy has 60 litres of a milk and water mixture in the ratio 7 : 5.\nHow many litres of pure milk must be added so that the ratio of milk to water becomes 2 : 1?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "15",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Milk = 7/12 × 60 = 35 L and water = 5/12 × 60 = 25 L.",
+      "Water stays at 25 L, so for 2 : 1 the milk must be 2 × 25 = 50 L.",
+      "Milk to add = 50 − 35 = 15 L."
+    ],
+    "explanation": "The mixture has 35 L milk and 25 L water. Adding milk leaves the water at 25 L, so milk must become 50 L, which needs 15 L more. Check: 50 : 25 = 2 : 1.",
+    "hints": [
+      "Split the 60 litres into milk and water first.",
+      "Which quantity does not change when milk is added?",
+      "Water stays 25 L, so milk must be 50 L."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-128",
+    "type": "math",
+    "subCategory": "Mixtures and alligation",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Melting two alloys together",
+    "statement": "Alloy P has copper and zinc in the ratio 3 : 2. Alloy Q has copper and zinc in the ratio 1 : 4.\nEqual weights of P and Q are melted together. What is the ratio of copper to zinc in the new alloy?",
+    "answerFormat": "choice",
+    "choices": [
+      "2 : 3",
+      "3 : 2",
+      "1 : 1",
+      "4 : 1"
+    ],
+    "answer": "2 : 3",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Take 1 kg of each alloy (equal weights).",
+      "Copper = 3/5 + 1/5 = 4/5 kg; zinc = 2/5 + 4/5 = 6/5 kg.",
+      "Copper : zinc = 4/5 : 6/5 = 2 : 3."
+    ],
+    "explanation": "In 1 kg of P there is 0.6 kg copper and 0.4 kg zinc; in 1 kg of Q there is 0.2 kg copper and 0.8 kg zinc. Together that is 0.8 kg copper and 1.2 kg zinc, a ratio of 2 : 3. Check: 0.8 + 1.2 = 2 kg, the total weight.",
+    "hints": [
+      "Choose a convenient equal weight of each, like 1 kg or 5 kg.",
+      "Work out the copper and zinc in each alloy separately.",
+      "Add the copper together and the zinc together."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-129",
+    "type": "math",
+    "subCategory": "Profit and loss",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Cost of 15 equals price of 12",
+    "statement": "The cost price of 15 notebooks is equal to the selling price of 12 notebooks.\nWhat is the profit percentage?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "25",
+    "acceptedAnswers": [
+      "25%"
+    ],
+    "keySteps": [
+      "Let each notebook cost Rs 1, so 15 notebooks cost Rs 15.",
+      "Then 12 notebooks sell for Rs 15, so one sells for 15/12 = Rs 1.25.",
+      "Profit = 0.25 on 1, which is 25%."
+    ],
+    "explanation": "If one notebook costs Rs 1, 12 notebooks sell for Rs 15, so each sells for Rs 1.25 — a profit of 25%. Check: selling 12 notebooks earns Rs 15 against a cost of Rs 12, and 3/12 = 25%.",
+    "hints": [
+      "Pick an easy cost per notebook, like Rs 1.",
+      "The selling price of 12 is Rs 15.",
+      "Profit is 3 notebooks' worth on 12 notebooks."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-130",
+    "type": "math",
+    "subCategory": "Profit and loss",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "From a loss to a gain",
+    "statement": "By selling a watch for Rs 720, a shopkeeper loses 10%.\nAt what price, in rupees, should he sell it to gain 15%?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "920",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A 10% loss means 720 is 90% of the cost price.",
+      "Cost price = 720 ÷ 0.9 = Rs 800.",
+      "For a 15% gain, selling price = 1.15 × 800 = Rs 920."
+    ],
+    "explanation": "Rs 720 is 90% of the cost, so the cost is Rs 800. A 15% gain needs 1.15 × 800 = Rs 920. Check: 920 − 800 = 120, which is 15% of 800.",
+    "hints": [
+      "First find the cost price.",
+      "720 is 90% of the cost.",
+      "The cost is Rs 800; now add 15%."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-131",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "CI minus SI for two years",
+    "statement": "Rs 8,000 is lent for 2 years at 5% per year.\nWhat is the difference, in rupees, between the compound interest (compounded annually) and the simple interest?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "20",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Simple interest = 8000 × 5 × 2 ÷ 100 = Rs 800.",
+      "Compound amount = 8000 × 1.05² = Rs 8,820, so CI = Rs 820.",
+      "Difference = 820 − 800 = Rs 20."
+    ],
+    "explanation": "SI for 2 years is Rs 800. Compound interest is Rs 400 in year 1 and 5% of Rs 8,400 = Rs 420 in year 2, total Rs 820. The difference is Rs 20 — exactly the interest on the first year's interest (5% of 400). Check with P(R/100)² = 8000 × 0.0025 = 20.",
+    "hints": [
+      "Work out SI and CI separately.",
+      "The second year of CI earns interest on Rs 8,400.",
+      "The extra is 5% of the first year's Rs 400."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-132",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Rate from two amounts",
+    "statement": "A sum of money at simple interest amounts to Rs 9,800 after 5 years and Rs 12,005 after 8 years.\nWhat is the rate of interest per year?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "12",
+    "acceptedAnswers": [
+      "12%"
+    ],
+    "keySteps": [
+      "Interest for the 3 extra years = 12005 − 9800 = Rs 2,205, so one year's interest = Rs 735.",
+      "Interest for 5 years = 5 × 735 = 3675, so principal = 9800 − 3675 = Rs 6,125.",
+      "Rate = 735 ÷ 6125 × 100 = 12%."
+    ],
+    "explanation": "Between year 5 and year 8 the amount grows by Rs 2,205, so the yearly interest is Rs 735. Five years of interest is Rs 3,675, so the principal is Rs 6,125, and the rate is 735/6125 = 12%. Check: 6125 × 12 × 8 / 100 = 5880, and 6125 + 5880 = 12005.",
+    "hints": [
+      "Simple interest adds the same amount every year.",
+      "3 years of interest = Rs 2,205.",
+      "Find the principal by taking 5 years of interest off Rs 9,800."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-133",
+    "type": "math",
+    "subCategory": "Mixtures and alligation",
+    "difficulty": "hard",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Milk replaced by water three times",
+    "statement": "A can holds 40 litres of pure milk. A milkman takes out 8 litres and replaces it with 8 litres of water. He does this a total of 3 times.\nHow many litres of milk are left in the can?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "20.48",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Each time, 8 of the 40 litres (1/5) is removed, so 4/5 of the milk remains.",
+      "The fraction stays the same each round because the can is always full.",
+      "Milk left = 40 × (4/5)³ = 40 × 64/125 = 20.48 litres."
+    ],
+    "explanation": "Each operation removes 1/5 of whatever is in the can, so the milk is multiplied by 4/5 each time. After three times: 40 × (4/5)³ = 20.48 L. Check step by step: 40 → 32 → 25.6 → 20.48.",
+    "hints": [
+      "The second time, the 8 litres removed is not all milk.",
+      "Each time, 4/5 of the milk that was there stays.",
+      "Multiply 40 by 4/5 three times."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-134",
+    "type": "math",
+    "subCategory": "Percentages and ratios",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Petrol price up, usage down",
+    "statement": "The price of petrol rises by 25%. By what percentage must Sunil reduce his petrol use so that his spending on petrol stays the same?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "20",
+    "acceptedAnswers": [
+      "20%"
+    ],
+    "keySteps": [
+      "Take old price 100 and old use 1 unit, so spending = 100.",
+      "New price is 125; to spend 100, use = 100/125 = 0.8 units.",
+      "Reduction = 1 − 0.8 = 0.2, i.e. 20%."
+    ],
+    "explanation": "If the price becomes 125 instead of 100, he can buy only 100/125 = 4/5 as much, which is a 20% reduction. Check: 125 × 0.8 = 100, so spending is unchanged.",
+    "hints": [
+      "Spending = price × quantity.",
+      "If price goes from 100 to 125, how much can 100 buy?",
+      "100/125 = 0.8."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-135",
+    "type": "math",
+    "subCategory": "Mixtures and alligation",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Diluting sugar syrup",
+    "statement": "A vessel has 30 litres of sugar solution that is 20% sugar. 10 litres of water is added.\nWhat is the percentage of sugar in the new solution?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "15",
+    "acceptedAnswers": [
+      "15%"
+    ],
+    "keySteps": [
+      "Sugar in the vessel = 20% of 30 = 6 litres.",
+      "Adding water does not change the sugar; total volume becomes 40 litres.",
+      "Sugar % = 6 ÷ 40 × 100 = 15%."
+    ],
+    "explanation": "The solution has 6 L of sugar. After adding water the volume is 40 L with the same 6 L of sugar, so it is 6/40 = 15% sugar. Check: 15% of 40 = 6.",
+    "hints": [
+      "Find how much sugar there is.",
+      "Water changes the total, not the sugar.",
+      "6 litres out of 40."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-136",
+    "type": "math",
+    "subCategory": "Profit and loss",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Two discounts one after another",
+    "statement": "A jacket is marked at Rs 2,400. During a sale it gets a 20% discount, and then an extra 10% discount on the reduced price.\nWhat does the buyer pay, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "1728",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "After 20% off: 0.8 × 2400 = Rs 1,920.",
+      "The extra 10% is on 1920: 0.9 × 1920 = Rs 1,728.",
+      "So the buyer pays Rs 1,728 (not 70% of 2400 = 1,680)."
+    ],
+    "explanation": "The first discount gives Rs 1,920, and 10% off that gives Rs 1,728. Successive discounts of 20% and 10% equal a single 28% discount, not 30%. Check: 2400 × 0.72 = 1728.",
+    "hints": [
+      "The second discount is on the already reduced price.",
+      "After the first discount the price is Rs 1,920.",
+      "Now take 10% off Rs 1,920."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-137",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Interest from two loans",
+    "statement": "Kiran lends Rs 4,000 to one friend at 6% simple interest per year and Rs 6,000 to another at 9% simple interest per year.\nHow much total interest, in rupees, does he receive after one year?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "780",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Interest from the first loan = 6% of 4000 = Rs 240.",
+      "Interest from the second loan = 9% of 6000 = Rs 540.",
+      "Total = 240 + 540 = Rs 780."
+    ],
+    "explanation": "The first loan earns Rs 240 and the second earns Rs 540, so the total is Rs 780. Check: 780 on Rs 10,000 is 7.8%, which lies between 6% and 9% as it should.",
+    "hints": [
+      "Work out each loan separately.",
+      "6% of 4000 and 9% of 6000.",
+      "Add Rs 240 and Rs 540."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-138",
+    "type": "math",
+    "subCategory": "Percentages and ratios",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Up 20%, down 20%",
+    "statement": "A number is increased by 20% and the result is then decreased by 20%. The final value is 576.\nWhat was the original number?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "600",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Increase by 20% multiplies by 1.2; decrease by 20% multiplies by 0.8.",
+      "Net effect = 1.2 × 0.8 = 0.96, a 4% fall.",
+      "Original = 576 ÷ 0.96 = 600."
+    ],
+    "explanation": "The two changes together multiply the number by 0.96, so the original is 576 ÷ 0.96 = 600. Check: 600 → 720 → 576.",
+    "hints": [
+      "The changes do not cancel out.",
+      "Multiply 1.2 and 0.8.",
+      "576 is 96% of the original."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-139",
+    "type": "math",
+    "subCategory": "Percentages and ratios",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Incomes, spending and equal savings",
+    "statement": "The monthly incomes of Asha and Bindu are in the ratio 5 : 4, and their monthly spending is in the ratio 3 : 2. Each of them saves Rs 4,000 a month.\nWhat is Asha's monthly income, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "10000",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let incomes be 5x and 4x, and spending 3y and 2y.",
+      "Savings give 5x − 3y = 4000 and 4x − 2y = 4000.",
+      "From the second, y = 2x − 2000; substitute: 5x − 6x + 6000 = 4000, so x = 2000.",
+      "Asha's income = 5x = Rs 10,000."
+    ],
+    "explanation": "With incomes 5x, 4x and spending 3y, 2y, the savings equations are 5x − 3y = 4000 and 4x − 2y = 4000. Solving gives x = 2000 and y = 2000, so Asha earns Rs 10,000. Check: Asha spends 6,000 and Bindu earns 8,000 and spends 4,000; both save 4,000.",
+    "hints": [
+      "Use two different multipliers, one for incomes and one for spending.",
+      "Income − spending = savings for each person.",
+      "Solve 5x − 3y = 4000 and 4x − 2y = 4000."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-140",
+    "type": "math",
+    "subCategory": "Mixtures and alligation",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Mixing two acid solutions",
+    "statement": "A lab has a 10% acid solution and a 40% acid solution. How many litres of the 10% solution must be mixed with 12 litres of the 40% solution to get a 30% acid solution?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "6",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "By alligation, 10% part : 40% part = (40 − 30) : (30 − 10) = 10 : 20 = 1 : 2.",
+      "So the 10% solution is half the amount of the 40% solution.",
+      "10% solution needed = 12 ÷ 2 = 6 litres."
+    ],
+    "explanation": "Alligation gives the ratio 1 : 2 for the 10% and 40% solutions, so with 12 L of the 40% solution we need 6 L of the 10% one. Check: acid = 0.6 + 4.8 = 5.4 L in 18 L, which is 30%.",
+    "hints": [
+      "Compare each strength with the target 30%.",
+      "The differences are 20 and 10.",
+      "Weak : strong = 10 : 20 = 1 : 2."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-141",
+    "type": "math",
+    "subCategory": "Mixtures and alligation",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "How much to draw off",
+    "statement": "A vessel is full of milk and water in the ratio 4 : 1. What fraction of the mixture must be drawn off and replaced with water so that the vessel has milk and water in equal amounts?\nGive your answer as a fraction or decimal.",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "0.375",
+    "acceptedAnswers": [
+      "3/8",
+      ".375"
+    ],
+    "keySteps": [
+      "Milk is 4/5 of the vessel and must become 1/2 of it.",
+      "Drawing off a fraction f leaves milk = (4/5)(1 − f); water added does not add milk.",
+      "Set (4/5)(1 − f) = 1/2, so 1 − f = 5/8 and f = 3/8."
+    ],
+    "explanation": "If a fraction f is removed, the milk left is (4/5)(1 − f) of the vessel. For equal milk and water this must be 1/2, so 1 − f = 5/8 and f = 3/8. Check with 40 L: milk 32, water 8; remove 15 L (3/8) leaving milk 20, water 5, then add 15 L water → 20 : 20.",
+    "hints": [
+      "Only the milk fraction matters, since water is added back.",
+      "Milk must go from 4/5 to 1/2 of the vessel.",
+      "(4/5) × (1 − f) = 1/2."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-142",
+    "type": "math",
+    "subCategory": "Profit and loss",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Same price, profit and loss",
+    "statement": "A trader sells two phones for Rs 990 each. On one he gains 10% and on the other he loses 10%.\nWhat is his overall loss percentage?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "1",
+    "acceptedAnswers": [
+      "1%"
+    ],
+    "keySteps": [
+      "Phone with 10% gain: cost = 990 ÷ 1.1 = Rs 900.",
+      "Phone with 10% loss: cost = 990 ÷ 0.9 = Rs 1,100.",
+      "Total cost 2000, total sale 1980, loss Rs 20 = 1% of 2000."
+    ],
+    "explanation": "The costs were Rs 900 and Rs 1,100, totalling Rs 2,000, while he received Rs 1,980. He loses Rs 20, which is 1%. Check with the shortcut: same selling price with x% gain and x% loss always gives a loss of x²/100 = 1%.",
+    "hints": [
+      "The gain and loss do not cancel — they are on different cost prices.",
+      "Find each phone's cost price.",
+      "Costs are Rs 900 and Rs 1,100."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-143",
+    "type": "math",
+    "subCategory": "Profit and loss",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Marking up for a discount",
+    "statement": "A bag costs a shopkeeper Rs 500. He wants to give a 10% discount on the marked price and still make a 26% profit.\nWhat marked price, in rupees, should he put on the bag?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "700",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Required selling price = 1.26 × 500 = Rs 630.",
+      "After a 10% discount, selling price = 0.9 × marked price.",
+      "Marked price = 630 ÷ 0.9 = Rs 700."
+    ],
+    "explanation": "To make 26% profit he must sell at Rs 630. Since the customer pays 90% of the marked price, the marked price is 630 ÷ 0.9 = Rs 700. Check: 10% off 700 is 630, and 630 − 500 = 130 = 26% of 500.",
+    "hints": [
+      "First find the selling price he needs.",
+      "Rs 630 must be 90% of the marked price.",
+      "Divide 630 by 0.9."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-144",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Principal from a compound amount",
+    "statement": "A sum of money invested at 10% per year, compounded annually, becomes Rs 4,840 in 2 years.\nWhat was the sum invested, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4000",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Amount = P × (1 + 10/100)² = 1.21P.",
+      "1.21P = 4840.",
+      "P = 4840 ÷ 1.21 = Rs 4,000."
+    ],
+    "explanation": "Two years at 10% compound interest multiply the money by 1.1² = 1.21, so P = 4840 ÷ 1.21 = Rs 4,000. Check: 4000 → 4400 → 4840.",
+    "hints": [
+      "Each year multiplies the money by 1.1.",
+      "Two years multiply it by 1.21.",
+      "Divide 4840 by 1.21."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-145",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Different rates in two years",
+    "statement": "Rs 25,000 is invested with compound interest at 10% for the first year and 12% for the second year.\nWhat is the total interest, in rupees, at the end of 2 years?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5800",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "After year 1: 25000 × 1.10 = Rs 27,500.",
+      "After year 2: 27500 × 1.12 = Rs 30,800.",
+      "Interest = 30800 − 25000 = Rs 5,800."
+    ],
+    "explanation": "The first year turns Rs 25,000 into Rs 27,500, and 12% on that gives Rs 30,800, so the interest is Rs 5,800. Check: year 2 interest 3,300 + year 1 interest 2,500 = 5,800.",
+    "hints": [
+      "Apply one rate at a time.",
+      "The 12% is on the amount after the first year.",
+      "25000 × 1.1 × 1.12."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-146",
+    "type": "math",
+    "subCategory": "Percentages and ratios",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Cheaper sugar, more kilos",
+    "statement": "When the price of sugar falls by 20%, a hostel warden can buy 5 kg more sugar for Rs 600.\nWhat was the original price of sugar per kg, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "30",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The new price is 0.8 of the original price p.",
+      "Rs 600 buys 600/p kg before and 600/(0.8p) = 750/p kg after.",
+      "750/p − 600/p = 5, so 150/p = 5 and p = 30."
+    ],
+    "explanation": "At the new price Rs 600 buys 750/p kg instead of 600/p kg; the difference 150/p must equal 5 kg, so p = Rs 30. Check: at Rs 30 he gets 20 kg; at Rs 24 he gets 25 kg — 5 kg more.",
+    "hints": [
+      "Write the quantity bought before and after in terms of the original price.",
+      "After the fall, Rs 600 buys 600/(0.8p) kg.",
+      "Shortcut: the 20% saved, Rs 120, buys 5 kg at the new price."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-147",
+    "type": "math",
+    "subCategory": "Mixtures and alligation",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Mixing two milk vessels",
+    "statement": "Vessel A has milk and water in the ratio 5 : 3. Vessel B has milk and water in the ratio 7 : 3.\nIn what ratio (A : B) should the two be mixed to get a mixture with milk and water in the ratio 2 : 1?",
+    "answerFormat": "choice",
+    "choices": [
+      "4 : 5",
+      "5 : 4",
+      "2 : 3",
+      "1 : 1"
+    ],
+    "answer": "4 : 5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Milk fractions: A = 5/8, B = 7/10, target = 2/3.",
+      "Alligation: A : B = (7/10 − 2/3) : (2/3 − 5/8) = 1/30 : 1/24.",
+      "1/30 : 1/24 = 24 : 30 = 4 : 5."
+    ],
+    "explanation": "Using the milk fraction in each vessel, alligation gives A : B = (7/10 − 2/3) : (2/3 − 5/8) = 1/30 : 1/24 = 4 : 5. Check: 4 L of A has 2.5 L milk, 1.5 L water; 5 L of B has 3.5 L milk, 1.5 L water; together 6 L milk and 3 L water = 2 : 1.",
+    "hints": [
+      "Convert each ratio to the fraction of milk.",
+      "Target milk fraction is 2/3.",
+      "Apply alligation to 5/8, 7/10 and 2/3."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-148",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Three-year CI minus SI",
+    "statement": "The difference between the compound interest (compounded annually) and the simple interest on a sum for 3 years at 10% per year is Rs 93.\nWhat is the sum, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "3000",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "CI for 3 years = P(1.1³ − 1) = 0.331P.",
+      "SI for 3 years = 0.3P.",
+      "Difference = 0.031P = 93, so P = 3000."
+    ],
+    "explanation": "Compound interest over 3 years at 10% is 33.1% of P and simple interest is 30% of P, so the difference is 3.1% of P = Rs 93, giving P = Rs 3,000. Check: CI = 993, SI = 900, difference 93.",
+    "hints": [
+      "Write both interests as a percentage of P.",
+      "1.1³ = 1.331.",
+      "The difference is 3.1% of the sum."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-149",
+    "type": "math",
+    "subCategory": "Percentages and ratios",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Rise and fall in enrolment",
+    "statement": "A coaching centre's enrolment rose by 20% in one year and then fell by 20% the next year. It now has 1,152 students.\nHow many students did it have two years ago?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "1200",
+    "acceptedAnswers": [
+      "1,200"
+    ],
+    "keySteps": [
+      "Let the enrolment two years ago be x.",
+      "After a 20% rise it is 1.2x; after a 20% fall it is 0.8 x 1.2x = 0.96x.",
+      "Solve 0.96x = 1152, so x = 1152 / 0.96 = 1200."
+    ],
+    "explanation": "A 20% rise followed by a 20% fall multiplies the number by 1.2 x 0.8 = 0.96, a net 4% drop. So 0.96x = 1152 and x = 1200. Check: 1200 rises to 1440, and 20% less than 1440 is 1152.",
+    "hints": [
+      "A rise and a fall of the same percent do not cancel out.",
+      "Multiply the two factors: 1.2 and 0.8.",
+      "The net factor is 0.96; divide 1152 by it."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-150",
+    "type": "math",
+    "subCategory": "Mixtures and alligation",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Water to change 7 : 2 into 7 : 3",
+    "statement": "729 ml of a mixture contains milk and water in the ratio 7 : 2.\nHow many ml of water must be added to make the ratio 7 : 3?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "81",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Milk = 7/9 × 729 = 567 ml; water = 2/9 × 729 = 162 ml.",
+      "Milk stays 567, so for 7 : 3 water must be 567 × 3/7 = 243 ml.",
+      "Water to add = 243 − 162 = 81 ml."
+    ],
+    "explanation": "The mixture has 567 ml milk and 162 ml water. Keeping milk fixed, a 7 : 3 ratio needs 243 ml water, so 81 ml must be added. Check: 567 : 243 = 7 : 3.",
+    "hints": [
+      "Split 729 into 9 parts.",
+      "Milk is fixed at 567 ml.",
+      "Water must become 3/7 of the milk."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-151",
+    "type": "math",
+    "subCategory": "Profit and loss",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Bought cheaper, sold cheaper",
+    "statement": "A shopkeeper sells an article at a 20% profit. If he had bought it 20% cheaper and sold it for Rs 30 less, he would have made a 25% profit.\nWhat is the cost price of the article, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "150",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let cost = C; actual selling price = 1.2C.",
+      "New cost = 0.8C; new selling price = 1.25 × 0.8C = C.",
+      "1.2C − C = 30, so C = Rs 150."
+    ],
+    "explanation": "The actual selling price is 1.2C. In the second case the cost is 0.8C and a 25% profit means selling at exactly C. The difference 0.2C is Rs 30, so C = Rs 150. Check: sold at 180; second case cost 120, sold at 150 = 25% profit, and 180 − 150 = 30.",
+    "hints": [
+      "Use C for the cost and write both selling prices in terms of C.",
+      "In the second case, 1.25 × 0.8C is simply C.",
+      "The two selling prices differ by Rs 30."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-152",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Two percent more interest",
+    "statement": "A sum was lent at simple interest for 3 years. Had the rate been 2% per year higher, it would have earned Rs 360 more.\nWhat was the sum, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "6000",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The extra interest comes only from the extra 2% for 3 years, i.e. 6% of the sum.",
+      "6% of P = 360.",
+      "P = 360 ÷ 0.06 = Rs 6,000."
+    ],
+    "explanation": "The original rate does not matter: the extra 2% per year for 3 years is 6% of the sum, which equals Rs 360, so the sum is Rs 6,000. Check: 6000 × 2 × 3 / 100 = 360.",
+    "hints": [
+      "You do not need the original rate.",
+      "The extra interest = P × 2 × 3 / 100.",
+      "6% of P is Rs 360."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-153",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Half-yearly compounding",
+    "statement": "Rs 16,000 is invested at 10% per year, compounded half-yearly.\nWhat is the compound interest, in rupees, after 1½ years?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2522",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Half-yearly compounding: rate per half-year = 5%, number of periods = 3.",
+      "Amount = 16000 × 1.05³ = 16000 × 1.157625 = Rs 18,522.",
+      "CI = 18522 − 16000 = Rs 2,522."
+    ],
+    "explanation": "Compounding half-yearly at 10% a year means 5% every six months, for 3 periods. The amount is 16000 × 1.05³ = Rs 18,522, so the interest is Rs 2,522. Check: 16000 → 16800 → 17640 → 18522.",
+    "hints": [
+      "Halve the rate and double the number of periods.",
+      "5% for 3 periods.",
+      "16000 → 16800 → 17640 → ?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-154",
+    "type": "math",
+    "subCategory": "Percentages and ratios",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Fresh grapes to raisins",
+    "statement": "Fresh grapes contain 90% water by weight, while dried grapes contain 20% water by weight.\nHow many kg of dried grapes can be obtained from 40 kg of fresh grapes?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The non-water (pulp) part does not change on drying.",
+      "Pulp in fresh grapes = 10% of 40 = 4 kg.",
+      "In dried grapes pulp is 80% of the weight, so weight = 4 ÷ 0.8 = 5 kg."
+    ],
+    "explanation": "Only water is lost, so the 4 kg of pulp (10% of 40 kg) stays. In dried grapes this pulp is 80% of the weight, so the dried weight is 4 ÷ 0.8 = 5 kg. Check: 5 kg dried grapes = 4 kg pulp + 1 kg water, and 1/5 = 20% water.",
+    "hints": [
+      "Focus on the part that does not change when grapes dry.",
+      "The pulp is 4 kg.",
+      "4 kg is 80% of the dried weight."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-155",
+    "type": "math",
+    "subCategory": "Percentages and ratios",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Partners joining late",
+    "statement": "Anil starts a business with Rs 20,000. After 4 months Balu joins with Rs 30,000, and after 6 months (from the start) Charan joins with Rs 40,000. At the end of the year the profit is Rs 33,000.\nWhat is Charan's share of the profit, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "11000",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Profit is shared in the ratio of capital × time.",
+      "Anil 20000 × 12 = 2,40,000; Balu 30000 × 8 = 2,40,000; Charan 40000 × 6 = 2,40,000.",
+      "The ratio is 1 : 1 : 1, so Charan gets 33000 ÷ 3 = Rs 11,000."
+    ],
+    "explanation": "Each partner's share depends on capital multiplied by months invested: Anil 20000 × 12, Balu 30000 × 8 and Charan 40000 × 6 all equal 2,40,000. So the profit is split equally and Charan gets Rs 11,000. Check: 3 × 11000 = 33000.",
+    "hints": [
+      "Balu is in for 8 months and Charan for 6 months.",
+      "Multiply each capital by its months.",
+      "All three products come out the same."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-156",
+    "type": "math",
+    "subCategory": "Mixtures and alligation",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Sugar sold at two profit rates",
+    "statement": "A wholesaler has 1,000 kg of sugar. He sells part of it at 8% profit and the rest at 18% profit, and gains 14% on the whole.\nHow many kg did he sell at 18% profit?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "600",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Use alligation on the profit percentages with mean 14%.",
+      "8% part : 18% part = (18 − 14) : (14 − 8) = 4 : 6 = 2 : 3.",
+      "Quantity at 18% = 3/5 × 1000 = 600 kg."
+    ],
+    "explanation": "Alligation on the profit rates gives 8%-part : 18%-part = 4 : 6 = 2 : 3, so 600 kg was sold at 18% profit. Check: with cost Rs 1 per kg, profit = 0.08 × 400 + 0.18 × 600 = 32 + 108 = 140 = 14% of 1000.",
+    "hints": [
+      "Treat the two profit rates like two prices being mixed.",
+      "The mean rate is 14%.",
+      "Differences 4 and 6 give the ratio 2 : 3."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-157",
+    "type": "math",
+    "subCategory": "Profit and loss",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Buy 4 get 1 free",
+    "statement": "A shop runs a 'buy 4, get 1 free' offer on T-shirts and still makes a 20% profit.\nBy what percentage above the cost price are the T-shirts marked?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "50",
+    "acceptedAnswers": [
+      "50%"
+    ],
+    "keySteps": [
+      "Let cost = Rs 100 per T-shirt and marked price = M.",
+      "A customer pays 4M and takes 5 T-shirts costing 500.",
+      "20% profit: 4M = 1.2 × 500 = 600, so M = 150, i.e. 50% above cost."
+    ],
+    "explanation": "For 5 T-shirts costing Rs 500 the shop collects 4M. A 20% profit means 4M = 600, so M = Rs 150, which is 50% above the cost of Rs 100. Check: customer pays 600 for goods costing 500, profit 100 = 20%.",
+    "hints": [
+      "The customer pays for 4 but takes 5.",
+      "Take cost price as Rs 100 each.",
+      "4 × marked price must equal 1.2 × cost of 5."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-158",
+    "type": "math",
+    "subCategory": "Profit and loss",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Changing the discount",
+    "statement": "A shopkeeper sells a TV at a 10% discount on the marked price and makes a 17% profit.\nIf he had given a 20% discount instead, what would his profit percentage have been?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4",
+    "acceptedAnswers": [
+      "4%"
+    ],
+    "keySteps": [
+      "0.9 × MP = 1.17 × CP, so MP = 1.3 × CP.",
+      "With a 20% discount, SP = 0.8 × 1.3 CP = 1.04 CP.",
+      "Profit = 4%."
+    ],
+    "explanation": "From 0.9 MP = 1.17 CP, the marked price is 1.3 times the cost. A 20% discount then gives a selling price of 0.8 × 1.3 = 1.04 times the cost, a 4% profit. Check with CP = 100: MP = 130, 10% off = 117 (17% profit), 20% off = 104 (4% profit).",
+    "hints": [
+      "Link the marked price and the cost price first.",
+      "MP = 1.17/0.9 × CP = 1.3 × CP.",
+      "Now take 20% off 1.3 × CP."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-159",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Two equal yearly instalments",
+    "statement": "A loan of Rs 1,260 is taken at 10% per year compound interest (compounded annually). It is repaid in two equal instalments, one at the end of each year.\nWhat is each instalment, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "726",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The present values of the instalments must add to the loan: x/1.1 + x/1.1² = 1260.",
+      "x(1.1 + 1)/1.21 = 1260, so x × 2.1 = 1260 × 1.21 = 1524.6.",
+      "x = 1524.6 ÷ 2.1 = Rs 726."
+    ],
+    "explanation": "Each instalment x is worth x/1.1 and x/1.21 today, and together they must equal Rs 1,260. Solving gives x = 1260 × 1.21 / 2.1 = Rs 726. Check: after year 1 the debt is 1386; paying 726 leaves 660; after year 2 it is 726, cleared by the second instalment.",
+    "hints": [
+      "Bring each instalment back to today's value.",
+      "x/1.1 + x/1.21 = 1260.",
+      "Or track the balance: (1260 × 1.1 − x) × 1.1 = x."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-160",
+    "type": "math",
+    "subCategory": "Simple and compound interest",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Amounts in year 2 and year 3",
+    "statement": "A sum of money invested at compound interest (compounded annually) amounts to Rs 8,820 in 2 years and Rs 9,261 in 3 years.\nWhat was the sum invested, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "8000",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Interest in the third year = 9261 − 8820 = Rs 441, earned on 8820.",
+      "Rate = 441 ÷ 8820 × 100 = 5%.",
+      "Principal = 8820 ÷ 1.05² = 8820 ÷ 1.1025 = Rs 8,000."
+    ],
+    "explanation": "The third year adds Rs 441 on Rs 8,820, so the rate is 5%. The two-year amount is P × 1.05² = 8820, giving P = Rs 8,000. Check: 8000 → 8400 → 8820 → 9261.",
+    "hints": [
+      "The growth from year 2 to year 3 is one year's interest on Rs 8,820.",
+      "The rate is 5%.",
+      "Divide 8820 by 1.05 twice."
+    ],
+    "estimatedMinutes": 5
+  }
+]

@@ -1,0 +1,1624 @@
+[
+  {
+    "seedKey": "logical-211",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Half an hour from one rope",
+    "statement": "Farida has one rope and a box of matches. The rope takes exactly 60 minutes to burn completely from one end to the other, but it burns unevenly - some parts burn much faster than others, so half the length does NOT take 30 minutes. How can she measure exactly 30 minutes?",
+    "answerFormat": "choice",
+    "choices": [
+      "Cut the rope at its midpoint and burn one half from one end",
+      "Light both ends at the same time; the rope burns out in exactly 30 minutes",
+      "Light one end and stop when half the rope's length has burnt",
+      "Light one end and the middle of the rope at the same time"
+    ],
+    "answer": "Light both ends at the same time; the rope burns out in exactly 30 minutes",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Uneven burning means measuring half the length tells you nothing about time.",
+      "Two flames burning towards each other together burn the whole rope at double the rate.",
+      "The flames meet when the total burning time adds up to 60 minutes, so after 60 / 2 = 30 minutes."
+    ],
+    "explanation": "Because the rope burns unevenly, cutting it in half or watching for half its length does not give half the time. If both ends are lit together, the two flames together always consume the rope twice as fast as one flame, wherever they meet, so the rope is gone in exactly 30 minutes. Lighting one end and the middle uses three flame fronts that do not finish together, so it is not reliable.",
+    "hints": [
+      "Can you trust the length of the rope? Why not?",
+      "What happens if two flames burn the same rope at once?",
+      "Two flames meeting means the 60 minutes of burning is shared."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-212",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Three wrongly labelled fruit boxes",
+    "statement": "A fruit stall in Ratnagiri has three closed boxes labelled \"Mangoes\", \"Guavas\" and \"Mangoes and Guavas\". One box has only mangoes, one has only guavas and one has both - but EVERY label is wrong. You may pull out just one fruit from one box, without looking inside. From which box should you pull the fruit so that you can then put all three labels right?",
+    "answerFormat": "choice",
+    "choices": [
+      "The box labelled \"Mangoes\"",
+      "The box labelled \"Guavas\"",
+      "The box labelled \"Mangoes and Guavas\"",
+      "It cannot be done with one fruit"
+    ],
+    "answer": "The box labelled \"Mangoes and Guavas\"",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Since every label is wrong, the box labelled \"Mangoes and Guavas\" holds only one kind of fruit.",
+      "One fruit from it tells you exactly which single fruit that box holds.",
+      "If it is a mango, the box labelled \"Guavas\" cannot be guavas (wrong label) or mangoes (taken), so it is mixed, and the last box is guavas (and similarly if it is a guava)."
+    ],
+    "explanation": "The box labelled \"Mangoes and Guavas\" must contain only mangoes or only guavas, so one fruit from it reveals its true contents. Say it is a mango: then the box labelled \"Guavas\" is not guavas and not only mangoes, so it is the mixed box, and the box labelled \"Mangoes\" holds guavas. Picking from either single-fruit label would not work, because a mango from the box labelled \"Guavas\" could mean mangoes-only or mixed.",
+    "hints": [
+      "Which label tells you the most when you know it is wrong?",
+      "The 'mixed' label is wrong, so that box has only one kind.",
+      "After one fruit from that box, the other two labels are forced."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-213",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Arun claims both are liars",
+    "statement": "On an island, every person either always tells the truth or always lies. Arun and Bhavna live there. Arun says: \"Both of us are liars.\"\nWhat are Arun and Bhavna?",
+    "answerFormat": "choice",
+    "choices": [
+      "Both are liars",
+      "Arun is a liar and Bhavna is a truth-teller",
+      "Arun is a truth-teller and Bhavna is a liar",
+      "Both are truth-tellers"
+    ],
+    "answer": "Arun is a liar and Bhavna is a truth-teller",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A truth-teller cannot truthfully call himself a liar, so Arun is not a truth-teller.",
+      "So Arun is a liar and his statement is false.",
+      "\"Both are liars\" is false while Arun is a liar only if Bhavna is a truth-teller."
+    ],
+    "explanation": "If Arun told the truth, he would be a liar - impossible. So Arun lies, and his statement \"both of us are liars\" is false. Since Arun really is a liar, the statement can only be false if Bhavna is a truth-teller. Check: Arun (liar) makes a false statement - consistent.",
+    "hints": [
+      "Could a truth-teller ever say this sentence?",
+      "If Arun is a liar, what must be true about the pair?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-214",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Ramu vouches for Somu",
+    "statement": "In a village, every person either always tells the truth or always lies. Ramu says: \"Somu is a truth-teller.\" Somu says: \"Ramu and I are of different types.\"\nWhat are Ramu and Somu?",
+    "answerFormat": "choice",
+    "choices": [
+      "Both are truth-tellers",
+      "Both are liars",
+      "Ramu is a truth-teller and Somu is a liar",
+      "Ramu is a liar and Somu is a truth-teller"
+    ],
+    "answer": "Both are liars",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "If Ramu tells the truth, Somu is a truth-teller too, so they are the same type and Somu's statement is false - a contradiction.",
+      "So Ramu is a liar, which makes his statement false: Somu is a liar too.",
+      "Check: Somu says they are different types; they are both liars, so his statement is false - consistent for a liar."
+    ],
+    "explanation": "Assume Ramu is truthful: then Somu is truthful, but Somu claims they are different types, which would be false - impossible. So Ramu lies, meaning Somu is not a truth-teller; Somu is a liar. Somu's claim that they differ is indeed false, since both lie. So both are liars.",
+    "hints": [
+      "Start by assuming Ramu tells the truth.",
+      "Does that assumption make Somu's sentence true or false?",
+      "If Ramu lies, what does that say about Somu?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-215",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The missing gulab jamun",
+    "statement": "One of four children - Anil, Bindu, Chetan or Divya - ate the last gulab jamun. Exactly ONE of them is lying.\nAnil: \"Bindu ate it.\"\nBindu: \"Divya ate it.\"\nChetan: \"I did not eat it.\"\nDivya: \"Bindu is lying.\"\nWho ate the gulab jamun?",
+    "answerFormat": "choice",
+    "choices": [
+      "Anil",
+      "Bindu",
+      "Chetan",
+      "Divya"
+    ],
+    "answer": "Bindu",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Bindu and Divya contradict each other, so exactly one of them is lying.",
+      "Since only one child lies in total, Anil and Chetan both tell the truth.",
+      "Anil's true statement says Bindu ate it.",
+      "Check: Bindu's claim (Divya ate it) is the one lie; Chetan and Divya are truthful."
+    ],
+    "explanation": "Bindu says Divya ate it and Divya says Bindu is lying, so one of these two must be the liar. With only one liar in total, Anil and Chetan tell the truth, so Bindu ate it. Check: Bindu's statement is false, Divya's is true, Chetan did not eat it - exactly one lie.",
+    "hints": [
+      "Look for two statements that cannot both be true.",
+      "If the liar is one of those two, what about the other two children?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-216",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Months with 28 days",
+    "statement": "Sneha's younger brother asks her: \"How many months of the year have 28 days?\" Which answer is correct?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only 1",
+      "All 12",
+      "11",
+      "1, or none in a leap year"
+    ],
+    "answer": "All 12",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The question asks which months HAVE 28 days, not which have exactly 28.",
+      "Every month has at least 28 days.",
+      "So all 12 months have 28 days."
+    ],
+    "explanation": "Every month contains a 28th day - February has 28 or 29 days and the others have 30 or 31. So all 12 months have 28 days. Answering 'only February' reads 'have 28 days' as 'have only 28 days'.",
+    "hints": [
+      "Read the question word by word.",
+      "Does January have a 28th day?"
+    ],
+    "estimatedMinutes": 1
+  },
+  {
+    "seedKey": "logical-217",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "All but nine goats",
+    "statement": "Farmer Raghu had 17 goats. All but 9 of them ran away through a broken fence. How many goats does he have left?",
+    "answerFormat": "choice",
+    "choices": [
+      "8",
+      "9",
+      "17",
+      "26"
+    ],
+    "answer": "9",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "\"All but 9 ran away\" means every goat ran away except 9.",
+      "So exactly 9 goats did not run away.",
+      "No subtraction of 9 from 17 is needed."
+    ],
+    "explanation": "\"All but 9\" means all except 9, so 9 goats stayed behind. The tempting answer 8 comes from wrongly calculating 17 - 9.",
+    "hints": [
+      "What does 'all but' mean?",
+      "Who exactly ran away - and who did not?"
+    ],
+    "estimatedMinutes": 1
+  },
+  {
+    "seedKey": "logical-218",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Overtaking in the college race",
+    "statement": "In the college sports day 400 m race, Harsha overtakes the runner who is in second place. What position is Harsha in now?",
+    "answerFormat": "choice",
+    "choices": [
+      "First",
+      "Second",
+      "Third",
+      "It depends on the lap"
+    ],
+    "answer": "Second",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Overtaking someone means taking their position.",
+      "The runner Harsha passed was second, so Harsha is now second.",
+      "The leader is still ahead of Harsha, so he is not first."
+    ],
+    "explanation": "When you pass the runner in second place, you take their place - second - and they drop to third. You have not passed the leader, so you cannot be first.",
+    "hints": [
+      "Whose position do you take when you overtake someone?",
+      "Is anyone still ahead of Harsha?"
+    ],
+    "estimatedMinutes": 1
+  },
+  {
+    "seedKey": "logical-219",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Held in the right hand only",
+    "statement": "Pooja's grandfather asks her a riddle: \"What is something you can hold in your right hand, but can never hold in your left hand?\" Which answer fits best?",
+    "answerFormat": "choice",
+    "choices": [
+      "A cricket ball",
+      "Your left elbow",
+      "Your right ear",
+      "A pen"
+    ],
+    "answer": "Your left elbow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Anything outside your body can be held in either hand.",
+      "So the answer must be a part of your own body.",
+      "Your left hand cannot hold your own left elbow, but your right hand can."
+    ],
+    "explanation": "A pen, a ball or your right ear can all be held with the left hand. But your left hand can never grip your own left elbow, while your right hand can. So the answer is your left elbow.",
+    "hints": [
+      "Could you swap the object to the other hand?",
+      "Think about parts of your own body.",
+      "Which part of the left arm can the left hand not reach?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-220",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Shot, soaked and hung",
+    "statement": "Meera shot her husband, then held him under water for five minutes, and finally hung him up on a line. An hour later the two of them happily went out for dinner together. What is the best explanation?",
+    "answerFormat": "choice",
+    "choices": [
+      "Meera is a photographer: she took his photo, developed it in water and hung it up to dry",
+      "Her husband is a strong swimmer",
+      "She used a toy gun",
+      "The dinner was at a hospital canteen"
+    ],
+    "answer": "Meera is a photographer: she took his photo, developed it in water and hung it up to dry",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The husband is fine afterwards, so the words must have another meaning.",
+      "'Shoot' can mean taking a photograph.",
+      "Old film photos are developed in liquid baths and hung up to dry."
+    ],
+    "explanation": "Meera 'shot' her husband with a camera, developed the print in a water bath and hung it to dry - the steps of developing a film photograph. That is why he could go out for dinner an hour later. The other options do not explain all three actions.",
+    "hints": [
+      "The husband is completely unhurt - so what else can 'shot' mean?",
+      "What used to be dipped in liquid and hung on a line to dry?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-221",
+    "type": "logical",
+    "subCategory": "Logic grids",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Three bicycles, three colours",
+    "statement": "Ravi, Sita and Tara each own one bicycle. The bicycles are red, blue and green, one each.\n1. Sita's bicycle is neither red nor blue.\n2. Ravi's bicycle is not blue.\nWho owns the blue bicycle?",
+    "answerFormat": "choice",
+    "choices": [
+      "Ravi",
+      "Sita",
+      "Tara",
+      "It cannot be determined"
+    ],
+    "answer": "Tara",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "From clue 1, Sita's bicycle is green.",
+      "Ravi's is not blue (clue 2) and not green (Sita's), so Ravi's is red.",
+      "The only bicycle left, blue, is Tara's."
+    ],
+    "explanation": "Clue 1 leaves only green for Sita. Ravi cannot have blue (clue 2) or green (taken), so he has red. That leaves blue for Tara. Check: Sita green, Ravi red, Tara blue satisfies both clues.",
+    "hints": [
+      "Which person has only one possible colour?",
+      "Once Sita's colour is fixed, look at Ravi."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-222",
+    "type": "logical",
+    "subCategory": "Logic grids",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Hometowns of three classmates",
+    "statement": "Arjun, Bhanu and Chitra come from Chennai, Hyderabad and Kolkata, one city each.\n1. The student from Hyderabad is older than Arjun.\n2. Chitra often travels home with the student from Kolkata.\n3. Bhanu is not from Hyderabad.\n4. Arjun is not from Kolkata.\nWhich city is Arjun from?",
+    "answerFormat": "choice",
+    "choices": [
+      "Chennai",
+      "Hyderabad",
+      "Kolkata",
+      "It cannot be determined"
+    ],
+    "answer": "Chennai",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Clue 1: Arjun is not from Hyderabad (he cannot be older than himself).",
+      "With clue 3, Hyderabad must be Chitra's city.",
+      "Arjun is not from Kolkata (clue 4) or Hyderabad, so Arjun is from Chennai and Bhanu from Kolkata.",
+      "Check clue 2: Chitra (Hyderabad) travels with Bhanu (Kolkata) - fine."
+    ],
+    "explanation": "Arjun cannot be the Hyderabad student, since that student is older than him, and Bhanu is not from Hyderabad either, so Chitra is. Arjun is not from Kolkata, so he is from Chennai, leaving Kolkata for Bhanu. Clue 2 is consistent because Chitra and the Kolkata student are different people.",
+    "hints": [
+      "Clue 1 quietly tells you where Arjun is NOT from.",
+      "Who is left for Hyderabad?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-223",
+    "type": "logical",
+    "subCategory": "Logic grids",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Breakfast orders at the canteen",
+    "statement": "Neha, Om and Pari each order a different dish - dosa, idli or poha - and a different drink - tea, coffee or lassi.\n1. Neha ordered the dosa.\n2. The person who ordered idli drank coffee.\n3. Om did not order idli and did not drink tea.\nWhat did Om drink?",
+    "answerFormat": "choice",
+    "choices": [
+      "Tea",
+      "Coffee",
+      "Lassi",
+      "It cannot be determined"
+    ],
+    "answer": "Lassi",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Neha has dosa and Om did not order idli, so Om has poha and Pari has idli.",
+      "Clue 2: Pari (idli) drank coffee.",
+      "Om did not drink tea, and coffee is taken, so Om drank lassi (and Neha tea)."
+    ],
+    "explanation": "Neha ordered dosa, and Om did not order idli, so Om had poha and Pari had idli. The idli eater drank coffee, so Pari had coffee. Om did not drink tea, so Om drank lassi, leaving tea for Neha. All three clues hold.",
+    "hints": [
+      "First settle who ate what.",
+      "The idli clue fixes one drink.",
+      "Om's drink is whatever is left after removing tea and coffee."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-224",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Fifty bulbs in the hostel corridor",
+    "statement": "A hostel corridor has 50 bulbs numbered 1 to 50, all switched off. Fifty students walk past one after another. Student 1 presses the switch of every bulb, student 2 presses the switch of every 2nd bulb (2, 4, 6, ...), student 3 presses every 3rd bulb, and so on, until student 50 presses only bulb 50. Each press turns a bulb on if it was off and off if it was on. How many bulbs are on at the end?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "7",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Bulb n is pressed once by every student whose number divides n.",
+      "A bulb ends up on only if it is pressed an odd number of times, i.e. n has an odd number of divisors.",
+      "Divisors come in pairs (d, n/d) except when n is a perfect square, so only perfect squares have an odd number of divisors.",
+      "Perfect squares up to 50: 1, 4, 9, 16, 25, 36, 49 - that is 7 bulbs."
+    ],
+    "explanation": "Student k touches bulb n exactly when k divides n, so bulb n is pressed as many times as n has divisors. Divisors pair up as d and n/d, leaving an unpaired divisor only when n is a perfect square, so only square-numbered bulbs are pressed an odd number of times and stay on. The squares from 1 to 50 are 1, 4, 9, 16, 25, 36 and 49, giving 7 bulbs. For example, bulb 12 is pressed by 1, 2, 3, 4, 6, 12 (six times, off) while bulb 9 is pressed by 1, 3, 9 (three times, on).",
+    "hints": [
+      "Which students press bulb 12? Which press bulb 9?",
+      "A bulb is on if pressed an odd number of times.",
+      "Which numbers have an odd number of divisors?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-225",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Forty-five minutes from two ropes",
+    "statement": "Kunal has two ropes and a box of matches. Each rope takes exactly 60 minutes to burn from end to end, but both burn unevenly, so a piece's length tells you nothing about how long it takes. Which plan measures exactly 45 minutes?",
+    "answerFormat": "choice",
+    "choices": [
+      "Light both ropes at both ends at the same time and add their times",
+      "Light rope A at both ends and rope B at one end together; when A burns out, light the other end of B; stop when B burns out",
+      "Light rope A at one end; when half of its length has burnt, light rope B at both ends",
+      "Light rope A at both ends; when it burns out, light rope B at both ends; stop when B burns out"
+    ],
+    "answer": "Light rope A at both ends and rope B at one end together; when A burns out, light the other end of B; stop when B burns out",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Lit at both ends, rope A burns out in exactly 30 minutes.",
+      "During those 30 minutes rope B, lit at one end, has exactly 30 minutes of burning left.",
+      "Lighting B's other end at that moment makes its remaining 30 minutes burn in 15 minutes.",
+      "Total: 30 + 15 = 45 minutes."
+    ],
+    "explanation": "Rope A, lit from both ends, finishes after 30 minutes. At that moment rope B has burned for 30 minutes from one end, so whatever is left would take 30 more minutes with one flame. Lighting its other end halves that to 15 minutes, so B burns out at 30 + 15 = 45 minutes. Lighting both ropes at both ends gives only 30 minutes, and any plan that relies on 'half the length' fails because the ropes burn unevenly.",
+    "hints": [
+      "How long does a rope take if lit at both ends?",
+      "When the first rope finishes, how much burning time is left in the second?",
+      "Can you halve the remaining time of the second rope?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-226",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Paying a worker from a silver bar",
+    "statement": "A contractor in Surat has a 7-gram silver bar and must pay a worker exactly 1 gram of silver at the end of each day for 7 days. At the end of each day the worker must hold exactly as many grams as days worked, but the contractor may take back pieces as 'change' when he hands over others. What is the minimum number of cuts the contractor must make in the bar?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "On days 1 to 7 the worker must hold 1, 2, ..., 7 grams, so the pieces must be able to make every total from 1 to 7.",
+      "One cut gives only 2 pieces, which can make at most 3 different totals (each piece alone, or both) - fewer than 7.",
+      "Two cuts giving pieces of 1, 2 and 4 grams make every total: 1, 2, 1+2, 4, 4+1, 4+2, 4+2+1.",
+      "So the minimum is 2 cuts."
+    ],
+    "explanation": "Each day the worker's holding must be a combination of whole pieces, so the pieces must form every total from 1 to 7. With one cut there are only 2 pieces and at most 3 non-zero totals, which is not enough. Two cuts into 1 g, 2 g and 4 g pieces work: day 1 give 1; day 2 give 2, take back 1; day 3 give 1; day 4 give 4, take back 1 and 2; and so on. So 2 cuts is the minimum.",
+    "hints": [
+      "List what the worker must hold on each of the 7 days.",
+      "How many different totals can 2 pieces make?",
+      "Think of powers of 2."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-227",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The guards at the Hampi fork",
+    "statement": "On the way to a village near Hampi, the road splits into two. One road leads to the village; the other leads into a forest. Two guards stand at the fork: one always tells the truth and the other always lies, but you do not know which is which. You may ask ONE question to ONE guard. Which plan always gets you to the village?",
+    "answerFormat": "choice",
+    "choices": [
+      "Ask either guard \"Which road leads to the village?\" and take that road",
+      "Ask either guard \"Which road would the other guard say leads to the village?\" and take that road",
+      "Ask either guard \"Which road would the other guard say leads to the village?\" and take the OTHER road",
+      "Ask either guard \"Are you the truth-teller?\" and decide from the answer"
+    ],
+    "answer": "Ask either guard \"Which road would the other guard say leads to the village?\" and take the OTHER road",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "If you ask the truth-teller, he truthfully reports the liar's wrong answer.",
+      "If you ask the liar, he lies about the truth-teller's correct answer, so he also points to the wrong road.",
+      "Either way the road named is the wrong road, so you take the other one."
+    ],
+    "explanation": "Asking about what the other guard would say passes the answer through both the truth-teller and the liar, exactly one lie in the chain. So whichever guard you ask, the road he names is the forest road, and you should take the other road. Asking directly fails because you do not know whether the guard lies, and following the named road in the 'other guard' question leads you into the forest.",
+    "hints": [
+      "Try the question on each guard in turn.",
+      "How many lies are in the chain when one guard reports the other?",
+      "An answer with exactly one lie in it is always wrong."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-228",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Who broke the staffroom window?",
+    "statement": "One of four students - Kishore, Lalit, Manju or Nikhil - broke the staffroom window with a cricket ball. Exactly ONE of these four statements is TRUE.\nKishore: \"Manju or Nikhil broke it.\"\nLalit: \"I did not break it.\"\nManju: \"Kishore broke it.\"\nNikhil: \"I did not break it.\"\nWho broke the window?",
+    "answerFormat": "choice",
+    "choices": [
+      "Kishore",
+      "Lalit",
+      "Manju",
+      "Nikhil"
+    ],
+    "answer": "Lalit",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Only one student broke it, so at least one of Lalit and Nikhil (who both say 'not me') is telling the truth.",
+      "Since exactly one statement is true, it must be one of those two, and Kishore's and Manju's statements are both false.",
+      "Kishore is false, so neither Manju nor Nikhil did it; Manju is false, so Kishore did not do it either.",
+      "So Lalit broke it. Check: only Nikhil's statement is true."
+    ],
+    "explanation": "Lalit and Nikhil both deny it, and they cannot both be guilty, so at least one of those two statements is true. With exactly one true statement, Kishore and Manju must both be lying. Kishore lying rules out Manju and Nikhil, and Manju lying rules out Kishore, leaving Lalit. Check: Kishore false, Lalit false, Manju false, Nikhil true - exactly one true.",
+    "hints": [
+      "Two students say the same thing about themselves. What does that force?",
+      "Where must the single true statement be?",
+      "Use the two false statements to eliminate people."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-229",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Pushed his car to the hotel",
+    "statement": "Kiran pushed his car up to a hotel and at once told the owner that he was bankrupt. Nobody was upset, and a few minutes later everyone was laughing. What is the best explanation?",
+    "answerFormat": "choice",
+    "choices": [
+      "His car broke down and he could not pay the repair bill",
+      "He was playing a board game like Monopoly, where landing on a hotel can bankrupt a player",
+      "The hotel owner had sold him the car on credit",
+      "He had lost his wallet on the way"
+    ],
+    "answer": "He was playing a board game like Monopoly, where landing on a hotel can bankrupt a player",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Pushing a car to a hotel and going bankrupt immediately is strange in real life.",
+      "Everyone laughing suggests it was a game, not a real loss.",
+      "In Monopoly a player moves a car token, and landing on a property with a hotel can make him bankrupt."
+    ],
+    "explanation": "Kiran's 'car' was his token in a board game such as Monopoly. He moved it onto a square with a hotel, could not pay the rent and was bankrupt - which explains why no one was upset. The other options do not explain why he was bankrupt the moment he reached the hotel.",
+    "hints": [
+      "Could the car be very small?",
+      "Where do players move cars to hotels and go bankrupt?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-230",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Stops at the seventh floor",
+    "statement": "Vikram lives on the 12th floor of an apartment in Thane. Every morning he takes the lift down to the ground floor. Every evening he takes the lift only up to the 7th floor and walks the rest of the way - except on rainy days, or when someone else is in the lift, when he rides straight to the 12th floor. Why?",
+    "answerFormat": "choice",
+    "choices": [
+      "He wants daily exercise",
+      "The lift does not work above the 7th floor",
+      "He is too short to reach the button for 12; he uses his umbrella or asks another person to press it",
+      "His friend lives on the 7th floor"
+    ],
+    "answer": "He is too short to reach the button for 12; he uses his umbrella or asks another person to press it",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The exceptions (rain, another person) are the key to the puzzle.",
+      "On rainy days he carries an umbrella; another person can press buttons for him.",
+      "Both exceptions help only if the problem is reaching the button for floor 12."
+    ],
+    "explanation": "Vikram is short and can reach only up to the button for the 7th floor. On rainy days he carries an umbrella to press the 12 button, and when someone else is in the lift he asks them to press it. Wanting exercise or a broken lift would not explain the rain and the other-person exceptions.",
+    "hints": [
+      "Ask why rain would change anything.",
+      "What does he carry on rainy days?",
+      "What could another person in the lift do for him?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-231",
+    "type": "logical",
+    "subCategory": "Logic grids",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Four language classes",
+    "statement": "Anu, Balu, Charu and Deepak each learn a different programming language - Java, Python, C or Go - and each has class on a different day from Monday to Thursday.\n1. The Python learner has class on Monday.\n2. Anu's class is on Thursday, and she does not learn Go.\n3. Balu learns C, and his class is the day after the Python learner's.\n4. Deepak's class is not on Wednesday.\n5. Charu does not learn Java.\nWhich language does Charu learn?",
+    "answerFormat": "choice",
+    "choices": [
+      "Java",
+      "Python",
+      "C",
+      "Go"
+    ],
+    "answer": "Go",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Python is Monday (1), so Balu (C) has class on Tuesday (3).",
+      "Anu is Thursday, so Charu and Deepak take Monday and Wednesday; Deepak is not Wednesday, so Deepak is Monday and learns Python.",
+      "Charu has Wednesday; Java and Go remain for Anu and Charu.",
+      "Charu does not learn Java (5), so Charu learns Go and Anu Java - consistent with clue 2."
+    ],
+    "explanation": "Clues 1 and 3 put Balu on Tuesday with C. Anu takes Thursday, and since Deepak is not on Wednesday he is on Monday, so he learns Python and Charu is on Wednesday. Java and Go are left for Anu and Charu; Charu does not learn Java, so Charu learns Go and Anu learns Java, which also fits Anu not learning Go.",
+    "hints": [
+      "Find Balu's day first.",
+      "Who can take Monday?",
+      "Only two languages are left for Anu and Charu."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-232",
+    "type": "logical",
+    "subCategory": "Logic grids",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Four floors, four vehicles",
+    "statement": "Hari, Isha, Jaya and Kunal live on floors 1 to 4 of a small building, one per floor, and each owns a different vehicle - a cycle, a scooter, a bike or a car.\n1. Jaya lives on the top floor.\n2. The car owner lives directly below Jaya.\n3. Hari lives on floor 1 and does not own the scooter.\n4. Kunal owns the bike.\n5. Isha lives on a higher floor than Kunal.\nWho owns the scooter?",
+    "answerFormat": "choice",
+    "choices": [
+      "Hari",
+      "Isha",
+      "Jaya",
+      "Kunal"
+    ],
+    "answer": "Jaya",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Jaya is on floor 4 and Hari on floor 1, so Isha and Kunal are on floors 2 and 3.",
+      "Isha is above Kunal, so Isha is on floor 3 and Kunal on floor 2.",
+      "The car owner is on floor 3, so Isha owns the car.",
+      "Kunal owns the bike; Hari does not own the scooter, so Hari has the cycle and Jaya the scooter."
+    ],
+    "explanation": "Jaya is on floor 4 and Hari on floor 1, and since Isha is above Kunal, Isha is on 3 and Kunal on 2. The car owner is directly below Jaya, on floor 3, so Isha owns the car. Kunal owns the bike, which leaves the cycle and scooter for Hari and Jaya; Hari does not own the scooter, so Jaya does.",
+    "hints": [
+      "Place the people on floors first.",
+      "Clue 2 then names the car owner.",
+      "Only two vehicles are left for Hari and Jaya."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-233",
+    "type": "logical",
+    "subCategory": "Logic grids",
+    "difficulty": "hard",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "College fest: branch, city and event",
+    "statement": "Farhan, Geeta, Imran and Jyoti are in four different branches - CSE, ECE, Mech and Civil - come from four different cities - Vizag, Nellore, Guntur and Kurnool - and each takes part in a different fest event - Quiz, Dance, Robotics and Debate.\n1. Geeta is in ECE and is not from Vizag.\n2. The CSE student takes part in Robotics.\n3. The student from Guntur is in Mech.\n4. Farhan is from Nellore.\n5. Jyoti does the Debate and is not from Kurnool.\n6. The Quiz participant is from Vizag.\nWhich event does Geeta take part in?",
+    "answerFormat": "choice",
+    "choices": [
+      "Quiz",
+      "Dance",
+      "Robotics",
+      "Debate"
+    ],
+    "answer": "Dance",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Jyoti does Debate, so she is not the Quiz participant and therefore not from Vizag (6); she is not from Kurnool or Nellore, so Jyoti is from Guntur and is in Mech (3).",
+      "Geeta is not from Vizag, Nellore or Guntur, so Geeta is from Kurnool; Imran is then from Vizag and does the Quiz.",
+      "Imran does the Quiz, so he is not in CSE (CSE does Robotics); with ECE and Mech taken, Imran is in Civil and Farhan in CSE, doing Robotics.",
+      "The only event left for Geeta is Dance."
+    ],
+    "explanation": "Jyoti does Debate, so she cannot be the Quiz participant from Vizag; ruling out Kurnool and Nellore puts her in Guntur, hence Mech. Geeta then must be from Kurnool, and Imran from Vizag, so Imran does the Quiz. The CSE student does Robotics, so Imran is not CSE; he takes Civil and Farhan takes CSE and Robotics. Geeta is left with Dance. Check: every clue is satisfied by Farhan (CSE, Nellore, Robotics), Geeta (ECE, Kurnool, Dance), Imran (Civil, Vizag, Quiz), Jyoti (Mech, Guntur, Debate).",
+    "hints": [
+      "Clues 5 and 6 together tell you a city Jyoti is NOT from.",
+      "Once Jyoti's city is known, Geeta's city follows.",
+      "The Quiz person cannot be the CSE student."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-234",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Father and two sons cross the Kaveri",
+    "statement": "A father weighing 80 kg and his two sons weighing 40 kg each must cross the Kaveri in a small boat. The boat can carry at most 80 kg, and any of the three can row. What is the minimum number of one-way crossings needed to get all three across?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The father can only travel alone, and somebody must bring the boat back after he crosses.",
+      "So both sons cross first (1) and one son returns (2).",
+      "The father crosses alone (3) and the other son brings the boat back (4).",
+      "Both sons cross together (5) - 5 crossings in all."
+    ],
+    "explanation": "The father weighs 80 kg, so he must cross alone and someone must already be on the far side to return the boat. Both sons cross (1), one comes back (2), the father crosses (3), the son on the far side returns (4), and both sons cross again (5). Fewer is impossible: the father's trip must be preceded by sons going across and followed by a son coming back, and there must be a final trip after that return.",
+    "hints": [
+      "Who can never share the boat?",
+      "Someone has to be on the far side before the father goes, to bring the boat back.",
+      "Start by sending both sons."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-235",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Three tablets, one every half hour",
+    "statement": "A doctor gives Sunil 3 tablets and tells him to take one every half hour, starting right now. How long will the tablets last?",
+    "answerFormat": "choice",
+    "choices": [
+      "30 minutes",
+      "60 minutes",
+      "90 minutes",
+      "120 minutes"
+    ],
+    "answer": "60 minutes",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The first tablet is taken at time 0, not after half an hour.",
+      "The second is taken at 30 minutes and the third at 60 minutes.",
+      "So the tablets last 60 minutes, not 90."
+    ],
+    "explanation": "Sunil takes tablet 1 immediately, tablet 2 at 30 minutes and tablet 3 at 60 minutes. There are only two half-hour gaps between three tablets, so they last 60 minutes. The tempting 90 minutes counts three gaps.",
+    "hints": [
+      "When does he take the first tablet?",
+      "How many gaps are there between 3 tablets?"
+    ],
+    "estimatedMinutes": 1
+  },
+  {
+    "seedKey": "logical-236",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Two fathers, two sons, three fish",
+    "statement": "Two fathers and two sons went fishing at Chilika Lake. They caught exactly 3 fish, and each of them took home one whole fish. Nothing was bought, shared or cut. How is this possible?",
+    "answerFormat": "choice",
+    "choices": [
+      "One fish was cut into two halves",
+      "There were only three people: a grandfather, his son and his grandson",
+      "One of them did not go home",
+      "They caught a fourth fish later"
+    ],
+    "answer": "There were only three people: a grandfather, his son and his grandson",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Three whole fish shared one each means there were exactly three people.",
+      "A person can be a father and a son at the same time.",
+      "Grandfather (father), his son (son and father) and grandson (son) give two fathers and two sons."
+    ],
+    "explanation": "The group was a grandfather, his son and his grandson. The grandfather and the middle person are the two fathers; the middle person and the grandson are the two sons. Three people took home one fish each.",
+    "hints": [
+      "How many people does 3 fish, one each, suggest?",
+      "Can one person be both a father and a son?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-237",
+    "type": "logical",
+    "subCategory": "Logic grids",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Quiz teams and jersey colours",
+    "statement": "Three quiz teams - Ganga, Kaveri and Narmada - finished 1st, 2nd and 3rd (no ties) and wore red, white and yellow, one colour each.\n1. Kaveri finished ahead of Ganga.\n2. The team in yellow came last.\n3. Narmada wore white and did not win.\nWhat colour did Kaveri wear?",
+    "answerFormat": "choice",
+    "choices": [
+      "Red",
+      "White",
+      "Yellow",
+      "It cannot be determined"
+    ],
+    "answer": "Red",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Narmada wore white, so it is not the yellow team and did not come last; it also did not win, so Narmada is 2nd.",
+      "Kaveri is ahead of Ganga, so Kaveri is 1st and Ganga 3rd.",
+      "The last team (Ganga) wore yellow, so Kaveri wore red."
+    ],
+    "explanation": "Narmada is neither first (clue 3) nor last (the last team wore yellow, Narmada wore white), so it came 2nd. Kaveri finished ahead of Ganga, so Kaveri was 1st and Ganga 3rd in yellow. The remaining colour, red, is Kaveri's.",
+    "hints": [
+      "Where can the white team finish?",
+      "Then use clue 1 for the other two."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-238",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Ten bags, one of light coins",
+    "statement": "A bank in Mysuru has 10 bags of coins, numbered 1 to 10. Every genuine coin weighs 10 g, but all the coins in ONE bag are fake and weigh 9 g each. The cashier takes 1 coin from bag 1, 2 coins from bag 2, 3 from bag 3, and so on up to 10 coins from bag 10, and weighs all of them together just once on a digital scale. The reading is 543 g. Which bag has the fake coins?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "7",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Total coins taken: 1 + 2 + ... + 10 = 55.",
+      "If all were genuine they would weigh 55 x 10 = 550 g.",
+      "Each fake coin is 1 g light, so the shortfall equals the number of fake coins on the scale: 550 - 543 = 7.",
+      "Only bag 7 contributed 7 coins, so bag 7 is fake."
+    ],
+    "explanation": "The cashier weighs 55 coins, which would be 550 g if all were genuine. Every fake coin is 1 g lighter, so the 7 g shortfall means 7 fake coins are on the scale, and the only bag that gave 7 coins is bag 7. Check: 48 genuine coins x 10 + 7 fake x 9 = 480 + 63 = 543 g.",
+    "hints": [
+      "How many coins are on the scale altogether?",
+      "What would they weigh if none were fake?",
+      "Each fake coin makes the reading 1 g lower."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-239",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Torch on a narrow footbridge",
+    "statement": "Four friends must cross a narrow footbridge at night. At most two people can be on the bridge at once, and they have only one torch, which must be carried on every crossing (no throwing). Walking alone they need 2, 3, 8 and 10 minutes; a pair walks at the slower person's speed. What is the minimum total time, in minutes, to get all four across?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "21",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Send the two fastest (2 and 3) across first: 3 minutes; the 2-minute friend returns: 2 minutes.",
+      "Send the two slowest (8 and 10) together so the 8 is 'hidden' inside the 10: 10 minutes.",
+      "The 3-minute friend returns (3) and then 2 and 3 cross together (3).",
+      "Total 3 + 2 + 10 + 3 + 3 = 21, which beats the 'fastest escorts everyone' plan of 10 + 2 + 8 + 2 + 3 = 25."
+    ],
+    "explanation": "Pairing the two slowest walkers is the key, so their times overlap. The schedule 2+3 over (3), 2 back (2), 8+10 over (10), 3 back (3), 2+3 over (3) takes 21 minutes. Letting the 2-minute friend escort everyone takes 10 + 2 + 8 + 2 + 3 = 25 minutes. Checking every possible schedule confirms nothing is faster than 21.",
+    "hints": [
+      "Should the two slowest people cross separately or together?",
+      "Someone fast must already be waiting on the far side to bring the torch back.",
+      "Compare the total with the plan where the fastest person escorts everyone."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "logical-240",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "What Meena said",
+    "statement": "On an island, everyone is either a truth-teller (always tells the truth) or a liar (always lies). A visitor asks Meena, \"Are you a truth-teller?\" Meena answers, but the visitor does not hear it.\nNaveen says: \"Meena said she is a liar.\"\nOm says: \"Naveen is lying.\"\nWhat are Naveen and Om?",
+    "answerFormat": "choice",
+    "choices": [
+      "Both are truth-tellers",
+      "Naveen is a truth-teller and Om is a liar",
+      "Naveen is a liar and Om is a truth-teller",
+      "Both are liars"
+    ],
+    "answer": "Naveen is a liar and Om is a truth-teller",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A truth-teller asked 'Are you a truth-teller?' says yes; a liar also says yes (falsely).",
+      "So nobody on the island can say 'I am a liar' - Meena must have claimed to be a truth-teller.",
+      "Naveen's report is therefore false, so Naveen is a liar.",
+      "Om's statement 'Naveen is lying' is true, so Om is a truth-teller. Meena's type cannot be determined."
+    ],
+    "explanation": "Whatever Meena is, she answers that she is a truth-teller: the truth-teller says it honestly and the liar says it falsely. So Naveen's claim that she called herself a liar is false, and Naveen is a liar. Om says Naveen is lying, which is true, so Om is a truth-teller. Meena could be either type.",
+    "hints": [
+      "What would a truth-teller answer to that question? And a liar?",
+      "Can anyone on the island ever say 'I am a liar'?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-241",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Two doors on the game show",
+    "statement": "On a TV game show, there are two rooms. Each room has either a prize or a tiger behind its door (both could have prizes, or both could have tigers).\nSign on door 1: \"This room has a prize and room 2 has a tiger.\"\nSign on door 2: \"One of these rooms has a prize and the other has a tiger.\"\nThe host says that one sign is true and the other is false. What is behind each door?",
+    "answerFormat": "choice",
+    "choices": [
+      "Room 1 has a prize and room 2 has a tiger",
+      "Room 1 has a tiger and room 2 has a prize",
+      "Both rooms have prizes",
+      "Both rooms have tigers"
+    ],
+    "answer": "Room 1 has a tiger and room 2 has a prize",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "If sign 1 were true, sign 2 would also be true - but exactly one sign is true.",
+      "So sign 1 is false and sign 2 is true: one room has a prize and the other a tiger.",
+      "Sign 1 is false, so it is NOT room 1 prize with room 2 tiger.",
+      "Hence room 1 has the tiger and room 2 the prize."
+    ],
+    "explanation": "Sign 1 describes one particular prize-tiger arrangement, so whenever sign 1 is true, sign 2 is true as well - that breaks the host's rule. Hence sign 1 is false and sign 2 is true: there is exactly one prize and one tiger. Since sign 1 is false, the prize is not in room 1, so room 2 has the prize and room 1 the tiger. Check: sign 1 false, sign 2 true.",
+    "hints": [
+      "Can sign 1 be true without sign 2 also being true?",
+      "So which sign is the true one?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-242",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "The lion and the unicorn's yesterday",
+    "statement": "In a forest, Leo the lion lies on Mondays, Tuesdays and Wednesdays and tells the truth on the other days. Uma the unicorn lies on Thursdays, Fridays and Saturdays and tells the truth on the other days. One day both of them say: \"Yesterday was one of my lying days.\"\nWhat day is it?",
+    "answerFormat": "choice",
+    "choices": [
+      "Monday",
+      "Wednesday",
+      "Thursday",
+      "Sunday"
+    ],
+    "answer": "Thursday",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Leo: on his truthful days (Thursday to Sunday) the statement is true only on Thursday; on his lying days (Monday to Wednesday) it is false only on Monday. So Leo can say it only on Thursday or Monday.",
+      "Uma: on her truthful days (Sunday to Wednesday) the statement is true only on Sunday; on her lying days (Thursday to Saturday) it is false only on Thursday. So Uma can say it only on Sunday or Thursday.",
+      "The only day in both lists is Thursday."
+    ],
+    "explanation": "Leo can make the statement only on a truthful day when it is true (just Thursday) or on a lying day when it is false (just Monday). Uma can make it only on a truthful day when it is true (just Sunday) or on a lying day when it is false (just Thursday). The only common day is Thursday. Check: on Thursday Leo truthfully says Wednesday was a lying day, and Uma, lying, says Wednesday was one of hers.",
+    "hints": [
+      "Work out separately on which days Leo could say this.",
+      "He can say it on a truthful day if it is true, or on a lying day if it is false.",
+      "Do the same for Uma and compare the lists."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-243",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "A loud bang instead of water",
+    "statement": "Arjun walks into a roadside dhaba and asks for a glass of water. Instead of bringing water, the owner suddenly bangs a steel plate loudly right behind him. Arjun jumps, smiles, thanks the owner and leaves without drinking anything. What is the best explanation?",
+    "answerFormat": "choice",
+    "choices": [
+      "The owner wanted Arjun to leave",
+      "Arjun had hiccups; the sudden fright stopped them, so he no longer needed the water",
+      "The dhaba had run out of water",
+      "Arjun had already drunk water outside"
+    ],
+    "answer": "Arjun had hiccups; the sudden fright stopped them, so he no longer needed the water",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Arjun thanks the owner, so the bang helped him.",
+      "He wanted water for a problem that a sudden shock can also fix.",
+      "A fright is a well-known way to stop hiccups."
+    ],
+    "explanation": "Arjun wanted water to get rid of his hiccups. The owner noticed and gave him a sudden scare instead, which stopped the hiccups, so Arjun thanked him and left. The other options do not explain why he was grateful.",
+    "hints": [
+      "Why would someone thank a person for scaring them?",
+      "What problem do people often try to fix by drinking water?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-244",
+    "type": "logical",
+    "subCategory": "Logic grids",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Four snack stalls in a row",
+    "statement": "Four stalls stand in a row at positions 1 to 4 (left to right). Lata, Manoj, Nisha and Prakash each run one, and each sells something different - tea, samosa, juice or chaat.\n1. The tea stall is at one of the two ends.\n2. Manoj's stall is immediately to the right of the juice stall.\n3. Nisha sells chaat, and her stall is not at an end.\n4. Lata's stall is at position 1.\n5. Prakash does not sell tea.\n6. The samosa stall is next to the chaat stall.\nWhat does Manoj sell?",
+    "answerFormat": "choice",
+    "choices": [
+      "Tea",
+      "Samosa",
+      "Juice",
+      "Chaat"
+    ],
+    "answer": "Tea",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Nisha is at 2 or 3. If Nisha is at 3, Manoj and Prakash are at 2 and 4; Manoj cannot be at 4 (position 3 is chaat, not juice), so Manoj is at 2, Lata sells juice and Prakash at 4 would have to sell tea - against clue 5. So Nisha is at 2.",
+      "Juice must be just left of Manoj; position 1 is left of Nisha, not Manoj, so juice is at 3 and Manoj at 4, Prakash at 3 selling juice.",
+      "Lata (1) and Manoj (4) sell tea and samosa; the samosa stall must be next to chaat (position 2), so Lata sells samosa.",
+      "Manoj sells tea, which is at an end - consistent with clue 1."
+    ],
+    "explanation": "Placing Nisha at position 3 forces Prakash to the end with tea, which clue 5 forbids, so Nisha is at 2. Manoj must stand just right of the juice stall, which only works with juice at 3 (Prakash) and Manoj at 4. Lata and Manoj share tea and samosa, and samosa must be beside the chaat stall at 2, so Lata has samosa and Manoj has tea. All six clues hold.",
+    "hints": [
+      "Nisha has only two possible positions - test both.",
+      "Clue 2 says juice is directly left of Manoj.",
+      "Use clue 6 to split the last two items."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "logical-245",
+    "type": "logical",
+    "subCategory": "Logic grids",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Scores and home states",
+    "statement": "Rohit, Sana, Tanvi and Uday scored 60, 70, 80 and 90 in a test (all different) and come from four different states - Kerala, Punjab, Assam and Goa.\n1. Sana scored exactly 20 marks more than Uday.\n2. The student from Kerala scored the lowest.\n3. Rohit is from Punjab and scored more than Sana.\n4. Tanvi is not from Goa.\nWhat did the student from Goa score?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "80",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Sana = Uday + 20 means (Sana, Uday) is (80, 60) or (90, 70).",
+      "Rohit scored more than Sana, so Sana cannot have 90: Sana 80, Uday 60, Rohit 90, Tanvi 70.",
+      "The lowest scorer, Uday, is from Kerala; Rohit is from Punjab.",
+      "Tanvi is not from Goa, so Tanvi is from Assam and Sana from Goa - Sana scored 80."
+    ],
+    "explanation": "Clue 1 allows Sana 80 with Uday 60, or Sana 90 with Uday 70, but Rohit outscored Sana, so Sana has 80, Uday 60, Rohit 90 and Tanvi 70. Uday, the lowest, is from Kerala, and Rohit is from Punjab. Tanvi is not from Goa, so she is from Assam and Sana is from Goa. The Goa student scored 80.",
+    "hints": [
+      "List the pairs of scores that differ by exactly 20.",
+      "Who can have 90?",
+      "Then fill in the states."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-246",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Half-true predictions about the results",
+    "statement": "After an exam, Priya, Qadir, Rekha and Sunil got ranks 1 to 4 (no ties). Each of them made two statements about the ranks. Exactly ONE statement of each person is true.\nPriya: \"Qadir came 2nd. I came 3rd.\"\nQadir: \"I came 1st. Sunil came 2nd.\"\nRekha: \"Sunil came 4th. Priya came 1st.\"\nSunil: \"Rekha came 2nd. Qadir came 4th.\"\nWho came 2nd?",
+    "answerFormat": "choice",
+    "choices": [
+      "Priya",
+      "Qadir",
+      "Rekha",
+      "Sunil"
+    ],
+    "answer": "Rekha",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Case 1: Qadir is not 1st, so 'Sunil came 2nd' is true. Then Sunil's 'Rekha came 2nd' is false, so Qadir is 4th; Rekha's 'Sunil 4th' is false, so Priya is 1st; but then both of Priya's statements are false - impossible.",
+      "Case 2: Qadir is 1st (so Sunil is not 2nd). Priya's 'Qadir 2nd' is false, so Priya is 3rd.",
+      "Rekha's 'Priya 1st' is false, so Sunil is 4th; Sunil's 'Qadir 4th' is false, so Rekha is 2nd.",
+      "Check: Qadir 1, Rekha 2, Priya 3, Sunil 4 makes exactly one statement of each person true."
+    ],
+    "explanation": "Split on Qadir's first statement. If Qadir is not 1st, Sunil is 2nd, which forces Qadir 4th and Priya 1st, and then Priya has no true statement - a contradiction. So Qadir is 1st; then Priya's true statement is 'I came 3rd', Rekha's is 'Sunil came 4th', and Sunil's is 'Rekha came 2nd'. The order is Qadir, Rekha, Priya, Sunil, and each person has exactly one true statement.",
+    "hints": [
+      "Pick one person and try each of their statements as the true one.",
+      "Qadir's two statements are a good place to split.",
+      "Follow each case until someone has 0 or 2 true statements."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-247",
+    "type": "logical",
+    "subCategory": "Logic grids",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Five in the cinema queue",
+    "statement": "Abhi, Bala, Chandu, Divya and Esha stand in a queue at a cinema counter, positions 1 (front) to 5 (back). Each is buying something different - a ticket, popcorn, coffee, water or a sandwich.\n1. Divya is not at the front, and Bala is somewhere ahead of Divya.\n2. The person buying coffee is in position 3.\n3. Esha is last.\n4. Abhi stands immediately ahead of the person buying popcorn.\n5. Chandu buys the sandwich and stands directly behind Divya.\n6. The person at the front buys a ticket.\nWhat is Esha buying?",
+    "answerFormat": "choice",
+    "choices": [
+      "Ticket",
+      "Popcorn",
+      "Water",
+      "Sandwich"
+    ],
+    "answer": "Water",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Esha is 5th, so Chandu (directly behind Divya) is at most 4th and Divya is 2nd or 3rd.",
+      "If Divya were 2nd, Chandu would be 3rd - but position 3 buys coffee, not a sandwich. So Divya is 3rd (coffee) and Chandu 4th (sandwich).",
+      "Bala and Abhi take positions 1 and 2. If Abhi were 2nd, the popcorn buyer would be 3rd, who buys coffee - so Abhi is 1st (ticket) and Bala 2nd (popcorn).",
+      "The only item left is water, so Esha buys water."
+    ],
+    "explanation": "Divya must be 2nd or 3rd so that Chandu fits directly behind her before Esha; Divya 2nd would put the sandwich in position 3, which is the coffee spot, so Divya is 3rd with coffee and Chandu 4th. Abhi cannot be 2nd because position 3 is not popcorn, so Abhi is 1st with the ticket and Bala 2nd with popcorn. Esha gets the remaining item, water. Check: Bala (2) is ahead of Divya (3), and every clue holds.",
+    "hints": [
+      "Fix Esha, then see where Divya and Chandu can stand together.",
+      "Position 3 is reserved for coffee.",
+      "Clue 4 decides the order of Abhi and Bala."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-248",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Knight, knave and normal",
+    "statement": "Ajith, Bhuvan and Charan are one knight (always tells the truth), one knave (always lies) and one normal person (may lie or tell the truth) - one of each, in some order.\nAjith: \"I am the normal one.\"\nBhuvan: \"What Ajith says is true.\"\nCharan: \"I am not the normal one.\"\nWho is the knight?",
+    "answerFormat": "choice",
+    "choices": [
+      "Ajith",
+      "Bhuvan",
+      "Charan",
+      "It cannot be determined"
+    ],
+    "answer": "Charan",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Ajith cannot be the knight, because a knight would not falsely claim to be normal.",
+      "If Ajith were normal, his statement would be true, so Bhuvan's statement would be true and Bhuvan would be the knight; Charan would be the knave, yet 'I am not the normal one' would be true - impossible.",
+      "So Ajith is the knave and his statement is false; Bhuvan's statement is then false, so Bhuvan is not the knight - Bhuvan is normal.",
+      "Charan is the knight, and 'I am not the normal one' is indeed true."
+    ],
+    "explanation": "A knight never claims to be normal, so Ajith is the knave or the normal one. If he were normal, Bhuvan would be confirming a true statement and so be the knight, leaving Charan as a knave who says something true - a contradiction. Hence Ajith is the knave, Bhuvan (supporting a false statement) is normal, and Charan is the knight. Check: Charan's statement is true, Ajith's is false, and the normal Bhuvan made a false one, which a normal person may do.",
+    "hints": [
+      "Who can never say 'I am the normal one'?",
+      "Test Ajith as the normal one and follow the consequences.",
+      "Remember there is exactly one of each type."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-249",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Dominoes on a cut chessboard",
+    "statement": "Two diagonally opposite corner squares are cut out of a standard 8 x 8 chessboard, leaving 62 squares. Each domino covers exactly two squares that share a side. Can 31 dominoes cover the remaining 62 squares exactly, without overlaps or overhangs?",
+    "answerFormat": "choice",
+    "choices": [
+      "Yes, because 62 squares is exactly 31 dominoes",
+      "Yes, if the dominoes are placed in a spiral",
+      "No, because both removed corners are the same colour, and every domino covers one black and one white square",
+      "No, because 62 is not a multiple of 4"
+    ],
+    "answer": "No, because both removed corners are the same colour, and every domino covers one black and one white square",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Diagonally opposite corners of a chessboard are always the same colour.",
+      "After removing them, there are 32 squares of one colour and 30 of the other.",
+      "Any domino on the board covers one black and one white square, so 31 dominoes cover exactly 31 of each.",
+      "31 and 31 cannot match 32 and 30, so the covering is impossible."
+    ],
+    "explanation": "Opposite corners share a colour, so the cut board has 32 squares of one colour and only 30 of the other. Every domino covers two adjacent squares, which are always of opposite colours, so 31 dominoes would need 31 black and 31 white squares. The counts do not match, so no arrangement can work. Simply counting 62 = 2 x 31 is not enough - the colouring argument shows it fails.",
+    "hints": [
+      "Colour matters - what colours are opposite corners?",
+      "What colours does one domino always cover?",
+      "Count each colour after the cut."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-250",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Five people, five liar counts",
+    "statement": "Five friends - Gopi, Hema, Ishan, Janaki and Karthik - each either always tell the truth or always lie.\nGopi: \"Exactly one of us five is a liar.\"\nHema: \"Exactly two of us are liars.\"\nIshan: \"Exactly three of us are liars.\"\nJanaki: \"Exactly four of us are liars.\"\nKarthik: \"Exactly five of us are liars.\"\nWho is telling the truth?",
+    "answerFormat": "choice",
+    "choices": [
+      "Hema",
+      "Janaki",
+      "Karthik",
+      "None of them"
+    ],
+    "answer": "Janaki",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The five statements give different numbers, so at most one of them can be true.",
+      "If none were true, all five would be liars - but then Karthik's statement would be true, a contradiction.",
+      "So exactly one person tells the truth and four lie.",
+      "'Exactly four are liars' is Janaki's statement, so Janaki is the truth-teller."
+    ],
+    "explanation": "Each person names a different number of liars, so at most one statement is true. All five cannot be liars, because Karthik's statement would then be true. So exactly one is truthful and the other four lie, which is precisely Janaki's claim. Check: Janaki's statement is true and the other four are false.",
+    "hints": [
+      "Can two of these statements be true together?",
+      "What happens if nobody tells the truth?",
+      "If exactly one tells the truth, how many lie?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-251",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Goldie and Bubbles on the floor",
+    "statement": "Neel comes home from college and finds Goldie and Bubbles lying dead on the floor. There is a puddle of water and broken glass around them, the window is open, and the family cat is sitting on the table, licking its paw. Nobody broke into the house. What most likely happened?",
+    "answerFormat": "choice",
+    "choices": [
+      "They slipped on the wet floor",
+      "A thief came in through the open window",
+      "Goldie and Bubbles were goldfish; the cat knocked their glass bowl off the table",
+      "They drank poisoned water"
+    ],
+    "answer": "Goldie and Bubbles were goldfish; the cat knocked their glass bowl off the table",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The clues are water, broken glass and a cat near the table.",
+      "Something that lives in water inside a glass container must have fallen.",
+      "Goldie and Bubbles are names often given to pet goldfish."
+    ],
+    "explanation": "Goldie and Bubbles were goldfish whose glass bowl the cat knocked off the table; the bowl smashed, the water spilled, and the fish died out of water. This explains the water, the glass and the cat. A break-in is ruled out, and slipping does not explain the broken glass.",
+    "hints": [
+      "Who are Goldie and Bubbles - are they surely people?",
+      "What kind of pet lives in water in a glass bowl?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-252",
+    "type": "logical",
+    "subCategory": "Lateral thinking",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Wrong way past the traffic police",
+    "statement": "Gopal is a lorry driver in Madurai. One morning he goes the wrong way down a one-way street, right past two traffic policemen. They see him clearly but neither stops nor fines him, and they are right not to. What is the best explanation?",
+    "answerFormat": "choice",
+    "choices": [
+      "The policemen were his friends",
+      "Gopal was walking, not driving his lorry",
+      "It was a Sunday",
+      "His lorry was carrying vegetables"
+    ],
+    "answer": "Gopal was walking, not driving his lorry",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The question says Gopal is a lorry driver, but not that he was driving at the time.",
+      "One-way rules apply to vehicles, not to people walking.",
+      "So Gopal walking the wrong way broke no rule."
+    ],
+    "explanation": "Gopal was on foot. One-way traffic rules apply to vehicles, so a pedestrian walking against the direction of traffic breaks no rule, and the policemen correctly ignored him. The other options assume he was driving and would still be a violation.",
+    "hints": [
+      "Read the statement again - does it say he was driving?",
+      "Do one-way rules apply to pedestrians?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-253",
+    "type": "logical",
+    "subCategory": "Logic grids",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Four freshers, companies and cities",
+    "statement": "Kabir, Leela, Mohan and Naina joined four different companies - TCS, Infosys, Wipro and HCL - in four different roles - Tester, Developer, Analyst and Designer - in four different cities - Pune, Noida, Chennai and Kochi.\n1. The Developer works at Infosys.\n2. Leela works in Pune, but not at TCS.\n3. Mohan is the Tester.\n4. The person in Chennai works at HCL and is not the Designer.\n5. Naina works at Wipro in Kochi.\n6. Kabir does not work at TCS.\nWho is the Analyst?",
+    "answerFormat": "choice",
+    "choices": [
+      "Kabir",
+      "Leela",
+      "Mohan",
+      "Naina"
+    ],
+    "answer": "Kabir",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Leela is not at TCS or Wipro, and HCL is in Chennai while she is in Pune, so Leela is at Infosys and is the Developer.",
+      "Kabir is not at TCS, so Kabir is at HCL and therefore in Chennai; Mohan is at TCS in Noida.",
+      "The Chennai person (Kabir) is not the Designer and Mohan is the Tester, so Kabir is the Analyst.",
+      "Naina is the Designer."
+    ],
+    "explanation": "Leela cannot be at TCS (clue 2), Wipro (Naina's) or HCL (that person is in Chennai), so she is at Infosys and, by clue 1, the Developer. Kabir avoids TCS, so he is at HCL in Chennai, and Mohan is at TCS in Noida. The roles left for Kabir and Naina are Analyst and Designer; the Chennai person is not the Designer, so Kabir is the Analyst and Naina the Designer.",
+    "hints": [
+      "Find Leela's company first.",
+      "HCL comes with a city - use clue 4.",
+      "Only two roles remain at the end."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-254",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Twenty-five horses, five lanes",
+    "statement": "A stable has 25 horses and a track with only 5 lanes, so at most 5 horses can race at a time. There is no stopwatch - a race only shows the finishing order of the horses in it. Every horse always runs at the same speed and no two are equally fast. What is the minimum number of races needed to find the three fastest horses, in order?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "7",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Every horse must race at least once, so 5 heats of 5 are needed first (5 races).",
+      "Race the 5 heat winners (race 6): its winner is the fastest overall.",
+      "Only 5 horses can still be 2nd or 3rd: 2nd and 3rd of the champion's heat, 1st and 2nd of the heat whose winner came 2nd in race 6, and the winner whose heat came 3rd in race 6.",
+      "Race those 5 (race 7); its top two are 2nd and 3rd overall. With only 6 races these candidates cannot all be compared, so 7 is the minimum."
+    ],
+    "explanation": "Five heats are unavoidable since every horse must run. A race of the five heat winners finds the fastest horse. A horse can only be 2nd or 3rd overall if at most two horses are known to beat it, which leaves exactly five candidates - two from the champion's heat, two from the runner-up's heat and the third-placed winner - so a seventh race settles 2nd and 3rd. Six races are not enough, because after the race of winners there are still five horses with unknown order between them.",
+    "hints": [
+      "Every horse has to run at least once - how many races is that?",
+      "How do you find the overall fastest?",
+      "Which horses can no longer be in the top three?"
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-255",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Two eggs, one hundred floors",
+    "statement": "A packaging company tests a new egg box from a 100-floor building. There is some floor F (from 0 to 100) such that a box dropped from floor F or below survives, and from any floor above F it breaks. You have only 2 identical boxes; a box that survives can be reused, a broken one cannot. What is the minimum number of drops that guarantees finding F in the worst case?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "14",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Once the first box breaks, the second must be tested floor by floor upwards from the last safe floor.",
+      "With d drops allowed, the first drop must be from floor d (so d - 1 single steps remain if it breaks), the next d - 1 floors higher, and so on.",
+      "This covers d + (d - 1) + ... + 1 = d(d + 1) / 2 floors.",
+      "13 x 14 / 2 = 91 < 100 but 14 x 15 / 2 = 105 >= 100, so 14 drops are needed and enough (start at floor 14, then 27, 39, ...)."
+    ],
+    "explanation": "With d drops, the first box's first drop can be at most floor d, because if it breaks the second box must check the d - 1 floors below one at a time. Each later drop of the first box must go up by one floor less, so d drops can cover at most d + (d - 1) + ... + 1 = d(d + 1)/2 floors. Since 13 x 14 / 2 = 91 is less than 100 and 14 x 15 / 2 = 105 is at least 100, the minimum is 14. One strategy: drop the first box from floors 14, 27, 39, 50, 60, 69, 77, 84, 90, 95, 99, 100, then use the second box floor by floor.",
+    "hints": [
+      "What must you do with the second box once the first breaks?",
+      "If you allow d drops in total, where should the first drop be?",
+      "Find the smallest d with d(d + 1)/2 at least 100."
+    ],
+    "estimatedMinutes": 10
+  },
+  {
+    "seedKey": "logical-256",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Fewest weights for the kirana balance",
+    "statement": "A kirana shopkeeper has a two-pan balance. He wants a set of weights (each a whole number of kilograms) so that he can weigh out every whole number of kilograms of rice from 1 kg to 40 kg in a single weighing, placing weights on either pan (on the rice side or the opposite side). What is the minimum number of weights he needs?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Each weight can be on the opposite pan, on the rice pan, or unused - 3 choices.",
+      "With k weights there are 3^k arrangements; removing the all-unused one and pairing each with its mirror gives at most (3^k - 1)/2 positive amounts.",
+      "For k = 3 this is 13 < 40, so 3 weights cannot be enough.",
+      "For k = 4 the weights 1, 3, 9 and 27 kg give every amount from 1 to (81 - 1)/2 = 40 kg."
+    ],
+    "explanation": "Because each weight can go on either pan or stay off, k weights produce at most (3^k - 1)/2 different positive amounts. Three weights give at most 13 amounts, too few for 40. Four weights 1, 3, 9 and 27 kg reach every value from 1 to 40; for example, 2 = 3 - 1 (3 kg opposite the rice, 1 kg with the rice) and 32 = 27 + 9 - 3 - 1. So the minimum is 4.",
+    "hints": [
+      "How many positions can each weight take?",
+      "Count the most amounts k weights could ever give.",
+      "Try weights that are powers of 3."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-257",
+    "type": "logical",
+    "subCategory": "Classic puzzles",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Sharing eight litres of milk",
+    "statement": "A dairy vendor has a full 8-litre can of milk and two empty cans that hold exactly 5 litres and 3 litres. None of the cans is marked. He wants to split the milk into two equal parts of 4 litres (4 L in the 8 L can and 4 L in the 5 L can). The only allowed move is pouring from one can into another until the first is empty or the second is full; no milk may be thrown away or added. What is the minimum number of pours?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "7",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Write the state as (8 L can, 5 L can, 3 L can), starting at (8, 0, 0).",
+      "Pour 8->5 (3, 5, 0), 5->3 (3, 2, 3), 3->8 (6, 2, 0), 5->3 (6, 0, 2).",
+      "Pour 8->5 (1, 5, 2), 5->3 (1, 4, 3), 3->8 (4, 4, 0): 7 pours.",
+      "A search of all reachable states shows (4, 4, 0) cannot be reached in 6 pours or fewer."
+    ],
+    "explanation": "Tracking (8 L, 5 L, 3 L): (8,0,0) -> (3,5,0) -> (3,2,3) -> (6,2,0) -> (6,0,2) -> (1,5,2) -> (1,4,3) -> (4,4,0), which is 7 pours. Starting the other way (filling the 3 L can first) takes 8 pours, and checking every reachable state confirms that no sequence of 6 or fewer pours ends with 4 litres in both the 8 L and 5 L cans. So the minimum is 7.",
+    "hints": [
+      "Write each state as three numbers that always add up to 8.",
+      "Try filling the 5 L can first.",
+      "You want to get 4 L into the 5 L can - think 'leave 1 L of space'."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-258",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Ten at the round table",
+    "statement": "Ten people sit around a round table at a hostel game night. Each of them is either a truth-teller (always tells the truth) or a liar (always lies). Every one of the ten says: \"Both people sitting next to me are liars.\"\nWhat is the smallest possible number of truth-tellers at the table?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A truth-teller's statement is true, so both neighbours of a truth-teller are liars - no two truth-tellers sit together.",
+      "A liar's statement is false, so every liar has at least one truth-teller next to him - no three liars sit in a row.",
+      "So between two consecutive truth-tellers there are 1 or 2 liars; with t truth-tellers there are at most 2t liars, so 10 - t <= 2t, giving t >= 4 (t = 3 gives only 9 seats).",
+      "t = 4 works: T L L T L L T L T L around the table."
+    ],
+    "explanation": "Truth-tellers must be surrounded by liars, and liars must sit next to at least one truth-teller, so the liars come in blocks of 1 or 2 between truth-tellers. With t truth-tellers there are t blocks, at most 2t liars, so t + 2t >= 10 and t >= 4. The arrangement T L L T L L T L T L satisfies every person's condition, so the minimum is 4. Note that t = 0 fails too: if all ten lied, each statement would be true.",
+    "hints": [
+      "What does each person's statement tell you if they are truthful? If they lie?",
+      "Can three liars ever sit in a row?",
+      "Find the fewest truth-tellers that leave no block of three liars."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-259",
+    "type": "logical",
+    "subCategory": "Truth-tellers and liars",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Knight, knave and spy",
+    "statement": "Arjun, Bhim and Chand are a knight (always tells the truth), a knave (always lies) and a spy (may lie or tell the truth) - exactly one of each.\nArjun: \"Chand is a knave.\"\nBhim: \"Arjun is a knight.\"\nChand: \"I am the spy.\"\nWho is the spy?",
+    "answerFormat": "choice",
+    "choices": [
+      "Arjun",
+      "Bhim",
+      "Chand",
+      "It cannot be determined"
+    ],
+    "answer": "Bhim",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Chand is not the knight, because a knight would not falsely claim to be the spy.",
+      "If Arjun were the knave, Chand would not be a knave, so Chand would be the spy and Bhim the knight - but then Bhim's 'Arjun is a knight' would be false. Impossible.",
+      "If Arjun were the spy, Bhim's statement would be false, so Bhim would be the knave and Chand the knight - impossible by step 1.",
+      "So Arjun is the knight: Chand is the knave (as Arjun says) and Bhim is the spy."
+    ],
+    "explanation": "Chand cannot be the knight, since he claims to be the spy. Testing Arjun as the knave forces Bhim to be a knight who says something false, and testing Arjun as the spy forces Chand to be the knight - both impossible. So Arjun is the knight, his statement makes Chand the knave, and Bhim is the spy. Check: Chand (knave) falsely claims to be the spy, and Bhim (spy) happens to say something true.",
+    "hints": [
+      "Who can never be the knight?",
+      "Try each possible role for Arjun.",
+      "Exactly one of each - use that to finish."
+    ],
+    "estimatedMinutes": 8
+  },
+  {
+    "seedKey": "logical-260",
+    "type": "logical",
+    "subCategory": "Logic grids",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Five houses on Temple Street",
+    "statement": "Five friends - Aditi, Bhaskar, Chirag, Deepa and Eshwar - live in five houses in a row on Temple Street, numbered 1 to 5 from left to right. The houses are painted white, yellow, blue, green and pink, and each friend drinks a different morning drink - tea, coffee, milk, juice or buttermilk.\n1. Bhaskar lives in house 1.\n2. The milk drinker lives in house 3.\n3. Bhaskar lives next to the blue house.\n4. The green house is immediately to the left of the white house.\n5. The person in the green house drinks coffee.\n6. Deepa lives in the yellow house.\n7. Chirag drinks tea.\n8. Eshwar lives in house 5.\n9. The person in the pink house does not drink juice.\nWhat does Eshwar drink?",
+    "answerFormat": "choice",
+    "choices": [
+      "Tea",
+      "Coffee",
+      "Juice",
+      "Buttermilk"
+    ],
+    "answer": "Juice",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "House 2 is blue (clue 3). Green-white are adjacent with green on the left, so they are 3-4 or 4-5; house 3 drinks milk, not coffee, so green is 4 and white is 5.",
+      "Yellow and pink are left for houses 1 and 3; Deepa is yellow and is not Bhaskar (house 1), so Deepa is in house 3 (milk) and Bhaskar's house 1 is pink.",
+      "House 4 (green, coffee) is not Chirag (tea), so Aditi lives in 4 and Chirag in 2.",
+      "Juice and buttermilk are left for Bhaskar and Eshwar; pink (Bhaskar) does not drink juice, so Bhaskar drinks buttermilk and Eshwar drinks juice."
+    ],
+    "explanation": "Blue must be house 2, and the green-white pair must be houses 4-5 because the green house drinks coffee while house 3 drinks milk. Deepa's yellow house must then be house 3, so Bhaskar's house 1 is pink. The coffee drinker in green house 4 cannot be Chirag, who drinks tea, so Aditi is in 4 and Chirag in 2. Bhaskar and Eshwar share juice and buttermilk, and the pink house does not drink juice, so Eshwar drinks juice.",
+    "hints": [
+      "Clue 3 fixes one colour immediately.",
+      "Where can the green-white pair go if house 3 drinks milk?",
+      "Place Deepa, then the coffee drinker."
+    ],
+    "estimatedMinutes": 10
+  }
+]

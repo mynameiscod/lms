@@ -1,0 +1,1642 @@
+[
+  {
+    "seedKey": "critical-111",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Meditation before first period",
+    "statement": "A college in Nashik started a 15-minute meditation session before the first period. In the next two months, attendance in the first period rose from 62% to 85%. The principal claims the meditation session caused the rise. Which of the following, if true, most weakens the claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "In the same two months, the college started biometric attendance at the gate and cut internal marks for students arriving after 9 am.",
+      "Most students who attended the session said they enjoyed it.",
+      "Meditation sessions are popular in many colleges across India.",
+      "The first period on most days is Engineering Mathematics."
+    ],
+    "answer": "In the same two months, the college started biometric attendance at the gate and cut internal marks for students arriving after 9 am.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Looks for something else that changed in the same two months.",
+      "Identifies the new biometric rule and mark penalty as a strong alternative reason for students coming on time.",
+      "Explains why 'students enjoyed it' does not weaken the claim (if anything it slightly supports it)."
+    ],
+    "explanation": "A penalty for late arrival introduced at the same time gives students a powerful reason to reach the first period, so the rise may have nothing to do with meditation. Students enjoying the session does not weaken the claim, and the other two options are irrelevant to why attendance rose.",
+    "hints": [
+      "What else could make students turn up early?",
+      "Which option describes another change made in the same period?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-112",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Ten lakh downloads",
+    "statement": "An ad says: 'Over 10 lakh students downloaded the PrepMax app this month. Clearly, it is the best way to prepare for GATE.' What is the main flaw in this argument?",
+    "answerFormat": "choice",
+    "choices": [
+      "Ten lakh is a small number compared with India's population.",
+      "It assumes that because many people downloaded the app, it must be the most effective way to prepare.",
+      "The ad does not say how much the app costs.",
+      "GATE preparation should be done only from textbooks."
+    ],
+    "answer": "It assumes that because many people downloaded the app, it must be the most effective way to prepare.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices that the only evidence given is the number of downloads.",
+      "Explains that downloads show popularity, not how well the app prepares students.",
+      "Rejects the 'small number' option because the size of the number does not fix the gap between popularity and effectiveness."
+    ],
+    "explanation": "Downloads measure how many people tried the app, not whether it improves GATE scores, so popularity is being treated as proof of quality. Even a much bigger number would not close that gap. Cost and textbooks are beside the point.",
+    "hints": [
+      "What exactly does a download prove?",
+      "Is 'many people chose it' the same as 'it works best'?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-113",
+    "type": "critical",
+    "subCategory": "Argument strength",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Soft drinks in the canteen",
+    "statement": "Should college canteens stop selling sugary soft drinks?\n\nI. Yes. Regular sugary drinks raise the risk of obesity and diabetes, and removing them from the canteen cuts easy access during the college day.\nII. No. Soft drinks come in many attractive flavours.\n\nAn argument is strong if it is directly relevant to the question and gives an important, sound reason. It is weak if it is vague, sweeping, based on opinion or habit, or only loosely related.",
+    "answerFormat": "choice",
+    "choices": [
+      "Only argument I is strong",
+      "Only argument II is strong",
+      "Both I and II are strong",
+      "Neither I nor II is strong"
+    ],
+    "answer": "Only argument I is strong",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Judges argument I as strong: it gives a real health reason directly linked to the proposal.",
+      "Judges argument II as weak: attractive flavours are not a reason against a health measure.",
+      "Concludes only I is strong."
+    ],
+    "explanation": "Argument I links the proposal to a genuine, important outcome (student health). Argument II only says the drinks are appealing, which is exactly why easy access is a concern; it gives no real reason to keep selling them. So only I is strong.",
+    "hints": [
+      "Which argument talks about a real consequence of the decision?",
+      "Is 'they taste nice' an important reason?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-114",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Rain and local trains",
+    "statement": "Read the two statements.\n\nI. Very heavy rain lashed Mumbai continuously for three days.\nII. Local train services were suspended on several routes in Mumbai.\n\nWhich option best describes the relationship between them?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement I is the cause and statement II is its effect",
+      "Statement II is the cause and statement I is its effect",
+      "Both statements are effects of some common cause",
+      "Both statements are effects of independent causes"
+    ],
+    "answer": "Statement I is the cause and statement II is its effect",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that continuous heavy rain floods tracks in Mumbai.",
+      "Concludes flooding leads to train suspensions, so I causes II.",
+      "Rejects the reverse: stopping trains cannot cause rain."
+    ],
+    "explanation": "Days of heavy rain flood low-lying tracks, which forces the railway to suspend services. The reverse makes no sense, and there is no need for a separate common cause because the rain itself explains the suspension.",
+    "hints": [
+      "Which event can happen without the other?",
+      "Could stopping trains ever cause rain?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-115",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Online orders at the bakery",
+    "statement": "A bakery in Indore launched an online ordering page three months ago. Its total sales have since risen by 20%. The owner claims the online page caused the increase. Which of the following, if true, most strengthens the owner's claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "The page was designed by a well-known Indore agency.",
+      "Several customers said the page looks attractive.",
+      "Sales rose only for items listed on the online page; items sold only at the counter stayed flat.",
+      "Other bakeries in Indore also saw sales rise by about 20% in the same period."
+    ],
+    "answer": "Sales rose only for items listed on the online page; items sold only at the counter stayed flat.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Looks for evidence that ties the sales rise specifically to the page.",
+      "Notices that only items on the page grew while counter-only items did not, which points to the page.",
+      "Explains that the 'other bakeries also grew' option weakens the claim, since it suggests a city-wide trend."
+    ],
+    "explanation": "If only the items that could be ordered online grew, the page is the most likely reason for the rise, and a general boom would have lifted counter-only items too. Other bakeries rising by the same amount points the other way, towards a shared cause like the festival season. Design and looks say nothing about sales.",
+    "hints": [
+      "Which option separates the effect of the page from everything else?",
+      "Compare items that were on the page with items that were not."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-116",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Calculators lead to chaos",
+    "statement": "At a faculty meeting, a professor says: 'If we allow calculators in the first-year maths test, next students will ask for laptops, then for internet access, and soon our exams will mean nothing.' What is the main flaw in this reasoning?",
+    "answerFormat": "choice",
+    "choices": [
+      "Calculators are cheap, so every student can buy one.",
+      "Maths tests should always be open-book.",
+      "The professor has not taught first-year maths before.",
+      "It claims that one small step will lead to a chain of extreme results without giving any reason why each step must follow."
+    ],
+    "answer": "It claims that one small step will lead to a chain of extreme results without giving any reason why each step must follow.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the chain: calculators, then laptops, then internet, then meaningless exams.",
+      "Points out that no evidence is given that each step leads to the next.",
+      "Names this as a slippery-slope argument; the cost of calculators is irrelevant."
+    ],
+    "explanation": "The argument jumps from allowing calculators to the collapse of exams through a series of steps that are simply assumed. The college can allow calculators and still refuse laptops. The price of calculators and the professor's background do not touch the logic.",
+    "hints": [
+      "Does allowing one thing force the college to allow the next?",
+      "Look at the chain of 'next... then... soon'."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-117",
+    "type": "critical",
+    "subCategory": "Argument strength",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Metro till 1 am",
+    "statement": "Should Bengaluru's metro trains run until 1 am every night?\n\nI. Yes. Many IT employees and night-shift workers finish late and would get a safe, cheap ride home.\nII. No. The late-night hours are needed for track maintenance and safety checks, which cannot be skipped.\n\nAn argument is strong if it is directly relevant to the question and gives an important, sound reason. It is weak if it is vague, sweeping, based on opinion or habit, or only loosely related.",
+    "answerFormat": "choice",
+    "choices": [
+      "Only argument I is strong",
+      "Only argument II is strong",
+      "Both I and II are strong",
+      "Neither I nor II is strong"
+    ],
+    "answer": "Both I and II are strong",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Judges I as strong: it names a real group that would benefit in safety and cost.",
+      "Judges II as strong: it names a real, serious cost (less time for safety maintenance).",
+      "Concludes both are strong, since a strong argument does not have to win; it only has to be relevant and important."
+    ],
+    "explanation": "Both arguments give important, relevant reasons: I points to safe travel for late workers, II to the safety maintenance that needs those hours. Students often pick 'only I' because they agree with it, but strength is about the quality of the reason, not which side you favour.",
+    "hints": [
+      "Does each argument give a serious, relevant reason?",
+      "Can both sides of a question have strong arguments?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-118",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Vegetable prices in Delhi",
+    "statement": "Read the two statements.\n\nI. Vegetable prices in Delhi's markets have shot up sharply this month.\nII. Unseasonal hailstorms damaged vegetable crops on many farms in nearby states.\n\nWhich option best describes the relationship between them?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement I is the cause and statement II is its effect",
+      "Statement II is the cause and statement I is its effect",
+      "Both statements are effects of some common cause",
+      "Both statements are effects of independent causes"
+    ],
+    "answer": "Statement II is the cause and statement I is its effect",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that Delhi's vegetables largely come from farms in nearby states.",
+      "Explains that damaged crops reduce supply, and lower supply pushes prices up.",
+      "Concludes II is the cause and I the effect, not the other way round (high prices do not cause hailstorms)."
+    ],
+    "explanation": "Hailstorms that destroy crops reduce the supply reaching Delhi, and lower supply raises prices. Prices rising cannot cause a hailstorm, so the cause is statement II and the effect is statement I.",
+    "hints": [
+      "Which event happened first in nature?",
+      "What happens to price when supply falls?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-119",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "New running shoes",
+    "statement": "Ramesh bought new running shoes last month. Since then, his 5 km time has improved by three minutes. He tells everyone the shoes made him faster. Which of the following, if true, most weakens his claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "In the same month, he started training with a coach four days a week instead of running alone twice a week.",
+      "The shoes cost Rs 9,000, more than any pair he had owned.",
+      "His friend owns the same model and is also a fast runner.",
+      "He usually runs his 5 km on the same flat route."
+    ],
+    "answer": "In the same month, he started training with a coach four days a week instead of running alone twice a week.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Looks for another change that happened in the same month.",
+      "Identifies doubled training with a coach as a strong alternative reason for the improvement.",
+      "Notes the friend's speed does not weaken the claim and the same route only rules out an easier course."
+    ],
+    "explanation": "Training twice as often with a coach is a very likely reason for a three-minute improvement, so the shoes may have little to do with it. The price of the shoes proves nothing, a fast friend slightly supports Ramesh if anything, and running the same route actually removes one alternative explanation.",
+    "hints": [
+      "What else changed in Ramesh's routine?",
+      "Which option offers a different reason he got faster?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-120",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Cricketer recommends a laptop",
+    "statement": "A TV ad shows a famous cricketer saying: 'This laptop has the best processor for programmers. Trust me, buy it.' What is the main weakness of this ad as evidence?",
+    "answerFormat": "choice",
+    "choices": [
+      "The ad does not mention the laptop's price.",
+      "The cricketer is an expert at cricket, not at judging laptop processors, so his opinion is not good evidence.",
+      "Programmers do not watch TV ads.",
+      "Cricketers are usually paid for ads, so laptops are always overpriced."
+    ],
+    "answer": "The cricketer is an expert at cricket, not at judging laptop processors, so his opinion is not good evidence.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices that the only evidence is the cricketer's word.",
+      "Explains that fame in one field does not give expertise in computer hardware.",
+      "Rejects the 'always overpriced' option as a sweeping claim that does not follow."
+    ],
+    "explanation": "The ad borrows the cricketer's fame to support a technical claim he has no special knowledge of. Benchmarks or reviews by hardware experts would be real evidence. Price and payment are separate issues and do not show whether the processor claim is true.",
+    "hints": [
+      "What makes someone's opinion count as evidence?",
+      "Is the cricketer an expert in processors?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-121",
+    "type": "critical",
+    "subCategory": "Argument strength",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Optional attendance in final year",
+    "statement": "Should a college make class attendance optional for final-year students?\n\nI. Yes. Many students find attending classes boring.\nII. No. Many final-year students would skip classes and fall behind in core subjects they need for placements.\n\nAn argument is strong if it is directly relevant to the question and gives an important, sound reason. It is weak if it is vague, sweeping, based on opinion or habit, or only loosely related.",
+    "answerFormat": "choice",
+    "choices": [
+      "Only argument I is strong",
+      "Only argument II is strong",
+      "Both I and II are strong",
+      "Neither I nor II is strong"
+    ],
+    "answer": "Only argument II is strong",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Judges I as weak: finding classes boring is a matter of taste, not a sound reason for a policy.",
+      "Judges II as strong: it names a likely, serious result tied to students' placement goals.",
+      "Concludes only II is strong; I sounds student-friendly but gives no important reason."
+    ],
+    "explanation": "Boredom is an opinion and does not show that optional attendance would help students, so I is weak. II points to a real, important risk: falling behind on placement-critical subjects. So only argument II is strong.",
+    "hints": [
+      "Is boredom a strong reason to change a rule?",
+      "Which argument talks about an important consequence?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-122",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Schools shut, hospitals full",
+    "statement": "Read the two statements.\n\nI. Many schools in Delhi declared a one-week holiday in November.\nII. Hospitals in Delhi reported a sharp rise in patients with breathing problems in November.\n\nWhich option best describes the relationship between them?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement I is the cause and statement II is its effect",
+      "Statement II is the cause and statement I is its effect",
+      "Both statements are effects of some common cause",
+      "Both statements are effects of independent causes"
+    ],
+    "answer": "Both statements are effects of some common cause",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Checks whether school holidays could cause breathing problems: they cannot.",
+      "Checks whether hospital crowding could cause school holidays: it does not.",
+      "Identifies a likely common cause: severe air pollution in November.",
+      "Concludes both are effects of a common cause, not linked to each other directly."
+    ],
+    "explanation": "Neither event causes the other. Severe air pollution, which often peaks in Delhi in November, explains both: schools close to protect children, and more people need treatment for breathing problems. That makes them effects of a common cause.",
+    "hints": [
+      "Can either event directly cause the other?",
+      "What could make both happen in the same month?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-123",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The communication workshop",
+    "statement": "An IT company in Noida offered an optional business-communication workshop. Over the next year, employees who attended were promoted twice as often as those who did not. HR concludes the workshop helps employees get promoted. Which of the following, if true, most weakens HR's conclusion?",
+    "answerFormat": "choice",
+    "choices": [
+      "The workshop was run by a trainer with 20 years of experience.",
+      "Attendees rated the workshop 4.6 out of 5.",
+      "Seats were limited, and managers nominated only employees they had already rated as high performers.",
+      "The company plans to run the workshop again next year."
+    ],
+    "answer": "Seats were limited, and managers nominated only employees they had already rated as high performers.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices that attendees and non-attendees may have been different groups from the start.",
+      "Identifies that managers picked already high-rated employees, who were more likely to be promoted anyway.",
+      "Explains that high ratings or an experienced trainer do not show the workshop caused promotions."
+    ],
+    "explanation": "If managers sent only those they already saw as high performers, the attendees were likely to be promoted with or without the workshop, so the comparison proves little. Good ratings and an experienced trainer describe the workshop's quality, not its effect on promotions.",
+    "hints": [
+      "Were attendees a random group?",
+      "Who decided who got to attend?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-124",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Fair because she is fair",
+    "statement": "A student defends the new head of department: 'All of Dr Rao's new rules are fair, because Dr Rao is a fair person. And we know she is a fair person because every rule she has made is fair.' What is the main flaw in this argument?",
+    "answerFormat": "choice",
+    "choices": [
+      "It attacks Dr Rao's character instead of discussing the rules.",
+      "It gives too few examples of her rules.",
+      "It assumes all heads of department are fair.",
+      "The conclusion is used to support the reason that is supposed to prove it, so the argument goes in a circle."
+    ],
+    "answer": "The conclusion is used to support the reason that is supposed to prove it, so the argument goes in a circle.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the claim: the rules are fair.",
+      "Notices the reason (she is fair) is itself supported only by the claim that her rules are fair.",
+      "Names this as circular reasoning; rejects 'attacks her character' because the speaker is praising, not attacking."
+    ],
+    "explanation": "The fairness of the rules is proved by her being fair, and her being fair is proved by the fairness of the rules, so no independent evidence is ever offered. The argument praises her rather than attacking her, and it makes no claim about other heads of department.",
+    "hints": [
+      "Where does the support for each claim come from?",
+      "Trace the argument: A because B, and B because..."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-125",
+    "type": "critical",
+    "subCategory": "Argument strength",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Free laptops for everyone",
+    "statement": "Should the government give a free laptop to every college student?\n\nI. Yes. Every student loves gadgets.\nII. No. Students will only use the laptops to watch movies.\n\nAn argument is strong if it is directly relevant to the question and gives an important, sound reason. It is weak if it is vague, sweeping, based on opinion or habit, or only loosely related.",
+    "answerFormat": "choice",
+    "choices": [
+      "Only argument I is strong",
+      "Only argument II is strong",
+      "Both I and II are strong",
+      "Neither I nor II is strong"
+    ],
+    "answer": "Neither I nor II is strong",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Judges I as weak: liking gadgets is not a reason for public spending and is a sweeping claim.",
+      "Judges II as weak: 'only movies' is an unsupported generalisation about all students.",
+      "Concludes neither is strong, even though the question itself is a serious one."
+    ],
+    "explanation": "Both arguments rest on sweeping generalisations about all students rather than on real costs or benefits like digital access, learning outcomes or budget. A serious question can still have weak arguments on both sides, so neither is strong.",
+    "hints": [
+      "Watch for words like 'every' and 'only'.",
+      "Does either argument mention a real cost or benefit?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-126",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Standing desks and back pain",
+    "statement": "A co-working space in Pune installed standing desks for all members. Over the next three months, complaints about back pain fell by half. The manager claims the standing desks caused the drop. Which of the following, if true, most weakens the claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "In the same three months, the space also replaced all its old chairs with new ergonomic chairs.",
+      "Standing desks are more expensive than regular desks.",
+      "Some members said they liked being able to stand while working.",
+      "Many offices in Pune are now buying standing desks."
+    ],
+    "answer": "In the same three months, the space also replaced all its old chairs with new ergonomic chairs.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Looks for another change in the same period that could reduce back pain.",
+      "Identifies the new ergonomic chairs as a strong alternative cause.",
+      "Explains that cost, popularity or members liking the desks do not affect the cause of the drop."
+    ],
+    "explanation": "New ergonomic chairs could reduce back pain on their own, so the drop cannot be credited to standing desks alone. The other options talk about cost, popularity and preference, none of which explain why complaints fell.",
+    "hints": [
+      "What else changed in the office?",
+      "Which option gives a rival explanation?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-127",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "The lucky blue shirt",
+    "statement": "Aditya says: 'Ever since I started wearing my blue shirt to interviews, I have cleared two out of three. That shirt brings me luck.' What is the main flaw in his reasoning?",
+    "answerFormat": "choice",
+    "choices": [
+      "Two out of three is not a very good success rate.",
+      "He assumes that because he cleared interviews after he started wearing the shirt, the shirt caused his success.",
+      "Blue is not a formal colour for interviews.",
+      "He should have attended more interviews before buying a new shirt."
+    ],
+    "answer": "He assumes that because he cleared interviews after he started wearing the shirt, the shirt caused his success.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices the only link between the shirt and success is timing.",
+      "Explains that something happening after another thing does not prove it was caused by it.",
+      "Points to likelier causes such as more practice, and notes that the success rate itself is not the flaw."
+    ],
+    "explanation": "Clearing interviews after he started wearing the shirt does not mean the shirt caused it; his preparation, experience or the companies he applied to are far more likely reasons. Whether two out of three is good or bad does not affect the logical mistake.",
+    "hints": [
+      "Is 'after' the same as 'because of'?",
+      "What else might have improved over that time?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-128",
+    "type": "critical",
+    "subCategory": "Argument strength",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Stopping evening classes",
+    "statement": "Should a college stop all its evening classes to save electricity?\n\nI. Yes. Saving electricity is always a good thing.\nII. No. Evening classes are the only option for working students in the part-time programme, many of whom would have to drop out.\n\nAn argument is strong if it is directly relevant to the question and gives an important, sound reason. It is weak if it is vague, sweeping, based on opinion or habit, or only loosely related.",
+    "answerFormat": "choice",
+    "choices": [
+      "Only argument I is strong",
+      "Only argument II is strong",
+      "Both I and II are strong",
+      "Neither I nor II is strong"
+    ],
+    "answer": "Only argument II is strong",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Judges I as weak: 'always good' is a sweeping claim that ignores what is lost.",
+      "Judges II as strong: it names a serious, direct consequence for a specific group of students.",
+      "Concludes only II is strong."
+    ],
+    "explanation": "Saving electricity is useful, but 'always good' ignores the trade-off and gives no reason why these classes in particular should go, so I is weak. II names a real, serious consequence: working students losing their only way to study. Only II is strong.",
+    "hints": [
+      "Does argument I consider what would be lost?",
+      "Who would be affected, and how badly?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-129",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Rs 120 tomatoes",
+    "statement": "Read the two statements.\n\nI. The price of tomatoes in Chennai rose to Rs 120 per kg.\nII. Many restaurants in Chennai removed tomato-based dishes from their menus or started charging extra for them.\n\nWhich option best describes the relationship between them?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement I is the cause and statement II is its effect",
+      "Statement II is the cause and statement I is its effect",
+      "Both statements are effects of some common cause",
+      "Both statements are effects of independent causes"
+    ],
+    "answer": "Statement I is the cause and statement II is its effect",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that tomatoes are a key ingredient whose cost restaurants must cover.",
+      "Explains that a price spike pushes restaurants to drop or reprice tomato dishes, so I causes II.",
+      "Rejects the reverse: restaurants changing menus would reduce demand, not push prices to Rs 120."
+    ],
+    "explanation": "When an ingredient becomes very expensive, restaurants react by removing or repricing dishes that use it, so I causes II. The reverse fails because restaurants buying fewer tomatoes would lower demand, which pushes prices down rather than up.",
+    "hints": [
+      "Which statement is a reaction to the other?",
+      "What would menu changes do to tomato demand?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-130",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Herbal tea and sleep",
+    "statement": "A company claims its herbal tea helps people sleep better, because 70% of buyers said they slept better after a week of drinking it. Which of the following, if true, most weakens the claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "The tea comes in three flavours.",
+      "Most buyers drank the tea about an hour before bed.",
+      "In a trial where people did not know whether they were given the herbal tea or a plain tea that looked and tasted the same, both groups reported the same improvement in sleep.",
+      "The company has sold the tea for five years."
+    ],
+    "answer": "In a trial where people did not know whether they were given the herbal tea or a plain tea that looked and tasted the same, both groups reported the same improvement in sleep.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices the original evidence is buyers' own reports with nothing to compare against.",
+      "Identifies the blind trial as a fair comparison between the herbal tea and a look-alike tea.",
+      "Concludes that equal improvement in both groups means the herbs, not the tea-drinking routine or expectation, made no difference."
+    ],
+    "explanation": "When people who drank a plain look-alike tea improved just as much, the improvement must come from the bedtime routine or from expecting to sleep better, not from the herbs. Flavours, timing and years on the market do not test whether the tea works.",
+    "hints": [
+      "What would a fair test of the tea look like?",
+      "What if a fake tea works equally well?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-131",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Old buildings were built better",
+    "statement": "A columnist writes: 'Buildings were constructed much better a hundred years ago. Look at the 100-year-old buildings in our city: they still stand strong, while many buildings put up in the last ten years already show cracks.' What is the main flaw in this argument?",
+    "answerFormat": "choice",
+    "choices": [
+      "Cracks in new buildings may be only cosmetic.",
+      "The city has more new buildings than old ones.",
+      "Construction materials were cheaper a hundred years ago.",
+      "It looks only at the old buildings that have survived; the weaker ones built a century ago have already collapsed or been demolished."
+    ],
+    "answer": "It looks only at the old buildings that have survived; the weaker ones built a century ago have already collapsed or been demolished.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices that the comparison uses only old buildings still standing today.",
+      "Explains that poorly built old buildings would have fallen down or been pulled down long ago.",
+      "Concludes the surviving sample is biased towards the strongest old buildings (survivorship bias).",
+      "Rejects 'cracks may be cosmetic' as a smaller point that does not address the core flaw."
+    ],
+    "explanation": "The old buildings we see today are the survivors; the badly built ones from that era are no longer around to be counted. Comparing survivors with every new building makes old construction look better than it was. Whether today's cracks are cosmetic is a side issue.",
+    "hints": [
+      "Which old buildings can the columnist still see?",
+      "What happened to the weak ones built a century ago?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-132",
+    "type": "critical",
+    "subCategory": "Argument strength",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Hygiene ratings on food apps",
+    "statement": "Should food delivery apps be required to show each restaurant's official hygiene rating on its listing?\n\nI. Yes. Customers could make informed choices, and restaurants would have a reason to keep their kitchens clean.\nII. No. Customers rarely look at anything other than the food photos.\n\nAn argument is strong if it is directly relevant to the question and gives an important, sound reason. It is weak if it is vague, sweeping, based on opinion or habit, or only loosely related.",
+    "answerFormat": "choice",
+    "choices": [
+      "Only argument I is strong",
+      "Only argument II is strong",
+      "Both I and II are strong",
+      "Neither I nor II is strong"
+    ],
+    "answer": "Only argument I is strong",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Judges I as strong: it gives two clear, relevant benefits (informed customers, cleaner kitchens).",
+      "Judges II as weak: it is an unsupported claim about all customers, and even if many ignore ratings, some would use them.",
+      "Concludes only I is strong."
+    ],
+    "explanation": "Argument I links the rule to real benefits for customers and for food safety. Argument II simply assumes customers ignore ratings, with no evidence, and does not show the rule would cause any harm. So only I is strong.",
+    "hints": [
+      "Is argument II backed by anything?",
+      "Would the rule cause harm even if some people ignored it?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-133",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Sick days and satisfaction",
+    "statement": "An HR study at a Hyderabad firm found that employees who take more sick leave also report lower job satisfaction. The HR head concludes that unhappy employees fake sick days to avoid work. Which of the following is the most plausible alternative explanation of the link?",
+    "answerFormat": "choice",
+    "choices": [
+      "Employees with ongoing health problems may both need more sick leave and find work harder and less satisfying.",
+      "Employees with lower satisfaction tend to work in larger teams.",
+      "The survey was filled in during the last week of the financial year.",
+      "Sick leave policy is the same across all departments."
+    ],
+    "answer": "Employees with ongoing health problems may both need more sick leave and find work harder and less satisfying.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Recognises that the study shows only a link, not which way the cause runs.",
+      "Proposes a third factor (ongoing health problems) that could produce both more sick days and lower satisfaction.",
+      "Explains why team size or survey timing does not explain the specific link between sick leave and satisfaction."
+    ],
+    "explanation": "Genuine long-term illness would lead to more sick leave and also make the job feel harder, lowering satisfaction, so the link need not involve any faking. Team size and survey timing do not explain why these two measures move together, and a uniform policy is just background.",
+    "hints": [
+      "Could one thing be causing both?",
+      "Is it possible the sick days are genuine?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-134",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "More riders, faster delivery",
+    "statement": "A quick-commerce startup in Gurugram promises 10-minute delivery, but its average is 14 minutes. The operations head argues: 'If we hire 30% more delivery riders, we will bring the average down to 10 minutes.' Which of the following, if true, most weakens this argument?",
+    "answerFormat": "choice",
+    "choices": [
+      "Most riders prefer flexible working hours.",
+      "On average, 9 of the 14 minutes are spent packing the order at the store, while riders wait outside.",
+      "Customers have been complaining about late deliveries on social media.",
+      "A competitor in Gurugram has twice as many riders."
+    ],
+    "answer": "On average, 9 of the 14 minutes are spent packing the order at the store, while riders wait outside.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the plan's assumption: delivery time is limited by the number of riders.",
+      "Notices that most of the 14 minutes is packing time at the store, which more riders cannot reduce.",
+      "Explains that customer complaints show a problem exists but do not show riders are the fix."
+    ],
+    "explanation": "If 9 of 14 minutes go into packing while riders are already waiting, the bottleneck is inside the store, and adding riders would leave most of the delay untouched. Complaints and a competitor's rider count show only that delays matter, not that more riders would fix them.",
+    "hints": [
+      "Where is the time actually being spent?",
+      "Would extra riders speed up packing?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-135",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Eleven district stars",
+    "statement": "The sports secretary says: 'Every player in our college cricket team was rated the best in their position in the district this year. So our team is certain to win the inter-college tournament.' What is the main flaw?",
+    "answerFormat": "choice",
+    "choices": [
+      "The district ratings may have been made by a single selector.",
+      "Cricket is a team sport, so the team needs a captain.",
+      "It assumes that a team made of the best individual players must also be the best team, ignoring teamwork and the strength of other teams.",
+      "Other colleges may also have good bowlers."
+    ],
+    "answer": "It assumes that a team made of the best individual players must also be the best team, ignoring teamwork and the strength of other teams.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices the jump from 'each player is the best' to 'the team will certainly win'.",
+      "Explains that what is true of each part need not be true of the whole: teamwork, combinations and strategy matter.",
+      "Points out that 'certain to win' also ignores how strong the opponents are; the single-selector point does not touch the logic."
+    ],
+    "explanation": "Being the best player in each position does not guarantee the best team, because results also depend on how players combine and on the opposition. The conclusion 'certain to win' goes far beyond the evidence. Questioning who made the ratings is a side issue that leaves the main logical jump in place.",
+    "hints": [
+      "Is a team just a list of individual ratings?",
+      "What does 'certain to win' ignore?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-136",
+    "type": "critical",
+    "subCategory": "Argument strength",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Licence age of 21",
+    "statement": "Should the minimum age for a two-wheeler driving licence be raised from 18 to 21?\n\nI. Yes. People above 21 are always more responsible than those below 21.\nII. No. Many young people depend on two-wheelers to reach college and jobs, especially in towns where public transport is poor.\n\nAn argument is strong if it is directly relevant to the question and gives an important, sound reason. It is weak if it is vague, sweeping, based on opinion or habit, or only loosely related.",
+    "answerFormat": "choice",
+    "choices": [
+      "Only argument I is strong",
+      "Only argument II is strong",
+      "Both I and II are strong",
+      "Neither I nor II is strong"
+    ],
+    "answer": "Only argument II is strong",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Judges I as weak: 'always more responsible' is a sweeping generalisation with no evidence.",
+      "Judges II as strong: it names a real, large group that would lose its means of getting to college and work.",
+      "Concludes only II is strong; note I would have been strong if it cited actual accident data."
+    ],
+    "explanation": "The word 'always' makes argument I an unsupported generalisation; it would be strong only if it pointed to evidence such as accident rates by age. Argument II names a concrete, serious consequence for young people with no other way to travel. So only II is strong.",
+    "hints": [
+      "Look closely at the word 'always'.",
+      "Which argument names a real, specific consequence?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-137",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "The dangerous ICU",
+    "statement": "A visitor reads a hospital report showing that patients treated in the ICU have a much higher death rate than patients in the general wards. He concludes that the ICU gives worse care and should be avoided. Which of the following best explains the difference without the ICU giving worse care?",
+    "answerFormat": "choice",
+    "choices": [
+      "ICU beds cost more per day than general-ward beds.",
+      "ICU nurses work longer shifts than nurses in general wards.",
+      "The ICU is on a higher floor of the hospital.",
+      "Only the most seriously ill patients are sent to the ICU, so they have a higher risk of dying whatever care they get."
+    ],
+    "answer": "Only the most seriously ill patients are sent to the ICU, so they have a higher risk of dying whatever care they get.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices the two groups of patients are not comparable.",
+      "Explains that patients are placed in the ICU because they are already critically ill.",
+      "Concludes the higher death rate reflects who is admitted, not the quality of care.",
+      "Notes that longer nurse shifts might matter slightly but do not explain a large gap."
+    ],
+    "explanation": "Patients are sent to the ICU precisely because they are the sickest, so a higher death rate is expected even with excellent care. Comparing them with general-ward patients is unfair. Cost, floor and shift length do not explain why the patients themselves are at higher risk.",
+    "hints": [
+      "Are ICU and ward patients similar to begin with?",
+      "Why does a patient end up in the ICU?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-138",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Pedestrian market street",
+    "statement": "Jaipur turned a busy market street into a pedestrian-only zone last year. Shop sales on that street have since risen by 18%. The city claims the pedestrian zone caused the rise. Which of the following, if true, most strengthens the claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "Shop sales on similar nearby market streets that stayed open to vehicles did not rise over the same period.",
+      "Shopkeepers on the street were in favour of the change.",
+      "The street was repainted and decorated when it became pedestrian-only.",
+      "Tourist numbers in Jaipur rose sharply last year."
+    ],
+    "answer": "Shop sales on similar nearby market streets that stayed open to vehicles did not rise over the same period.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Looks for a comparison that separates the pedestrian zone from city-wide trends.",
+      "Identifies that similar streets without the change saw no rise, which rules out a general boom.",
+      "Notes that the rise in tourists weakens the claim and the repainting gives a rival explanation."
+    ],
+    "explanation": "If comparable streets that kept their traffic saw no increase, the most important difference is the pedestrian zone itself, which strongly supports the claim. Rising tourism would suggest a city-wide cause, and new decorations offer a competing explanation, so both weaken rather than strengthen.",
+    "hints": [
+      "What would happen on similar streets without the change?",
+      "Which option rules out a general boom?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-139",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "The company is a family",
+    "statement": "A union leader says: 'A company is like a family. A family does not throw out a member for doing badly at something, so a company should never fire an employee for poor performance.' What is the main flaw?",
+    "answerFormat": "choice",
+    "choices": [
+      "The union leader may not run a company himself.",
+      "It relies on a comparison that ignores key differences: a company is a voluntary, paid arrangement built around getting work done, while family ties are not based on performance.",
+      "Families also have disagreements.",
+      "Some companies are family-owned businesses."
+    ],
+    "answer": "It relies on a comparison that ignores key differences: a company is a voluntary, paid arrangement built around getting work done, while family ties are not based on performance.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies that the argument rests entirely on an analogy between a company and a family.",
+      "Points out the relevant difference: employment is a paid, voluntary contract tied to work, unlike family membership.",
+      "Concludes the analogy is too weak to support 'never fire anyone'; attacking the speaker's experience misses the logic."
+    ],
+    "explanation": "The comparison breaks down on exactly the point that matters: a job is a paid agreement to do work, while family membership is not earned by performance. A weak analogy cannot support an absolute rule like 'never fire'. The speaker's own background is irrelevant to whether the reasoning holds.",
+    "hints": [
+      "Is a company like a family in the way that matters here?",
+      "What is employment based on?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-140",
+    "type": "critical",
+    "subCategory": "Argument strength",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Ban fests for better results",
+    "statement": "Should all college fests be banned to improve students' exam results?\n\nI. Yes. Fests waste time that students could spend studying.\nII. No. Fests are fun.\n\nAn argument is strong if it is directly relevant to the question and gives an important, sound reason. It is weak if it is vague, sweeping, based on opinion or habit, or only loosely related.",
+    "answerFormat": "choice",
+    "choices": [
+      "Only argument I is strong",
+      "Only argument II is strong",
+      "Both I and II are strong",
+      "Neither I nor II is strong"
+    ],
+    "answer": "Neither I nor II is strong",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Judges I as weak: it is an opinion, ignores that fests last only a few days a year, and gives no evidence they hurt results.",
+      "Judges II as weak: fun alone does not address the question of exam results or mention real benefits.",
+      "Concludes neither is strong."
+    ],
+    "explanation": "Argument I simply calls fests a waste of time and assumes banning them would raise results, with no evidence; a few days a year is unlikely to matter much. Argument II says only that fests are fun, without naming benefits like teamwork or event-management skills. Neither gives a strong reason.",
+    "hints": [
+      "Does argument I show fests actually lower results?",
+      "Does 'fun' address the question asked?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-141",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Attrition after the new offices",
+    "statement": "Read the two statements.\n\nI. Several global tech companies opened large offices in Bengaluru this year and offered salaries well above the market rate.\nII. Many established software firms in Bengaluru reported much higher employee attrition this year.\n\nWhich option best describes the relationship between them?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement I is the cause and statement II is its effect",
+      "Statement II is the cause and statement I is its effect",
+      "Both statements are effects of some common cause",
+      "Both statements are effects of independent causes"
+    ],
+    "answer": "Statement I is the cause and statement II is its effect",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that new employers paying more attract staff from existing firms.",
+      "Explains that this pulls employees away, raising attrition at established firms, so I causes II.",
+      "Rejects the reverse: other firms' attrition is not why global companies chose to open offices."
+    ],
+    "explanation": "New companies offering higher salaries draw experienced staff away from existing firms, which shows up as higher attrition there, so I is the cause of II. The global companies' decisions are driven by their own expansion plans, not by attrition at other firms.",
+    "hints": [
+      "Where would employees leaving their firms go?",
+      "Which statement is a reaction to the other?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-142",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Fogging against dengue",
+    "statement": "A city corporation plans to reduce dengue cases by spraying insecticide fog in every street once a week during the monsoon. Which of the following, if true, most seriously weakens the plan?",
+    "answerFormat": "choice",
+    "choices": [
+      "Residents complain that the fogging machines are very noisy.",
+      "Last year, wards that were fogged most often had more dengue cases than other wards.",
+      "The mosquitoes that spread dengue breed mainly in clean water stored inside homes, such as coolers, buckets and flower pots, which street fogging does not reach.",
+      "Dengue cases in the city usually peak in September and October."
+    ],
+    "answer": "The mosquitoes that spread dengue breed mainly in clean water stored inside homes, such as coolers, buckets and flower pots, which street fogging does not reach.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the plan's assumption: street fogging reaches the mosquitoes that spread dengue.",
+      "Notes that if they breed mainly inside homes, street fogging misses the source, which undercuts the plan directly.",
+      "Explains why the ward data is a trap: wards with more cases were probably fogged more often because of those cases (reverse causation).",
+      "Rejects noise and timing as irrelevant to whether the plan works."
+    ],
+    "explanation": "The plan works only if fogging reaches where dengue mosquitoes live and breed. If they breed mostly in water stored indoors, weekly street fogging attacks the wrong place, so it cannot reduce cases much. The ward data looks damaging, but fogging is usually sent to wards because they already have outbreaks, so more fogging there is a response to cases, not their cause.",
+    "hints": [
+      "Where do these mosquitoes breed?",
+      "Why might the most-fogged wards also be the worst-hit wards?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-143",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "95% accurate test",
+    "statement": "A disease affects 1 in 1,000 people. A screening test for it gives the correct result 95% of the time, both for people who have the disease and for people who do not. Rahul tests positive and says: 'The test is 95% accurate, so there is a 95% chance I have the disease.' What is the main flaw in Rahul's reasoning?",
+    "answerFormat": "choice",
+    "choices": [
+      "The test should be at least 99% accurate before anyone uses it.",
+      "He has not said how old he is.",
+      "Since the result is positive, he definitely has the disease.",
+      "He ignores how rare the disease is: because almost everyone tested is healthy, most positive results come from the 5% false positives among healthy people."
+    ],
+    "answer": "He ignores how rare the disease is: because almost everyone tested is healthy, most positive results come from the 5% false positives among healthy people.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Considers 1,00,000 people: 100 have the disease and 99,900 do not.",
+      "Counts positives: 95 true positives and about 4,995 false positives (5% of 99,900).",
+      "Computes the chance a positive is real: 95 / (95 + 4,995), which is under 2%.",
+      "Concludes the flaw is ignoring the base rate, not the test's accuracy figure."
+    ],
+    "explanation": "Out of 1,00,000 people, 100 have the disease and 95 of them test positive, but 5% of the 99,900 healthy people (4,995) also test positive. So only 95 of about 5,090 positives are real, under 2%, far below 95%. Rahul confused 'the test is right 95% of the time' with 'a positive result is right 95% of the time'.",
+    "hints": [
+      "Imagine testing 1,00,000 people. How many actually have it?",
+      "How many healthy people will test positive by mistake?",
+      "Compare true positives with all positives."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-144",
+    "type": "critical",
+    "subCategory": "Argument strength",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Coding from Class 6",
+    "statement": "Should coding be made a compulsory subject from Class 6 in all schools in India?\n\nI. Yes. Digital skills are increasingly needed in almost every kind of job, and early exposure builds logical thinking.\nII. No. A large number of government schools lack working computers and trained teachers, so the rule cannot be carried out properly at present.\n\nAn argument is strong if it is directly relevant to the question and gives an important, sound reason. It is weak if it is vague, sweeping, based on opinion or habit, or only loosely related.",
+    "answerFormat": "choice",
+    "choices": [
+      "Only argument I is strong",
+      "Only argument II is strong",
+      "Both I and II are strong",
+      "Neither I nor II is strong"
+    ],
+    "answer": "Both I and II are strong",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Judges I as strong: it gives a relevant, important long-term benefit for students.",
+      "Judges II as strong: a mandate that most schools cannot implement would be ineffective and unfair, which is a serious practical reason.",
+      "Avoids the trap of dismissing II as 'just an implementation problem'; it directly affects whether the policy can work.",
+      "Concludes both are strong."
+    ],
+    "explanation": "Argument I links the proposal to a real benefit: skills and reasoning that matter for future jobs. Argument II names a serious, specific obstacle; a compulsory subject that many schools cannot actually teach would widen the gap between schools rather than close it. Both are relevant and important, so both are strong.",
+    "hints": [
+      "Is a practical obstacle a relevant reason against a compulsory rule?",
+      "Strength does not depend on which side you agree with."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-145",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Meetings and late projects",
+    "statement": "Data from a software company shows that teams that hold more meetings deliver their projects later. The COO plans to limit every team to two meetings a week to speed up delivery. Which of the following, if true, best suggests that the COO has the cause and effect backwards?",
+    "answerFormat": "choice",
+    "choices": [
+      "Teams usually begin scheduling extra meetings after a project starts falling behind, to sort out problems.",
+      "Most meetings at the company last less than 30 minutes.",
+      "Teams with fewer meetings report higher job satisfaction.",
+      "Remote teams hold more meetings than office-based teams."
+    ],
+    "answer": "Teams usually begin scheduling extra meetings after a project starts falling behind, to sort out problems.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "States the COO's assumption: more meetings cause late delivery.",
+      "Identifies the option where lateness comes first and causes extra meetings (reverse causation).",
+      "Explains that satisfaction data does not address which way the cause runs.",
+      "Notes that the remote-team option suggests a possible third factor, not a reversed direction."
+    ],
+    "explanation": "If teams add meetings once a project is already slipping, then delay causes meetings rather than the other way round, and capping meetings could even remove the time teams need to fix problems. Satisfaction and meeting length do not say which way the cause runs, and the remote-team option hints at a third factor rather than a reversal.",
+    "hints": [
+      "Which comes first: the meetings or the delay?",
+      "Why might a struggling team call more meetings?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-146",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Four-day week productivity",
+    "statement": "A Chennai IT services firm tried a four-day work week for six months. Based on the hours employees logged, output per hour rose by 20%. Management concludes the four-day week made employees more productive. Which of the following, if true, most weakens this conclusion?",
+    "answerFormat": "choice",
+    "choices": [
+      "Employees said they were happier during the trial.",
+      "During the trial, many employees stopped logging the extra evening and weekend hours they actually worked.",
+      "Several other firms in Chennai are also considering a four-day week.",
+      "Clients reported no drop in service quality during the trial."
+    ],
+    "answer": "During the trial, many employees stopped logging the extra evening and weekend hours they actually worked.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that 'output per hour' depends on the hours figure being accurate.",
+      "Identifies that unlogged extra hours make the hours look smaller than they were, inflating output per hour.",
+      "Explains that happier employees and steady client quality, if anything, support management."
+    ],
+    "explanation": "Output per hour is output divided by hours logged. If people worked extra hours without logging them, the real hours were higher and true productivity rose less, or not at all, so the 20% figure is unreliable. Happiness and steady client quality do not weaken the conclusion, and other firms' plans are irrelevant.",
+    "hints": [
+      "How is 'output per hour' calculated?",
+      "What if the hours number is wrong?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-147",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Rs 17 lakh average package",
+    "statement": "A college brochure says: 'The average package of last year's M.Tech AI batch of 10 students was Rs 17.3 lakh, so a typical graduate of this course earns about Rs 17 lakh.' In fact, nine students got offers between Rs 6 lakh and Rs 8 lakh, and one got Rs 1.1 crore. What is the main flaw in the brochure's claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "Ten students is too few to calculate an average.",
+      "Packages should be reported in dollars for AI roles.",
+      "One very large package pulls the average far above what most students got; the median, about Rs 7 lakh, better shows a typical package.",
+      "The average has been calculated incorrectly."
+    ],
+    "answer": "One very large package pulls the average far above what most students got; the median, about Rs 7 lakh, better shows a typical package.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Checks the arithmetic: nine packages averaging about Rs 7 lakh (about Rs 63 lakh) plus Rs 110 lakh gives about Rs 173 lakh, so the average of Rs 17.3 lakh is correct.",
+      "Notices that nine of ten students earned well below Rs 17 lakh.",
+      "Explains that one outlier distorts the mean, so 'typical' is better described by the median (about Rs 7 lakh)."
+    ],
+    "explanation": "The average is arithmetically fine: about Rs 63 lakh for nine students plus Rs 110 lakh for one, divided by 10, gives about Rs 17.3 lakh. But nine of ten graduates earned Rs 6–8 lakh, so calling Rs 17 lakh 'typical' is misleading. With one extreme value, the median is the honest summary.",
+    "hints": [
+      "How many students actually earned near Rs 17 lakh?",
+      "What happens to an average when one value is huge?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-148",
+    "type": "critical",
+    "subCategory": "Argument strength",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Screen tracking at home",
+    "statement": "Should companies continuously record employees' laptop screens while they work from home?\n\nI. No. Constant screen recording invades privacy and damages trust, which tends to lower morale and productivity.\nII. Yes. Otherwise employees will watch movies all day.\n\nAn argument is strong if it is directly relevant to the question and gives an important, sound reason. It is weak if it is vague, sweeping, based on opinion or habit, or only loosely related.",
+    "answerFormat": "choice",
+    "choices": [
+      "Only argument I is strong",
+      "Only argument II is strong",
+      "Both I and II are strong",
+      "Neither I nor II is strong"
+    ],
+    "answer": "Only argument I is strong",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Judges I as strong: it names real, relevant costs (privacy, trust, morale).",
+      "Judges II as weak: 'watch movies all day' is a sweeping assumption about all employees with no evidence.",
+      "Notes II could have been strong if it gave a specific reason such as protecting client data; as written it is not."
+    ],
+    "explanation": "Argument I points to genuine harms of constant monitoring that matter to any company. Argument II assumes the worst of all employees without evidence and ignores that output can be checked in other ways. A version citing data security could be strong, but this one is not. So only I is strong.",
+    "hints": [
+      "Is argument II based on evidence or on an assumption about everyone?",
+      "Which argument names real costs?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-149",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Publishing surgeon scores",
+    "statement": "A Mumbai hospital began publishing each surgeon's patient death rate online. Within a year, the published death rates had fallen sharply. The hospital credits better surgery. Which of the following is the most likely alternative explanation for the fall?",
+    "answerFormat": "choice",
+    "choices": [
+      "The hospital website got more visitors after the scores were published.",
+      "Patients liked being able to see the scores before choosing a surgeon.",
+      "The hospital hired two new surgeons that year.",
+      "Surgeons started avoiding the riskiest, sickest patients to protect their published scores."
+    ],
+    "answer": "Surgeons started avoiding the riskiest, sickest patients to protect their published scores.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices that publishing scores gives surgeons a reason to change which patients they operate on.",
+      "Explains that turning away high-risk patients lowers death rates without any improvement in skill.",
+      "Rejects website visits and patient preferences as not explaining a fall in death rates."
+    ],
+    "explanation": "Once scores are public, surgeons can protect them by declining high-risk cases, which lowers death rates while leaving the riskiest patients worse off. That explains the fall just as well as better surgery. Website traffic and patient preferences do not change outcomes, and two new surgeons cannot by themselves explain a sharp hospital-wide fall.",
+    "hints": [
+      "What can a surgeon change, other than skill, to improve a score?",
+      "Who is being operated on now?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-150",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Window seats and sick days",
+    "statement": "A study found that office workers who sit near windows take fewer sick days than those who sit away from windows. The researchers claim natural light improves health. Which of the following, if true, most strengthens their claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "When one office reassigned desks by lottery, employees moved to window seats began taking fewer sick days, while those moved away from windows took more.",
+      "Window seats are usually given to senior employees, who are also older on average.",
+      "Most employees say they prefer window seats.",
+      "Offices with more windows have higher electricity bills in summer."
+    ],
+    "answer": "When one office reassigned desks by lottery, employees moved to window seats began taking fewer sick days, while those moved away from windows took more.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that in the original study, the people at window seats may differ from others (for example seniority).",
+      "Identifies the lottery reassignment as a fair test: who sits where is random, so other differences are removed.",
+      "Explains that sick days moving with the seat change is strong evidence the light itself matters.",
+      "Notes that the seniority option is a confounding factor and weakens rather than strengthens."
+    ],
+    "explanation": "Random assignment removes the possibility that a different kind of person ends up at the window. When sick days fell for people moved towards windows and rose for those moved away, the change followed the seat, which strongly supports natural light as the cause. The seniority option introduces a confounding factor, and preferences and electricity bills say nothing about health.",
+    "hints": [
+      "How could you rule out that window-seat people were different to start with?",
+      "Which option describes something like an experiment?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-151",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Nobody proved it harmful",
+    "statement": "A fitness influencer says: 'No one has ever shown that this new protein supplement is harmful. So it is completely safe to take every day.' What is the main flaw?",
+    "answerFormat": "choice",
+    "choices": [
+      "The influencer may be earning money from the supplement.",
+      "It treats a lack of evidence of harm as proof of safety, when the supplement may simply not have been tested properly.",
+      "Protein supplements are expensive.",
+      "Some people are allergic to all supplements."
+    ],
+    "answer": "It treats a lack of evidence of harm as proof of safety, when the supplement may simply not have been tested properly.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the reasoning: no proof of harm, therefore safe.",
+      "Explains that absence of evidence is not evidence of absence, especially for a new product.",
+      "Notes the influencer's possible payment is a reason for caution but is not the logical flaw in the argument."
+    ],
+    "explanation": "A new supplement may not have been studied enough for harms to show up, so 'not shown to be harmful' is very different from 'shown to be safe'. Safety requires positive evidence such as proper trials. Pointing to the influencer's possible payment attacks the speaker, not the reasoning.",
+    "hints": [
+      "Has anyone actually tested its safety?",
+      "Is 'not proven harmful' the same as 'proven safe'?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-152",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Parking fees and traffic",
+    "statement": "A city raised parking fees in its central business district by 50%. In the next month, the number of cars entering the district fell by 18%. The transport department concludes that higher parking fees reduce car traffic. Which of the following, if true, most seriously weakens this conclusion?",
+    "answerFormat": "choice",
+    "choices": [
+      "Parking revenue in the district rose despite fewer cars.",
+      "The fee increase had been announced three months before it took effect.",
+      "Most of the drop came from vehicles that only pass through the district without parking, which started using a new bypass road opened that month.",
+      "Car traffic into the district had been falling by about 2% a year for the past three years."
+    ],
+    "answer": "Most of the drop came from vehicles that only pass through the district without parking, which started using a new bypass road opened that month.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes the conclusion needs the drop to come from drivers who were affected by parking fees.",
+      "Identifies that the drop came mostly from through-traffic, which never paid parking fees, and is explained by the new bypass.",
+      "Explains why the 2% yearly trend is a trap: it is far too small to explain an 18% fall in one month.",
+      "Rejects the revenue and announcement options as not addressing the cause of the drop."
+    ],
+    "explanation": "Drivers who never park are not affected by parking fees, so if they made up most of the drop and switched to a new bypass, the fall in traffic says little about fees. A slow 2% yearly decline cannot account for an 18% fall in a single month, and rising revenue or an early announcement do not speak to why fewer cars came in.",
+    "hints": [
+      "Which drivers actually pay parking fees?",
+      "Could the drop come from people who never park?",
+      "Is a 2% yearly trend big enough to explain 18% in one month?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-153",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Nine in ten give 5 stars",
+    "statement": "An ed-tech company emailed a satisfaction survey to all 50,000 of its learners. 2,000 replied, and 92% of those rated the course 5 stars. The company now advertises: 'Nine in ten of our learners give us 5 stars.' What is the main flaw in the advertisement?",
+    "answerFormat": "choice",
+    "choices": [
+      "2,000 responses is too small a sample to say anything about 50,000 learners.",
+      "The survey should have used a 10-point scale instead of stars.",
+      "92% is not the same as 'nine in ten'.",
+      "Only 4% of learners replied, and those who choose to reply, such as very happy learners, may be very different from those who did not, including the many who may have dropped out."
+    ],
+    "answer": "Only 4% of learners replied, and those who choose to reply, such as very happy learners, may be very different from those who did not, including the many who may have dropped out.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes the response rate: 2,000 of 50,000 is 4%.",
+      "Explains that respondents chose themselves, so they may be the most satisfied, while unhappy or dropped-out learners ignored the email.",
+      "Rejects the sample-size option: 2,000 random responses would be plenty; the problem is that they are not random.",
+      "Notes 92% rounding to 'nine in ten' is fair, so that is not the flaw."
+    ],
+    "explanation": "The trouble is not the number of replies but who replied. With only 4% answering, the respondents are a self-selected group likely tilted towards enthusiastic learners, so their 92% cannot stand for all 50,000. A random sample of 2,000 would be large enough, and 92% is fairly described as about nine in ten.",
+    "hints": [
+      "What fraction of learners actually replied?",
+      "Who is most likely to answer a satisfaction email?",
+      "Is the issue the size of the sample or how it was chosen?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-154",
+    "type": "critical",
+    "subCategory": "Argument strength",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Banning service bonds",
+    "statement": "Should IT companies be barred from making freshers sign bonds that require them to pay Rs 2 lakh if they leave within two years?\n\nI. Yes. Such bonds can trap freshers in jobs that turn out to be unsuitable and weaken their bargaining power over salary.\nII. No. Companies spend months and significant money training freshers, and without some protection many may cut back on hiring and training freshers.\n\nAn argument is strong if it is directly relevant to the question and gives an important, sound reason. It is weak if it is vague, sweeping, based on opinion or habit, or only loosely related.",
+    "answerFormat": "choice",
+    "choices": [
+      "Only argument I is strong",
+      "Only argument II is strong",
+      "Both I and II are strong",
+      "Neither I nor II is strong"
+    ],
+    "answer": "Both I and II are strong",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Judges I as strong: it names a real harm to freshers directly caused by bonds.",
+      "Judges II as strong: it names a real business cost and a likely consequence that would also hurt freshers (fewer jobs).",
+      "Recognises that strong arguments on opposite sides can both be valid.",
+      "Concludes both are strong."
+    ],
+    "explanation": "Argument I identifies a genuine harm: freshers stuck in unsuitable roles with little power to negotiate. Argument II identifies a genuine cost to companies and a plausible effect, less hiring and training of freshers, that matters to the very people the ban aims to protect. Both are relevant and serious, so both are strong.",
+    "hints": [
+      "Does each argument name a real, important consequence?",
+      "Could a ban have side effects for freshers themselves?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-155",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Coffee and depression",
+    "statement": "A survey of 2,000 Indian adults found that people who drink two or more cups of coffee a day have lower rates of depression than those who drink less. A newspaper headline says, 'Coffee fights depression.' Which of the following, if true, would most strongly suggest that coffee is not what reduces depression in this data?",
+    "answerFormat": "choice",
+    "choices": [
+      "People already suffering from depression are often advised by doctors to cut down on caffeine because it can worsen anxiety and sleep problems.",
+      "Coffee contains antioxidants that are good for the body.",
+      "Most of the people surveyed lived in cities.",
+      "Tea drinkers in the survey showed a similar but smaller pattern."
+    ],
+    "answer": "People already suffering from depression are often advised by doctors to cut down on caffeine because it can worsen anxiety and sleep problems.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes the survey shows only a link between coffee and lower depression.",
+      "Identifies reverse causation: depression leads people to drink less coffee, rather than coffee preventing depression.",
+      "Explains that the city sample limits who the result applies to but does not explain the link itself.",
+      "Notes that antioxidants and the tea pattern, if anything, fit the headline."
+    ],
+    "explanation": "If people with depression are told to cut back on caffeine, the depressed group will naturally drink less coffee, producing the same link with coffee having no protective effect at all. A city-heavy sample affects who the result applies to, not why the link exists, and the antioxidant and tea points lean towards the headline rather than against it.",
+    "hints": [
+      "Could depression affect how much coffee people drink?",
+      "Which way might the cause run?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-156",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Chatbot for customer support",
+    "statement": "A food delivery app plans to replace most of its human support agents with an AI chatbot. The CFO predicts that support costs will fall by 60%. Which of the following, if true, most seriously weakens the CFO's prediction?",
+    "answerFormat": "choice",
+    "choices": [
+      "The chatbot's yearly licence costs less than the salary of one support agent.",
+      "About 70% of support tickets are refund disputes, which company policy and consumer rules require a human agent to approve.",
+      "Customers prefer getting an instant reply rather than waiting for an agent.",
+      "Competitors that switched to chatbots saw more complaints about support on social media."
+    ],
+    "answer": "About 70% of support tickets are refund disputes, which company policy and consumer rules require a human agent to approve.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the prediction's assumption: the chatbot can take over most of the agents' work.",
+      "Notes that if 70% of tickets must still go to humans, most agents stay, so a 60% cost cut is very unlikely.",
+      "Explains why the competitor complaints option is a trap: it concerns customer satisfaction, not support costs.",
+      "Notes the licence cost and instant replies options support the CFO."
+    ],
+    "explanation": "A 60% cost cut requires the chatbot to replace most of the work humans do. If 70% of tickets are refund disputes that must be approved by a person, the company still needs most of its agents, so savings would be far smaller. More public complaints at competitors is a reputational concern, not evidence about costs, and the other two options support the CFO.",
+    "hints": [
+      "What share of the work can the chatbot actually take over?",
+      "Is the question about costs or about customer happiness?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-157",
+    "type": "critical",
+    "subCategory": "Spot the flaw",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Only a 1% improvement",
+    "statement": "A startup redesigned its checkout page. The share of visitors who completed a purchase rose from 2% to 3%. The founder says: 'That is only a 1% improvement, so the new page made almost no difference to our sales.' Assuming visitor numbers and order values stayed the same, what is the main flaw in the founder's reasoning?",
+    "answerFormat": "choice",
+    "choices": [
+      "A 1% change could be due to chance, so it should be ignored.",
+      "Checkout pages do not affect whether people buy.",
+      "The rise is 1 percentage point, but relative to the original 2% it is a 50% increase, which means 50% more sales from the same visitors.",
+      "The founder should have measured the time visitors spent on the page."
+    ],
+    "answer": "The rise is 1 percentage point, but relative to the original 2% it is a 50% increase, which means 50% more sales from the same visitors.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Distinguishes percentage points (3% - 2% = 1 point) from percent change.",
+      "Computes the relative change: (3 - 2) / 2 = 50%.",
+      "Concludes that with the same visitors and order values, sales rose by 50%, a large difference.",
+      "Rejects the 'chance' option: nothing in the passage suggests the change is random, and the founder's claim is about size, not chance."
+    ],
+    "explanation": "The conversion rate moved by 1 percentage point, but from a base of 2% that is a 50% increase. With the same traffic and order values, sales went up by half, which is far from 'almost no difference'. The founder confused an absolute change in a percentage with the relative change.",
+    "hints": [
+      "What is the difference between 'percentage points' and 'percent'?",
+      "By what fraction did 2 grow to become 3?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-158",
+    "type": "critical",
+    "subCategory": "Argument strength",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Final semester as internship",
+    "statement": "Should every engineering college reserve the entire final semester for a full-time industry internship?\n\nI. Yes. Final-semester students don't study anyway.\nII. No. There are not enough companies to offer quality internships to the lakhs of engineering students graduating each year, so many would end up in meaningless or fake internships.\n\nAn argument is strong if it is directly relevant to the question and gives an important, sound reason. It is weak if it is vague, sweeping, based on opinion or habit, or only loosely related.",
+    "answerFormat": "choice",
+    "choices": [
+      "Only argument I is strong",
+      "Only argument II is strong",
+      "Both I and II are strong",
+      "Neither I nor II is strong"
+    ],
+    "answer": "Only argument II is strong",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Judges I as weak: it is a sweeping generalisation about all students and gives no real benefit of internships.",
+      "Judges II as strong: a real shortage of quality internships would defeat the purpose of the rule for many students.",
+      "Notes the trap: argument I supports a reasonable idea, but a reasonable conclusion does not make a weak reason strong.",
+      "Concludes only II is strong."
+    ],
+    "explanation": "Argument I backs a sensible idea with a poor reason: a sweeping claim that no final-year student studies. A strong 'yes' would mention industry exposure or job conversion. Argument II names a concrete, serious problem: too few quality internships for lakhs of students, which would leave many with fake or useless placements. Only II is strong.",
+    "hints": [
+      "Judge the reason given, not whether you like the idea.",
+      "Is 'students don't study anyway' true of everyone?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-159",
+    "type": "critical",
+    "subCategory": "Cause and effect",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Monthly reviews in Pune",
+    "statement": "An IT company switched from yearly to monthly performance reviews in its Pune office but kept yearly reviews in its Kolkata office. Over the next year, attrition in Pune fell from 18% to 12%, while Kolkata stayed at about 17%. Management concludes monthly reviews reduced attrition. Which of the following, if true, most weakens this conclusion?",
+    "answerFormat": "choice",
+    "choices": [
+      "The Pune office has more employees than the Kolkata office.",
+      "Employees in both offices said they would like more feedback from managers.",
+      "Monthly reviews take more of managers' time than yearly reviews.",
+      "During the same year, a major competitor in Pune shut down and stopped hiring, while the job market in Kolkata did not change."
+    ],
+    "answer": "During the same year, a major competitor in Pune shut down and stopped hiring, while the job market in Kolkata did not change.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Recognises the comparison with Kolkata is meant to rule out company-wide causes.",
+      "Identifies a change that hit only Pune, the competitor shutting down, which reduces employees' outside options.",
+      "Explains that this Pune-only change could explain the fall in Pune attrition without the reviews.",
+      "Notes office size, employee wishes and manager time do not explain the difference in attrition."
+    ],
+    "explanation": "Using Kolkata as a comparison rules out changes that affected the whole company, but not changes that affected only Pune. A major Pune employer shutting down means fewer places to move to, which lowers attrition there regardless of reviews. Office size, feedback wishes and manager workload do not explain why Pune's attrition fell.",
+    "hints": [
+      "What does comparing with Kolkata rule out, and what does it not?",
+      "Did anything change only in Pune?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-160",
+    "type": "critical",
+    "subCategory": "Strengthen or weaken",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Cough syrup trial",
+    "statement": "A pharma company says its new cough syrup works, because in a trial 80% of 200 patients who took it were free of cough within seven days. Which of the following, if true, most seriously weakens the company's claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "Most coughs caused by common colds clear up on their own within a week, even without any treatment.",
+      "Two hundred patients is too few for a medical trial.",
+      "The syrup tastes bitter, and some patients disliked it.",
+      "Another company's syrup claims 85% of patients recovered within seven days."
+    ],
+    "answer": "Most coughs caused by common colds clear up on their own within a week, even without any treatment.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that the trial had no comparison group of patients who did not take the syrup.",
+      "Identifies that if most coughs end within a week anyway, the 80% could be natural recovery.",
+      "Explains why the sample-size option is a trap: 200 patients is enough to spot a real effect; the missing control group is the real problem.",
+      "Notes the competitor's 85% claim does not show this syrup does nothing."
+    ],
+    "explanation": "Without knowing how many patients would recover with no syrup at all, 80% means little; if most colds clear up within a week anyway, the syrup may add nothing. A trial comparing the syrup with a placebo is needed. Two hundred patients is a reasonable number, taste does not affect whether it works, and a rival's claim does not show this syrup is useless.",
+    "hints": [
+      "What would have happened to these patients without the syrup?",
+      "What is missing from this trial?"
+    ],
+    "estimatedMinutes": 4
+  }
+]

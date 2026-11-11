@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { userApi, roleApi, batchApi } from '../../api';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
@@ -12,6 +12,8 @@ interface Batch {
   isActive?: boolean;
 }
 
+const FILTER_KEY = 'usersPage.filters.v1';
+
 const UsersPage: React.FC = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
@@ -21,13 +23,16 @@ const UsersPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [warning, setWarning] = useState<{ message: string; setupLink?: string } | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [batchFilter, setBatchFilter] = useState('all');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  // Filters survive opening a user and coming back (per browser tab).
+  const saved = useMemo(() => { try { return JSON.parse(sessionStorage.getItem(FILTER_KEY) || 'null') || {}; } catch { return {}; } }, []);
+  const [searchTerm, setSearchTerm] = useState<string>(saved.searchTerm ?? '');
+  const [batchFilter, setBatchFilter] = useState<string>(saved.batchFilter ?? 'all');
+  const [roleFilter, setRoleFilter] = useState<string>(saved.roleFilter ?? 'all');
+  // Deleted users are soft-deleted (inactive), so the list defaults to active people only.
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>(saved.activeFilter ?? 'active');
   const [showFilters, setShowFilters] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [currentPage, setCurrentPage] = useState<number>(saved.currentPage ?? 1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(saved.itemsPerPage ?? 20);
 
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteFormData, setInviteFormData] = useState({ email: '', firstName: '', lastName: '', mobileNumber: '', batchId: '', role: 'STUDENT', customRoleId: '' });
@@ -51,6 +56,28 @@ const UsersPage: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
+  useEffect(() => {
+    try { sessionStorage.setItem(FILTER_KEY, JSON.stringify({ searchTerm, batchFilter, roleFilter, activeFilter, currentPage, itemsPerPage })); } catch { /* storage unavailable */ }
+  }, [searchTerm, batchFilter, roleFilter, activeFilter, currentPage, itemsPerPage]);
+
+  // The Add User / Bulk Actions / row menus are <details>: close them on any outside click
+  // or after picking an item.
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      document.querySelectorAll('.users-page details[open]').forEach(d => { if (!d.contains(target)) d.removeAttribute('open'); });
+    };
+    const onClick = (e: MouseEvent) => {
+      const btn = (e.target as HTMLElement).closest?.('.users-page details[open] > div button');
+      if (btn) btn.closest('details')?.removeAttribute('open');
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') document.querySelectorAll('.users-page details[open]').forEach(d => d.removeAttribute('open')); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('click', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('click', onClick); document.removeEventListener('keydown', onKey); };
+  }, []);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -70,12 +97,17 @@ const UsersPage: React.FC = () => {
   const currentUser: any = (() => { try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; } })();
   const batchName = (user: User) => user.batchName || batches.find(b => b._id === user.batchId)?.name || '—';
 
-  const stats = useMemo(() => ({
-    total: users.length,
-    students: users.filter(u => u.role === 'STUDENT').length,
-    trainers: users.filter(u => u.role === 'INSTRUCTOR').length,
-    admins: users.filter(u => ['SUPER_ADMIN', 'TENANT_ADMIN'].includes(u.role)).length,
-  }), [users]);
+  // Summary cards count active accounts only — inactive/deleted people are not "users" any more.
+  const stats = useMemo(() => {
+    const active = users.filter(u => u.isActive !== false);
+    return {
+      total: active.length,
+      inactive: users.length - active.length,
+      students: active.filter(u => u.role === 'STUDENT').length,
+      trainers: active.filter(u => u.role === 'INSTRUCTOR').length,
+      admins: active.filter(u => ['SUPER_ADMIN', 'TENANT_ADMIN'].includes(u.role)).length,
+    };
+  }, [users]);
 
   const filteredUsers = useMemo(() => users.filter(user => {
     const haystack = `${user.firstName} ${user.lastName} ${user.email} ${user.phone || ''}`.toLowerCase();
@@ -91,7 +123,11 @@ const UsersPage: React.FC = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, batchFilter, roleFilter, activeFilter]);
+  // Reset to page 1 when a filter changes — but not on the first render, so a restored page sticks.
+  const filterSig = `${searchTerm}|${batchFilter}|${roleFilter}|${activeFilter}`;
+  const lastSig = useRef(filterSig);
+  useEffect(() => { if (lastSig.current !== filterSig) { lastSig.current = filterSig; setCurrentPage(1); } }, [filterSig]);
+  useEffect(() => { if (currentPage > totalPages) setCurrentPage(totalPages); }, [currentPage, totalPages]);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
@@ -209,7 +245,7 @@ const UsersPage: React.FC = () => {
   if (loading) return <Spinner fullScreen />;
 
   const statCards = [
-    { label: 'Total Users', value: stats.total, icon: 'people', tone: 'navy', note: 'All user accounts' },
+    { label: 'Total Users', value: stats.total, icon: 'people', tone: 'navy', note: stats.inactive ? `Active accounts · ${stats.inactive} inactive hidden` : 'Active accounts' },
     { label: 'Students', value: stats.students, icon: 'mortarboard', tone: 'teal', note: `${stats.total ? Math.round(stats.students / stats.total * 100) : 0}% of users` },
     { label: 'Trainers', value: stats.trainers, icon: 'person-workspace', tone: 'purple', note: 'Instructor accounts' },
     { label: 'Admins', value: stats.admins, icon: 'shield-check', tone: 'amber', note: 'Platform & tenant admins' },

@@ -1,4 +1,5 @@
-import { parseBulk } from '../services/questionBookService';
+import { parseBulk, isId } from '../services/questionBookService';
+import { ALL_BOOKS } from '../seeds/questionBooks/allBooks';
 
 describe('Question Books — pasting many questions', () => {
   it('reads Q:/A: blocks with multi-line answers', () => {
@@ -23,5 +24,19 @@ describe('Question Books — pasting many questions', () => {
   it('allows a question without an answer and ignores empty input', () => {
     expect(parseBulk('Q: Tell me about yourself')).toEqual([{ question: 'Tell me about yourself', answer: '' }]);
     expect(parseBulk('   \n\n')).toEqual([]);
+  });
+});
+
+describe('Question Books — opening a book by slug or id', () => {
+  it('treats only a 24-hex string as an id', () => {
+    expect(isId('6aa9390649fae12e6a01264e')).toBe(true);
+    // 12 characters: mongoose.isValidObjectId() says true, which made /question-books/hr-interview a 404.
+    expect(isId('hr-interview')).toBe(false);
+    expect(isId('aptitude')).toBe(false);
+    expect(isId(undefined)).toBe(false);
+  });
+
+  it('never mistakes a shipped book slug for an id', () => {
+    for (const b of ALL_BOOKS) expect(isId(b.slug)).toBe(false);
   });
 });

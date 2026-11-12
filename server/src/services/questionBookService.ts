@@ -11,7 +11,9 @@ type Actor = { tenantId: string; userId: string; role: string };
 const isSuper = (a: Actor) => a.role === 'SUPER_ADMIN';
 const str = (v: any, max: number) => String(v ?? '').trim().slice(0, max);
 const slugify = (s: string) => String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'book';
-const isId = (v: any) => mongoose.isValidObjectId(v);
+// A real ObjectId is 24 hex characters. mongoose.isValidObjectId() also accepts ANY 12-character string,
+// which turned the slug 'hr-interview' (12 letters) into an id lookup that found nothing.
+export const isId = (v: any) => typeof v === 'string' && /^[a-f0-9]{24}$/i.test(v);
 const COLORS = ['#4f46e5', '#0d9488', '#be123c', '#b45309', '#0369a1', '#7c3aed', '#15803d', '#c2410c', '#1e293b'];
 
 /* ── Who may see what ───────────────────────────────────────────────────────────────────── */

@@ -80,6 +80,13 @@ export const mins = (n: number) =>
 export const titleOf = (item: any): string =>
   item?.content?.title || item?.contentTitle || item?.title || 'Untitled';
 
+/** The task list already shows the kind under each title, so " — video (placeholder)" style endings are dropped there. */
+const railTitle = (item: any): string => {
+  const t = titleOf(item);
+  const short = t.replace(/\s+[—–-]\s+(video|notes|practice|quiz|worked example|assignment|lesson|reading|exercise)s?(\s*\([^)]*\))?\s*$/i, '').trim();
+  return short || t;
+};
+
 export const typeOf = (item: any): string =>
   item?.contentType || item?.content?.type || item?.kind || 'notes';
 
@@ -422,12 +429,12 @@ const JourneyDay: React.FC = () => {
       {/* The day at a glance, in the logo navy: where it sits in the programme, how far through it the
           member is (one segment per task, and a ring), what it has paid so far, and the bonus still on
           the table — which is also the shortest way back into the work. */}
-      <section className="jdh">
-        <div className="jdh-top">
-          <button type="button" className="jdh-crumb" onClick={() => nav('/careerpilot/roadmap')}>
+      <section className={`jdh2${dayDone ? ' is-done' : ''}`}>
+        <div className="jdh2-top">
+          <button type="button" className="jdh2-crumb" onClick={() => nav('/careerpilot/roadmap')}>
             <i className="bi bi-arrow-left" aria-hidden /> My Roadmap
           </button>
-          <div className="jdh-nav" role="group" aria-label="Change day">
+          <div className="jdh2-nav" role="group" aria-label="Change day">
             <button type="button" disabled={dayNumber <= 1} onClick={() => nav(`/careerpilot/journey/day/${dayNumber - 1}`)} aria-label="Previous day" title="Previous day">
               <i className="bi bi-chevron-left" aria-hidden />
             </button>
@@ -438,51 +445,48 @@ const JourneyDay: React.FC = () => {
           </div>
         </div>
 
-        <div className="jdh-main">
-          <div className="jdh-copy">
-            <span className={`jdh-eyebrow${dayDone ? ' done' : ''}`}><i className={`bi ${dayDone ? 'bi-patch-check-fill' : 'bi-calendar2-check'}`} aria-hidden /> {dayDone ? 'Day complete' : 'Your learning day'}</span>
-            <h1>{dayTitle || `Day ${dayNumber}`}</h1>
-            {items.length > 0 && <>
-              <ol className="jdh-segs" aria-label={`${doneCount} of ${items.length} tasks done`}>
-                {items.map((it, i) => (
-                  <li key={it._id || it.contentId || it.sourceId || i} className={it.isCompleted ? 'done' : i === selIdx ? 'current' : ''}
-                    title={`Task ${i + 1}${it.isCompleted ? ' · done' : ''}`} />
-                ))}
-              </ol>
-              <p className="jdh-sub">
-                {dayDone ? <><i className="bi bi-check-circle-fill" aria-hidden /> Every task on this day is done</>
-                  : <><b>{doneCount} of {items.length}</b> tasks done · {tasksLeft} to go</>}
-              </p>
-            </>}
-          </div>
-
-          {items.length > 0 && (
-            <div className="jdh-ring" role="img" aria-label={`${pct}% of today's tasks done`}>
-              <svg viewBox="0 0 120 120" aria-hidden>
-                <circle className="trk" cx="60" cy="60" r="52" />
-                <circle className="val" cx="60" cy="60" r="52" style={{ strokeDashoffset: `${326.73 * (1 - pct / 100)}` }} />
-              </svg>
-              <div><b>{doneCount}<small>/{items.length}</small></b><span>tasks</span></div>
-            </div>
-          )}
+        <div className="jdh2-head">
+          <span className="jdh2-eyebrow"><i className={`bi ${dayDone ? 'bi-patch-check-fill' : 'bi-calendar2-check'}`} aria-hidden /> {dayDone ? 'Day complete' : 'Your learning day'}</span>
+          <h1 title={dayTitle || undefined}>{dayTitle || `Day ${dayNumber}`}</h1>
         </div>
 
         {items.length > 0 && (
-          <div className="jdh-stats">
+          <div className="jdh2-progress">
+            <div className="jdh2-progress-row">
+              <span>{dayDone ? <><i className="bi bi-check-circle-fill" aria-hidden /> Every task on this day is done</> : <><b>{doneCount} of {items.length}</b> tasks done</>}</span>
+              <b className="jdh2-pct">{pct}%</b>
+            </div>
+            <ol className="jdh2-segs" aria-label={`${doneCount} of ${items.length} tasks done`}>
+              {items.map((it, i) => (
+                <li key={it._id || it.contentId || it.sourceId || i} className={it.isCompleted ? 'done' : i === selIdx ? 'current' : ''}
+                  title={`Task ${i + 1}${it.isCompleted ? ' · done' : ''}`} />
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {/* The figures sit on white tiles, so they stay readable whatever the shell does to text on navy. */}
+        {items.length > 0 && (
+          <div className="jdh2-tiles">
+            <div className="jdh2-tile">
+              <span className="ic tasks"><i className="bi bi-list-check" aria-hidden /></span>
+              <div><small>Tasks left</small><b>{tasksLeft} <em>of {items.length}</em></b></div>
+            </div>
             {totalXp > 0 && (
-              <div className="jdh-stat">
+              <div className="jdh2-tile">
                 <span className="ic xp"><i className="bi bi-lightning-charge-fill" aria-hidden /></span>
-                <div><small>XP this day</small><b>{earnedXp} <em>/ {totalXp}</em></b></div>
+                <div><small>XP today</small><b>{earnedXp} <em>/ {totalXp}</em></b></div>
               </div>
             )}
             {dayBonusXp > 0 && (
-              <button type="button" className={`jdh-stat bonus${dayDone ? ' won' : ''}`} onClick={workOnNext}>
+              <div className={`jdh2-tile bonus${dayDone ? ' won' : ''}`}>
                 <span className="ic"><i className={`bi ${dayDone ? 'bi-check-circle-fill' : 'bi-gift-fill'}`} aria-hidden /></span>
-                <div>
-                  <small>{dayDone ? 'Day bonus earned' : 'Day bonus'}</small>
-                  <b>+{dayBonusXp} XP <em>{dayDone ? 'added to your total' : `finish all ${items.length} tasks · ${tasksLeft} to go`}</em></b>
-                </div>
-                {!dayDone && <span className="go">Next task <i className="bi bi-arrow-right" aria-hidden /></span>}
+                <div><small>{dayDone ? 'Day bonus earned' : 'Day bonus'}</small><b>+{dayBonusXp} XP <em>{dayDone ? 'added' : `finish all ${items.length}`}</em></b></div>
+              </div>
+            )}
+            {!dayDone && (
+              <button type="button" className="jdh2-go" onClick={workOnNext}>
+                {doneCount ? 'Continue' : 'Start'} next task <i className="bi bi-arrow-right" aria-hidden />
               </button>
             )}
           </div>
@@ -532,8 +536,8 @@ const JourneyDay: React.FC = () => {
                     <span className={`jd-item-icon t-${typeOf(it)}`} aria-hidden>
                       <i className={`bi ${it.isCompleted ? 'bi-check-lg' : (ICON[typeOf(it)] || 'bi-journal-text')}`} />
                     </span>
-                    <span className="jd-item-body">
-                      <b>{titleOf(it)}</b>
+                    <span className="jd-item-body" title={titleOf(it)}>
+                      <b>{railTitle(it)}</b>
                       <small>
                         {TYPE_LABEL[typeOf(it)] || typeOf(it)}
                         {it.estimatedDuration > 0 && <> · {mins(it.estimatedDuration)}</>}

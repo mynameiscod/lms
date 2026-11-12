@@ -163,3 +163,38 @@
   .pl.plh.tl3 .pl-tab i { display: none; }
 }
 .tl3 .tl2-solve { scroll-margin-top: 90px; }
+
+/* Coding questions: the question on the left, Logic → Code on the right (stacked on narrow screens). */
+.tl2-flow, .tl2-flow > .tl2-split-q { display: contents; }
+.tl2-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; align-items: start; }
+.tl2-split-q { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.tl2-split > .tl2-form { position: sticky; top: 84px; min-width: 0; }
+.tl2-ws { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 16px; background: #fff; overflow: hidden; }
+.tl2-ws-tabs { display: flex; background: var(--soft); border-bottom: 1px solid var(--line); }
+.tl3 .tl2-ws-tabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--muted); font-size: 14.5px; font-weight: 800; cursor: pointer; }
+.tl3 .tl2-ws-tabs button b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #E3E9F2; color: var(--body); font-size: 12px; }
+.tl3 .tl2-ws-tabs button.on { color: #0B3BBF; border-bottom-color: #0B3BBF; background: #fff; }
+.tl3 .tl2-ws-tabs button.on b { background: #0B3BBF; color: #fff; }
+.tl3 .tl2-ws-tabs button:disabled { cursor: not-allowed; opacity: .6; }
+.tl3 .tl2-ws-tabs .bi-check-circle-fill { color: var(--good); }
+.tl2-ws-pane { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.tl2-ws-help { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.tl2-ws-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tl2-lang { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 800; color: var(--ink); }
+.tl3 .tl2-lang select { min-height: 40px; border: 1px solid #D9E1EC; border-radius: 10px; padding: 0 12px; font-size: 14px; color: var(--ink); background: #fff; }
+.tl3 .tl2-link { border: 0; background: none; color: #0B3BBF; font-size: 13.5px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 6px 2px; }
+.tl2-editor { border: 1px solid #D9E1EC; border-radius: 12px; overflow: hidden; }
+@media (max-width: 1100px) {
+  .tl2-split { grid-template-columns: minmax(0, 1fr); }
+  .tl2-split > .tl2-form { position: static; }
+}
+@media (max-width: 560px) {
+  .tl2-ws-pane { padding: 12px; }
+  .tl2-ws-pane .tl2-actions { flex-direction: column-reverse; align-items: stretch; }
+}
+.tl2-logic { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+.tl2-logic > div { display: flex; flex-direction: column; gap: 2px; }
+.tl2-logic.good, .tl2-logic.partial { background: var(--good-bg); color: #10563B; border: 1px solid #BFE7D3; }
+.tl2-logic.good i, .tl2-logic.partial i { color: var(--good); }
+.tl2-logic.off { background: var(--warn-bg); color: #6B4300; border: 1px solid #F3D9B1; }
+.tl2-logic.off i { color: var(--warn); }

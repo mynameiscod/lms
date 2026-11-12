@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { memberLabApi, TQQuestion, TQReward, TQToday, TQType } from '../../api/thinkingLabApi';
+import Editor from '@monaco-editor/react';
+import { memberLabApi, TQQuestion, TQReward, TQToday, TQType, TL_LANGS, TL_TEMPLATES } from '../../api/thinkingLabApi';
 import { useMember } from '../Passport/MemberLayout';
 import SectionLock from '../Passport/SectionLock';
 import '../ProblemBank/ProblemBank.css';
@@ -28,6 +29,8 @@ const STEP_ICON = { covered: 'bi-check-circle-fill', partial: 'bi-dash-circle-fi
 const STEP_LABEL = { covered: 'Covered', partial: 'Partly', missing: 'Missing' } as const;
 const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
 const MIN_WORDS = 8;
+/** A coding question's logic must be this long before the code editor opens. */
+const LOGIC_MIN_WORDS = 20;
 const errOf = (e: any, d: string) => e?.response?.data?.message || d;
 
 type Tab = 'today' | 'practice' | 'history';
@@ -317,15 +320,40 @@ export interface SolveApi {
   answer: (id: string, body: { answer?: string; explanation: string; code?: string; language?: string }) => Promise<{ question: TQQuestion; reward: TQReward | null }>;
   hint: (id: string) => Promise<{ hints: string[]; hintsTotal: number }>;
   run: typeof memberLabApi.run;
+  /** Coding only: check the plan; a good or partly right plan opens the editor. */
+  logic?: typeof memberLabApi.logic;
 }
+
+/** The result of the logic check above the button: green when it opened the editor, amber when it did not. */
+const LogicNote: React.FC<{ v: 'good' | 'partial' | 'off' | null; feedback: string }> = ({ v, feedback }) => (
+  <div className={`tl2-logic ${v || 'partial'}`} role="status">
+    <i className={`bi ${v === 'off' ? 'bi-signpost-split' : 'bi-check-circle-fill'}`} />
+    <div><b>{v === 'good' ? 'Good plan. The editor is open.' : v === 'partial' ? 'On the right track. The editor is open.' : 'Not quite yet. Rethink your plan.'}</b>{feedback && <span>{feedback}</span>}</div>
+  </div>
+);
 
 export const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; readOnly?: boolean; onBack: () => void; onUpdate: (q: TQQuestion, r: TQReward | null) => void; onNext: () => void; hasNext: boolean; api?: SolveApi }> =
   ({ q, practice, demo, readOnly, onBack, onUpdate, onNext, hasNext, api = memberLabApi }) => {
     const coding = q.type === 'coding';
     const finished = q.state === 'solved' || q.state === 'finished';
     const [answer, setAnswer] = useState(q.last?.answer || '');
-    const [explanation, setExplanation] = useState(q.last?.explanation || '');
-    const [code, setCode] = useState(q.last?.code || q.starterCode || '');
+    const [explanation, setExplanation] = useState(q.last?.explanation || q.logic?.text || '');
+    /* Coding: think first, then code. The student explains their logic (LOGIC_MIN_WORDS words), which opens the
+       editor; the editor takes any runnable language because every test is plain standard input → output. */
+    const startLang = q.last?.language || q.language || 'python';
+    const templateFor = useCallback((lang: string) => (q.starterCode && (q.language || 'python') === lang ? q.starterCode : TL_TEMPLATES[lang] || ''), [q.starterCode, q.language]);
+    const [language, setLanguage] = useState(startLang);
+    const [code, setCode] = useState(q.last?.code || templateFor(startLang));
+    // The editor opens only after the server has checked the plan (q.logic.ok); a try made earlier also counts.
+    const [unlocked, setUnlocked] = useState(!!q.logic?.ok || !!q.last?.code);
+    const [pane, setPane] = useState<'logic' | 'code'>(q.logic?.ok || q.last?.code ? 'code' : 'logic');
+    const [verdict, setVerdict] = useState<{ v: 'good' | 'partial' | 'off' | null; feedback: string } | null>(q.logic?.verdict ? { v: q.logic.verdict, feedback: q.logic.feedback } : null);
+    const changeLanguage = (lang: string) => {
+      // Swap in the new language's input skeleton only while the editor holds an untouched template.
+      const untouched = !code.trim() || code === templateFor(language) || Object.values(TL_TEMPLATES).includes(code);
+      setLanguage(lang); setRun(null);
+      if (untouched) setCode(templateFor(lang));
+    };
     const [hints, setHints] = useState<string[]>(q.hints);
     const [busy, setBusy] = useState('');
     const [err, setErr] = useState('');
@@ -335,13 +363,15 @@ export const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; 
     const top = useRef<HTMLElement>(null);
     useEffect(() => { top.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, []);
     const wc = words(explanation);
+    // A coding question still being worked on gets the two-column workspace: the question, then Logic → Code.
+    const split = coding && !(finished && q.reveal);
 
     const submit = async () => {
       if (!coding && !answer.trim()) { setErr('Give your final answer.'); return; }
       if (wc < MIN_WORDS) { setErr(`Explain your thinking in at least ${MIN_WORDS} words: what you noticed, what you worked out, and how you reached the answer.`); return; }
       setBusy('submit'); setErr('');
       try {
-        const r = await api.answer(q.id, coding ? { code, language: q.language || 'python', explanation } : { answer, explanation });
+        const r = await api.answer(q.id, coding ? { code, language, explanation } : { answer, explanation });
         onUpdate(r.question, r.reward);
       } catch (e) { setErr(errOf(e, 'Could not check your answer.')); }
       setBusy('');
@@ -351,18 +381,30 @@ export const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; 
       try { const r = await api.hint(q.id); setHints(r.hints); } catch (e) { setErr(errOf(e, 'No more hints.')); }
       setBusy('');
     };
+    const checkLogic = async () => {
+      if (!api.logic) { setUnlocked(true); setPane('code'); return; }
+      setBusy('logic'); setErr('');
+      try {
+        const r = await api.logic(q.id, explanation);
+        setVerdict({ v: r.verdict, feedback: r.feedback });
+        if (r.ok) { setUnlocked(true); setPane('code'); }
+      } catch (e) { setErr(errOf(e, 'Could not check your logic.')); }
+      setBusy('');
+    };
     const runCode = async () => {
       setBusy('run'); setErr('');
-      try { setRun(await api.run(q.id, code, q.language || 'python')); } catch (e) { setErr(errOf(e, 'Could not run your code.')); }
+      try { setRun(await api.run(q.id, code, language)); } catch (e) { setErr(errOf(e, 'Could not run your code.')); }
       setBusy('');
     };
 
     return (
-      <section ref={top} className="pl-card pl-panel plh-panel tl2-solve">
+      <section ref={top} className={`pl-card pl-panel plh-panel tl2-solve${split ? ' tl2-solve-code' : ''}`}>
         <div className="tl2-solve-top">
           <button className="tl2-back" onClick={onBack}><i className="bi bi-arrow-left" /> {readOnly ? 'History' : 'Back to the list'}</button>
           <StateTag q={q} />
         </div>
+        <div className={split ? 'tl2-split' : 'tl2-flow'}>
+        <div className="tl2-split-q">
         <span className="tl2-q-meta">{TYPE[q.type].label}{q.subCategory ? ` · ${q.subCategory}` : ''}<em className={`tl2-diff ${q.difficulty}`}>{q.difficulty}</em>{practice ? <em className="tl2-diff practice">practice</em> : null}</span>
         <h2 className="tl2-title">{q.title}</h2>
         <div className="tl2-statement">{q.statement}</div>
@@ -393,6 +435,7 @@ export const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; 
           </div>
         )}
 
+        </div>
         {finished && q.reveal ? (
           <div className="tl2-reveal">
             {q.reveal.answer && <p><b>Answer:</b> {q.reveal.answer}</p>}
@@ -405,41 +448,93 @@ export const Solve: React.FC<{ q: TQQuestion; practice: boolean; demo: boolean; 
           </div>
         ) : (
           <div className="tl2-form">
-            {coding ? <>
-              <label className="tl2-lbl">Your code <small>{q.language}</small></label>
-              <textarea className="tl2-code" rows={12} spellCheck={false} value={code} onChange={(e) => setCode(e.target.value)} aria-label="Your code" />
-              {run && (
-                <div className="tl2-run">
-                  {run.compileError ? <pre className="bad">{run.compileError}</pre> : run.results.map((r) => (
-                    <span key={r.index} className={r.passed ? 'ok' : 'bad'}><i className={`bi ${r.passed ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}`} /> Example {r.index + 1}</span>
-                  ))}
-                  {run.firstFail && <pre className="bad">Input: {run.firstFail.input}{'\n'}Expected: {run.firstFail.expected}{'\n'}Got: {run.firstFail.actual}</pre>}
+            {coding ? (
+              <div className="tl2-ws">
+                <div className="tl2-ws-tabs" role="tablist" aria-label="Logic, then code">
+                  <button role="tab" aria-selected={pane === 'logic'} className={pane === 'logic' ? 'on' : ''} onClick={() => setPane('logic')}>
+                    <b>1</b> Logic {unlocked && <i className="bi bi-check-circle-fill" />}
+                  </button>
+                  <button role="tab" aria-selected={pane === 'code'} className={pane === 'code' ? 'on' : ''} disabled={!unlocked} onClick={() => setPane('code')}
+                    title={unlocked ? '' : `Explain your logic first (${LOGIC_MIN_WORDS}+ words)`}>
+                    <b>2</b> Code {!unlocked && <i className="bi bi-lock-fill" />}
+                  </button>
                 </div>
+                {pane === 'logic' ? (
+                  <div className="tl2-ws-pane">
+                    <p className="tl2-ws-help">Think first. In plain words: what the program reads, what it works out, and what it prints. Write at least {LOGIC_MIN_WORDS} words, then check your logic. The code editor opens when your plan is on the right track (it does not have to be perfect).</p>
+                    <label className="tl2-field"><span className="tl2-lbl">Your logic <small className={wc >= LOGIC_MIN_WORDS ? 'ok' : ''}>{wc} / {LOGIC_MIN_WORDS}+ words</small></span>
+                      <textarea className="tl2-input" rows={8} value={explanation} maxLength={4000} onChange={(e) => setExplanation(e.target.value)}
+                        placeholder="e.g. Read the two numbers. Loop from the first to the second, add up the even ones, and print the total at the end." />
+                    </label>
+                    {verdict && <LogicNote v={verdict.v} feedback={verdict.feedback} />}
+                    {err && <div className="tl2-err"><i className="bi bi-exclamation-circle" /> {err}</div>}
+                    <div className="tl2-actions">
+                      {q.hintsTotal > hints.length && <button className="tl2-btn" disabled={!!busy} onClick={hint}><i className="bi bi-lightbulb" /> Hint {hints.length + 1} of {q.hintsTotal}</button>}
+                      {unlocked
+                        ? <button className="tl2-btn primary" onClick={() => { setPane('code'); setErr(''); }}>Back to the code <i className="bi bi-arrow-right" /></button>
+                        : <button className="tl2-btn primary" disabled={wc < LOGIC_MIN_WORDS || !!busy} onClick={checkLogic}>
+                            {busy === 'logic' ? <><span className="tl2-spin" /> Checking your logic…</> : <>Check my logic <i className="bi bi-arrow-right" /></>}
+                          </button>}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="tl2-ws-pane">
+                    <div className="tl2-ws-bar">
+                      <label className="tl2-lang"><span>Language</span>
+                        <select value={language} onChange={(e) => changeLanguage(e.target.value)} aria-label="Language">
+                          {TL_LANGS.map((l) => <option key={l.v} value={l.v}>{l.l}</option>)}
+                        </select>
+                      </label>
+                      <button className="tl2-link" onClick={() => { setCode(templateFor(language)); setRun(null); }}><i className="bi bi-arrow-counterclockwise" /> Reset</button>
+                    </div>
+                    <small className="tl2-ws-help">Read the input from standard input and print the answer.</small>
+                    <div className="tl2-editor">
+                      <Editor height="340px" theme="light" language={language} value={code} onChange={(v) => setCode(v ?? '')}
+                        options={{ minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, tabSize: 4, automaticLayout: true, wordWrap: 'on' }} />
+                    </div>
+                    {run && (
+                      <div className="tl2-run">
+                        {run.compileError ? <pre className="bad">{run.compileError}</pre> : run.results.map((r) => (
+                          <span key={r.index} className={r.passed ? 'ok' : 'bad'}><i className={`bi ${r.passed ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}`} /> Example {r.index + 1}</span>
+                        ))}
+                        {run.firstFail && <pre className="bad">Input: {run.firstFail.input}{'\n'}Expected: {run.firstFail.expected}{'\n'}Got: {run.firstFail.actual}</pre>}
+                      </div>
+                    )}
+                    {err && <div className="tl2-err"><i className="bi bi-exclamation-circle" /> {err}</div>}
+                    <div className="tl2-actions">
+                      {q.hintsTotal > hints.length && <button className="tl2-btn" disabled={!!busy} onClick={hint}><i className="bi bi-lightbulb" /> Hint {hints.length + 1} of {q.hintsTotal}</button>}
+                      <button className="tl2-btn" disabled={!!busy} onClick={runCode}>{busy === 'run' ? <span className="tl2-spin" /> : <i className="bi bi-play-fill" />} Run examples</button>
+                      <button className="tl2-btn primary" disabled={!!busy} onClick={submit}>{busy === 'submit' ? <><span className="tl2-spin" /> Checking…</> : <>Submit {demo ? '' : `· ${left} ${left === 1 ? 'try' : 'tries'} left`}</>}</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (<>
+              {q.answerFormat === 'choice' ? (
+                <fieldset className="tl2-choices"><legend className="tl2-lbl">Your answer</legend>
+                  {q.choices.map((c, i) => (
+                    <label key={i} className={answer === c ? 'on' : ''}><input type="radio" name={`ans-${q.id}`} checked={answer === c} onChange={() => setAnswer(c)} /><b>{String.fromCharCode(65 + i)}</b><span>{c}</span></label>
+                  ))}
+                </fieldset>
+              ) : (
+                <label className="tl2-field"><span className="tl2-lbl">Your answer</span>
+                  <input className="tl2-input" value={answer} inputMode={q.answerFormat === 'number' ? 'decimal' : undefined} maxLength={300}
+                    placeholder={q.answerFormat === 'number' ? 'A number' : 'A word or short phrase'} onChange={(e) => setAnswer(e.target.value)} />
+                </label>
               )}
-            </> : q.answerFormat === 'choice' ? (
-              <fieldset className="tl2-choices"><legend className="tl2-lbl">Your answer</legend>
-                {q.choices.map((c, i) => (
-                  <label key={i} className={answer === c ? 'on' : ''}><input type="radio" name={`ans-${q.id}`} checked={answer === c} onChange={() => setAnswer(c)} /><b>{String.fromCharCode(65 + i)}</b><span>{c}</span></label>
-                ))}
-              </fieldset>
-            ) : (
-              <label className="tl2-field"><span className="tl2-lbl">Your answer</span>
-                <input className="tl2-input" value={answer} inputMode={q.answerFormat === 'number' ? 'decimal' : undefined} maxLength={300}
-                  placeholder={q.answerFormat === 'number' ? 'A number' : 'A word or short phrase'} onChange={(e) => setAnswer(e.target.value)} />
+              <label className="tl2-field"><span className="tl2-lbl">Explain your thinking <small className={wc >= MIN_WORDS ? 'ok' : ''}>{wc} / {MIN_WORDS}+ words</small></span>
+                <textarea className="tl2-input" rows={5} value={explanation} maxLength={4000} onChange={(e) => setExplanation(e.target.value)}
+                  placeholder="Step by step: what you noticed, what you worked out, and how it gives the answer." />
               </label>
-            )}
-            <label className="tl2-field"><span className="tl2-lbl">{coding ? 'Explain your approach' : 'Explain your thinking'} <small className={wc >= MIN_WORDS ? 'ok' : ''}>{wc} / {MIN_WORDS}+ words</small></span>
-              <textarea className="tl2-input" rows={5} value={explanation} maxLength={4000} onChange={(e) => setExplanation(e.target.value)}
-                placeholder={coding ? 'How does your program work? What does it read, what does it compute, and why?' : 'Step by step: what you noticed, what you worked out, and how it gives the answer.'} />
-            </label>
-            {err && <div className="tl2-err"><i className="bi bi-exclamation-circle" /> {err}</div>}
-            <div className="tl2-actions">
-              {q.hintsTotal > hints.length && <button className="tl2-btn" disabled={!!busy} onClick={hint}><i className="bi bi-lightbulb" /> Hint {hints.length + 1} of {q.hintsTotal}</button>}
-              {coding && <button className="tl2-btn" disabled={!!busy} onClick={runCode}>{busy === 'run' ? <span className="tl2-spin" /> : <i className="bi bi-play-fill" />} Run examples</button>}
-              <button className="tl2-btn primary" disabled={!!busy} onClick={submit}>{busy === 'submit' ? <><span className="tl2-spin" /> Checking…</> : <>Submit {demo ? '' : `· ${left} ${left === 1 ? 'try' : 'tries'} left`}</>}</button>
-            </div>
+              {err && <div className="tl2-err"><i className="bi bi-exclamation-circle" /> {err}</div>}
+              <div className="tl2-actions">
+                {q.hintsTotal > hints.length && <button className="tl2-btn" disabled={!!busy} onClick={hint}><i className="bi bi-lightbulb" /> Hint {hints.length + 1} of {q.hintsTotal}</button>}
+                <button className="tl2-btn primary" disabled={!!busy} onClick={submit}>{busy === 'submit' ? <><span className="tl2-spin" /> Checking…</> : <>Submit {demo ? '' : `· ${left} ${left === 1 ? 'try' : 'tries'} left`}</>}</button>
+              </div>
+            </>)}
           </div>
         )}
+        </div>
       </section>
     );
   };

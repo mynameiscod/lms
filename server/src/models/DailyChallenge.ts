@@ -27,6 +27,8 @@ export interface IDailyChallenge extends Document {
   approach?: string;           // thinking notes (the gate)
   approachWordCount: number;
   editorUnlocked: boolean;
+  /** The approach check that opens the editor (logicCheckService). */
+  logicVerdict?: string; logicFeedback?: string; logicChecks?: number;
   code?: string;
   language: string;
   attempts: number;
@@ -68,6 +70,9 @@ const DailyChallengeSchema = new Schema<IDailyChallenge>(
     approach:   { type: String },
     approachWordCount: { type: Number, default: 0 },
     editorUnlocked: { type: Boolean, default: false },
+    logicVerdict: { type: String },
+    logicFeedback: { type: String, maxlength: 500 },
+    logicChecks: { type: Number, default: 0 },
     code:       { type: String },
     language:   { type: String, default: 'javascript' },
     attempts:   { type: Number, default: 0 },

@@ -59,6 +59,8 @@ export interface IThinkingAnswer extends Document {
   finished: boolean;
   finishedAt?: Date;
   xpEarned: number;
+  /** Coding: the student's plan, and whether it was judged good enough to open the editor. */
+  logic?: string; logicOk?: boolean; logicVerdict?: string; logicFeedback?: string; logicChecks?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -83,6 +85,11 @@ const ThinkingAnswerSchema = new Schema<IThinkingAnswer>(
     finished: { type: Boolean, default: false },
     finishedAt: { type: Date },
     xpEarned: { type: Number, default: 0 },
+    logic: { type: String, maxlength: 4000 },
+    logicOk: { type: Boolean, default: false },
+    logicVerdict: { type: String },
+    logicFeedback: { type: String, maxlength: 500 },
+    logicChecks: { type: Number, default: 0 },
   },
   { timestamps: true },
 );

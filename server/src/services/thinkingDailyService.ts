@@ -8,11 +8,12 @@ import PlatformLimits, { PLATFORM_LIMITS_KEY } from '../models/PlatformLimits';
 import { istToday, ymd } from '../utils/planSchedule';
 import { aiComplete } from './aiGateway';
 import { runAgainstTests } from './drillService';
+import { judgeLogic, LOGIC_AI_CHECKS } from './logicCheckService';
 import { awardLabDay, labStreakSettingsFor, labDayXp } from './labRewardService';
 import { advanceLabStreak, labStreakToday } from '../data/labStreakPolicy';
 import {
   LabDailySettings, labDailySettings, dayTypes, codingAccess, CodingAccess, topicsCovered, servingOrder,
-  ATTEMPTS_PUZZLE, ATTEMPTS_CODING, explanationLongEnough, EXPLANATION_MIN_WORDS, answerMatches,
+  ATTEMPTS_PUZZLE, ATTEMPTS_CODING, explanationLongEnough, EXPLANATION_MIN_WORDS, LOGIC_MIN_WORDS, answerMatches,
   StepStatus, puzzleShare, codingShare, stepsByWords,
 } from '../data/thinkingDailyPolicy';
 
@@ -228,6 +229,8 @@ export function memberQuestion(q: any, a: any | null) {
     last: a?.attempts?.length ? lastAttemptView(a.attempts[a.attempts.length - 1], q, finished) : null,
     bestShare: a?.bestShare || 0,
     xpEarned: a?.xpEarned || 0,
+    // Coding: the plan written before coding, and whether it opened the editor (a try made before this check existed counts).
+    logic: coding ? { text: a?.logic || '', ok: !!a?.logicOk || !!a?.attempts?.length, verdict: a?.logicVerdict || null, feedback: a?.logicFeedback || '' } : null,
     // Revealed once finished.
     reveal: finished ? {
       answer: coding ? null : q.answer, keySteps: coding ? [] : q.keySteps, explanation: q.explanation || '',
@@ -237,7 +240,7 @@ export function memberQuestion(q: any, a: any | null) {
 }
 
 const lastAttemptView = (t: any, q: any, finished: boolean) => ({
-  answer: t.answer ?? null, explanation: t.explanation ?? '', code: t.code ?? null, correct: !!t.correct, share: t.share,
+  answer: t.answer ?? null, explanation: t.explanation ?? '', code: t.code ?? null, language: t.language ?? null, correct: !!t.correct, share: t.share,
   passed: t.passed ?? null, total: t.total ?? null, feedback: t.feedback || '',
   // The step checklist names the steps only once finished; before, it shows how many were covered.
   steps: (t.steps || []).map((s: string, i: number) => ({ status: s, step: finished ? (q.keySteps || [])[i] || '' : '' })),
@@ -373,6 +376,7 @@ export async function submitAnswer(tenantId: string, studentId: string, question
 
   let attempt: any;
   if (coding) {
+    if (!logicPassed(a)) throw new LabError(403, LOGIC_FIRST);
     const code = String(body?.code || '').slice(0, 20000);
     if (!code.trim()) throw new LabError(400, 'Write some code first.');
     const language = String(body?.language || q.language || 'python');
@@ -435,9 +439,36 @@ async function questionFinished(tenantId: string, studentId: string, share: numb
 }
 
 /** Run coding against the visible tests only, without using an attempt. */
+/** A coding question's editor opens only once the student's plan has been checked (see logicCheckService). */
+const logicPassed = (a: any) => !!a?.logicOk || !!a?.attempts?.length;
+const LOGIC_FIRST = 'Explain your logic first. The code editor opens once your plan is on the right track.';
+
+/** POST …/questions/:id/logic — check the plan for a coding question; a good or partly right plan opens the editor. */
+export async function checkLogic(tenantId: string, studentId: string, questionId: string, body: any) {
+  const { q, practice } = await questionToday(tenantId, studentId, questionId);
+  if (q.type !== 'coding') throw new LabError(400, 'Only coding questions have a logic step.');
+  const a: any = await answerDoc(tenantId, studentId, questionId, practice);
+  if (a.finished) throw new LabError(409, 'You have finished this question.');
+  const logic = String(body?.logic || '').trim().slice(0, 4000);
+  const wc = logic.split(/\s+/).filter(Boolean).length;
+  if (wc < LOGIC_MIN_WORDS) throw new LabError(400, `Explain your logic in at least ${LOGIC_MIN_WORDS} words.`);
+  const r = await judgeLogic({
+    tenantId, studentId, product: 'careerpilot', statement: q.statement, reference: q.referenceSolution, explanation: q.explanation,
+    logic, aiAllowed: (a.logicChecks || 0) < LOGIC_AI_CHECKS,
+  });
+  a.logic = logic;
+  a.logicChecks = (a.logicChecks || 0) + 1;
+  a.logicVerdict = r.verdict;
+  a.logicFeedback = r.feedback;
+  if (r.ok) a.logicOk = true; // once opened, the editor stays open even if the plan is edited later
+  await a.save();
+  return { ok: logicPassed(a), verdict: r.verdict, feedback: r.feedback, question: memberQuestion(q, a) };
+}
+
 export async function runCode(tenantId: string, studentId: string, questionId: string, body: any) {
   const { q } = await questionToday(tenantId, studentId, questionId);
   if (q.type !== 'coding') throw new LabError(400, 'Only coding questions can be run.');
+  if (!logicPassed(await ThinkingAnswer.findOne({ tenantId, studentId: oid(studentId), questionId: oid(questionId) }).lean())) throw new LabError(403, LOGIC_FIRST);
   const code = String(body?.code || '');
   if (!code.trim()) throw new LabError(400, 'Write some code first.');
   const tests = (q.testCases || []).filter((t: any) => !t.hidden);

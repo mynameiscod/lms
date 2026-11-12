@@ -111,6 +111,8 @@ export function servingOrder<T extends { difficulty: string; order?: number | nu
 export const ATTEMPTS_PUZZLE = 3;
 export const ATTEMPTS_CODING = 5;
 export const EXPLANATION_MIN_WORDS = 8;
+/** A coding question's plan must be this long before it is checked (and the code editor can open). */
+export const LOGIC_MIN_WORDS = 20;
 
 const words = (s: string) => String(s || '').trim().split(/\s+/).filter(Boolean).length;
 export const explanationLongEnough = (s: string) => words(s) >= EXPLANATION_MIN_WORDS;

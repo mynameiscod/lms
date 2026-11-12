@@ -10,6 +10,7 @@ import ThinkingProfile from '../models/ThinkingProfile';
 import ScheduledChallenge from '../models/ScheduledChallenge';
 import User from '../models/User';
 import { resolveLabDay } from '../services/labTrackService';
+import { judgeLogic, LOGIC_AI_CHECKS } from '../services/logicCheckService';
 import { labBatchFor, labStudentIds } from '../services/placementBatchService';
 import { istToday, ymd } from '../utils/planSchedule';
 import * as lab from '../services/thinkingLabService';
@@ -392,10 +393,21 @@ export const saveApproach = async (req: Request, res: Response) => {
     const approach = String(req.body?.approach || '');
     const wc = lab.wordCount(approach);
     ch.approach = approach.slice(0, 4000); ch.approachWordCount = wc;
-    const unlocked = wc >= lab.MIN_APPROACH_WORDS;
-    if (unlocked) { ch.editorUnlocked = true; if (ch.status === 'assigned') ch.status = 'thinking_done'; }
+    // Enough words is not enough: the approach must be on the right track (good or partly right) to open
+    // the editor. Once opened it stays open, so editing the approach later never locks the student out.
+    let verdict: string | null = null; let feedback = '';
+    if (wc >= lab.MIN_APPROACH_WORDS && !ch.editorUnlocked) {
+      const p: any = await contentOf(ch);
+      const r = await judgeLogic({
+        tenantId: tId(req), studentId: uId(req), product: 'lms', statement: p?.statement || '', reference: p?.referenceSolution,
+        explanation: p?.raw?.explanation || p?.explanation, logic: approach, aiAllowed: (ch.logicChecks || 0) < LOGIC_AI_CHECKS,
+      });
+      verdict = r.verdict; feedback = r.feedback;
+      ch.logicChecks = (ch.logicChecks || 0) + 1; ch.logicVerdict = r.verdict; ch.logicFeedback = r.feedback;
+      if (r.ok) { ch.editorUnlocked = true; if (ch.status === 'assigned') ch.status = 'thinking_done'; }
+    }
     await ch.save();
-    res.json({ unlocked, wordCount: wc, minApproachWords: lab.MIN_APPROACH_WORDS });
+    res.json({ unlocked: !!ch.editorUnlocked, wordCount: wc, minApproachWords: lab.MIN_APPROACH_WORDS, verdict, feedback });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
 

@@ -64,7 +64,9 @@ export interface TQQuestion {
   hintsTotal: number; hints: string[]; language: string | null; starterCode: string | null;
   examples: { input: string; expectedOutput: string; explanation?: string }[]; visibleTests: { input: string; expectedOutput: string }[];
   keyStepCount: number; attemptsAllowed: number; state: 'new' | 'trying' | 'solved' | 'finished'; attemptsUsed: number;
-  last: { answer: string | null; explanation: string; code: string | null; correct: boolean; share: number; passed: number | null; total: number | null; feedback: string; steps: TQStep[] } | null;
+  /** Coding: the plan checked before the editor opens. */
+  logic?: { text: string; ok: boolean; verdict: 'good' | 'partial' | 'off' | null; feedback: string } | null;
+  last: { answer: string | null; explanation: string; code: string | null; language?: string | null; correct: boolean; share: number; passed: number | null; total: number | null; feedback: string; steps: TQStep[] } | null;
   bestShare: number; xpEarned: number;
   reveal: { answer: string | null; keySteps: string[]; explanation: string; referenceSolution: string | null } | null;
 }
@@ -82,6 +84,8 @@ export const memberLabApi = {
   answer: async (id: string, body: { answer?: string; explanation: string; code?: string; language?: string }): Promise<{ question: TQQuestion; reward: TQReward | null }> =>
     (await axios.post(`${BASE}/member/questions/${id}/answer`, body, { ...h(), timeout: 120000 })).data,
   hint: async (id: string): Promise<{ hints: string[]; hintsTotal: number }> => (await axios.post(`${BASE}/member/questions/${id}/hint`, {}, h())).data,
+  logic: async (id: string, logic: string): Promise<{ ok: boolean; verdict: 'good' | 'partial' | 'off'; feedback: string; question: TQQuestion }> =>
+    (await axios.post(`${BASE}/member/questions/${id}/logic`, { logic }, { ...h(), timeout: 60000 })).data,
   run: async (id: string, code: string, language: string): Promise<{ compileError: string | null; results: { index: number; passed: boolean; input: string; expected: string }[]; firstFail: { input: string; expected: string; actual: string } | null }> =>
     (await axios.post(`${BASE}/member/questions/${id}/run`, { code, language }, { ...h(), timeout: 120000 })).data,
   review: async (id: string): Promise<{ question: TQQuestion; date: string; practice: boolean }> => (await axios.get(`${BASE}/member/questions/${id}`, h())).data,
@@ -96,7 +100,7 @@ export const thinkingLabApi = {
   stats: async (): Promise<TLStats> => (await axios.get(`${BASE}/stats`, h())).data,
   badges: async (): Promise<TLBadge[]> => (await axios.get(`${BASE}/badges`, h())).data.badges || [],
   leaderboard: async (scope: string): Promise<{ scope: string; leaderboard: TLLeaderRow[]; myRank: number | null }> => (await axios.get(`${BASE}/leaderboard`, { ...h(), params: { scope } })).data,
-  saveApproach: async (id: string, approach: string): Promise<{ unlocked: boolean; wordCount: number; minApproachWords: number }> => (await axios.post(`${BASE}/${id}/approach`, { approach }, h())).data,
+  saveApproach: async (id: string, approach: string): Promise<{ unlocked: boolean; wordCount: number; minApproachWords: number; verdict?: 'good' | 'partial' | 'off' | null; feedback?: string }> => (await axios.post(`${BASE}/${id}/approach`, { approach }, h())).data,
   revealHint: async (id: string): Promise<{ hint: string; hintsUsed: number; totalHints: number }> => (await axios.post(`${BASE}/${id}/hint`, {}, h())).data,
   /** A lab-track puzzle from the shared bank: answer + explanation, marked like CareerPilot. */
   puzzleAnswer: async (id: string, body: { answer?: string; explanation: string }): Promise<{ question: TQQuestion; reward: TQReward | null; status: string; xpEarned: number }> =>

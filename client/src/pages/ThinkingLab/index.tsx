@@ -177,7 +177,12 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
     try {
       const r = await thinkingLabApi.saveApproach(challenge.challengeId, approach);
       setUnlocked(r.unlocked);
-      if (!r.unlocked) setErr(`Explain a little more — ${r.wordCount}/${r.minApproachWords} words. Describe your steps: what you read, what you compute, what you output.`);
+      if (!r.unlocked) {
+        // Long enough but off track: the check's pointer; too short: how many more words.
+        setErr(r.wordCount >= r.minApproachWords
+          ? `Not quite yet — ${r.feedback || 'describe how you would solve this problem: what you read, what you work out, and what you print.'}`
+          : `Explain a little more — ${r.wordCount}/${r.minApproachWords} words. Describe your steps: what you read, what you compute, what you output.`);
+      } else if (r.feedback) toast(r.verdict === 'good' ? `Good plan. ${r.feedback}` : `On the right track. ${r.feedback}`, 'success');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not save your approach.'); }
     finally { setSavingApproach(false); }
   };

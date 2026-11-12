@@ -35,6 +35,7 @@ router.get('/member/questions/:id', memberGate, member.review);
 router.post('/member/questions/:id/answer', memberGate, member.answer);
 router.post('/member/questions/:id/hint', memberGate, member.hint);
 router.post('/member/questions/:id/run', memberGate, member.run);
+router.post('/member/questions/:id/logic', memberGate, member.logic);
 router.get('/today', memberGate, ctrl.getToday);
 router.get('/assigned', memberGate, ctrl.assigned);
 router.post('/next', memberGate, ctrl.nextChallenge);

@@ -19,6 +19,16 @@ import { useUndoZoom } from '../../utils/useUndoZoom';
  * and Vimeo keep their own controls, which already seek perfectly well on their own.
  */
 
+/**
+ * Students watch lesson videos; they are not offered a copy. Hides the browser's own Download item
+ * (Chrome/Edge put it in the player's ⋮ menu) and the right-click "Save video as…". Spread onto every
+ * <video> a student watches; staff players keep the defaults. It removes the obvious way, not every way.
+ */
+export const NO_DOWNLOAD = {
+  controlsList: 'nodownload',
+  onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+};
+
 const SKIP_SECONDS = 10;
 const BIG_SKIP_SECONDS = 30;
 export const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -466,6 +476,7 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
         src={mountSrc.current}
         poster={content.videoThumbnail || undefined}
         controls
+        {...NO_DOWNLOAD}
         preload="metadata"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}

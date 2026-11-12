@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import passportApi, { OrientationDay, OrientationItem, OrientationView } from '../../api/passportApi';
 import './orientation.css';
 import { mediaUrl, MEDIA_PATH } from '../../utils/mediaUrl';
-import { SeekControls, useSeekKeys, savedSpeed, savedQuality, pickQuality, switchSource, QualityPref } from '../MyLearningPlan/VideoPlayer';
+import { SeekControls, useSeekKeys, savedSpeed, savedQuality, pickQuality, switchSource, QualityPref, NO_DOWNLOAD } from '../MyLearningPlan/VideoPlayer';
 import { barWidth } from '../../utils/barWidth';
 import { useUndoZoom } from '../../utils/useUndoZoom';
 import { celebrate } from '../../components/Celebration/celebrate';
@@ -260,6 +260,7 @@ const VideoItem: React.FC<{
         ref={ref}
         className="ori-video"
         controls
+        {...NO_DOWNLOAD}
         preload="metadata"
         playsInline
         src={mountSrc.current}

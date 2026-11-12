@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import passportApi, { ConceptJourney, ConceptJourneyStep } from '../../api/passportApi';
 import { lessonBlocks, LessonBlock } from './lessonText';
 import './materialViewer.css';
+import { NO_DOWNLOAD } from '../MyLearningPlan/VideoPlayer';
 
 /**
  * The lesson an admin wrote, as the member reads it.
@@ -249,7 +250,7 @@ const MaterialViewer: React.FC = () => {
         <div className="mv-pane mv-watch">
           <div className="mv-watch-main">
             {video && isVideoFile(video) ? (
-              <div className="mv-video"><video src={video} controls preload="metadata" /></div>
+              <div className="mv-video"><video src={video} controls {...NO_DOWNLOAD} preload="metadata" /></div>
             ) : embed ? (
               <div className="mv-video">
                 <iframe

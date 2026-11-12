@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { adaptiveApi, TopicView, TopicItem, STATE_LABEL, STATE_TONE } from '../../api/adaptiveApi';
 import './topic.css';
+import { NO_DOWNLOAD } from '../MyLearningPlan/VideoPlayer';
 
 /**
  * One topic, in the order it is meant to be taken: watch, read, practise.
@@ -92,7 +93,7 @@ const VideoBlock: React.FC<{ item: TopicItem }> = ({ item }) => {
     );
   }
   if (/\.(mp4|webm|ogg)(\?|$)/i.test(url)) {
-    return <video className="tp-video" src={url} controls preload="metadata" />;
+    return <video className="tp-video" src={url} controls {...NO_DOWNLOAD} preload="metadata" />;
   }
   return <a className="tp-link" href={url} target="_blank" rel="noreferrer">Open the video</a>;
 };

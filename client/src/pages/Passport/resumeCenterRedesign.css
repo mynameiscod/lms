@@ -338,3 +338,46 @@ details.rc-break-row[open] > summary > div:first-child span::after { content: '�
   .rc-import-row span { grid-column: 1 / -1; white-space: normal; }
   .rc-import-review .rc-btn, .rc-ai-preview .rc-btn { width: 100%; }
 }
+
+/* ── Resume Intelligence sidebar: readable sizes (the base sheet set 8.5–10.5px) ───────────────────── */
+.rc-intelligence .rc-panel-head span { font-size: 12px; font-weight: 700; }
+.rc-intelligence .rc-mini-score small { font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; }
+.rc-intelligence .rc-mini-score h3 { font-size: 18px; }
+.rc-intelligence .rc-mini-score p { font-size: 13px; line-height: 1.45; }
+.rc-intelligence details.rc-break-row > summary > div:first-child,
+.rc-intelligence .rc-break-row.muted > div:first-child { font-size: 13.5px; color: #34465E; }
+.rc-intelligence .rc-break-row b { font-size: 13.5px; color: #1C2B44; }
+.rc-intelligence .rc-break-bar { height: 7px; }
+.rc-intelligence .rc-break-note { font-size: 12.5px; }
+.rc-intelligence .rc-checks li { font-size: 13px; line-height: 1.4; }
+.rc-intelligence .rc-checks li b { font-size: 12.5px; }
+.rc-intelligence .rc-score-how { font-size: 12.5px; }
+
+/* Fix These First: each fix a small card, the priority as a coloured badge. */
+.rc-intelligence .rc-fix-list { gap: 10px; }
+.rc-intelligence .rc-fix-item { grid-template-columns: 34px 1fr auto; gap: 12px; padding: 12px; border: 1px solid #E6ECF2; border-radius: 12px; background: #FBFCFE; }
+.rc-intelligence .rc-fix-item:last-child { border-bottom: 1px solid #E6ECF2; }
+.rc-intelligence .rc-fix-dot { width: 34px; height: 34px; border-radius: 10px; font-size: 15px; }
+.rc-intelligence .rc-fix-item b { font-size: 14px; line-height: 1.4; color: #1C2B44; font-weight: 700; }
+.rc-intelligence .rc-fix-item p { font-size: 13.5px; line-height: 1.5; color: #4A5B72; margin-top: 4px; }
+.rc-intelligence .rc-fix-item em { font-size: 11.5px; font-weight: 800; letter-spacing: .02em; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.rc-intelligence .rc-fix-item.p-high em { background: #FDECEC; color: #B42318; }
+.rc-intelligence .rc-fix-item.p-medium em { background: #FFF4DB; color: #915F00; }
+.rc-intelligence .rc-fix-item.p-low em { background: #EEF2F6; color: #4A5B72; }
+.rc-intelligence .rc-fix-item.p-wording em { background: #F0EAFF; color: #5B3CC4; }
+.rc-intelligence .rc-fix-item.p-high .rc-fix-dot { background: #FDECEC !important; color: #B42318 !important; }
+.rc-intelligence .rc-fix-item.p-medium .rc-fix-dot { background: #FFF4DB !important; color: #915F00 !important; }
+
+.rc-intelligence .rc-warning-list { gap: 10px; }
+.rc-intelligence .rc-warning-list li { font-size: 13.5px; line-height: 1.5; color: #34465E; }
+.rc-intelligence .rc-role b { font-size: 14.5px; }
+.rc-intelligence .rc-role small { font-size: 12px; }
+.rc-intelligence .rc-role-panel > p, .rc-intelligence .rc-role-panel > button { font-size: 13.5px; }
+.rc-intelligence .rc-panel .rs-kw span { font-size: 12px; padding: 5px 10px; }
+
+@media (max-width: 560px) {
+  .rc-intelligence .rc-fix-item { grid-template-columns: 30px 1fr; }
+  .rc-intelligence .rc-fix-item em { grid-column: 2; justify-self: start; }
+}
+.rc-sticky-actions b { font-size: 14px; }
+.rc-sticky-actions small { font-size: 12.5px; }

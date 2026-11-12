@@ -36,8 +36,14 @@ export interface LevelInfo {
   progressPct: number;
 }
 
-export function levelFromXp(xp: number, names?: string[]): LevelInfo {
-  const safeXp = Math.max(0, xp || 0);
+/**
+ * `xp` is the member's XP balance; `spent` is XP they converted into coins. The level is worked out
+ * from both (all XP ever earned), so converting lowers the XP shown but never the level.
+ * The returned `xp` is the balance.
+ */
+export function levelFromXp(xp: number, names?: string[], spent = 0): LevelInfo {
+  const balance = Math.max(0, xp || 0);
+  const safeXp = balance + Math.max(0, spent || 0);
   let level = 1;
   while (xpToReachLevel(level + 1) <= safeXp && level < 100) level++;
 
@@ -51,7 +57,7 @@ export function levelFromXp(xp: number, names?: string[]): LevelInfo {
   return {
     level,
     title: titleFor(level),
-    xp: safeXp,
+    xp: balance,
     xpIntoLevel: into,
     xpForThisLevel: span,
     xpToNextLevel: Math.max(0, ceil - safeXp),

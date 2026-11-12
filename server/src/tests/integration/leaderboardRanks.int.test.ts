@@ -13,6 +13,7 @@ jest.setTimeout(180_000);
 import User from '../../models/User';
 import Tenant from '../../models/Tenant';
 import PassportProgress from '../../models/PassportProgress';
+import { XpLedger } from '../../models/GamificationModels';
 import { getLeaderboard, rankSummary } from '../../services/leaderboardService';
 
 let college: string;
@@ -41,6 +42,25 @@ beforeEach(async () => {
 });
 
 describe('leaderboard ranks', () => {
+  it('keeps the rank of a member when they convert XP into coins', async () => {
+    const asha = await member(college, 'Asha', 300);
+    const ravi = await member(college, 'Ravi', 400);
+    // Ravi earned 400 this week, then converted 300 of it into coins.
+    await PassportProgress.updateOne({ studentId: ravi }, { $set: { xp: 100, xpSpent: 300 } });
+    const sid = new mongoose.Types.ObjectId(ravi);
+    await XpLedger.create({ tenantId: college, studentId: sid, eventKey: 'TEST', idempotencyKey: 'e1', amount: 400, at: new Date() });
+    await XpLedger.create({ tenantId: college, studentId: sid, eventKey: 'XP_CONVERTED', idempotencyKey: 'c1', amount: -300, at: new Date() });
+
+    for (const period of ['ALL_TIME', 'WEEKLY'] as const) {
+      const b = await getLeaderboard({ tenantId: college, studentId: ravi, scope: 'GLOBAL', period });
+      if (!b.available) throw new Error('global should be available');
+      expect(b.myRank).toBe(1);
+      expect(b.myXp).toBe(400);
+    }
+    const a = await getLeaderboard({ tenantId: college, studentId: asha, scope: 'GLOBAL', period: 'ALL_TIME' });
+    expect(a.available && a.myRank).toBe(2);
+  });
+
   it('ranks every CareerPilot member of every tenant on the global board, with no opt-in', async () => {
     const asha = await member(college, 'Asha', 300);
     const ravi = await member(institute, 'Ravi', 500);

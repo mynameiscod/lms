@@ -149,7 +149,7 @@ export async function buildShareCard(user: any): Promise<ShareCard> {
       .map((s: any) => [s.key, s.name]),
   );
 
-  const lv = g.levelFromXp(xp, await levelNamesFor(tenantId));
+  const lv = g.levelFromXp(xp, await levelNamesFor(tenantId), progress?.xpSpent);
   const pathwayLabel = attempt?.pathwayLabel
     || (content.pathways || []).find((pw: any) => pw.key === p.pathway)?.label
     || null;

@@ -238,13 +238,13 @@ export const getDashboard = async (req: Request, res: Response) => {
     const leaderboard = global && global.available
       ? global.entries.map(e => ({ rank: e.rank, name: e.name, xp: e.xp, me: e.me })) : [];
     if (globalRank && !leaderboard.some(r => r.me)) {
-      leaderboard.push({ rank: globalRank.rank, name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'You', xp: progress.xp || 0, me: true });
+      leaderboard.push({ rank: globalRank.rank, name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'You', xp: (progress.xp || 0) + (progress.xpSpent || 0), me: true });
     }
 
     const contests = await TechBattle.find({ tenantId, status: 'live', startAt: { $gt: now } })
       .select('title prize startAt slug').sort({ startAt: 1 }).limit(3).lean();
 
-    const level = g.levelFromXp(progress.xp, await levelNamesFor(tenantId));
+    const level = g.levelFromXp(progress.xp, await levelNamesFor(tenantId), progress.xpSpent);
     /*
      * THE ASSESSMENT PART reads the current readiness-based Career Score (careerScoreService, written
      * when at least 40% of the role is measured). Below that, the whole-role readiness — the same

@@ -18,6 +18,8 @@ export interface IPassportProgress extends Document {
   longestStreak: number;
   lastCompletedDate?: string;      // 'YYYY-MM-DD' (tenant-local-ish, UTC date)
   xp: number;
+  /** XP spent on coins. Taken off `xp`, but still counted for the level (levelFromXp). */
+  xpSpent?: number;
   /** `answer` holds the member's written response for missions that have no surface
    *  to complete them on — the reflective ones. Absent for the rest. */
   completed: {
@@ -75,6 +77,7 @@ const PassportProgressSchema = new Schema<IPassportProgress>(
     longestStreak: { type: Number, default: 0 },
     lastCompletedDate: { type: String },
     xp:        { type: Number, default: 0 },
+    xpSpent:   { type: Number, default: 0 },
     completed: [{
       day: Number, key: String, at: { type: Date, default: Date.now },
       answer: String,

@@ -3,6 +3,7 @@ import PassportProgress from '../models/PassportProgress';
 import User from '../models/User';
 import Tenant from '../models/Tenant';
 import { XpLedger } from '../models/GamificationModels';
+import { XP_SPENT_EVENT } from './xpConversionService';
 import { careerPilotMemberFilter } from './careerPilotPopulation';
 import {
   LeaderboardScope, LeaderboardPeriod, isScopeSupported, SCOPE_UNAVAILABLE_REASON,
@@ -206,19 +207,29 @@ export async function getLeaderboard(input: {
   };
 }
 
+/**
+ * Boards rank on XP EARNED: the balance plus XP spent on coins (xpSpent), and period boards leave out
+ * the ledger's XP_CONVERTED rows. Converting XP into coins lowers the XP balance but never a rank,
+ * the same as the level.
+ */
+const EARNED = { $add: [{ $ifNull: ['$xp', 0] }, { $ifNull: ['$xpSpent', 0] }] };
+const NOT_SPENT = { eventKey: { $ne: XP_SPENT_EVENT } };
+
 async function allTimeRanking(tenantIds: string[] | 'ALL', limit: number) {
   return PassportProgress.aggregate([
-    { $match: { ...tenantMatch(tenantIds), xp: { $gt: 0 } } },
-    { $sort: { xp: -1, studentId: 1 } },
+    { $match: tenantMatch(tenantIds) },
+    { $set: { earned: EARNED } },
+    { $match: { earned: { $gt: 0 } } },
+    { $sort: { earned: -1, studentId: 1 } },
     ...eligibleUserStage(),
     { $limit: limit },
-    { $project: { _id: 0, studentId: '$studentId', xp: '$xp' } },
+    { $project: { _id: 0, studentId: '$studentId', xp: '$earned' } },
   ]);
 }
 
 async function periodRanking(tenantIds: string[] | 'ALL', since: Date, limit: number) {
   return XpLedger.aggregate([
-    { $match: { ...tenantMatch(tenantIds), at: { $gte: since } } },
+    { $match: { ...tenantMatch(tenantIds), at: { $gte: since }, ...NOT_SPENT } },
     { $group: { _id: '$studentId', xp: { $sum: '$amount' } } },
     { $match: { xp: { $gt: 0 } } },
     { $sort: { xp: -1, _id: 1 } },
@@ -230,13 +241,13 @@ async function periodRanking(tenantIds: string[] | 'ALL', since: Date, limit: nu
 }
 
 const myAllTimeXp = async (tenantId: string, studentId: string): Promise<number> => {
-  const p: any = await PassportProgress.findOne({ tenantId, studentId }).select('xp').lean();
-  return p?.xp || 0;
+  const p: any = await PassportProgress.findOne({ tenantId, studentId }).select('xp xpSpent').lean();
+  return (p?.xp || 0) + (p?.xpSpent || 0);
 };
 
 const myPeriodXp = async (tenantId: string, studentId: string, since: Date): Promise<number> => {
   const [row] = await XpLedger.aggregate([
-    { $match: { tenantId, studentId: toId(studentId), at: { $gte: since } } },
+    { $match: { tenantId, studentId: toId(studentId), at: { $gte: since }, ...NOT_SPENT } },
     { $group: { _id: null, xp: { $sum: '$amount' } } },
   ]);
   return row?.xp || 0;
@@ -246,14 +257,15 @@ const myPeriodXp = async (tenantId: string, studentId: string, since: Date): Pro
 async function countAhead(tenantIds: string[] | 'ALL', since: Date | null, myXp: number): Promise<number> {
   if (!since) {
     const [row] = await PassportProgress.aggregate([
-      { $match: { ...tenantMatch(tenantIds), xp: { $gt: myXp } } },
+      { $match: tenantMatch(tenantIds) },
+      { $match: { $expr: { $gt: [EARNED, myXp] } } },
       ...eligibleUserStage(),
       { $count: 'n' },
     ]);
     return row?.n || 0;
   }
   const [row] = await XpLedger.aggregate([
-    { $match: { ...tenantMatch(tenantIds), at: { $gte: since } } },
+    { $match: { ...tenantMatch(tenantIds), at: { $gte: since }, ...NOT_SPENT } },
     { $group: { _id: '$studentId', xp: { $sum: '$amount' } } },
     { $match: { xp: { $gt: myXp } } },
     { $set: { studentId: '$_id' } },

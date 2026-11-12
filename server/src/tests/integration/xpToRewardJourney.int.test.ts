@@ -51,7 +51,7 @@ it('earn XP → convert → redeem → fulfil, and cancel refunds', async () => 
 
   const conv = await convertXp(TENANT, sid);
   expect(conv).toMatchObject({ ok: true, coins: 16, xpUsed: 160, balance: 16 });
-  expect(await xp(sid)).toBe(160);                         // XP untouched
+  expect(await xp(sid)).toBe(0);                           // the converted XP is spent
 
   await RewardDefinition.create({
     tenantId: TENANT, key: 'CODEBEGUN_TSHIRT', name: 'CodeBegun T-shirt', type: 'PHYSICAL',
@@ -81,5 +81,5 @@ it('earn XP → convert → redeem → fulfil, and cancel refunds', async () => 
   // The per-member limit counts the fulfilled one only, so a third is still allowed.
   const third = await redeemReward({ tenantId: TENANT, studentId: sid, rewardKey: 'CODEBEGUN_TSHIRT', intentToken: 'three' });
   expect(third.ok).toBe(true);
-  expect(await xp(sid)).toBe(160);
+  expect(await xp(sid)).toBe(0);                           // redeeming never touches XP
 });

@@ -41,8 +41,9 @@ export async function badgeMetricsFor(
   const need = (t: BadgeConditionType) => out[t] === undefined && defs.some(d => d.conditionType === t);
 
   if (need('XP_TOTAL') || need('STREAK')) {
-    const p: any = await PassportProgress.findOne({ tenantId, studentId }).select('xp streak longestStreak').lean();
-    if (out.XP_TOTAL === undefined) out.XP_TOTAL = p?.xp || 0;
+    const p: any = await PassportProgress.findOne({ tenantId, studentId }).select('xp xpSpent streak longestStreak').lean();
+    // "Earn N XP" counts XP earned, so converting XP into coins never undoes progress toward it.
+    if (out.XP_TOTAL === undefined) out.XP_TOTAL = (p?.xp || 0) + (p?.xpSpent || 0);
     // A streak REACHED: the longest the member has held, so a badge is not missed by a lapse.
     if (out.STREAK === undefined) out.STREAK = Math.max(p?.streak || 0, p?.longestStreak || 0);
   }

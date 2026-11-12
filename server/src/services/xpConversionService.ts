@@ -1,14 +1,18 @@
 import mongoose from 'mongoose';
 import { CoinAccount, CoinLedger } from '../models/CoinModels';
 import { XpLedger } from '../models/GamificationModels';
+import PassportProgress from '../models/PassportProgress';
 import { getCoinConfig, getAccount, coinsEarnedThisMonth } from './coinService';
 
 /**
  * Turning XP into coins — the member's choice, at the admin's rate.
  *
- * XP IS NEVER TAKEN AWAY. Level, rank and leaderboards read XP, and converting must not move
- * them. So a member converts from a separate allowance: XP earned since conversion started
- * (CoinConfig.xpConversionStartsAt), less what they already converted (CoinAccount.xpConverted).
+ * CONVERTED XP IS SPENT. The XP turned into coins comes off the member's XP balance, so the top bar,
+ * dashboard, level and leaderboards all show the lower figure: a negative XP_CONVERTED row in the XP
+ * ledger (so the ledger still adds up to the balance) and the same amount off PassportProgress.xp.
+ * What may be converted is still worked out from the allowance: XP earned since conversion started
+ * (CoinConfig.xpConversionStartsAt, positive rows only), less what was already converted
+ * (CoinAccount.xpConverted).
  *
  * ONLY WHOLE COINS. 250 XP at 100 XP a coin buys 2 coins and leaves 50 XP waiting for the next.
  *
@@ -21,6 +25,35 @@ import { getCoinConfig, getAccount, coinsEarnedThisMonth } from './coinService';
  */
 
 export const XP_CONVERSION_EVENT = 'xp_converted';
+/** The XP ledger's event for XP spent on coins (a negative amount). */
+export const XP_SPENT_EVENT = 'XP_CONVERTED';
+
+/**
+ * Take converted XP off the balance. Idempotent on the conversion's starting position, the same key
+ * the coin row uses, so a replay or a backfill run twice never takes it twice.
+ * Returns false when it was already recorded.
+ */
+export async function spendConvertedXp(tenantId: string, studentId: string, before: number, xpUsed: number, at: Date = new Date()): Promise<boolean> {
+  const sid = new mongoose.Types.ObjectId(studentId);
+  try {
+    await XpLedger.create({
+      tenantId, studentId: sid, eventKey: XP_SPENT_EVENT, sourceType: 'coin_conversion', sourceId: String(before),
+      idempotencyKey: `xp_convert:${studentId}:${before}`, amount: -xpUsed, at,
+    });
+  } catch (e: any) {
+    if (e?.code === 11000) return false;
+    throw e;
+  }
+  // Never below zero: a balance that was already short (an old repair) must not go negative.
+  // xpSpent keeps what came off, so the level (worked out from xp + xpSpent) does not drop.
+  await PassportProgress.updateOne({ tenantId, studentId: sid }, [
+    { $set: { _xpWas: { $ifNull: ['$xp', 0] } } },
+    { $set: { xp: { $max: [0, { $subtract: ['$_xpWas', xpUsed] }] } } },
+    { $set: { xpSpent: { $add: [{ $ifNull: ['$xpSpent', 0] }, { $subtract: ['$_xpWas', '$xp'] }] } } },
+    { $unset: '_xpWas' },
+  ]);
+  return true;
+}
 
 export interface ConversionStatus {
   enabled: boolean;
@@ -145,6 +178,8 @@ export async function convertXp(tenantId: string, studentId: string, coins?: num
     { $inc: { balance: grant, lifetimeEarned: grant } },
     { new: true },
   );
+  // The coins are paid; now the XP they cost comes off the balance.
+  await spendConvertedXp(tenantId, studentId, before, xpUsed);
 
   return {
     ok: true, coins: grant, xpUsed, balance: updated?.balance ?? claimed.balance + grant,

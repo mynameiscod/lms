@@ -135,7 +135,7 @@ export async function getMemberProfile(req: Request, res: Response) {
         })),
         progress: {
           xp,
-          level: levelFromXp(xp, await levelNamesFor(tenantId)),
+          level: levelFromXp(xp, await levelNamesFor(tenantId), progress?.xpSpent),
           streak: progress ? liveStreak(progress) : 0,
           longestStreak: progress?.longestStreak || 0,
           lastActiveDay: progress?.lastCompletedDate || null,

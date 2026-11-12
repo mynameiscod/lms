@@ -1,5 +1,5 @@
 /**
- * XP → coins, against a real database: whole coins only, leftovers carried, XP never reduced,
+ * XP → coins, against a real database: whole coins only, leftovers carried, converted XP spent but the level kept,
  * the monthly cap respected, and two clicks at once paying once.
  */
 import mongoose from 'mongoose';
@@ -10,17 +10,24 @@ jest.setTimeout(180_000);
 import { XpLedger } from '../../models/GamificationModels';
 import { CoinConfig, CoinLedger, CoinAccount } from '../../models/CoinModels';
 import { invalidateCoinCache } from '../../services/coinService';
-import { conversionStatus, convertXp, XP_CONVERSION_EVENT } from '../../services/xpConversionService';
+import PassportProgress from '../../models/PassportProgress';
+import { levelFromXp } from '../../services/passportGamificationService';
+import { conversionStatus, convertXp, spendConvertedXp, XP_CONVERSION_EVENT, XP_SPENT_EVENT } from '../../services/xpConversionService';
 
 const TENANT = 'tenant-convert';
 const STUDENT = String(new mongoose.Types.ObjectId());
 const START = new Date('2026-10-01T00:00:00Z');
 
 let seq = 0;
-const earn = (amount: number, at = new Date(), sourceType = 'test') => XpLedger.create({
-  tenantId: TENANT, studentId: new mongoose.Types.ObjectId(STUDENT), eventKey: 'TEST', sourceType,
-  sourceId: String(++seq), idempotencyKey: `t:${seq}`, amount, at,
-});
+// Earning XP moves the ledger and the balance together, as the gamification engine does.
+const earn = async (amount: number, at = new Date(), sourceType = 'test') => {
+  await XpLedger.create({
+    tenantId: TENANT, studentId: new mongoose.Types.ObjectId(STUDENT), eventKey: 'TEST', sourceType,
+    sourceId: String(++seq), idempotencyKey: `t:${seq}`, amount, at,
+  });
+  await PassportProgress.updateOne({ tenantId: TENANT, studentId: new mongoose.Types.ObjectId(STUDENT) }, { $inc: { xp: amount } }, { upsert: true });
+};
+const progress = () => PassportProgress.findOne({ tenantId: TENANT }).lean() as any;
 
 const configure = async (patch: Record<string, any> = {}) => {
   await CoinConfig.findOneAndUpdate({ tenantId: TENANT }, {
@@ -53,13 +60,12 @@ describe('converting XP into coins', () => {
     expect(s.xpToNextCoin).toBe(50);
   });
 
-  it('pays whole coins, carries the rest, and never touches XP', async () => {
+  it('pays whole coins and carries the rest', async () => {
     await configure();
     await earn(250);
     const r = await convertXp(TENANT, STUDENT);
     expect(r).toMatchObject({ ok: true, coins: 2, xpUsed: 200, balance: 2 });
     expect(r.status.availableXp).toBe(50);
-    expect(await XpLedger.countDocuments({ tenantId: TENANT })).toBe(1);
 
     // Nothing more to convert until another 50 XP arrives.
     expect((await convertXp(TENANT, STUDENT)).refused).toBe('nothing_to_convert');
@@ -108,5 +114,41 @@ describe('converting XP into coins', () => {
     await configure({ xpPerCoin: 50 });
     const r = await convertXp(TENANT, STUDENT);              // 300 XP left → 6 coins
     expect(r).toMatchObject({ ok: true, coins: 6, xpUsed: 300, balance: 8 });
+  });
+
+  it('takes converted XP off the balance, keeps the level, and the ledger still adds up', async () => {
+    await configure();
+    await earn(1200);
+    const before = levelFromXp(1200);
+    await convertXp(TENANT, STUDENT, 5);                     // 500 XP → 5 coins
+    const p = await progress();
+    expect(p).toMatchObject({ xp: 700, xpSpent: 500 });
+    const lv = levelFromXp(p.xp, undefined, p.xpSpent);
+    expect(lv.xp).toBe(700);                                  // the XP shown drops
+    expect(lv.level).toBe(before.level);                      // the level does not
+    expect(lv.xpToNextLevel).toBe(before.xpToNextLevel);
+
+    const spent: any = await XpLedger.findOne({ tenantId: TENANT, eventKey: XP_SPENT_EVENT }).lean();
+    expect(spent.amount).toBe(-500);
+    const [sum] = await XpLedger.aggregate([{ $match: { tenantId: TENANT } }, { $group: { _id: null, t: { $sum: '$amount' } } }]);
+    expect(sum.t).toBe(700);
+
+    // Spending only reduces what is left: the allowance still converts the other 700.
+    expect((await conversionStatus(TENANT, STUDENT)).coinsAvailable).toBe(7);
+  });
+
+  it('records the XP of a conversion once, however often it is replayed (the backfill path)', async () => {
+    await configure();
+    await earn(500);
+    expect(await spendConvertedXp(TENANT, STUDENT, 0, 300)).toBe(true);
+    expect(await spendConvertedXp(TENANT, STUDENT, 0, 300)).toBe(false);
+    expect(await progress()).toMatchObject({ xp: 200, xpSpent: 300 });
+  });
+
+  it('never takes the balance below zero', async () => {
+    await configure();
+    await earn(100);
+    await spendConvertedXp(TENANT, STUDENT, 0, 300);
+    expect(await progress()).toMatchObject({ xp: 0, xpSpent: 100 });
   });
 });

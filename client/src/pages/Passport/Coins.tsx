@@ -24,7 +24,7 @@ const n = (v: number) => v.toLocaleString('en-IN');
  * Turn XP into coins. Shown only when an admin switched conversion on.
  *
  * The member picks how many coins (all they can, by default); the server decides what is allowed.
- * XP, level and rank never go down — the card says so, because that is the first worry.
+ * The XP converted is spent (it comes off the XP shown); level and rank never go down — the card says so.
  */
 const ConvertCard: React.FC<{ c: XpConversionStatus; onDone: (balance: number, c: XpConversionStatus, coins: number) => void }> = ({ c, onDone }) => {
   const most = c.monthlyRoom === null ? c.coinsAvailable : Math.min(c.coinsAvailable, c.monthlyRoom);
@@ -38,7 +38,7 @@ const ConvertCard: React.FC<{ c: XpConversionStatus; onDone: (balance: number, c
     setBusy(true); setMsg(null);
     try {
       const r = await passportApi.convertXpToCoins(want);
-      setMsg({ ok: true, text: `+${n(r.coins)} coin${r.coins === 1 ? '' : 's'} added. Your XP and level stay the same.` });
+      setMsg({ ok: true, text: `+${n(r.coins)} coin${r.coins === 1 ? '' : 's'} added. ${n(r.xpUsed)} XP spent; your level and rank stay the same.` });
       onDone(r.balance, r.conversion, r.coins);
     } catch (e: any) {
       setMsg({ ok: false, text: e?.response?.data?.message || 'Could not convert right now.' });
@@ -53,7 +53,7 @@ const ConvertCard: React.FC<{ c: XpConversionStatus; onDone: (balance: number, c
         <span className="cpw-convert-ic"><i className="bi bi-lightning-charge-fill" /></span>
         <div>
           <h3>Turn your XP into coins</h3>
-          <p><b>{n(c.xpPerCoin)} XP = 1 coin.</b> Converting never lowers your XP, level or rank.</p>
+          <p><b>{n(c.xpPerCoin)} XP = 1 coin.</b> Converting spends that XP, but never lowers your level or rank.</p>
         </div>
       </div>
       <div className="cpw-convert-nums">
@@ -181,7 +181,7 @@ const Coins: React.FC = () => {
           <aside className="cpw-right">
             <section className="cpw-card"><div className="cpw-card-head"><div><h3>Quick Actions</h3><p>Move directly to the next useful step.</p></div></div><button className="cpw-action" onClick={() => nav('/careerpilot/rewards')}><span><i className="bi bi-gift" /></span><div><b>Explore Rewards</b><em>See what your coins can unlock</em></div><i className="bi bi-arrow-right" /></button><button className="cpw-action" onClick={() => nav('/careerpilot/missions')}><span><i className="bi bi-bullseye" /></span><div><b>Complete Missions</b><em>Earn through meaningful actions</em></div><i className="bi bi-arrow-right" /></button><button className="cpw-action" onClick={() => nav('/careerpilot/practice')}><span><i className="bi bi-code-square" /></span><div><b>Practice & Improve</b><em>Earn from configured practice rules</em></div><i className="bi bi-arrow-right" /></button></section>
 
-            <section className="cpw-card cpw-policy"><div className="cpw-card-head"><div><h3>Coin Rules</h3><p>Simple and transparent.</p></div></div><ul><li><i className="bi bi-check-circle" /> {data.conversion?.enabled ? `${n(data.conversion.xpPerCoin)} XP converts to 1 coin. Your XP never goes down.` : 'Coins are separate from XP.'}</li><li><i className="bi bi-check-circle" /> Coins have no rupee or cash value.</li><li><i className="bi bi-check-circle" /> Reward prices are defined in coins only.</li><li><i className="bi bi-check-circle" /> Server eligibility rules always decide redemption.</li></ul></section>
+            <section className="cpw-card cpw-policy"><div className="cpw-card-head"><div><h3>Coin Rules</h3><p>Simple and transparent.</p></div></div><ul><li><i className="bi bi-check-circle" /> {data.conversion?.enabled ? `${n(data.conversion.xpPerCoin)} XP converts to 1 coin. Converted XP is spent; your level and rank stay.` : 'Coins are separate from XP.'}</li><li><i className="bi bi-check-circle" /> Coins have no rupee or cash value.</li><li><i className="bi bi-check-circle" /> Reward prices are defined in coins only.</li><li><i className="bi bi-check-circle" /> Server eligibility rules always decide redemption.</li></ul></section>
           </aside>
         </div>
       </div>

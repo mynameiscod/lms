@@ -59,7 +59,7 @@ export async function loadStudentRewardContext(
 ): Promise<StudentRewardContext> {
   const [coins, progress, badges, user, cfg, coinCfg, budget, mine] = await Promise.all([
     spendableBalance(tenantId, studentId, now),
-    PassportProgress.findOne({ tenantId, studentId }).select('xp').lean() as any,
+    PassportProgress.findOne({ tenantId, studentId }).select('xp xpSpent').lean() as any,
     StudentBadge.find({ tenantId, studentId }).select('badgeKey').lean() as any,
     User.findOne({ _id: studentId, tenantId }).select('passport').lean() as any,
     PassportConfig.findOne({ tenantId }).lean() as any,
@@ -95,7 +95,7 @@ export async function loadStudentRewardContext(
 
   return {
     tenantId, studentId, coins, xp,
-    level: levelFromXp(xp).level,
+    level: levelFromXp(xp, undefined, progress?.xpSpent).level,
     badgeKeys: new Set((badges as any[]).map(b => b.badgeKey)),
     canSpend: membershipOk && !demo,
     spendBlockedReason: demo ? 'DEMO_ACCOUNT' : membershipOk ? undefined : 'MEMBERSHIP_REQUIRED',

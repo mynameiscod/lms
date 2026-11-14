@@ -61,11 +61,61 @@ export const BookCover: React.FC<{ b: ShelfBook; onOpen: () => void }> = ({ b, o
   );
 };
 
+const pctOf = (b: ShelfBook) => (b.questionCount ? Math.min(100, Math.round((b.knew / b.questionCount) * 100)) : 0);
+const isDone = (b: ShelfBook) => b.questionCount > 0 && b.knew >= b.questionCount;
+
+/**
+ * One book on the shelf: a cover that looks like a real book (spine, page edges, a bookmark while it
+ * is being read, a seal when it is finished) standing on the shelf, and what the member needs under it.
+ */
+const ShelfCard: React.FC<{ b: ShelfBook; onOpen: () => void }> = ({ b, onOpen }) => {
+  const done = isDone(b);
+  const pct = pctOf(b);
+  const { color, icon } = coverFor(b);
+  const company = b.kind === 'company';
+  const state = done ? 'done' : b.started ? 'reading' : 'new';
+  return (
+    <article className={`qbs-item s-${state}`}>
+      <div className="qbs-stand">
+        <button type="button" className={`qbs-book${b.started && !done ? ' has-mark' : ''}`} style={{ ['--cv' as any]: color }} onClick={onOpen}
+          aria-label={`${done ? 'Read again' : b.started ? 'Continue' : 'Start'}: ${b.title}`}>
+          <span className="qbs-spine" aria-hidden />
+          <span className="qbs-cover" aria-hidden>
+            <span className="qbs-frame" />
+            <span className="qbs-kind">{company ? 'Company' : 'Topic'}{b.started && !done ? '' : ' book'}</span>
+            <span className="qbs-emblem"><i className={`bi ${icon}`} /></span>
+            <span className="qbs-title">{b.title}</span>
+            {b.subject && !b.title.toLowerCase().includes(b.subject.toLowerCase()) && <span className="qbs-sub">{b.subject}</span>}
+            <span className="qbs-brand">{b.global ? 'CodeBegun' : 'Your college'}</span>
+          </span>
+          <span className="qbs-pages" aria-hidden />
+          {b.started && !done && <span className="qbs-ribbon" aria-hidden><b>{pct}%</b></span>}
+          {done && <span className="qbs-seal" aria-hidden><i className="fa-solid fa-check" /></span>}
+        </button>
+        <span className="qbs-plank" aria-hidden />
+      </div>
+      <div className="qbs-info">
+        <h3 title={b.title}><button type="button" onClick={onOpen}>{b.title}</button></h3>
+        <p className="qbs-meta">
+          <span>{b.questionCount} questions</span><span>{b.chapters} chapter{b.chapters === 1 ? '' : 's'}</span>
+          {b.favorites ? <span className="star"><i className="fa-solid fa-star" aria-hidden /> {b.favorites}</span> : null}
+        </p>
+        <div className="qbs-prog" title={`${b.knew} of ${b.questionCount} known`}>
+          <span className="bar"><i style={{ width: `${pct}%` }} /></span>
+          <em>{b.started ? `${b.knew}/${b.questionCount} known` : 'Not started'}</em>
+        </div>
+        {b.revise ? <span className="qbs-rev"><i className="fa-solid fa-rotate" aria-hidden /> {b.revise} to revise</span> : null}
+        <button type="button" className={`qbs-go${done ? ' done' : b.started ? ' on' : ''}`} onClick={onOpen}>
+          {done ? <><i className="fa-solid fa-rotate-left" aria-hidden /> Read again</> : b.started ? <>Continue <i className="fa-solid fa-arrow-right" aria-hidden /></> : <>Start reading <i className="fa-solid fa-arrow-right" aria-hidden /></>}
+        </button>
+      </div>
+    </article>
+  );
+};
+
 type Shelf = 'all' | 'topic' | 'company' | 'reading' | 'done';
 type Sort = 'shelf' | 'recent' | 'progress' | 'title' | 'size';
 const SORTS: [Sort, string][] = [['shelf', 'Recommended'], ['recent', 'Recently read'], ['progress', 'Most progress'], ['title', 'Title A–Z'], ['size', 'Most questions']];
-const pctOf = (b: ShelfBook) => (b.questionCount ? Math.min(100, Math.round((b.knew / b.questionCount) * 100)) : 0);
-const isDone = (b: ShelfBook) => b.questionCount > 0 && b.knew >= b.questionCount;
 
 const Library: React.FC = () => {
   const nav = useNavigate();
@@ -177,43 +227,8 @@ const Library: React.FC = () => {
         )}
 
         {!!shown.length && (
-          <div className="plh-table qbk2-table" role="table" aria-label="Question books">
-            <div className="plh-row plh-thead" role="row">
-              <span role="columnheader" className="c-st" aria-label="Status" />
-              <span role="columnheader" className="c-title">Book</span>
-              <span role="columnheader" className="c-topic">Type</span>
-              <span role="columnheader" className="c-att">Questions</span>
-              <span role="columnheader" className="c-acc">Progress</span>
-              <span role="columnheader" className="c-diff">To revise</span>
-              <span role="columnheader" className="c-act">Action</span>
-            </div>
-            {shown.map((b) => {
-              const done = isDone(b);
-              const pct = pctOf(b);
-              const { color, icon } = coverFor(b);
-              return (
-                <div key={b.id} className={`plh-row s-${done ? 'solved' : b.started ? 'attempted' : 'todo'}`} role="row" tabIndex={0} onClick={() => open(b)} onKeyDown={(e) => { if (e.key === 'Enter') open(b); }}>
-                  <span role="cell" className="c-st" title={done ? 'Completed' : b.started ? 'Reading' : 'Not started'}>
-                    {done ? <i className="fa-solid fa-circle-check" aria-label="Completed" /> : b.started ? <i className="fa-solid fa-circle-half-stroke" aria-label="Reading" /> : <i className="fa-regular fa-circle" aria-label="Not started" />}
-                  </span>
-                  <span role="cell" className="c-title qbk2-title">
-                    <span className="qbk2-cover" style={{ ['--cv' as any]: color }} aria-hidden><i className={`bi ${icon}`} /></span>
-                    <span className="qbk2-name"><b>{b.title}</b><small>{[b.subject && b.subject !== b.title ? b.subject : '', `${b.chapters} chapter${b.chapters === 1 ? '' : 's'}`, b.favorites ? `★ ${b.favorites} starred` : ''].filter(Boolean).join(' · ')}</small></span>
-                  </span>
-                  <span role="cell" className="c-topic"><span className={`plh-topic qbk2-kind ${b.kind}`}>{b.kind === 'company' ? 'Company' : 'Topic'}{b.global ? '' : ' · College'}</span></span>
-                  <span role="cell" className="c-att">{b.questionCount}</span>
-                  <span role="cell" className="c-acc qbk2-prog" title={`${b.knew} of ${b.questionCount} known`}>
-                    <span className="bar"><i style={{ width: `${pct}%` }} /></span><em>{pct}%</em>
-                  </span>
-                  <span role="cell" className="c-diff">{b.revise ? <span className="qbk2-rev">{b.revise} to revise</span> : <span className="qbk2-none">—</span>}</span>
-                  <span role="cell" className="c-act">
-                    <button type="button" className={`plh-solve${done ? ' done' : ''}`} onClick={(e) => { e.stopPropagation(); open(b); }}>
-                      {done ? 'Read again' : b.started ? <>Continue <i className="fa-solid fa-arrow-right" aria-hidden /></> : <>Start <i className="fa-solid fa-arrow-right" aria-hidden /></>}
-                    </button>
-                  </span>
-                </div>
-              );
-            })}
+          <div className="qbs-shelf" aria-label="Question books">
+            {shown.map((b) => <ShelfCard key={b.id} b={b} onOpen={() => open(b)} />)}
           </div>
         )}
         {!books && <div className="pl-empty"><span className="pb-spinner" /> Loading the books…</div>}

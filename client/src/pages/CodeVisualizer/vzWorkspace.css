@@ -1,0 +1,152 @@
+/* Code Visualizer workspace and concept pages (Workspace.tsx, TracePlayer.tsx, concepts/*).
+   2026-11-14 redesign layer, loaded after CodeVisualizer.css. The first pass used 11–14px type,
+   which a laptop shows at 75% (index.css zooms #root to .75 above 1024px), so labels drew at 8–10
+   real pixels. This layer lifts the type to the Practice pages' scale, gives the three cards one
+   height so the row reads as a single workspace, and gives the empty Visualization card a real
+   welcome instead of a bare list. */
+
+.vz-root { font-size: 15px; --vz-navy: #051D64; }
+.vz-root h3 { font-size: 17px; }
+
+/* Header card */
+.vz-root .vz-head-card { padding: 20px 26px; border-radius: 20px; }
+.vz-root .vz-crumbs { font-size: 14.5px; gap: 10px; }
+.vz-root .vz-crumbs .sep { font-size: 11px; }
+.vz-root .vz-head-card h1 { font-size: clamp(26px, 2.3vw, 34px); color: var(--vz-navy); }
+.vz-root .vz-subtitle { font-size: 16px; margin-top: 8px; color: var(--vz-body); }
+.vz-root .vz-diff { font-size: 13.5px; padding: 5px 14px; }
+.vz-root .vz-tags { gap: 8px; }
+.vz-root .vz-tag { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; font-size: 14px; border-radius: 10px; }
+.vz-root .vz-tag.cx { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #fff; color: var(--vz-ink); }
+.vz-root .vz-tag.cx i { color: var(--vz-muted); }
+
+/* Three cards, one height: each scrolls inside itself. vh is not scaled by #root's zoom, so it is
+   divided by --app-zoom to mean the real window again. */
+.vz-root.vz-w-wide .vz-grid { align-items: stretch; grid-template-columns: minmax(0, .9fr) minmax(0, 1.35fr) minmax(0, 1.15fr); }
+.vz-root.vz-w-wide .vz-left,
+.vz-root.vz-w-wide .vz-editor-col,
+.vz-root.vz-w-wide .vz-run-col { height: calc(100vh / var(--app-zoom, 1) - 150px); min-height: 640px; max-height: none; position: sticky; top: 12px; }
+.vz-root.vz-w-wide .vz-run-col { display: flex; flex-direction: column; overflow: hidden; }
+.vz-root.vz-w-wide .vz-run-body { flex: 1; min-height: 0; overflow: auto; }
+.vz-root.vz-w-mid .vz-left, .vz-root.vz-w-mid .vz-editor-col { height: calc(100vh / var(--app-zoom, 1) - 150px); min-height: 600px; max-height: none; }
+.vz-root .vz-editor-col.is-full { height: auto !important; position: fixed !important; }
+
+/* Problem card */
+.vz-root .vz-tabs { padding: 0 14px; }
+.vz-root .vz-tabs button { font-size: 15px; padding: 17px 12px 15px; gap: 8px; }
+.vz-root .vz-left-body { padding: 20px; gap: 16px; }
+.vz-root .vz-statement p { font-size: 16px; line-height: 1.7; color: var(--vz-ink); }
+.vz-root .vz-box { padding: 16px; border-radius: 14px; gap: 9px; }
+.vz-root .vz-box-title { font-size: 15.5px; }
+.vz-root .vz-box-icon { width: 30px; height: 30px; font-size: 13px; }
+.vz-root .vz-box-label { font-size: 13.5px; }
+.vz-root .vz-box-text, .vz-root .vz-box-note { font-size: 15px; }
+.vz-root .vz-copybox pre { font-size: 14.5px; padding: 12px 44px 12px 14px; }
+.vz-root .vz-callout-text b { font-size: 15.5px; }
+.vz-root .vz-callout-text span { font-size: 14px; }
+.vz-root .vz-lead, .vz-root .vz-reveal-item, .vz-root .vz-complexity p, .vz-root .vz-io-box { font-size: 15.5px; }
+.vz-root .vz-io-label, .vz-root .vz-cx span { font-size: 12.5px; }
+.vz-root .vz-cx b { font-size: 26px; }
+.vz-root .vz-seg-btn { font-size: 14px; padding: 8px 14px; }
+.vz-root .vz-seg-hint { font-size: 14px; }
+
+/* Editor card */
+.vz-root .vz-editor-bar { padding: 12px 14px; gap: 10px; }
+.vz-root .vz-lang { height: 42px; font-size: 14.5px; }
+.vz-root .vz-editor-bar .vz-lang select { width: 60px !important; }
+.vz-root .vz-btn { font-size: 14.5px; min-height: 42px; padding: 0 15px; }
+.vz-root .vz-btn-primary { font-size: 15px; padding: 0 22px; min-height: 44px; }
+.vz-root .vz-fs-btn { width: 44px; height: 44px; font-size: 15px; }
+
+/* Visualization card */
+.vz-root .vz-run-head { padding: 18px 20px 0; }
+.vz-root .vz-run-head h2 { font-size: 20px; color: var(--vz-navy); }
+.vz-root .vz-run-body { padding: 16px 20px 20px; gap: 14px; }
+.vz-root .vz-step-count { font-size: 14.5px; font-weight: 700; color: var(--vz-body); }
+.vz-root .vz-running, .vz-root .vz-warn, .vz-root .vz-error { font-size: 15px; }
+
+.vz-idle { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 10px 6px 6px; }
+.vz-idle-demo { display: flex; align-items: flex-end; gap: 9px; width: 100%; max-width: 330px; height: 150px; padding: 18px 22px 0; border-radius: 18px 18px 0 0;
+  background: radial-gradient(120% 90% at 100% 0%, #1D4FB8 0%, #0A2A7A 45%, #051D64 100%); box-shadow: 0 14px 28px -14px rgba(5, 29, 100, .5); }
+.vz-idle-demo i { flex: 1; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #7FA6F5, #4677E6); transform-origin: bottom; animation: vz-idle-bar 2.8s ease-in-out infinite; }
+.vz-idle-demo i.cmp { background: linear-gradient(180deg, #FFD36B, #F2A516); }
+@keyframes vz-idle-bar { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(.72); } }
+.vz-root .vz-idle h3 { margin: 22px 0 6px; font-size: 22px; font-weight: 800; color: var(--vz-navy); }
+.vz-idle-sub { margin: 0 0 18px; max-width: 420px; font-size: 15.5px; line-height: 1.55; color: var(--vz-body); }
+.vz-idle-steps { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 440px; display: grid; gap: 10px; text-align: left; }
+.vz-idle-steps li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--vz-line); border-radius: 14px; background: #FAFCFF; font-size: 15px; line-height: 1.45; color: var(--vz-body); }
+.vz-idle-steps li b { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #EAF1FB; color: #1752D6; font-size: 14px; font-weight: 800; }
+.vz-idle-steps strong { color: var(--vz-navy); }
+.vz-idle-steps kbd { display: inline-block; min-width: 24px; padding: 1px 6px; border: 1px solid #CBD5E1; border-bottom-width: 2px; border-radius: 6px; background: #fff; font-size: 13px; font-family: inherit; text-align: center; color: var(--vz-ink); }
+.vz-root .vz-idle-go { margin-top: 18px; min-height: 48px; padding: 0 26px; font-size: 15.5px; }
+
+/* Player */
+.vz-root .vz-sq-btn { width: 48px; height: 46px; font-size: 16px; }
+.vz-root .vz-play { height: 46px; min-width: 120px; font-size: 15px; }
+.vz-root .vz-speed select { height: 46px !important; font-size: 14.5px; }
+.vz-root .vz-speed .caret { top: 18px; }
+.vz-root .vz-narration { font-size: 15.5px; padding: 13px 16px; min-height: 52px; }
+.vz-root .vz-line-chip { font-size: 13px; padding: 4px 12px; }
+.vz-root .vz-explain { font-size: 15px; }
+.vz-root .vz-mini-title { font-size: 15px; }
+.vz-root .vz-array, .vz-root .vz-mini, .vz-root .vz-output { padding: 16px; border-radius: 16px; }
+.vz-root .vz-array-meta, .vz-root .vz-array-meta code { font-size: 14px; }
+.vz-root .vz-legend { font-size: 13px; }
+.vz-root .vz-bar-val { font-size: 14.5px; }
+.vz-root .vz-idx { font-size: 13.5px; }
+.vz-root .vz-cell { height: 52px; font-size: 16px; }
+.vz-root .vz-ptr { font-size: 13px; }
+.vz-root .vz-vars { font-size: 15px; }
+.vz-root .vz-vars td { padding: 8px 2px; }
+.vz-root .vz-stack-frame { font-size: 14.5px; }
+.vz-root .vz-ops b { font-size: 24px; }
+.vz-root .vz-ops span { font-size: 12.5px; }
+.vz-root .vz-predict { font-size: 14px; }
+.vz-root .vz-console { font-size: 14.5px; }
+.vz-root .vz-panels { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+
+/* Concept pages */
+.vz-root .vz-concept-intro p { font-size: 16px; line-height: 1.7; color: var(--vz-ink); max-width: 900px; }
+.vz-root .vz-card { padding: 20px 22px; border-radius: 18px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); }
+.vz-root .vz-card h3 { font-size: 19px; font-weight: 800; color: var(--vz-navy); }
+.vz-root .vz-n-control label { font-size: 15px; }
+.vz-root .vz-growth-label b { font-size: 15px; }
+.vz-root .vz-growth-label small, .vz-root .vz-growth-num small { font-size: 13px; }
+.vz-root .vz-growth-num { font-size: 15px; }
+.vz-root .vz-growth-time { font-size: 13.5px; }
+.vz-root .vz-growth-track { height: 26px; }
+.vz-root .vz-snippet { font-size: 14.5px; }
+.vz-root .vz-count-box { width: 50px; height: 50px; font-size: 15px; }
+.vz-root .vz-count-big { font-size: 30px; }
+.vz-root .vz-rules { font-size: 15px; }
+.vz-root .vz-mem-title { font-size: 15px; }
+.vz-root .vz-mem-frame-name, .vz-root .vz-mem-array-name { font-size: 13.5px; }
+.vz-root .vz-mem-summary { font-size: 15px; }
+.vz-root .vz-concept p, .vz-root .vz-concept li { font-size: 15px; line-height: 1.6; }
+
+/* Phones and small tablets: the page is not zoomed here, so step the type back a little. */
+@media (max-width: 760px) {
+  .vz-root .vz-head-card { padding: 16px; }
+  .vz-root .vz-head-card .vz-titlebar { align-items: flex-start; }
+  .vz-root .vz-subtitle { font-size: 15px; }
+  .vz-root .vz-crumbs { font-size: 13.5px; }
+  .vz-root .vz-tag { font-size: 13px; padding: 6px 11px; }
+  .vz-root .vz-left-body { padding: 16px; }
+  .vz-root .vz-statement p { font-size: 15.5px; }
+  .vz-root.vz-w-narrow .vz-editor-col { height: 420px; min-height: 0; }
+  .vz-idle-demo { height: 120px; }
+  .vz-root .vz-idle h3 { font-size: 19px; }
+  .vz-idle-steps li { font-size: 14.5px; padding: 10px 12px; }
+  .vz-root .vz-idle-go { width: 100%; justify-content: center; }
+  .vz-root .vz-controls { gap: 6px; }
+  .vz-root .vz-sq-btn { width: 44px; height: 44px; }
+  .vz-root .vz-play { flex: 1; min-width: 0; height: 44px; }
+  .vz-root .vz-speed { margin-left: 0; }
+  .vz-root .vz-card { padding: 16px; }
+  .vz-root .vz-growth-row { grid-template-columns: 92px minmax(0, 1fr) 70px; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .vz-idle-demo i { animation: none; } }
+.vz-root .vz-mem-lbl { font-size: 12px; }
+.vz-root .vz-mem-box { width: 50px; }
+.vz-root .vz-mem-val { height: 40px; font-size: 15px; }
+.vz-root .vz-mem-title small { font-size: 13.5px; }

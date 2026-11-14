@@ -298,3 +298,19 @@
 @media (hover: none) and (pointer: coarse) {
   .qbk .qbk-shortcuts { display: none; }
 }
+
+/* Phones: the reader's top bar on two tidy rows. "Library" sits beside the title, the progress
+   text stays on one line under a bar that takes the rest of the width, and the four filters are
+   one row of equal tabs instead of wrapping "Starred" onto its own line. */
+@media (max-width: 600px) {
+  .qbk .qbk-bar { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 12px; }
+  .qbk .qbk-bar .back { font-size: 14px; padding: 4px 0; }
+  .qbk .qbk-bar .back + .ttl { grid-column: 2; }
+  .qbk .qbk-bar .ttl .mini { white-space: nowrap; }
+  .qbk .qbk-bar .ttl .mini .bar { width: auto; flex: 1; min-width: 40px; }
+  .qbk .qbk-bar .ttl > div { flex: 1; min-width: 0; }
+  .qbk .qbk-bar select, .qbk .qbk-filter { grid-column: 1 / -1; }
+  .qbk .qbk-filter { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); flex-wrap: nowrap; }
+  .qbk .qbk-filter button { padding: 4px 2px; font-size: 12.5px; line-height: 1.2; white-space: normal; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 44px; }
+  .qbk .qbk-filter button .c { margin-left: 0; font-size: 12px; }
+}

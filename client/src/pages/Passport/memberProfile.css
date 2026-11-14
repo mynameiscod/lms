@@ -82,7 +82,7 @@
 #root .gd .cb-member-profile .score-pct small { font-size: 18px; font-weight: 800; margin-left: 1px; }
 /* The level is a chip under the ring (never inside it), coloured by state. */
 #root .gd .cb-member-profile .score-level {
-  margin: 0 !important; padding: 5px 12px !important; font-size: 12px !important; font-weight: 800 !important;
+  margin: 0 !important; padding: 5px 12px !important; font-size: max(12px, var(--fs-floor, 0px)) !important; font-weight: 800 !important;
   letter-spacing: .07em; border-radius: 999px; white-space: nowrap;
   background: #FFF0F0; color: #A82E2E !important; border: 1px solid #F2C9C9;
 }
@@ -96,7 +96,7 @@
 #root .gd .cb-member-profile .score-check.done .bi { color: var(--mp-green); }
 #root .gd .cb-member-profile .recruiter-meter { width: 100%; height: 6px; border-radius: 999px; background: #E9EFF6; overflow: hidden; }
 #root .gd .cb-member-profile .recruiter-meter span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--mp-teal), var(--mp-green)); }
-#root .gd .cb-member-profile .recruiter-badge .bi { font-size: 13px; }
+#root .gd .cb-member-profile .recruiter-badge .bi { font-size: max(13px, var(--fs-floor, 0px)); }
 
 #root .gd .cb-member-profile .score-details {
   display: flex; flex-direction: column; align-items: flex-start; min-width: 0;
@@ -108,7 +108,7 @@
   content: "Your profile";
   display: inline-flex; padding: 6px 12px; margin-bottom: 10px;
   border-radius: 999px; background: var(--mp-tint); color: #1B3C77;
-  font-size: 11.5px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase;
+  font-size: max(11.5px, var(--fs-floor, 0px)); font-weight: 850; letter-spacing: .1em; text-transform: uppercase;
 }
 #root .gd .cb-member-profile .score-title {
   margin: 0 !important; font-size: 22px !important; font-weight: 850 !important;
@@ -127,7 +127,7 @@
   min-height: 32px; padding: 0 12px !important;
   border-radius: 999px !important; background: #fff !important;
   border: 1px solid var(--mp-line) !important;
-  font-size: 13px !important; font-weight: 700 !important; color: #2F3F56 !important;
+  font-size: max(13px, var(--fs-floor, 0px)) !important; font-weight: 700 !important; color: #2F3F56 !important;
 }
 #root .gd .cb-member-profile .score-check.done {
   background: var(--mp-green-bg) !important;
@@ -144,7 +144,7 @@
 #root .gd .cb-member-profile .recruiter-badge {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 7px 14px !important; border-radius: 999px !important;
-  font-size: 13px !important; font-weight: 800 !important;
+  font-size: max(13px, var(--fs-floor, 0px)) !important; font-weight: 800 !important;
   line-height: 1.3; white-space: normal !important;
 }
 #root .gd .cb-member-profile .recruiter-badge.visible {
@@ -222,7 +222,7 @@
   color: #fff !important; box-shadow: 0 0 0 5px rgba(5, 29, 100, .12) !important;
 }
 #root .gd .cb-member-profile .step-label {
-  font-size: 12.5px !important; font-weight: 750 !important;
+  font-size: max(12.5px, var(--fs-floor, 0px)) !important; font-weight: 750 !important;
   color: #3F4F66 !important; text-align: center; line-height: 1.3;
 }
 #root .gd .cb-member-profile .step-indicator.completed .step-label,
@@ -284,7 +284,7 @@
    controls, not captions, and are styled further down. */
 #root .gd .cb-member-profile .form-group > label:not(.file-upload-btn):not(.checkbox-item),
 #root .gd .cb-member-profile .form-section > label {
-  font-size: 13px !important; font-weight: 800 !important;
+  font-size: max(13px, var(--fs-floor, 0px)) !important; font-weight: 800 !important;
   letter-spacing: .01em; color: var(--mp-navy) !important;
 }
 #root .gd .cb-member-profile .required { color: var(--mp-red) !important; }
@@ -321,7 +321,7 @@
 
 #root .gd .cb-member-profile .field-hint,
 #root .gd .cb-member-profile .char-count {
-  font-size: 12.5px !important; color: #2F3F56 !important;
+  font-size: max(12.5px, var(--fs-floor, 0px)) !important; color: #2F3F56 !important;
 }
 
 /* Validation. The label turns red because a navy caption over a red field reads
@@ -333,7 +333,7 @@
 }
 #root .gd .cb-member-profile .has-error > label { color: var(--mp-red) !important; }
 #root .gd .cb-member-profile .error-text {
-  font-size: 12.5px !important; font-weight: 700 !important; color: var(--mp-red) !important;
+  font-size: max(12.5px, var(--fs-floor, 0px)) !important; font-weight: 700 !important; color: var(--mp-red) !important;
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -385,7 +385,7 @@
 #root .gd .cb-member-profile .status-desc,
 #root .gd .cb-member-profile .exp-desc,
 #root .gd .cb-member-profile .mode-desc,
-#root .gd .cb-member-profile .time-range { color: var(--mp-muted) !important; font-size: 12.5px !important; }
+#root .gd .cb-member-profile .time-range { color: var(--mp-muted) !important; font-size: max(12.5px, var(--fs-floor, 0px)) !important; }
 #root .gd .cb-member-profile .checkbox-item input { accent-color: var(--mp-navy) !important; }
 #root .gd .cb-member-profile .checkbox-grid { gap: 9px !important; }
 
@@ -461,7 +461,7 @@
   color: var(--mp-navy) !important;
 }
 #root .gd .cb-member-profile .summary-label {
-  font-size: 11.5px !important; font-weight: 800 !important; letter-spacing: .08em;
+  font-size: max(11.5px, var(--fs-floor, 0px)) !important; font-weight: 800 !important; letter-spacing: .08em;
   color: var(--mp-teal-deep) !important;
 }
 #root .gd .cb-member-profile .summary-value {
@@ -548,7 +548,7 @@
   #root .gd .cb-member-profile .step-indicator { flex: 0 0 auto; min-width: 104px !important; }
   /* StudentProfile.css hides the labels below 768px; inside the shell the row
      scrolls instead, so the labels stay. */
-  #root .gd .cb-member-profile .step-label { display: block !important; font-size: 12px !important; }
+  #root .gd .cb-member-profile .step-label { display: block !important; font-size: max(12px, var(--fs-floor, 0px)) !important; }
   #root .gd .cb-member-profile .step-number { width: 36px !important; height: 36px !important; font-size: 14px !important; }
   #root .gd .cb-member-profile .step-indicator::after {
     top: 25px; left: calc(50% + 24px); right: calc(-50% + 24px);

@@ -107,7 +107,7 @@
   box-shadow: 0 4px 14px rgba(5,29,100,.04) !important;
 }
 .gd-pill b { font-size: 16px !important; }
-.gd-pill span { font-size: 11px !important; }
+.gd-pill span { font-size: max(11px, var(--fs-floor, 0px)) !important; }
 .gd-user-btn { min-height: 46px; }
 
 /* Password banner */
@@ -119,7 +119,7 @@
   margin-bottom: 18px !important;
 }
 .gd-pwd-nudge .txt b { color: var(--cb-navy) !important; font-size: 14px !important; }
-.gd-pwd-nudge .txt span { color: #2F3F56 !important; font-size: 12px !important; }
+.gd-pwd-nudge .txt span { color: #2F3F56 !important; font-size: max(12px, var(--fs-floor, 0px)) !important; }
 .gd-pwd-nudge .go, .gd-pwd-nudge .save {
   background: var(--cb-navy) !important;
   color: #FFFFFF !important;
@@ -145,7 +145,7 @@
 }
 .gd-card-hd .lnk, .gd-card .lnk {
   color: var(--cb-teal-dark) !important;
-  font-size: 12px !important;
+  font-size: max(12px, var(--fs-floor, 0px)) !important;
   font-weight: 700 !important;
 }
 
@@ -157,20 +157,20 @@
 .gd-3 > .gd-card { min-height: 335px; }
 .gd-score { gap: 28px !important; align-items: center !important; }
 .gd-score-side { min-width: 0; }
-.gd-score-side p { font-size: 13px !important; }
-.gd-parts-hd { font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase; letter-spacing: .4px; }
+.gd-score-side p { font-size: max(13px, var(--fs-floor, 0px)) !important; }
+.gd-parts-hd { font-size: max(11px, var(--fs-floor, 0px)) !important; font-weight: 800 !important; text-transform: uppercase; letter-spacing: .4px; }
 .gd-part { min-height: 27px; }
-.gd-part .t { font-size: 12px !important; }
-.gd-part .v { font-size: 12px !important; font-weight: 800 !important; }
-.gd-tag { font-size: 11px !important; font-weight: 800 !important; }
+.gd-part .t { font-size: max(12px, var(--fs-floor, 0px)) !important; }
+.gd-part .v { font-size: max(12px, var(--fs-floor, 0px)) !important; font-weight: 800 !important; }
+.gd-tag { font-size: max(11px, var(--fs-floor, 0px)) !important; font-weight: 800 !important; }
 .gd-rank { color: #0A7584 !important; }
 
-.gd-radar text { fill: #506482 !important; font-size: 9.5px !important; }
-.gd-radar text.v { fill: var(--cb-navy) !important; font-size: 10.5px !important; }
+.gd-radar text { fill: #506482 !important; font-size: max(9.5px, var(--fs-floor, 0px)) !important; }
+.gd-radar text.v { fill: var(--cb-navy) !important; font-size: max(10.5px, var(--fs-floor, 0px)) !important; }
 
 .gd-statrow { min-height: 43px; padding: 9px 0 !important; }
-.gd-statrow .t { font-size: 13px !important; color: #536681 !important; }
-.gd-statrow .v { font-size: 13px !important; font-weight: 800 !important; }
+.gd-statrow .t { font-size: max(13px, var(--fs-floor, 0px)) !important; color: #536681 !important; }
+.gd-statrow .v { font-size: max(13px, var(--fs-floor, 0px)) !important; font-weight: 800 !important; }
 
 /* Summary cards */
 .gd-tiles {
@@ -184,9 +184,9 @@
   padding: 15px 16px !important;
   align-items: center !important;
 }
-.gd-tile .lbl { font-size: 12px !important; }
+.gd-tile .lbl { font-size: max(12px, var(--fs-floor, 0px)) !important; }
 .gd-tile .val { font-size: 19px !important; font-weight: 800 !important; }
-.gd-tile .sub { font-size: 11px !important; }
+.gd-tile .sub { font-size: max(11px, var(--fs-floor, 0px)) !important; }
 
 /* Mission / streak section */
 .gd-2b {
@@ -194,35 +194,35 @@
   gap: 16px !important;
 }
 .gd-mission { min-height: 58px; padding: 10px 12px !important; }
-.gd-mission .txt b { font-size: 13px !important; }
-.gd-mission .txt span { font-size: 11.5px !important; }
-.gd-mission .cnt { font-size: 11px !important; }
+.gd-mission .txt b { font-size: max(13px, var(--fs-floor, 0px)) !important; }
+.gd-mission .txt span { font-size: max(11.5px, var(--fs-floor, 0px)) !important; }
+.gd-mission .cnt { font-size: max(11px, var(--fs-floor, 0px)) !important; }
 .gd-mission-cta {
   min-height: 42px;
-  font-size: 13px !important;
+  font-size: max(13px, var(--fs-floor, 0px)) !important;
   font-weight: 800 !important;
 }
 .gd-streak-num { font-size: 25px !important; font-weight: 800 !important; }
 .gd-week { gap: 8px !important; }
 .gd-week .dot { width: 34px !important; height: 34px !important; }
-.gd-week .l { font-size: 11px !important; }
+.gd-week .l { font-size: max(11px, var(--fs-floor, 0px)) !important; }
 .gd-milestone { padding: 12px 14px !important; }
 .gd-next .lv { font-size: 15px !important; }
 
 /* Lower cards */
 .gd-feed-row { min-height: 46px; padding: 9px 0 !important; }
-.gd-feed-row .t { font-size: 12.5px !important; }
-.gd-feed-row .xp, .gd-feed-row .ago { font-size: 11px !important; }
+.gd-feed-row .t { font-size: max(12.5px, var(--fs-floor, 0px)) !important; }
+.gd-feed-row .xp, .gd-feed-row .ago { font-size: max(11px, var(--fs-floor, 0px)) !important; }
 .gd-badges { gap: 14px !important; }
-.gd-badge b { font-size: 11.5px !important; }
-.gd-badge span { font-size: 10.5px !important; }
+.gd-badge b { font-size: max(11.5px, var(--fs-floor, 0px)) !important; }
+.gd-badge span { font-size: max(10.5px, var(--fs-floor, 0px)) !important; }
 .gd-contest { padding: 12px !important; }
-.gd-contest .info b { font-size: 13px !important; }
-.gd-contest .info span { font-size: 11px !important; }
+.gd-contest .info b { font-size: max(13px, var(--fs-floor, 0px)) !important; }
+.gd-contest .info span { font-size: max(11px, var(--fs-floor, 0px)) !important; }
 .gd-lb { min-height: 48px; }
-.gd-lb .nm { font-size: 12.5px !important; }
-.gd-lb .sc .xp { font-size: 12px !important; }
-.gd-lb .sc .rnk { font-size: 10px !important; color: var(--cb-muted) !important; }
+.gd-lb .nm { font-size: max(12.5px, var(--fs-floor, 0px)) !important; }
+.gd-lb .sc .xp { font-size: max(12px, var(--fs-floor, 0px)) !important; }
+.gd-lb .sc .rnk { font-size: max(10px, var(--fs-floor, 0px)) !important; color: var(--cb-muted) !important; }
 
 /* Career path */
 .gd-path {

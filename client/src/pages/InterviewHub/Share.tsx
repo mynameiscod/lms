@@ -135,7 +135,7 @@ const Share: React.FC = () => {
               <div><label className="pb-label">Role</label><input className="pb-input" value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Java Developer" /></div>
             </div>
             <div className="pb-field-row">
-              <div><label className="pb-label">Interview date <small>the last round you faced</small></label><input className="pb-input" type="date" min={earliest()} max={today()} value={interviewedOn} onChange={(e) => setInterviewedOn(e.target.value)} />{interviewedOn && !dateOk && <div style={{ color: '#C93737', fontSize: 13, marginTop: 6 }}>Pick the date of your interview — within the last five years.</div>}</div>
+              <div><label className="pb-label">Interview date <small>the last round you faced</small></label><input className="pb-input" type="date" min={earliest()} max={today()} value={interviewedOn} onChange={(e) => setInterviewedOn(e.target.value)} />{interviewedOn && !dateOk && <div style={{ color: '#C93737', fontSize: 'max(13px, var(--fs-floor, 0px))', marginTop: 6 }}>Pick the date of your interview — within the last five years.</div>}</div>
               <div><label className="pb-label">Result so far</label>
                 <select className="pb-select" value={outcome} onChange={(e) => setOutcome(e.target.value)}>
                   <option value="waiting">Pending — waiting for the result</option><option value="offer">Selected — got the offer</option><option value="rejected">Not selected</option><option value="withdrew">I withdrew</option>
@@ -171,7 +171,7 @@ const Share: React.FC = () => {
                 {!file && <Recorder key={mode} kind={mode} onDone={setRec} />}
                 {!rec && (
                   <div className="pb-row" style={{ marginTop: 10 }}>
-                    <span className="pb-muted" style={{ fontSize: 13 }}>{file ? <>Selected <b>{file.name}</b> ({Math.round(file.size / 1024 / 1024)} MB)</> : 'Already recorded it on your phone?'}</span>
+                    <span className="pb-muted" style={{ fontSize: 'max(13px, var(--fs-floor, 0px))' }}>{file ? <>Selected <b>{file.name}</b> ({Math.round(file.size / 1024 / 1024)} MB)</> : 'Already recorded it on your phone?'}</span>
                     <input ref={fileRef} type="file" hidden accept={mode === 'audio' ? 'audio/*' : 'video/*'} onChange={(e) => setFile(e.target.files?.[0] || null)} />
                     <button className="pb-btn pb-btn-sm" onClick={() => (file ? setFile(null) : fileRef.current?.click())}>{file ? 'Remove' : 'Upload a file'}</button>
                   </div>

@@ -42,7 +42,7 @@ export const CompareCard: React.FC<{ data: any[] | null }> = ({ data }) => {
     <p style={{ margin: '0 0 10px', fontWeight: 700, color: '#0f172a' }}>{c.headline}</p>
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
-        <thead><tr style={{ textAlign: 'left', color: '#2F3F56', fontSize: 12 }}><th style={{ padding: '6px 8px' }} /><th style={{ padding: '6px 8px' }}>{c.current.label}<div style={{ fontWeight: 400 }}>{c.current.from === c.current.to ? c.current.from : `${c.current.from} → ${c.current.to}`}</div></th><th style={{ padding: '6px 8px' }}>{c.previous.label}<div style={{ fontWeight: 400 }}>{c.previous.from === c.previous.to ? c.previous.from : `${c.previous.from} → ${c.previous.to}`}</div></th><th style={{ padding: '6px 8px' }}>Change</th></tr></thead>
+        <thead><tr style={{ textAlign: 'left', color: '#2F3F56', fontSize: 'max(12px, var(--fs-floor, 0px))' }}><th style={{ padding: '6px 8px' }} /><th style={{ padding: '6px 8px' }}>{c.current.label}<div style={{ fontWeight: 400 }}>{c.current.from === c.current.to ? c.current.from : `${c.current.from} → ${c.current.to}`}</div></th><th style={{ padding: '6px 8px' }}>{c.previous.label}<div style={{ fontWeight: 400 }}>{c.previous.from === c.previous.to ? c.previous.from : `${c.previous.from} → ${c.previous.to}`}</div></th><th style={{ padding: '6px 8px' }}>Change</th></tr></thead>
         <tbody>
           {c.rows.map((r: any) => <tr key={r.metric} style={{ borderTop: '1px solid #f1f5f9' }}>
             <td style={{ padding: '6px 8px' }}>{r.metric}</td><td style={{ padding: '6px 8px', fontWeight: 700 }}>{fmt(r.current)}</td><td style={{ padding: '6px 8px' }}>{fmt(r.previous)}</td>
@@ -51,7 +51,7 @@ export const CompareCard: React.FC<{ data: any[] | null }> = ({ data }) => {
         </tbody>
       </table>
     </div>
-    <p style={{ margin: '8px 0 0', color: '#2F3F56', fontSize: 12 }}>✓ means better. For hesitation, silences, first word and fillers, lower is better. A week or month "so far" is an average, so it is fair against a full one.</p>
+    <p style={{ margin: '8px 0 0', color: '#2F3F56', fontSize: 'max(12px, var(--fs-floor, 0px))' }}>✓ means better. For hesitation, silences, first word and fillers, lower is better. A week or month "so far" is an average, so it is fair against a full one.</p>
   </section>;
 };
 
@@ -98,7 +98,7 @@ const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: 
         </div>
         <p style={{ margin: '6px 0', fontWeight: 700, color: r.ready ? '#16835d' : '#b86b00' }}>{r.ready ? 'Ready to face a company.' : 'Not ready yet. Here is what is left:'}</p>
         {!r.ready && <ul style={{ paddingLeft: 18, margin: 0, color: '#475569' }}>{r.reasons.map((x, i) => <li key={i}>{x}</li>)}</ul>}
-        {state.gate?.enabled && !r.ready && <p style={{ margin: '10px 0 0', padding: '8px 10px', background: '#fffbeb', borderRadius: 8, color: '#92400e', fontSize: 13 }}>{state.gate.active ? 'Company interviews and drive applications stay locked until you are ready.' : `From ${new Date(state.gate.startsOn + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, company interviews and drive applications need you to be ready. Start now.`}</p>}
+        {state.gate?.enabled && !r.ready && <p style={{ margin: '10px 0 0', padding: '8px 10px', background: '#fffbeb', borderRadius: 8, color: '#92400e', fontSize: 'max(13px, var(--fs-floor, 0px))' }}>{state.gate.active ? 'Company interviews and drive applications stay locked until you are ready.' : `From ${new Date(state.gate.startsOn + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, company interviews and drive applications need you to be ready. Start now.`}</p>}
       </section>
 
       <section className="clx-card" style={{ padding: 16 }}>

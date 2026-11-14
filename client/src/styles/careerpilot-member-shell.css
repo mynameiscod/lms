@@ -9,8 +9,8 @@
 #root .gd .gd-logo>div{display:none!important}
 #root .gd .gd-nav{gap:4px!important;padding:4px 1px 8px!important;scrollbar-color:#31558c transparent!important}
 #root .gd .gd-nav::-webkit-scrollbar-thumb{background:#31558c!important}
-#root .gd .gd-nav-label{color:#8299bd!important;padding:15px 11px 6px!important;font-size:9.5px!important;letter-spacing:.12em!important}
-#root .gd .gd-nav-btn{color:#c7d4ea!important;background:transparent!important;border-radius:9px!important;padding:11px 12px!important;min-height:42px!important;font-size:13.2px!important;font-weight:650!important;box-shadow:none!important;transform:none!important}
+#root .gd .gd-nav-label{color:#8299bd!important;padding:15px 11px 6px!important;font-size:max(9.5px, var(--fs-floor, 0px))!important;letter-spacing:.12em!important}
+#root .gd .gd-nav-btn{color:#c7d4ea!important;background:transparent!important;border-radius:9px!important;padding:11px 12px!important;min-height:42px!important;font-size:max(13.2px, var(--fs-floor, 0px))!important;font-weight:650!important;box-shadow:none!important;transform:none!important}
 #root .gd .gd-nav-btn .ic{color:#9fb2d0!important}
 #root .gd .gd-nav-btn:hover{background:rgba(255,255,255,.08)!important;color:#fff!important;transform:none!important}
 #root .gd .gd-nav-btn:hover .ic{color:#fff!important}
@@ -102,7 +102,7 @@
   /* The drawer's own rows: a 42px row at 13.2px type was the smallest thing a
      student had to hit repeatedly. */
   #root .gd .gd-nav-btn { min-height: 48px !important; font-size: 15px !important; padding: 12px 14px !important; }
-  #root .gd .gd-nav-label { font-size: 11px !important; }
+  #root .gd .gd-nav-label { font-size: max(11px, var(--fs-floor, 0px)) !important; }
   /* The wordmark sits under the close button; keep it clear at the larger size. */
   #root .gd-logo { padding-right: 56px; }
 }
@@ -160,13 +160,13 @@
   /* Career path: three steps that fit the card instead of a sideways scroller. */
   #root .gd .md-steps { overflow-x: visible; gap: 6px; }
   #root .gd .md-steps .md-step { min-width: 0 !important; }
-  #root .gd .md-steps .dot { width: 30px; height: 30px; font-size: 12px; }
-  #root .gd .md .md-steps .cap { font-size: 12px; }
-  #root .gd .md .md-steps .cap span { font-size: 11px; }
+  #root .gd .md-steps .dot { width: 30px; height: 30px; font-size: max(12px, var(--fs-floor, 0px)); }
+  #root .gd .md .md-steps .cap { font-size: max(12px, var(--fs-floor, 0px)); }
+  #root .gd .md .md-steps .cap span { font-size: max(11px, var(--fs-floor, 0px)); }
   /* Skill meter: the chart scales down to the card, so its labels are drawn larger to land
      at a readable size. */
-  #root .gd .md-radar .gd-radar text { font-size: 12.5px !important; }
-  #root .gd .md-radar .gd-radar text.v { font-size: 13px !important; }
+  #root .gd .md-radar .gd-radar text { font-size: max(12.5px, var(--fs-floor, 0px)) !important; }
+  #root .gd .md-radar .gd-radar text.v { font-size: max(13px, var(--fs-floor, 0px)) !important; }
 }
 
 /* The closed drawer sits just off-screen to the left, and its shadow (40px blur) still fell
@@ -203,7 +203,7 @@
   /* Communication Lab: three tiles in a 280px row broke "SESSIONS" mid-word. */
   #root .gd .clx-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
   #root .gd .clx-kpis > * { min-width: 0; padding: 12px 10px !important; }
-  #root .gd .clx-kpis :is(small, span, label) { font-size: 10.5px !important; letter-spacing: .02em !important; }
+  #root .gd .clx-kpis :is(small, span, label) { font-size: max(10.5px, var(--fs-floor, 0px)) !important; letter-spacing: .02em !important; }
 
   /* Code Playground: the toolbar was a ragged wrap of seven buttons and two fields. On a
      phone it is a tidy grid — language and file name full width, then three even columns,
@@ -237,7 +237,7 @@
      labels on a 260px line ran together ("CONTACTSUMMARYSKILLS"). Each step gets an equal
      share and its label shrinks and ellipsises inside it. */
   #root .gd [class*="-steps2"] > li { flex: 1 1 0; min-width: 0; }
-  #root .gd [class*="-steps2"] > li > span { font-size: 9px !important; letter-spacing: .02em !important; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+  #root .gd [class*="-steps2"] > li > span { font-size: max(9px, var(--fs-floor, 0px)) !important; letter-spacing: .02em !important; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
 
   /* Score cards (a ring with its copy beside it: `*-score`, `rc-score-card`): the copy was
      squeezed to a word per line. They wrap — the copy drops under the ring when it must. */
@@ -289,7 +289,7 @@
      sideways row, no scrollbar); the strip under them moves with its own arrows (DayStrip). */
   #root .gd .fj-range { align-items: stretch; gap: 6px !important; }
   #root .gd .fj-range-jumps { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px !important; min-width: 0; width: 100%; }
-  #root .gd .fj-range-btn { white-space: nowrap; min-height: 40px !important; padding: 0 8px !important; font-size: 13px !important; }
+  #root .gd .fj-range-btn { white-space: nowrap; min-height: 40px !important; padding: 0 8px !important; font-size: max(13px, var(--fs-floor, 0px)) !important; }
 }
 @media (max-width: 640px) {
   /* Roadmap filters: "All 130 days", five ranges and "Expand all" wrapped onto four rows.
@@ -345,8 +345,8 @@
 #root .gd .s-xp .gd-stat-ic { background: #E1F3F6; color: #1B7D91; }
 #root .gd .gd-stat-tx { display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.15; }
 #root .gd .gd-stat-tx b { display: block; font-size: 17px; font-weight: 800; color: #051D64; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
-#root .gd .gd-stat-tx b em { font-style: normal; font-size: 13px; font-weight: 700; color: #33475B; }
-#root .gd .gd-stat-tx small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 600; color: #2F3F56; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+#root .gd .gd-stat-tx b em { font-style: normal; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; color: #33475B; }
+#root .gd .gd-stat-tx small { display: block; margin-top: 2px; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 600; color: #2F3F56; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
 #root .gd .gd-stat-short { display: none; }
 #root .gd .gd-stat-bar { display: block; width: 100px; height: 6px; margin-top: 5px; border-radius: 999px; background: #E2EAF2; overflow: hidden; }
 #root .gd .gd-stat-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #051D64, #359AAD); }
@@ -354,7 +354,7 @@
 #root .gd .gd-tip {
   position: absolute; top: calc(100% + 10px); left: 50%; z-index: 60;
   width: max-content; max-width: 240px; padding: 8px 11px; border-radius: 9px;
-  background: #051D64; color: #fff; font-size: 12.5px; font-weight: 500; line-height: 1.45; white-space: normal; text-align: left;
+  background: #051D64; color: #fff; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 500; line-height: 1.45; white-space: normal; text-align: left;
   box-shadow: 0 10px 24px rgba(5, 29, 100, .22);
   opacity: 0; visibility: hidden; transform: translate(-50%, -4px); pointer-events: none;
   transition: opacity .15s ease, transform .15s ease, visibility .15s;
@@ -382,17 +382,17 @@
 }
 #root .gd .gd-user-btn .nm-wrap { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
 #root .gd .gd-user-btn .nm { font-size: 14.5px; font-weight: 800; color: #051D64; max-width: 170px; }
-#root .gd .gd-user-btn .nm-wrap small { font-size: 12px; font-weight: 600; color: #2F3F56; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
-#root .gd .gd-user-btn .cr { width: 18px; height: 18px; color: #2F3F56; font-size: 13px; }
+#root .gd .gd-user-btn .nm-wrap small { font-size: max(12px, var(--fs-floor, 0px)); font-weight: 600; color: #2F3F56; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+#root .gd .gd-user-btn .cr { width: 18px; height: 18px; color: #2F3F56; font-size: max(13px, var(--fs-floor, 0px)); }
 /* The account menu (desktop top bar and phone bar share it). */
 #root .gd .gd-user-menu { width: 280px; padding: 6px; border-radius: 16px; border: 1px solid #E2EAF2 !important; }
 #root .gd .gd-user-menu .hd { display: flex; align-items: center; gap: 11px; padding: 10px 10px 12px; }
 #root .gd .gd-user-menu .hd .av { flex: none; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: linear-gradient(135deg, #051D64, #359AAD); color: #fff; font-weight: 800; font-size: 16px; }
 #root .gd .gd-user-menu .hd > div { min-width: 0; }
 #root .gd .gd-user-menu .hd b { color: #051D64; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#root .gd .gd-user-menu .hd span { display: block; color: #2F3F56; font-size: 12px; }
+#root .gd .gd-user-menu .hd span { display: block; color: #2F3F56; font-size: max(12px, var(--fs-floor, 0px)); }
 #root .gd .gd-user-menu .stats b { color: #051D64; }
-#root .gd .gd-user-menu .stats span { color: #2F3F56; font-size: 11.5px; }
+#root .gd .gd-user-menu .stats span { color: #2F3F56; font-size: max(11.5px, var(--fs-floor, 0px)); }
 #root .gd .gd-user-menu button { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #33475B; padding: 10px 12px; }
 #root .gd .gd-user-menu button i { width: 18px; font-size: 16px; color: #2B7E8E; text-align: center; }
 #root .gd .gd-user-menu button:hover:not(:disabled) { background: #F4F8FC; color: #051D64; }
@@ -418,12 +418,12 @@
   #root .gd .gd-stat-ic { width: 30px; height: 30px; border-radius: 9px; font-size: 15px; }
   #root .gd .gd-stat-tx b { font-size: 15px; }
   #root .gd .gd-stat-tx small, #root .gd .gd-stat-tx b em, #root .gd .gd-stat-long { display: none; }
-  #root .gd .gd-stat-short { display: inline; font-size: 12px; font-weight: 700; color: #33475B; }
+  #root .gd .gd-stat-short { display: inline; font-size: max(12px, var(--fs-floor, 0px)); font-weight: 700; color: #33475B; }
   #root .gd .gd-stat-bar { width: 100%; min-width: 30px; height: 4px; margin-top: 3px; }
 }
 @media (max-width: 360px) {
   #root .gd .gd-stat { gap: 5px; }
-  #root .gd .gd-stat-ic { width: 26px; height: 26px; font-size: 13px; }
+  #root .gd .gd-stat-ic { width: 26px; height: 26px; font-size: max(13px, var(--fs-floor, 0px)); }
   #root .gd .gd-stat-tx b { font-size: 14px; }
 }
 
@@ -541,7 +541,7 @@
    Room comes from the account chip instead, which shows the avatar only in this range (the name is
    in its menu). Replaces the earlier rule that hid the labels here. */
 @media (max-width: 1280px) and (min-width: 981px) {
-  #root .gd .gd-stat-tx small { display: block; font-size: 11.5px; max-width: 112px; }
+  #root .gd .gd-stat-tx small { display: block; font-size: max(11.5px, var(--fs-floor, 0px)); max-width: 112px; }
   #root .gd .gd-stat { padding: 4px 10px 4px 6px; gap: 8px; }
   #root .gd .gd-user-btn .nm-wrap { display: none; }
   #root .gd .gd-user-btn { padding-right: 8px; }
@@ -576,13 +576,13 @@
 @media (max-width: 640px) {
   /* Top bar: every stat has its name under its number (it was icon + number only). */
   #root .gd .gd-stat { flex-direction: column; justify-content: center; align-items: center; gap: 3px; padding: 6px 2px; min-height: 56px; }
-  #root .gd .gd-stat-ic { width: 26px; height: 26px; font-size: 13px; border-radius: 8px; }
+  #root .gd .gd-stat-ic { width: 26px; height: 26px; font-size: max(13px, var(--fs-floor, 0px)); border-radius: 8px; }
   #root .gd .gd-stat-tx { align-items: center; text-align: center; }
   #root .gd .gd-stat-tx b { font-size: 14px; }
-  #root .gd .gd-stat-tx small { display: block !important; margin-top: 1px; font-size: 10.5px; font-weight: 700; max-width: 76px; color: #2F3F56; }
+  #root .gd .gd-stat-tx small { display: block !important; margin-top: 1px; font-size: max(10.5px, var(--fs-floor, 0px)); font-weight: 700; max-width: 76px; color: #2F3F56; }
   #root .gd .s-level .gd-stat-tx small, #root .gd .s-xp .gd-stat-tx small { display: none !important; }
-  #root .gd .s-level .gd-stat-tx::after { content: "Level"; display: block; font-size: 10.5px; font-weight: 700; color: #2F3F56; }
-  #root .gd .s-xp .gd-stat-tx::after { content: "XP"; display: block; font-size: 10.5px; font-weight: 700; color: #2F3F56; }
+  #root .gd .s-level .gd-stat-tx::after { content: "Level"; display: block; font-size: max(10.5px, var(--fs-floor, 0px)); font-weight: 700; color: #2F3F56; }
+  #root .gd .s-xp .gd-stat-tx::after { content: "XP"; display: block; font-size: max(10.5px, var(--fs-floor, 0px)); font-weight: 700; color: #2F3F56; }
   #root .gd .s-level .gd-stat-bar { display: none; }
   #root .gd .gd-stat-short { display: none !important; }
 
@@ -595,15 +595,15 @@
   #root .gd .iv2 .iv2-hero .iv2-score { width: 100% !important; justify-self: stretch !important; min-height: 0 !important; height: auto !important; }
   #root .gd .iv2 .iv2-hero .iv2-score > * { flex: 0 0 auto !important; }
   /* Step labels such as COMMUNICATION were cut to "COMMUNICATIO…". */
-  #root .gd .iv2-steps2 li span { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: normal !important; word-break: normal !important; font-size: 9.5px !important; letter-spacing: 0 !important; text-align: center; }
+  #root .gd .iv2-steps2 li span { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: normal !important; word-break: normal !important; font-size: max(9.5px, var(--fs-floor, 0px)) !important; letter-spacing: 0 !important; text-align: center; }
   #root .gd .fjm-hero .fjm-ring, #root .gd .md .md-score-ring, #root .gd .iv2 .iv2-ring, #root .gd .rr .rr-gauge { justify-self: center !important; align-self: center !important; margin-left: auto !important; margin-right: auto !important; }
 
   /* Profile steps: a 3 × 2 grid that fits the phone (six fixed 112px steps made the page 670px wide). */
   #root .gd .cb-member-profile .step-indicators.step-indicators { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 6px !important; padding: 12px 8px !important; overflow: visible !important; }
   #root .gd .cb-member-profile .step-indicators .step-indicator.step-indicator { min-width: 0 !important; padding: 6px 2px !important; gap: 6px; }
   #root .gd .cb-member-profile .step-indicators .step-indicator.step-indicator::after { display: none !important; }
-  #root .gd .cb-member-profile .step-indicators .step-number { width: 32px !important; height: 32px !important; font-size: 13px !important; }
-  #root .gd .cb-member-profile .step-indicators .step-label { font-size: 11.5px !important; text-align: center; line-height: 1.25; overflow-wrap: normal; word-break: normal; hyphens: none; }
+  #root .gd .cb-member-profile .step-indicators .step-number { width: 32px !important; height: 32px !important; font-size: max(13px, var(--fs-floor, 0px)) !important; }
+  #root .gd .cb-member-profile .step-indicators .step-label { font-size: max(11.5px, var(--fs-floor, 0px)) !important; text-align: center; line-height: 1.25; overflow-wrap: normal; word-break: normal; hyphens: none; }
 
   /* Welcome day finished: trophy + text on top, the button full width below (the text was a
      one-word-wide column squeezed beside the button). */

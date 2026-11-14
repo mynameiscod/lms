@@ -29,7 +29,7 @@
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
 .dl2-hero > * { position: relative; z-index: 1; }
-.dl2-eyebrow { font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
+.dl2-eyebrow { font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
 .dl2 .dl2-hero h1 { margin-top: 8px; font-size: clamp(30px, 2.8vw, 44px); line-height: 1.08; font-weight: 800; letter-spacing: -.02em; color: #fff !important; }
 .dl2 .dl2-hero h1 span { color: #7FD3E0 !important; }
 .dl2 .dl2-hero p { margin-top: 10px; max-width: 680px; font-size: 16px; line-height: 1.6; color: #D5E2F5 !important; }
@@ -40,7 +40,7 @@
 .dl2-ring > div { width: 104px; height: 104px; border-radius: 50%; background: var(--navy); display: flex; flex-wrap: wrap; align-content: center; align-items: baseline; justify-content: center; }
 .dl2-ring strong { font-size: 38px; line-height: 1; font-weight: 800; color: #fff; }
 .dl2-ring em { font-style: normal; font-size: 15px; font-weight: 700; color: #3F4F66; margin-left: 2px; }
-.dl2 .dl2-hero-score-copy small { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6 !important; }
+.dl2 .dl2-hero-score-copy small { display: block; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6 !important; }
 .dl2 .dl2-hero-score-copy b { display: block; margin-top: 4px; font-size: 21px; color: #fff !important; }
 .dl2-hero-score-copy button { margin-top: 10px; border: 1px solid rgba(255, 255, 255, .35); background: rgba(255, 255, 255, .10); color: #fff; border-radius: 999px; padding: 6px 14px; font-size: 13.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 .dl2-hero-score-copy button:hover { background: rgba(255, 255, 255, .2); }
@@ -66,7 +66,7 @@
 .dl2-skills .vl { text-align: right; font-size: 16px; font-weight: 800; color: var(--green); }
 .dl2-skills .vl.mid { color: var(--amber); }
 .dl2-skills .vl.low { color: var(--red); }
-.dl2-skills .vl em { font-style: normal; font-size: 12px; font-weight: 700; color: var(--muted); }
+.dl2-skills .vl em { font-style: normal; font-size: max(12px, var(--fs-floor, 0px)); font-weight: 700; color: var(--muted); }
 
 .dl2-ready-top { display: flex; align-items: center; gap: 16px; }
 .dl2-ready-top strong { font-size: 44px; line-height: 1; font-weight: 800; color: var(--navy); }
@@ -81,7 +81,7 @@
 .dl2-ready-facts > .warn { border-top-color: #E7A43A; }
 .dl2-ready-facts > .good { border-top-color: var(--green); }
 .dl2-ready-facts b { display: block; font-size: 26px; font-weight: 800; color: var(--navy); }
-.dl2-ready-facts span { display: block; margin-top: 2px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.dl2-ready-facts span { display: block; margin-top: 2px; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 600; color: var(--muted); }
 
 .dl2-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .dl2-steps li { display: flex; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--soft); }
@@ -93,7 +93,7 @@
 /* Membership: one panel, one button */
 .dl2-member { display: grid; grid-template-columns: minmax(0, 1fr) 340px; background: #fff; border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 12px 34px rgba(15, 46, 77, .08); overflow: hidden; }
 .dl2-member-main { padding: 26px 28px; min-width: 0; }
-.dl2-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #287F91; background: #EAF7F8; border: 1px solid #CDE6EA; border-radius: 999px; padding: 5px 11px; }
+.dl2-badge { display: inline-flex; align-items: center; gap: 6px; font-size: max(12px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #287F91; background: #EAF7F8; border: 1px solid #CDE6EA; border-radius: 999px; padding: 5px 11px; }
 .dl2 .dl2-member-head h2 { margin-top: 12px; font-size: 24px; font-weight: 800; color: var(--navy); letter-spacing: -.01em; }
 .dl2 .dl2-member-head p { margin-top: 6px; font-size: 15px; color: var(--muted); line-height: 1.55; }
 .dl2-previews { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
@@ -103,27 +103,27 @@
 .dl2-preview .lk { color: #3F4F66; font-size: 15px; }
 .dl2-preview > b { font-size: 16px; color: var(--navy); }
 .dl2-preview > span { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
-.dl2-preview > em { margin-top: auto; padding-top: 8px; font-style: normal; font-size: 13px; font-weight: 700; color: #287F91; }
+.dl2-preview > em { margin-top: auto; padding-top: 8px; font-style: normal; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; color: #287F91; }
 .dl2-also { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
-.dl2 .dl2-also h3 { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.dl2 .dl2-also h3 { font-size: max(13px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .dl2-also ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px 18px; }
 .dl2-also li { display: flex; gap: 12px; align-items: flex-start; }
 .dl2-also .ic { flex: none; width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: var(--soft); color: var(--primary); border: 1px solid var(--line); font-size: 16px; }
 .dl2-also b { display: block; font-size: 14.5px; color: var(--ink); }
-.dl2-also li span { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.dl2-also li span { display: block; margin-top: 2px; font-size: max(13px, var(--fs-floor, 0px)); color: var(--muted); line-height: 1.45; }
 
 .dl2-buy {
   position: relative; padding: 28px 26px; color: #fff; display: flex; flex-direction: column; gap: 8px;
   background: #051D64;
 }
-.dl2 .dl2-buy small { font-size: 12.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #9FDCE6 !important; }
+.dl2 .dl2-buy small { font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #9FDCE6 !important; }
 .dl2 .dl2-buy > b { font-size: 21px; line-height: 1.25; color: #fff !important; }
 .dl2-buy ul { list-style: none; margin: 10px 0 18px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .dl2 .dl2-buy li { display: flex; gap: 9px; font-size: 14.5px; line-height: 1.45; color: #E3ECF8 !important; }
 .dl2-buy li i { color: #7FD3E0; font-size: 17px; }
 .dl2-buy .dl2-btn { margin-top: auto; }
 .dl2 .dl2-msg { font-size: 13.5px; color: #FFD7D7 !important; }
-.dl2 .dl2-buy-foot { font-size: 12.5px; text-align: center; color: #B8CAE4 !important; }
+.dl2 .dl2-buy-foot { font-size: max(12.5px, var(--fs-floor, 0px)); text-align: center; color: #B8CAE4 !important; }
 
 @media (max-width: 1200px) {
   .dl2-grid { grid-template-columns: 1fr; }
@@ -187,7 +187,7 @@
 .dl2-plan { display: flex; flex-direction: column; }
 .dl2-focus { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .dl2-focus li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--soft, #F4F8FC); border: 1px solid var(--line); }
-.dl2-focus .n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--primary); color: #fff; font-size: 13px; font-weight: 800; }
+.dl2-focus .n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--primary); color: #fff; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 800; }
 .dl2-focus b { flex: 1; min-width: 0; font-size: 14.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dl2-focus em { font-style: normal; font-size: 13.5px; font-weight: 800; color: var(--green); }
 .dl2-focus em.mid { color: var(--amber); } .dl2-focus em.low { color: var(--red); }

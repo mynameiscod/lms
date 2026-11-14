@@ -11,7 +11,7 @@
 /* Header card */
 .vz-root .vz-head-card { padding: 20px 26px; border-radius: 20px; }
 .vz-root .vz-crumbs { font-size: 14.5px; gap: 10px; }
-.vz-root .vz-crumbs .sep { font-size: 11px; }
+.vz-root .vz-crumbs .sep { font-size: max(11px, var(--fs-floor, 0px)); }
 .vz-root .vz-head-card h1 { font-size: clamp(26px, 2.3vw, 34px); color: var(--vz-navy); }
 .vz-root .vz-subtitle { font-size: 16px; margin-top: 8px; color: var(--vz-body); }
 .vz-root .vz-diff { font-size: 13.5px; padding: 5px 14px; }
@@ -38,14 +38,14 @@
 .vz-root .vz-statement p { font-size: 16px; line-height: 1.7; color: var(--vz-ink); }
 .vz-root .vz-box { padding: 16px; border-radius: 14px; gap: 9px; }
 .vz-root .vz-box-title { font-size: 15.5px; }
-.vz-root .vz-box-icon { width: 30px; height: 30px; font-size: 13px; }
+.vz-root .vz-box-icon { width: 30px; height: 30px; font-size: max(13px, var(--fs-floor, 0px)); }
 .vz-root .vz-box-label { font-size: 13.5px; }
 .vz-root .vz-box-text, .vz-root .vz-box-note { font-size: 15px; }
 .vz-root .vz-copybox pre { font-size: 14.5px; padding: 12px 44px 12px 14px; }
 .vz-root .vz-callout-text b { font-size: 15.5px; }
 .vz-root .vz-callout-text span { font-size: 14px; }
 .vz-root .vz-lead, .vz-root .vz-reveal-item, .vz-root .vz-complexity p, .vz-root .vz-io-box { font-size: 15.5px; }
-.vz-root .vz-io-label, .vz-root .vz-cx span { font-size: 12.5px; }
+.vz-root .vz-io-label, .vz-root .vz-cx span { font-size: max(12.5px, var(--fs-floor, 0px)); }
 .vz-root .vz-cx b { font-size: 26px; }
 .vz-root .vz-seg-btn { font-size: 14px; padding: 8px 14px; }
 .vz-root .vz-seg-hint { font-size: 14px; }
@@ -77,7 +77,7 @@
 .vz-idle-steps li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--vz-line); border-radius: 14px; background: #FAFCFF; font-size: 15px; line-height: 1.45; color: var(--vz-body); }
 .vz-idle-steps li b { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #EAF1FB; color: #1752D6; font-size: 14px; font-weight: 800; }
 .vz-idle-steps strong { color: var(--vz-navy); }
-.vz-idle-steps kbd { display: inline-block; min-width: 24px; padding: 1px 6px; border: 1px solid #CBD5E1; border-bottom-width: 2px; border-radius: 6px; background: #fff; font-size: 13px; font-family: inherit; text-align: center; color: var(--vz-ink); }
+.vz-idle-steps kbd { display: inline-block; min-width: 24px; padding: 1px 6px; border: 1px solid #CBD5E1; border-bottom-width: 2px; border-radius: 6px; background: #fff; font-size: max(13px, var(--fs-floor, 0px)); font-family: inherit; text-align: center; color: var(--vz-ink); }
 .vz-root .vz-idle-go { margin-top: 18px; min-height: 48px; padding: 0 26px; font-size: 15.5px; }
 
 /* Player */
@@ -86,21 +86,21 @@
 .vz-root .vz-speed select { height: 46px !important; font-size: 14.5px; }
 .vz-root .vz-speed .caret { top: 18px; }
 .vz-root .vz-narration { font-size: 15.5px; padding: 13px 16px; min-height: 52px; }
-.vz-root .vz-line-chip { font-size: 13px; padding: 4px 12px; }
+.vz-root .vz-line-chip { font-size: max(13px, var(--fs-floor, 0px)); padding: 4px 12px; }
 .vz-root .vz-explain { font-size: 15px; }
 .vz-root .vz-mini-title { font-size: 15px; }
 .vz-root .vz-array, .vz-root .vz-mini, .vz-root .vz-output { padding: 16px; border-radius: 16px; }
 .vz-root .vz-array-meta, .vz-root .vz-array-meta code { font-size: 14px; }
-.vz-root .vz-legend { font-size: 13px; }
+.vz-root .vz-legend { font-size: max(13px, var(--fs-floor, 0px)); }
 .vz-root .vz-bar-val { font-size: 14.5px; }
 .vz-root .vz-idx { font-size: 13.5px; }
 .vz-root .vz-cell { height: 52px; font-size: 16px; }
-.vz-root .vz-ptr { font-size: 13px; }
+.vz-root .vz-ptr { font-size: max(13px, var(--fs-floor, 0px)); }
 .vz-root .vz-vars { font-size: 15px; }
 .vz-root .vz-vars td { padding: 8px 2px; }
 .vz-root .vz-stack-frame { font-size: 14.5px; }
 .vz-root .vz-ops b { font-size: 24px; }
-.vz-root .vz-ops span { font-size: 12.5px; }
+.vz-root .vz-ops span { font-size: max(12.5px, var(--fs-floor, 0px)); }
 .vz-root .vz-predict { font-size: 14px; }
 .vz-root .vz-console { font-size: 14.5px; }
 .vz-root .vz-panels { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
@@ -111,7 +111,7 @@
 .vz-root .vz-card h3 { font-size: 19px; font-weight: 800; color: var(--vz-navy); }
 .vz-root .vz-n-control label { font-size: 15px; }
 .vz-root .vz-growth-label b { font-size: 15px; }
-.vz-root .vz-growth-label small, .vz-root .vz-growth-num small { font-size: 13px; }
+.vz-root .vz-growth-label small, .vz-root .vz-growth-num small { font-size: max(13px, var(--fs-floor, 0px)); }
 .vz-root .vz-growth-num { font-size: 15px; }
 .vz-root .vz-growth-time { font-size: 13.5px; }
 .vz-root .vz-growth-track { height: 26px; }
@@ -130,7 +130,7 @@
   .vz-root .vz-head-card .vz-titlebar { align-items: flex-start; }
   .vz-root .vz-subtitle { font-size: 15px; }
   .vz-root .vz-crumbs { font-size: 13.5px; }
-  .vz-root .vz-tag { font-size: 13px; padding: 6px 11px; }
+  .vz-root .vz-tag { font-size: max(13px, var(--fs-floor, 0px)); padding: 6px 11px; }
   .vz-root .vz-left-body { padding: 16px; }
   .vz-root .vz-statement p { font-size: 15.5px; }
   .vz-root.vz-w-narrow .vz-editor-col { height: 420px; min-height: 0; }
@@ -146,7 +146,7 @@
   .vz-root .vz-growth-row { grid-template-columns: 92px minmax(0, 1fr) 70px; gap: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .vz-idle-demo i { animation: none; } }
-.vz-root .vz-mem-lbl { font-size: 12px; }
+.vz-root .vz-mem-lbl { font-size: max(12px, var(--fs-floor, 0px)); }
 .vz-root .vz-mem-box { width: 50px; }
 .vz-root .vz-mem-val { height: 40px; font-size: 15px; }
 .vz-root .vz-mem-title small { font-size: 13.5px; }

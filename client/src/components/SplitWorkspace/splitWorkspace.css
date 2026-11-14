@@ -17,14 +17,14 @@
 .sw-grip { position: relative; width: 6px; height: 34px; border-radius: 4px; background: #fff; border: 1px solid #C9D6E5; box-shadow: 0 1px 3px rgba(5, 29, 100, .12); }
 .sw-handle:hover .sw-grip, .sw-dragging .sw-grip { border-color: #359AAD; }
 .sw-handle-tools { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 4px; z-index: 2; }
-.sw-handle-tools button { width: 26px; height: 26px; padding: 0; display: grid; place-items: center; border-radius: 7px; border: 1px solid #C9D6E5; background: #fff; color: #34475F; font-size: 12px; cursor: pointer; box-shadow: 0 1px 3px rgba(5, 29, 100, .1); }
+.sw-handle-tools button { width: 26px; height: 26px; padding: 0; display: grid; place-items: center; border-radius: 7px; border: 1px solid #C9D6E5; background: #fff; color: #34475F; font-size: max(12px, var(--fs-floor, 0px)); cursor: pointer; box-shadow: 0 1px 3px rgba(5, 29, 100, .1); }
 .sw-handle-tools button:hover { background: #051D64; border-color: #051D64; color: #fff; }
 .sw-dragging, .sw-dragging * { cursor: col-resize !important; user-select: none !important; }
 /* Monaco's own overlays swallow pointer events mid-drag; keep the drag on the handle. */
 .sw-dragging .sw-pane { pointer-events: none; }
 
 /* A minimised pane becomes a slim rail you can click to bring it back. */
-.sw-rail { flex: 1 1 auto; width: 100%; min-height: 160px; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px 0; border: 1px solid #D6E0EC; border-radius: 12px; background: #F4F8FC; color: #051D64; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.sw-rail { flex: 1 1 auto; width: 100%; min-height: 160px; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px 0; border: 1px solid #D6E0EC; border-radius: 12px; background: #F4F8FC; color: #051D64; font: inherit; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 800; cursor: pointer; }
 .sw-rail:hover { background: #EAF3FD; border-color: #359AAD; }
 .sw-rail span { writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: .06em; text-transform: uppercase; }
 .sw-rail-right span { transform: none; }
@@ -35,5 +35,5 @@
 .sw-stacked > .sw-hidden { display: none !important; }
 
 .sw-switch { display: inline-flex; padding: 3px; border-radius: 11px; background: #EEF3F9; border: 1px solid #DCE5EF; }
-.sw-switch button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 0; border-radius: 8px; background: transparent; color: #34475F; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.sw-switch button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 0; border-radius: 8px; background: transparent; color: #34475F; font: inherit; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; cursor: pointer; }
 .sw-switch button.on { background: #fff; color: #051D64; box-shadow: 0 1px 3px rgba(5, 29, 100, .14); }

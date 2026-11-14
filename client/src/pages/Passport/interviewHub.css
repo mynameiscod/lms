@@ -10,7 +10,7 @@
 
 /* ── Header ── */
 .ivh-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 28px; align-items: center; padding: 6px 2px 4px; }
-.ivh-eyebrow { display: inline-flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ivh-navy); }
+.ivh-eyebrow { display: inline-flex; align-items: center; gap: 12px; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ivh-navy); }
 .ivh-eyebrow::after { content: ""; width: 34px; height: 3px; border-radius: 3px; background: var(--ivh-blue); }
 .ivh .ivh-top h1 { margin: 10px 0 0; font-size: clamp(30px, 2.8vw, 42px); line-height: 1.1; font-weight: 800; letter-spacing: -.02em; color: var(--ivh-navy) !important; }
 .ivh .ivh-top h1 span { color: var(--ivh-blue) !important; }
@@ -47,7 +47,7 @@
 .ivh-round-top { display: flex; gap: 14px; align-items: flex-start; }
 .ivh-round-top > div { min-width: 0; }
 .ivh .ivh-round h3 { margin: 2px 0 0; font-size: 17px; font-weight: 800; color: var(--ivh-navy); }
-.ivh-round-sub { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 700; color: #1B7D91; }
+.ivh-round-sub { display: block; margin-top: 2px; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 700; color: #1B7D91; }
 .ivh .ivh-round p { margin: 4px 0 0; font-size: 14px; line-height: 1.45; color: var(--ivh-text); }
 .ivh-round-ic { flex: none; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; background: #EAF1FB; color: #2563EB; }
 .ivh-round-ic.sm { width: 44px; height: 44px; font-size: 19px; }
@@ -70,19 +70,19 @@
 .ivh-hrow.on { background: #EEF3FD; border-color: #D6E2F7; }
 .ivh-hrow-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .ivh-hrow-tx b { font-size: 15px; font-weight: 800; color: var(--ivh-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ivh-hrow-tx small { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ivh-muted); }
+.ivh-hrow-tx small { display: inline-flex; align-items: center; gap: 6px; font-size: max(13px, var(--fs-floor, 0px)); color: var(--ivh-muted); }
 .ivh-hrow-res { flex: none; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 82px; }
-.ivh-hrow-res small { font-size: 12.5px; color: var(--ivh-muted); white-space: nowrap; }
+.ivh-hrow-res small { font-size: max(12.5px, var(--fs-floor, 0px)); color: var(--ivh-muted); white-space: nowrap; }
 /* Not named "-score": careerpilot-member-shell.css stretches the last child of any "*-score" box on phones. */
 .ivh .ivh-hrow-res > *, .ivh .ivh-hrow-tx > * { flex: none; }
 .ivh-pill { font-style: normal; padding: 3px 12px; border-radius: 999px; font-size: 14px; font-weight: 800; }
 .ivh-pill.good { background: #EAF8F1; color: #13784F; }
 .ivh-pill.ok { background: #EAF1FB; color: #1D4ED8; }
 .ivh-pill.low { background: #FFF4E0; color: #9A5A00; }
-.ivh-pill.wait { background: #F1F4F9; color: var(--ivh-muted); font-size: 13px; }
+.ivh-pill.wait { background: #F1F4F9; color: var(--ivh-muted); font-size: max(13px, var(--fs-floor, 0px)); }
 .ivh-chev { flex: none; color: #6B7C93; }
 
-.ivh-tagline { flex: none; padding: 6px 12px; border-radius: 999px; background: #F1F4F9; color: var(--ivh-ink); font-size: 13px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ivh-tagline { flex: none; padding: 6px 12px; border-radius: 999px; background: #F1F4F9; color: var(--ivh-ink); font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ivh-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; background: #F1F4F9; margin-bottom: 16px; }
 .ivh-tabs button { border: 0; background: none; padding: 8px 18px; border-radius: 9px; font-size: 14px; font-weight: 700; color: var(--ivh-ink); cursor: pointer; }
 .ivh-tabs button.on { background: var(--ivh-navy); color: #fff; box-shadow: 0 4px 10px rgba(5, 29, 100, .2); }
@@ -156,7 +156,7 @@
 
 /* Round cards as in the design: a short line under the title, then time | feedback and Start on one row. */
 .ivh .ivh-round h3 { display: flex; align-items: center; gap: 8px; }
-.ivh .ivh-round h3 .ivh-round-used { font-style: normal; font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #EAF8F1; color: #13784F; }
+.ivh .ivh-round h3 .ivh-round-used { font-style: normal; font-size: max(12px, var(--fs-floor, 0px)); font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #EAF8F1; color: #13784F; }
 .ivh-round-foot { flex-wrap: nowrap; }
 .ivh-round-foot > span { color: var(--ivh-text); font-weight: 600; }
 .ivh-sep { width: 1px; height: 18px; background: #D9E1EC; }
@@ -177,7 +177,7 @@
 .ivh .ivh-ring span { font-size: 15px; }
 .ivh .iv-qf-line, .cp-iv-page .iv-qf-line { font-size: 15.5px; line-height: 1.65; color: #2B3D57; }
 .ivh .iv-qf-q, .cp-iv-page .iv-qf-q { font-size: 16px; }
-.ivh .iv-qf-better .lbl, .cp-iv-page .iv-qf-better .lbl { font-size: 12.5px; }
+.ivh .iv-qf-better .lbl, .cp-iv-page .iv-qf-better .lbl { font-size: max(12.5px, var(--fs-floor, 0px)); }
 .ivh .iv-qf-better p, .cp-iv-page .iv-qf-better p { font-size: 16px; line-height: 1.7; }
 .ivh .iv-turn .bub, .cp-iv-page .iv-turn .bub { font-size: 15.5px; line-height: 1.65; }
 .ivh .ivh-muted { font-size: 15px; }

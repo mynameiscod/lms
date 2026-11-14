@@ -17,7 +17,7 @@
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
 .opp2 .opp2-hero > * { position: relative; z-index: 1; }
-.opp2 .opp2-hero .opp-kicker { font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
+.opp2 .opp2-hero .opp-kicker { font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
 #root .gd .opp2 .opp2-hero h1, .opp2 .opp2-hero h1 { margin-top: 8px; font-size: clamp(28px, 2.6vw, 40px) !important; line-height: 1.1 !important; font-weight: 800 !important; letter-spacing: -.02em !important; color: #fff !important; }
 #root .gd .opp2 .opp2-hero h1 span, .opp2 .opp2-hero h1 span { color: #7FD3E0 !important; }
 #root .gd .opp2 .opp2-hero p, .opp2 .opp2-hero p { margin-top: 10px; max-width: 620px; font-size: 16px !important; line-height: 1.6 !important; color: #D5E2F5 !important; }
@@ -34,7 +34,7 @@
 .opp2 .opp2-metrics .opp-metric .icon.green { color: #6FE0A6 !important; }
 .opp2 .opp2-metrics .opp-metric .icon.blue { color: #9CC8FF !important; }
 #root .gd .opp2 .opp2-metrics .opp-metric b { font-size: 26px; color: #fff !important; }
-#root .gd .opp2 .opp2-metrics .opp-metric span { font-size: 12.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #C4D5EE !important; }
+#root .gd .opp2 .opp2-metrics .opp-metric span { font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #C4D5EE !important; }
 
 /* Body at a readable size */
 .opp2 .opp-layout { gap: 18px; grid-template-columns: minmax(0, 1fr) 360px; }
@@ -52,7 +52,7 @@
 .opp2 .opp-resume-cta span { font-size: 13.5px; }
 .opp2 .opp-side-card { padding: 18px 20px; }
 .opp2 .opp-side-hd h3 { font-size: 16px; }
-.opp2 .opp-side-hd button { font-size: 13px; }
+.opp2 .opp-side-hd button { font-size: max(13px, var(--fs-floor, 0px)); }
 .opp2 .opp-ready-row p, .opp2 .opp-side-empty { font-size: 13.5px; }
 .opp2 .opp-ready-row b { font-size: 16px; }
 .opp2 .opp-skill-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; font-size: 14px; }
@@ -137,8 +137,8 @@
 .opp2 .opp-opening { grid-template-columns: 62px minmax(0, 1fr) 150px; }
 .opp-fit.open { background: #EEF2FF; color: #0B3BBF; }
 .opp-skills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-.opp-skills span { font-size: 10px; font-weight: 750; color: #33445E; background: #F1F4F9; border: 1px solid #E1E7EF; border-radius: 999px; padding: 3px 8px; }
-.opp-card-actions a.opp-apply { min-height: 36px; border-radius: 9px; font-weight: 800; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 8px; text-align: center; text-decoration: none; color: #fff; line-height: 1.2; }
+.opp-skills span { font-size: max(10px, var(--fs-floor, 0px)); font-weight: 750; color: #33445E; background: #F1F4F9; border: 1px solid #E1E7EF; border-radius: 999px; padding: 3px 8px; }
+.opp-card-actions a.opp-apply { min-height: 36px; border-radius: 9px; font-weight: 800; font-size: max(11px, var(--fs-floor, 0px)); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 8px; text-align: center; text-decoration: none; color: #fff; line-height: 1.2; }
 .opp-card-actions a.opp-apply:hover { color: #fff; filter: brightness(1.12); }
 .opp-card-actions .opp-mark { background: #fff; color: #17885D; border: 1px dashed #9FD6BF; cursor: pointer; }
 .opp-card-actions .opp-mark:hover:not(:disabled) { background: #F2FBF7; }

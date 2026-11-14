@@ -116,7 +116,7 @@
 .gd-tile { min-height: 88px; padding: 13px 14px; }
 .gd-tile .lbl { color: #60708a; }
 .gd-tile .val { color: var(--cb-navy); }
-.gd-tile .sub { font-size: 11px; }
+.gd-tile .sub { font-size: max(11px, var(--fs-floor, 0px)); }
 .gd-tile-bar .tr { background: #e7eef5; }
 .gd-tile-bar .tr i { background: linear-gradient(90deg, var(--cb-teal), #32c2cd); }
 

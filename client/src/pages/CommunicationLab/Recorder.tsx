@@ -231,7 +231,7 @@ const Recorder: React.FC<{
                   <button className="clx-btn primary" onClick={submit} disabled={!chosen || tooShort}><i className="bi bi-stars" /> Send {takes.length > 1 ? `take ${pick + 1}` : 'this take'} for AI feedback</button>
                 </>
               )}
-              {phase === 'submitting' && <span style={{ color: '#2F3F56', fontSize: 13 }}><i className="bi bi-hourglass-split" /> Transcribing and evaluating… this can take a minute.</span>}
+              {phase === 'submitting' && <span style={{ color: '#2F3F56', fontSize: 'max(13px, var(--fs-floor, 0px))' }}><i className="bi bi-hourglass-split" /> Transcribing and evaluating… this can take a minute.</span>}
             </div>
             {phase === 'review' && <p className="clx-final-note">Once sent, this answer is final and cannot be redone.</p>}
           </>

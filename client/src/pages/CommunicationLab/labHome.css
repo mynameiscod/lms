@@ -14,7 +14,7 @@
 .clx-stat .ic.blue { background: #E4EEFC; color: #1D5FD1; }
 .clx-stat .ic.gold { background: #FFF3CC; color: #D99A00; }
 .clx-stat b { display: block; font-size: 22px; line-height: 1.1; color: #0a1f5c; }
-.clx-stat div span { display: block; margin-top: 3px; font-size: 12.5px; font-weight: 600; color: #33475b; }
+.clx-stat div span { display: block; margin-top: 3px; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 600; color: #33475b; }
 
 .clh { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(300px, 1fr); gap: 18px; align-items: start; }
 .clh-main, .clh-rail { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
@@ -27,26 +27,26 @@
 .clh-ico { width: 46px; height: 46px; border-radius: 13px; background: #E4EEFC; color: #1D5FD1; display: grid; place-items: center; font-size: 22px; flex: none; }
 .clh-ico.soft { width: 34px; height: 34px; font-size: 17px; border-radius: 10px; background: #EEF3FB; }
 .clh-badge { padding: 8px 16px; border-radius: 999px; background: #DCEAFE; color: #1B4FB8; font-size: 13.5px; font-weight: 800; white-space: nowrap; }
-.clh-pill-note { padding: 6px 12px; border: 1px solid var(--line); border-radius: 10px; color: #33475b; font-size: 13px; font-weight: 700; background: #fff; }
+.clh-pill-note { padding: 6px 12px; border: 1px solid var(--line); border-radius: 10px; color: #33475b; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; background: #fff; }
 .clh-link { border: 0; background: none; color: #1D5FD1; font-weight: 800; font-size: 14px; cursor: pointer; padding: 4px 2px; }
 .clh-link:hover { text-decoration: underline; }
 
 /* today's questions */
 .clh-steps { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
 .clh-step { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 14px 0 6px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: #33475b; font-weight: 700; font-size: 13.5px; cursor: pointer; }
-.clh-step .n { width: 26px; height: 26px; border-radius: 50%; background: #EEF3FB; color: #1B4FB8; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; }
+.clh-step .n { width: 26px; height: 26px; border-radius: 50%; background: #EEF3FB; color: #1B4FB8; display: grid; place-items: center; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; }
 .clh-step.on { border-color: #1D5FD1; background: #EAF1FE; color: #0a1f5c; box-shadow: 0 0 0 3px rgba(29, 95, 209, .10); }
 .clh-step.on .n { background: #1D5FD1; color: #fff; }
 .clh-step.done { background: #EAF8F1; border-color: #BFE6D2; color: #13704E; cursor: default; }
 .clh-step.done .n { background: #16835d; color: #fff; }
 .clh-step:disabled:not(.done) { opacity: .5; cursor: not-allowed; }
-.clh-steps-count { margin-left: auto; font-size: 13px; font-weight: 700; color: #33475b; }
+.clh-steps-count { margin-left: auto; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; color: #33475b; }
 .clh-baseline { margin: 0 0 14px; padding: 11px 14px; border-radius: 12px; background: #FFF8E8; border: 1px solid #F5DDB5; color: #6B4300 !important; font-size: 13.5px; line-height: 1.55; }
 .clh-today-body { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
 .clh-question { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 26px 22px 20px; border-radius: 18px; background: linear-gradient(180deg, #F1F6FE, #EAF1FC); }
 .clh-bubble { width: 74px; height: 74px; border-radius: 50%; background: #C9DBFB; color: #1D5FD1; display: grid; place-items: center; font-size: 32px; }
 .clh-bubble.ok { background: #CFEFE0; color: #16835d; }
-.clh-qlabel { margin-top: 16px; font-size: 12.5px; font-weight: 800; letter-spacing: .08em; color: #33475b; }
+.clh-qlabel { margin-top: 16px; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .08em; color: #33475b; }
 .clh-question h3 { margin: 10px 0 0; font-size: clamp(19px, 1.7vw, 24px); line-height: 1.35; font-weight: 800; color: #0a1f5c !important; }
 .clh-hint { margin: 10px 0 0; color: #33475b !important; font-size: 14.5px; }
 .clh-follow { margin: 10px 0 0; color: #8A5200 !important; font-size: 14px; font-weight: 600; }
@@ -73,12 +73,12 @@
 /* improvement */
 .clh-chart svg { width: 100%; height: auto; display: block; }
 .clh-chart .grid { stroke: #E6EDF6; stroke-width: 1; }
-.clh-chart .axis { fill: #4B5C73; font-size: 11.5px; font-weight: 600; }
+.clh-chart .axis { fill: #4B5C73; font-size: max(11.5px, var(--fs-floor, 0px)); font-weight: 600; }
 .clh-chart .ln { fill: none; stroke: #1976d2; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
 .clh-chart .dot { fill: #fff; stroke: #1976d2; stroke-width: 2.5; }
 .clh-chart .dot.last { fill: #1976d2; stroke: #fff; stroke-width: 2.5; }
 .clh-chart .tag { fill: #DDF3E6; }
-.clh-chart .tagtx { fill: #13704E; font-size: 12px; font-weight: 800; }
+.clh-chart .tagtx { fill: #13704E; font-size: max(12px, var(--fs-floor, 0px)); font-weight: 800; }
 .clh-note { display: flex; gap: 12px; align-items: center; margin-top: 12px; padding: 14px 16px; border-radius: 14px; }
 .clh-note i { font-size: 30px; flex: none; }
 .clh-note b { display: block; font-size: 15.5px; }
@@ -99,7 +99,7 @@
 .clh-days .dt { color: #33475b; font-size: 13.5px; }
 .clh-days .sc { min-width: 58px; text-align: center; padding: 4px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 800; }
 .clh-days .sc.good { background: #DDF3E6; color: #13704E; } .clh-days .sc.mid { background: #FFF0CC; color: #8A5200; } .clh-days .sc.low { background: #FDE0E0; color: #B42424; }
-.clh-days .chev { color: #7A8BA3; font-size: 13px; }
+.clh-days .chev { color: #7A8BA3; font-size: max(13px, var(--fs-floor, 0px)); }
 
 /* journey */
 .clh-track { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 16px 6px; }
@@ -110,7 +110,7 @@
 .clh-track li.done .c { background: #16a36b; color: #fff; font-size: 19px; }
 .clh-track li.today .c { background: #1D5FD1; color: #fff; box-shadow: 0 0 0 5px rgba(29, 95, 209, .18); }
 .clh-track li.missed .c { background: #fff; border-color: #F1C98A; color: #9A5A00; }
-.clh-track em { font-style: normal; font-size: 12.5px; font-weight: 600; color: #33475b; }
+.clh-track em { font-style: normal; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 600; color: #33475b; }
 .clh-track li.today em { color: #0a1f5c; font-weight: 800; }
 
 @media (max-width: 1280px) {

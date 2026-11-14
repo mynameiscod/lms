@@ -70,7 +70,7 @@ const Company: React.FC = () => {
                   </React.Fragment>
                 ))}
               </div>
-              <div className="pb-faint" style={{ fontSize: 12, marginTop: 8 }}>The number shows how many reports mentioned each round.</div>
+              <div className="pb-faint" style={{ fontSize: 'max(12px, var(--fs-floor, 0px))', marginTop: 8 }}>The number shows how many reports mentioned each round.</div>
             </div>
           )}
 
@@ -82,7 +82,7 @@ const Company: React.FC = () => {
           {tab === 'asked' ? (
             <div className="ihx-panel" style={{ padding: 0, overflow: 'hidden' }}>
               <div className="pb-row" style={{ padding: '10px 14px', borderBottom: '1px solid var(--pb-line)', flexWrap: 'wrap' }}>
-                <span className="pb-muted pb-grow" style={{ fontSize: 13 }}>Grouped across reports — the higher the count, the more likely you face it.</span>
+                <span className="pb-muted pb-grow" style={{ fontSize: 'max(13px, var(--fs-floor, 0px))' }}>Grouped across reports — the higher the count, the more likely you face it.</span>
                 <div className="pb-chips">
                   <button className={`pb-chip ${!round ? 'on' : ''}`} onClick={() => setRound('')}>All rounds</button>
                   {c.roundPattern.map((r) => <button key={r.key} className={`pb-chip ${round === r.name ? 'on' : ''}`} onClick={() => setRound(r.name)}>{r.name}</button>)}
@@ -96,7 +96,7 @@ const Company: React.FC = () => {
                     <div style={{ whiteSpace: 'pre-wrap', color: 'var(--pb-ink)', lineHeight: 1.5 }}>{q.text}</div>
                     <div className="pb-row" style={{ marginTop: 5, gap: 6, flexWrap: 'wrap' }}>
                       <span className="pb-tag">{q.round}</span>
-                      <span className="pb-faint" style={{ fontSize: 12 }}>last asked {fmtDate(q.lastAsked)}</span>
+                      <span className="pb-faint" style={{ fontSize: 'max(12px, var(--fs-floor, 0px))' }}>last asked {fmtDate(q.lastAsked)}</span>
                       <button className="pb-btn pb-btn-ghost pb-btn-sm" onClick={() => nav(`${base}/${q.experienceIds[0]}`)}>See the report</button>
                     </div>
                   </div>

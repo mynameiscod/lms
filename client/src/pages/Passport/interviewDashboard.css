@@ -17,7 +17,7 @@
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
 .iv2-hero > * { position: relative; z-index: 1; }
-.iv2-eyebrow { font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
+.iv2-eyebrow { font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
 .iv2 .iv2-hero h1 { margin: 8px 0 0; font-size: clamp(28px, 2.6vw, 40px); line-height: 1.1; font-weight: 800; letter-spacing: -.02em; color: #fff !important; }
 .iv2 .iv2-hero h1 span { color: #7FD3E0 !important; }
 .iv2 .iv2-hero-copy > p { margin: 10px 0 0; max-width: 640px; font-size: 16px; line-height: 1.6; color: #D5E2F5 !important; }
@@ -34,7 +34,7 @@
 .iv2-ring > div { width: 108px; height: 108px; border-radius: 50%; background: var(--navy); display: flex; flex-wrap: wrap; align-content: center; align-items: baseline; justify-content: center; }
 .iv2-ring strong { font-size: 38px; line-height: 1; font-weight: 800; color: #fff; }
 .iv2-ring span { font-size: 14px; font-weight: 700; color: #3F4F66; margin-left: 2px; }
-.iv2 .iv2-score-copy small { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6 !important; }
+.iv2 .iv2-score-copy small { display: block; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6 !important; }
 .iv2 .iv2-score-copy b { display: block; margin-top: 4px; font-size: 21px; color: #fff !important; }
 .iv2 .iv2-score-copy span { display: block; margin-top: 4px; font-size: 13.5px; color: #C4D5EE !important; }
 
@@ -50,8 +50,8 @@
 .iv2 .cp-iv-round-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(15, 46, 77, .10); }
 .iv2 .cp-iv-round-card h3 { font-size: 18px; font-weight: 800; color: var(--navy); }
 .iv2 .cp-iv-round-blurb { font-size: 14px; line-height: 1.55; color: var(--text); }
-.iv2 .cp-iv-round-meta span { font-size: 13px; }
-.iv2 .cp-iv-round-used { font-size: 13px; }
+.iv2 .cp-iv-round-meta span { font-size: max(13px, var(--fs-floor, 0px)); }
+.iv2 .cp-iv-round-used { font-size: max(13px, var(--fs-floor, 0px)); }
 .iv2 .cp-iv-round-go { min-height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; }
 
 /* Panels */
@@ -60,13 +60,13 @@
 .iv2 .cp-iv-panel p, .iv2 .cp-iv-muted, .iv2 .cp-iv-empty { font-size: 14px; }
 .iv2 .cp-iv-metric-row { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important; }
 .iv2 .cp-iv-metric { border-radius: 16px; padding: 16px; }
-.iv2 .cp-iv-metric span { font-size: 13px; }
+.iv2 .cp-iv-metric span { font-size: max(13px, var(--fs-floor, 0px)); }
 .iv2 .cp-iv-metric b { font-size: 22px; color: var(--navy); }
 .iv2 .cp-iv-practice-strip { border-radius: 18px; padding: 16px 18px; }
 .iv2 .cp-iv-practice-strip b { font-size: 14.5px; }
-.iv2 .cp-iv-practice-strip small { font-size: 13px; }
+.iv2 .cp-iv-practice-strip small { font-size: max(13px, var(--fs-floor, 0px)); }
 .iv2 .cp-iv-tips b { font-size: 14.5px; }
-.iv2 .cp-iv-tips small { font-size: 13px; }
+.iv2 .cp-iv-tips small { font-size: max(13px, var(--fs-floor, 0px)); }
 .iv2 .cp-iv-history-list button b { font-size: 14.5px; }
 .iv2 .pm-btn.primary { background: var(--primary); border-color: var(--primary); border-radius: 12px; }
 .iv2 .cp-iv-readiness { display: none; } /* the readiness ring now lives in the hero */
@@ -162,7 +162,7 @@
 .iv2-steps2::before { content: ""; position: absolute; left: 14px; right: 14px; top: 11px; height: 2px; background: #DFE7F1; }
 .iv2-steps2 li { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .iv2-steps2 li i { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid #DFE7F1; }
-.iv2-steps2 li span { max-width: 100%; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #3F4F66; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iv2-steps2 li span { max-width: 100%; font-size: max(11.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #3F4F66; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .iv2-steps2 li.done i { background: var(--primary); border-color: var(--primary); box-shadow: inset 0 0 0 3px #fff; }
 .iv2-steps2 li.done span { color: var(--navy); }
 .iv2-steps2 li.current i { background: #2FB27F; border-color: #2FB27F; box-shadow: 0 0 0 4px rgba(47, 178, 127, .18); }
@@ -173,9 +173,9 @@
 .iv2-next:disabled { opacity: .6; cursor: default; }
 .iv2-next .ic { flex: none; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; font-size: 19px; background: var(--tint); color: var(--primary); }
 .iv2-next > div { flex: 1; min-width: 0; }
-.iv2 .iv2-next b { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #1B7D91; }
+.iv2 .iv2-next b { display: block; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #1B7D91; }
 .iv2 .iv2-next > div > span { display: block; margin-top: 2px; font-size: 15px; font-weight: 700; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.iv2 .iv2-next em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; color: #17855B; }
+.iv2 .iv2-next em { display: block; margin-top: 3px; font-style: normal; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; color: #17855B; }
 .iv2-next > i.bi-chevron-right { flex: none; color: #3F4F66; }
 
 /* The readiness ring loses its tile: it is now the banner's third column, not a card inside one. */
@@ -192,7 +192,7 @@
   .iv2 .iv2-hero-copy, .iv2 .iv2-hero .iv2-score { padding-left: 20px; padding-right: 20px; margin: 0; width: auto; }
 }
 @media (max-width: 560px) {
-  .iv2-steps2 li span { font-size: 10.5px; letter-spacing: 0; }
+  .iv2-steps2 li span { font-size: max(10.5px, var(--fs-floor, 0px)); letter-spacing: 0; }
 }
 
 /* ≤1280px: two even columns, then the readiness score as a full-width strip with a straight
@@ -203,7 +203,7 @@
   .iv2 .iv2-hero .iv2-ring { width: 96px; height: 96px; }
   .iv2 .iv2-hero .iv2-ring > div { width: 76px; height: 76px; }
   .iv2 .iv2-hero .iv2-ring strong { font-size: 28px; }
-  .iv2-steps2 li span { font-size: 10.5px; letter-spacing: 0; white-space: normal; overflow: visible; text-overflow: clip; text-align: center; line-height: 1.25; max-width: 92px; overflow-wrap: normal; word-break: normal; }
+  .iv2-steps2 li span { font-size: max(10.5px, var(--fs-floor, 0px)); letter-spacing: 0; white-space: normal; overflow: visible; text-overflow: clip; text-align: center; line-height: 1.25; max-width: 92px; overflow-wrap: normal; word-break: normal; }
 }
 @media (max-width: 980px) {
   /* Restated after the ≤1280px two-column rule above, which otherwise kept phones on two columns. */
@@ -229,8 +229,8 @@
   .iv2-strip { gap: 10px; padding: 12px; }
   .iv2-strip .ic { width: 38px; height: 38px; font-size: 17px; }
   .iv2 .iv2-strip b { font-size: 15px; }
-  .iv2 .iv2-strip > div > span { font-size: 12.5px; }
-  .iv2-steps2 li span { font-size: 9.5px; max-width: none; }
+  .iv2 .iv2-strip > div > span { font-size: max(12.5px, var(--fs-floor, 0px)); }
+  .iv2-steps2 li span { font-size: max(9.5px, var(--fs-floor, 0px)); max-width: none; }
   .iv2-next { padding: 11px 12px; gap: 10px; }
   .iv2-next .ic { width: 36px; height: 36px; font-size: 16px; }
 }

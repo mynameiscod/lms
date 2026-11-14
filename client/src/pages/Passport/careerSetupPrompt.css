@@ -14,16 +14,16 @@
 
 .cpsp-tx { flex: 1; min-width: 200px; }
 .cpsp-tx b { display: block; font-size: 13.5px; font-weight: 800; color: #0f172a; }
-.cpsp-tx span { display: block; font-size: 12.5px; color: #475569;
+.cpsp-tx span { display: block; font-size: max(12.5px, var(--fs-floor, 0px)); color: #475569;
   margin-top: 2px; line-height: 1.55; max-width: 68ch; }
 
 .cpsp-go { flex: 0 0 auto; background: #1d4ed8; color: #fff; border: 0;
-  border-radius: 9px; padding: 9px 18px; font-size: 12.5px; font-weight: 700;
+  border-radius: 9px; padding: 9px 18px; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 700;
   font-family: inherit; cursor: pointer; transition: background .12s; }
 .cpsp-go:hover { background: #1a43bd; }
 
 .cpsp-x { flex: 0 0 auto; background: none; border: 0; color: #3F4F66;
-  cursor: pointer; padding: 6px; font-size: 12px; line-height: 1; }
+  cursor: pointer; padding: 6px; font-size: max(12px, var(--fs-floor, 0px)); line-height: 1; }
 .cpsp-x:hover { color: #475569; }
 
 @media (max-width: 640px) {

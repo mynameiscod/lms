@@ -5,6 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import './App.css';
 import './pages/MyLearningPlan/DayView.system.css';
+import './styles/readability.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { captureCareerPilotAttribution } from './utils/careerPilotAttribution';

@@ -20,7 +20,7 @@
 .jdm-hero > * { position: relative; z-index: 1; }
 .jdm-crumb { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; margin-bottom: 14px; color: #C4D5EE; font-size: 14px; font-weight: 700; cursor: pointer; }
 .jdm-crumb:hover { color: #fff; }
-.jdm-eyebrow { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
+.jdm-eyebrow { display: block; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
 .jdm-hero h1 { margin: 6px 0 0; font-size: clamp(26px, 2.4vw, 38px); line-height: 1.12; font-weight: 800; letter-spacing: -.02em; color: #fff !important; }
 .jdm-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .jdm-chips span { display: inline-flex; align-items: center; gap: 7px; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .22); color: #fff; font-size: 13.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; }
@@ -50,7 +50,7 @@
 .jdm-rail-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 16px 14px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); position: sticky; top: 104px; }
 .jdm-rail-head { display: flex; justify-content: space-between; align-items: center; padding: 2px 6px 12px; }
 .jdm-rail-head b { font-size: 16px; color: var(--navy); }
-.jdm-rail-head span { font-size: 13px; font-weight: 800; color: var(--primary); background: var(--tint); border-radius: 999px; padding: 3px 10px; }
+.jdm-rail-head span { font-size: max(13px, var(--fs-floor, 0px)); font-weight: 800; color: var(--primary); background: var(--tint); border-radius: 999px; padding: 3px 10px; }
 .jdm .jd-rail { gap: 6px; }
 .jdm .jd-item { align-items: center; gap: 12px; padding: 12px; border-radius: 14px; border: 1px solid transparent; background: none; text-align: left; }
 .jdm .jd-item:hover { background: var(--soft); }
@@ -65,8 +65,8 @@
 .jdm .jd-item-body { flex: 1; }
 .jdm .jd-item-body b { font-size: 14.5px; font-weight: 700; color: var(--ink); line-height: 1.35; }
 .jdm .jd-item.done .jd-item-body b { color: var(--muted); }
-.jdm .jd-item-body small { font-size: 12.5px; color: var(--muted); }
-.jdm-xp { flex: none; font-size: 12.5px; font-weight: 800; color: var(--green); background: var(--green-bg); border-radius: 999px; padding: 3px 9px; }
+.jdm .jd-item-body small { font-size: max(12.5px, var(--fs-floor, 0px)); color: var(--muted); }
+.jdm-xp { flex: none; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; color: var(--green); background: var(--green-bg); border-radius: 999px; padding: 3px 9px; }
 .jdm-xp.big { font-size: 13.5px; padding: 5px 12px; }
 .jdm-bonus { margin: 10px 4px 0; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; font-size: 13.5px; color: var(--amber); background: var(--amber-bg); border: 1px solid #F5DDB5; }
 .jdm-bonus span { flex: 1; font-weight: 600; }
@@ -75,7 +75,7 @@
 /* Stage */
 .jdm .jd-stage { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 22px 24px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); }
 .jdm .jd-stage-head { align-items: flex-start; margin-bottom: 16px; }
-.jdm .jd-type { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--primary); background: var(--tint); border-radius: 999px; padding: 5px 11px; }
+.jdm .jd-type { display: inline-flex; align-items: center; gap: 6px; font-size: max(12px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--primary); background: var(--tint); border-radius: 999px; padding: 5px 11px; }
 .jdm .jd-type.t-video { color: var(--red); background: var(--red-bg); }
 .jdm .jd-type.t-notes, .jdm .jd-type.t-worked_example { color: #287F91; background: #EAF7F8; }
 .jdm .jd-type.t-practice_theory, .jdm .jd-type.t-practice_coding { color: var(--amber); background: var(--amber-bg); }
@@ -87,7 +87,7 @@
 .jdm .jd-launch { border: 1px dashed var(--border-strong); border-radius: 16px; background: var(--soft); padding: 36px 20px; }
 .jdm .jd-launch-icon { color: var(--primary); }
 .jdm .jd-actions { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); align-items: center; gap: 10px; }
-.jdm-step { margin-right: auto; font-size: 13px; font-weight: 700; color: var(--muted); }
+.jdm-step { margin-right: auto; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; color: var(--muted); }
 .jdm .jd-btn { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--border-strong); background: #fff; color: var(--primary); font-size: 14.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .jdm .jd-btn:hover:not(:disabled) { border-color: var(--primary); }
 .jdm .jd-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(5, 29, 100, .2); }
@@ -102,7 +102,9 @@
 @media (max-width: 560px) {
   .jdm .jd-stage { padding: 18px 14px; }
   .jdm-step { width: 100%; }
-  .jdm .jd-actions .jd-btn { flex: 1; justify-content: center; }
+  .jdm .jd-actions { flex-wrap: wrap; }
+  /* "Mark as done · +5 XP" broke over two lines beside Next task; each button takes its own row. */
+  .jdm .jd-actions .jd-btn { flex: 1 1 100%; justify-content: center; white-space: nowrap; }
   .jdm-daynav button { flex: 1; justify-content: center; }
 }
 @media (min-width: 1200px) and (max-width: 1599px) { .jd-page.jdm { zoom: 1.05; } }
@@ -152,7 +154,7 @@
 .jdm-steps2::before { content: ""; position: absolute; left: 14px; right: 14px; top: 11px; height: 2px; background: #DFE7F1; }
 .jdm-steps2 li { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
 .jdm-steps2 li i { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid #DFE7F1; }
-.jdm-steps2 li span { font-size: 11.5px; font-weight: 800; letter-spacing: .06em; color: #3F4F66; }
+.jdm-steps2 li span { font-size: max(11.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .06em; color: #3F4F66; }
 .jdm-steps2 li.done i { background: var(--primary); border-color: var(--primary); box-shadow: inset 0 0 0 3px #fff; }
 .jdm-steps2 li.done span { color: var(--navy); }
 .jdm-steps2 li.current i { background: #2FB27F; border-color: #2FB27F; box-shadow: 0 0 0 4px rgba(47, 178, 127, .18); }
@@ -164,7 +166,7 @@
 .jdm-challenge > div { flex: 1; min-width: 0; }
 .jdm-hero .jdm-challenge b { display: block; font-size: 15px; color: var(--navy); }
 .jdm-hero .jdm-challenge > div span { display: block; margin-top: 2px; font-size: 13.5px; color: #2F3F56; }
-.jdm-hero .jdm-challenge em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; color: #17855B; }
+.jdm-hero .jdm-challenge em { display: block; margin-top: 3px; font-style: normal; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; color: #17855B; }
 .jdm-challenge > .bi { flex: none; color: #3F4F66; }
 
 .jdm-hero .jdm-daynav { padding: 0 26px; }
@@ -237,7 +239,7 @@
 #root .gd .jdm .jdh2-nav span b { color: #fff !important; font-size: 15.5px; }
 #root .gd .jdm .jdh2-nav span em { font-style: normal; color: #C9D8EE !important; font-weight: 600; }
 
-#root .gd .jdm .jdh2-eyebrow { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #A6E4EE !important; }
+#root .gd .jdm .jdh2-eyebrow { display: inline-flex; align-items: center; gap: 7px; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #A6E4EE !important; }
 #root .gd .jdm .jdh2.is-done .jdh2-eyebrow { color: #8BEBC0 !important; }
 #root .gd .jdm .jdh2 h1 { margin: 6px 0 0; font-size: clamp(24px, 2.3vw, 36px); line-height: 1.15; font-weight: 800; letter-spacing: -.02em; color: #fff !important;
   overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -262,7 +264,7 @@
 #root .gd .jdm .jdh2-tile.bonus .ic { background: #FFB000; color: #fff !important; }
 #root .gd .jdm .jdh2-tile.bonus.won .ic { background: #17885D; }
 .jdm .jdh2-tile > div { display: flex; flex-direction: column; min-width: 0; }
-#root .gd .jdm .jdh2-tile small { font-size: 12.5px; font-weight: 700; color: #4A5B72 !important; line-height: 1.3; }
+#root .gd .jdm .jdh2-tile small { font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 700; color: #4A5B72 !important; line-height: 1.3; }
 #root .gd .jdm .jdh2-tile b { font-size: 19px; font-weight: 800; color: #0B1F4D !important; line-height: 1.25; white-space: nowrap; }
 #root .gd .jdm .jdh2-tile b em { font-style: normal; font-size: 13.5px; font-weight: 600; color: #4A5B72 !important; }
 #root .gd .jdm .jdh2-tile.bonus.won b { color: #12663F !important; }

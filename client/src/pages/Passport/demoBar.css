@@ -1,11 +1,11 @@
 /* The Demo bar (DemoBar.tsx): only demo accounts see it. Amber, so it is never mistaken for the
    product itself in a screenshot or on a projector. */
 .demo-bar { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; margin: 0 0 16px; padding: 10px 14px; border-radius: 16px; background: #FFF6E2; border: 1px solid #F3D9A4; color: #4A3200; }
-.demo-tag { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: #8A4B00; color: #fff; font-size: 12.5px; font-weight: 900; letter-spacing: .08em; }
+.demo-tag { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: #8A4B00; color: #fff; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 900; letter-spacing: .08em; }
 .demo-plan { font-size: 14px; font-weight: 800; color: #4A3200; min-width: 0; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .demo-year { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: #6B4A00; }
 .demo-year select { height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid #E5C27E; background: #fff; font: inherit; font-size: 14px; font-weight: 800; color: #051D64; cursor: pointer; }
-.demo-wait { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #6B4A00; }
+.demo-wait { display: inline-flex; align-items: center; gap: 6px; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; color: #6B4A00; }
 .demo-wait i { animation: demo-spin 1s linear infinite; }
 @keyframes demo-spin { to { transform: rotate(360deg); } }
 .demo-grow { flex: 1; }

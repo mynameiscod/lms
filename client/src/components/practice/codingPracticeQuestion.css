@@ -1,18 +1,18 @@
 /* A coding question in a Code practice lesson (CodingPracticeQuestion.tsx). Prefix cpq-. */
 .cpq { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .cpq-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.cpq-lang { min-height: 34px; border: 1px solid #C9D8E5; border-radius: 8px; padding: 0 8px; font: inherit; font-size: 13px; font-weight: 600; color: #051D64; background: #fff; }
-.cpq-langtag { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: 999px; background: #E6F3F6; color: #1F6F7E; font-size: 12px; font-weight: 700; }
-.cpq-hint { flex: 1; min-width: 160px; font-size: 13px; color: #5B6B7F; }
-.cpq-link { border: 0; background: none; color: #1F6F7E; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; gap: 5px; align-items: center; padding: 4px 2px; }
+.cpq-lang { min-height: 34px; border: 1px solid #C9D8E5; border-radius: 8px; padding: 0 8px; font: inherit; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 600; color: #051D64; background: #fff; }
+.cpq-langtag { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: 999px; background: #E6F3F6; color: #1F6F7E; font-size: max(12px, var(--fs-floor, 0px)); font-weight: 700; }
+.cpq-hint { flex: 1; min-width: 160px; font-size: max(13px, var(--fs-floor, 0px)); color: #5B6B7F; }
+.cpq-link { border: 0; background: none; color: #1F6F7E; font: inherit; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 600; cursor: pointer; display: inline-flex; gap: 5px; align-items: center; padding: 4px 2px; }
 .cpq-link:hover:not(:disabled) { text-decoration: underline; }
 .cpq-link:disabled { opacity: .5; cursor: default; }
 .cpq-editor { border-radius: 10px; overflow: hidden; border: 1px solid #0f172a; background: #1e1e1e; min-width: 0; }
 
 .cpq-stdin { display: flex; flex-direction: column; gap: 4px; }
-.cpq-stdin > span { font-size: 12.5px; font-weight: 700; color: #33475B; }
+.cpq-stdin > span { font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 700; color: #33475B; }
 .cpq-stdin small { font-weight: 500; color: #5B6B7F; }
-.cpq-stdin textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; border: 1px solid #C9D8E5; border-radius: 8px; padding: 8px 10px; resize: vertical; min-height: 36px; width: 100%; box-sizing: border-box; }
+.cpq-stdin textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: max(13px, var(--fs-floor, 0px)); border: 1px solid #C9D8E5; border-radius: 8px; padding: 8px 10px; resize: vertical; min-height: 36px; width: 100%; box-sizing: border-box; }
 .cpq-stdin textarea:focus { outline: 2px solid rgba(53, 154, 173, .45); outline-offset: 1px; }
 
 .cpq-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -24,18 +24,18 @@
 .cpq-btn:disabled { opacity: .55; cursor: default; }
 .cpq-btn:focus-visible, .cpq-link:focus-visible, .cpq-lang:focus-visible { outline: 2px solid #359AAD; outline-offset: 2px; }
 
-.cpq-problem { margin: 0; color: #b91c1c; font-size: 13px; font-weight: 600; }
-.cpq-note { margin: 0; font-size: 13px; color: #5B6B7F; }
+.cpq-problem { margin: 0; color: #b91c1c; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 600; }
+.cpq-note { margin: 0; font-size: max(13px, var(--fs-floor, 0px)); color: #5B6B7F; }
 .cpq-out { display: flex; flex-direction: column; gap: 8px; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px; background: #F8FAFC; min-width: 0; }
 .cpq-io { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.cpq-io > span { font-size: 11.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #5B6B7F; }
-.cpq-io pre { margin: 0; padding: 8px 10px; border-radius: 7px; background: #0f172a; color: #e2e8f0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; }
+.cpq-io > span { font-size: max(11.5px, var(--fs-floor, 0px)); font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #5B6B7F; }
+.cpq-io pre { margin: 0; padding: 8px 10px; border-radius: 7px; background: #0f172a; color: #e2e8f0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: max(12.5px, var(--fs-floor, 0px)); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; }
 .cpq-io.bad pre { background: #2a1215; color: #fecaca; }
 .cpq-score { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
 .cpq-score.ok { color: #15803d; }
 .cpq-score.bad { color: #b45309; }
 .cpq-tests { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.cpq-tests li { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.cpq-tests li { display: flex; flex-direction: column; gap: 6px; font-size: max(13px, var(--fs-floor, 0px)); }
 .cpq-tests li.ok b { color: #15803d; }
 .cpq-tests li.bad b { color: #b91c1c; }
 .cpq-tests b { display: inline-flex; gap: 6px; align-items: center; }
@@ -43,7 +43,7 @@
 @media (max-width: 720px) { .cpq-grid { grid-template-columns: 1fr; } }
 
 .cpq-answer { display: flex; flex-direction: column; gap: 10px; border: 1px solid #BFE3EA; background: #F1FAFB; border-radius: 10px; padding: 12px; min-width: 0; }
-.cpq-examples { border-collapse: collapse; width: 100%; font-size: 13px; table-layout: fixed; }
+.cpq-examples { border-collapse: collapse; width: 100%; font-size: max(13px, var(--fs-floor, 0px)); table-layout: fixed; }
 /* The admin surface gives every table a 680px floor and unwrapped cells (CareerPilotAdmin.css), and the
    admin's preview must match the member's. */
 .cpq-examples { min-width: 0 !important; }

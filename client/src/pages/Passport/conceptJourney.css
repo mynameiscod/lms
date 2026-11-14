@@ -17,13 +17,13 @@
 .cj > *{max-width:820px; margin-left:auto; margin-right:auto}
 
 .cj-back{display:block; border:1px solid var(--cj-line); background:#fff; border-radius:9px;
-  padding:7px 13px; font-size:12.5px; font-weight:700; color:var(--cj-muted); cursor:pointer;
+  padding:7px 13px; font-size:max(12.5px, var(--fs-floor, 0px)); font-weight:700; color:var(--cj-muted); cursor:pointer;
   margin-bottom:18px; font-family:inherit}
 .cj-back:hover{color:var(--cj-navy); border-color:var(--cj-muted)}
 
 /* ── header ─────────────────────────────────────────── */
 .cj-hd{margin-bottom:16px}
-.cj-kicker{display:inline-block; font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+.cj-kicker{display:inline-block; font-size:max(11px, var(--fs-floor, 0px)); letter-spacing:.09em; text-transform:uppercase;
   font-weight:800; color:var(--cj-teal); background:#EAF7F8; border-radius:99px;
   padding:4px 12px; margin-bottom:10px}
 .cj-hd h1{font-size:clamp(25px,3.6vw,34px); font-weight:800; color:var(--cj-navy);
@@ -36,7 +36,7 @@
 .cj-progress-text{display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between;
   gap:6px 16px}
 .cj-progress-text b{font-size:15px; color:var(--cj-navy); font-weight:800}
-.cj-progress-text span{font-size:12.5px; color:var(--cj-muted)}
+.cj-progress-text span{font-size:max(12.5px, var(--fs-floor, 0px)); color:var(--cj-muted)}
 .cj-bar{display:block; height:8px; border-radius:99px; background:#E8EEF5; overflow:hidden;
   margin:11px 0 0}
 .cj-bar i{display:block; height:100%; border-radius:99px;
@@ -47,13 +47,13 @@
 /* ── outcomes ───────────────────────────────────────── */
 .cj-outcomes{background:#EAF7F8; border:1px solid #c9e3ee; border-left:3px solid var(--cj-teal);
   border-radius:12px; padding:15px 19px; margin-bottom:22px}
-.cj-outcomes h2{font-size:12px; font-weight:800; color:var(--cj-teal); margin:0 0 8px;
+.cj-outcomes h2{font-size:max(12px, var(--fs-floor, 0px)); font-weight:800; color:var(--cj-teal); margin:0 0 8px;
   text-transform:uppercase; letter-spacing:.07em}
 .cj-outcomes ul{margin:0; padding-left:18px; display:flex; flex-direction:column; gap:5px}
 .cj-outcomes li{font-size:14.5px; line-height:1.55; color:var(--cj-ink)}
 
 /* ── the course ─────────────────────────────────────── */
-.cj-course-h{font-size:12px; font-weight:800; color:var(--cj-muted); margin:0 0 12px;
+.cj-course-h{font-size:max(12px, var(--fs-floor, 0px)); font-weight:800; color:var(--cj-muted); margin:0 0 12px;
   text-transform:uppercase; letter-spacing:.08em}
 
 .cj-section + .cj-section{margin-top:26px}
@@ -84,7 +84,7 @@
 .cj-step-open:focus-visible{outline:2px solid var(--cj-teal); outline-offset:-2px}
 
 .cj-tick{flex-shrink:0; width:28px; height:28px; border-radius:50%;
-  display:grid; place-items:center; font-size:11.5px; font-weight:800;
+  display:grid; place-items:center; font-size:max(11.5px, var(--fs-floor, 0px)); font-weight:800;
   background:#EEF3F8; color:var(--cj-muted);
   font-variant-numeric:tabular-nums}
 .cj-step.is-done .cj-tick{background:var(--cj-green-bg); color:var(--cj-green); font-size:14px}
@@ -94,18 +94,18 @@
 .cj-step-title{font-size:14.5px; font-weight:700; color:var(--cj-ink); line-height:1.35;
   overflow-wrap:anywhere}
 .cj-step.is-done .cj-step-title{color:var(--cj-muted)}
-.cj-step-meta{font-size:11.5px; color:var(--cj-muted)}
+.cj-step-meta{font-size:max(11.5px, var(--fs-floor, 0px)); color:var(--cj-muted)}
 .cj-step.is-blocked .cj-step-meta{color:#A2701C}
 .cj-step.is-optional .cj-step-title{font-weight:600}
 
-.cj-next-flag{flex-shrink:0; font-size:10px; font-weight:800; letter-spacing:.07em;
+.cj-next-flag{flex-shrink:0; font-size:max(10px, var(--fs-floor, 0px)); font-weight:800; letter-spacing:.07em;
   text-transform:uppercase; color:#fff; background:var(--cj-teal);
   border-radius:99px; padding:4px 10px}
 .cj-go{flex-shrink:0; color:#3F4F66; font-size:16px}
 
 /* ── footer / states ────────────────────────────────── */
 .cj-foot{text-align:center; margin-top:30px; padding-top:22px; border-top:1px solid var(--cj-line)}
-.cj-foot p{font-size:13px; color:var(--cj-muted); margin:0 0 12px; max-width:56ch;
+.cj-foot p{font-size:max(13px, var(--fs-floor, 0px)); color:var(--cj-muted); margin:0 0 12px; max-width:56ch;
   margin-left:auto; margin-right:auto; line-height:1.6}
 
 .cj-btn{display:inline-block; border:1px solid var(--cj-line); background:#fff;
@@ -124,7 +124,7 @@
 .cj-state.err b{color:#8f2b2b; margin-bottom:14px}
 
 @media (max-width:520px){
-  .cj-continue{font-size:13px}
+  .cj-continue{font-size:max(13px, var(--fs-floor, 0px))}
   .cj-step-open{gap:10px; padding:12px 13px}
 }
 @media (prefers-reduced-motion:reduce){

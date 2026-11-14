@@ -1,0 +1,90 @@
+/*
+ * READABILITY FLOOR (2026-11-14 UI sweep).
+ *
+ * On a laptop the whole app renders at zoom .75 (index.css), so a label written at 12px shows at
+ * 9 real pixels. A sweep of every CareerPilot member page at 1280 / 1024 / 768 / 390 found no
+ * overflow or clipping, but ~200 labels drawing at 6–10 real pixels — the "looks small / not
+ * perfect" feeling. This file lifts exactly those labels to a floor:
+ *   · body / meta text  → 15px page  ≈ 11.3 real px on a laptop
+ *   · uppercase eyebrows, badges, chips → 14px page ≈ 10.5 real px (caps read larger)
+ * CareerPilot only (html.cp-route, App.tsx). Laptop rules sit under min-width 1025px, where the zoom applies; below that the app is not
+ * zoomed and only the few labels that were tiny on a phone are lifted.
+ * !important because several page sheets set these sizes with !important themselves.
+ */
+
+@media (min-width: 1025px) {
+  /* Eyebrows, kickers, badges, small pills */
+  html.cp-route #root .plh-eyebrow, html.cp-route #root .vzl-eyebrow, html.cp-route #root .jdh2-eyebrow, html.cp-route #root .jdm-eyebrow, html.cp-route #root .fjm-eyebrow,
+  html.cp-route #root .ihx-eyebrow, html.cp-route #root .ivh-eyebrow, html.cp-route #root .rc-kicker, html.cp-route #root .rr-eyebrow, html.cp-route #root .rwd2-eyebrow,
+  html.cp-route #root .plr-eyebrow, html.cp-route #root .plr-kicker, html.cp-route #root .ori-eyebrow, html.cp-route #root .nws-eyebrow, html.cp-route #root .opp-kicker,
+  html.cp-route #root .lbx-kicker, html.cp-route #root .cpw-kicker, html.cp-route #root .ska-eyebrow, html.cp-route #root .cpr-eyebrow, html.cp-route #root .plh-next > span,
+  html.cp-route #root .vzl-kind, html.cp-route #root .vzl-topic, html.cp-route #root .demo-bar .demo-tag, html.cp-route #root .ori-status, html.cp-route #root .cps-badge,
+  html.cp-route #root .icn-badge, html.cp-route #root .jd-type, html.cp-route #root .jd-badge, html.cp-route #root .ori-day-n, html.cp-route #root .opp-fit, html.cp-route #root .opp-tabs > span,
+  html.cp-route #root .plh-next .pl-diff, html.cp-route #root .plh-next .qbk2-next-pct, html.cp-route #root .plh-next .tl3-xp, html.cp-route #root .plh-next .tl3-badge,
+  html.cp-route #root .vz-diff, html.cp-route #root .vz-tag, html.cp-route #root .clh-badge, html.cp-route #root .ivh-allow, html.cp-route #root .score-level,
+  html.cp-route #root .gd-goal .hd, html.cp-route #root .rwd-card .stock, html.cp-route #root .rwd-progress-txt, html.cp-route #root .dbx-task .xp,
+  html.cp-route #root .fj-chip-n, html.cp-route #root .qbk-filter button .c, html.cp-route #root .sp-count, html.cp-route #root .lbx-row .xp small,
+  html.cp-route #root .lbx-you .xp small, html.cp-route #root .rc2-steps2 > li > span { font-size: 14px !important; }
+
+  /* Labels and meta text */
+  html.cp-route #root .demo-bar .demo-btn, html.cp-route #root .demo-bar .demo-year > span, html.cp-route #root .demo-bar .demo-plan,
+  html.cp-route #root .gd-pwd-nudge .txt > span, html.cp-route #root .gd-pwd-nudge .go, html.cp-route #root .gd-goal .big small,
+  html.cp-route #root .dbx-stat .tx > .l, html.cp-route #root .dbx-stat .tx > .trend, html.cp-route #root .dbx-stat .tx > .lnk, html.cp-route #root .dbx-sub,
+  html.cp-route #root .dbx-task-tx > span, html.cp-route #root .dbx-xp-pill, html.cp-route #root .dbx-day,
+  html.cp-route #root .jd-item-body > small, html.cp-route #root .jd-stat small, html.cp-route #root .jdh2-tile small, html.cp-route #root .jdm-rail-head > span,
+  html.cp-route #root .jdm-chips > span, html.cp-route #root .fjm-chips > span, html.cp-route #root .fjm-today > small, html.cp-route #root .fr-ranges > button,
+  html.cp-route #root .fr-toggle, html.cp-route #root .fj-range-btn, html.cp-route #root .ctp-name > small, html.cp-route #root .ctp-desc, html.cp-route #root .ctp-current > button,
+  html.cp-route #root .ori-hero small, html.cp-route #root .ori-day-chip > b, html.cp-route #root .ori-day-chip > span, html.cp-route #root .ori-rec-actions > small,
+  html.cp-route #root .ac-badge .tx > b, html.cp-route #root .ac-badge .tx > span, html.cp-route #root .pm-card > p,
+  html.cp-route #root .cps-topics > span, html.cp-route #root .cps-note,
+  html.cp-route #root .cpw-convert-nums small, html.cp-route #root .cpw-convert-l p, html.cp-route #root .cpw-stat > small, html.cp-route #root .cpw-stat > em,
+  html.cp-route #root .cpw-balance-copy > p,
+  html.cp-route #root .lbx-rank small, html.cp-route #root .lbx-rank em, html.cp-route #root .lbx-you .rh-t > small, html.cp-route #root .lbx-you .rh-t > span, html.cp-route #root .lbx-seg > button,
+  html.cp-route #root .opp-company-name, html.cp-route #root .opp-meta > span, html.cp-route #root .opp-metric span, html.cp-route #root .opp-tabs > button,
+  html.cp-route #root .plr-score-copy > p, html.cp-route #root .plr-hero-visual span, html.cp-route #root .plr-role, html.cp-route #root .plr-role b,
+  html.cp-route #root .plr-page-head p, html.cp-route #root .plr-hero-copy > p, html.cp-route #root .plr-btn,
+  html.cp-route #root .rc-action small, html.cp-route #root .rc2-next span, html.cp-route #root .rc-score-card span, html.cp-route #root .rc-score-card p,
+  html.cp-route #root .rc-stat small, html.cp-route #root .rc-stat span, html.cp-route #root .rc2-filled span,
+  html.cp-route #root .rr-focus em, html.cp-route #root .rr-focus span, html.cp-route #root .rr-gauge span, html.cp-route #root .rr-hero-chips > span,
+  html.cp-route #root .rr-hero-score-copy > small, html.cp-route #root .rr-split-foot, html.cp-route #root .rr-split-top > span,
+  html.cp-route #root .rwd-card > b, html.cp-route #root .rwd-card .cost, html.cp-route #root .rwd-card .why span, html.cp-route #root .rwd2-coinbig small,
+  html.cp-route #root .rwd2-pair small, html.cp-route #root .rwd2-secure,
+  html.cp-route #root .score-check, html.cp-route #root .recruiter-badge, html.cp-route #root .recruiter-hint, html.cp-route #root .step-label,
+  html.cp-route #root .sdn-hero-chips > span, html.cp-route #root .ska-v2-card-head small, html.cp-route #root .ska-estimate, html.cp-route #root .ska-v2-why-grid small,
+  html.cp-route #root .ska-done small, html.cp-route #root .ska-safe-pill, html.cp-route #root .cpr-fact small, html.cp-route #root .cpr-stage small, html.cp-route #root .cpr-pills > span,
+  html.cp-route #root .cpf-bottom > span,
+  html.cp-route #root .sp-hint, html.cp-route #root .sp-tile > span, html.cp-route #root .sp-chip, html.cp-route #root .sp-field > label, html.cp-route #root .sp-back,
+  html.cp-route #root .aim2-can > li, html.cp-route #root .aim2-me span, html.cp-route #root .aim2-chat-head span, html.cp-route #root .aim-hint,
+  html.cp-route #root .cp-toolbar .cp-btn, html.cp-route #root .cp-lang > span, html.cp-route #root .cp-tab > span, html.cp-route #root .cpg-head-t > span, html.cp-route #root .cpg-head-tags > span,
+  html.cp-route #root .ivh-round-foot > span, html.cp-route #root .ivh-stat > span, html.cp-route #root .cb-member-interview .pm-msg,
+  html.cp-route #root .clx-stat span, html.cp-route #root .clx-tab, html.cp-route #root .clh-step,
+  html.cp-route #root .dp-lab-foot > span, html.cp-route #root .dp-lab-top > em,
+  html.cp-route #root .ihx-hero-stats dt, html.cp-route #root .ihx-stepper .l, html.cp-route #root .pb-label, html.cp-route #root .pb-label small,
+  html.cp-route #root .pl-tab, html.cp-route #root .pl-field, html.cp-route #root .pl-meta > span, html.cp-route #root .plh-sort,
+  html.cp-route #root .qbk-filter button, html.cp-route #root .qbk-bar .ttl .mini, html.cp-route #root .qbs-meta, html.cp-route #root .qb .meta > span,
+  html.cp-route #root .vz-crumbs a, html.cp-route #root .vz-crumbs span, html.cp-route #root .vz-box-label, html.cp-route #root .vz-growth-label small,
+  html.cp-route #root .vz-growth-num small, html.cp-route #root .vz-growth-time,
+  html.cp-route #root .icn-card > p, html.cp-route #root .gd-hello > p, html.cp-route #root .n > em, html.cp-route #root .vpc-row > button, html.cp-route #root .vpc-time { font-size: 15px !important; }
+
+  /* A few headings inside cards that drew at 8–9 real px */
+  html.cp-route #root .plr-score-title { font-size: 17px !important; }
+  html.cp-route #root .rwd-card > b { font-size: 16px !important; }
+  html.cp-route #root .cpw-convert-nums small { font-size: 14px !important; }
+
+  /* The book covers stay a book's proportions; their small print is lifted a step. */
+  html.cp-route #root .qbs-kind { font-size: 12.5px !important; }
+  html.cp-route #root .qbs-brand { font-size: 12px !important; }
+}
+
+/* Tablets and phones (no zoom): only what was under ~10px. */
+@media (max-width: 1024px) {
+  html.cp-route #root .qbs-shelf .qbs-kind { font-size: 9.5px; }
+  html.cp-route #root .qbs-shelf .qbs-brand { font-size: 9px; }
+  html.cp-route #root .opp-fit, html.cp-route #root .plr-priority, html.cp-route #root .plr-bullet-list em, html.cp-route #root .plr-claim small,
+  html.cp-route #root .rwd-card .stock, html.cp-route #root .rwd-progress-txt, html.cp-route #root .rwd-card .why, html.cp-route #root .rwd-card .why span,
+  html.cp-route #root .rc2-steps2 > li > span, html.cp-route #root .opp-premium-kicker { font-size: 11px !important; }
+}
+@media (min-width: 561px) and (max-width: 1024px) {
+  html.cp-route #root .qbs-shelf .qbs-kind { font-size: 11px; }
+  html.cp-route #root .qbs-shelf .qbs-brand { font-size: 10.5px; }
+}

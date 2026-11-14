@@ -2,9 +2,9 @@
    Laid out with the Practice page's classes (practiceLibrary.css + practiceHub.css); this file adds the
    bookshelf (each book a real-looking cover standing on a shelf) and the cheat sheet. */
 .qbk2 { --qb-navy: #051D64; --qb-ink: #102A4F; --qb-muted: #5D6E88; --qb-line: #E2EAF2; }
-.qbk2-n { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: #FFF4E0; color: #A66B00; font-size: 13px; font-weight: 800; }
+.qbk2-n { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: #FFF4E0; color: #A66B00; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 800; }
 .plh-btn.primary .qbk2-n { background: rgba(255,255,255,.2); color: #fff; }
-.qbk2-next-pct { font-style: normal; font-size: 13px; font-weight: 800; color: #13784F; background: #EAF8F1; padding: 3px 12px; border-radius: 999px; }
+.qbk2-next-pct { font-style: normal; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 800; color: #13784F; background: #EAF8F1; padding: 3px 12px; border-radius: 999px; }
 .pl.plh.qbk2 .pl-filters { grid-template-columns: minmax(220px, 1fr) minmax(180px, 260px) auto; }
 .pl.plh.qbk2 .pl-search { grid-column: auto; }
 
@@ -54,17 +54,17 @@
 .qbs-pages { position: absolute; right: 0; top: 6px; bottom: 6px; width: 10px; border-radius: 0 4px 4px 0;
   background: repeating-linear-gradient(90deg, #FFFFFF 0 1.5px, #E3E8F0 1.5px 3px); box-shadow: inset -1px 0 0 #CFD8E5, 2px 4px 6px rgba(5, 29, 100, .15); }
 .qbs-frame { position: absolute; inset: 10px 10px 10px 22px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 5px; pointer-events: none; }
-.qbs-kind { position: relative; font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; opacity: .9; }
+.qbs-kind { position: relative; font-size: max(11px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .16em; text-transform: uppercase; opacity: .9; }
 .qbs-emblem { position: relative; display: grid; place-items: center; width: 56px; height: 56px; margin: 16px 0 12px; border-radius: 50%;
   background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .35); font-size: 25px; }
 .qbs-title { position: relative; font-size: 17px; line-height: 1.22; font-weight: 800; text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.qbs-sub { position: relative; margin-top: 6px; font-size: 12.5px; font-weight: 600; opacity: .88; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.qbs-brand { position: relative; margin-top: auto; padding-top: 7px; width: 78%; border-top: 1px solid rgba(255, 255, 255, .3); font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; opacity: .78; }
+.qbs-sub { position: relative; margin-top: 6px; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 600; opacity: .88; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qbs-brand { position: relative; margin-top: auto; padding-top: 7px; width: 78%; border-top: 1px solid rgba(255, 255, 255, .3); font-size: max(10px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .18em; text-transform: uppercase; opacity: .78; }
 .qbs-ribbon { position: absolute; z-index: 3; top: -5px; right: 14px; width: 30px; height: 60px; display: flex; justify-content: center; padding-top: 14px;
   background: linear-gradient(180deg, #F7C352, #E3A21C); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); }
 .qbs-book.has-mark .qbs-kind { align-self: flex-start; letter-spacing: .1em; }
-.qbs-ribbon b { font-size: 10.5px; font-weight: 800; color: #5A3A00; }
+.qbs-ribbon b { font-size: max(10.5px, var(--fs-floor, 0px)); font-weight: 800; color: #5A3A00; }
 .qbs-seal { position: absolute; z-index: 3; top: -10px; right: -6px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
   background: #13A05B; color: #fff; font-size: 15px; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, .25); }
 
@@ -80,9 +80,9 @@
 .qbs-prog .bar { flex: 1; height: 8px; min-width: 40px; border-radius: 999px; background: #E6ECF3; overflow: hidden; }
 .qbs-prog .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1752D6, #359AAD); }
 .qbs-item.s-done .qbs-prog .bar i { background: #13A05B; }
-.qbs-prog em { font-style: normal; font-size: 13px; font-weight: 700; color: var(--qb-ink); white-space: nowrap; }
+.qbs-prog em { font-style: normal; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; color: var(--qb-ink); white-space: nowrap; }
 .qbs-item.s-new .qbs-prog em { color: var(--qb-muted); font-weight: 600; }
-.qbs-rev { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px; border-radius: 999px; background: #FFF4E5; color: #A6640D; font-size: 12.5px; font-weight: 800; }
+.qbs-rev { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px; border-radius: 999px; background: #FFF4E5; color: #A6640D; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; }
 .qbs-go { margin-top: auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 14px;
   border-radius: 11px; border: 1.5px solid #C7D8F6; background: #fff; color: #1752D6; font-size: 14.5px; font-weight: 800; cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
 .qbs-go:hover { background: #F3F7FF; border-color: #1752D6; }
@@ -103,20 +103,20 @@
   .qbs-spine { width: 11px; }
   .qbs-pages { width: 8px; }
   .qbs-frame { inset: 7px 7px 7px 16px; }
-  .qbs-kind { font-size: 8.5px; letter-spacing: .12em; }
+  .qbs-kind { font-size: max(8.5px, var(--fs-floor, 0px)); letter-spacing: .12em; }
   .qbs-book.has-mark .qbs-kind { letter-spacing: .06em; }
   .qbs-emblem { width: 38px; height: 38px; margin: 9px 0 8px; font-size: 17px; }
-  .qbs-title { font-size: 13px; -webkit-line-clamp: 3; }
-  .qbs-sub { font-size: 10.5px; margin-top: 4px; }
-  .qbs-brand { font-size: 8px; padding-top: 5px; }
+  .qbs-title { font-size: max(13px, var(--fs-floor, 0px)); -webkit-line-clamp: 3; }
+  .qbs-sub { font-size: max(10.5px, var(--fs-floor, 0px)); margin-top: 4px; }
+  .qbs-brand { font-size: max(8px, var(--fs-floor, 0px)); padding-top: 5px; }
   .qbs-ribbon { width: 22px; height: 42px; right: 10px; padding-top: 9px; }
-.qbs-ribbon b { font-size: 8.5px; }
-  .qbs-seal { width: 28px; height: 28px; font-size: 12px; top: -8px; right: -5px; border-width: 2px; }
+.qbs-ribbon b { font-size: max(8.5px, var(--fs-floor, 0px)); }
+  .qbs-seal { width: 28px; height: 28px; font-size: max(12px, var(--fs-floor, 0px)); top: -8px; right: -5px; border-width: 2px; }
   .qbs-info { padding-top: 12px; gap: 6px; }
   .qbs-info h3 { font-size: 14.5px; }
-  .qbs-meta { font-size: 12.5px; }
+  .qbs-meta { font-size: max(12.5px, var(--fs-floor, 0px)); }
   .qbs-meta .star { display: none; }
-  .qbs-prog em { font-size: 12px; }
+  .qbs-prog em { font-size: max(12px, var(--fs-floor, 0px)); }
   .qbs-go { min-height: 42px; font-size: 13.5px; padding: 0 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .qbs-book, .qbs-go { transition: none; } }

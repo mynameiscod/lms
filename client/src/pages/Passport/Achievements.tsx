@@ -62,7 +62,7 @@ const Achievements: React.FC = () => {
       {!!locked.length && (
         <div className="pm-card">
           <h3 style={{ fontSize: 15, fontWeight: 900, color: '#0f172a', margin: '0 0 4px' }}>Still to earn</h3>
-          <p style={{ fontSize: 12.5, color: '#2F3F56', margin: '0 0 14px' }}>How close you are to each one.</p>
+          <p style={{ fontSize: 'max(12.5px, var(--fs-floor, 0px))', color: '#2F3F56', margin: '0 0 14px' }}>How close you are to each one.</p>
           <div className="ac-grid">{locked.map(card)}</div>
         </div>
       )}

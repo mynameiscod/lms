@@ -563,6 +563,14 @@ const AppRoutes: React.FC = () => {
    */
   const { search } = useLocation();
   useEffect(() => { captureCareerPilotAttribution(search); }, [search]);
+  /**
+   * CareerPilot pages carry a class on <html> so their stylesheet rules can apply to the whole
+   * product, pop-ups included, and to nothing else: the smallest-text floor (index.css,
+   * --fs-floor) is CareerPilot-only.
+   */
+  useEffect(() => {
+    document.documentElement.classList.toggle('cp-route', /^\/(careerpilot|passport)(\/|$)/.test(boundaryPath));
+  }, [boundaryPath]);
 
   if (crossing) return <Navigate to={crossing} replace />;
 

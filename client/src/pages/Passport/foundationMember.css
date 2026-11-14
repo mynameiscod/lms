@@ -19,7 +19,7 @@
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
 .fjm-hero > * { position: relative; z-index: 1; }
-.fjm-eyebrow { font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
+.fjm-eyebrow { font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
 .fjm-hero h1 { margin: 8px 0 0; font-size: clamp(28px, 2.6vw, 40px); line-height: 1.1; font-weight: 800; letter-spacing: -.02em; color: #fff !important; }
 .fjm-hero h1 span { color: #7FD3E0 !important; }
 .fjm-hero-copy > p { margin: 8px 0 0; max-width: 640px; font-size: 16px; line-height: 1.6; color: #D5E2F5 !important; }
@@ -30,9 +30,9 @@
 .fjm-ring { --fjm-deg: 0deg; flex: none; width: 150px; height: 150px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#7FD3E0 var(--fjm-deg), rgba(255, 255, 255, .16) 0); }
 .fjm-ring > div { width: 120px; height: 120px; border-radius: 50%; background: var(--navy); display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .fjm-ring strong { font-size: 36px; line-height: 1; font-weight: 800; color: #fff; }
-.fjm-ring span { margin-top: 4px; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #9FDCE6; }
+.fjm-ring span { margin-top: 4px; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #9FDCE6; }
 .fjm-today { width: 380px; display: flex; flex-direction: column; gap: 6px; background: rgba(255, 255, 255, .10); border: 1px solid rgba(255, 255, 255, .20); border-radius: 20px; padding: 20px; backdrop-filter: blur(4px); }
-.fjm-today small { font-size: 12.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6 !important; }
+.fjm-today small { font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6 !important; }
 .fjm-today b { font-size: 20px; line-height: 1.25; color: #fff !important; }
 .fjm-today > span { font-size: 14px; color: #C4D5EE !important; }
 .fjm-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 20px; border-radius: 12px; border: 1px solid transparent; font-size: 15px; font-weight: 800; cursor: pointer; }
@@ -92,8 +92,8 @@
 .fjm .fj-acts li.done .fj-act-icon { background: #EAF8F1; color: #17855B; box-shadow: inset 0 0 0 1px #C8EAD9; }
 .fjm .fj-act-body { flex: 1; min-width: 0; }
 .fjm .fj-act-body b { font-size: 15px; color: var(--ink); }
-.fjm .fj-act-body small { font-size: 13px; color: var(--muted); }
-.fjm-xp { flex: none; font-size: 13px; font-weight: 800; color: var(--green); background: var(--green-bg); border-radius: 999px; padding: 4px 10px; }
+.fjm .fj-act-body small { font-size: max(13px, var(--fs-floor, 0px)); color: var(--muted); }
+.fjm-xp { flex: none; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 800; color: var(--green); background: var(--green-bg); border-radius: 999px; padding: 4px 10px; }
 .fjm-check { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border-strong); display: grid; place-items: center; color: #fff; }
 .fjm-check.on { background: var(--green); border-color: var(--green); }
 .fjm-bonus { margin: 14px 0 0; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--amber); background: var(--amber-bg); border: 1px solid #F5DDB5; border-radius: 12px; padding: 10px 14px; }
@@ -201,7 +201,7 @@
 .fjm-steps2::before { content: ""; position: absolute; left: 14px; right: 14px; top: 11px; height: 2px; background: #DFE7F1; }
 .fjm-steps2 li { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
 .fjm-steps2 li i { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid #DFE7F1; }
-.fjm-steps2 li span { font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #3F4F66; }
+.fjm-steps2 li span { font-size: max(11.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #3F4F66; }
 .fjm-steps2 li.done i { background: var(--primary); border-color: var(--primary); box-shadow: inset 0 0 0 3px #fff; }
 .fjm-steps2 li.done span { color: var(--navy); }
 .fjm-steps2 li.current i { background: #2FB27F; border-color: #2FB27F; box-shadow: 0 0 0 4px rgba(47, 178, 127, .18); }
@@ -213,7 +213,7 @@
 .fjm-challenge > div { flex: 1; min-width: 0; }
 .fjm-hero .fjm-challenge b { display: block; font-size: 15px; color: var(--navy); }
 .fjm-hero .fjm-challenge > div span { display: block; margin-top: 2px; font-size: 13.5px; color: #2F3F56; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fjm-hero .fjm-challenge em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; color: #17855B; }
+.fjm-hero .fjm-challenge em { display: block; margin-top: 3px; font-style: normal; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; color: #17855B; }
 .fjm-challenge > .bi { flex: none; color: #3F4F66; }
 
 .fjm-hero .fjm-ring { margin: 0 26px; }
@@ -226,7 +226,7 @@
   .fjm-hero .fjm-ring { margin: 0 22px; width: 112px; height: 112px; }
   .fjm-hero .fjm-ring > div { width: 90px; height: 90px; }
   .fjm-hero .fjm-ring strong { font-size: 26px; }
-  .fjm-hero .fjm-ring span { font-size: 11px; }
+  .fjm-hero .fjm-ring span { font-size: max(11px, var(--fs-floor, 0px)); }
 }
 @media (max-width: 980px) {
   .fjm-hero { grid-template-columns: 1fr; padding: 24px 0; }
@@ -314,7 +314,7 @@
 
 /* The ring counts days open to read, so its figure is a count, not a percent. */
 .fjm-preview .fjm-ring strong { font-size: 34px; }
-.fjm-preview .fjm-ring span { font-size: 12px; }
+.fjm-preview .fjm-ring span { font-size: max(12px, var(--fs-floor, 0px)); }
 
 /* A day past the preview: numbered, locked, and not a button that does nothing. */
 .fjm-preview .fj-chip:disabled { cursor: default; }
@@ -375,7 +375,7 @@
 .fjm .fjm-next { margin: 2px 0 0; display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; color: var(--text) !important; }
 .fjm .fjm-next > i { font-size: 18px; color: var(--teal); margin-top: 1px; }
 .fjm .fjm-next b { color: var(--navy) !important; }
-.fjm .fjm-next em { display: block; font-style: normal; font-size: 13px; font-weight: 700; color: #167E73 !important; margin-top: 2px; }
+.fjm .fjm-next em { display: block; font-style: normal; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; color: #167E73 !important; margin-top: 2px; }
 .fjm-side-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
 .fjm-act { flex: 1 1 160px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--border-strong); background: #fff; color: var(--primary); font-size: 15px; font-weight: 800; cursor: pointer; white-space: nowrap; }
 .fjm-act:hover { border-color: var(--primary); }

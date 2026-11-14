@@ -18,25 +18,25 @@
 .mv > *{max-width:980px; margin-left:auto; margin-right:auto}
 
 .mv-back{display:block; border:1px solid var(--mv-line); background:#fff; border-radius:9px;
-  padding:7px 13px; font-size:12.5px; font-weight:700; color:var(--mv-muted); cursor:pointer;
+  padding:7px 13px; font-size:max(12.5px, var(--fs-floor, 0px)); font-weight:700; color:var(--mv-muted); cursor:pointer;
   margin-bottom:18px; font-family:inherit}
 .mv-back:hover{color:var(--mv-navy); border-color:var(--mv-muted)}
 
 /* ── header ─────────────────────────────────────────── */
 .mv-hd{margin-bottom:18px}
 .mv-crumbs{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:10px}
-.mv-skill{display:inline-block; font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+.mv-skill{display:inline-block; font-size:max(11px, var(--fs-floor, 0px)); letter-spacing:.09em; text-transform:uppercase;
   font-weight:800; color:var(--mv-teal); background:#EAF7F8; border-radius:99px;
   padding:4px 12px}
-.mv-crumb{font-size:12.5px; font-weight:600; color:var(--mv-muted)}
+.mv-crumb{font-size:max(12.5px, var(--fs-floor, 0px)); font-weight:600; color:var(--mv-muted)}
 .mv-hd h1{font-size:clamp(25px,3.6vw,34px); font-weight:800; color:var(--mv-navy);
   margin:0 0 8px; letter-spacing:-.5px; line-height:1.15; text-wrap:balance}
 .mv-blurb{font-size:15.5px; color:var(--mv-text); margin:0; line-height:1.65; max-width:64ch}
 
 .mv-place{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px; margin-top:12px;
-  padding-top:12px; border-top:1px solid var(--mv-line); font-size:12.5px; color:var(--mv-muted)}
+  padding-top:12px; border-top:1px solid var(--mv-line); font-size:max(12.5px, var(--fs-floor, 0px)); color:var(--mv-muted)}
 .mv-place > span{font-weight:700; color:var(--mv-ink); font-variant-numeric:tabular-nums}
-.mv-linkish{border:0; background:none; padding:0; font-family:inherit; font-size:12.5px;
+.mv-linkish{border:0; background:none; padding:0; font-family:inherit; font-size:max(12.5px, var(--fs-floor, 0px));
   font-weight:700; color:var(--mv-teal); cursor:pointer}
 .mv-linkish:hover{text-decoration:underline}
 
@@ -48,9 +48,9 @@
 .mv-block{background:var(--mv-card); border:1px solid var(--mv-line); border-radius:14px;
   padding:20px 22px; margin-bottom:14px; box-shadow:0 2px 10px rgba(15,46,77,.04);
   scroll-margin-top:18px}
-.mv-block h2{font-size:12px; font-weight:800; color:var(--mv-muted); margin:0 0 13px;
+.mv-block h2{font-size:max(12px, var(--fs-floor, 0px)); font-weight:800; color:var(--mv-muted); margin:0 0 13px;
   text-transform:uppercase; letter-spacing:.08em}
-.mv-hint{font-size:12.5px; color:var(--mv-muted); margin:-6px 0 12px}
+.mv-hint{font-size:max(12.5px, var(--fs-floor, 0px)); color:var(--mv-muted); margin:-6px 0 12px}
 
 /* Prose, as paragraphs rather than one preserved-whitespace block. Newlines inside a
    paragraph still wrap naturally; blank lines in the author's text become real gaps. */
@@ -73,18 +73,18 @@
 .mv-steps li{counter-increment:s; position:relative; padding-left:38px}
 .mv-steps li::before{content:counter(s); position:absolute; left:0; top:0;
   width:26px; height:26px; border-radius:50%; background:var(--mv-navy); color:#fff;
-  display:grid; place-items:center; font-size:12px; font-weight:800;
+  display:grid; place-items:center; font-size:max(12px, var(--fs-floor, 0px)); font-weight:800;
   font-variant-numeric:tabular-nums}
 .mv-steps b{display:block; font-size:15px; color:var(--mv-ink); margin-bottom:5px}
 .mv-steps p{margin:0 0 9px; font-size:14.5px; line-height:1.65; color:var(--mv-text); max-width:62ch}
 .mv-cmd{background:var(--mv-code); color:#DCE5EE; border-radius:9px; padding:12px 14px;
-  font-size:12.5px; line-height:1.6; overflow-x:auto; margin:0 0 8px;
+  font-size:max(12.5px, var(--fs-floor, 0px)); line-height:1.6; overflow-x:auto; margin:0 0 8px;
   font-family:ui-monospace,Menlo,Consolas,monospace; white-space:pre-wrap; word-break:break-word}
 .mv-expect{background:var(--mv-green-bg); border:1px solid #bfe3d5; border-radius:9px;
   padding:10px 13px}
-.mv-expect span{display:block; font-size:10.5px; font-weight:800; color:var(--mv-green);
+.mv-expect span{display:block; font-size:max(10.5px, var(--fs-floor, 0px)); font-weight:800; color:var(--mv-green);
   text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px}
-.mv-expect pre{margin:0; font-size:12.5px; color:#0f6a48; white-space:pre-wrap;
+.mv-expect pre{margin:0; font-size:max(12.5px, var(--fs-floor, 0px)); color:#0f6a48; white-space:pre-wrap;
   font-family:ui-monospace,Menlo,Consolas,monospace}
 
 /* ── terms ──────────────────────────────────────────── */
@@ -92,7 +92,7 @@
 .mv-terms dt{font-size:14.5px; font-weight:800; color:var(--mv-ink)}
 .mv-terms dd{margin:4px 0 0; font-size:14.5px; line-height:1.65; color:var(--mv-text); max-width:62ch}
 .mv-terms dd pre{background:#F6F9FC; border:1px solid var(--mv-line); border-radius:8px;
-  padding:9px 12px; font-size:12.5px; margin:7px 0 0; overflow-x:auto; white-space:pre-wrap;
+  padding:9px 12px; font-size:max(12.5px, var(--fs-floor, 0px)); margin:7px 0 0; overflow-x:auto; white-space:pre-wrap;
   font-family:ui-monospace,Menlo,Consolas,monospace; color:var(--mv-ink)}
 
 /* ── self-checks ────────────────────────────────────── */
@@ -104,7 +104,7 @@
   font-weight:700; line-height:1.5}
 .mv-checks p{margin:0; font-size:14.5px; line-height:1.65; color:#106349}
 .mv-reveal{border:1px solid var(--mv-line); background:#fff; border-radius:8px;
-  padding:6px 12px; font-size:12px; font-weight:700; color:var(--mv-teal); cursor:pointer;
+  padding:6px 12px; font-size:max(12px, var(--fs-floor, 0px)); font-weight:700; color:var(--mv-teal); cursor:pointer;
   font-family:inherit}
 .mv-reveal:hover{border-color:var(--mv-teal); background:#F6FDFF}
 
@@ -112,7 +112,7 @@
 .mv-files,.mv-refs{list-style:none; padding:0; margin:0; display:flex;
   flex-direction:column; gap:9px}
 .mv-files li,.mv-refs li{display:flex; align-items:center; gap:10px; font-size:14.5px}
-.mv-files span{font-size:11.5px; color:var(--mv-muted); font-variant-numeric:tabular-nums}
+.mv-files span{font-size:max(11.5px, var(--fs-floor, 0px)); color:var(--mv-muted); font-variant-numeric:tabular-nums}
 .mv-file{border:0; background:none; padding:0; font-family:inherit; font-size:14.5px;
   color:var(--mv-teal); font-weight:700; cursor:pointer; text-align:left}
 .mv-file:hover{text-decoration:underline}
@@ -120,8 +120,8 @@
 
 /* ── footer / states ────────────────────────────────── */
 .mv-foot{text-align:center; margin-top:28px; padding-top:24px; border-top:1px solid var(--mv-line)}
-.mv-foot p{font-size:13px; color:var(--mv-muted); margin:14px 0 14px; line-height:1.6}
-.mv-foot-label{display:block; font-size:10.5px; font-weight:800; letter-spacing:.08em;
+.mv-foot p{font-size:max(13px, var(--fs-floor, 0px)); color:var(--mv-muted); margin:14px 0 14px; line-height:1.6}
+.mv-foot-label{display:block; font-size:max(10.5px, var(--fs-floor, 0px)); font-weight:800; letter-spacing:.08em;
   text-transform:uppercase; color:var(--mv-muted); margin-bottom:9px}
 
 .mv-next{display:flex; flex-direction:column; gap:3px; width:100%; text-align:left;
@@ -131,7 +131,7 @@
 .mv-next:hover:not(:disabled){background:#F6FDFF}
 .mv-next:disabled{cursor:default; border-color:var(--mv-line); box-shadow:none; opacity:.7}
 .mv-next b{font-size:15px; font-weight:700; color:var(--mv-navy); line-height:1.4}
-.mv-next span{font-size:12px; color:var(--mv-muted)}
+.mv-next span{font-size:max(12px, var(--fs-floor, 0px)); color:var(--mv-muted)}
 
 .mv-btn{display:inline-block; border:1px solid var(--mv-line); background:#fff;
   color:var(--mv-ink); border-radius:10px; padding:10px 18px; font-size:13.5px;
@@ -157,7 +157,7 @@
 
 /* ── facts strip ────────────────────────────────────── */
 .mv-facts{display:flex; flex-wrap:wrap; align-items:center; gap:8px 20px; margin-top:14px;
-  padding-top:13px; border-top:1px solid var(--mv-line); font-size:12.5px; color:var(--mv-muted)}
+  padding-top:13px; border-top:1px solid var(--mv-line); font-size:max(12.5px, var(--fs-floor, 0px)); color:var(--mv-muted)}
 .mv-facts b{color:var(--mv-ink); font-weight:800; font-variant-numeric:tabular-nums}
 .mv-type{text-transform:capitalize}
 
@@ -168,7 +168,7 @@
   background:var(--mv-card); border:1px solid var(--mv-line); border-radius:12px;
   padding:13px 16px; font-family:inherit}
 .mv-tab b{font-size:14.5px; font-weight:800; color:var(--mv-ink)}
-.mv-tab span{font-size:11.5px; color:var(--mv-muted)}
+.mv-tab span{font-size:max(11.5px, var(--fs-floor, 0px)); color:var(--mv-muted)}
 .mv-tab:hover{border-color:#C9DCEA}
 .mv-tab.is-on{background:var(--mv-navy); border-color:var(--mv-navy)}
 .mv-tab.is-on b{color:#fff}
@@ -183,7 +183,7 @@
 .mv-watch-main{min-width:0}
 .mv-aside{background:var(--mv-card); border:1px solid var(--mv-line); border-radius:14px;
   padding:18px 20px; box-shadow:0 2px 10px rgba(15,46,77,.04)}
-.mv-aside h2{font-size:12px; font-weight:800; color:var(--mv-muted); margin:0 0 10px;
+.mv-aside h2{font-size:max(12px, var(--fs-floor, 0px)); font-weight:800; color:var(--mv-muted); margin:0 0 10px;
   text-transform:uppercase; letter-spacing:.08em}
 
 /* ── prose ──────────────────────────────────────────── */

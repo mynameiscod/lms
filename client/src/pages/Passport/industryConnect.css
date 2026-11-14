@@ -1,7 +1,7 @@
 /* Industry Connect (coming soon). CodeBegun colours: navy #051D64, teal #359AAD (memberCodebegun.css). */
 .icn{max-width:1040px;margin:0 auto;padding:8px 0 32px;color:var(--cb-text,#33475B)}
 .icn-hero{background:linear-gradient(135deg,var(--cb-navy,#051D64) 0%,var(--cb-navy-2,#0B2D72) 70%,var(--cb-teal,#359AAD) 140%);color:#fff;border-radius:16px;padding:36px 32px}
-.icn-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:600;letter-spacing:.02em}
+.icn-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:4px 12px;font-size:max(13px, var(--fs-floor, 0px));font-weight:600;letter-spacing:.02em}
 .icn-hero h1,#root .gd .icn .icn-hero h1{margin:14px 0 8px;font-size:30px;font-weight:700;color:#fff !important}
 .icn-hero p,#root .gd .icn .icn-hero p{margin:0;max-width:620px;font-size:16px;line-height:1.55;color:rgba(255,255,255,.88) !important}
 .icn-sub{margin:28px 0 12px;font-size:18px;font-weight:700;color:var(--cb-ink,#102A4F)}

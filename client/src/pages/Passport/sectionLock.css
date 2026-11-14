@@ -28,7 +28,7 @@
 
 .slk-badge{
   display:inline-flex; align-items:center; gap:6px;
-  font-size:10.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
+  font-size:max(10.5px, var(--fs-floor, 0px)); font-weight:800; letter-spacing:.09em; text-transform:uppercase;
   color:var(--slk-teal); background:#EAF7F8; border:1px solid #CFE8EE;
   border-radius:99px; padding:4px 11px; margin-bottom:13px;
 }
@@ -59,7 +59,7 @@
   display:block; font-size:22px; font-weight:800; color:var(--slk-navy);
   font-variant-numeric:tabular-nums; line-height:1.15;
 }
-.slk-facts span{display:block; margin-top:3px; font-size:11.5px; color:var(--slk-muted); line-height:1.35}
+.slk-facts span{display:block; margin-top:3px; font-size:max(11.5px, var(--fs-floor, 0px)); color:var(--slk-muted); line-height:1.35}
 
 .slk-preview{margin-top:16px; text-align:left}
 
@@ -73,8 +73,8 @@
 .slk-btn:disabled{opacity:.6; cursor:default}
 .slk-panel .slk-btn{margin-top:16px; padding:11px 18px; font-size:13.5px}
 
-.slk-msg{margin:10px 0 0; font-size:12.5px; color:#A0341F}
-.slk-foot{margin:12px 0 0; font-size:12px; color:var(--slk-muted); line-height:1.55}
+.slk-msg{margin:10px 0 0; font-size:max(12.5px, var(--fs-floor, 0px)); color:#A0341F}
+.slk-foot{margin:12px 0 0; font-size:max(12px, var(--fs-floor, 0px)); color:var(--slk-muted); line-height:1.55}
 .slk-panel .slk-foot{display:none}
 
 @media (max-width:480px){

@@ -17,7 +17,7 @@
 .careerpilot-admin-surface .main-content button:not(:disabled):hover{transform:translateY(-1px)}
 .careerpilot-admin-surface .main-content button[style*="#4f46e5"],.careerpilot-admin-surface .main-content button[style*="#6366f1"],.careerpilot-admin-surface .main-content button[style*="rgb(79, 70, 229)"],.careerpilot-admin-surface .main-content button[style*="rgb(99, 102, 241)"]{background:var(--cp-navy)!important;color:#fff!important}
 .careerpilot-admin-surface .main-content table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--cp-border);border-radius:14px;overflow:hidden}
-.careerpilot-admin-surface .main-content th{background:#f2f6fa!important;color:#52637a!important;text-transform:uppercase;font-size:11px!important;letter-spacing:.045em!important;font-weight:850!important}
+.careerpilot-admin-surface .main-content th{background:#f2f6fa!important;color:#52637a!important;text-transform:uppercase;font-size:max(11px, var(--fs-floor, 0px))!important;letter-spacing:.045em!important;font-weight:850!important}
 .careerpilot-admin-surface .main-content th,.careerpilot-admin-surface .main-content td{border-color:#edf1f5!important;padding:12px 14px!important}
 .careerpilot-admin-surface .main-content tr:hover td{background:#f9fcfd}
 .careerpilot-admin-surface .main-content a{color:#287f90}

@@ -7,7 +7,7 @@
 .jo-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .jo-title h2 { margin: 0; font-size: 16px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .jo-co { font-size: 14px; font-weight: 600; color: var(--muted); }
-.jo-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; font-size: 13px; color: #42546E; }
+.jo-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; font-size: max(13px, var(--fs-floor, 0px)); color: #42546E; }
 .jo-meta span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .jo-meta i { color: #7F8EA3; }
 .jo-st.live { background: var(--good-bg); color: var(--good); }

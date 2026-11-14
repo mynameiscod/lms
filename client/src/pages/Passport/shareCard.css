@@ -22,7 +22,7 @@
 .cpc-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .cpc-logo { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 12px; background: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, .15); }
 .cpc-logo img { height: 26px; width: auto; display: block; }
-.cpc-verified { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #fff; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .25); }
+.cpc-verified { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: max(12px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #fff; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .25); }
 .cpc-verified i { color: var(--cpc-teal2); }
 
 .cpc-who { display: flex; align-items: center; gap: 14px; margin-top: 18px; }
@@ -39,15 +39,15 @@
   background: conic-gradient(var(--cpc-teal2) 0deg, #fff var(--cpc-deg), rgba(255, 255, 255, .2) var(--cpc-deg)); }
 .cpc-ring > div { width: 90px; height: 90px; border-radius: 50%; background: var(--cpc-navy); display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .cpc-ring strong { font-size: 30px; line-height: 1; font-weight: 800; color: #fff; }
-.cpc-ring span { margin-top: 3px; font-size: 12px; font-weight: 700; color: #B9D3E8; }
+.cpc-ring span { margin-top: 3px; font-size: max(12px, var(--fs-floor, 0px)); font-weight: 700; color: #B9D3E8; }
 .cpc-score-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-#root .cpc .cpc-score-copy small, .cpc .cpc-score-copy small { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--cpc-teal2) !important; }
+#root .cpc .cpc-score-copy small, .cpc .cpc-score-copy small { font-size: max(12px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--cpc-teal2) !important; }
 .cpc-level { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
 .cpc-level b { font-size: 18px; color: #fff; }
 .cpc-level span { font-size: 14px; color: #D5E6F5; }
 .cpc-bar { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .2); overflow: hidden; }
 .cpc-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--cpc-teal2), #fff); }
-.cpc-score-copy em { font-style: normal; font-size: 12.5px; color: #C4D8EA; }
+.cpc-score-copy em { font-style: normal; font-size: max(12.5px, var(--fs-floor, 0px)); color: #C4D8EA; }
 
 /* ── Body: the totals ─────────────────────────────────────────────── */
 .cpc-body { padding: 18px 22px 6px; background: linear-gradient(180deg, #F4F8FC, #fff 60%); }
@@ -55,7 +55,7 @@
 .cpc-stats li { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 12px 10px; border-radius: 14px; background: #fff; border: 1px solid var(--cpc-border); box-shadow: 0 2px 6px rgba(15, 46, 77, .04); }
 .cpc-stats li i { font-size: 17px; line-height: 1; margin-bottom: 4px; }
 .cpc-stats li b { font-size: 20px; line-height: 1.15; font-weight: 800; color: var(--cpc-ink); white-space: nowrap; }
-.cpc-stats li span { font-size: 12px; line-height: 1.3; font-weight: 600; color: var(--cpc-muted); }
+.cpc-stats li span { font-size: max(12px, var(--fs-floor, 0px)); line-height: 1.3; font-weight: 600; color: var(--cpc-muted); }
 .cpc-stats .t-amber i { color: #A96200; }
 .cpc-stats .t-navy i { color: var(--cpc-navy); }
 .cpc-stats .t-red i { color: #C93737; }
@@ -63,7 +63,7 @@
 .cpc-stats .t-green i { color: #17855B; }
 
 .cpc-skills { margin-top: 14px; padding: 14px; border-radius: 16px; background: #fff; border: 1px solid var(--cpc-border); }
-#root .cpc .cpc-skills h4, .cpc .cpc-skills h4 { margin: 0 0 10px; display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--cpc-navy) !important; }
+#root .cpc .cpc-skills h4, .cpc .cpc-skills h4 { margin: 0 0 10px; display: flex; align-items: center; gap: 7px; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--cpc-navy) !important; }
 .cpc-skills h4 i { color: var(--cpc-teal); }
 .cpc-skill { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 34px; align-items: center; gap: 10px; padding: 5px 0; }
 .cpc-skill span { font-size: 14px; font-weight: 600; color: var(--cpc-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -71,7 +71,7 @@
 .cpc-skill-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--cpc-navy), var(--cpc-teal)); }
 .cpc-skill b { font-size: 14px; font-weight: 800; color: var(--cpc-ink); text-align: right; }
 
-.cpc-foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 22px 16px; font-size: 12.5px; font-weight: 600; color: var(--cpc-muted); background: #fff; }
+.cpc-foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 22px 16px; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 600; color: var(--cpc-muted); background: #fff; }
 
 /* Narrow: inside the share dialog, and on phones. */
 .cpc-compact .cpc-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }

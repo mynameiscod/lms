@@ -172,7 +172,7 @@ function useWatchProgress(threshold: number, onWatchEnough: () => void, content?
 const btnStyle: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '6px 11px', border: '1px solid #e2e8f0', borderRadius: 8,
-  background: '#fff', color: '#334155', fontSize: 13, fontWeight: 600,
+  background: '#fff', color: '#334155', fontSize: 'max(13px, var(--fs-floor, 0px))', fontWeight: 600,
   cursor: 'pointer', lineHeight: 1.2,
 };
 
@@ -495,7 +495,7 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
         note="Tip: the left and right arrow keys skip 10s (hold Shift for 30s), K plays and pauses."
       />
       {unseekable && (
-        <div style={{ fontSize: 12, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', marginTop: 6 }}>
+        <div style={{ fontSize: 'max(12px, var(--fs-floor, 0px))', color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', marginTop: 6 }}>
           <i className="bi bi-exclamation-triangle" style={{ marginRight: 6 }} />
           This file was uploaded in a format that cannot be skipped through. It will play from
           the start, but seeking will not work until it is re-encoded — please let your trainer know.
@@ -510,7 +510,7 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
 
 /** A saved link the player cannot read — said plainly rather than shown as an empty frame. */
 const UnplayableLink: React.FC = () => (
-  <div style={{ borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', padding: '20px 18px', fontSize: 13, lineHeight: 1.55 }}>
+  <div style={{ borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', padding: '20px 18px', fontSize: 'max(13px, var(--fs-floor, 0px))', lineHeight: 1.55 }}>
     This video's link could not be read, so there is nothing to play yet. Please let your trainer know.
   </div>
 );
@@ -560,7 +560,7 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
             <i className="bi bi-exclamation-triangle" style={{ marginRight: 8 }} />
             This recording could not be processed
           </div>
-          <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+          <div style={{ fontSize: 'max(13px, var(--fs-floor, 0px))', lineHeight: 1.55 }}>
             The upload failed while being prepared, so there is nothing to play. It needs to be
             uploaded again — please let your trainer know.
           </div>
@@ -577,7 +577,7 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
             <i className="bi bi-hourglass-split" style={{ marginRight: 8 }} />
             Still being prepared
           </div>
-          <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+          <div style={{ fontSize: 'max(13px, var(--fs-floor, 0px))', lineHeight: 1.55 }}>
             This recording is being processed and will play shortly. Check back in a few minutes.
           </div>
         </div>

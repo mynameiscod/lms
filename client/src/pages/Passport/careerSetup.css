@@ -47,7 +47,7 @@
   align-items: center; padding: 36px 0 32px;
 }
 .cps-pitch { min-width: 0; }
-.cps-eyebrow { font-size: 12.5px; font-weight: 800; letter-spacing: .12em; color: var(--teal); text-transform: uppercase; margin-bottom: 12px; }
+.cps-eyebrow { font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .12em; color: var(--teal); text-transform: uppercase; margin-bottom: 12px; }
 .cps-pitch h1 { font-size: clamp(30px, 2.7vw, 46px); line-height: 1.1; letter-spacing: -.025em; color: var(--navy); font-weight: 800; }
 .cps-pitch h1 span { color: var(--teal); }
 .cps-pitch > p { font-size: 16.5px; line-height: 1.65; color: var(--text); max-width: 540px; margin: 16px 0 22px; text-wrap: pretty; }
@@ -55,7 +55,7 @@
 .cps-benefit { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 13px 14px; box-shadow: var(--shadow); }
 .cps-benefit > span { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; flex: none; background: var(--tint); color: var(--primary); }
 .cps-benefit b { display: block; font-size: 14.5px; color: var(--navy); }
-.cps-benefit small { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.cps-benefit small { display: block; font-size: max(13px, var(--fs-floor, 0px)); color: var(--muted); margin-top: 2px; line-height: 1.4; }
 /* The picture's edges are already faded into the page by its mask, so a panel behind it only adds
    empty bands above and below the figure. It sits on the page instead. */
 .cps-art {
@@ -72,10 +72,10 @@
 .cps-panel { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 30px 32px; box-shadow: 0 24px 60px rgba(15, 46, 77, .10); min-width: 0; }
 .cps-progress-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .cps-progress-head b { font-size: 13.5px; color: var(--primary); font-weight: 800; }
-.cps-progress-head span { font-size: 13px; color: var(--muted); font-weight: 600; }
+.cps-progress-head span { font-size: max(13px, var(--fs-floor, 0px)); color: var(--muted); font-weight: 600; }
 .cps-steps { list-style: none; margin: 0 0 24px; padding: 0; display: flex; position: relative; --cps-steps: 3; }
 .cps-steps::before { content: ""; position: absolute; left: calc(100% / (2 * var(--cps-steps))); right: calc(100% / (2 * var(--cps-steps))); top: 20px; height: 2px; background: var(--border); }
-.cps-steps li { flex: 1 1 0; min-width: 0; position: relative; z-index: 1; text-align: center; color: var(--muted); font-size: 13px; font-weight: 700; }
+.cps-steps li { flex: 1 1 0; min-width: 0; position: relative; z-index: 1; text-align: center; color: var(--muted); font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; }
 .cps-steps li > span { width: 42px; height: 42px; margin: 0 auto 8px; border-radius: 50%; background: #EEF3F7; color: #3F4F66; display: grid; place-items: center; font-size: 16px; border: 4px solid #fff; box-shadow: 0 0 0 1px var(--border); }
 .cps-steps li.on { color: var(--primary); }
 .cps-steps li.on > span { background: var(--primary); color: #fff; box-shadow: 0 0 0 1px var(--primary), 0 6px 14px rgba(5, 29, 100, .22); }
@@ -86,7 +86,7 @@
 .cps-qicon { width: 48px; height: 48px; border-radius: 14px; background: var(--tint); color: var(--primary); display: grid; place-items: center; font-size: 21px; flex: none; }
 .cps-question-head h2 { font-size: 24px; line-height: 1.2; color: var(--navy); font-weight: 800; letter-spacing: -.01em; margin: 0 0 5px; }
 .cps-question-head p { font-size: 15px; color: var(--muted); line-height: 1.55; }
-.cps-lbl { display: block; font-size: 12.5px; font-weight: 800; color: var(--ink); margin: 20px 0 9px; text-transform: uppercase; letter-spacing: .06em; }
+.cps-lbl { display: block; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; color: var(--ink); margin: 20px 0 9px; text-transform: uppercase; letter-spacing: .06em; }
 .cps-lbl em { font-style: normal; text-transform: none; letter-spacing: 0; color: var(--muted); font-weight: 600; margin-left: 6px; }
 .cps-inp { width: 100%; height: 48px; border: 1px solid #D5E0EA; border-radius: 10px; padding: 0 14px; background: #fff; color: var(--ink); font-size: 15px; outline: none; }
 .cps-inp:focus { border-color: #78AFC4; box-shadow: 0 0 0 3px rgba(5, 29, 100, .08); }
@@ -120,13 +120,13 @@
 .cps-role.on::after { content: "\F26B"; font-family: "bootstrap-icons"; position: absolute; top: 14px; right: 14px; color: var(--primary); font-size: 18px; }
 .cps-role-icon { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; margin-bottom: 10px; font-size: 18px; background: var(--tint); color: var(--primary); }
 .cps-role > b { display: block; font-size: 15.5px; color: var(--navy); }
-.cps-role > span:last-child { display: block; font-size: 13px; color: var(--muted); line-height: 1.45; margin-top: 4px; }
+.cps-role > span:last-child { display: block; font-size: max(13px, var(--fs-floor, 0px)); color: var(--muted); line-height: 1.45; margin-top: 4px; }
 .cps-role-search { position: relative; display: flex; align-items: center; margin: 4px 0 12px; }
 .cps-role-search > i.bi-search { position: absolute; left: 14px; color: #3F4F66; font-size: 15px; pointer-events: none; }
 .cps-role-search input { width: 100%; border: 1px solid #D5E0EA; border-radius: 11px; padding: 13px 42px 13px 40px; font-size: 15px; color: var(--ink); background: #fff; }
 .cps-role-search input::placeholder { color: #9AAABB; }
 .cps-role-search input:focus { outline: none; border-color: #78AFC4; box-shadow: 0 0 0 3px rgba(5, 29, 100, .08); }
-.cps-role-search > button { position: absolute; right: 8px; display: grid; place-items: center; width: 30px; height: 30px; border: none; background: none; border-radius: 8px; color: #3F4F66; cursor: pointer; font-size: 13px; }
+.cps-role-search > button { position: absolute; right: 8px; display: grid; place-items: center; width: 30px; height: 30px; border: none; background: none; border-radius: 8px; color: #3F4F66; cursor: pointer; font-size: max(13px, var(--fs-floor, 0px)); }
 .cps-role-search > button:hover { background: #EFF5F9; color: var(--ink); }
 .cps-role-more { width: 100%; margin-top: 10px; background: #fff; border: 1.5px dashed var(--border-strong); border-radius: 11px; padding: 12px; font-size: 14px; font-weight: 700; color: var(--primary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .cps-role-more:hover { border-color: #78AFC4; background: #F4FAFD; }
@@ -178,7 +178,7 @@
 .cps-cap > b { font-size: 14px; line-height: 1.35; color: var(--ink); font-weight: 700; }
 .cps-footer {
   background: #fff; border-top: 1px solid var(--border); color: var(--muted); min-height: 64px;
-  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; font-size: 13px;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; font-size: max(13px, var(--fs-floor, 0px));
   padding: 0 max(16px, calc((100% - min(2400px, calc(100% - clamp(32px, 7vw, 200px)))) / 2));
 }
 .cps-footer-brand img { height: 36px; width: auto; display: block; }
@@ -199,7 +199,7 @@
 }
 .cpr-band-grid { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 40px; align-items: center; }
 .cpr-badge { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; color: #fff; background: #1FA971; box-shadow: 0 0 0 8px rgba(31, 169, 113, .22), 0 10px 26px rgba(0, 0, 0, .18); margin-bottom: 18px; }
-.cpr-eyebrow { font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #9FDCE6; }
+.cpr-eyebrow { font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #9FDCE6; }
 .cpr-band h1 { margin-top: 8px; font-size: clamp(30px, 3vw, 46px); line-height: 1.1; font-weight: 800; letter-spacing: -.02em; color: #fff; }
 .cpr .cpr-band p { margin-top: 12px; max-width: 620px; font-size: 16.5px; line-height: 1.6; color: #D5E2F5; text-wrap: pretty; }
 .cpr-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
@@ -216,11 +216,11 @@
 .cpr-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .cpr-fact { display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 14px; padding: 13px 14px; background: #fff; min-width: 0; }
 .cpr-fact-ic { flex: none; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--tint); color: var(--primary); font-size: 17px; }
-.cpr-fact small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.cpr-fact small { display: block; font-size: max(12px, var(--fs-floor, 0px)); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
 .cpr-fact b { display: block; margin-top: 2px; font-size: 15.5px; color: var(--ink); overflow-wrap: anywhere; }
 .cpr-stage { margin-top: 14px; display: flex; gap: 14px; align-items: flex-start; border-radius: 14px; padding: 16px; background: linear-gradient(135deg, #F2FAFB, #EEF5FC); border: 1px solid #CDE6EA; }
 .cpr-stage > i { flex: none; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--teal); color: #fff; font-size: 17px; }
-.cpr-stage small { display: block; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #287F91; }
+.cpr-stage small { display: block; font-size: max(12px, var(--fs-floor, 0px)); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #287F91; }
 .cpr-stage b { display: block; margin-top: 2px; font-size: 18px; color: var(--navy); }
 .cpr-stage span { display: block; margin-top: 3px; font-size: 14px; color: var(--text); line-height: 1.5; }
 

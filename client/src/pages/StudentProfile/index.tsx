@@ -122,6 +122,7 @@ const StudentProfilePage: React.FC = () => {
       howDidYouHearOther: '',
       careerGoal: '',
     },
+    placementPreferences: { expectedRole: '', preferredLocations: [] },
     profileCompletionPercentage: 0,
   });
 
@@ -147,6 +148,7 @@ const StudentProfilePage: React.FC = () => {
           technicalBackground: { ...prev.technicalBackground, ...response.data.technicalBackground },
           courseInterest: { ...prev.courseInterest, ...response.data.courseInterest },
           additionalInfo: { ...prev.additionalInfo, ...response.data.additionalInfo },
+          placementPreferences: { ...prev.placementPreferences, ...(response.data.placementPreferences || {}) },
         }));
         if (response.data.personalInfo?.profilePhoto) {
           // Use relative path - proxy will forward to backend in development
@@ -1340,6 +1342,26 @@ const StudentProfilePage: React.FC = () => {
                   />
                 </div>
               )}
+
+              <div className="form-group">
+                <label>💼 Expected Job Role</label>
+                <input
+                  type="text"
+                  value={profile.placementPreferences?.expectedRole || ''}
+                  onChange={e => handleInputChange('placementPreferences', 'expectedRole', e.target.value)}
+                  placeholder="e.g. Java Developer, Data Analyst"
+                  maxLength={120}
+                />
+              </div>
+              <div className="form-group">
+                <label>📍 Preferred Job Location(s)</label>
+                <input
+                  type="text"
+                  value={(profile.placementPreferences?.preferredLocations || []).join(',')}
+                  onChange={e => handleInputChange('placementPreferences', 'preferredLocations', e.target.value.split(','))}
+                  placeholder="e.g. Hyderabad, Bangalore"
+                />
+              </div>
 
               <div className="form-group full-width">
                 <label>🎯 Career Goal</label>

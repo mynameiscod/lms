@@ -330,6 +330,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Career Profile', path: '/career-profile', roles: ['STUDENT'], icon: 'fa-solid fa-id-badge', moduleKey: 'careerPilot', featureKey: 'careerProfile' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Career Profiles', path: '/admin/career-profiles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-id-badge', moduleKey: 'careerPilot', permissions: ['manage_career_pilot', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Placement Desk', path: '/placement-desk', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', permissions: ['manage_placement_desk', 'view_placement_desk', 'manage_tenant'] },
+    { label: 'Talent Pool', path: '/talent-pool', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-people-group', permissions: ['manage_talent_pool', 'view_talent_pool'] },
     { label: 'Placement Partnership', path: '/admin/placement-partnership', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-handshake', permissions: ['manage_placement_partners', 'manage_leads', 'manage_tenant'] },
     {
       label: 'AI Interviews',

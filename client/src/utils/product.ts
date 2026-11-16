@@ -16,7 +16,11 @@ export const productOf = (user?: WhoLike | null): Product => (user?.product === 
 export const isMember = (user?: WhoLike | null): boolean => productOf(user) === 'careerpilot' && (user?.role || 'STUDENT') === 'STUDENT';
 
 /** Where "home" is for this person. */
-export const homePathFor = (user?: WhoLike | null): string => (isMember(user) ? '/careerpilot' : '/dashboard');
+export const homePathFor = (user?: WhoLike | null): string =>
+  (user?.role === 'PLACEMENT_PARTNER' ? '/talent-portal' : isMember(user) ? '/careerpilot' : '/dashboard');
+
+/** A placement office login: the Talent Portal and the account pages, nothing else (the server enforces the same). */
+const PARTNER_OK = ['/talent-portal', '/login', '/reset-password', '/forgot-password', '/setup-password'];
 
 /** Pages a member may open whatever their address: CareerPilot itself, and public pages that belong to nobody's product. */
 const MEMBER_OK = [
@@ -75,6 +79,7 @@ const MEMBER_APP_PUBLIC = ['/careerpilot/join', '/careerpilot/login', '/careerpi
  */
 export function productRedirect(user: WhoLike | null | undefined, pathname: string): string | null {
   if (!user) return null;
+  if (user.role === 'PLACEMENT_PARTNER') return PARTNER_OK.some((p) => under(pathname, p)) ? null : '/talent-portal';
   if (isMember(user)) return memberRedirect(pathname);
   if (user.role === 'STUDENT' && under(pathname, '/careerpilot') && !MEMBER_APP_PUBLIC.some((p) => under(pathname, p))) return '/dashboard';
   return null;

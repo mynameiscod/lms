@@ -55,4 +55,14 @@ describe('the two products stay apart', () => {
     expect(productRedirect(admin, '/careerpilot/practice')).toBeNull();
     expect(productRedirect(admin, '/admin/passport/students')).toBeNull();
   });
+
+  it('keeps a placement office login on the Talent Portal and its account pages', () => {
+    const office = { role: 'PLACEMENT_PARTNER', product: 'lms' };
+    expect(homePathFor(office)).toBe('/talent-portal');
+    expect(productRedirect(office, '/talent-portal')).toBeNull();
+    expect(productRedirect(office, '/setup-password')).toBeNull();
+    expect(productRedirect(office, '/dashboard')).toBe('/talent-portal');
+    expect(productRedirect(office, '/users')).toBe('/talent-portal');
+    expect(productRedirect(office, '/talent-pool')).toBe('/talent-portal');
+  });
 });

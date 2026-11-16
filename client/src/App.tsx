@@ -239,6 +239,8 @@ const PlacementPartnership = lazy(() => import('./pages/PartnerPipeline'));
 const PlacementDesk = lazy(() => import('./pages/PlacementDesk'));
 const PlacementDeskDrive = lazy(() => import('./pages/PlacementDesk/DriveDetail'));
 const PlacementDeskPublic = lazy(() => import('./pages/PlacementDesk/PublicSummary'));
+const TalentPool = lazy(() => import('./pages/TalentPool'));
+const TalentPortal = lazy(() => import('./pages/TalentPortal'));
 const FeesPage = lazy(() => import('./pages/Fees'));
 const TeamActivity = lazy(() => import('./pages/TeamActivity'));
 const LeadDetailPage = lazy(() => import('./pages/LeadDetail'));
@@ -2149,6 +2151,27 @@ const AppRoutes: React.FC = () => {
             <Layout>
               <CareerProfileAdmin />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Talent Pool (Admin) — share candidates with placement offices ─── */}
+      <Route
+        path="/talent-pool"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_talent_pool', 'view_talent_pool']}>
+            <Layout>
+              <TalentPool />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* ── Talent Portal — a placement office login's only page (no LMS layout) ─── */}
+      <Route
+        path="/talent-portal"
+        element={
+          <ProtectedRoute requiredRoles={['PLACEMENT_PARTNER']}>
+            <TalentPortal />
           </ProtectedRoute>
         }
       />

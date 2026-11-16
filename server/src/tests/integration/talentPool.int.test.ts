@@ -203,3 +203,79 @@ describe('switching an office off', () => {
     expect(p.active).toBe(false);
   });
 });
+
+describe("the office's own workspace (companies, openings, submissions)", () => {
+  let companyId = ''; let openingId = ''; let subId = '';
+  beforeAll(async () => {
+    expect((await call('patch', `/talent-pool/partners/${ids.p_beta}/active`, 'admin', { active: true })).status).toBe(200);
+  });
+  it('an office adds a company, a follow-up and an opening', async () => {
+    const c = await call('post', '/talent-portal/companies', 'beta', { name: 'Acme Tech', contactName: 'Priya', contactEmail: 'PRIYA@acme.test', website: 'acme.test' });
+    expect(c.status).toBe(200);
+    expect(c.body.data).toMatchObject({ contactEmail: 'priya@acme.test', website: 'https://acme.test', stage: 'prospect' });
+    companyId = c.body.data._id;
+    const f = await call('post', `/talent-portal/companies/${companyId}/followups`, 'beta', { dueAt: '2020-01-01', note: 'Call Priya' });
+    expect(f.body.data.nextFollowUpAt).toBeTruthy();
+    expect((await call('post', '/talent-portal/openings', 'beta', { companyId, title: 'Java Dev', expMin: 3, expMax: 1 })).status).toBe(400);
+    const o = await call('post', '/talent-portal/openings', 'beta', { companyId, title: 'Java Dev', positions: 5, salaryMin: 3.5, salaryMax: 6, bond: '1 year', interviewProcess: 'Test, Tech, HR' });
+    expect(o.status).toBe(200);
+    openingId = o.body.data._id;
+    const list = await call('get', '/talent-portal/companies', 'beta');
+    expect(list.body.data[0]).toMatchObject({ name: 'Acme Tech', stage: 'active', stats: { openings: 1, positions: 5 } });
+    const due = await call('get', '/talent-portal/dashboard', 'beta');
+    expect(due.body.data.followUpsDueCount).toBe(1);
+    expect(due.body.data.followUpsDue[0].overdue).toBe(true);
+  });
+
+  it('sends shared candidates to the opening once, and their status moves forward', async () => {
+    const sita: any = await TalentShare.findOne({ partnerId: ids.p_beta, studentId: ids.sita }).lean();
+    const alphaRavi: any = await TalentShare.findOne({ partnerId: ids.p_alpha, studentId: ids.ravi }).lean();
+    const r = await call('post', '/talent-portal/submissions', 'beta', { companyId, openingId, shareIds: [String(sita._id), String(alphaRavi._id)] });
+    expect(r.body.data).toEqual({ added: 1, alreadySent: 0, skipped: 1 }); // another office's share is skipped
+    expect((await call('post', '/talent-portal/submissions', 'beta', { companyId, openingId, shareIds: [String(sita._id)] })).body.data.added).toBe(0);
+    const subs = await call('get', `/talent-portal/submissions?companyId=${companyId}`, 'beta');
+    expect(subs.body.data).toHaveLength(1);
+    subId = subs.body.data[0]._id;
+    expect(subs.body.data[0]).toMatchObject({ fullName: expect.any(String), openingTitle: 'Java Dev', status: 'sent' });
+    const up = await call('patch', `/talent-portal/submissions/${subId}/status`, 'beta', { status: 'interview', interviewAt: '2030-01-02T10:00:00Z', note: 'Round 1' });
+    expect(up.status).toBe(200);
+    const after: any = await TalentShare.findById(sita._id).lean();
+    expect(after.status).toBe('interview');
+    const open = await call('get', `/talent-portal/candidates/${sita._id}`, 'beta');
+    expect(open.body.data.submissions[0]).toMatchObject({ companyName: 'Acme Tech', status: 'interview' });
+  });
+
+  it("another office cannot see or touch this office's companies", async () => {
+    expect((await call('get', '/talent-portal/companies', 'alpha')).body.data).toEqual([]);
+    expect((await call('get', `/talent-portal/companies/${companyId}`, 'alpha')).status).toBe(404);
+    expect((await call('patch', `/talent-portal/companies/${companyId}`, 'alpha', { name: 'Hacked' })).status).toBe(404);
+    expect((await call('patch', `/talent-portal/submissions/${subId}/status`, 'alpha', { status: 'rejected' })).status).toBe(404);
+    expect((await call('post', '/talent-portal/openings', 'alpha', { companyId, title: 'x' })).status).toBe(400);
+    expect((await call('get', '/talent-portal/submissions', 'alpha')).body.data).toEqual([]);
+  });
+
+  it('the company Excel lists the candidates sent with their company status', async () => {
+    const r = await (request(app) as any).get(`/api/v1/talent-portal/companies/${companyId}/export`).set('Authorization', `Bearer ${tokens.beta}`).buffer(true).parse((res: any, cb: any) => { const b: any[] = []; res.on('data', (x: any) => b.push(x)); res.on('end', () => cb(null, Buffer.concat(b))); });
+    expect(r.status).toBe(200);
+    const rows: any[] = XLSX.utils.sheet_to_json(XLSX.read(r.body).Sheets[XLSX.read(r.body).SheetNames[0]]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ Position: 'Java Dev', Status: 'Interview', Remarks: 'Round 1' });
+  });
+
+  it('the admin can watch the workspace but has no way to edit it', async () => {
+    const w = await call('get', `/talent-pool/partners/${ids.p_beta}/workspace`, 'admin');
+    expect(w.status).toBe(200);
+    expect(w.body.data.companies.map((c: any) => c.name)).toEqual(['Acme Tech']);
+    expect(w.body.data.submissions[0]).toMatchObject({ companyName: 'Acme Tech', status: 'interview' });
+    expect((await call('get', '/talent-portal/companies', 'admin')).status).toBe(403);
+    const list = await call('get', '/talent-pool/partners', 'admin');
+    expect(list.body.data.find((p: any) => p._id === ids.p_beta).desk).toEqual({ companies: 1, openOpenings: 1, submissions: 1, placed: 0 });
+    expect((await call('get', `/talent-pool/partners/${ids.p_beta}/workspace`, 'beta')).status).toBe(403);
+  });
+
+  it('deleting a company removes its openings and submissions', async () => {
+    expect((await call('delete', `/talent-portal/companies/${companyId}`, 'beta')).status).toBe(200);
+    expect((await call('get', '/talent-portal/openings', 'beta')).body.data).toEqual([]);
+    expect((await call('get', '/talent-portal/submissions', 'beta')).body.data).toEqual([]);
+  });
+});

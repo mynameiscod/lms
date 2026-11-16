@@ -9,6 +9,7 @@ import { Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../types';
 import { TalentShare, PARTNER_SETTABLE, TalentStatus } from '../models/TalentPool';
+import { submissionsForShare } from './talentDeskController';
 import { partnerOf, shareRows, forPartner, workbookFor, STATUS_LABELS, FIELDS, DEFAULT_COLUMNS } from '../services/talentPoolService';
 
 const fail = (res: Response, e: any) => res.status(400).json({ success: false, message: e?.message || 'Something went wrong' });
@@ -63,6 +64,7 @@ export const getCandidate = async (req: AuthenticatedRequest, res: Response) => 
     if (!row) return res.status(404).json({ success: false, message: 'Not found' });
     const out = forPartner(row);
     out.statusHistory = (out.statusHistory || []).map((h: any) => ({ status: h.status, byRole: h.byRole === 'partner' ? 'you' : h.byRole === 'admin' ? 'institute' : 'system', note: h.note, at: h.at }));
+    out.submissions = await submissionsForShare(partner(req)._id, partner(req).tenantId, s._id);
     res.json({ success: true, data: out });
   } catch (e) { fail(res, e); }
 };

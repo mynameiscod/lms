@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { talentPoolApi, Partner, Column, Meta, ShareRow, STATUS_LABEL, STATUS_ORDER, TalentStatus, InviteResult } from '../../api/talentPoolApi';
 import { StatusPill, fmtDate } from './shared';
 import CandidateProfile from './CandidateProfile';
+import OfficeWorkspace from './OfficeWorkspace';
 
 /* ── Office form, with the office's own Excel columns ──────────────────── */
 const ColumnEditor: React.FC<{ meta: Meta; value: Column[]; onChange: (c: Column[]) => void }> = ({ meta, value, onChange }) => {
@@ -117,6 +118,7 @@ const OfficeList: React.FC<{ partner: Partner; canManage: boolean; onClose: () =
 const OfficesTab: React.FC<{ meta: Meta; partners: Partner[]; canManage: boolean; onChanged: () => void }> = ({ meta, partners, canManage, onChanged }) => {
   const [form, setForm] = useState<Partial<Partner> | null>(null);
   const [list, setList] = useState<Partner | null>(null);
+  const [ws, setWs] = useState<Partner | null>(null);
   const [err, setErr] = useState('');
   const [invite, setInvite] = useState<{ name: string; r: InviteResult } | null>(null);
   const run = async (fn: () => Promise<any>) => { setErr(''); try { await fn(); onChanged(); } catch (e: any) { setErr(e.message); } };
@@ -136,7 +138,7 @@ const OfficesTab: React.FC<{ meta: Meta; partners: Partner[]; canManage: boolean
       <div className="tp-card tp-table-wrap">
         {partners.length === 0 ? <div className="tp-empty">No offices yet. Add the first placement office.</div> : (
           <table className="tp-table">
-            <thead><tr><th>Office</th><th>Login</th><th>Shared</th><th>Shortlisted</th><th>Interview</th><th>Selected</th>{canManage && <th />}</tr></thead>
+            <thead><tr><th>Office</th><th>Login</th><th>Shared</th><th>Shortlisted</th><th>Interview</th><th>Selected</th><th>Their companies</th>{canManage && <th />}</tr></thead>
             <tbody>{partners.map(p => (
               <tr key={p._id} className={p.active ? '' : 'tp-muted'}>
                 <td><button className="tp-link" onClick={() => setList(p)}>{p.name}</button><small>{[p.contactName, p.email, p.phone, p.city].filter(Boolean).join(' · ')}</small></td>
@@ -149,6 +151,8 @@ const OfficesTab: React.FC<{ meta: Meta; partners: Partner[]; canManage: boolean
                 <td>{p.byStatus?.shortlisted || 0}</td>
                 <td>{p.byStatus?.interview || 0}</td>
                 <td>{p.byStatus?.selected || 0}</td>
+                <td><button className="tp-link" onClick={() => setWs(p)}>{p.desk?.companies || 0} companies</button>
+                  <small>{p.desk?.openOpenings || 0} open jobs · {p.desk?.submissions || 0} sent · {p.desk?.placed || 0} selected</small></td>
                 {canManage && <td><div className="tp-row-actions">
                   <button className="tp-link" onClick={() => setForm(p)}>Edit</button>
                   {p.active && (!p.userId
@@ -162,6 +166,7 @@ const OfficesTab: React.FC<{ meta: Meta; partners: Partner[]; canManage: boolean
         )}
       </div>
       {form && <OfficeForm meta={meta} initial={form} onClose={() => setForm(null)} onSaved={onChanged} />}
+      {ws && <OfficeWorkspace partner={ws} onClose={() => setWs(null)} />}
       {list && <OfficeList partner={list} canManage={canManage} onClose={() => setList(null)} onChanged={onChanged} />}
     </div>
   );

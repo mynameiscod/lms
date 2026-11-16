@@ -7,6 +7,7 @@ import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
 import * as c from '../controllers/talentPoolController';
+import { workspaceForAdmin } from '../controllers/talentDeskController';
 
 /**
  * Talent Pool (admin) — /api/v1/talent-pool. docs/design/talent-pool-sharing.md
@@ -38,6 +39,8 @@ router.post('/partners/:id/resend-invite', ...auth, manage, c.resendInvite);
 router.patch('/partners/:id/active', ...auth, manage, c.setPartnerActive);
 router.get('/partners/:id/shares', ...auth, view, c.partnerShares);
 router.get('/partners/:id/export', ...auth, view, c.exportPartner);
+// Read-only: the office's own companies, openings and submissions. Admin never edits these.
+router.get('/partners/:id/workspace', ...auth, view, workspaceForAdmin);
 
 router.get('/candidates', ...auth, view, c.listCandidates);
 router.post('/shares', ...auth, manage, c.shareCandidates);

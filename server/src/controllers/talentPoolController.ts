@@ -16,6 +16,7 @@ import {
   candidateFields, expand, importRows, FIELD_PATH, importTemplate, importFromPlacementDesk,
 } from '../services/talentPoolService';
 import { UserService } from '../services/userService';
+import { deskCountsByPartner } from './talentDeskController';
 const userService = new UserService();
 import { EmailService } from '../services/emailService';
 
@@ -45,6 +46,7 @@ export const listPartners = async (req: AuthenticatedRequest, res: Response) => 
       { $group: { _id: { p: '$partnerId', s: '$status' }, n: { $sum: 1 }, seen: { $max: '$lastViewedAt' } } },
     ]);
     const users: any[] = await User.find({ _id: { $in: partners.map((p) => p.userId).filter(Boolean) } }).select('isActive resetToken').lean();
+    const desk = await deskCountsByPartner(tid(req));
     const umap = new Map(users.map((u) => [String(u._id), u]));
     res.json({
       success: true,
@@ -56,7 +58,7 @@ export const listPartners = async (req: AuthenticatedRequest, res: Response) => 
           if (c.seen && (!lastSeenAt || c.seen > lastSeenAt)) lastSeenAt = c.seen;
         }
         const u: any = p.userId ? umap.get(String(p.userId)) : null;
-        return { ...p, total, byStatus, lastSeenAt, login: u ? { active: u.isActive !== false, passwordSet: !u.resetToken } : null };
+        return { ...p, total, byStatus, lastSeenAt, desk: desk.get(String(p._id)) || { companies: 0, openOpenings: 0, submissions: 0, placed: 0 }, login: u ? { active: u.isActive !== false, passwordSet: !u.resetToken } : null };
       }),
     });
   } catch (e) { fail(res, e); }

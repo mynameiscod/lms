@@ -1,6 +1,6 @@
 # Talent Pool Sharing — Phase 1 plan
 
-Status: Phase 1 BUILT on branch `feature/talent-pool` (2026-11-16), not deployed.
+Status: Phase 1 DEPLOYED (d380a3a9, 2026-11-16). Phase 1b (office workspace) BUILT 2026-11-16, not deployed.
 
 ## Problem
 
@@ -92,8 +92,30 @@ without re-sharing.
 
 - `/api/v1/talent-pool/*` — admin (partners, shares, candidates, tracker, import).
 - `/api/v1/talent-portal/*` — office: `GET /candidates`, `GET /candidates/:shareId`,
-  `PATCH /candidates/:shareId/status`, `GET /export.xlsx`. Every handler scopes by the caller's
-  partner record.
+  `PATCH /candidates/:shareId/status`, `GET /export.xlsx`, plus (1b) `/dashboard`, `/companies`
+  (+ `/:id/followups`, `/:id/export`), `/followups`, `/openings`, `/submissions`. Every handler
+  scopes by the caller's partner record.
+
+## Phase 1b — the office's own workspace (owner request 2026-11-16)
+The portal is now a full workspace with a sidebar: Dashboard · Candidates (Shared with You /
+Shortlist / Interviews) · Companies · Openings · Sent to Companies · Follow-ups.
+
+- **Companies** (`TalentCompany`): name, website, industry, location, contact person (name,
+  designation, email, phone), stage (Prospect → Contacted → Hiring → On hold → Closed), notes, and
+  embedded follow-ups (date, what to do, done + outcome). `nextFollowUpAt` is kept on save.
+- **Openings** (`TalentOpening`): JD text + optional JD link, positions, experience range, salary
+  range (₹ LPA), bond, location, work mode, qualification, skills, interview process, apply-by,
+  status (open / on hold / closed).
+- **Sent to companies** (`TalentSubmission`): one shared candidate → one company (+ optional
+  opening), status Sent → Shortlisted → Interview → Selected → Offer made → Joined (or Rejected /
+  On hold / Withdrawn), interview time, remarks, history. Unique per candidate × company × opening.
+  Moving forward here also moves the office's own status for the candidate forward (never back,
+  never off Rejected).
+- **Excel per company**: the office's column format + Position, Status, Interview, Remarks, Sent on
+  — the office attaches it when it emails the company (the platform does not email companies).
+- **Ownership**: everything is the office's. The admin sees it read-only from the Offices tab
+  ("Their companies" → workspace drawer: overview, companies, openings, candidates sent) through
+  `GET /talent-pool/partners/:id/workspace`. There is no admin write path.
 
 ## Not in Phase 1
 Multiple logins per office, email to the office when new profiles are added, student consent

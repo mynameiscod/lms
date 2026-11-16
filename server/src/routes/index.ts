@@ -109,6 +109,8 @@ import resumeRoutes from './resumeRoutes';
 import careerProfileRoutes from './careerProfileRoutes';
 import placementPartnerRoutes from './placementPartnerRoutes';
 import placementDeskRoutes from './placementDeskRoutes';
+import talentPoolRoutes from './talentPoolRoutes';
+import talentPortalRoutes from './talentPortalRoutes';
 import feeRoutes from './feeRoutes';
 import publicAssessmentRoutes from './publicAssessmentRoutes';
 import publicCertificateRoutes from './publicCertificateRoutes';
@@ -354,6 +356,8 @@ router.use('/interactive-lessons', interactiveLessonRoutes);
 router.use('/resume', resumeRoutes);
 router.use('/career-profile', careerProfileRoutes);
 router.use('/placement-partners', placementPartnerRoutes);
+router.use('/talent-pool', talentPoolRoutes); // Talent Pool: share candidates with placement offices (admin)
+router.use('/talent-portal', talentPortalRoutes); // Talent Portal: what a placement office login sees
 router.use('/placement-desk', placementDeskRoutes); // Placement Desk: daily company/drive/outcome register (admin-only + public summary)
 router.use('/fees', feeRoutes);
 

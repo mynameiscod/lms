@@ -178,7 +178,7 @@ const UserSchema: Schema = new Schema(
     },
     role: { 
       type: String, 
-      enum: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF', 'STUDENT', 'GUEST'], 
+      enum: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF', 'STUDENT', 'GUEST', 'PLACEMENT_PARTNER'], 
       default: 'STUDENT' 
     },
     tenantId: { 

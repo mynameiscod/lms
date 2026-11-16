@@ -3,6 +3,7 @@ import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../types';
 import User from '../models/User';
 import { jwtSecret } from '../config/secrets';
+import { PARTNER_ROLE, partnerMayReach } from './placementPartnerScope';
 
 export const authMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
@@ -45,6 +46,10 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     // The role and custom role come from the account, not the token: a role changed on the Users screen applies
     // on the person's next request instead of after they next log in.
     req.user = { ...decoded, role: (user as any).role || decoded.role, customRoleId: user.customRoleId?.toString() || null };
+    // A placement office login reaches the Talent Portal only — see placementPartnerScope.
+    if (req.user!.role === PARTNER_ROLE && !partnerMayReach(req.method, req.originalUrl, String(user._id))) {
+      return res.status(403).json({ success: false, message: 'This account can only open the Talent Portal.', code: 'PARTNER_SCOPE' });
+    }
     next();
   } catch (error) {
     console.log(`[AUTH] Token verification failed: ${error}`);

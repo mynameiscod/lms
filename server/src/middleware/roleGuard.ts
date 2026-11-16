@@ -293,6 +293,13 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'view_placement_desk', label: 'Placement Desk — view drives and reports (read only)' },
     ]
   },
+  talentPool: {
+    label: 'Talent Pool',
+    permissions: [
+      { key: 'manage_talent_pool', label: 'Talent Pool — placement offices, share candidates, change statuses' },
+      { key: 'view_talent_pool', label: 'Talent Pool — see offices and the status tracker (read only)' },
+    ]
+  },
   interviewHub: {
     label: 'Interview Hub',
     permissions: [
@@ -385,6 +392,7 @@ export const FEATURE_PERMISSIONS = [
   'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans',
   'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests', 'manage_concerns', 'view_activity_logs',
   'chat_whatsapp', 'manage_event_apis', 'view_admin_dashboard', 'manage_placement_desk', 'view_placement_desk',
+  'manage_talent_pool', 'view_talent_pool',
   'view_employees', 'manage_employees', 'view_employee_sensitive', 'review_employee_activity',
   'view_expenses', 'approve_expenses', 'manage_expenses', 'use_employee_portal',
 ];
@@ -565,6 +573,9 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'use_passport',
   ],
   GUEST: ['view_public_courses'],
+  // A placement office login. It holds no permission at all: authMiddleware lets it reach only the
+  // Talent Portal (see middleware/placementPartnerScope.ts), whatever any route's own guard says.
+  PLACEMENT_PARTNER: [],
 };
 
 /**
@@ -587,6 +598,8 @@ export const permissionsOf = async (user: { role: string; customRoleId?: any; te
 const rolePermissions = async (user: { role: string; customRoleId?: any; tenantId?: any }): Promise<string[]> => {
   // A super admin can do everything, always — a custom role on their account never narrows that.
   if (user.role === 'SUPER_ADMIN') return ALL_PERMISSIONS;
+  // A placement office never holds a permission — not from a custom role, not from a Roles-screen edit.
+  if (user.role === 'PLACEMENT_PARTNER') return [];
   const base = ROLE_PERMISSIONS[user.role] || [];
   if (user.customRoleId) {
     try {

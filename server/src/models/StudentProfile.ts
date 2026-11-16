@@ -78,6 +78,12 @@ export interface IStudentProfile extends Document {
     howDidYouHearOther?: string;
     careerGoal?: string;
   };
+
+  // Placement preferences — shown to placement offices in the Talent Pool
+  placementPreferences?: {
+    expectedRole?: string;
+    preferredLocations?: string[];
+  };
   
   // 7. OAuth Connections (for GitHub code push & LinkedIn posts)
   oauthConnections?: {
@@ -287,6 +293,12 @@ const StudentProfileSchema: Schema = new Schema(
       },
       howDidYouHearOther: { type: String, trim: true },
       careerGoal: { type: String, trim: true, maxlength: 500 },
+    },
+
+    // Placement preferences — shown to placement offices in the Talent Pool
+    placementPreferences: {
+      expectedRole: { type: String, trim: true, maxlength: 120 },
+      preferredLocations: [{ type: String, trim: true, maxlength: 60 }],
     },
     
     // 7. OAuth Connections (for GitHub code push & LinkedIn posts)

@@ -102,6 +102,7 @@ router.get('/:id/stream', (req, res) => {
     return res.status(401).json({ message: 'Invalid token' });
   }
   if (!claims?.tenantId) return res.status(401).json({ message: 'Invalid token' });
+  if (claims.role === 'PLACEMENT_PARTNER') return res.status(403).json({ message: 'Not available for this account' });
   (req as any).tenantId = String(claims.tenantId);
   return ctrl.streamVideo(req, res);
 });

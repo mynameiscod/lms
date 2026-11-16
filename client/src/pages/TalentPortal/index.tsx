@@ -31,7 +31,8 @@ const TalentPortal: React.FC = () => {
   const go = useCallback((v: View) => { setParams({ view: v }); setNavOpen(false); window.scrollTo(0, 0); }, [setParams]);
 
   const [me, setMe] = useState<{ name: string; contactName?: string } | null>(null);
-  const [brand, setBrand] = useState<{ name?: string; logo?: string } | null>(null);
+  const [brand, setBrand] = useState<{ name?: string; logo?: string; isPlatformOwner?: boolean } | null>(null);
+  const ownLogo = brand && !brand.isPlatformOwner && brand.logo ? brand.logo : '';
   const [rows, setRows] = useState<ShareRow[] | null>(null);
   const [companies, setCompanies] = useState<Company[] | null>(null);
   const [err, setErr] = useState('');
@@ -79,9 +80,10 @@ const TalentPortal: React.FC = () => {
     <div className="tpo-shell">
       {navOpen && <div className="tpo-scrim" onClick={() => setNavOpen(false)} />}
       <aside className={`tpo-side ${navOpen ? 'open' : ''}`}>
+        {/* Same logo as the main app sidebar: CodeBegun's, unless another institute has its own. */}
         <div className="tpo-brand">
-          {brand?.logo ? <img src={brand.logo} alt="" /> : <i className="fa-solid fa-code" style={{ fontSize: 24, color: '#818CF8' }} />}
-          {!brand?.logo && <div><b>{brand?.name || 'Talent Pool'}</b><small>Placement partner portal</small></div>}
+          <img src={ownLogo || `${process.env.PUBLIC_URL}/assets/logo.png`} alt={ownLogo ? brand?.name || 'Logo' : 'CodeBegun'} />
+          <small>Placement partner portal</small>
         </div>
         <nav className="tpo-nav">
           <Nav v="dashboard" icon="fa-house" label="Dashboard" />

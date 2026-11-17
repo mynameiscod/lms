@@ -55,7 +55,7 @@ const Bubble: React.FC<{ m: ChatMessage }> = ({ m }) => (
   <div className={`wac-row ${m.direction}`}>
     <div className={`wac-bubble ${m.direction} ${m.status === 'failed' ? 'failed' : ''}`}>
       {m.direction === 'out' && m.source !== 'chat' && (
-        <div className="wac-tag">{m.source === 'bot' ? 'Bot' : m.kind === 'template' ? `Template · ${m.templateName || ''}` : m.source === 'broadcast' ? 'Broadcast' : 'Automatic'}</div>
+        <div className="wac-tag">{m.source === 'bot' ? 'Bot' : m.source === 'automation' && m.kind !== 'template' ? 'Workflow' : m.kind === 'template' ? `Template · ${m.templateName || ''}` : m.source === 'broadcast' ? 'Broadcast' : 'Automatic'}</div>
       )}
       {['image', 'document', 'audio', 'video', 'sticker'].includes(m.kind) && <Media m={m} />}
       {m.body && <div className="wac-text">{m.body}</div>}

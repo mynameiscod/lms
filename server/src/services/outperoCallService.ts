@@ -269,9 +269,19 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
     if (automate && target && set.stageId && String(set.stageId) !== String(lead.stageId)) {
       await recordStageTransition(lead._id, lead.stageId, target._id, target.name, lead.createdBy, oid(tenantId), { source: 'outpero' });
       await stampMilestonesAfterExternalMove(tenantId, lead._id, target);
+      import('./workflow/engine')
+        .then((m) => m.fire({ tenantId, type: 'stage_changed', leadId: lead._id, data: { stageId: String(target._id), stageName: target.name, fromStageId: lead.stageId ? String(lead.stageId) : null } }))
+        .catch((e) => console.error('[outpero] workflow stage trigger failed', e?.message));
     }
     if (state !== 'awaiting_assignment') await mark('feedback_' + outcome);
     else did.push('awaiting_assignment');
+  }
+  // Workflow Builder: "AI call result" workflows, once per call.
+  if (outcome && !stale && !has('workflow')) {
+    await mark('workflow');
+    import('./workflow/engine')
+      .then((m) => m.fire({ tenantId, type: 'call_result', leadId: lead._id, data: { outcome, callId: call.callId, summary: call.summary } }))
+      .catch((e) => console.error('[outpero] workflow call trigger failed', e?.message));
   }
   // Whatever the result, a lead that was waiting for Outpero gets its owner now — also when the stage
   // was left alone because a person had already moved it. A no-answer that will be retried keeps waiting.

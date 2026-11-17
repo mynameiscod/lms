@@ -23,7 +23,7 @@ export interface IWhatsAppChatMessage extends Document {
   status: WaChatStatus;
   error?: string;
   sentBy?: mongoose.Types.ObjectId;
-  source: 'chat' | 'broadcast' | 'system' | 'bot' | 'test' | 'person';
+  source: 'chat' | 'broadcast' | 'system' | 'bot' | 'test' | 'person' | 'automation';
   createdAt: Date;
 }
 

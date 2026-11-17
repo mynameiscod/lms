@@ -20,7 +20,7 @@ export interface ChatMessage {
   mediaName?: string;
   status: 'received' | 'accepted' | 'sent' | 'delivered' | 'read' | 'failed';
   error?: string;
-  source: 'chat' | 'broadcast' | 'system' | 'bot' | 'test' | 'person';
+  source: 'chat' | 'broadcast' | 'system' | 'bot' | 'test' | 'person' | 'automation';
   createdAt: string;
   sentBy?: string;
 }

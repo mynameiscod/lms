@@ -1,5 +1,5 @@
 # Workflow Builder
-**Completion:** 75%  |  **Priority:** P1  |  **Business Impact:** High  |  **State:** built and tested on `feature/workflows` (2026-11-17), not deployed
+**Completion:** 75%  |  **Priority:** P1  |  **Business Impact:** High  |  **State:** deployed 6c4aa362 (2026-11-17, slot blue). PDF template headers (639020fb) pushed, not deployed.
 
 ## Purpose & Business Goal
 The admin builds WhatsApp and lead automations on a Zapier-style canvas instead of asking for code. It covers the owner's five asks:

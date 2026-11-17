@@ -2,7 +2,9 @@ import express from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { roleGuard } from '../middleware/roleGuard';
+import multer from 'multer';
 import * as ctrl from '../controllers/whatsAppTemplateController';
+import { storePdf, WaFileError, WA_FILE_MAX_BYTES } from '../services/whatsAppFileService';
 
 /**
  * WhatsApp message templates — author on Meta from the LMS, assign to system uses, send.
@@ -24,6 +26,19 @@ router.get('/messages', ctrl.messages);
 router.get('/messages/summary', ctrl.messagesSummary);
 router.get('/batches', ctrl.batches);
 router.get('/lead-filters', ctrl.leadFilters);
+
+// A PDF for a Document header (brochure): stored by us, served at a public link Meta can fetch.
+const pdfUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: WA_FILE_MAX_BYTES, files: 1 } });
+router.post('/files', (req, res, next) => pdfUpload.single('file')(req, res, (err: any) => {
+  if (err) return res.status(400).json({ success: false, message: err.code === 'LIMIT_FILE_SIZE' ? 'The PDF must be under 30 MB.' : err.message });
+  next();
+}), async (req: any, res) => {
+  try {
+    res.json({ success: true, data: await storePdf(String(req.tenantId), req.file) });
+  } catch (e: any) {
+    res.status(e instanceof WaFileError ? e.status : 500).json({ success: false, message: e.message || 'Upload failed' });
+  }
+});
 
 router.get('/', ctrl.list);
 router.post('/', ctrl.create);

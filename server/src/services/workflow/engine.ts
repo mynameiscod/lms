@@ -199,7 +199,8 @@ async function runStep(ctx: Ctx, step: WfStep, nextId: string | null): Promise<S
     case 'send_template': {
       const why = await canMessage(ctx);
       if (why) return next(`Not sent: ${why}`, false);
-      const s = await wa.sendTemplate(ctx.tenantId, ctx.phone, c.templateId, (c.values || []).map((v: string) => r(v)), c.buttonParam ? r(c.buttonParam) : undefined);
+      const s = await wa.sendTemplate(ctx.tenantId, ctx.phone, c.templateId, (c.values || []).map((v: string) => r(v)), c.buttonParam ? r(c.buttonParam) : undefined,
+        c.documentUrl ? { documentUrl: String(c.documentUrl), fileName: c.fileName ? r(String(c.fileName)) : undefined } : undefined);
       const name = await wa.templateName(ctx.tenantId, c.templateId);
       return next(s.ok ? `Sent template "${name}"` : `Template "${name}" not sent: ${s.error}`, s.ok);
     }

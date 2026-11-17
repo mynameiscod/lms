@@ -68,12 +68,13 @@ export async function sendMediaLink(tenantId: string, phone: string, kind: 'docu
 }
 
 /** An approved template — works any time, also for someone who never messaged. */
-export async function sendTemplate(tenantId: string, phone: string, templateId: string, values: string[], buttonParam?: string): Promise<SendResult> {
+export async function sendTemplate(tenantId: string, phone: string, templateId: string, values: string[], buttonParam?: string, header?: { documentUrl?: string; fileName?: string }): Promise<SendResult> {
   if (!mongoose.isValidObjectId(templateId)) return { ok: false, error: 'no template chosen' };
   const t = await WhatsAppTemplate.findOne({ _id: templateId, tenantId });
   if (!t) return { ok: false, error: 'the template was deleted' };
   if (t.status !== 'APPROVED') return { ok: false, error: `template "${t.name}" is ${t.status}, Meta only sends APPROVED templates` };
-  const r = await sendTemplateTo(tenantId, t, phone, { body: values, urlButtonParam: buttonParam || undefined, log: { source: 'system' } });
+  if (t.header?.format === 'DOCUMENT' && !t.header.documentUrl && !header?.documentUrl) return { ok: false, error: `template "${t.name}" has a PDF header but no PDF — add one to the template or to this step` };
+  const r = await sendTemplateTo(tenantId, t, phone, { body: values, urlButtonParam: buttonParam || undefined, headerDocumentUrl: header?.documentUrl || undefined, headerFileName: header?.fileName || undefined, log: { source: 'system' } });
   return r.ok ? { ok: true } : { ok: false, error: explainWaError(r.errorCode, r.error) || r.error };
 }
 

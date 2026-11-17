@@ -32,7 +32,8 @@ export interface IWhatsAppTemplate extends Document {
   metaId?: string;
   rejectedReason?: string;
   qualityScore?: string;
-  header: { format: WaHeaderFormat; text?: string; imageUrl?: string };
+  /** imageUrl / documentUrl: the default picture or PDF sent with every message (also Meta's review sample). */
+  header: { format: WaHeaderFormat; text?: string; imageUrl?: string; documentUrl?: string; fileName?: string };
   body: string;
   bodyExamples: string[];
   footer?: string;
@@ -67,6 +68,8 @@ const WhatsAppTemplateSchema = new Schema<IWhatsAppTemplate>({
     format: { type: String, enum: ['NONE', 'TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'], default: 'NONE' },
     text: String,
     imageUrl: String,
+    documentUrl: String,
+    fileName: String,
   },
   body: { type: String, default: '' },
   bodyExamples: { type: [String], default: [] },

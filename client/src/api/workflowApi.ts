@@ -44,7 +44,7 @@ export interface WorkflowRow {
 export interface Options {
   stages: { _id: string; name: string; isActive: boolean }[];
   sources: string[];
-  templates: { _id: string; name: string; language: string; category: string; status: string; body: string; variables: number; hasUrlButton: boolean }[];
+  templates: { _id: string; name: string; language: string; category: string; status: string; body: string; variables: number; hasUrlButton: boolean; headerFormat?: string; fileName?: string; hasDocument?: boolean }[];
   users: { _id: string; name: string; role: string }[];
   courses: string[];
 }

@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Step, Path, Condition, Options, Workflow, TriggerType, WfSettings } from '../../api/workflowApi';
+import { waTemplateApi } from '../../api/whatsAppTemplateApi';
 import {
   TRIGGERS, STEPS, BASE_VARS, DEMO_VARS, answerKeys, conditionFields, OPS, opsFor, FieldDef,
   PRIORITIES, CALL_OUTCOMES, DEMO_OUTCOMES, MEETING_TYPES, SAVE_TO, offsetText,
@@ -248,7 +249,36 @@ export const PathEditor: React.FC<{ path: Path; steps: Step[]; onChange: (p: Pat
 };
 
 /* ── Steps ────────────────────────────────────────────────────────────── */
-const TemplatePicker: React.FC<{ templateId: string; values: string[]; buttonParam?: string; onChange: (p: { templateId?: string; values?: string[]; buttonParam?: string }) => void; options: Options | null; vars: { key: string; label: string }[] }> = ({ templateId, values, buttonParam, onChange, options, vars }) => {
+/** A PDF-header template sends its own brochure; a step may send a different PDF instead. */
+const PdfOverride: React.FC<{ t: Options['templates'][number]; value: { documentUrl?: string; fileName?: string }; onChange: (p: { documentUrl?: string; fileName?: string }) => void }> = ({ t, value, onChange }) => {
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+  const upload = async (f?: File) => {
+    if (!f) return;
+    setBusy(true); setErr('');
+    try { const r = await waTemplateApi.uploadPdf(f); onChange({ documentUrl: r.url, fileName: value.fileName || r.fileName }); }
+    catch (e: any) { setErr(e?.response?.data?.message || e.message || 'Upload failed'); }
+    setBusy(false);
+  };
+  return (
+    <div className="wf-field">
+      <label>PDF</label>
+      {!value.documentUrl && (t.hasDocument
+        ? <div className="wf-info">Sends the template's PDF: <b>{t.fileName || 'document.pdf'}</b>. Upload another below to send a different one from this step.</div>
+        : <div className="wf-warn">This template has no PDF stored — upload one here (or edit the template).</div>)}
+      <div className="wf-row">
+        <button type="button" className="wf-btn sm" disabled={busy} onClick={() => fileRef.current?.click()}><i className="fa-solid fa-file-arrow-up" /> {busy ? 'Uploading…' : value.documentUrl ? 'Replace PDF' : 'Use a different PDF'}</button>
+        <input ref={fileRef} type="file" accept="application/pdf,.pdf" style={{ display: 'none' }} onChange={e => { upload(e.target.files?.[0]); e.target.value = ''; }} />
+        {value.documentUrl && <><a className="wf-small" href={value.documentUrl} target="_blank" rel="noreferrer">Open ↗</a><button type="button" className="wf-btn sm ghost" onClick={() => onChange({ documentUrl: '', fileName: '' })}>Use the template's PDF</button></>}
+      </div>
+      {value.documentUrl && <input className="wf-input" style={{ marginTop: 6 }} placeholder="File name people see" value={value.fileName || ''} onChange={e => onChange({ fileName: e.target.value })} />}
+      {err && <div className="wf-err">{err}</div>}
+    </div>
+  );
+};
+
+const TemplatePicker: React.FC<{ templateId: string; values: string[]; buttonParam?: string; pdf?: { documentUrl?: string; fileName?: string }; onChange: (p: { templateId?: string; values?: string[]; buttonParam?: string; documentUrl?: string; fileName?: string }) => void; options: Options | null; vars: { key: string; label: string }[] }> = ({ templateId, values, buttonParam, pdf, onChange, options, vars }) => {
   const tpls = options?.templates || [];
   const t = tpls.find(x => x._id === templateId);
   return (
@@ -273,6 +303,7 @@ const TemplatePicker: React.FC<{ templateId: string; values: string[]; buttonPar
             </div>
           ))}
           {t.hasUrlButton && <Field label="Button link ending" hint="The part that replaces {{1}} in the template's button URL."><VarText single value={buttonParam || ''} vars={vars} onChange={v => onChange({ buttonParam: v })} /></Field>}
+          {t.headerFormat === 'DOCUMENT' && pdf && <PdfOverride t={t} value={pdf} onChange={p => onChange(p)} />}
         </>
       )}
     </>
@@ -298,7 +329,7 @@ export const StepEditor: React.FC<{ step: Step; wf: Workflow; onChange: (s: Step
       </>
     );
     case 'send_template': return (
-      <Field label="Template"><TemplatePicker templateId={c.templateId} values={c.values || []} buttonParam={c.buttonParam} options={options} vars={vars} onChange={p => set(p)} /></Field>
+      <Field label="Template"><TemplatePicker templateId={c.templateId} values={c.values || []} buttonParam={c.buttonParam} pdf={{ documentUrl: c.documentUrl, fileName: c.fileName }} options={options} vars={vars} onChange={p => set(p)} /></Field>
     );
     case 'send_media': return (
       <>

@@ -56,7 +56,7 @@ router.get('/options', ...guard, async (req: AuthenticatedRequest, res: Response
       sources: filters.sources.map((s) => s.source),
       templates: templates.map((x: any) => {
         const shape = templateShape(x);
-        return { _id: String(x._id), name: x.name, language: x.language, category: x.category, status: x.status, body: x.body, variables: shape.bodyVarCount, hasUrlButton: shape.urlButtonIndex >= 0 };
+        return { _id: String(x._id), name: x.name, language: x.language, category: x.category, status: x.status, body: x.body, variables: shape.bodyVarCount, hasUrlButton: shape.urlButtonIndex >= 0, headerFormat: shape.headerFormat, fileName: x.header?.fileName || '', hasDocument: !!x.header?.documentUrl };
       }),
       users: users.map((u: any) => ({ _id: String(u._id), name: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email, role: u.role })),
       courses: (courses as any[]).filter(Boolean).map(String).slice(0, 100),

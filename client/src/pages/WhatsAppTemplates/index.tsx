@@ -179,6 +179,12 @@ const Preview: React.FC<{ t: WaTemplateInput; values?: string[] }> = ({ t, value
   return (
     <div style={{ background: C.waChat, borderRadius: 12, padding: 14, minHeight: 220 }}>
       <div style={{ background: C.waBubble, borderRadius: '0 10px 10px 10px', maxWidth: 300, boxShadow: '0 1px 1px rgba(0,0,0,.1)', overflow: 'hidden' }}>
+        {t.header?.format === 'DOCUMENT' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f0f2f5', margin: 4, borderRadius: 8, padding: '12px 10px' }}>
+            <div style={{ width: 34, height: 40, background: '#e53935', color: '#fff', borderRadius: 4, display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 800 }}>PDF</div>
+            <div style={{ fontSize: 13, color: '#111', wordBreak: 'break-all' }}>{t.header.fileName || 'Document.pdf'}</div>
+          </div>
+        )}
         {t.header?.format === 'IMAGE' && (
           t.header.imageUrl
             ? <img src={t.header.imageUrl} alt="" style={{ width: '100%', display: 'block', maxHeight: 160, objectFit: 'cover' }} />
@@ -196,6 +202,36 @@ const Preview: React.FC<{ t: WaTemplateInput; values?: string[] }> = ({ t, value
           </div>
         ))}
       </div>
+    </div>
+  );
+};
+
+// ── PDF header: upload (stored by us at a public link) or paste a link ───────
+
+const PdfHeaderInput: React.FC<{ value: { documentUrl?: string; fileName?: string }; onChange: (p: { documentUrl?: string; fileName?: string }) => void }> = ({ value, onChange }) => {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+  const upload = async (f?: File) => {
+    if (!f) return;
+    if (f.type && f.type !== 'application/pdf') { setErr('Choose a PDF file.'); return; }
+    setBusy(true); setErr('');
+    try { const r = await waTemplateApi.uploadPdf(f); onChange({ documentUrl: r.url, fileName: value.fileName || r.fileName }); }
+    catch (e) { setErr(errMsg(e, 'Upload failed')); }
+    setBusy(false);
+  };
+  return (
+    <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, marginTop: 8 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button type="button" style={btn()} disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? 'Uploading…' : value.documentUrl ? 'Replace PDF' : 'Upload PDF'}</button>
+        <input ref={fileRef} type="file" accept="application/pdf,.pdf" style={{ display: 'none' }} onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ''; }} />
+        {value.documentUrl && <a href={value.documentUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12.5 }}>Open current PDF ↗</a>}
+      </div>
+      <input style={{ ...input, marginTop: 8 }} placeholder="…or paste a public https link to the PDF" value={value.documentUrl || ''} onChange={(e) => onChange({ documentUrl: e.target.value.trim() })} />
+      <label style={{ ...label, marginTop: 8 }}>File name people see</label>
+      <input style={input} maxLength={120} placeholder="CodeBegun-Brochure.pdf" value={value.fileName || ''} onChange={(e) => onChange({ fileName: e.target.value })} />
+      {err && <div style={{ color: C.red, fontSize: 12.5, marginTop: 6 }}>{err}</div>}
+      <div style={hint}>Meta reviews this PDF as the sample, and it is sent with every message from this template — also to brand-new leads who never messaged you. A workflow step can send a different PDF with the same template. Max 30 MB.</div>
     </div>
   );
 };
@@ -218,7 +254,7 @@ const Editor: React.FC<{ initial?: WaTemplate | null; draft?: WaTemplateInput | 
   const editing = !!initial;
   const [t, setT] = useState<WaTemplateInput>(() => initial ? {
     name: initial.name, language: initial.language, category: initial.category,
-    header: { format: (['NONE', 'TEXT', 'IMAGE'].includes(initial.header?.format) ? initial.header.format : 'NONE') as any, text: initial.header?.text, imageUrl: initial.header?.imageUrl },
+    header: { format: (['NONE', 'TEXT', 'IMAGE', 'DOCUMENT'].includes(initial.header?.format) ? initial.header.format : 'NONE') as any, text: initial.header?.text, imageUrl: initial.header?.imageUrl, documentUrl: initial.header?.documentUrl, fileName: initial.header?.fileName },
     body: initial.body, bodyExamples: initial.bodyExamples || [], footer: initial.footer || '',
     buttons: (initial.buttons || []).filter((b) => ['URL', 'PHONE_NUMBER', 'QUICK_REPLY'].includes(b.type)),
     auth: initial.auth || { securityRecommendation: true, codeExpiryMinutes: 10 },
@@ -300,12 +336,13 @@ const Editor: React.FC<{ initial?: WaTemplate | null; draft?: WaTemplateInput | 
               <label style={label}>Header (optional)</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <select style={{ ...input, maxWidth: 130 }} value={t.header?.format || 'NONE'} onChange={(e) => set({ header: { ...t.header, format: e.target.value as any } })}>
-                  <option value="NONE">None</option><option value="TEXT">Text</option><option value="IMAGE">Image</option>
+                  <option value="NONE">None</option><option value="TEXT">Text</option><option value="IMAGE">Image</option><option value="DOCUMENT">PDF document</option>
                 </select>
                 {t.header?.format === 'TEXT' && <input style={input} maxLength={60} placeholder="Class reminder" value={t.header.text || ''} onChange={(e) => set({ header: { ...t.header!, text: e.target.value } })} />}
                 {t.header?.format === 'IMAGE' && <input style={input} placeholder="https://… public JPEG/PNG" value={t.header.imageUrl || ''} onChange={(e) => set({ header: { ...t.header!, imageUrl: e.target.value.trim() } })} />}
               </div>
               {t.header?.format === 'IMAGE' && <div style={hint}>Meta reviews this image as the sample, and it is sent as the default picture when a message has no image of its own.</div>}
+              {t.header?.format === 'DOCUMENT' && <PdfHeaderInput value={t.header} onChange={(p) => set({ header: { ...t.header!, ...p } })} />}
 
               <label style={{ ...label, display: 'flex', justifyContent: 'space-between' }}>
                 <span>Body</span>

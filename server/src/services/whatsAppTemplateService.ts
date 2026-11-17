@@ -110,7 +110,7 @@ export interface TemplateInput {
   name: string;
   language: string;
   category: WaTemplateCategory;
-  header?: { format: 'NONE' | 'TEXT' | 'IMAGE'; text?: string; imageUrl?: string };
+  header?: { format: 'NONE' | 'TEXT' | 'IMAGE' | 'DOCUMENT'; text?: string; imageUrl?: string; documentUrl?: string; fileName?: string };
   body?: string;
   bodyExamples?: string[];
   footer?: string;
@@ -150,6 +150,10 @@ export function validateInput(i: TemplateInput): string[] {
   if (h.format === 'IMAGE' && !/^https:\/\//i.test(h.imageUrl || '')) {
     errs.push('Image header needs a public https image URL (JPEG or PNG, under 5 MB). It is the sample Meta reviews and the default image sent.');
   }
+  if (h.format === 'DOCUMENT') {
+    if (!/^https:\/\//i.test(h.documentUrl || '')) errs.push('PDF header needs a PDF: upload one or give a public https link. It is the sample Meta reviews and the default PDF sent.');
+    if ((h.fileName || '').length > 120) errs.push('PDF file name is limited to 120 characters.');
+  }
   if ((i.footer || '').length > 60) errs.push('Footer is limited to 60 characters.');
   if (/\{\{/.test(i.footer || '')) errs.push('Footer cannot contain variables.');
 
@@ -185,6 +189,22 @@ async function uploadHeaderImage(c: Conn, imageUrl: string): Promise<string> {
   if (!['image/jpeg', 'image/png', 'image/jpg'].includes(type)) throw new WaTemplateError(`Header image must be JPEG or PNG (got "${type || 'unknown'}").`);
   const buf = Buffer.from(await img.arrayBuffer());
   if (buf.length > 5 * 1024 * 1024) throw new WaTemplateError('Header image must be under 5 MB.');
+  return uploadSample(c, buf, type === 'image/jpg' ? 'image/jpeg' : type, `header.${type.endsWith('png') ? 'png' : 'jpg'}`);
+}
+
+/** The sample PDF Meta reviews for a Document header. */
+async function uploadHeaderDocument(c: Conn, url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new WaTemplateError(`Could not download the PDF (HTTP ${res.status}). Use a public https link, or upload the file.`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  const type = (res.headers.get('content-type') || '').split(';')[0].trim();
+  if (type !== 'application/pdf' && buf.subarray(0, 5).toString() !== '%PDF-') throw new WaTemplateError(`The header file must be a PDF (got "${type || 'unknown'}").`);
+  if (buf.length > 100 * 1024 * 1024) throw new WaTemplateError('The PDF must be under 100 MB.');
+  return uploadSample(c, buf, 'application/pdf', 'sample.pdf');
+}
+
+/** Meta's Resumable Upload: the handle a template's media header is reviewed with. */
+async function uploadSample(c: Conn, buf: Buffer, type: string, fileName: string): Promise<string> {
 
   // Resumable Upload API — hangs off the Meta APP, not the WABA.
   let appId = settings.getStr('META_APP_ID', '').trim();
@@ -192,7 +212,7 @@ async function uploadHeaderImage(c: Conn, imageUrl: string): Promise<string> {
   if (!appId) throw new WaTemplateError('Could not determine the Meta App ID for the image upload. Set META_APP_ID in Platform Settings.');
 
   const session = await graph('POST',
-    `${GRAPH}/${appId}/uploads?file_name=header.${type.endsWith('png') ? 'png' : 'jpg'}&file_length=${buf.length}&file_type=${encodeURIComponent(type === 'image/jpg' ? 'image/jpeg' : type)}`,
+    `${GRAPH}/${appId}/uploads?file_name=${fileName}&file_length=${buf.length}&file_type=${encodeURIComponent(type)}`,
     c.accessToken);
   const res = await fetch(`${GRAPH}/${session.id}`, {
     method: 'POST',
@@ -200,7 +220,7 @@ async function uploadHeaderImage(c: Conn, imageUrl: string): Promise<string> {
     body: buf,
   });
   const j: any = await res.json().catch(() => ({}));
-  if (!res.ok || !j?.h) throw new WaTemplateError(j?.error?.message || 'Meta did not accept the header image upload.');
+  if (!res.ok || !j?.h) throw new WaTemplateError(j?.error?.message || 'Meta did not accept the header file upload.');
   return j.h;
 }
 
@@ -217,6 +237,10 @@ async function toMetaComponents(c: Conn, i: TemplateInput): Promise<any[]> {
   if (h.format === 'IMAGE') {
     const handle = await uploadHeaderImage(c, h.imageUrl!);
     comps.push({ type: 'HEADER', format: 'IMAGE', example: { header_handle: [handle] } });
+  }
+  if (h.format === 'DOCUMENT') {
+    const handle = await uploadHeaderDocument(c, h.documentUrl!);
+    comps.push({ type: 'HEADER', format: 'DOCUMENT', example: { header_handle: [handle] } });
   }
   const n = templateShape({ body: i.body || '', header: h as any, buttons: [], category: i.category }).bodyVarCount;
   const body: any = { type: 'BODY', text: i.body };
@@ -399,10 +423,11 @@ export async function syncTemplates(tenantId: string) {
     const f = fromMeta(m);
     const existing = await WhatsAppTemplate.findOne({ tenantId, name: f.name, language: f.language });
     if (existing) {
-      // Keep the locally stored default header image — Meta only returns a CDN sample.
-      const imageUrl = existing.header?.imageUrl;
+      // Keep the locally stored default header image / PDF — Meta only returns a CDN sample.
+      const { imageUrl, documentUrl, fileName } = (existing.header || {}) as any;
       Object.assign(existing, f, { lastSyncedAt: new Date() });
       if (imageUrl && existing.header?.format === 'IMAGE') existing.header.imageUrl = imageUrl;
+      if (documentUrl && existing.header?.format === 'DOCUMENT') { existing.header.documentUrl = documentUrl; existing.header.fileName = fileName; }
       await existing.save();
       updated++;
     } else {
@@ -468,7 +493,8 @@ export function checkCompatibility(t: IWhatsAppTemplate | any, p: WaTemplatePurp
   if (s.urlButtonIndex >= 0 && !p.buttonParam) errors.push('Template has a dynamic URL button, but this use has no value to put in it.');
   if (s.urlButtonIndex < 0 && p.buttonParam && t.category !== 'AUTHENTICATION') warnings.push('No dynamic URL button — recipients will not get their personal link.');
   if (s.headerHasVars) errors.push('Header text with variables is not supported — move them into the body.');
-  if (['VIDEO', 'DOCUMENT'].includes(s.headerFormat)) errors.push(`${s.headerFormat} headers are not supported for system messages.`);
+  if (s.headerFormat === 'VIDEO') errors.push('VIDEO headers are not supported for system messages.');
+  if (s.headerFormat === 'DOCUMENT' && !t.header?.documentUrl) errors.push('Template has a PDF header but no PDF is stored: edit the template and upload the PDF.');
   if (s.headerFormat === 'IMAGE' && !p.headerImage && !t.header?.imageUrl) {
     errors.push('Template has an image header but no default image is stored — edit the template and give an image URL.');
   }
@@ -513,7 +539,7 @@ export async function assignPurpose(tenantId: string, userId: string, purposeKey
 export async function sendTemplateTo(
   tenantId: string, t: IWhatsAppTemplate, phone: string,
   opts: {
-    body: string[]; urlButtonParam?: string; headerImageUrl?: string;
+    body: string[]; urlButtonParam?: string; headerImageUrl?: string; headerDocumentUrl?: string; headerFileName?: string;
     /** Where the send came from, for the delivery log. */
     log?: { source: 'test' | 'broadcast' | 'system'; broadcastId?: any; sentBy?: string };
   },
@@ -536,7 +562,11 @@ export async function sendTemplateTo(
   // …and in the person's conversation, so the Chat tab shows what they were sent.
   await recordOutbound(tenantId, to, {
     kind: 'template', templateName: t.name, wamid: result.messageId, ok: result.ok, error: result.error,
-    body: [t.header?.format === 'TEXT' ? t.header.text : '', renderTemplateBody(t.body, opts.body || [])].filter(Boolean).join('\n'),
+    body: [
+      t.header?.format === 'TEXT' ? t.header.text : '',
+      t.header?.format === 'DOCUMENT' ? `📄 ${opts.headerFileName || t.header.fileName || 'PDF'}` : '',
+      renderTemplateBody(t.body, opts.body || []),
+    ].filter(Boolean).join('\n'),
     sentBy: opts.log?.sentBy, source: opts.log?.source || 'system',
   });
   return result;

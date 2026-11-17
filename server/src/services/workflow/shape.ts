@@ -94,7 +94,10 @@ export function stepProblems(s: WfStep): string[] {
   const p: string[] = [];
   switch (s.type) {
     case 'send_message': if (!str(c.text).trim()) p.push('Type the message'); break;
-    case 'send_template': if (!c.templateId) p.push('Choose an approved template'); break;
+    case 'send_template':
+      if (!c.templateId) p.push('Choose an approved template');
+      if (c.documentUrl && !/^https:\/\//i.test(str(c.documentUrl))) p.push('The PDF link must start with https://');
+      break;
     case 'send_media':
       if (!/^https:\/\//i.test(str(c.url))) p.push('Give a public https link to the file');
       break;

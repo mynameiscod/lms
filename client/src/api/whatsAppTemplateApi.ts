@@ -22,7 +22,7 @@ export interface WaTemplate {
   metaId?: string;
   rejectedReason?: string;
   qualityScore?: string;
-  header: { format: 'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'; text?: string; imageUrl?: string };
+  header: { format: 'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'; text?: string; imageUrl?: string; documentUrl?: string; fileName?: string };
   body: string;
   bodyExamples: string[];
   footer?: string;
@@ -38,7 +38,7 @@ export interface WaTemplateInput {
   name: string;
   language: string;
   category: WaCategory;
-  header?: { format: 'NONE' | 'TEXT' | 'IMAGE'; text?: string; imageUrl?: string };
+  header?: { format: 'NONE' | 'TEXT' | 'IMAGE' | 'DOCUMENT'; text?: string; imageUrl?: string; documentUrl?: string; fileName?: string };
   body?: string;
   bodyExamples?: string[];
   footer?: string;
@@ -99,6 +99,12 @@ export const waTemplateApi = {
   messages: (q: { phone?: string; templateId?: string; limit?: number; status?: 'failed' } = {}) =>
     axios.get(`${BASE}/messages`, { ...h(), params: q }).then(d) as Promise<WaMessage[]>,
   messagesSummary: () => axios.get(`${BASE}/messages/summary`, h()).then(d) as Promise<WaDeliverySummary>,
+  /** Upload a PDF (brochure) for a Document header; returns the public link Meta fetches. */
+  uploadPdf: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return axios.post(`${BASE}/files`, form, h()).then(d) as Promise<{ url: string; fileName: string; size: number }>;
+  },
 };
 
 /** The last 24 hours of sends: totals and the most common failure reasons. */

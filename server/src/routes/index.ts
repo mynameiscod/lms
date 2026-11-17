@@ -4,6 +4,7 @@ import { runWithTenant } from '../services/requestContext';
 import { tenantForHost } from '../services/tenantDomainService';
 import { getBranding } from '../services/tenantBrandingService';
 import { publicBranding } from '../services/tenantBrandingService';
+import { servePdf } from '../services/whatsAppFileService';
 import authRoutes from './authRoutes';
 import tenantRoutes from './tenantRoutes';
 import courseRoutes from './courseRoutes';
@@ -186,6 +187,8 @@ router.post('/public/outpero/calls/:token', async (req, res) => {
   }
 });
 // Public: which institute owns the domain this page was opened on (custom domains).
+// PDFs for WhatsApp template headers — Meta downloads them from here at every send (public by design).
+router.get('/public/wa-files/:tenantId/:name', servePdf);
 router.get('/public/branding-by-host', async (req, res) => {
   try {
     const id = await tenantForHost(String(req.headers['x-forwarded-host'] || req.headers.host || ''));

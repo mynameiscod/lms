@@ -274,6 +274,12 @@ export async function changeStage(input: StageChangeInput): Promise<StageChangeR
       .catch(err => console.error('[lifecycle] pushLeadStageChange failed:', err));
     scheduleDripOnStageEntry(tenantId, String(lead._id), stage.name)
       .catch(err => console.error('[lifecycle] scheduleDripOnStageEntry failed:', err));
+    // A workflow's own stage change does not start other "stage changed" workflows (no loops).
+    if (source !== 'automation') {
+      import('./workflow/engine')
+        .then((m) => m.fire({ tenantId, type: 'stage_changed', leadId: lead._id, data: { stageId: String(stage._id), stageName: stage.name, fromStageId } }))
+        .catch(err => console.error('[lifecycle] workflow trigger failed:', err?.message));
+    }
   }
 
   return { status: 'moved', lead, fromStageName: fromName, toStageName: stage.name };

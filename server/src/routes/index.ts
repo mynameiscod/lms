@@ -36,6 +36,7 @@ import leadPipelineRoutes from './leadPipelineRoutes';
 import leadSavedViewRoutes from './leadSavedViewRoutes';
 import leadReportRoutes from './leadReportRoutes';
 import leadAutomationRoutes from './leadAutomationRoutes';
+import workflowRoutes from './workflowRoutes';
 import leadFormConfigRoutes from './leadFormConfigRoutes';
 import codeSnippetRoutes from './codeSnippetRoutes';
 import shareRoutes from './shareRoutes';
@@ -274,6 +275,7 @@ router.use('/lead-pipeline', leadPipelineRoutes);
 router.use('/lead-views', leadSavedViewRoutes);
 router.use('/lead-reports', leadReportRoutes);
 router.use('/lead-automation', leadAutomationRoutes);
+router.use('/workflows', workflowRoutes); // Workflow Builder: WhatsApp/lead automations
 router.use('/lead-dispositions', leadDispositionRoutes);
 router.use('/lead-form-config', leadFormConfigRoutes);
 router.use('/code-snippets', codeSnippetRoutes);

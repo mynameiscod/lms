@@ -1,5 +1,5 @@
 # Talent Pool Sharing
-**Completion:** 80%  |  **Priority:** P1  |  **Business Impact:** High  |  **State:** Phase 1 deployed d380a3a9 (2026-11-16); Phase 1b office workspace built + tested, not deployed
+**Completion:** 80%  |  **Priority:** P1  |  **Business Impact:** High  |  **State:** Phase 1 deployed d380a3a9 (2026-11-16); Phase 1b office workspace deployed 55de2fc7 + UI fix a869061d (2026-11-17). Backlog: email candidates to companies from the portal.
 
 ## Purpose & Business Goal
 Replace the hand-built Excel "talent pool" sheets emailed to placement offices. Each office gets its own login and sees only the candidates shared with it: full profile, resume, its own Excel format. The team tracks every candidate's status at every office in one place. Design: `docs/design/talent-pool-sharing.md`.

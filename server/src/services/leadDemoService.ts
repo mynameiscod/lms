@@ -51,6 +51,8 @@ export async function recordMeetingOutcome(tenantId: string, meeting: any, befor
     $push: { activities: { type: 'meeting', description, createdBy: actorId, createdAt: now, metadata: { meetingId: String(meeting._id), status: meeting.status, meetingType: meeting.type } } },
   });
   if (meeting.status === 'no_show' && before.status !== 'no_show') await onMeetingNoShow(tenantId, meeting);
+  // Workflow Builder: demo reminders follow the new time; attended / no-show workflows start.
+  import('./workflow/engine').then((m) => m.onDemoChanged(tenantId, meeting, before)).catch((e) => console.error('[workflow] demo change failed', e?.message));
   if (attendedAt) {
     await Lead.updateOne({ ...leadQ, 'milestones.demoAttendedAt': { $exists: false } }, { $set: { 'milestones.demoAttendedAt': attendedAt } });
   }

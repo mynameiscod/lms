@@ -16,6 +16,7 @@ import { verifyMetaSignature } from '../services/whatsAppWebhookSignature';
 import { reviveIfArchived } from '../services/leadArchiveService';
 import { extractReferral, applyReferralToLead, lookupAd, adFields, referralActivity, AdReferral } from '../services/whatsAppAdReferralService';
 import { linkLeadToCampaign } from './adCampaignController';
+import { onInbound, attachLeadToRuns } from '../services/workflow/engine';
 
 // ===================== TYPES =====================
 
@@ -302,8 +303,19 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
         const messageText = stored?.botText ?? ((message.type === 'text' && message.text?.body) || message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || '');
         if (!messageText) continue;
 
+        // Workflow Builder first: answers to a workflow's question, STOP/START, keyword and
+        // out-of-office replies. When a workflow took the message, the old qualification bot stays quiet.
+        const botPaused = await isBotPaused(tenantInfo.tenantId, phoneNumber);
+        const wf = await onInbound(tenantInfo.tenantId, phoneNumber, senderName, messageText, { botPaused });
+        if (wf.handled) {
+          const lead = await ensureLeadExists(phoneNumber, senderName, tenantInfo.tenantId, 'warm');
+          if (lead?._id) await attachLeadToRuns(tenantInfo.tenantId, phoneNumber, lead._id);
+          await appendMessageToLead(phoneNumber, messageText, tenantInfo.tenantId);
+          continue;
+        }
+
         // A person on our side has taken over this chat — the bot stays quiet, the lead still gets the note.
-        if (await isBotPaused(tenantInfo.tenantId, phoneNumber)) {
+        if (botPaused) {
           await appendMessageToLead(phoneNumber, messageText, tenantInfo.tenantId);
           continue;
         }

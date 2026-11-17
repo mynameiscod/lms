@@ -255,6 +255,8 @@ const SalesContentLibraryPage = lazy(() => import('./pages/SalesContentLibrary')
 const LeadAnalyticsPage = lazy(() => import('./pages/LeadAnalytics'));
 const MeetingsPage = lazy(() => import('./pages/Meetings'));
 const LeadAssignmentSettingsPage = lazy(() => import('./pages/LeadAssignmentSettings'));
+const WorkflowsPage = lazy(() => import('./pages/Workflows'));
+const WorkflowBuilderPage = lazy(() => import('./pages/Workflows/Builder'));
 const FollowUpCalendarPage = lazy(() => import('./pages/FollowUpCalendar'));
 const FollowUpQueuePage = lazy(() => import('./pages/FollowUpQueue'));
 const AdmissionsDashboardPage = lazy(() => import('./pages/AdmissionsDashboard'));
@@ -2499,6 +2501,27 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <LeadAssignmentSettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* Workflow Builder: WhatsApp / lead automations (2026-11-17). */}
+      <Route
+        path="/workflows"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <WorkflowsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workflows/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <WorkflowBuilderPage />
             </Layout>
           </ProtectedRoute>
         }

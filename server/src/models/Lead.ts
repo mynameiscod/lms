@@ -793,6 +793,14 @@ LeadSchema.post('save', function (doc: any) {
       .then((m) => m.assignLead(String(doc.tenantId), String(doc._id)))
       .catch((e) => console.error('[lead-assignment] could not assign new lead', e?.message));
   }
+  // Workflow Builder: "New lead" workflows (welcome, questions…). After assignment had its chance.
+  if (doc.tenantId) {
+    setTimeout(() => {
+      import('../services/workflow/engine')
+        .then((m) => m.fire({ tenantId: String(doc.tenantId), type: 'lead_created', leadId: doc._id, phone: doc.phone, data: { source: doc.source, name: doc.name } }))
+        .catch((e) => console.error('[workflow] lead_created failed', e?.message));
+    }, 3000).unref?.();
+  }
 });
 
 export default mongoose.model<ILead>('Lead', LeadSchema);

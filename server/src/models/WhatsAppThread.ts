@@ -33,6 +33,8 @@ export interface IWhatsAppThread extends Document {
   linkedAt?: Date;
   /** Last time staff were notified about a reply here — keeps a burst of messages to one bell. */
   lastNotifiedAt?: Date;
+  /** The person sent STOP: workflows never message them (START undoes it). */
+  automationOptOutAt?: Date | null;
 }
 
 const WhatsAppThreadSchema = new Schema<IWhatsAppThread>({
@@ -58,6 +60,7 @@ const WhatsAppThreadSchema = new Schema<IWhatsAppThread>({
   },
   linkedAt: Date,
   lastNotifiedAt: Date,
+  automationOptOutAt: { type: Date, default: null },
 }, { timestamps: true });
 
 WhatsAppThreadSchema.index({ tenantId: 1, phone: 1 }, { unique: true });

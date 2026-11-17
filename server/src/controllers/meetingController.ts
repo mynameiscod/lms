@@ -58,6 +58,9 @@ export const createMeeting = async (req: AuthenticatedRequest, res: any): Promis
       ...(['online_demo', 'campus_visit'].includes(type) ? { $set: { demoBookedAt: new Date(scheduledAt) } } : {}),
     });
 
+    // Workflow Builder: "Demo booked" workflows (confirmation + reminders).
+    import('../services/workflow/engine').then((m) => m.onDemoBooked(String(tenantId), meeting.toObject())).catch((e) => console.error('[workflow] demo booked failed', e?.message));
+
     res.status(201).json({ success: true, data: meeting });
   } catch (err: any) {
     console.error('[Meeting] createMeeting:', err);

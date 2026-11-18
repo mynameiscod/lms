@@ -638,6 +638,15 @@ class AssignmentService {
       ],
     };
 
+    // An LMS demo student: exactly the chosen assignments and those on the demo courses' days.
+    const { lmsDemoScopeFor, demoCourseModuleIds } = await import('./lmsDemoService');
+    const demo = await lmsDemoScopeFor(studentIdStr);
+    if (demo) {
+      const allowed = [...new Set([...(demo.on('assignments') ? demo.ids('assignmentIds') : []), ...(await demoCourseModuleIds(demo.cfg, 'assignment'))])];
+      for (const k of Object.keys(query)) delete query[k];
+      Object.assign(query, { tenant, _id: { $in: allowed.map(id => new Types.ObjectId(id)) } });
+    }
+
     const assignments = await Assignment.find(query)
       .select('title description type difficulty totalPoints dueDate startDate topics poolExam.showResultsImmediately poolExam.resultsReleasedAt')
       .sort({ dueDate: 1 });

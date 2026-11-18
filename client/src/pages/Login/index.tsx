@@ -212,6 +212,11 @@ const LoginPage: React.FC = () => {
               {!loading && <ArrowIcon />}
             </button>
           </form>
+          {/* Prospective students: the free LMS demo (/demo), no account needed. */}
+          <div className="login-demo-cta">
+            <span>New to CodeBegun?</span>
+            <Link to="/demo">Try a free demo <ArrowIcon /></Link>
+          </div>
         </div>
       </section>
     </div>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
 import { useAuth } from '../../contexts/AuthContext';
-import { useLmsDemo, isDemoUser } from '../../components/lmsDemo/DemoShell';
+import { useLmsDemo, isDemoUser, demoFeaturesOn } from '../../components/lmsDemo/DemoShell';
 import './myLearningHome.css';
 
 /**
@@ -90,6 +90,7 @@ export default function MyLearningPlan() {
                 <div className="mlh-card-top">
                   <span className="mlh-card-ic"><i className={`bi ${ICONS[idx % ICONS.length]}`} /></span>
                   <div className="mlh-card-title">
+                    {dc?.start && <span className="mlh-start-tag"><i className="bi bi-flag-fill" /> Start here</span>}
                     <h2>{title}</h2>
                     <div className="mlh-meta">
                       {demo ? <span>{totalDays} demo {totalDays === 1 ? 'day' : 'days'}</span> : <><span className="mlh-active"><i className="bi bi-check-circle-fill" /> Active</span>{e.batchName && <span>{e.batchName}</span>}<span>Started {fmtDate(e.startDate)}</span></>}
@@ -123,6 +124,24 @@ export default function MyLearningPlan() {
             );
           })}
         </div>
+      )}
+
+      {demo && demoFeaturesOn(demoMe).length > 0 && (
+        <section className="mlh-explore" aria-label="Explore the platform">
+          <div className="mlh-explore-head"><h2>Explore the platform</h2><span>Everything our students use — try any of it.</span></div>
+          <div className="mlh-explore-grid">
+            {demoFeaturesOn(demoMe).map(f => {
+              const u = f.uses ? demoMe?.use?.[f.uses] : undefined;
+              return (
+                <button type="button" key={f.key} className="mlh-feature" onClick={() => navigate(f.href)}>
+                  <span className="mlh-feature-ic"><i className={`bi ${f.icon}`} /></span>
+                  <span className="mlh-feature-tx"><b>{f.label}</b><small>{f.blurb}</small>{u && u.limit > 0 && <em>{u.left} of {u.limit} left today</em>}</span>
+                  <i className="bi bi-arrow-right mlh-feature-go" />
+                </button>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {demo && list.length > 0 && (

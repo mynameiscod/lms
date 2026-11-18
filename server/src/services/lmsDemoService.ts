@@ -6,7 +6,8 @@ import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import LearningCurriculum from '../models/LearningCurriculum';
-import LmsDemoConfig, { ILmsDemoConfig, LMS_DEMO_DEFAULTS, LMS_DEMO_LIMITS } from '../models/LmsDemoConfig';
+import DayPlan from '../models/DayPlan';
+import LmsDemoConfig, { ILmsDemoConfig, LMS_DEMO_DEFAULTS, LMS_DEMO_LIMITS, LMS_DEMO_FEATURES, LmsDemoFeature } from '../models/LmsDemoConfig';
 import { getPlatformOwnerTenant } from './settingsService';
 import { jwtSecret } from '../config/secrets';
 import { recordReEnquiry } from './leadReEnquiryService';
@@ -64,7 +65,20 @@ export interface ConfigInput {
   counsellorPhone?: string;
   counsellorWhatsApp?: string;
   endMessage?: string;
+  mockPerDay?: number;
+  commPerDay?: number;
+  features?: Record<string, boolean>;
+  content?: Partial<Record<'problemIds' | 'thinkingIds' | 'quizIds' | 'assignmentIds' | 'speakingIds' | 'interviewIds' | 'bookKeys', string[]>>;
+  startCurriculumId?: string | null;
 }
+
+const ID_LISTS = ['problemIds', 'thinkingIds', 'quizIds', 'assignmentIds', 'speakingIds', 'interviewIds'] as const;
+/** Valid, unique ObjectIds in the order given (at most 500 per list). */
+const cleanIds = (v: any) => {
+  const seen = new Set<string>();
+  return (Array.isArray(v) ? v : []).map(String).filter(id => mongoose.isValidObjectId(id) && !seen.has(id) && !!seen.add(id)).slice(0, 500)
+    .map(id => new mongoose.Types.ObjectId(id));
+};
 
 export async function saveConfig(input: ConfigInput, by: { id?: string; name?: string }): Promise<ILmsDemoConfig> {
   const cfg = await getConfig();
@@ -74,6 +88,27 @@ export async function saveConfig(input: ConfigInput, by: { id?: string; name?: s
   if (input.counsellorPhone !== undefined) cfg.counsellorPhone = String(input.counsellorPhone || '').trim().slice(0, 20);
   if (input.counsellorWhatsApp !== undefined) cfg.counsellorWhatsApp = String(input.counsellorWhatsApp || '').trim().slice(0, 20);
   if (input.endMessage !== undefined) cfg.endMessage = String(input.endMessage || '').trim().slice(0, 300);
+  if (input.mockPerDay !== undefined) cfg.mockPerDay = clamp(input.mockPerDay, 0, LMS_DEMO_LIMITS.perDay.max, LMS_DEMO_DEFAULTS.mockPerDay);
+  if (input.commPerDay !== undefined) cfg.commPerDay = clamp(input.commPerDay, 0, LMS_DEMO_LIMITS.perDay.max, LMS_DEMO_DEFAULTS.commPerDay);
+  if (input.features && typeof input.features === 'object') {
+    const f: any = {};
+    for (const k of LMS_DEMO_FEATURES) f[k] = !!(input.features as any)[k];
+    cfg.features = f;
+    cfg.markModified('features');
+  }
+  if (input.content && typeof input.content === 'object') {
+    const c: any = { ...((cfg.content as any)?.toObject?.() || cfg.content || {}) };
+    for (const k of ID_LISTS) if ((input.content as any)[k] !== undefined) c[k] = cleanIds((input.content as any)[k]);
+    if (input.content.bookKeys !== undefined) c.bookKeys = [...new Set((input.content.bookKeys || []).map(x => String(x).trim()).filter(Boolean))].slice(0, 100);
+    cfg.content = c;
+    cfg.markModified('content');
+  }
+  if (input.startCurriculumId !== undefined) {
+    const id = input.startCurriculumId && mongoose.isValidObjectId(input.startCurriculumId) ? input.startCurriculumId : null;
+    const tId = demoTenantId();
+    const okPlan = id ? await LearningCurriculum.exists({ _id: id, ...(tId ? { tenantId: tId } : {}) }) : null;
+    cfg.startCurriculumId = okPlan ? new mongoose.Types.ObjectId(id!) : null;
+  }
 
   if (Array.isArray(input.courses)) {
     const tId = demoTenantId();
@@ -96,7 +131,23 @@ export async function saveConfig(input: ConfigInput, by: { id?: string; name?: s
   cfg.updatedBy = by.id;
   cfg.updatedByName = by.name;
   await cfg.save();
+  forgetCachedConfig();
   return cfg;
+}
+
+/** Is this feature switched on for demo students? My Learning Plan is always on. */
+export const featureOn = (cfg: ILmsDemoConfig, f: LmsDemoFeature): boolean => !!(cfg.features as any)?.[f];
+
+/** The items an admin chose for a feature, as strings, in order. */
+export const chosen = (cfg: ILmsDemoConfig, list: 'problemIds' | 'thinkingIds' | 'quizIds' | 'assignmentIds' | 'speakingIds' | 'interviewIds' | 'bookKeys'): string[] =>
+  (((cfg.content as any)?.[list]) || []).map(String);
+
+/** The "Start here" plan, with what its card shows. Null when none is set. */
+export async function startCourse(cfg?: ILmsDemoConfig) {
+  const c = cfg || (await getConfig());
+  if (!c.startCurriculumId) return null;
+  const p: any = await LearningCurriculum.findById(c.startCurriculumId).select('title description totalDays').lean();
+  return p ? { curriculumId: String(p._id), title: p.title, blurb: p.description || '', color: '#359AAD', totalDays: p.totalDays || 0, start: true } : null;
 }
 
 /** The courses a demo student gets, in order, with what the cards show. */
@@ -240,6 +291,7 @@ export async function createOrReuseDemoAccount(
     endedBy: stillOpen || opts.source === 'self' ? prev?.endedBy : undefined,
   };
   await user.save();
+  forgetDemoUserIds();
   await ensureDemoEnrollments(user, cfg);
   const leadId = await syncDemoLead(user, { returning: !!prev, source: opts.source, byName: opts.byName });
   if (leadId && String(user.lmsDemo.leadId || '') !== String(leadId)) {
@@ -254,7 +306,9 @@ export async function createOrReuseDemoAccount(
  * the student opens the demo, so a course the admin adds later reaches students already in a demo.
  */
 export async function ensureDemoEnrollments(user: any, cfg?: ILmsDemoConfig): Promise<number> {
-  const courses = await demoCourses(cfg);
+  const c0 = cfg || (await getConfig());
+  const start = await startCourse(c0);
+  const courses = [...(start ? [start] : []), ...(await demoCourses(c0)).filter(c => !start || c.curriculumId !== start.curriculumId)];
   if (!courses.length) return 0;
   const existing = await CurriculumEnrollment.find({ studentId: user._id, curriculumId: { $in: courses.map(c => c.curriculumId) } })
     .select('curriculumId status').lean<any[]>();
@@ -316,7 +370,10 @@ export async function syncDemoLead(user: any, ctx: { returning: boolean; source:
       ? await Lead.findOne({ _id: user.lmsDemo.leadId, tenantId: tenantOid })
       : await Lead.findOne({ tenantId: tenantOid, phone: { $regex: ten + '$' } });
     if (existing) {
-      if (!ctx.returning) {
+      if (ctx.source === 'given') {
+        // A counsellor gave it: a plain line on the timeline, not an "enquired again".
+        await Lead.updateOne({ _id: existing._id }, { $push: { activities: { type: 'note', description: `🎓 ${what}.`, createdBy: existing.assignedTo || existing.createdBy, createdAt: new Date(), metadata: { source: DEMO_LEAD_SOURCE } } } });
+      } else if (!ctx.returning) {
         await recordReEnquiry(String(tenantOid), existing._id, { channel: 'website', note: what });
       }
       return existing._id as mongoose.Types.ObjectId;
@@ -394,40 +451,72 @@ export async function resetDemoProgress(userId: string): Promise<number> {
     { studentId: new mongoose.Types.ObjectId(userId), enrolledBy: DEMO_ENROLLED_BY },
     { $set: { completedDays: [], completedItems: [], currentDay: 1, xp: 0, timeSpentSeconds: 0, activityDates: [], startDate: new Date() }, $unset: { completedAt: 1, lastActivityAt: 1 } },
   );
-  await User.updateOne({ _id: userId }, { $set: { 'lmsDemo.aiUsed': 0 } });
+  await User.updateOne({ _id: userId }, { $set: { 'lmsDemo.aiUsed': 0, 'lmsDemo.mockUsed': 0, 'lmsDemo.commUsed': 0 } });
+  // Everything else the demo student tried, so the next visit starts clean. Only this account's own rows.
+  const uid = String(userId); const oid = new mongoose.Types.ObjectId(uid);
+  const wipe = async (path: string, filter: any, named?: string) => {
+    try { const mod: any = await import(path); const M = named ? mod[named] : mod.default; if (M?.deleteMany) await M.deleteMany(filter); } catch { /* keep going */ }
+  };
+  await Promise.all([
+    wipe('../models/ProblemSubmission', { userId: uid }),
+    wipe('../models/DailyChallenge', { studentId: oid }),
+    wipe('../models/QuizAttempt', { studentId: uid }),
+    wipe('../models/Submission', { student: oid }),
+    wipe('../models/CommunicationAttempt', { studentId: oid }),
+    wipe('../models/InterviewAttempt', { studentId: oid }),
+    wipe('../models/QuestionBook', { userId: uid }, 'BookProgress'),
+    wipe('../models/MentorChat', { studentId: oid }),
+  ]);
   return (r as any).modifiedCount || 0;
 }
 
-/* ─────────────────────────── AI allowance ─────────────────────────── */
+/* ─────────────────────────── daily allowances ─────────────────────────── */
 
 const istDay = (d = new Date()) => new Date(d.getTime() + 330 * 60_000).toISOString().slice(0, 10);
 
+/** What a demo student may use each day: AI questions, mock interviews, Communication Lab sessions. */
+export type DemoUse = 'ai' | 'mock' | 'comm';
+const USE_LIMIT: Record<DemoUse, 'aiPerDay' | 'mockPerDay' | 'commPerDay'> = { ai: 'aiPerDay', mock: 'mockPerDay', comm: 'commPerDay' };
+
 /**
- * Take one AI question from a demo student's daily allowance. Real students are never limited
- * here. Returns ok=false (and nothing taken) when today's allowance is used up.
+ * Take one use from a demo student's daily allowance. Real students are never limited here.
+ * Returns ok=false (and nothing taken) when today's allowance is used up.
  */
-export async function takeDemoAi(userId: string): Promise<{ demo: boolean; ok: boolean; left: number; limit: number }> {
+export async function takeDemoUse(userId: string, kind: DemoUse): Promise<{ demo: boolean; ok: boolean; left: number; limit: number }> {
   const user: any = await User.findById(userId).select('lmsDemo').lean();
   if (!isLmsDemo(user)) return { demo: false, ok: true, left: -1, limit: -1 };
-  const { aiPerDay } = await getConfig();
+  const cfg: any = await getConfig();
+  const limit = Number(cfg[USE_LIMIT[kind]] ?? 0);
+  const dayKey = `lmsDemo.${kind}Day`, usedKey = `lmsDemo.${kind}Used`;
   const today = istDay();
-  const used = user.lmsDemo.aiDay === today ? Number(user.lmsDemo.aiUsed || 0) : 0;
-  if (used >= aiPerDay) return { demo: true, ok: false, left: 0, limit: aiPerDay };
-  // Conditional update, so two questions sent at once cannot both take the last one.
+  const lastDay = user.lmsDemo[`${kind}Day`];
+  const used = lastDay === today ? Number(user.lmsDemo[`${kind}Used`] || 0) : 0;
+  if (used >= limit) return { demo: true, ok: false, left: 0, limit };
+  // Conditional update, so two requests sent at once cannot both take the last one.
   const r = await User.updateOne(
-    user.lmsDemo.aiDay === today
-      ? { _id: userId, 'lmsDemo.aiDay': today, 'lmsDemo.aiUsed': used }
-      : { _id: userId, 'lmsDemo.aiDay': user.lmsDemo.aiDay ?? null },
-    { $set: { 'lmsDemo.aiDay': today, 'lmsDemo.aiUsed': used + 1 } },
+    lastDay === today ? { _id: userId, [dayKey]: today, [usedKey]: used } : { _id: userId, [dayKey]: lastDay ?? null },
+    { $set: { [dayKey]: today, [usedKey]: used + 1 } },
   );
-  if (!(r as any).modifiedCount) return { demo: true, ok: false, left: Math.max(0, aiPerDay - used - 1), limit: aiPerDay };
-  return { demo: true, ok: true, left: aiPerDay - used - 1, limit: aiPerDay };
+  if (!(r as any).modifiedCount) return { demo: true, ok: false, left: Math.max(0, limit - used - 1), limit };
+  return { demo: true, ok: true, left: limit - used - 1, limit };
+}
+
+/** Kept for the study assistant. */
+export const takeDemoAi = (userId: string) => takeDemoUse(userId, 'ai');
+
+export async function demoUseLeft(user: any, cfg?: any): Promise<Record<DemoUse, { left: number; limit: number }>> {
+  const c: any = cfg || (await getConfig());
+  const today = istDay();
+  const one = (kind: DemoUse) => {
+    const limit = Number(c[USE_LIMIT[kind]] ?? 0);
+    const used = user?.lmsDemo?.[`${kind}Day`] === today ? Number(user.lmsDemo[`${kind}Used`] || 0) : 0;
+    return { left: Math.max(0, limit - used), limit };
+  };
+  return { ai: one('ai'), mock: one('mock'), comm: one('comm') };
 }
 
 export async function demoAiLeft(user: any): Promise<{ left: number; limit: number }> {
-  const { aiPerDay } = await getConfig();
-  const used = user?.lmsDemo?.aiDay === istDay() ? Number(user.lmsDemo.aiUsed || 0) : 0;
-  return { left: Math.max(0, aiPerDay - used), limit: aiPerDay };
+  return (await demoUseLeft(user)).ai;
 }
 
 /* ─────────────────────────── links & sessions ─────────────────────────── */
@@ -473,4 +562,82 @@ export async function loginPayload(user: any) {
     },
     tenant,
   };
+}
+
+/* ─────────────────────────── per-request scope ─────────────────────────── */
+
+let cfgCache: { at: number; cfg: ILmsDemoConfig } | null = null;
+/** The settings, re-read at most every 20 s: every scoped request of a demo student asks for them. */
+export async function cachedConfig(): Promise<ILmsDemoConfig> {
+  if (cfgCache && Date.now() - cfgCache.at < 20_000) return cfgCache.cfg;
+  const cfg = await getConfig();
+  cfgCache = { at: Date.now(), cfg };
+  return cfg;
+}
+/** Saving the settings must show at once, not after the cache runs out. */
+export const forgetCachedConfig = () => { cfgCache = null; };
+
+export interface LmsDemoScope {
+  cfg: ILmsDemoConfig;
+  on: (f: LmsDemoFeature) => boolean;
+  /** Chosen ids for a list, as a Set of strings. */
+  ids: (list: 'problemIds' | 'thinkingIds' | 'quizIds' | 'assignmentIds' | 'speakingIds' | 'interviewIds' | 'bookKeys') => Set<string>;
+  /** The same, as ObjectIds in the admin's order. */
+  oids: (list: 'problemIds' | 'thinkingIds' | 'quizIds' | 'assignmentIds' | 'speakingIds' | 'interviewIds' | 'bookKeys') => mongoose.Types.ObjectId[];
+}
+
+/**
+ * The demo scope for a user, or null for every real account. Fails closed to null when no
+ * database is connected (unit tests with a mocked mongoose), so it never changes a real student's path.
+ */
+export async function lmsDemoScopeFor(userId: any): Promise<LmsDemoScope | null> {
+  try {
+    if (!userId || mongoose.connection.readyState !== 1 || !mongoose.isValidObjectId(String(userId))) return null;
+    const u: any = await User.findById(userId).select('lmsDemo.at').lean();
+    if (!u?.lmsDemo?.at) return null;
+    const cfg = await cachedConfig();
+    const list = (k: string) => ((cfg.content as any)?.[k] || []).map(String) as string[];
+    return {
+      cfg,
+      on: (f) => featureOn(cfg, f),
+      ids: (k) => new Set(list(k)),
+      oids: (k) => list(k).filter(id => mongoose.isValidObjectId(id)).map(id => new mongoose.Types.ObjectId(id)),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Ids of every LMS demo student, for leaving them out of leaderboards, reports and trainer queues.
+ * Cached for a minute; an empty list when there are none (so `$nin: []` changes nothing).
+ */
+let demoIdCache: { at: number; ids: mongoose.Types.ObjectId[] } | null = null;
+export async function lmsDemoUserIds(): Promise<mongoose.Types.ObjectId[]> {
+  try {
+    if (mongoose.connection.readyState !== 1) return [];
+    if (demoIdCache && Date.now() - demoIdCache.at < 60_000) return demoIdCache.ids;
+    const rows = await User.find({ 'lmsDemo.at': { $exists: true } }).select('_id').lean();
+    demoIdCache = { at: Date.now(), ids: rows.map((r: any) => r._id) };
+    return demoIdCache.ids;
+  } catch {
+    return [];
+  }
+}
+export const forgetDemoUserIds = () => { demoIdCache = null; };
+
+/** Quizzes and assignments placed on the days of the demo courses: a demo student may open those too. */
+export async function demoCourseModuleIds(cfg: ILmsDemoConfig, kind: 'quiz' | 'assignment'): Promise<Set<string>> {
+  const ids = [...(cfg.courses || []).filter(c => c.active).map(c => c.curriculumId), ...(cfg.startCurriculumId ? [cfg.startCurriculumId] : [])];
+  if (!ids.length) return new Set();
+  const days = await DayPlan.find({ curriculumId: { $in: ids } }).select('items.kind items.sourceId').lean<any[]>();
+  const out = new Set<string>();
+  for (const d of days) for (const it of d.items || []) if (it.kind === kind && it.sourceId) out.add(String(it.sourceId));
+  return out;
+}
+
+/** A query clause that leaves LMS demo students out, for report and leaderboard queries: `{ [field]: { $nin: ids } }`, or `{}` when there are none. */
+export async function notDemoStudents(field = 'studentId', asString = false): Promise<Record<string, any>> {
+  const ids = await lmsDemoUserIds();
+  return ids.length ? { [field]: { $nin: asString ? ids.map(String) : ids } } : {};
 }

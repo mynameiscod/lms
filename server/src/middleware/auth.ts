@@ -56,7 +56,8 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     if (demo?.at) {
       const until = demo.endedAt && new Date(demo.endedAt) < new Date(demo.expiresAt) ? new Date(demo.endedAt) : new Date(demo.expiresAt);
       const ended = until.getTime() <= Date.now();
-      if (!lmsDemoMayReach(req.method, req.originalUrl, String(user._id), ended)) {
+      const features = ended ? {} : (((await (await import('../services/lmsDemoService')).cachedConfig()) as any).features || {});
+      if (!lmsDemoMayReach(req.method, req.originalUrl, String(user._id), ended, features)) {
         return res.status(403).json(ended
           ? { success: false, code: 'DEMO_ENDED', message: 'Your demo has ended. Talk to a counsellor to continue.' }
           : { success: false, code: 'DEMO_SCOPE', message: 'This is not part of the demo.' });

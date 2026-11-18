@@ -70,7 +70,20 @@ export async function resolveAssignedQuizzes(
   const { studentBatchIds } = await import('./placementBatchService');
   const allBatches = await studentBatchIds(studentId, batchId);
 
-  const visible = all.filter((quiz: any) => {
+  /* An LMS demo student sees exactly the quizzes the admin chose (with Quizzes switched on) plus the
+     ones placed on the demo courses' days — never every 'everyone' quiz of CodeBegun's institute. */
+  const { lmsDemoScopeFor, demoCourseModuleIds } = await import('./lmsDemoService');
+  const demo = await lmsDemoScopeFor(studentId);
+  if (demo) {
+    const allowed = new Set<string>([...(demo.on('quizzes') ? demo.ids('quizIds') : []), ...(await demoCourseModuleIds(demo.cfg, 'quiz'))]);
+    const order = demo.oids('quizIds').map(String);
+    const picked = all.filter((q: any) => allowed.has(String(q._id)))
+      .sort((a: any, b: any) => (order.indexOf(String(a._id)) + 1 || 1e6) - (order.indexOf(String(b._id)) + 1 || 1e6));
+    all.length = 0;
+    all.push(...picked);
+  }
+
+  const visible = demo ? all : all.filter((quiz: any) => {
     /* A CareerPilot unit's checkpoint is delivered through the member's day, not this list.
        Its accessibleTo defaults to 'everyone', so without this every LMS student saw every
        checkpoint. Only an explicit schedule puts one in front of an LMS student. */

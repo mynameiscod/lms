@@ -168,3 +168,75 @@
 /* The admin shell sets table headers and <small> smaller than this screen needs at the laptop zoom; keep them readable. */
 .ldm .ldm-table th { font-size: 14px !important; }
 .ldm .ldm-field small { font-size: 14px; }
+
+/* Start here course */
+.ldm-start { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px dashed #9DBBD0; border-radius: 14px; background: var(--soft); flex-wrap: wrap; }
+.ldm-start-ic { flex: none; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 19px; background: #EAF7F8; color: #287F91; }
+.ldm-start-tx { flex: 1; min-width: 240px; }
+.ldm-start-tx b { font-size: 16px; }
+.ldm-start select { min-width: 260px; min-height: 42px; padding: 0 12px; border: 1px solid var(--line2); border-radius: 11px; background: #fff; font-size: 15px; color: var(--ink); }
+.ldm-inline-link { border: 0; background: none; padding: 0; color: var(--teal); font: inherit; font-weight: 800; cursor: pointer; text-decoration: underline; }
+
+/* Features */
+.ldm-feat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.ldm-feat { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; cursor: pointer; transition: border-color .12s, background .12s; }
+.ldm-feat:hover { border-color: #9DBBD0; }
+.ldm-feat.on { border-color: #CCE9DC; background: #FAFDFB; }
+.ldm-feat.locked { cursor: default; background: var(--soft); }
+.ldm-feat-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 19px; background: var(--tint); color: var(--navy); }
+.ldm-feat.on .ldm-feat-ic { background: var(--green-bg); color: var(--green); }
+.ldm-feat > div { flex: 1; min-width: 0; }
+.ldm-feat b { display: block; font-size: 16px; color: var(--ink); }
+.ldm-feat > div > span { display: block; margin-top: 2px; font-size: 14.5px; line-height: 1.45; color: var(--muted); }
+.ldm-feat em { display: block; margin-top: 6px; font-style: normal; font-size: 14px; font-weight: 700; color: var(--text); }
+.ldm-feat em .warn { color: var(--amber); }
+.ldm-feat .ldm-switch { margin-top: 2px; }
+
+/* Content */
+.ldm-content { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
+.ldm-lists { display: flex; flex-direction: column; gap: 4px; position: sticky; top: 90px; }
+.ldm-lists button { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 12px; border: 1px solid transparent; border-radius: 11px; background: none; color: var(--text); font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; }
+.ldm-lists button:hover { background: var(--soft); }
+.ldm-lists button.on { background: var(--tint); border-color: #CFE0F3; color: var(--navy); }
+.ldm-lists em { display: inline-flex; align-items: center; gap: 6px; font-style: normal; font-size: 14px; padding: 2px 9px; border-radius: 999px; background: #fff; border: 1px solid var(--line); color: var(--text); }
+.ldm-lists em i { color: var(--amber); }
+.ldm-picker { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ldm-picker-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.ldm-picker-col { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: #fff; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ldm-picker-col.chosen { background: var(--soft); }
+.ldm-picker-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.ldm-picker-head b { font-size: 16px; }
+.ldm-picker-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.ldm-picker-tools .ldm-search { flex: 1; min-width: 180px; }
+.ldm-picker-tools select { min-height: 42px; padding: 0 10px; border: 1px solid var(--line2); border-radius: 11px; background: #fff; font-size: 14.5px; color: var(--ink); }
+.ldm-results, .ldm-chosen { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 520px; overflow-y: auto; }
+.ldm-results li, .ldm-chosen li { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 11px; background: #fff; }
+.ldm-results li.in { background: var(--green-bg); border-color: #CCE9DC; }
+.ldm-results li > div, .ldm-chosen li > div { flex: 1; min-width: 0; }
+.ldm-results b, .ldm-chosen b { display: block; font-size: 15px; font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ldm-results li span, .ldm-chosen li div > span { display: block; font-size: 14px; color: var(--muted); text-transform: capitalize; }
+.ldm-results li.none { justify-content: center; color: var(--muted); font-size: 15px; border-style: dashed; }
+.ldm-chosen li .n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--tint); color: var(--navy); font-size: 14px; font-weight: 800; }
+.ldm-chosen li.dead { border-color: #F3C9C9; background: var(--red-bg); }
+.ldm-chosen li .warn { color: var(--red) !important; font-weight: 700; text-transform: none !important; }
+.ldm-chosen-act { display: flex; gap: 2px; }
+.ldm-chosen-act button { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); cursor: pointer; }
+.ldm-chosen-act button:disabled { opacity: .35; cursor: default; }
+.ldm-chosen-act button:hover:not(:disabled) { color: var(--navy); border-color: #9DBBD0; }
+.ldm-btn.wide-soft { width: 100%; background: var(--soft); }
+.ldm-empty.small { padding: 22px 10px; font-size: 14.5px; }
+.ldm-empty.small i { font-size: 26px; }
+
+@media (max-width: 1100px) {
+  .ldm-content { grid-template-columns: 1fr; }
+  .ldm-lists { position: static; flex-direction: row; overflow-x: auto; }
+  .ldm-lists button { flex: none; }
+}
+@media (max-width: 760px) {
+  .ldm-picker-cols { grid-template-columns: 1fr; }
+  .ldm-feat-grid { grid-template-columns: 1fr; }
+  .ldm-start select { min-width: 0; width: 100%; }
+}
+
+/* The admin shell gives every input a border and padding; inside the search pill it must have neither. */
+.ldm .ldm-search input, .ldm .ldm-search input:focus { border: 0 !important; box-shadow: none !important; outline: none !important; padding: 0 !important; min-height: 0 !important; height: auto !important; background: transparent !important; }

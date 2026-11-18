@@ -24,7 +24,24 @@ export interface DemoCourseCard {
   totalDays: number;
 }
 
+export const DEMO_FEATURES = [
+  'thinkingLab', 'communicationLab', 'codingPractice', 'quizzes', 'assignments',
+  'questionBooks', 'mockInterview', 'playground', 'visualizer', 'aiMentor', 'resumeBuilder',
+] as const;
+export type DemoFeature = typeof DEMO_FEATURES[number];
+export type DemoUseKind = 'ai' | 'mock' | 'comm';
+
+/** One picked item in an admin list. */
+export interface DemoPick { id: string; title: string; number?: number; difficulty?: string; category?: string; live: boolean }
+export type DemoListKind = 'problems' | 'thinking' | 'books' | 'quizzes' | 'assignments' | 'speaking' | 'interviews';
+/** Which config list each picker writes to. */
+export const LIST_FIELD: Record<DemoListKind, string> = {
+  problems: 'problemIds', thinking: 'thinkingIds', books: 'bookKeys', quizzes: 'quizIds',
+  assignments: 'assignmentIds', speaking: 'speakingIds', interviews: 'interviewIds',
+};
+
 export interface DemoMeCourse extends DemoCourseCard {
+  start?: boolean;
   enrollmentId: string | null;
   itemsDone: number;
   itemsTotal: number;
@@ -44,6 +61,8 @@ export interface DemoMe {
   firstName?: string;
   courses?: DemoMeCourse[];
   ai?: { left: number; limit: number };
+  use?: Record<DemoUseKind, { left: number; limit: number }>;
+  features?: Partial<Record<DemoFeature, boolean>>;
   counsellor?: { phone: string; whatsapp: string; message: string };
   talkRequestedAt?: string | null;
   moreTimeRequestedAt?: string | null;
@@ -61,6 +80,11 @@ export interface DemoConfig {
   counsellorPhone?: string;
   counsellorWhatsApp?: string;
   endMessage?: string;
+  mockPerDay: number;
+  commPerDay: number;
+  features?: Partial<Record<DemoFeature, boolean>>;
+  content?: Record<string, string[]>;
+  startCurriculumId?: string | null;
   updatedByName?: string;
   updatedAt?: string;
 }
@@ -114,7 +138,15 @@ export const lmsDemoApi = {
   /* admin */
   getConfig: async (): Promise<{ tenantId: string | null; config: DemoConfig; plans: DemoPlanOption[] }> =>
     (await axios.get(`${BASE}/admin/config`, { headers: authHeader() })).data.data,
-  saveConfig: async (body: Partial<DemoConfig>): Promise<DemoConfig> =>
+  content: async (): Promise<Record<DemoListKind, DemoPick[]>> => {
+    const d = (await axios.get(`${BASE}/admin/content`, { headers: authHeader() })).data.data;
+    return { problems: d.problems, thinking: d.thinking, books: d.books, quizzes: d.quizzes, assignments: d.assignments, speaking: d.speaking, interviews: d.interviews };
+  },
+  options: async (kind: DemoListKind, q: string, opts: { page?: number; difficulty?: string; type?: string } = {}): Promise<{ items: DemoPick[]; total?: number; hasMore?: boolean }> =>
+    (await axios.get(`${BASE}/admin/options/${kind}`, { params: { q, ...opts }, headers: authHeader() })).data,
+  giveFromLead: async (leadId: string, lengthDays?: number): Promise<{ link: string; returning: boolean; expiresAt: string; name: string; phone: string }> =>
+    (await axios.post(`${BASE}/lead/${leadId}/give`, { lengthDays }, { headers: authHeader() })).data.data,
+  saveConfig: async (body: any): Promise<DemoConfig> =>
     (await axios.put(`${BASE}/admin/config`, body, { headers: authHeader() })).data.data,
   students: async (params: { search?: string; status?: string }): Promise<{ rows: DemoStudentRow[]; counts: { all: number; active: number; ended: number; talk: number } }> =>
     (await axios.get(`${BASE}/admin/students`, { params, headers: authHeader() })).data.data,

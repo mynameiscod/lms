@@ -710,6 +710,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_members']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
       } />
+      {/* The practice library for LMS demo students (the problems chosen on the LMS Demo screen). The server decides what it lists. */}
+      <Route path="/practice-library" element={<ProtectedRoute><Layout><PracticeLibrary base="/practice-library" /></Layout></ProtectedRoute>} />
+      <Route path="/practice-library/:problemId" element={<ProtectedRoute><Layout><LibraryProblemOr base="/practice-library" legacy={<Navigate to="/practice-library" replace />} /></Layout></ProtectedRoute>} />
       {/* LMS Demo: demo courses, length, AI limit and demo students. A super admin, or a role they gave manage_lms_demo. */}
       <Route path="/admin/lms-demo" element={
         <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_lms_demo']}><Layout><AdminLmsDemo /></Layout></ProtectedRoute>

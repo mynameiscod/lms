@@ -78,3 +78,16 @@
   .dsh-end-stats b { font-size: 24px; }
 }
 @media (max-width: 380px) { .dsh-clock { display: none; } }
+
+/* Demo menu: one tab per switched-on feature, scrolling sideways when there are many. */
+.dsh-demo-tag { display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px; background: var(--tint); color: var(--navy); font-size: 14px; font-weight: 800; letter-spacing: .02em; }
+.dsh-tabs { border-top: 1px solid var(--line); background: #fff; }
+.dsh-tabs-in { max-width: 1760px; margin: 0 auto; display: flex; gap: 4px; padding: 0 clamp(10px, 3vw, 40px); overflow-x: auto; scrollbar-width: thin; }
+.dsh-tabs a { flex: none; display: inline-flex; align-items: center; gap: 8px; padding: 13px 14px 11px; border-bottom: 3px solid transparent; color: var(--muted); font-size: 15.5px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.dsh-tabs a:hover { color: var(--navy); }
+.dsh-tabs a.on { color: var(--navy); border-bottom-color: var(--navy); }
+.dsh-tabs a i { font-size: 16px; }
+@media (max-width: 760px) {
+  .dsh-demo-tag { display: none; }
+  .dsh-tabs a { padding: 11px 10px 9px; font-size: 14.5px; }
+}

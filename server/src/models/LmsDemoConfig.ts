@@ -26,6 +26,27 @@ export interface ILmsDemoCourse {
   active: boolean;
 }
 
+/**
+ * The platform features a demo student can be given. My Learning Plan is always on — it is the
+ * demo — and each of the others is a switch on the LMS Demo screen.
+ */
+export const LMS_DEMO_FEATURES = [
+  'thinkingLab', 'communicationLab', 'codingPractice', 'quizzes', 'assignments',
+  'questionBooks', 'mockInterview', 'playground', 'visualizer', 'aiMentor', 'resumeBuilder',
+] as const;
+export type LmsDemoFeature = typeof LMS_DEMO_FEATURES[number];
+
+/** What each feature shows: only these items, in this order. Empty = the feature has nothing to show. */
+export interface ILmsDemoContent {
+  problemIds: mongoose.Types.ObjectId[];
+  thinkingIds: mongoose.Types.ObjectId[];
+  quizIds: mongoose.Types.ObjectId[];
+  assignmentIds: mongoose.Types.ObjectId[];
+  bookKeys: string[];
+  speakingIds: mongoose.Types.ObjectId[];
+  interviewIds: mongoose.Types.ObjectId[];
+}
+
 export interface ILmsDemoConfig extends Document {
   key: 'global';
   enabled: boolean;
@@ -33,6 +54,15 @@ export interface ILmsDemoConfig extends Document {
   lengthDays: number;
   /** AI study-assistant questions a demo student may ask per day. 0 turns AI off. */
   aiPerDay: number;
+  /** Mock interviews a demo student may start per day. */
+  mockPerDay: number;
+  /** AI Communication Lab sessions a demo student may start per day. */
+  commPerDay: number;
+  /** Feature switches. Absent key = off. */
+  features: Partial<Record<LmsDemoFeature, boolean>>;
+  content: ILmsDemoContent;
+  /** A Learning Plan shown first to every demo student ("Start here"), e.g. the common Day 1 videos. */
+  startCurriculumId?: mongoose.Types.ObjectId | null;
   courses: ILmsDemoCourse[];
   counsellorPhone?: string;
   counsellorWhatsApp?: string;
@@ -44,8 +74,8 @@ export interface ILmsDemoConfig extends Document {
   updatedAt: Date;
 }
 
-export const LMS_DEMO_DEFAULTS = { enabled: true, lengthDays: 3, aiPerDay: 10 } as const;
-export const LMS_DEMO_LIMITS = { lengthDays: { min: 1, max: 60 }, aiPerDay: { min: 0, max: 200 } } as const;
+export const LMS_DEMO_DEFAULTS = { enabled: true, lengthDays: 3, aiPerDay: 10, mockPerDay: 2, commPerDay: 2 } as const;
+export const LMS_DEMO_LIMITS = { lengthDays: { min: 1, max: 60 }, aiPerDay: { min: 0, max: 200 }, perDay: { min: 0, max: 50 } } as const;
 
 const CourseSchema = new Schema<ILmsDemoCourse>(
   {
@@ -65,6 +95,22 @@ const LmsDemoConfigSchema = new Schema<ILmsDemoConfig>(
     enabled:    { type: Boolean, default: LMS_DEMO_DEFAULTS.enabled },
     lengthDays: { type: Number, default: LMS_DEMO_DEFAULTS.lengthDays, min: LMS_DEMO_LIMITS.lengthDays.min, max: LMS_DEMO_LIMITS.lengthDays.max },
     aiPerDay:   { type: Number, default: LMS_DEMO_DEFAULTS.aiPerDay, min: LMS_DEMO_LIMITS.aiPerDay.min, max: LMS_DEMO_LIMITS.aiPerDay.max },
+    mockPerDay: { type: Number, default: LMS_DEMO_DEFAULTS.mockPerDay, min: 0, max: LMS_DEMO_LIMITS.perDay.max },
+    commPerDay: { type: Number, default: LMS_DEMO_DEFAULTS.commPerDay, min: 0, max: LMS_DEMO_LIMITS.perDay.max },
+    features:   { type: Schema.Types.Mixed, default: () => ({}) },
+    content: {
+      type: new Schema({
+        problemIds:    [{ type: Schema.Types.ObjectId }],
+        thinkingIds:   [{ type: Schema.Types.ObjectId }],
+        quizIds:       [{ type: Schema.Types.ObjectId }],
+        assignmentIds: [{ type: Schema.Types.ObjectId }],
+        bookKeys:      [{ type: String }],
+        speakingIds:   [{ type: Schema.Types.ObjectId }],
+        interviewIds:  [{ type: Schema.Types.ObjectId }],
+      }, { _id: false }),
+      default: () => ({}),
+    },
+    startCurriculumId: { type: Schema.Types.ObjectId, ref: 'LearningCurriculum', default: null },
     courses:    { type: [CourseSchema], default: [] },
     counsellorPhone:    { type: String, trim: true, maxlength: 20 },
     counsellorWhatsApp: { type: String, trim: true, maxlength: 20 },

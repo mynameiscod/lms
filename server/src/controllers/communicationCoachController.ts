@@ -63,6 +63,12 @@ export const submitCoach = async (req: Request, res: Response) => {
     const step = state.steps.find((x: any) => x.area === area && x.index === idx && !x.done) || state.steps.find((x: any) => x.area === area && !x.done);
     if (!step) { cleanup(file.path); return res.status(409).json({ message: 'This answer is already recorded. Each one is recorded once and cannot be redone. Move on to the next step.' }); }
     if (state.practisedToday >= MAX_COACH_ATTEMPTS_PER_DAY) { cleanup(file.path); return res.status(429).json({ message: `You have done ${MAX_COACH_ATTEMPTS_PER_DAY} recordings today: that is plenty. Come back tomorrow.` }); }
+    // An LMS demo student shares one daily allowance across the coach and the daily challenge.
+    {
+      const { takeDemoUse } = await import('../services/lmsDemoService');
+      const use = await takeDemoUse(String((req as any).user?.id || (req as any).userId || ''), 'comm');
+      if (use.demo && !use.ok) { cleanup(file.path); return res.status(429).json({ code: 'DEMO_COMM_LIMIT', message: `You have used today's ${use.limit} Communication Lab session${use.limit === 1 ? '' : 's'}. More tomorrow.` }); }
+    }
     const isBaseline = state.mode === 'baseline';
     const prompt = step.prompt;
     const recordingType = req.body?.recordingType === 'video' ? 'video' : 'audio';

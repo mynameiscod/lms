@@ -3,6 +3,7 @@
  * Generates performance analytics, detailed results, and comparative statistics
  */
 
+import { notDemoStudents } from './lmsDemoService';
 import QuizAttempt from '../models/QuizAttempt';
 import Quiz from '../models/Quiz';
 import User from '../models/User';
@@ -113,7 +114,7 @@ export class QuizAnalyticsService {
       throw new Error('Quiz not found');
     }
 
-    const attempts = await QuizAttempt.find({
+    const attempts = await QuizAttempt.find({ ...(await notDemoStudents('studentId', true)),
       quizId,
       status: 'submitted'
     });
@@ -181,7 +182,7 @@ export class QuizAnalyticsService {
    * Get all students' performance for a quiz
    */
   async getStudentPerformances(quizId: string): Promise<StudentPerformance[]> {
-    const attempts = await QuizAttempt.find({
+    const attempts = await QuizAttempt.find({ ...(await notDemoStudents('studentId', true)),
       quizId,
       status: 'submitted'
     }).sort({ studentId: 1, attemptNo: 1 });
@@ -242,7 +243,7 @@ export class QuizAnalyticsService {
       throw new Error('Quiz not found');
     }
 
-    const attempts = await QuizAttempt.find({
+    const attempts = await QuizAttempt.find({ ...(await notDemoStudents('studentId', true)),
       quizId,
       status: 'submitted'
     });

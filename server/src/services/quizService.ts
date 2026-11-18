@@ -137,6 +137,13 @@ export class QuizService {
     const quiz = await Quiz.findById(quizId);
     if (!quiz) return false;
 
+    // An LMS demo student: only the chosen quizzes and those on the demo courses' days.
+    const { lmsDemoScopeFor, demoCourseModuleIds } = await import('./lmsDemoService');
+    const demo = await lmsDemoScopeFor(studentId);
+    if (demo) {
+      return (demo.on('quizzes') && demo.ids('quizIds').has(String(quizId))) || (await demoCourseModuleIds(demo.cfg, 'quiz')).has(String(quizId));
+    }
+
     const student = await User.findById(studentId).select('batchId').lean() as any;
 
     // Delivered to this student via an AssessmentSchedule (the reusable Assign-to-Batches
@@ -281,7 +288,8 @@ export class QuizService {
       }
 
       // Check attempt count. A demo account retakes any checkpoint during a demo (data/demoPolicy.ts).
-      const demo = isDemoPassport((user as any)?.passport);
+      // An LMS demo student may retake too: the demo is for trying things.
+      const demo = isDemoPassport((user as any)?.passport) || !!(user as any)?.lmsDemo?.at;
       if (demo) { /* no attempt limit */ } else if (quiz.multipleAttempts && quiz.maxAttempts) {
         const previousAttempts = await QuizAttempt.countDocuments({
           quizId,

@@ -142,6 +142,10 @@ export interface IUser extends Document {
     lastSeenAt?: Date;
     aiDay?: string;
     aiUsed?: number;
+    mockDay?: string;
+    mockUsed?: number;
+    commDay?: string;
+    commUsed?: number;
   };
   // Student enrolment status. Inactive = never really attended; Discontinued = joined, then
   // stopped coming. Both also set isActive=false (login blocked, left out of reports).
@@ -404,6 +408,10 @@ const UserSchema: Schema = new Schema(
         lastSeenAt: { type: Date },
         aiDay:     { type: String },
         aiUsed:    { type: Number, default: 0 },
+        mockDay:   { type: String },
+        mockUsed:  { type: Number, default: 0 },
+        commDay:   { type: String },
+        commUsed:  { type: Number, default: 0 },
       }, { _id: false }),
       default: undefined,
     },

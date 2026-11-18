@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { lmsDemoApi, DemoMe } from '../../api/lmsDemoApi';
 import DemoEnded from './DemoEnded';
 import TalkDialog from './TalkDialog';
+import { DEMO_FEATURE_META, DEMO_ALWAYS_PATHS } from './demoFeatures';
 import './demoShell.css';
 
 /**
@@ -20,8 +21,8 @@ export const useLmsDemo = () => useContext(Ctx);
 /** Is the signed-in account an LMS demo student? */
 export const isDemoUser = (user: any): boolean => !!(user && user.role === 'STUDENT' && (user.lmsDemo?.at || user.lmsDemo === true));
 
-/** Pages a demo student may open. Everything else goes to My Learning Plan. */
-const DEMO_PATHS = [/^\/my-learning(\/|$)/];
+/** The features switched on for this demo, in menu order. */
+export const demoFeaturesOn = (me: DemoMe | null) => DEMO_FEATURE_META.filter(f => !!me?.features?.[f.key]);
 
 export default function DemoShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth() as any;
@@ -39,7 +40,11 @@ export default function DemoShell({ children }: { children: React.ReactNode }) {
   useEffect(() => { const t = setInterval(refresh, 5 * 60_000); return () => clearInterval(t); }, [refresh]);
   useEffect(() => { document.documentElement.classList.add('lms-demo-route'); return () => document.documentElement.classList.remove('lms-demo-route'); }, []);
 
-  if (!DEMO_PATHS.some(re => re.test(pathname))) return <Navigate to="/my-learning" replace />;
+  // Pages: the learning plan always; a feature's pages only while it is switched on. Wait for the
+  // settings before deciding, so a feature page opened by link is not bounced on first paint.
+  const on = demoFeaturesOn(me);
+  const allowed = DEMO_ALWAYS_PATHS.some(re => re.test(pathname)) || on.some(f => f.paths.some(re => re.test(pathname)));
+  if (me && !allowed) return <Navigate to="/my-learning" replace />;
 
   const ended = !!me?.ended;
   const firstName = me?.firstName || user?.firstName || '';
@@ -51,11 +56,7 @@ export default function DemoShell({ children }: { children: React.ReactNode }) {
         <header className="dsh-top">
           <div className="dsh-top-in">
             <NavLink to="/my-learning" className="dsh-brand" aria-label="My courses"><img src="/assets/logo.png" alt="CodeBegun" /></NavLink>
-            {!ended && (
-              <nav className="dsh-nav" aria-label="Demo">
-                <NavLink to="/my-learning" end className={({ isActive }) => (isActive ? 'on' : '')}><i className="bi bi-grid-1x2" /> My courses</NavLink>
-              </nav>
-            )}
+            <span className="dsh-demo-tag">Free demo</span>
             <div className="dsh-right">
               {me?.isDemo && !ended && (
                 <span className={`dsh-clock${daysLeft <= 1 ? ' last' : ''}`} title={me.expiresAt ? `Ends ${new Date(me.expiresAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}>
@@ -76,6 +77,16 @@ export default function DemoShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           </div>
+          {!ended && (
+            <nav className="dsh-tabs" aria-label="Demo menu">
+              <div className="dsh-tabs-in">
+                <NavLink to="/my-learning" className={({ isActive }) => (isActive ? 'on' : '')}><i className="bi bi-grid-1x2" /> My courses</NavLink>
+                {on.map(f => (
+                  <NavLink key={f.key} to={f.href} className={() => (f.paths.some(re => re.test(pathname)) ? 'on' : '')}><i className={`bi ${f.icon}`} /> {f.short}</NavLink>
+                ))}
+              </div>
+            </nav>
+          )}
           {me?.isDemo && !ended && daysLeft <= 1 && (
             <div className="dsh-lastday"><i className="bi bi-bell" /> Your demo ends {me.expiresAt ? `on ${new Date(me.expiresAt).toLocaleString('en-IN', { weekday: 'long', hour: 'numeric', minute: '2-digit' })}` : 'soon'}. Like what you see? <button type="button" onClick={() => setTalkOpen(true)}>Talk to a counsellor</button></div>
           )}

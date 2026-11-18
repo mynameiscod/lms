@@ -8,6 +8,7 @@ import DayPlan from '../models/DayPlan';
 import PendingLmsDemo from '../models/PendingLmsDemo';
 import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import * as demo from '../services/lmsDemoService';
+import { LMS_DEMO_FEATURES } from '../models/LmsDemoConfig';
 
 /**
  * LMS DEMO: the public sign-up, the demo student's own screens, and the admin screen.
@@ -142,7 +143,11 @@ export const me = async (req: Request, res: Response) => {
     const state = demo.demoState(user);
     const cfg = await demo.getConfig();
     if (state.active) await demo.ensureDemoEnrollments(user, cfg);
-    const [courses, prog, ai] = await Promise.all([demo.demoCourses(cfg), progressFor(user._id), demo.demoAiLeft(user)]);
+    const [list, start, prog, use] = await Promise.all([demo.demoCourses(cfg), demo.startCourse(cfg), progressFor(user._id), demo.demoUseLeft(user, cfg)]);
+    const courses = [...(start ? [start] : []), ...list.filter(c => !start || c.curriculumId !== start.curriculumId)];
+    const ai = use.ai;
+    const features: Record<string, boolean> = {};
+    for (const f of LMS_DEMO_FEATURES) features[f] = demo.featureOn(cfg, f);
     // The first visit of each day goes on the lead, so a counsellor sees the demo is being used.
     const today = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
     const lastSeen = user.lmsDemo.lastSeenAt ? new Date(new Date(user.lmsDemo.lastSeenAt).getTime() + 330 * 60_000).toISOString().slice(0, 10) : '';
@@ -157,6 +162,8 @@ export const me = async (req: Request, res: Response) => {
         firstName: user.firstName,
         courses: courses.map(c => ({ ...c, ...(prog.get(c.curriculumId) || { enrollmentId: null, itemsDone: 0, itemsTotal: 0, daysDone: 0, pct: 0 }) })),
         ai,
+        use,
+        features,
         counsellor: { phone: cfg.counsellorPhone || '', whatsapp: cfg.counsellorWhatsApp || cfg.counsellorPhone || '', message: cfg.endMessage || '' },
         talkRequestedAt: user.lmsDemo.talkRequestedAt || null,
         moreTimeRequestedAt: user.lmsDemo.moreTimeRequestedAt || null,
@@ -319,5 +326,113 @@ export const adminReset = async (req: Request, res: Response) => {
   try {
     const n = await demo.resetDemoProgress(req.params.id);
     res.json({ success: true, data: { courses: n } });
+  } catch (e) { fail(res, e); }
+};
+
+/* ═══════════════════════════════ ADMIN: content pickers ═══════════════════════════════
+ * What each demo feature shows is a list the admin ticks. Problems, Thinking Lab questions and books
+ * come from the shared libraries (the CareerPilot demo plan searches are reused); quizzes,
+ * assignments, speaking tasks and interviews belong to CodeBegun's institute, where demo students live.
+ */
+const PICK = 50;
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const pageOf = (req: Request) => Math.max(1, Math.min(1000, Number(req.query.page) || 1));
+
+async function tenantSearch(req: Request, kind: string) {
+  const tId = demo.demoTenantId();
+  if (!tId) return { total: 0, page: 1, hasMore: false, items: [] };
+  const q = String(req.query.q || '').trim().slice(0, 80);
+  const re = q ? new RegExp(escapeRe(q), 'i') : null;
+  const page = pageOf(req);
+  const tOid = new mongoose.Types.ObjectId(tId);
+  let model: any; let f: any; let map: (r: any) => any; let sel: string;
+  if (kind === 'quizzes') {
+    model = (await import('../models/Quiz')).default;
+    // Every live quiz, CareerPilot checkpoints included: the admin decides what a demo shows.
+    f = { tenantId: tId, isActive: true, archivedAt: null, ...(re ? { title: re } : {}) };
+    sel = 'title totalQuestions duration'; map = (r) => ({ id: String(r._id), title: r.title, category: [r.totalQuestions ? `${r.totalQuestions} questions` : '', r.duration ? `${r.duration} min` : ''].filter(Boolean).join(' · '), live: true });
+  } else if (kind === 'assignments') {
+    model = (await import('../models/Assignment')).default;
+    f = { tenant: tOid, status: 'published', ...(re ? { title: re } : {}) };
+    sel = 'title type difficulty'; map = (r) => ({ id: String(r._id), title: r.title, category: r.type, difficulty: r.difficulty, live: true });
+  } else if (kind === 'speaking') {
+    model = (await import('../models/CommunicationChallenge')).default;
+    f = { tenantId: tOid, active: true, ...(re ? { title: re } : {}) };
+    sel = 'title challengeType'; map = (r) => ({ id: String(r._id), title: r.title, category: String(r.challengeType || '').replace(/_/g, ' '), live: true });
+  } else {
+    model = (await import('../models/InterviewTemplate')).default;
+    f = { tenantId: tOid, status: 'published', ...(re ? { title: re } : {}) };
+    sel = 'title difficultyLevel totalDuration'; map = (r) => ({ id: String(r._id), title: r.title, category: r.totalDuration ? `${r.totalDuration} min` : '', difficulty: r.difficultyLevel, live: true });
+  }
+  const [rows, total] = await Promise.all([model.find(f).sort({ updatedAt: -1, _id: 1 }).skip((page - 1) * PICK).limit(PICK).select(sel).lean(), model.countDocuments(f)]);
+  return { total, page, hasMore: page * PICK < total, items: (rows as any[]).map(map) };
+}
+
+/** GET /lms-demo/admin/options/:kind?q=&page=&difficulty=&type= */
+export const adminOptions = async (req: Request, res: Response) => {
+  try {
+    const kind = String(req.params.kind);
+    if (kind === 'problems' || kind === 'thinking' || kind === 'books') {
+      const dp = await import('./demoPlanController');
+      const fn = kind === 'problems' ? dp.searchDemoProblems : kind === 'thinking' ? dp.searchDemoThinking : dp.searchDemoBooks;
+      return fn(req, res);
+    }
+    if (!['quizzes', 'assignments', 'speaking', 'interviews'].includes(kind)) return res.status(400).json({ success: false, message: 'Unknown list.' });
+    res.json(await tenantSearch(req, kind));
+  } catch (e) { fail(res, e); }
+};
+
+/** GET /lms-demo/admin/content — the chosen items of every list, with their names, in order. */
+export const adminContent = async (_req: Request, res: Response) => {
+  try {
+    const cfg = await demo.getConfig();
+    const c: any = cfg.content || {};
+    const ids = (k: string) => ((c[k] || []) as any[]).map(String).filter(id => mongoose.isValidObjectId(id));
+    const named = async (modelPath: string, list: string, sel: string, label: (r: any) => any, exportName = 'default') => {
+      const order = ids(list);
+      if (!order.length) return [];
+      const Model = (await import(modelPath))[exportName];
+      const rows: any[] = await Model.find({ _id: { $in: order } }).select(sel).lean();
+      const by = new Map(rows.map(r => [String(r._id), r]));
+      // An item deleted since it was chosen shows as missing, so the admin can take it out.
+      return order.map(id => (by.has(id) ? { id, ...label(by.get(id)), live: true } : { id, title: 'Deleted item', live: false }));
+    };
+    const [problems, thinking, books, quizzes, assignments, speaking, interviews] = await Promise.all([
+      named('../models/CodingProblem', 'problemIds', 'number title difficulty status', r => ({ title: r.title, number: r.number, difficulty: r.difficulty, live: r.status === 'published' })),
+      named('../models/ThinkingQuestion', 'thinkingIds', 'number title type difficulty', r => ({ title: r.title, number: r.number, difficulty: r.difficulty, category: r.type })),
+      named('../models/QuestionBook', 'bookKeys', 'title', r => ({ title: r.title }), 'QuestionBook'),
+      named('../models/Quiz', 'quizIds', 'title', r => ({ title: r.title })),
+      named('../models/Assignment', 'assignmentIds', 'title type difficulty', r => ({ title: r.title, category: r.type, difficulty: r.difficulty })),
+      named('../models/CommunicationChallenge', 'speakingIds', 'title challengeType', r => ({ title: r.title, category: String(r.challengeType || '').replace(/_/g, ' ') })),
+      named('../models/InterviewTemplate', 'interviewIds', 'title difficultyLevel', r => ({ title: r.title, difficulty: r.difficultyLevel })),
+    ]);
+    res.json({ success: true, data: { problems, thinking, books, quizzes, assignments, speaking, interviews } });
+  } catch (e) { fail(res, e); }
+};
+
+/**
+ * POST /lms-demo/lead/:leadId/give { lengthDays? } — "Give demo" on a CRM lead. Counsellors who work
+ * leads can send a demo without the LMS Demo screen: the account is made from the lead's own name and
+ * phone, tied to that lead, and the one-tap link comes back to copy or send on WhatsApp.
+ */
+export const leadGiveDemo = async (req: Request, res: Response) => {
+  try {
+    const tId = demo.demoTenantId();
+    const Lead = (await import('../models/Lead')).default;
+    const lead: any = mongoose.isValidObjectId(req.params.leadId) ? await Lead.findById(req.params.leadId).select('name phone email tenantId').lean() : null;
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found.' });
+    if (!tId || String(lead.tenantId) !== String(tId)) return res.status(400).json({ success: false, message: 'Demos are given from CodeBegun\'s own CRM.' });
+    if (String((req as any).tenantId || '') && String((req as any).tenantId) !== String(tId) && (req as any).user?.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ success: false, message: 'Not your institute\'s lead.' });
+    }
+    const by = await whoNamed(req);
+    const { user, returning } = await demo.createOrReuseDemoAccount(
+      { name: lead.name, phone: lead.phone, email: lead.email },
+      { source: 'given', by: by.id, byName: by.name, lengthDays: req.body?.lengthDays },
+    );
+    if (String(user.lmsDemo?.leadId || '') !== String(lead._id)) {
+      await User.updateOne({ _id: user._id }, { $set: { 'lmsDemo.leadId': lead._id } });
+    }
+    res.json({ success: true, data: { link: demo.demoEntryUrl(user), returning, expiresAt: demo.demoState(user).expiresAt, name: lead.name, phone: lead.phone } });
   } catch (e) { fail(res, e); }
 };

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { lmsDemoApi, demoErr, DemoConfig, DemoPlanOption, DemoStudentRow } from '../../api/lmsDemoApi';
+import { FeaturesTab, ContentTab } from './AdminLmsDemoContent';
 import './adminLmsDemo.css';
 
 /**
@@ -12,7 +13,7 @@ import './adminLmsDemo.css';
  * Demo students are kept off the Users screen; this is their tab.
  */
 
-type Tab = 'students' | 'courses' | 'settings';
+type Tab = 'students' | 'courses' | 'features' | 'content' | 'settings';
 const fmt = (d?: string | null) => (d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '—');
 const ago = (d?: string | null) => {
   if (!d) return 'never';
@@ -54,6 +55,7 @@ export default function AdminLmsDemo() {
         <div className="ldm-head-stats">
           <span className={`ldm-pill ${cfg?.enabled ? 'ok' : 'off'}`}><i className={`bi ${cfg?.enabled ? 'bi-check-circle-fill' : 'bi-pause-circle-fill'}`} /> {cfg?.enabled ? 'Demo open' : 'Demo closed'}</span>
           <span className="ldm-pill"><i className="bi bi-collection-play" /> {activeCourses} course{activeCourses === 1 ? '' : 's'}</span>
+          <button type="button" className="ldm-btn" onClick={async () => { const url = `${window.location.origin}/demo`; try { await navigator.clipboard.writeText(url); setToast('Demo page link copied'); } catch { setToast(url); } }}><i className="bi bi-link-45deg" /> Copy demo link</button>
         </div>
       </header>
 
@@ -62,7 +64,7 @@ export default function AdminLmsDemo() {
       {cfg && activeCourses === 0 && <div className="ldm-alert warn">No demo courses yet. Add them on the <button type="button" onClick={() => setTab('courses')}>Demo courses</button> tab, or demo students will see an empty plan.</div>}
 
       <nav className="ldm-tabs" role="tablist">
-        {([['students', 'bi-people', 'Demo students'], ['courses', 'bi-collection-play', 'Demo courses'], ['settings', 'bi-sliders', 'Settings']] as const).map(([k, ic, l]) => (
+        {([['students', 'bi-people', 'Demo students'], ['courses', 'bi-collection-play', 'Demo courses'], ['features', 'bi-toggles', 'Features'], ['content', 'bi-list-check', 'Content'], ['settings', 'bi-sliders', 'Settings']] as const).map(([k, ic, l]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><i className={`bi ${ic}`} /> {l}</button>
         ))}
       </nav>
@@ -70,6 +72,8 @@ export default function AdminLmsDemo() {
       {tab === 'students' && <StudentsTab cfg={cfg} onToast={setToast} />}
       {tab === 'courses' && cfg && <CoursesTab cfg={cfg} plans={plans} onSaved={c => { setCfg(c); setToast('Demo courses saved'); }} />}
       {tab === 'settings' && cfg && <SettingsTab cfg={cfg} onSaved={c => { setCfg(c); setToast('Settings saved'); }} />}
+      {tab === 'features' && cfg && <FeaturesTab cfg={cfg} onSaved={c => { setCfg(c); setToast('Features saved'); }} onContent={() => setTab('content')} />}
+      {tab === 'content' && cfg && <ContentTab cfg={cfg} onSaved={c => { setCfg(c); setToast('Content saved'); }} />}
 
       {toast && <div className="ldm-toast" role="status"><i className="bi bi-check-circle-fill" /> {toast}</div>}
     </div>
@@ -263,18 +267,32 @@ function CoursesTab({ cfg, plans, onSaved }: { cfg: DemoConfig; plans: DemoPlanO
     setList(l => [...l, { curriculumId: pick, title: '', blurb: '', color: COLORS[l.length % COLORS.length], order: l.length, active: true }]);
     setPick('');
   };
+  const [startId, setStartId] = useState<string>(cfg.startCurriculumId ? String(cfg.startCurriculumId) : '');
+  const startDirty = startId !== (cfg.startCurriculumId ? String(cfg.startCurriculumId) : '');
   const save = async () => {
     setBusy(true); setErr('');
-    try { onSaved(await lmsDemoApi.saveConfig({ courses: list.map((c, i) => ({ ...c, order: i })) as any })); } catch (e) { setErr(demoErr(e)); } finally { setBusy(false); }
+    try { onSaved(await lmsDemoApi.saveConfig({ courses: list.map((c, i) => ({ ...c, order: i })), startCurriculumId: startId || null })); } catch (e) { setErr(demoErr(e)); } finally { setBusy(false); }
   };
 
   return (
     <section className="ldm-card">
       <div className="ldm-card-head">
         <div><h2>Demo courses</h2><p className="ldm-sub">Every demo student gets all the active courses below, every day open. Build each course's days, videos and notes in <Link to="/curriculum-builder">Curriculum Builder</Link>, then pick it here.</p></div>
-        <button type="button" className="ldm-btn primary" onClick={save} disabled={busy || !dirty}>{busy ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>
+        <button type="button" className="ldm-btn primary" onClick={save} disabled={busy || !(dirty || startDirty)}>{busy ? 'Saving…' : (dirty || startDirty) ? 'Save changes' : 'Saved'}</button>
       </div>
       {err && <div className="ldm-alert">{err}</div>}
+
+      <div className="ldm-start">
+        <span className="ldm-start-ic"><i className="bi bi-flag" /></span>
+        <div className="ldm-start-tx">
+          <b>"Start here" course</b>
+          <span className="ldm-sub">Optional. Shown first to every demo student, above the courses — for example the common Day 1 videos ("What the industry needs", "What is programming").</span>
+        </div>
+        <select value={startId} onChange={e => setStartId(e.target.value)} aria-label="Start here course">
+          <option value="">None</option>
+          {plans.map(p => <option key={p._id} value={p._id}>{p.title} — {p.totalDays} days{p.items ? `, ${p.items} items` : ', empty'}</option>)}
+        </select>
+      </div>
 
       <div className="ldm-courses">
         {list.map((c, i) => {
@@ -326,7 +344,7 @@ function CoursesTab({ cfg, plans, onSaved }: { cfg: DemoConfig; plans: DemoPlanO
 /* ───────────────────────────── Settings ───────────────────────────── */
 
 function SettingsTab({ cfg, onSaved }: { cfg: DemoConfig; onSaved: (c: DemoConfig) => void }) {
-  const [f, setF] = useState({ enabled: cfg.enabled, lengthDays: cfg.lengthDays, aiPerDay: cfg.aiPerDay, counsellorPhone: cfg.counsellorPhone || '', counsellorWhatsApp: cfg.counsellorWhatsApp || '', endMessage: cfg.endMessage || '' });
+  const [f, setF] = useState({ enabled: cfg.enabled, lengthDays: cfg.lengthDays, aiPerDay: cfg.aiPerDay, mockPerDay: cfg.mockPerDay ?? 2, commPerDay: cfg.commPerDay ?? 2, counsellorPhone: cfg.counsellorPhone || '', counsellorWhatsApp: cfg.counsellorWhatsApp || '', endMessage: cfg.endMessage || '' });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const set = (p: Partial<typeof f>) => setF(x => ({ ...x, ...p }));
@@ -350,6 +368,14 @@ function SettingsTab({ cfg, onSaved }: { cfg: DemoConfig; onSaved: (c: DemoConfi
       <div className="ldm-row">
         <div><b>AI questions per day</b><span className="ldm-sub">How many times a demo student can use the AI study helper each day. 0 turns it off.</span></div>
         <div className="ldm-num-in"><input type="number" min={0} max={200} value={f.aiPerDay} onChange={e => set({ aiPerDay: Number(e.target.value) })} aria-label="AI questions per day" /><span>a day</span></div>
+      </div>
+      <div className="ldm-row">
+        <div><b>Mock interviews per day</b><span className="ldm-sub">Each one uses the AI interviewer. 0 = none.</span></div>
+        <div className="ldm-num-in"><input type="number" min={0} max={50} value={f.mockPerDay} onChange={e => set({ mockPerDay: Number(e.target.value) })} aria-label="Mock interviews per day" /><span>a day</span></div>
+      </div>
+      <div className="ldm-row">
+        <div><b>Communication Lab sessions per day</b><span className="ldm-sub">Each recording is evaluated by AI. Shared by the coach and the daily challenge.</span></div>
+        <div className="ldm-num-in"><input type="number" min={0} max={50} value={f.commPerDay} onChange={e => set({ commPerDay: Number(e.target.value) })} aria-label="Communication Lab sessions per day" /><span>a day</span></div>
       </div>
       <div className="ldm-row col">
         <div><b>Talk to a counsellor</b><span className="ldm-sub">Shown in the demo and on the end screen. Every click also marks the lead hot in the CRM.</span></div>

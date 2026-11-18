@@ -76,6 +76,10 @@ async function loadAndCheckQuota(
   if (used >= maxHints && !(await isDemoUser(String(studentId)))) {
     throw new Error(`You've used all ${maxHints} AI hints available for this problem.`);
   }
+  // An LMS demo student: each hint also comes out of the day's AI allowance.
+  const { takeDemoAi } = await import('./lmsDemoService');
+  const use = await takeDemoAi(String(studentId));
+  if (use.demo && !use.ok) throw new Error(`You have used today's ${use.limit} AI questions. More tomorrow.`);
 
   return { submission, assignment, used, maxHints };
 }

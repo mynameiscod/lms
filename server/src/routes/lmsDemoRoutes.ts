@@ -24,11 +24,16 @@ router.post('/me/more-time', ctrl.moreTime);
 const ADMIN = roleGuard(['manage_lms_demo']);
 router.get('/admin/config', ADMIN, ctrl.adminGetConfig);
 router.put('/admin/config', ADMIN, ctrl.adminSaveConfig);
+router.get('/admin/content', ADMIN, ctrl.adminContent);
+router.get('/admin/options/:kind', ADMIN, ctrl.adminOptions);
 router.get('/admin/students', ADMIN, ctrl.adminListStudents);
 router.post('/admin/students', ADMIN, ctrl.adminGiveDemo);
 router.get('/admin/students/:id/link', ADMIN, ctrl.adminLink);
 router.post('/admin/students/:id/extend', ADMIN, ctrl.adminExtend);
 router.post('/admin/students/:id/end', ADMIN, ctrl.adminEnd);
 router.post('/admin/students/:id/reset', ADMIN, ctrl.adminReset);
+
+// "Give demo" on a CRM lead: whoever works leads, as well as LMS Demo admins.
+router.post('/lead/:leadId/give', roleGuard(['manage_lms_demo', 'manage_leads', 'edit_leads']), ctrl.leadGiveDemo);
 
 export default router;

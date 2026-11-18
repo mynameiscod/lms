@@ -55,7 +55,7 @@ export async function officeHoursFor(tenantId: string): Promise<OfficeHours> {
   const c = ohCache.get(tenantId);
   if (c && Date.now() - c.at < 60_000) return c.v;
   const s: any = await WorkflowSettings.findOne({ tenantId: oid(tenantId) }).lean();
-  const v: OfficeHours = s ? { timezone: s.timezone || 'Asia/Kolkata', days: s.days || DEFAULT_OFFICE_HOURS.days, holidays: s.holidays || [] } : DEFAULT_OFFICE_HOURS;
+  const v: OfficeHours = s ? { timezone: s.timezone || 'Asia/Kolkata', days: s.days || DEFAULT_OFFICE_HOURS.days, holidays: s.holidays || [], enabled: s.enabled !== false } : DEFAULT_OFFICE_HOURS;
   ohCache.set(tenantId, { at: Date.now(), v });
   return v;
 }

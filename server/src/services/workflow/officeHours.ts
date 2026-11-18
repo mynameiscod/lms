@@ -7,6 +7,8 @@ export interface OfficeHours {
   timezone: string;
   days: Record<string, DayHours>;
   holidays: { date: string; name?: string }[];
+  /** Switched off = no office hours at all: always "open", so out-of-office replies never go out. */
+  enabled?: boolean;
 }
 
 export const DEFAULT_OFFICE_HOURS: OfficeHours = {
@@ -74,6 +76,7 @@ function dayWindow(oh: OfficeHours, y: number, m: number, d: number) {
 }
 
 export function isOpen(now: Date, oh: OfficeHours): boolean {
+  if (oh.enabled === false) return true;
   const p = localParts(now, oh.timezone);
   const w = dayWindow(oh, p.y, p.m, p.d);
   return !!w && now >= w.start && now < w.end;
@@ -81,6 +84,7 @@ export function isOpen(now: Date, oh: OfficeHours): boolean {
 
 /** `now` if the office is open, else when it next opens (null if it never opens in the next 60 days). */
 export function nextOpening(now: Date, oh: OfficeHours): Date | null {
+  if (oh.enabled === false) return now;
   const p = localParts(now, oh.timezone);
   for (let i = 0; i < 60; i++) {
     const day = new Date(Date.UTC(p.y, p.m - 1, p.d + i));

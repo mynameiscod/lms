@@ -140,3 +140,13 @@ describe('conditions and placeholders', () => {
     expect(matchOption('dotnet', opts)).toBeNull();
   });
 });
+
+describe('office hours switched off', () => {
+  it('counts as always open, so out-of-office never fires', () => {
+    const off: OfficeHours = { ...DEFAULT_OFFICE_HOURS, enabled: false };
+    const sundayNight = zonedTimeToUtc(2026, 11, 22, 23, 0, 'Asia/Kolkata');
+    expect(isOpen(sundayNight, DEFAULT_OFFICE_HOURS)).toBe(false);
+    expect(isOpen(sundayNight, off)).toBe(true);
+    expect(nextOpening(sundayNight, off)).toEqual(sundayNight);
+  });
+});

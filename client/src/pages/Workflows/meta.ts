@@ -173,6 +173,29 @@ export const DEFAULT_SETTINGS: Workflow['settings'] = { sendWindow: 'any', allow
 
 /* ── Recipes ──────────────────────────────────────────────────────────── */
 export interface Recipe { key: string; icon: string; tone: string; title: string; what: string; build: () => Partial<Workflow> }
+
+/** How the "Create New Workflow" window groups and labels the recipes, plus the short line on Quick Start tiles. */
+export const RECIPE_LOOK: Record<string, { tag: string; short: string; section: 'recommended' | 'engage' | 'advanced'; words: string[] }> = {
+  ooo: { tag: 'Auto Reply', short: 'Auto reply outside office hours', section: 'recommended', words: ['office', 'closed', 'night', 'holiday', 'weekend', 'after hours', 'sunday'] },
+  welcome: { tag: 'Lead Nurture', short: 'Welcome, qualify and assign', section: 'recommended', words: ['new lead', 'welcome', 'qualify', 'question', 'ask', 'assign', 'arrive'] },
+  faq: { tag: 'FAQ / Info', short: 'Reply to fee, course, timing etc.', section: 'recommended', words: ['fee', 'keyword', 'faq', 'price', 'syllabus', 'location', 'timing', 'course detail'] },
+  demo: { tag: 'Reminders', short: 'Remind before the demo', section: 'engage', words: ['remind', 'demo booked', 'before the demo', 'meet link', 'confirmation'] },
+  noshow: { tag: 'Recovery', short: 'Rebook missed demos', section: 'engage', words: ['no-show', 'no show', 'missed', 'rebook', 'did not come', "didn't come"] },
+  attended: { tag: 'Post Demo', short: 'Thank-you + brochure after the demo', section: 'engage', words: ['attended', 'after the demo', 'brochure', 'thank'] },
+  ai: { tag: 'AI Powered', short: 'Answer any question with AI', section: 'advanced', words: ['ai', 'answer', 'any question', 'chatbot', 'bot', 'knowledge'] },
+  nurture: { tag: 'Sequence', short: 'Template now, again after 3 days', section: 'advanced', words: ['follow up', 'follow-up', 'sequence', 'after 3 days', 'days', 'stage', 'drip', 'no reply'] },
+};
+
+/** "follow up after 3 days" → the recipe whose words match best (null when nothing matches). */
+export function suggestRecipe(goal: string): string | null {
+  const g = goal.toLowerCase();
+  let best: string | null = null, score = 0;
+  for (const [key, look] of Object.entries(RECIPE_LOOK)) {
+    const n = look.words.filter(w => g.includes(w)).reduce((a, w) => a + w.length, 0);
+    if (n > score) { score = n; best = key; }
+  }
+  return best;
+}
 const s = (type: StepType, config: Record<string, any>, extra: Partial<Step> = {}): Step => ({ ...newStep(type), config: { ...newStep(type).config, ...config }, ...extra });
 
 export const RECIPES: Recipe[] = [
@@ -188,7 +211,7 @@ export const RECIPES: Recipe[] = [
   },
   {
     key: 'welcome', icon: 'fa-hand-sparkles', tone: 'green', title: 'New lead: welcome + questions',
-    what: 'Welcome template → passout year, course, working/studying → hot/warm by answers → assign → follow-up.',
+    what: 'Welcome template → ask key qualification questions → assign follow-up.',
     build: () => {
       const year = s('ask_question', { question: 'Which year did you (or will you) pass out?', key: 'passout_year', answerType: 'list', options: ['2023 or before', '2024', '2025', '2026', '2027 or later'], saveTo: 'passout_year', listButton: 'Choose year' });
       const course = s('ask_question', { question: 'Which course are you interested in?', key: 'course', answerType: 'buttons', options: ['Java Full Stack', 'Python Full Stack', 'Testing'], saveTo: 'course' });
@@ -223,7 +246,7 @@ export const RECIPES: Recipe[] = [
   },
   {
     key: 'demo', icon: 'fa-calendar-check', tone: 'amber', title: 'Demo reminders',
-    what: 'When a demo is booked: confirmation, then reminders 1 day, 2 hours and 10 minutes before — with the Meet link.',
+    what: 'When a demo is booked: send confirmation, reminders at 1 day, 2 hours and 10 minutes before (with Meet link).',
     build: () => ({
       name: 'Demo reminders',
       trigger: { type: 'demo_booked', config: { meetingTypes: ['online_demo', 'campus_visit'] } },
@@ -241,7 +264,7 @@ export const RECIPES: Recipe[] = [
   },
   {
     key: 'noshow', icon: 'fa-user-clock', tone: 'red', title: 'Demo no-show follow-up',
-    what: 'Marked no-show → “Sorry we missed you” + rebook, and a high-priority call task.',
+    what: 'If a lead misses the demo: send “Sorry we missed you” → rebook and a high-priority call task.',
     build: () => ({
       name: 'Demo no-show follow-up',
       trigger: { type: 'demo_outcome', config: { outcomes: ['no_show'] } },
@@ -258,7 +281,7 @@ export const RECIPES: Recipe[] = [
   },
   {
     key: 'attended', icon: 'fa-graduation-cap', tone: 'green', title: 'After the demo (attended)',
-    what: 'Attended → thank-you + brochure, then a follow-up call next day.',
+    what: 'Send thank-you + brochure, then follow-up call next day.',
     build: () => ({
       name: 'After the demo',
       trigger: { type: 'demo_outcome', config: { outcomes: ['completed'] } },

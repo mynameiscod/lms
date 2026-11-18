@@ -87,7 +87,7 @@ router.put('/settings', ...guard, async (req: AuthenticatedRequest, res: Respons
     const holidays = (Array.isArray(b.holidays) ? b.holidays : [])
       .filter((h: any) => /^\d{4}-\d{2}-\d{2}$/.test(String(h?.date || '')))
       .map((h: any) => ({ date: String(h.date), name: String(h.name || '').slice(0, 80) })).slice(0, 100);
-    await WorkflowSettings.updateOne({ tenantId: tid(req) }, { $set: { timezone, days, holidays, updatedBy: req.user!.id } }, { upsert: true });
+    await WorkflowSettings.updateOne({ tenantId: tid(req) }, { $set: { timezone, days, holidays, enabled: b.enabled !== false, updatedBy: req.user!.id } }, { upsert: true });
     forgetOfficeHours(String(req.tenantId));
     const oh = await officeHoursFor(String(req.tenantId));
     const now = new Date();
@@ -96,6 +96,25 @@ router.put('/settings', ...guard, async (req: AuthenticatedRequest, res: Respons
 });
 
 /* ── Runs (all workflows) ──────────────────────────────────────────────── */
+const sinceOf = (days: any) => { const n = Number(days); return n > 0 && n <= 3650 ? new Date(Date.now() - n * 86400000) : null; };
+
+/** Counts for the Runs tab cards. In progress = everyone inside right now; the rest within the period. */
+router.get('/runs/summary', ...guard, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const base: any = { tenantId: tid(req) };
+    if (mongoose.isValidObjectId(req.query.workflowId)) base.workflowId = new mongoose.Types.ObjectId(String(req.query.workflowId));
+    const since = sinceOf(req.query.days);
+    const ended: any = since ? { ...base, createdAt: { $gte: since } } : base;
+    const [live, byStatus] = await Promise.all([
+      WorkflowRun.countDocuments({ ...base, status: { $in: ['running', 'waiting'] } }),
+      WorkflowRun.aggregate([{ $match: { ...ended, status: { $in: ['completed', 'stopped', 'failed'] } } }, { $group: { _id: '$status', n: { $sum: 1 } } }]),
+    ]);
+    const n = (s: string) => byStatus.find((x: any) => x._id === s)?.n || 0;
+    const out = { live, completed: n('completed'), stopped: n('stopped'), failed: n('failed') };
+    res.json({ success: true, data: { ...out, total: out.live + out.completed + out.stopped + out.failed } });
+  } catch (e) { fail(res, e); }
+});
+
 router.get('/runs', ...guard, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const q: any = { tenantId: tid(req) };
@@ -104,6 +123,9 @@ router.get('/runs', ...guard, async (req: AuthenticatedRequest, res: Response) =
     const st = String(req.query.status || '');
     if (st === 'live') q.status = { $in: ['running', 'waiting'] };
     else if (['completed', 'stopped', 'failed'].includes(st)) q.status = st;
+    // "Last N days" — but someone still inside a workflow is shown however long ago they started.
+    const since = sinceOf(req.query.days);
+    if (since && st !== 'live') q.createdAt = { $gte: since };
     const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
     const rows = await WorkflowRun.find(q).sort({ createdAt: -1 }).limit(limit)
       .populate('leadId', 'name phone').populate('workflowId', 'name steps').lean();

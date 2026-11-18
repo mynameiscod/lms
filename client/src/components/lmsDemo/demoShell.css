@@ -1,10 +1,10 @@
 /* The LMS demo student's shell (DemoShell.tsx): CareerPilot-style top bar, demo clock, end screen. The page renders under
    #root zoom (.75 on laptops), so sizes are written for that, with the CareerPilot font floor where it helps. */
-.dsh {
+.dsh, .dsh-strip, .dsh-end, .dsh-modal, .dsh-note {
   --navy: #051D64; --navy2: #0B2D72; --teal: #359AAD; --ink: #102A4F; --text: #33475B; --muted: #5B6B80;
   --line: #E2EAF2; --soft: #F4F8FC; --tint: #EAF3FD; --green: #13784F; --green-bg: #EAF8F1; --amber: #9A5A00; --amber-bg: #FFF7E8;
-  min-height: calc(100vh / var(--app-zoom, 1)); background: var(--soft); color: var(--ink); display: flex; flex-direction: column;
 }
+.dsh { min-height: calc(100vh / var(--app-zoom, 1)); background: var(--soft); color: var(--ink); display: flex; flex-direction: column; }
 .dsh * { box-sizing: border-box; }
 .dsh button { font: inherit; }
 
@@ -91,3 +91,29 @@
   .dsh-demo-tag { display: none; }
   .dsh-tabs a { padding: 11px 10px 9px; font-size: 14.5px; }
 }
+
+
+/* Demo strip: the slim bar on top of a demo student's page, inside the normal LMS layout. */
+.dsh-strip { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 18px; padding: 10px 16px; border-radius: 14px; background: #051D64; color: #fff; box-shadow: 0 8px 22px rgba(5, 29, 100, .16); }
+.dsh-strip.last { background: linear-gradient(90deg, #051D64, #7A4A00); }
+.dsh-strip * { box-sizing: border-box; }
+.dsh-strip-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; background: rgba(255, 255, 255, .14); font-size: 14px; font-weight: 800; color: #9FDCE6; }
+.dsh-strip-clock { display: inline-flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 700; color: #fff; }
+.dsh-strip-sp { flex: 1; }
+.dsh-strip-hint { font-size: 15px; color: #C4D5EE; }
+.dsh-strip-talk { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 0; border-radius: 11px; background: #359AAD; color: #fff; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.dsh-strip-talk:hover { background: #2E8798; }
+@media (max-width: 760px) {
+  .dsh-strip { gap: 8px; padding: 10px 12px; }
+  .dsh-strip-hint, .dsh-strip-sp { display: none; }
+  .dsh-strip-talk { width: 100%; justify-content: center; }
+}
+
+/* Inside the normal LMS layout: off the sidebar edge. */
+.main-content > .dsh-strip { margin: 14px clamp(12px, 2vw, 28px) 4px; }
+.main-content > .dsh-end { padding: 20px clamp(12px, 2vw, 28px) 40px; }
+@media (max-width: 560px) { .main-content > .dsh-strip { margin: 10px 10px 2px; } }
+
+/* The shell forces margin-left/right: 0 !important on .main-content > * (Layout CSS); the strip needs its gutter. */
+.main-content > .dsh-strip { margin-left: clamp(12px, 2vw, 28px) !important; margin-right: clamp(12px, 2vw, 28px) !important; }
+@media (max-width: 560px) { .main-content > .dsh-strip { margin-left: 10px !important; margin-right: 10px !important; } }

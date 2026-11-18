@@ -126,3 +126,6 @@
 
 /* The Raise a concern button, readable at the laptop zoom. */
 .jny-concern button { font-size: 15px !important; }
+
+/* Off the sidebar edge: the app shell gives the page no padding. */
+.main-content > .jny { padding-left: clamp(12px, 2vw, 28px); padding-right: clamp(12px, 2vw, 28px); padding-top: 16px; }

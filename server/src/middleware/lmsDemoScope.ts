@@ -49,7 +49,8 @@ export function lmsDemoMayReach(method: string, originalUrl: string, userId: str
   const path = String(originalUrl || '').split('?')[0].replace(/\/+$/, '');
   // The account's own record and permissions: what the app reads to keep a session alive.
   if (method === 'GET' && (path === `${API}/users/me/permissions` || (userId && path === `${API}/users/${userId}`))) return true;
-  if (ended) return ENDED_PREFIXES.some(p => under(path, p));
+  // After the end: the end screen, plus reading the institute's own settings the app shell needs (branding, modules).
+  if (ended) return ENDED_PREFIXES.some(p => under(path, p)) || ((method === 'GET' || method === 'HEAD') && under(path, '/tenants'));
   if (NEVER.some(p => under(path, p))) return false;
   if (OPEN_PREFIXES.some(p => under(path, p))) return true;
   if ((method === 'GET' || method === 'HEAD') && READ_PREFIXES.some(p => under(path, p))) return true;

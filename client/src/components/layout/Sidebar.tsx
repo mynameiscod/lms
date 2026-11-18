@@ -10,6 +10,7 @@ import { useBatchModules } from '../../contexts/BatchModulesContext';
 import { StudentFeatureKey } from '../../config/studentFeatureCatalog';
 import visualizerApi from '../../api/visualizerApi';
 import { thinkingLabApi } from '../../api/thinkingLabApi';
+import { useLmsDemo, isDemoUser, demoFeaturesOn } from '../lmsDemo/DemoShell';
 import './Sidebar.css';
 
 /**
@@ -54,6 +55,21 @@ interface MenuItem {
   orTeam?: boolean;
 }
 
+/** The demo student's menu entries: the same labels, paths and icons a real student sees. */
+const DEMO_MENU: Record<string, { label: string; path: string; icon: string }> = {
+  thinkingLab:      { label: 'Thinking Lab', path: '/thinking-lab', icon: 'fa-solid fa-brain' },
+  communicationLab: { label: 'AI Communication Lab', path: '/ai-communication-lab', icon: 'fa-solid fa-comment-dots' },
+  codingPractice:   { label: 'Coding Practice', path: '/practice-library', icon: 'fa-solid fa-laptop-code' },
+  quizzes:          { label: 'My Quizzes', path: '/quizzes', icon: 'fa-solid fa-list-check' },
+  assignments:      { label: 'My Assignments', path: '/assignments', icon: 'fa-solid fa-file-lines' },
+  questionBooks:    { label: 'Interview Question Books', path: '/question-books', icon: 'fa-solid fa-book-open' },
+  mockInterview:    { label: 'My Interviews', path: '/student/interviews', icon: 'fa-solid fa-microphone-lines' },
+  playground:       { label: 'Code Playground', path: '/playground', icon: 'fa-solid fa-code' },
+  visualizer:       { label: 'Code Visualizer', path: '/visualizer', icon: 'fa-solid fa-microscope' },
+  aiMentor:         { label: 'AI Mentor', path: '/ai-mentor', icon: 'fa-solid fa-compass' },
+  resumeBuilder:    { label: 'Resume Builder', path: '/resume-builder', icon: 'fa-solid fa-file-lines' },
+};
+
 const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = ({ mobileOpen, onMobileClose }) => {
   const employee = useEmployeeStatus();
   const [isOpen, setIsOpen] = useState(true);
@@ -71,6 +87,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   });
   const location = useLocation();
   const { user } = useAuth();
+  const { me: demoMe } = useLmsDemo();
   const { isFeatureEnabled } = useStudentFeatures();
   const { isModuleEnabled } = useTenantModules();
   // An institute with its own brand shows its own logo (CodeBegun's otherwise).
@@ -465,12 +482,26 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     const l = label.toLowerCase();
     return CAREERPILOT_NAV.some(k => l.includes(k));
   };
-  const filteredItems = isCareerPilot
+  /*
+   * An LMS demo student: My Learning Plan and the features switched on for the demo, with the labels
+   * and icons real students see (so they fall into the usual sections). Nothing else — the server
+   * refuses every other page for a demo account anyway.
+   */
+  const demoMenu: MenuItem[] | null = isDemoUser(user)
+    ? [
+        { label: 'My Learning Plan', path: '/my-learning', roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap' },
+        ...demoFeaturesOn(demoMe).map(f => ({ ...DEMO_MENU[f.key], roles: ['STUDENT'] })),
+      ]
+    : null;
+  const filteredItems = demoMenu
+    ? demoMenu
+    : isCareerPilot
     ? roleFilteredItems.filter(i => inCareerPilotNav(i.label))
     : roleFilteredItems;
 
   const renderMenuItem = (item: MenuItem, isSubmenu = false) => {
-    if (!hasAccessToMenu(item)) return null;
+    // A demo student's items were chosen by the LMS Demo switches; the usual per-item rules do not apply.
+    if (!demoMenu && !hasAccessToMenu(item)) return null;
 
     if (item.submenu) {
       const visibleSubitems = item.submenu.filter(subitem => hasAccessToMenu(subitem));
@@ -599,7 +630,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
 
   // ── Student navigation grouped by the real daily flow ────────────────────────
   const homeItems = filteredItems.filter(i => ['Dashboard', 'My Course', 'My courses'].includes(i.label));
-  const dailyPracticeItems = filteredItems.filter(i => ['AI Communication Lab'].includes(i.label));
+  // A demo student's Quizzes / Assignments / Coding Practice / Visualizer sit where a real student finds them (inside My Work and Daily Practice).
+  const dailyPracticeItems = filteredItems.filter(i => ['AI Communication Lab', ...(demoMenu ? ['Coding Practice'] : [])].includes(i.label));
   /**
    * Thinking Lab stands on its own for students.
    *
@@ -613,8 +645,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
    * changes nothing here — which is exactly the mistake this comment exists to prevent.
    */
   const thinkingLabItems = filteredItems.filter(i => i.label === 'Thinking Lab');
-  const learnItems = filteredItems.filter(i => ['My Learning Plan', 'My Tasks', 'My Work', 'Live Classes', 'Attendance'].includes(i.label));
-  const careerItems = filteredItems.filter(i => ['Code Playground', 'My Interviews', 'Resume Builder', 'Career Profile', 'AI Mentor', 'Job Tracker', 'Project Builder', 'Project Library', 'Resource Library'].includes(i.label));
+  const learnItems = filteredItems.filter(i => ['My Learning Plan', 'My Tasks', 'My Work', 'Live Classes', 'Attendance', ...(demoMenu ? ['My Quizzes', 'My Assignments'] : [])].includes(i.label));
+  const careerItems = filteredItems.filter(i => ['Code Playground', 'My Interviews', 'Resume Builder', 'Career Profile', 'AI Mentor', 'Job Tracker', 'Project Builder', 'Project Library', 'Resource Library', ...(demoMenu ? ['Code Visualizer'] : [])].includes(i.label));
   const accountItems = filteredItems.filter(i => ['Fee Details', 'Apply Leave'].includes(i.label));
   const placementItems = filteredItems.filter(i => ['Drives', 'Interview Experiences', 'Interview Question Books'].includes(i.label));
   const studentGrouped = new Set<any>([...homeItems, ...dailyPracticeItems, ...thinkingLabItems, ...learnItems, ...careerItems, ...accountItems, ...placementItems, ...supportItems]);

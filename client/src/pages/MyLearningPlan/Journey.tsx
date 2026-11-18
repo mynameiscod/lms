@@ -4,13 +4,16 @@ import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
 import { unlockPlanCheckout } from '../../api/paymentApi';
 import { concernApi } from '../../api/concernApi';
 import RaiseConcern from '../../components/RaiseConcern';
-import './Journey.css';
+import './journeyDays.css';
+import { useAuth } from '../../contexts/AuthContext';
+import { isDemoUser } from '../../components/lmsDemo/DemoShell';
 
 const milestoneIcon = (kind: string) => kind === 'mock' ? 'bi-mic' : kind === 'project' ? 'bi-trophy' : 'bi-star';
 
 const MyJourney: React.FC = () => {
   const { enrollmentId } = useParams<{ enrollmentId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth() as any;
   const [j, setJ] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -48,8 +51,8 @@ const MyJourney: React.FC = () => {
     } finally { setMentorSent(true); }
   };
 
-  if (loading) return <div className="journey-state"><span className="spinner-border spinner-border-sm" /> Loading your journey…</div>;
-  if (err) return <div className="journey-state journey-error">{err}</div>;
+  if (loading) return <div className="jny"><div className="jny-state"><div className="jny-spin" /> Loading your days…</div></div>;
+  if (err) return <div className="jny"><div className="jny-state err">{err}</div></div>;
   if (!j) return null;
 
   const { plan, progress, access } = j;
@@ -64,87 +67,109 @@ const MyJourney: React.FC = () => {
   const endDate = j.estimatedEndDate ? new Date(j.estimatedEndDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const nextMilestone = plan.milestones?.find((m: any) => Number(m.day) >= currentDay);
 
+  const demo = isDemoUser(user);
+  const allDays: any[] = (plan.weeks || []).flatMap((w: any) => w.days || []);
+
   return (
-    <div className="journey-page">
-      <div className="journey-heading">
-        <div>
-          <button className="journey-back" onClick={() => navigate('/my-learning')}><i className="bi bi-arrow-left" /> My Learning Plan</button>
-          <h1>My Journey</h1>
-          <p>Track your progress and achieve your learning goals.</p>
+    <div className="jny">
+      <header className="jny-hero">
+        <div className="jny-hero-main">
+          <button type="button" className="jny-crumb" onClick={() => navigate('/my-learning')}><i className="bi bi-arrow-left" /> My Learning Plan</button>
+          <span className="jny-eyebrow">All days</span>
+          <h1>{plan.title}</h1>
+          <div className="jny-chips">
+            <span><i className="bi bi-calendar3" /> Day {currentDay} of {totalDays}</span>
+            <span><i className="bi bi-check2-circle" /> {completed} {completed === 1 ? 'day' : 'days'} done</span>
+            {!demo && <span><i className="bi bi-flag" /> Ends {endDate}</span>}
+            {!demo && plan.targetRole && <span><i className="bi bi-bullseye" /> {role}</span>}
+          </div>
+          <div className="jny-bar"><i style={{ width: `${percent}%` }} /></div>
         </div>
-        <RaiseConcern context={{ enrollmentId: enrollmentId!, curriculumTitle: plan.title }} />
-      </div>
+        <div className="jny-hero-side">
+          <div className="jny-ring" style={{ ['--p' as any]: `${percent * 3.6}deg` }}><div><b>{percent}%</b><span>complete</span></div></div>
+          <button type="button" className="jny-continue" onClick={() => openDay(currentDay, false)}><i className="bi bi-play-fill" /> {completed ? 'Continue' : 'Start'} Day {currentDay}</button>
+        </div>
+      </header>
 
-      <div className="journey-grid">
-        <main>
-          <section className="journey-card journey-summary">
-            <div className="progress-ring" style={{ '--progress': `${percent * 3.6}deg` } as React.CSSProperties}>
-              <div><strong>{percent}%</strong><span>Overall Progress</span></div>
-            </div>
-            <div className="summary-stat"><i className="bi bi-calendar3" /><span>Current Day<strong>{currentDay}</strong><small>of {totalDays} days</small></span></div>
-            <div className="summary-stat"><i className="bi bi-journal-bookmark" /><span>Total Weeks<strong>{plan.totalWeeks}</strong><small>Weeks of learning</small></span></div>
-            <div className="summary-stat"><i className="bi bi-bullseye" /><span>Target Role<strong>{role}</strong><small>Your career goal</small></span></div>
-            <div className="summary-progress"><div><span style={{ width: `${percent}%` }} /></div><b>{completed} / {totalDays} Days</b></div>
-          </section>
+      {access.previewOnly && (
+        <section className="jny-preview">
+          <div className="jny-preview-copy"><i className="bi bi-stars" /><span><b>You're on the free preview</b><small>Days 1–{access.previewDays} are unlocked. Unlock every lesson, mock interview, project, mentor support and placement journey.</small></span></div>
+          <div className="jny-preview-actions">
+            {access.paymentAvailable && <button type="button" className="jny-btn navy" onClick={handleUnlock} disabled={paying}>{paying ? 'Opening…' : access.priceInr ? `Unlock Full Journey · ₹${Number(access.priceInr).toLocaleString('en-IN')}` : 'Unlock Full Journey'}</button>}
+            <button type="button" className="jny-btn ghost" onClick={handleTalkToMentor} disabled={mentorSent}>{mentorSent ? '✓ Mentor will reach out' : 'Talk to a mentor'}</button>
+          </div>
+          {payMsg && <p className="jny-err">{payMsg}</p>}
+        </section>
+      )}
 
-          <section className="journey-card road-card">
-            <div className="section-title"><div><span className="eyebrow">YOUR ROAD TO JOB-READY</span><h2>Keep moving forward</h2></div></div>
-            <div className="roadmap">
-              {[
-                { name: 'Foundation', from: 1, to: Math.max(1, Math.round(totalDays * .2)) },
-                { name: 'Build', from: Math.round(totalDays * .2) + 1, to: Math.round(totalDays * .4) },
-                { name: 'Practice', from: Math.round(totalDays * .4) + 1, to: Math.round(totalDays * .67) },
-                { name: 'Launch', from: Math.round(totalDays * .67) + 1, to: totalDays },
-              ].map((s, idx) => {
-                const done = currentDay > s.to; const active = currentDay >= s.from && currentDay <= s.to;
-                return <div className={`road-step ${done ? 'done' : ''} ${active ? 'active' : ''}`} key={s.name}>
-                  <div className="road-node">{done ? <i className="bi bi-check-lg" /> : active ? <span /> : <i className={idx === 3 ? 'bi bi-lock' : 'bi bi-circle'} />}</div>
-                  {active && <em>You are here</em>}<strong>{s.name}</strong><small>Day {s.from} - {s.to}</small>
-                </div>;
-              })}
-            </div>
-          </section>
-
-          {access.previewOnly && <section className="journey-card preview-banner">
-            <div><i className="bi bi-stars" /><span><strong>You're on the free preview</strong><small>Days 1–{access.previewDays} are unlocked. Unlock every lesson, mock interview, project, mentor support and placement journey.</small></span></div>
-            <div className="preview-actions">
-              {access.paymentAvailable && <button onClick={handleUnlock} disabled={paying}>{paying ? 'Opening…' : access.priceInr ? `Unlock Full Journey · ₹${Number(access.priceInr).toLocaleString('en-IN')}` : 'Unlock Full Journey'}</button>}
-              <button className="outline" onClick={handleTalkToMentor} disabled={mentorSent}>{mentorSent ? '✓ Mentor will reach out' : 'Talk to a mentor'}</button>
-            </div>{payMsg && <p className="payment-error">{payMsg}</p>}
-          </section>}
-
-          <section className="journey-card curriculum-card">
-            <div className="section-title"><div><span className="eyebrow">JOURNEY CURRICULUM</span><h2>Your week-by-week path</h2></div><div className="legend"><span className="complete-dot" /> Completed <span className="current-dot" /> Current <span className="locked-dot" /> Locked</div></div>
-            <div className="week-list">
-              {plan.weeks.map((wk: any) => {
-                const weekCompleted = wk.days.filter((d: any) => d.status === 'completed').length;
-                const weekPercent = wk.days.length ? Math.round((weekCompleted / wk.days.length) * 100) : 0;
-                const isOpen = expandedWeek === wk.week;
-                return <div className={`week-row ${isOpen ? 'open' : ''}`} key={wk.week}>
-                  <button className="week-header" onClick={() => setExpandedWeek(isOpen ? null : wk.week)}>
-                    <span className="week-icon"><i className={`bi ${weekPercent === 100 ? 'bi-check2-circle' : isOpen ? 'bi-code-slash' : 'bi-layers'}`} /></span>
-                    <span className="week-copy"><small>Week {wk.week}</small><strong>{wk.title}</strong><em>{wk.days?.[0]?.day && wk.days?.[wk.days.length - 1]?.day ? `Days ${wk.days[0].day} - ${wk.days[wk.days.length - 1].day}` : ''}</em></span>
-                    <span className="week-percent"><strong>{weekPercent}%</strong><small>{weekPercent === 100 ? 'Completed' : isOpen ? 'In Progress' : 'Upcoming'}</small></span>
-                    <span className="week-bar"><i><b style={{ width: `${weekPercent}%` }} /></i><small>{weekCompleted} / {wk.days.length} Days</small></span>
-                    <i className={`bi bi-chevron-${isOpen ? 'up' : 'down'}`} />
-                  </button>
-                  {isOpen && <div className="day-strip">{wk.days.map((d: any) => <button key={d.day} onClick={() => openDay(d.day, d.locked)} disabled={d.locked} className={`day-chip ${d.status}`}><small>Day {d.day}</small>{d.locked ? <i className="bi bi-lock" /> : d.status === 'completed' ? <i className="bi bi-check-circle-fill" /> : d.status === 'current' ? <i className="bi bi-play-circle-fill" /> : <i className="bi bi-circle" />}</button>)}</div>}
-                </div>;
-              })}
-            </div>
-          </section>
+      <div className="jny-layout">
+        <main className="jny-weeks">
+          <div className="jny-legend">
+            <span><i className="dot done" /> Completed</span><span><i className="dot cur" /> Up next</span><span><i className="dot next" /> Upcoming</span>{allDays.some((d: any) => d.locked) && <span><i className="dot lock" /> Locked</span>}
+          </div>
+          {plan.weeks.map((wk: any) => {
+            const weekDone = wk.days.filter((d: any) => d.status === 'completed').length;
+            const weekPct = wk.days.length ? Math.round((weekDone / wk.days.length) * 100) : 0;
+            const isOpen = plan.weeks.length <= 3 || expandedWeek === wk.week;
+            return (
+              <section className={`jny-week${isOpen ? ' open' : ''}`} key={wk.week}>
+                <button type="button" className="jny-week-head" onClick={() => setExpandedWeek(expandedWeek === wk.week ? null : wk.week)} aria-expanded={isOpen}>
+                  <span className={`jny-week-ic${weekPct === 100 ? ' done' : ''}`}><i className={`bi ${weekPct === 100 ? 'bi-check2-circle' : 'bi-layers'}`} /></span>
+                  <span className="jny-week-tx"><small>Week {wk.week}{wk.days?.length ? ` · Days ${wk.days[0].day}–${wk.days[wk.days.length - 1].day}` : ''}</small><b>{wk.title}</b></span>
+                  <span className="jny-week-pct"><b>{weekPct}%</b><small>{weekDone}/{wk.days.length} days</small></span>
+                  {plan.weeks.length > 3 && <i className={`bi bi-chevron-${isOpen ? 'up' : 'down'}`} />}
+                </button>
+                {isOpen && (
+                  <div className="jny-days">
+                    {wk.days.map((d: any) => {
+                      const st = d.locked ? 'lock' : d.status === 'completed' ? 'done' : d.day === currentDay || d.status === 'current' ? 'cur' : 'next';
+                      return (
+                        <button type="button" key={d.day} disabled={d.locked} onClick={() => openDay(d.day, d.locked)} className={`jny-day ${st}`}>
+                          <span className="jny-day-top"><small>Day</small><b>{d.day}</b><i className={`bi ${st === 'done' ? 'bi-check-circle-fill' : st === 'lock' ? 'bi-lock-fill' : st === 'cur' ? 'bi-play-circle-fill' : 'bi-circle'}`} /></span>
+                          {d.title && <span className="jny-day-title">{d.title}</span>}
+                          <span className="jny-day-foot">{st === 'done' ? 'Completed' : st === 'lock' ? 'Locked' : st === 'cur' ? (completed ? 'Continue' : 'Start here') : 'Open'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </main>
 
-        <aside className="journey-aside">
-          <section className="journey-card continue-card"><span className="aside-icon"><i className="bi bi-book" /></span><div><span className="eyebrow">CONTINUE LEARNING</span><h3>Day {currentDay}: {currentDayData?.title || currentWeek?.title || 'Keep learning'}</h3><p>Pick up where you left off and keep your momentum going.</p><button onClick={() => openDay(currentDay, false)}>Continue Day {currentDay} <i className="bi bi-play-fill" /></button></div></section>
-
-          <section className="journey-card snapshot"><span className="eyebrow">JOURNEY SNAPSHOT</span>
-            <dl><div><dt><i className="bi bi-calendar-check" /> Expected Completion</dt><dd>{endDate}</dd></div><div><dt><i className="bi bi-clock" /> Daily Goal</dt><dd>{plan.pace?.hoursPerDay || 1.5} hrs / day</dd></div><div><dt><i className="bi bi-check2-circle" /> Completed Days</dt><dd>{completed} days</dd></div><div><dt><i className="bi bi-flag" /> Next Milestone</dt><dd>{nextMilestone?.title || 'Job Ready'}</dd></div></dl>
+        <aside className="jny-aside">
+          <section className="jny-card jny-next">
+            <span className="jny-next-ic"><i className="bi bi-book" /></span>
+            <span className="jny-eyebrow dark">Up next</span>
+            <h3>Day {currentDay}{currentDayData?.title ? `: ${currentDayData.title}` : ''}</h3>
+            <p>Pick up where you left off and keep your momentum going.</p>
+            <button type="button" className="jny-btn navy" onClick={() => openDay(currentDay, false)}>{completed ? 'Continue' : 'Start'} Day {currentDay} <i className="bi bi-arrow-right" /></button>
           </section>
-
-          {plan.milestones?.length > 0 && <section className="journey-card milestone-card"><span className="eyebrow">MILESTONES</span><div className="milestone-list">{plan.milestones.map((mi: any, i: number) => <div className={Number(mi.day) < currentDay ? 'done' : Number(mi.day) === currentDay ? 'active' : ''} key={i}><span><i className={`bi ${milestoneIcon(mi.kind)}`} /></span><p><strong>{mi.title}</strong><small>Day {mi.day}</small></p></div>)}</div></section>}
-
-          <section className="journey-cheer"><i className="bi bi-trophy-fill" /><div><strong>You're doing great!</strong><span>Consistency is the key to success.</span></div></section>
+          {!demo && (
+            <section className="jny-card">
+              <span className="jny-eyebrow dark">Snapshot</span>
+              <dl className="jny-dl">
+                <div><dt><i className="bi bi-calendar-check" /> Expected completion</dt><dd>{endDate}</dd></div>
+                <div><dt><i className="bi bi-clock" /> Daily goal</dt><dd>{plan.pace?.hoursPerDay || 1.5} hrs / day</dd></div>
+                <div><dt><i className="bi bi-check2-circle" /> Completed</dt><dd>{completed} days</dd></div>
+                <div><dt><i className="bi bi-flag" /> Next milestone</dt><dd>{nextMilestone?.title || 'Job Ready'}</dd></div>
+              </dl>
+            </section>
+          )}
+          {!demo && plan.milestones?.length > 0 && (
+            <section className="jny-card">
+              <span className="jny-eyebrow dark">Milestones</span>
+              <div className="jny-miles">
+                {plan.milestones.map((mi: any, i: number) => (
+                  <div key={i} className={Number(mi.day) < currentDay ? 'done' : Number(mi.day) === currentDay ? 'active' : ''}>
+                    <span><i className={`bi ${milestoneIcon(mi.kind)}`} /></span><p><b>{mi.title}</b><small>Day {mi.day}</small></p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+          {!demo && <div className="jny-concern"><RaiseConcern context={{ enrollmentId: enrollmentId!, curriculumTitle: plan.title }} /></div>}
         </aside>
       </div>
     </div>

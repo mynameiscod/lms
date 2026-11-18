@@ -100,6 +100,7 @@ import assessmentScheduleRoutes from './assessmentScheduleRoutes';
 import passportRoutes from './passportRoutes';
 import { careerPilotActivity, careerPilotMemberActivity } from '../middleware/careerPilotActivity';
 import publicPassportRoutes from './publicPassportRoutes';
+import lmsDemoRoutes, { publicLmsDemoRoutes } from './lmsDemoRoutes';
 import conceptLessonRoutes from './conceptLessonRoutes';
 import interactiveLessonRoutes from './interactiveLessonRoutes';
 import adminLogsRoute from './adminLogsRoute';
@@ -167,6 +168,7 @@ router.use(moduleGate);
 // CareerPilot signup (specific, before generic /public). Mounted at BOTH paths:
 // /passport is the legacy path and must keep answering, because member card links
 // already sent to recruiters point at it and cannot be recalled.
+router.use('/public/lms-demo', publicLmsDemoRoutes); // the free LMS demo sign-up (no auth)
 router.use('/public/careerpilot', careerPilotActivity, publicPassportRoutes);
 router.use('/public/passport', careerPilotActivity, publicPassportRoutes);
 // Problem Bank external API — API-key auth (not a user session); for colleges, partners and Interview Pilot.
@@ -338,6 +340,7 @@ router.use('/curricula', learningCurriculumRoutes);
 // STUDENT'S plan, not a curriculum, and nesting it would imply curriculum permissions apply.
 router.use('/adaptive', adaptiveCurriculumRoutes);
 router.use('/enrollment-plans', careerPilotMemberActivity, enrollmentPlanRoutes);
+router.use('/lms-demo', lmsDemoRoutes); // LMS demo students + the LMS Demo admin screen
 router.use('/projects', projectRoutes);
 router.use('/job-applications', jobApplicationRoutes);
 router.use('/ai-mentor', mentorRoutes);

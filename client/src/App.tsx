@@ -123,6 +123,9 @@ const PassportAdminTrialPlans = lazy(() => import('./pages/Passport/AdminTrialPl
 const PassportAdminDemoPlans = lazy(() => import('./pages/Passport/AdminDemoPlans'));
 const PassportAdminPlatformLimits = lazy(() => import('./pages/Passport/AdminPlatformLimits'));
 const PassportAdminJobOpenings = lazy(() => import('./pages/Passport/AdminJobOpenings'));
+const DemoLanding = lazy(() => import('./pages/LmsDemo/DemoLanding'));
+const DemoEnter = lazy(() => import('./pages/LmsDemo/DemoEnter'));
+const AdminLmsDemo = lazy(() => import('./pages/LmsDemo/AdminLmsDemo'));
 const PassportAdminStudentRoadmap = lazy(() => import('./pages/Passport/AdminStudentRoadmap'));
 const PassportAdminStageSkills = lazy(() => import('./pages/Passport/AdminStageSkills'));
 const PassportAdminCoins = lazy(() => import('./pages/Passport/AdminCoins'));
@@ -604,6 +607,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/hackathon-exam/enter/:slug" element={<HackathonExam />} />
       <Route path="/hackathon-exam" element={<HackathonExam />} />
 
+      {/* ── The free LMS demo (no auth): sign up, or open the one-tap link a counsellor sent ── */}
+      <Route path="/demo" element={<DemoLanding />} />
+      <Route path="/demo/enter" element={<DemoEnter />} />
       {/* ── Public Tech Battles (no auth) ── */}
       {/* A live-class invitation link: guests join without an account */}
       <Route path="/live/:token" element={<LiveGuestJoin />} />
@@ -703,6 +709,10 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_members']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
+      } />
+      {/* LMS Demo: demo courses, length, AI limit and demo students. A super admin, or a role they gave manage_lms_demo. */}
+      <Route path="/admin/lms-demo" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_lms_demo']}><Layout><AdminLmsDemo /></Layout></ProtectedRoute>
       } />
       {/* Opens for whoever holds manage_job_openings — a permission only a super admin can give a role. */}
       <Route path="/admin/passport/job-openings" element={

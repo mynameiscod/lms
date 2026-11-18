@@ -34,7 +34,7 @@ const HIDDEN_FROM_MENU = new Set<string>([
 const GIVEN_ONLY_PERMISSIONS = new Set([
   'support_agent', 'support_manager',
   'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
-  'manage_careerpilot_limits',
+  'manage_careerpilot_limits', 'manage_lms_demo',
 ]);
 
 interface MenuItem {
@@ -218,6 +218,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       ]
     },
     { label: 'Certificates',    path: '/admin/certificates',                  roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-award',    permissions: ['manage_certificates', 'manage_tenant_settings', 'manage_tenant', 'create_courses', 'edit_courses'] },
+    // The free LMS demo: a super admin, or any role a super admin gave manage_lms_demo.
+    { label: 'LMS Demo', path: '/admin/lms-demo', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-gift', permissions: ['manage_lms_demo'] },
     {
       label: 'Learning Plans',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],
@@ -547,7 +549,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const ADMIN_SECTIONS: { title: string; labels: string[] }[] = [
     { title: 'OVERVIEW',                labels: ['Dashboard', 'Notifications'] },
     { title: 'PEOPLE',                  labels: ['Users', 'Roles', 'Batches', 'Concerns'] },
-    { title: 'TEACHING',                labels: ['Learning Plans', 'Quizzes', 'Assignments', 'Code Snippets', 'Attendance', 'Live Classes', 'Leave Requests', 'Certificates'] },
+    { title: 'TEACHING',                labels: ['Learning Plans', 'LMS Demo', 'Quizzes', 'Assignments', 'Code Snippets', 'Attendance', 'Live Classes', 'Leave Requests', 'Certificates'] },
     { title: 'STUDENT LABS',            labels: ['AI Communication Lab', 'Communication Lab — Manage', 'Daily Lab Tracks', 'Speaking Practice', 'Speaking Tasks', 'Code Playground', 'Resource Library', 'Project Library'] },
     /**
      * Thinking Lab gets its own heading rather than a line inside STUDENT LABS.

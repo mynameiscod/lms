@@ -2,81 +2,136 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
 import { useAuth } from '../../contexts/AuthContext';
-import './MyLearningPlan.css';
+import { useLmsDemo, isDemoUser } from '../../components/lmsDemo/DemoShell';
+import './myLearningHome.css';
+
+/**
+ * My Learning Plan — the student's learning home, in the CareerPilot look: a navy greeting hero with the totals,
+ * then one card per plan with its progress, today's day and the way in. Same data and the same two doors as
+ * before (the plan's days, and today's day). An LMS demo student sees their demo courses here.
+ */
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
+const ACCENTS = ['#051D64', '#359AAD', '#6246C9', '#C87808', '#17885D', '#C93737'];
+const ICONS = ['bi-cup-hot', 'bi-filetype-py', 'bi-bar-chart-line', 'bi-cpu', 'bi-code-slash', 'bi-diagram-3'];
 
 export default function MyLearningPlan() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuth() as any;
+  const demo = isDemoUser(user);
+  const { me: demoMe, openTalk } = useLmsDemo();
   const firstName = (user as any)?.firstName || 'there';
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     enrollmentPlanApi.getMyEnrollments().then(setEnrollments).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+    // A demo student's courses are enrolled when the demo shell first loads; read again once it has.
+  }, [demoMe?.courses?.length]);
 
-  if (loading) return <div className="lp-page"><div className="lp-loading"><div className="lp-spinner" /></div></div>;
+  if (loading) return <div className="mlh"><div className="mlh-loading"><div className="mlh-spin" /></div></div>;
 
-  if (!enrollments.length) {
-    return <div className="lp-page"><header className="lp-page-head"><div><span className="lp-eyebrow">LEARNING JOURNEY</span><h1>My Learning Plan</h1><p>Your personalized plan to learn, practice and grow every day.</p></div></header><div className="lp-empty"><div className="lp-empty-icon"><i className="bi bi-mortarboard" /></div><h3>No active learning plan yet</h3><p>Your instructor will enroll you in a curriculum. Once assigned, your daily journey will appear here.</p></div></div>;
-  }
+  // Demo courses come in the admin's order, with the admin's names and colours.
+  const demoCourses = demoMe?.courses || [];
+  const byCurriculum = new Map(demoCourses.map((c, i) => [c.curriculumId, { ...c, i }]));
+  const list = demo
+    ? [...enrollments].filter(e => byCurriculum.has(String(e.curriculumId))).sort((a, b) => (byCurriculum.get(String(a.curriculumId))!.i - byCurriculum.get(String(b.curriculumId))!.i))
+    : enrollments;
+
+  const totalDone = list.reduce((a, e) => a + (e.completedDays?.length || 0), 0);
+  const todayMins = list.reduce((a, e) => a + (e.todayPlan?.items || []).reduce((s: number, i: any) => s + (i.estimatedDuration || 0), 0), 0);
+  const avgPct = list.length ? Math.round(list.reduce((a, e) => a + Math.max(0, Math.min(100, e.progressPct || 0)), 0) / list.length) : 0;
 
   return (
-    <div className="lp-page">
-      <header className="lp-page-head">
-        <div><span className="lp-eyebrow">LEARNING JOURNEY</span><h1>My Learning Plan</h1><p>Your personalized plan to help you learn, practice and grow every day.</p></div>
-        <div className="lp-head-message"><i className="bi bi-stars" /><span>Keep going, <strong>{firstName}</strong>!</span></div>
+    <div className="mlh">
+      <header className="mlh-hero">
+        <div className="mlh-hero-copy">
+          <span className="mlh-eyebrow">{demo ? 'Your free demo' : 'My Learning Plan'}</span>
+          <h1>Hi {firstName} 👋</h1>
+          <p>{demo
+            ? `Every course below is open for you${demoMe?.daysLeft ? ` for the next ${demoMe.daysLeft <= 1 ? 'day' : `${demoMe.daysLeft} days`}` : ''}. Watch the classes, read the notes and try the practice.`
+            : 'Your plan to learn, practise and grow — one focused day at a time.'}</p>
+          <div className="mlh-chips">
+            <span><i className="bi bi-collection-play" /> {list.length} {list.length === 1 ? 'course' : 'courses'}</span>
+            <span><i className="bi bi-check2-circle" /> {totalDone} {totalDone === 1 ? 'day' : 'days'} completed</span>
+            {!demo && todayMins > 0 && <span><i className="bi bi-clock" /> {todayMins} min today</span>}
+            {demo && demoMe?.ai && demoMe.ai.limit > 0 && <span><i className="bi bi-robot" /> {demoMe.ai.left} AI questions left today</span>}
+          </div>
+        </div>
+        <div className="mlh-hero-ring" style={{ ['--p' as any]: `${avgPct * 3.6}deg` }} aria-label={`${avgPct}% complete`}>
+          <div><b>{avgPct}%</b><span>{list.length > 1 ? 'average' : 'complete'}</span></div>
+        </div>
       </header>
 
-      <div className="lp-list">
-        {enrollments.map((e: any) => {
-          const today = e.todayPlanDay;
-          const totalDays = e.totalDays || 145;
-          const pct = Math.max(0, Math.min(100, e.progressPct || 0));
-          const doneCount = e.completedDays?.length || 0;
-          const daysLeft = today ? Math.max(0, totalDays - today) : totalDays;
-          const items = e.todayPlan?.items || [];
-          const estMins = items.reduce((sum: number, i: any) => sum + (i.estimatedDuration || 0), 0);
+      {!list.length ? (
+        <div className="mlh-empty">
+          <div className="mlh-empty-ic"><i className="bi bi-mortarboard" /></div>
+          <h2>{demo ? 'Your demo courses are on their way' : 'No active learning plan yet'}</h2>
+          <p>{demo ? 'Our team is preparing the demo classes. Please check back shortly, or talk to a counsellor.' : 'Your instructor will enroll you in a curriculum. Once assigned, your daily journey will appear here.'}</p>
+          {demo && <button type="button" className="mlh-btn navy" onClick={openTalk}><i className="bi bi-headset" /> Talk to a counsellor</button>}
+        </div>
+      ) : (
+        <div className={`mlh-grid${list.length === 1 ? ' one' : ''}`}>
+          {list.map((e: any, idx: number) => {
+            const dc = byCurriculum.get(String(e.curriculumId));
+            const accent = dc?.color || ACCENTS[idx % ACCENTS.length];
+            const title = dc?.title || e.curriculumTitle;
+            const totalDays = e.totalDays || 145;
+            const pct = Math.max(0, Math.min(100, e.progressPct || 0));
+            const doneCount = e.completedDays?.length || 0;
+            // A demo has every day open and no calendar: carry on from where the student is.
+            const today = demo ? Math.min(totalDays, Math.max(1, (e.completedDays?.length ? Math.max(...e.completedDays) + 1 : 1))) : e.todayPlanDay;
+            const items = demo ? [] : (e.todayPlan?.items || []);
+            const estMins = items.reduce((sum: number, i: any) => sum + (i.estimatedDuration || 0), 0);
+            return (
+              <article className="mlh-card" key={e._id} style={{ ['--acc' as any]: accent }}>
+                <div className="mlh-card-top">
+                  <span className="mlh-card-ic"><i className={`bi ${ICONS[idx % ICONS.length]}`} /></span>
+                  <div className="mlh-card-title">
+                    <h2>{title}</h2>
+                    <div className="mlh-meta">
+                      {demo ? <span>{totalDays} demo {totalDays === 1 ? 'day' : 'days'}</span> : <><span className="mlh-active"><i className="bi bi-check-circle-fill" /> Active</span>{e.batchName && <span>{e.batchName}</span>}<span>Started {fmtDate(e.startDate)}</span></>}
+                    </div>
+                  </div>
+                  <div className="mlh-ring" style={{ ['--p' as any]: `${pct * 3.6}deg` }}><div><b>{pct}%</b></div></div>
+                </div>
+                {dc?.blurb && <p className="mlh-blurb">{dc.blurb}</p>}
 
-          return <section className="lp-plan" key={e._id}>
-            <div className="lp-plan-hero">
-              <div className="lp-plan-copy">
-                <div className="lp-plan-meta"><span className="lp-active"><i className="bi bi-check-circle-fill" /> Active Plan</span>{e.batchName && <span>{e.batchName}</span>}<span>Started {fmtDate(e.startDate)}</span></div>
-                <h2>{e.curriculumTitle}</h2>
-                <p>Stay consistent and move forward one focused day at a time.</p>
-                <div className="lp-hero-actions"><button className="lp-btn primary" onClick={() => navigate(`/my-learning/${e._id}/journey`)}><i className="bi bi-map" /> View My Journey</button>{today && <button className="lp-btn secondary" onClick={() => navigate(`/my-learning/${e._id}/day/${today}`)}><i className="bi bi-play-circle" /> Continue Day {today}</button>}</div>
-              </div>
-              <div className="lp-progress-ring" style={{ '--progress': `${pct * 3.6}deg` } as React.CSSProperties}><div><strong>{pct}%</strong><span>Complete</span></div></div>
-            </div>
+                <div className="mlh-stats">
+                  <div><small>{demo ? 'Up next' : "Today's day"}</small><b>{today ? `Day ${today}` : '—'}<em> / {totalDays}</em></b></div>
+                  <div><small>Completed</small><b>{doneCount} <em>{doneCount === 1 ? 'day' : 'days'}</em></b></div>
+                  <div><small>{demo ? 'Lessons done' : "Today's study"}</small><b>{demo ? (dc?.itemsDone ?? 0) : estMins ? `${estMins} min` : '—'}</b></div>
+                </div>
+                <div className="mlh-bar"><i style={{ width: `${pct}%` }} /></div>
 
-            <div className="lp-metrics">
-              <article><span className="lp-metric-icon teal"><i className="bi bi-calendar-check" /></span><div><small>Today's Day</small><strong>{today || '—'} <em>/ {totalDays}</em></strong></div></article>
-              <article><span className="lp-metric-icon green"><i className="bi bi-check2-circle" /></span><div><small>Days Completed</small><strong>{doneCount}</strong></div></article>
-              <article><span className="lp-metric-icon orange"><i className="bi bi-hourglass-split" /></span><div><small>Days Remaining</small><strong>{daysLeft}</strong></div></article>
-              <article><span className="lp-metric-icon blue"><i className="bi bi-clock" /></span><div><small>Today's Study</small><strong>{estMins ? `${estMins} min` : 'Not set'}</strong></div></article>
-            </div>
+                {items.length > 0 && (
+                  <ul className="mlh-today">
+                    {items.slice(0, 3).map((item: any, i: number) => (
+                      <li key={item._id || i}><span>{i + 1}</span><b>{item.title || item.contentTitle || item.name || `Activity ${i + 1}`}</b>{item.estimatedDuration ? <em>{item.estimatedDuration} min</em> : null}</li>
+                    ))}
+                    {items.length > 3 && <li className="more">+{items.length - 3} more today</li>}
+                  </ul>
+                )}
 
-            <div className="lp-content-grid">
-              <div className="lp-today-card">
-                <div className="lp-section-head"><div><span className="lp-section-kicker">TODAY</span><h3>{today ? `Day ${today} Learning Plan` : 'Today’s Learning Plan'}</h3></div><span className="lp-count">{items.length} {items.length === 1 ? 'activity' : 'activities'}</span></div>
-                {items.length ? <div className="lp-activities">{items.map((item: any, idx: number) => <div className="lp-activity" key={item._id || idx}><span className={`lp-step ${idx === 0 ? 'current' : ''}`}>{idx + 1}</span><div className="lp-activity-copy"><strong>{item.title || item.contentTitle || item.name || `Learning activity ${idx + 1}`}</strong><span>{item.estimatedDuration ? `${item.estimatedDuration} min` : 'Learning activity'}{item.type ? ` · ${item.type}` : ''}</span></div>{today && <button onClick={() => navigate(`/my-learning/${e._id}/day/${today}`)}>{idx === 0 ? 'Continue' : 'Open'} <i className="bi bi-arrow-right" /></button>}</div>)}</div> : <div className="lp-no-items"><i className="bi bi-calendar2-week" /><div><strong>No content assigned for this day yet</strong><span>Check back after your instructor updates the plan.</span></div></div>}
-                {today && <button className="lp-full-plan" onClick={() => navigate(`/my-learning/${e._id}/day/${today}`)}>View full day plan <i className="bi bi-arrow-right" /></button>}
-              </div>
+                <div className="mlh-actions">
+                  {today && <button type="button" className="mlh-btn navy" onClick={() => navigate(`/my-learning/${e._id}/day/${today}`)}><i className="bi bi-play-circle" /> {doneCount ? `Continue Day ${today}` : `Start Day ${today}`}</button>}
+                  <button type="button" className="mlh-btn ghost" onClick={() => navigate(`/my-learning/${e._id}/journey`)}><i className="bi bi-grid-3x3-gap" /> All days</button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
 
-              <aside className="lp-side-stack">
-                <div className="lp-side-card"><div className="lp-side-title"><i className="bi bi-bullseye" /> Journey Progress</div><div className="lp-progress-row"><span>Course completion</span><strong>{pct}%</strong></div><div className="lp-bar"><span style={{ width: `${pct}%` }} /></div><div className="lp-progress-row muted"><span>{doneCount} days completed</span><span>{daysLeft} remaining</span></div></div>
-                <div className="lp-side-card motivation"><i className="bi bi-rocket-takeoff" /><div><strong>Consistency is the key to success!</strong><p>Small steps every day build a stronger future. Keep your learning streak alive.</p></div></div>
-                <div className="lp-side-card quick"><div className="lp-side-title">Quick actions</div><button onClick={() => navigate(`/my-learning/${e._id}/journey`)}><i className="bi bi-signpost-split" /> My Journey <i className="bi bi-chevron-right" /></button><button onClick={() => navigate(`/my-learning/${e._id}/day/1`)}><i className="bi bi-calendar3" /> View from Day 1 <i className="bi bi-chevron-right" /></button>{doneCount > 0 && <button onClick={() => navigate(`/my-learning/${e._id}/day/${Math.min(e.currentDay || today || 1, totalDays)}`)}><i className="bi bi-arrow-repeat" /> Resume Learning <i className="bi bi-chevron-right" /></button>}</div>
-              </aside>
-            </div>
-          </section>;
-        })}
-      </div>
-      <div className="lp-footer-note"><i className="bi bi-stars" /> Stay consistent and trust the process. Small steps every day lead to big results!</div>
+      {demo && list.length > 0 && (
+        <section className="mlh-talk">
+          <i className="bi bi-headset" />
+          <div><b>Have questions about joining?</b><span>A counsellor can help you pick the right course, batch and fee plan.</span></div>
+          <button type="button" className="mlh-btn navy" onClick={openTalk}>Talk to a counsellor</button>
+        </section>
+      )}
     </div>
   );
 }

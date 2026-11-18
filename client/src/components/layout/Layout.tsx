@@ -10,6 +10,7 @@ import './StudentCoreRemaining.css';
 import './AdminCore.css';
 import './CareerPilotAdmin.css';
 import { useStaffHeartbeat } from '../../hooks/useStaffHeartbeat';
+import DemoShell, { isDemoUser } from '../lmsDemo/DemoShell';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -55,6 +56,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+
+  // An LMS demo student gets the demo shell: learning plan only, with the demo clock and the counsellor button.
+  if (isDemoUser(user)) return <DemoShell>{children}</DemoShell>;
 
   const handleMenuToggle = () => {
     if (window.innerWidth <= 768) setMobileSidebarOpen(open => !open);

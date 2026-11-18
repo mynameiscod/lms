@@ -42,8 +42,9 @@ export class UserService {
   }
 
   async getUsersByTenant(tenantId: string): Promise<IUser[]> {
-    // Return all users (including inactive) for admin management
-    return await User.find({ tenantId });
+    // Return all users (including inactive) for admin management. LMS demo students are listed on
+    // the LMS Demo screen instead, so they never turn up in user pickers or the Users screen.
+    return await User.find({ tenantId, 'lmsDemo.at': { $exists: false } });
   }
 
   async getUserById(userId: string): Promise<IUser | null> {

@@ -122,6 +122,27 @@ export interface IUser extends Document {
     customFields?: Record<string, string>;
   };
   phone?: string;
+  /**
+   * An LMS DEMO STUDENT (services/lmsDemoService.ts). Absent on every real account. Kept off the
+   * Users screen and listed on the LMS Demo screen instead; after `expiresAt` the account can only
+   * see the end-of-demo screen.
+   */
+  lmsDemo?: {
+    at: Date;
+    expiresAt: Date;
+    source: 'self' | 'given';
+    by?: string;
+    byName?: string;
+    leadId?: mongoose.Types.ObjectId;
+    status?: string;
+    endedAt?: Date;
+    endedBy?: string;
+    talkRequestedAt?: Date;
+    moreTimeRequestedAt?: Date;
+    lastSeenAt?: Date;
+    aiDay?: string;
+    aiUsed?: number;
+  };
   // Student enrolment status. Inactive = never really attended; Discontinued = joined, then
   // stopped coming. Both also set isActive=false (login blocked, left out of reports).
   studentStatus?: 'active' | 'inactive' | 'discontinued';
@@ -366,6 +387,26 @@ const UserSchema: Schema = new Schema(
       type: String,
       default: null
     },
+    // A real sub-schema, not Mixed: without it Mongoose silently drops a $set on lmsDemo.*.
+    lmsDemo: {
+      type: new Schema({
+        at:        { type: Date, required: true },
+        expiresAt: { type: Date, required: true },
+        source:    { type: String, enum: ['self', 'given'], default: 'self' },
+        by:        { type: String },
+        byName:    { type: String },
+        leadId:    { type: Schema.Types.ObjectId, ref: 'Lead' },
+        status:    { type: String },
+        endedAt:   { type: Date },
+        endedBy:   { type: String },
+        talkRequestedAt:     { type: Date },
+        moreTimeRequestedAt: { type: Date },
+        lastSeenAt: { type: Date },
+        aiDay:     { type: String },
+        aiUsed:    { type: Number, default: 0 },
+      }, { _id: false }),
+      default: undefined,
+    },
     studentStatus: { type: String, enum: ['active', 'inactive', 'discontinued'] },
     studentStatusAt: { type: Date },
     studentStatusReason: { type: String, trim: true },
@@ -448,5 +489,7 @@ UserSchema.set('toJSON', {
 
 // Placement batch member lists; sparse because almost nobody has one.
 UserSchema.index({ placementBatchIds: 1 }, { sparse: true });
+// LMS demo students: the LMS Demo screen lists them, every other list leaves them out.
+UserSchema.index({ tenantId: 1, 'lmsDemo.at': -1 }, { partialFilterExpression: { 'lmsDemo.at': { $exists: true } } });
 
 export default mongoose.model<IUser>('User', UserSchema);

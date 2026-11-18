@@ -65,6 +65,12 @@ export interface WaLeadFilterOptions {
   stages: { _id: string; name: string; count: number }[];
   sources: { source: string; count: number }[];
 }
+/** A module that holds people (hackathons, tech battles, events...). The server decides the list. */
+export interface WaAudienceSource { key: string; label: string; description: string }
+export interface WaAudienceFilter { key: string; label: string; single?: boolean; options: { value: string; label: string; count?: number }[] }
+export interface WaSourceAudience { source: string; pick: Record<string, string[]>; skipAlreadySent: boolean }
+export interface WaSourcePreview { total: number; alreadySent: number; sample: string[] }
+
 export interface WaLeadAudience { total: number; alreadySent: number; years: Record<string, number>; sample: string[] }
 
 /** One template send and what Meta later reported about it. */
@@ -90,12 +96,15 @@ export const waTemplateApi = {
   compatibility: () => axios.get(`${BASE}/usage/compatibility`, h()).then(d) as Promise<Record<string, Record<string, WaCompat>>>,
   assign: (purpose: string, templateId: string | null) => axios.put(`${BASE}/usage/${purpose}`, { templateId }, h()).then(d) as Promise<{ ok: boolean; warnings: string[] }>,
   sendTest: (id: string, phone: string, values: string[], buttonParam?: string, force?: boolean) => axios.post(`${BASE}/${id}/test`, { phone, values, buttonParam, force: force === true }, h()),
-  broadcast: (id: string, body: { phones?: string; batchId?: string; leads?: WaLeadFilter; values: string[]; buttonParam?: string }) =>
+  broadcast: (id: string, body: { phones?: string; batchId?: string; leads?: WaLeadFilter; audience?: WaSourceAudience; values: string[]; buttonParam?: string }) =>
     axios.post(`${BASE}/${id}/broadcast`, body, h()).then(d) as Promise<WaBroadcast>,
   broadcasts: () => axios.get(`${BASE}/broadcasts`, h()).then(d) as Promise<WaBroadcast[]>,
   batches: () => axios.get(`${BASE}/batches`, h()).then(d) as Promise<{ _id: string; name: string }[]>,
   leadFilters: () => axios.get(`${BASE}/lead-filters`, h()).then(d) as Promise<WaLeadFilterOptions>,
   leadAudience: (id: string, f: WaLeadFilter) => axios.post(`${BASE}/${id}/lead-audience`, f, h()).then(d) as Promise<WaLeadAudience>,
+  audienceSources: () => axios.get(`${BASE}/audiences`, h()).then(d) as Promise<WaAudienceSource[]>,
+  audienceFilters: (key: string) => axios.get(`${BASE}/audiences/${key}/filters`, h()).then(d) as Promise<WaAudienceFilter[]>,
+  audiencePreview: (id: string, a: WaSourceAudience) => axios.post(`${BASE}/${id}/audience-preview`, a, h()).then(d) as Promise<WaSourcePreview>,
   messages: (q: { phone?: string; templateId?: string; limit?: number; status?: 'failed' } = {}) =>
     axios.get(`${BASE}/messages`, { ...h(), params: q }).then(d) as Promise<WaMessage[]>,
   messagesSummary: () => axios.get(`${BASE}/messages/summary`, h()).then(d) as Promise<WaDeliverySummary>,

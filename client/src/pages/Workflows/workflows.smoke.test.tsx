@@ -8,7 +8,7 @@ import { act } from 'react-dom/test-utils';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import WorkflowsPage from './index';
 import Builder from './Builder';
-import { RECIPES, newStep, STEPS } from './meta';
+import { RECIPES, newStep, STEPS, suggestRecipe } from './meta';
 import { StepType } from '../../api/workflowApi';
 
 jest.mock('axios', () => ({ __esModule: true, default: { create: () => ({ interceptors: { request: { use: () => 0 } } }) } }));
@@ -44,6 +44,7 @@ jest.mock('../../api/workflowApi', () => ({
     get: async () => mockWf,
     options: async () => mockOptions,
     runs: async () => [mockRun],
+    runsSummary: async () => ({ live: 2, completed: 5, stopped: 1, failed: 0, total: 8 }),
     settings: async () => ({ timezone: 'Asia/Kolkata', days: Object.fromEntries(['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].map(d => [d, { open: d !== 'sun', start: '09:30', end: '18:30' }])), holidays: [{ date: '2026-12-25', name: 'Christmas' }], openNow: false, nextOpening: 'tomorrow at 9:30 AM' }),
   },
 }));
@@ -71,6 +72,27 @@ it('lists workflows with their trigger', async () => {
   expect(el.textContent).toContain('Welcome flow');
   expect(el.textContent).toContain('WhatsApp message received');
   expect(el.textContent).toContain('“fee”');
+  // Cards, quick start and the table.
+  expect(el.textContent).toContain('Total Workflows');
+  expect(el.textContent).toContain('Quick Start Templates');
+  expect(el.textContent).toContain('Rebook missed demos');
+  expect(el.textContent).toContain('Your Workflows');
+  done();
+});
+
+it('opens Create New Workflow with every recipe grouped, and suggests one from a goal', async () => {
+  const { el, done } = await render('/workflows');
+  const btn = Array.from(el.querySelectorAll('button')).find(b => b.textContent?.includes('New workflow')) as HTMLElement;
+  await act(async () => { btn.click(); });
+  const dlg = document.querySelector('[role=dialog]') as HTMLElement;
+  expect(dlg.textContent).toContain('Create New Workflow');
+  for (const t of ['Recommended for You', 'Follow-ups & Engagement', 'Advanced & Custom']) expect(dlg.textContent).toContain(t);
+  for (const r of RECIPES) expect(dlg.textContent).toContain(r.title);
+  expect(dlg.textContent).toContain('Start from scratch');
+  expect(suggestRecipe('follow up after 3 days')).toBe('nurture');
+  expect(suggestRecipe('remind people before the demo')).toBe('demo');
+  expect(suggestRecipe('reply when we are closed at night')).toBe('ooo');
+  expect(suggestRecipe('zzz')).toBeNull();
   done();
 });
 
@@ -78,10 +100,16 @@ it('shows runs and office hours', async () => {
   let r = await render('/workflows?tab=runs');
   expect(r.el.textContent).toContain('Ravi');
   expect(r.el.textContent).toContain('waiting for their reply');
+  expect(r.el.textContent).toContain('Total Runs');
+  expect(r.el.textContent).toContain('Last 7 days');
   r.done();
   r = await render('/workflows?tab=hours');
   expect(r.el.textContent).toContain('opens tomorrow at 9:30 AM');
   expect(r.el.textContent).toContain('Christmas');
+  expect(r.el.textContent).toContain('Mon – Sat');
+  expect(r.el.textContent).toContain('09:30 – 18:30');
+  expect(r.el.textContent).toContain('Out-of-Office Auto Reply');
+  expect(r.el.textContent).toContain('Enable Office Hours');
   r.done();
 });
 

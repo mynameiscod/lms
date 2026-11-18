@@ -56,10 +56,14 @@ export interface Run {
   currentStep: { id: string; number: string; type: StepType } | null;
   answers: Record<string, string>; test: boolean; log: RunLog[]; endReason?: string; createdAt: string; endedAt?: string;
 }
+export interface RunSummary { live: number; completed: number; stopped: number; failed: number; total: number }
+
 export interface OfficeHours {
   timezone: string;
   days: Record<string, { open: boolean; start: string; end: string }>;
   holidays: { date: string; name?: string }[];
+  /** Off = office hours not used: always open, no out-of-office replies. */
+  enabled?: boolean;
   openNow?: boolean; nextOpening?: string;
 }
 
@@ -73,7 +77,8 @@ export const workflowApi = {
   remove: (id: string) => data<void>(api.delete(`/${id}`)),
   test: (id: string, leadId: string, message?: string) => data<{ runId: string; status: string; log: RunLog[] }>(api.post(`/${id}/test`, { leadId, message })),
   options: () => data<Options>(api.get('/options')),
-  runs: (q: { workflowId?: string; status?: string; limit?: number } = {}) => data<Run[]>(api.get('/runs', { params: q })),
+  runs: (q: { workflowId?: string; status?: string; limit?: number; days?: number } = {}) => data<Run[]>(api.get('/runs', { params: q })),
+  runsSummary: (q: { workflowId?: string; days?: number } = {}) => data<RunSummary>(api.get('/runs/summary', { params: q })),
   stopRun: (runId: string) => data<void>(api.post(`/runs/${runId}/stop`)),
   continueRun: (runId: string) => data<void>(api.post(`/runs/${runId}/continue`)),
   settings: () => data<OfficeHours>(api.get('/settings')),

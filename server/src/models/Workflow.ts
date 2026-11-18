@@ -151,6 +151,8 @@ export interface IWorkflowSettings extends Document {
   days: Record<typeof WEEKDAYS[number], DayHours>;
   /** YYYY-MM-DD in the institute's timezone. */
   holidays: { date: string; name?: string }[];
+  /** Off = office hours are not used: always open, no out-of-office replies. */
+  enabled: boolean;
   updatedBy?: mongoose.Types.ObjectId;
 }
 const day = (open: boolean) => ({ open: { type: Boolean, default: open }, start: { type: String, default: '09:30' }, end: { type: String, default: '18:30' } });
@@ -161,6 +163,7 @@ const SettingsSchema = new Schema<IWorkflowSettings>({
     sun: day(false), mon: day(true), tue: day(true), wed: day(true), thu: day(true), fri: day(true), sat: day(true),
   },
   holidays: { type: [{ date: String, name: String, _id: false }], default: [] },
+  enabled: { type: Boolean, default: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 export const WorkflowSettings = mongoose.model<IWorkflowSettings>('WorkflowSettings', SettingsSchema);

@@ -117,3 +117,14 @@
 /* The shell forces margin-left/right: 0 !important on .main-content > * (Layout CSS); the strip needs its gutter. */
 .main-content > .dsh-strip { margin-left: clamp(12px, 2vw, 28px) !important; margin-right: clamp(12px, 2vw, 28px) !important; }
 @media (max-width: 560px) { .main-content > .dsh-strip { margin-left: 10px !important; margin-right: 10px !important; } }
+
+
+/*
+ * A demo page: the strip and the page inside one gutter, the same on every screen. Pages bring their own
+ * spacing (or none: the shell gives .main-content no padding), so without this the strip and the page
+ * pressed against each other and against the sidebar.
+ */
+.dsh-page { padding: 14px clamp(12px, 1.8vw, 26px) 32px; min-width: 0; }
+.dsh-page > .dsh-strip { margin: 0 0 16px !important; }
+.dsh-page > .dsh-end { padding: 4px 0 24px; }
+@media (max-width: 560px) { .dsh-page { padding: 10px 10px 24px; } .dsh-page > .dsh-strip { margin-bottom: 12px !important; } }

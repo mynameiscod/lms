@@ -253,3 +253,10 @@
 .plx-trial { display: flex; align-items: baseline; gap: 8px; margin: 10px 0 0 !important; padding: 9px 12px; border-radius: 11px; background: #FFF6E2; border: 1px solid #F3DFB2; color: #6B4A00 !important; font-size: 13.5px !important; line-height: 1.45; }
 .plx-trial i { color: #B26F00; }
 .plx-trial b { color: #051D64; }
+
+/* Phones: the editor bar wraps (language picker on its own row) so Submit is never pushed off the screen. */
+@media (max-width: 560px) {
+  .pl-right > .bar { flex-wrap: wrap; gap: 8px; }
+  .pl-right > .bar select { flex: 1 1 100%; min-width: 0; }
+  .pl-right > .bar .pl-btn { flex: 1 1 0; justify-content: center; }
+}

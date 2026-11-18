@@ -576,7 +576,11 @@ const AppRoutes: React.FC = () => {
    * --fs-floor) is CareerPilot-only.
    */
   useEffect(() => {
-    document.documentElement.classList.toggle('cp-route', /^\/(careerpilot|passport)(\/|$)/.test(boundaryPath));
+    /* The same floor for the LMS student pages built in the CareerPilot design (Thinking Lab, Communication
+       Lab, practice, books, visualizer, mentor, playground, and the other learner pages): they were sized for it, and
+       read at 7-9 real pixels on a laptop without it. */
+    document.documentElement.classList.toggle('cp-route', /^\/(careerpilot|passport)(\/|$)/.test(boundaryPath)
+      || /^\/(thinking-lab|ai-communication-lab|practice-library|question-books|visualizer|ai-mentor|playground)(\/|$)/.test(boundaryPath));
   }, [boundaryPath]);
 
   if (crossing) return <Navigate to={crossing} replace />;

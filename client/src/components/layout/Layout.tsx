@@ -85,7 +85,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', margin: '14px 0 6px' }}>{blockedLabel || 'This feature'} is not enabled for your institute</h2>
             <p style={{ fontSize: 14, margin: 0 }}>Contact the platform administrator to switch it on.</p>
           </div>
-        ) : demo ? <><DemoStrip /><DemoContent>{children}</DemoContent></> : children}</main>
+        ) : demo ? <div className="dsh-page"><DemoStrip /><DemoContent>{children}</DemoContent></div> : children}</main>
       </div>
     </div>
   );

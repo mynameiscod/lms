@@ -42,7 +42,9 @@ export default function AdminLmsDemo() {
   useEffect(() => { loadConfig(); }, [loadConfig]);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''), 3200); return () => clearTimeout(t); }, [toast]);
 
-  const activeCourses = (cfg?.courses || []).filter(c => c.active).length;
+  // The "Start here" course counts too (when it is not also in the list).
+  const startId = cfg?.startCurriculumId ? String(cfg.startCurriculumId) : '';
+  const activeCourses = (cfg?.courses || []).filter(c => c.active && String(c.curriculumId) !== startId).length + (startId ? 1 : 0);
 
   return (
     <div className="ldm">

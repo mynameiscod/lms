@@ -37,7 +37,9 @@ const whoNamed = async (req: Request) => {
 export const publicInfo = async (_req: Request, res: Response) => {
   try {
     const cfg = await demo.getConfig();
-    const courses = await demo.demoCourses(cfg);
+    // The "Start here" course counts as a course: a demo with only that is still a demo.
+    const [list, start] = await Promise.all([demo.demoCourses(cfg), demo.startCourse(cfg)]);
+    const courses = [...(start ? [start] : []), ...list.filter(c => !start || c.curriculumId !== start.curriculumId)];
     res.json({ success: true, data: { enabled: cfg.enabled && courses.length > 0 && !!demo.demoTenantId(), lengthDays: cfg.lengthDays, courses } });
   } catch (e) { fail(res, e); }
 };

@@ -13,6 +13,7 @@ import { recordSend } from './whatsAppDeliveryService';
 import { recordOutbound, renderTemplateBody } from './whatsAppChatStore';
 import { WA_TEMPLATE_PURPOSES, WaTemplatePurpose, getPurpose } from '../config/whatsappTemplatePurposes';
 import { templateShape, buildSendComponents, varIndexes } from './whatsAppTemplateShape';
+import { AudiencePick, getAudienceSource, describePick } from './whatsAppAudiences';
 
 export { templateShape };
 
@@ -619,7 +620,7 @@ export async function sendTest(tenantId: string, id: string, phone: string, valu
 /** Recipients: pasted numbers, students of a batch, or CRM leads matching a filter. `{name}` in a value is personalised. */
 export async function startBroadcast(
   tenantId: string, userId: string, id: string,
-  input: { phones?: string; batchId?: string; leads?: LeadFilter; values: string[]; buttonParam?: string },
+  input: { phones?: string; batchId?: string; leads?: LeadFilter; audience?: SourceAudience; values: string[]; buttonParam?: string },
 ) {
   const t = await WhatsAppTemplate.findOne({ _id: id, tenantId });
   if (!t) throw new WaTemplateError('Template not found', 404);
@@ -627,7 +628,11 @@ export async function startBroadcast(
 
   let recipients: { phone: string; name: string; leadId?: any }[] = [];
   let audience = '';
-  if (input.leads) {
+  if (input.audience) {
+    const r = await resolveSourceAudience(tenantId, t, input.audience);
+    recipients = r.recipients;
+    audience = `${r.label} (${recipients.length})`;
+  } else if (input.leads) {
     const r = await resolveLeadAudience(tenantId, t, input.leads);
     recipients = r.recipients;
     audience = `CRM leads: ${r.label} (${recipients.length})`;
@@ -689,6 +694,40 @@ export async function startBroadcast(
   });
 
   return b;
+}
+
+// ── People from other modules (hackathons, tech battles, events…) ─────────────
+
+export interface SourceAudience { source: string; pick: AudiencePick; skipAlreadySent?: boolean }
+
+/** One per number; optionally without the numbers this template already reached. */
+async function dedupeAndSkip(tenantId: string, t: IWhatsAppTemplate, rows: { phone: string; name: string }[], skip?: boolean) {
+  const seen = new Set<string>();
+  rows = rows.filter((r) => { const k = normalizeTo(r.phone); if (k.length < 10 || seen.has(k)) return false; seen.add(k); return true; });
+  let alreadySent = 0;
+  if (skip) {
+    const done = new Set<string>(await WhatsAppMessageLog.distinct('to', { tenantId: new mongoose.Types.ObjectId(tenantId), templateName: t.name, status: { $ne: 'failed' } }));
+    const before = rows.length;
+    rows = rows.filter((r) => !done.has(normalizeTo(r.phone)));
+    alreadySent = before - rows.length;
+  }
+  return { rows, alreadySent };
+}
+
+export async function resolveSourceAudience(tenantId: string, t: IWhatsAppTemplate, a: SourceAudience) {
+  const source = getAudienceSource(a.source);
+  if (!source) throw new WaTemplateError('Unknown recipient list.');
+  const { rows, alreadySent } = await dedupeAndSkip(tenantId, t, await source.resolve(tenantId, a.pick || {}), a.skipAlreadySent);
+  return { recipients: rows, alreadySent, label: await describePick(tenantId, source, a.pick || {}) };
+}
+
+export async function previewSourceAudience(tenantId: string, id: string, a: SourceAudience) {
+  const t = await WhatsAppTemplate.findOne({ _id: id, tenantId });
+  if (!t) throw new WaTemplateError('Template not found', 404);
+  const source = getAudienceSource(a.source);
+  if (!source) throw new WaTemplateError('Unknown recipient list.');
+  const { rows, alreadySent } = await dedupeAndSkip(tenantId, t, await source.resolve(tenantId, a.pick || {}), a.skipAlreadySent);
+  return { total: rows.length, alreadySent, sample: rows.slice(0, 5).map((x) => x.name || x.phone) };
 }
 
 // ── CRM leads as a broadcast audience ────────────────────────────────────────

@@ -26,6 +26,8 @@ router.get('/messages', ctrl.messages);
 router.get('/messages/summary', ctrl.messagesSummary);
 router.get('/batches', ctrl.batches);
 router.get('/lead-filters', ctrl.leadFilters);
+router.get('/audiences', ctrl.audienceSources);
+router.get('/audiences/:key/filters', ctrl.audienceFilters);
 
 // A PDF for a Document header (brochure): stored by us, served at a public link Meta can fetch.
 const pdfUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: WA_FILE_MAX_BYTES, files: 1 } });
@@ -49,5 +51,6 @@ router.delete('/:id', ctrl.remove);
 router.post('/:id/test', ctrl.sendTest);
 router.post('/:id/broadcast', ctrl.broadcast);
 router.post('/:id/lead-audience', ctrl.leadAudience);
+router.post('/:id/audience-preview', ctrl.sourceAudiencePreview);
 
 export default router;

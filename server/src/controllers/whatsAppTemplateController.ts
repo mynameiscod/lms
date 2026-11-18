@@ -5,6 +5,7 @@ import * as settings from '../services/settingsService';
 import * as svc from '../services/whatsAppTemplateService';
 import { listMessages, deliverySummary, explainWaError } from '../services/whatsAppDeliveryService';
 import { WA_TEMPLATE_PURPOSES } from '../config/whatsappTemplatePurposes';
+import { AUDIENCE_SOURCES, getAudienceSource } from '../services/whatsAppAudiences';
 
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
@@ -102,10 +103,10 @@ export const messagesSummary = wrap(async (req, res) => {
 });
 
 export const broadcast = wrap(async (req, res) => {
-  const { phones, batchId, leads, values, buttonParam } = req.body || {};
+  const { phones, batchId, leads, audience, values, buttonParam } = req.body || {};
   if (batchId && !mongoose.isValidObjectId(batchId)) return res.status(400).json({ success: false, message: 'Invalid batch' });
   const b = await svc.startBroadcast(tId(req), uId(req), req.params.id, {
-    phones, batchId, leads: leads ? leadFilter(leads) : undefined, values: Array.isArray(values) ? values.map(String) : [], buttonParam,
+    phones, batchId, leads: leads ? leadFilter(leads) : undefined, audience: audience ? sourceAudience(audience) : undefined, values: Array.isArray(values) ? values.map(String) : [], buttonParam,
   });
   res.status(202).json({ success: true, data: b });
 });
@@ -114,6 +115,29 @@ const strList = (v: any) => (Array.isArray(v) ? v.map(String).filter(Boolean).sl
 const leadFilter = (b: any): svc.LeadFilter => ({
   stageIds: strList(b?.stageIds), sources: strList(b?.sources), passoutYears: strList(b?.passoutYears),
   skipAlreadySent: b?.skipAlreadySent !== false,
+});
+
+/** { source, pick: { filterKey: [values] }, skipAlreadySent } — only plain string lists get through. */
+const sourceAudience = (b: any): svc.SourceAudience => {
+  const pick: Record<string, string[]> = {};
+  if (b?.pick && typeof b.pick === 'object') {
+    for (const [k, v] of Object.entries(b.pick).slice(0, 10)) if (/^[a-zA-Z]{1,40}$/.test(k)) pick[k] = strList(v);
+  }
+  return { source: String(b?.source || ''), pick, skipAlreadySent: b?.skipAlreadySent !== false };
+};
+
+export const audienceSources = wrap(async (_req, res) => {
+  res.json({ success: true, data: AUDIENCE_SOURCES.map(({ key, label, description }) => ({ key, label, description })) });
+});
+
+export const audienceFilters = wrap(async (req, res) => {
+  const source = getAudienceSource(String(req.params.key));
+  if (!source) return res.status(404).json({ success: false, message: 'Unknown recipient list' });
+  res.json({ success: true, data: await source.filters(tId(req)) });
+});
+
+export const sourceAudiencePreview = wrap(async (req, res) => {
+  res.json({ success: true, data: await svc.previewSourceAudience(tId(req), req.params.id, sourceAudience(req.body)) });
 });
 
 export const leadAudience = wrap(async (req, res) => {

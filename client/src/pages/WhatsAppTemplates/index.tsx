@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   waTemplateApi, errMsg, WaTemplate, WaTemplateInput, WaPurpose, WaCompat, WaBroadcast, WaButton, WaCategory, WaMessage, WaDeliverySummary,
-  WaLeadFilter, WaLeadFilterOptions, WaLeadAudience,
+  WaLeadFilter, WaLeadFilterOptions, WaLeadAudience, WaAudienceSource, WaAudienceFilter, WaSourcePreview,
 } from '../../api/whatsAppTemplateApi';
 
 /**
@@ -425,7 +425,14 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
   const [phone, setPhone] = useState('');
   const [values, setValues] = useState<string[]>(() => Array.from({ length: t.shape.bodyVarCount }, (_, i) => t.bodyExamples?.[i] || ''));
   const [buttonParam, setButtonParam] = useState('');
-  const [audience, setAudience] = useState<'paste' | 'batch' | 'leads'>('paste');
+  // 'paste' | 'batch' | 'leads', or the key of a module's people list (hackathons, battles...).
+  const [audience, setAudience] = useState<string>('paste');
+  const [sources, setSources] = useState<WaAudienceSource[]>([]);
+  const [srcFilters, setSrcFilters] = useState<WaAudienceFilter[] | null>(null);
+  const [pick, setPick] = useState<Record<string, string[]>>({});
+  const [srcSkip, setSrcSkip] = useState(true);
+  const [srcPreview, setSrcPreview] = useState<WaSourcePreview | null>(null);
+  const isSource = !['paste', 'batch', 'leads'].includes(audience);
   const [phones, setPhones] = useState('');
   const [batchId, setBatchId] = useState('');
   const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
@@ -438,6 +445,30 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
   const hasBtn = t.shape.urlButtonIndex >= 0;
 
   useEffect(() => { if (mode === 'broadcast' && !batches.length) waTemplateApi.batches().then(setBatches).catch(() => {}); }, [mode, batches.length]);
+  useEffect(() => { if (mode === 'broadcast' && !sources.length) waTemplateApi.audienceSources().then(setSources).catch(() => {}); }, [mode, sources.length]);
+  useEffect(() => {
+    if (!isSource) return;
+    let live = true;
+    setSrcFilters(null); setSrcPreview(null);
+    waTemplateApi.audienceFilters(audience).then((f) => {
+      if (!live) return;
+      setSrcFilters(f);
+      setPick(Object.fromEntries(f.filter((x) => x.single && x.options[0]).map((x) => [x.key, [x.options[0].value]])));
+    }).catch((e) => live && setErr(errMsg(e)));
+    return () => { live = false; };
+  }, [audience, isSource]);
+  useEffect(() => {
+    if (!isSource || !srcFilters) return;
+    let live = true;
+    setSrcPreview(null);
+    const h = setTimeout(() => waTemplateApi.audiencePreview(t._id, { source: audience, pick, skipAlreadySent: srcSkip })
+      .then((p) => live && setSrcPreview(p)).catch((e) => live && setErr(errMsg(e))), 250);
+    return () => { live = false; clearTimeout(h); };
+  }, [audience, isSource, srcFilters, pick, srcSkip, t._id]);
+  const togglePick = (f: WaAudienceFilter, v: string) => setPick((p) => {
+    const cur = p[f.key] || [];
+    return { ...p, [f.key]: f.single ? [v] : cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v] };
+  });
   useEffect(() => { if (audience === 'leads' && !leadOpts) waTemplateApi.leadFilters().then(setLeadOpts).catch((e) => setErr(errMsg(e))); }, [audience, leadOpts]);
   // Re-count whenever the filter changes, so the number on the Send button is the number that goes out.
   useEffect(() => {
@@ -467,7 +498,7 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
         if (!window.confirm('Send this template to every recipient now? This cannot be undone.')) { setBusy(false); return; }
         const b = await waTemplateApi.broadcast(t._id, {
           phones: audience === 'paste' ? phones : undefined, batchId: audience === 'batch' ? batchId : undefined,
-          leads: audience === 'leads' ? leadFilter : undefined, values, buttonParam: hasBtn ? buttonParam : undefined,
+          leads: audience === 'leads' ? leadFilter : undefined, audience: isSource ? { source: audience, pick, skipAlreadySent: srcSkip } : undefined, values, buttonParam: hasBtn ? buttonParam : undefined,
         });
         onDone(`Broadcast started to ${b.total} recipient${b.total === 1 ? '' : 's'} — follow it under Sent history.`);
       }
@@ -500,12 +531,48 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
       ) : (
         <>
           <label style={label}>Recipients</label>
-          <div style={{ display: 'flex', gap: 14, fontSize: 13 }}>
+          <div style={{ display: 'flex', gap: '6px 14px', fontSize: 13, flexWrap: 'wrap' }}>
             <label><input type="radio" checked={audience === 'paste'} onChange={() => setAudience('paste')} /> Paste numbers</label>
             <label><input type="radio" checked={audience === 'batch'} onChange={() => setAudience('batch')} /> Students of a batch</label>
             <label><input type="radio" checked={audience === 'leads'} onChange={() => setAudience('leads')} /> CRM leads</label>
+            {sources.map((s) => (
+              <label key={s.key} title={s.description}><input type="radio" checked={audience === s.key} onChange={() => setAudience(s.key)} /> {s.label}</label>
+            ))}
           </div>
-          {audience === 'leads' ? (
+          {isSource ? (
+            <div style={{ marginTop: 6 }}>
+              {!srcFilters ? <div style={hint}>Loading...</div> : (
+                <>
+                  {srcFilters.map((f) => {
+                    const opts = f.single ? f.options : f.options.filter((o) => (o.count ?? 1) > 0 || (pick[f.key] || []).includes(o.value));
+                    if (!opts.length) return null;
+                    return (
+                      <div key={f.key}>
+                        <div style={{ ...hint, fontWeight: 600, color: C.text, marginTop: 8 }}>{f.label}</div>
+                        <div style={chipRow}>
+                          {opts.map((o) => (
+                            <Chip key={o.value} on={(pick[f.key] || []).includes(o.value)} onClick={() => togglePick(f, o.value)}>
+                              {o.label}{o.count != null ? ` · ${o.count}` : ''}
+                            </Chip>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <label style={{ display: 'block', fontSize: 13, marginTop: 8 }}>
+                    <input type="checkbox" checked={srcSkip} onChange={(e) => setSrcSkip(e.target.checked)} /> Skip numbers this template already reached
+                  </label>
+                  <div style={{ ...hint, marginTop: 6 }}>
+                    {!srcPreview ? 'Counting...' : (
+                      <><b style={{ color: C.text }}>{srcPreview.total} {srcPreview.total === 1 ? 'person' : 'people'}</b> will get this
+                        {srcPreview.alreadySent > 0 && ` (${srcPreview.alreadySent} skipped, already sent)`}
+                        {srcPreview.sample.length > 0 && ` — e.g. ${srcPreview.sample.join(', ')}`}. Nothing picked in a row means everyone in it; one message per number.</>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : audience === 'leads' ? (
             <div style={{ marginTop: 6 }}>
               {!leadOpts ? <div style={hint}>Loading lead stages…</div> : (
                 <>
@@ -587,8 +654,8 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
       {err && <div style={{ background: C.redBg, color: C.red, borderRadius: 8, padding: '8px 12px', fontSize: 13, marginTop: 12 }}>{err}</div>}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
         <button style={btn()} onClick={onClose}>Cancel</button>
-        <button style={btn('primary')} disabled={busy || (mode === 'broadcast' && audience === 'leads' && !leadPreview?.total)} onClick={go}>
-          {busy ? 'Sending…' : mode === 'test' ? 'Send test' : audience === 'leads' && leadPreview ? `Send to ${leadPreview.total} leads` : 'Send now'}
+        <button style={btn('primary')} disabled={busy || (mode === 'broadcast' && audience === 'leads' && !leadPreview?.total) || (mode === 'broadcast' && isSource && !srcPreview?.total)} onClick={go}>
+          {busy ? 'Sending…' : mode === 'test' ? 'Send test' : audience === 'leads' && leadPreview ? `Send to ${leadPreview.total} leads` : isSource && srcPreview ? `Send to ${srcPreview.total} ${srcPreview.total === 1 ? 'person' : 'people'}` : 'Send now'}
         </button>
       </div>
     </Modal>

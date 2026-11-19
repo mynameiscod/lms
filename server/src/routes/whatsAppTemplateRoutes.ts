@@ -22,6 +22,9 @@ router.get('/usage/compatibility', ctrl.compatibility);
 router.put('/usage/:purpose', ctrl.assign);
 
 router.get('/broadcasts', ctrl.broadcasts);
+router.get('/broadcasts/:id/reply-leads', ctrl.broadcastReplyLeads);
+router.put('/broadcasts/:id/purpose', ctrl.broadcastPurpose);
+router.post('/broadcasts/:id/archive-reply-leads', ctrl.archiveBroadcastReplyLeads);
 router.get('/messages', ctrl.messages);
 router.get('/messages/summary', ctrl.messagesSummary);
 router.get('/batches', ctrl.batches);

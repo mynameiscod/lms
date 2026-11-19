@@ -48,6 +48,9 @@ jest.mock('../../api/whatsAppTemplateApi', () => ({
     broadcasts: async () => mockHistory,
     messages: async (q: any) => { mockMessageCalls.push(q); return mockMessages; },
     messagesSummary: async () => mockSummary,
+    replyLeads: async () => [{ _id: 'l1', name: 'Hire One', phone: '919000000011', createdAt: '2026-11-18T16:00:00Z' }],
+    batches: async () => [],
+    audienceSources: async () => [],
   },
 }));
 
@@ -108,6 +111,22 @@ it('Sent History: shows what Meta reported after the broadcast', async () => {
   const { el, tab, done } = await render();
   await tab('Sent History');
   const t = el.textContent || '';
-  for (const s of ['93 to send', '50 delivered', '30 read', '43 failed', 'Meta accepted all of them, then reported 43 as not delivered']) expect(t).toContain(s);
+  for (const s of ['93 to send', '50 delivered', '30 read', '43 failed', 'Meta accepted all of them, then reported 43 as not delivered', 'Not set (replies treated as leads)', '1 lead was created', 'Hire One']) expect(t).toContain(s);
+  done();
+});
+
+it('Send to many: must say what the message is for before sending', async () => {
+  const { el, done } = await render();
+  const more = el.querySelector('[aria-label="More for cb_batch_update_announcement"]') as HTMLElement;
+  await act(async () => { more.click(); });
+  await act(async () => { (Array.from(el.querySelectorAll('[role=menuitem]')).find((b) => b.textContent?.includes('Send')) as HTMLElement).click(); });
+  const dlg = () => document.querySelector('[role=dialog]') as HTMLElement || document.body;
+  await act(async () => { (Array.from(document.querySelectorAll('button')).find((b) => b.textContent === 'Send to many') as HTMLElement).click(); });
+  expect(dlg().textContent).toContain('What is this message for?');
+  const sendBtn = () => Array.from(document.querySelectorAll('button')).find((b) => b.textContent === 'Send now') as HTMLButtonElement;
+  expect(sendBtn().disabled).toBe(true);
+  await act(async () => { (Array.from(document.querySelectorAll('[role=radio]')).find((b) => b.textContent?.includes('Hiring')) as HTMLElement).click(); });
+  expect(document.body.textContent).toContain('Replies go to the inbox only. No bot, no lead.');
+  expect(sendBtn().disabled).toBe(false);
   done();
 });

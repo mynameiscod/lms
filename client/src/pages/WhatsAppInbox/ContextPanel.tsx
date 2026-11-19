@@ -34,6 +34,10 @@ const ContextPanel: React.FC<{ phone: string; onClose?: () => void }> = ({ phone
   if (err) return <aside className="wai-ctx"><div className="wai-err">{err}</div></aside>;
   if (!ctx) return <aside className="wai-ctx"><div className="wai-ctx-empty">Loading details…</div></aside>;
   const { lead, automation } = ctx;
+  const makeLead = async () => {
+    if (!window.confirm('Create a CRM lead for this person? Lead assignment, the welcome workflow and follow-ups will treat them as a sales enquiry from now on.')) return;
+    try { await whatsAppChatApi.makeLead(phone); load(); } catch (e) { setErr(chatErr(e)); }
+  };
   const liveRuns = automation.workflows.filter((w) => w.status === 'running' || w.status === 'waiting');
   const pastRuns = automation.workflows.filter((w) => !(w.status === 'running' || w.status === 'waiting')).slice(0, 3);
 
@@ -43,6 +47,15 @@ const ContextPanel: React.FC<{ phone: string; onClose?: () => void }> = ({ phone
         <b>Details</b>
         {onClose && <button type="button" className="wai-icon-btn" onClick={onClose} aria-label="Hide details"><i className="bi bi-x-lg" /></button>}
       </div>
+
+      {ctx.quiet && (
+        <section className="wai-card wai-quiet">
+          <h3><i className="bi bi-shield-check" /> Not a sales chat</h3>
+          <p className="wai-big sm">{ctx.quiet.label}</p>
+          <p className="wai-hint">The bot and workflows do not answer this person, and no lead is created when they write. A person on the team replies.</p>
+          {!lead && <button type="button" className="wai-btn ghost" onClick={makeLead}><i className="bi bi-person-plus" /> Turn into a lead</button>}
+        </section>
+      )}
 
       <section className="wai-card">
         <h3><i className="bi bi-person-badge" /> Counsellor</h3>

@@ -38,6 +38,8 @@ export interface IWhatsAppThread extends Document {
   linkedAt?: Date;
   /** Last time staff were notified about a reply here — keeps a burst of messages to one bell. */
   lastNotifiedAt?: Date;
+  /** Our last broadcast to them was not sales (hiring, wishes, update): replies stay with people until `until`. */
+  replyContext?: { kind: string; templateName?: string; broadcastId?: mongoose.Types.ObjectId; until?: Date } | null;
   /** The person sent STOP: workflows never message them (START undoes it). */
   automationOptOutAt?: Date | null;
 }
@@ -69,6 +71,7 @@ const WhatsAppThreadSchema = new Schema<IWhatsAppThread>({
   linkedAt: Date,
   lastNotifiedAt: Date,
   automationOptOutAt: { type: Date, default: null },
+  replyContext: { kind: String, templateName: String, broadcastId: { type: Schema.Types.ObjectId, ref: 'WhatsAppBroadcast' }, until: Date },
 }, { timestamps: true });
 
 WhatsAppThreadSchema.index({ tenantId: 1, phone: 1 }, { unique: true });

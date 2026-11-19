@@ -14,7 +14,7 @@ jest.mock('../../components/WhatsAppChat/useWaLive', () => ({ useWaLive: () => {
 const mockInboxCalls: any[] = [];
 const mockRows = [
   { phone: '919182701438', name: 'Geetha', links: { leadId: 'l1' }, lastPreview: 'Year of graduation - 2027', lastMessageAt: new Date().toISOString(), lastInboundAt: new Date(Date.now() - 22.5 * 3600_000).toISOString(), unreadCount: 2, assignedTo: { _id: 'u1', name: 'Siva Prasad' }, ownerFrom: 'lead', status: 'needs_reply', waitingSince: new Date(Date.now() - 2 * 3600_000).toISOString(), lead: { stage: { name: 'Demo Booked', color: '#F59E0B' }, source: 'facebook', priority: 'hot' } },
-  { phone: '919000000003', name: '', contactName: 'Chintu', links: {}, lastPreview: 'Which course?', lastMessageAt: new Date().toISOString(), unreadCount: 0, assignedTo: null, ownerFrom: null, status: 'automation', lead: null },
+  { phone: '919000000003', name: '', contactName: 'Chintu', links: {}, lastPreview: 'Which course?', lastMessageAt: new Date().toISOString(), unreadCount: 0, assignedTo: null, ownerFrom: null, status: 'automation', lead: null, replyTo: { kind: 'hiring', templateName: 'bda_hiring' } },
   { phone: '919000000004', name: 'Ravi', links: { leadId: 'l2' }, lastPreview: 'ok', lastMessageAt: new Date().toISOString(), unreadCount: 0, assignedTo: null, ownerFrom: null, status: 'waiting_lead', lead: { stage: null, source: 'website', priority: '' } },
 ];
 const mockThread = {
@@ -29,6 +29,7 @@ const mockThread = {
   ],
 };
 const mockContext = {
+  quiet: { kind: 'hiring', label: 'Reply to your hiring / jobs "bda_hiring"' },
   owner: { _id: 'u1', name: 'Siva Prasad', from: 'lead' },
   lead: { _id: 'l1', name: 'Geetha', email: '', source: 'facebook', stage: { name: 'Demo Booked', color: '#F59E0B' }, subStage: '', priority: 'hot', score: 12, courses: ['Java Full Stack'], nextFollowUp: null, lastContactedAt: null, lastCallOutcome: '', createdAt: '2026-11-18T15:00:00Z', savedOnLead: [{ label: 'Passout Year', value: '2027' }] },
   placement: null, student: null,
@@ -66,7 +67,7 @@ beforeAll(() => { (Element.prototype as any).scrollIntoView = () => {}; });
 it('list: status per chat, one owner, stage and source, and the filters', async () => {
   const { el, done } = await render('/whatsapp-inbox');
   const t = el.textContent || '';
-  for (const s of ['Needs reply', 'No counsellor', 'Automation', 'Automation running', 'Waiting for them', 'Demo Booked', 'Facebook', 'Siva Prasad', 'Not in CRM', 'All counsellors', 'All stages', 'All sources', 'Any reply window']) expect(t).toContain(s);
+  for (const s of ['Needs reply', 'No counsellor', 'Automation', 'Automation running', 'Waiting for them', 'Demo Booked', 'Facebook', 'Siva Prasad', 'Hiring reply', 'All counsellors', 'All stages', 'All sources', 'Any reply window']) expect(t).toContain(s);
   expect(t).toMatch(/m to reply/); // 22.5h since they wrote → closing soon
 
   const stage = el.querySelector('select[aria-label="Lead stage"]') as HTMLSelectElement;
@@ -85,7 +86,7 @@ it('conversation: who sent each message, system notes, counsellor, details panel
   const { el, done } = await render('/whatsapp-inbox?phone=919182701438');
   const t = el.textContent || '';
   for (const s of ['Old bot', 'Workflow · template welcome_1', 'Old bot stopped after question 2', 'Counsellor', 'Old bot: off for this chat', 'Mark handled', 'Details',
-    "Same person as the lead's counsellor in CRM", 'Answers they gave', 'Kundrapu Geetha divya sri', 'Passout Year', 'Message labels', 'New lead: welcome + questions', 'stopped at question 2 of 5'])
+    "Same person as the lead's counsellor in CRM", 'Answers they gave', 'Kundrapu Geetha divya sri', 'Passout Year', 'Message labels', 'Not a sales chat', 'Reply to your hiring / jobs', 'New lead: welcome + questions', 'stopped at question 2 of 5'])
     expect(t.toLowerCase()).toContain(s.toLowerCase());
   expect(el.querySelector('.wac-tag.team')?.textContent).toContain('Siva Prasad');
   done();

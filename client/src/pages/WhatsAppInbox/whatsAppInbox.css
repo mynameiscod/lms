@@ -150,3 +150,10 @@
   .wai-chat-head { flex-wrap: wrap; }
   .wai-chat-actions { width: 100%; }
 }
+
+/* Replies to non-sales messages (2026-11-19) */
+.wai-tag.r { background: #ccfbf1; color: #0f766e; }
+.wai-quiet { border-color: #99f6e4; background: #f0fdfa; }
+.wai-quiet h3 i { color: #0d9488; }
+.wai-big.sm { font-size: 13.5px; }
+.wai-quiet .wai-btn { margin-top: 8px; }

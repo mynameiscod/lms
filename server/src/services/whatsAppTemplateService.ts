@@ -1,3 +1,4 @@
+import { BroadcastPurpose, isPurpose, markRepliesNotLeads } from './whatsAppReplyContext';
 import mongoose from 'mongoose';
 import WhatsAppTemplate, { IWhatsAppTemplate, IWaButton, WaTemplateCategory } from '../models/WhatsAppTemplate';
 import WhatsAppBroadcast from '../models/WhatsAppBroadcast';
@@ -620,7 +621,7 @@ export async function sendTest(tenantId: string, id: string, phone: string, valu
 /** Recipients: pasted numbers, students of a batch, or CRM leads matching a filter. `{name}` in a value is personalised. */
 export async function startBroadcast(
   tenantId: string, userId: string, id: string,
-  input: { phones?: string; batchId?: string; leads?: LeadFilter; audience?: SourceAudience; values: string[]; buttonParam?: string },
+  input: { phones?: string; batchId?: string; leads?: LeadFilter; audience?: SourceAudience; values: string[]; buttonParam?: string; purpose?: BroadcastPurpose },
 ) {
   const t = await WhatsAppTemplate.findOne({ _id: id, tenantId });
   if (!t) throw new WaTemplateError('Template not found', 404);
@@ -659,9 +660,13 @@ export async function startBroadcast(
   if (!recipients.length) throw new WaTemplateError('No recipients with a phone number.');
   if (recipients.length > 2000) throw new WaTemplateError('At most 2000 recipients per broadcast.');
 
+  // CRM leads are sales by nature; anything else must say what it is for, and defaults to "not sales"
+  // so a hiring or wishes message never starts the bot or creates leads.
+  const purpose: BroadcastPurpose = isPurpose(input.purpose) ? input.purpose : input.leads ? 'sales' : 'update';
   const b = await WhatsAppBroadcast.create({
-    tenantId, templateId: t._id, templateName: t.name, audience, total: recipients.length, createdBy: userId,
+    tenantId, templateId: t._id, templateName: t.name, audience, total: recipients.length, createdBy: userId, purpose,
   });
+  await markRepliesNotLeads(tenantId, recipients.map((r) => r.phone), { kind: purpose, templateName: t.name, broadcastId: b._id });
 
   (async () => {
     let sent = 0, failed = 0;

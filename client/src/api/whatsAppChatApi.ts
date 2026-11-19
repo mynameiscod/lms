@@ -47,7 +47,7 @@ export type InboxStatus = 'needs_reply' | 'automation' | 'waiting_lead' | 'idle'
 
 export interface InboxQuery {
   filter?: InboxFilter; q?: string; page?: number;
-  owner?: string; stageId?: string; source?: string; type?: '' | 'lead' | 'placement' | 'student'; window?: '' | 'open' | 'closing' | 'closed';
+  owner?: string; stageId?: string; source?: string; type?: '' | 'lead' | 'placement' | 'student' | 'not_sales'; window?: '' | 'open' | 'closing' | 'closed';
 }
 
 export interface InboxRow {
@@ -61,6 +61,8 @@ export interface InboxRow {
   unreadCount: number;
   assignedTo: { _id: string; name: string } | null;
   ownerFrom: 'lead' | 'chat' | null;
+  /** Their last message from us was hiring / wishes / an update: replies are not leads. */
+  replyTo: { kind: string; templateName: string } | null;
   status: InboxStatus;
   waitingSince?: string;
   lead: { stage: { name: string; color: string } | null; source: string; priority: string } | null;
@@ -73,6 +75,8 @@ export interface InboxOptions {
 }
 
 export interface ThreadContext {
+  /** Why nothing automatic answers them (a reply to a hiring / wishes message, a student…). */
+  quiet: { kind: string; label: string } | null;
   owner: { _id: string; name: string; from: 'lead' | 'chat' | null } | null;
   lead: {
     _id: string; name: string; email: string; source: string;
@@ -133,6 +137,7 @@ export const whatsAppChatApi = {
   inboxOptions: () => axios.get(`${BASE}/inbox/options`, h()).then(d) as Promise<InboxOptions>,
   context: (phone: string) => axios.get(`${BASE}/threads/${encodeURIComponent(phone)}/context`, h()).then(d) as Promise<ThreadContext>,
   markHandled: (phone: string) => axios.post(`${BASE}/threads/${encodeURIComponent(phone)}/handled`, {}, h()),
+  makeLead: (phone: string) => axios.post(`${BASE}/threads/${encodeURIComponent(phone)}/make-lead`, {}, h()).then(d) as Promise<{ leadId: string }>,
   staff: () => axios.get(`${BASE}/staff`, h()).then(d) as Promise<{ staff: { _id: string; name: string }[]; canReassign: boolean; me: string }>,
   assign: (phone: string, userId: string | null) => axios.put(`${BASE}/threads/${encodeURIComponent(phone)}/assign`, { userId }, h()).then(d),
   quickReplies: () => axios.get(`${BASE}/quick-replies`, h()).then(d) as Promise<{ replies: QuickReply[]; canEdit: boolean }>,

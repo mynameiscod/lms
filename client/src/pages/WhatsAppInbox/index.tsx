@@ -84,7 +84,8 @@ const Row: React.FC<{ r: InboxRow; active: boolean; onOpen: () => void }> = ({ r
             {r.lead?.source && <span className="wai-src">{cap(r.lead.source)}</span>}
             {!r.links.leadId && r.links.placementId && <span className="wai-tag p">Placement</span>}
             {!r.links.leadId && r.links.userId && <span className="wai-tag s">Student</span>}
-            {!r.links.leadId && !r.links.placementId && !r.links.userId && <span className="wai-tag n">Not in CRM</span>}
+            {r.replyTo && <span className="wai-tag r" title={`Replied to "${r.replyTo.templateName}" — not treated as a lead`}>{REPLY_TAG[r.replyTo.kind] || 'Not sales'}</span>}
+            {!r.replyTo && !r.links.leadId && !r.links.placementId && !r.links.userId && <span className="wai-tag n">Not in CRM</span>}
             {r.assignedTo
               ? <span className="wai-owner" title={r.ownerFrom === 'lead' ? "Lead's counsellor" : 'Owns this chat'}><i className="bi bi-person-fill" /> {r.assignedTo.name}</span>
               : <span className="wai-owner none"><i className="bi bi-person-dash" /> No counsellor</span>}
@@ -94,6 +95,8 @@ const Row: React.FC<{ r: InboxRow; active: boolean; onOpen: () => void }> = ({ r
     </li>
   );
 };
+
+const REPLY_TAG: Record<string, string> = { hiring: 'Hiring reply', wishes: 'Wishes reply', update: 'Update reply' };
 
 const EMPTY: InboxQuery = { owner: '', stageId: '', source: '', type: '', window: '' };
 
@@ -191,6 +194,7 @@ const WhatsAppInbox: React.FC = () => {
             <option value="lead">Leads only</option>
             <option value="placement">Placement only</option>
             <option value="student">Students only</option>
+            <option value="not_sales">Replies to hiring / wishes / updates</option>
           </select>
           <select value={drop.window} onChange={(e) => setD('window', e.target.value)} aria-label="Reply window" className={drop.window ? 'set' : ''}>
             <option value="">Any reply window</option>

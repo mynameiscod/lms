@@ -1,3 +1,4 @@
+import { isPurpose, replyLeads, setBroadcastPurpose, archiveReplyLeads } from '../services/whatsAppReplyContext';
 import WhatsAppMessageLog from '../models/WhatsAppMessageLog';
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
@@ -107,10 +108,11 @@ export const messagesSummary = wrap(async (req, res) => {
 });
 
 export const broadcast = wrap(async (req, res) => {
-  const { phones, batchId, leads, audience, values, buttonParam } = req.body || {};
+  const { phones, batchId, leads, audience, values, buttonParam, purpose } = req.body || {};
   if (batchId && !mongoose.isValidObjectId(batchId)) return res.status(400).json({ success: false, message: 'Invalid batch' });
   const b = await svc.startBroadcast(tId(req), uId(req), req.params.id, {
     phones, batchId, leads: leads ? leadFilter(leads) : undefined, audience: audience ? sourceAudience(audience) : undefined, values: Array.isArray(values) ? values.map(String) : [], buttonParam,
+    purpose: isPurpose(purpose) ? purpose : undefined,
   });
   res.status(202).json({ success: true, data: b });
 });
@@ -166,6 +168,23 @@ export const broadcasts = wrap(async (req, res) => {
     return { ...b, outcome: { delivered: c(['delivered', 'read']), read: c(['read']), failed: c(['failed']), pending: c(['accepted', 'sent']) } };
   });
   res.json({ success: true, data: out });
+});
+
+export const broadcastReplyLeads = wrap(async (req, res) => {
+  res.json({ success: true, data: await replyLeads(tId(req), req.params.id) });
+});
+
+export const broadcastPurpose = wrap(async (req, res) => {
+  const purpose = req.body?.purpose;
+  if (!isPurpose(purpose) || !mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, message: 'Choose what the message was for' });
+  const r = await setBroadcastPurpose(tId(req), req.params.id, purpose);
+  if (!r) return res.status(404).json({ success: false, message: 'Broadcast not found' });
+  res.json({ success: true, data: r });
+});
+
+export const archiveBroadcastReplyLeads = wrap(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, message: 'Invalid broadcast' });
+  res.json({ success: true, data: await archiveReplyLeads(tId(req), uId(req), req.params.id) });
 });
 
 export const batches = wrap(async (req, res) => {

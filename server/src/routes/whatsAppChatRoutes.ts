@@ -1,3 +1,4 @@
+import WhatsAppThread from '../models/WhatsAppThread';
 import express, { Request, Response } from 'express';
 import multer from 'multer';
 import { authMiddleware } from '../middleware/auth';
@@ -63,7 +64,7 @@ router.get('/inbox', wrap(async (req, res) => {
   res.json({ success: true, data: await inbox.listInbox(tId(req), uId(req), {
     filter: str(filter) as any, q: str(q), page: Number(page) || 1, access,
     owner: str(owner), stageId: str(stageId), source: str(source),
-    type: ['lead', 'placement', 'student'].includes(type) ? type : '', window: ['open', 'closing', 'closed'].includes(window) ? window : '',
+    type: ['lead', 'placement', 'student', 'not_sales'].includes(type) ? type : '', window: ['open', 'closing', 'closed'].includes(window) ? window : '',
   }) });
 }));
 
@@ -73,6 +74,19 @@ router.get('/inbox/options', wrap(async (req, res) => {
 
 router.get('/threads/:phone/context', wrap(async (req, res) => {
   res.json({ success: true, data: await threadContext(tId(req), req.params.phone) });
+}));
+
+// A reply to a hiring / wishes message that turns out to be a real enquiry: make the lead by hand.
+router.post('/threads/:phone/make-lead', roleGuard(['manage_leads', 'manage_tenant']), wrap(async (req, res) => {
+  const phone = normalizeTo(String(req.params.phone));
+  if (phone.length < 12) throw new svc.ChatError('Invalid phone number');
+  const t: any = await WhatsAppThread.findOne({ tenantId: tId(req), phone }).select('contactName').lean();
+  const { leadFromWhatsApp } = await import('../controllers/whatsappWebhookController');
+  const lead: any = await leadFromWhatsApp(phone, t?.contactName || 'WhatsApp User', tId(req));
+  if (!lead) throw new svc.ChatError('Could not create the lead', 500);
+  await WhatsAppThread.updateOne({ tenantId: tId(req), phone }, { $unset: { replyContext: 1 } });
+  await inbox.linkThread(tId(req), phone);
+  res.status(201).json({ success: true, data: { leadId: String(lead._id) } });
 }));
 
 router.post('/threads/:phone/handled', wrap(async (req, res) => {

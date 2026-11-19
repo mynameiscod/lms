@@ -239,13 +239,22 @@ export const completeFollowUp = async (req: AuthenticatedRequest, res: Response)
     // Add activity to lead
     const lead = await Lead.findOne({ _id: followUp.leadId, tenantId });
     if (lead) {
-      const activityType = followUp.type === 'call' ? 'call' :
-                          followUp.type === 'whatsapp' ? 'whatsapp' :
-                          followUp.type === 'email' ? 'email' : 'note';
+      /*
+       * Marking a follow-up done is not a call (or a WhatsApp, or an email). "Mark this follow-up
+       * done" on the lead page and the calendar send no call details, and logging them as a call
+       * raised the lead's call count and its "last contacted" for a call nobody made. The contact
+       * type is kept only when the call itself comes with it (an outcome, a duration or a recording);
+       * otherwise the completion is a note on the timeline.
+       */
+      const hasCallDetails = !!(callOutcome || callDuration || recordingUrl);
+      const activityType = !hasCallDetails ? 'note'
+        : followUp.type === 'call' ? 'call'
+        : followUp.type === 'whatsapp' ? 'whatsapp'
+        : followUp.type === 'email' ? 'email' : 'note';
 
       lead.activities.push({
         type: activityType,
-        description: `${followUp.type === 'one_on_one' ? '1-on-1 Meeting' : followUp.title} completed. Outcome: ${outcome || 'N/A'}. ${notes ? 'Notes: ' + notes : ''}`,
+        description: `${hasCallDetails ? '' : '✅ Follow-up done: '}${followUp.type === 'one_on_one' ? '1-on-1 Meeting' : followUp.title}${hasCallDetails ? ' completed' : ''}.${outcome && outcome !== 'done' ? ` Outcome: ${outcome}.` : ''}${notes ? ' Notes: ' + notes : ''}`,
         createdBy: new mongoose.Types.ObjectId(userId as string),
         createdAt: new Date(),
         // An unknown outcome would fail schema validation and lose the whole completion.

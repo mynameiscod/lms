@@ -16,7 +16,8 @@ import { verifyMetaSignature } from '../services/whatsAppWebhookSignature';
 import { reviveIfArchived } from '../services/leadArchiveService';
 import { extractReferral, applyReferralToLead, lookupAd, adFields, referralActivity, AdReferral } from '../services/whatsAppAdReferralService';
 import { linkLeadToCampaign } from './adCampaignController';
-import { onInbound, attachLeadToRuns } from '../services/workflow/engine';
+import { onInbound, attachLeadToRuns, hasLiveRun, workflowWelcomesNewLeads } from '../services/workflow/engine';
+import WhatsAppChatMessage from '../models/WhatsAppChatMessage';
 
 // ===================== TYPES =====================
 
@@ -106,6 +107,10 @@ const DEFAULT_QUESTIONS: IQualificationQuestion[] = [
   { id: 'q_mode', question: "💻 Would you prefer Online or Offline training?", category: 'technical', answerType: 'select', options: ['Online', 'Offline', 'Either is fine'], order: 4, required: false, enabled: true, fieldToUpdate: 'interests.mode', scoreImpact: [], skipKeywords: [] },
   { id: 'q_timeline', question: "📅 When are you planning to start? (immediately / next month / just exploring)", category: 'timeline', answerType: 'text', order: 5, required: false, enabled: true, fieldToUpdate: 'interests.urgency', scoreImpact: [{ answerValue: 'immediately', impact: 15 }, { answerValue: 'next month', impact: 8 }], skipKeywords: ['exploring'] },
 ];
+
+export async function loadBotQuestions(tenantId: string) {
+  return loadQuestions(tenantId);
+}
 
 async function loadQuestions(tenantId: string): Promise<IQualificationQuestion[]> {
   const config = await QualificationQuestionConfig.findOne({
@@ -314,8 +319,9 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
           continue;
         }
 
-        // A person on our side has taken over this chat — the bot stays quiet, the lead still gets the note.
-        if (botPaused) {
+        // A person on our side has taken over this chat, or a workflow is mid-conversation with them —
+        // the old bot stays quiet (one automation at a time), the lead still gets the note.
+        if (botPaused || await hasLiveRun(tenantInfo.tenantId, phoneNumber)) {
           await appendMessageToLead(phoneNumber, messageText, tenantInfo.tenantId);
           continue;
         }
@@ -346,15 +352,22 @@ async function handleConversation(
 
   let state = await getConversationState(phoneNumber, tenantId);
 
-  // Already qualified — just log
+  // Already qualified — just log. The "we'll get back" note goes at most once a day, not after every message.
   if (state?.conversationStep === 'qualified') {
     await appendMessageToLead(phoneNumber, messageText, tenantId);
-    await sendWhatsAppMessage(phoneNumberId, phoneNumber, `Thanks for your message! Our team will get back to you soon. 🙂`, accessToken);
+    const recent = await WhatsAppChatMessage.exists({ tenantId: new mongoose.Types.ObjectId(tenantId), phone: phoneNumber, direction: 'out', createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } });
+    if (!recent) await sendWhatsAppMessage(phoneNumberId, phoneNumber, `Thanks for your message! Our team will get back to you soon. 🙂`, accessToken);
     return;
   }
 
   // New conversation
   if (!state || state.conversationStep === 'initial') {
+    // A "New lead arrives" workflow does the welcome and questions now — the old bot must not ask them too.
+    if (await workflowWelcomesNewLeads(tenantId)) {
+      await ensureLeadExists(phoneNumber, senderName, tenantId, 'warm');
+      await appendMessageToLead(phoneNumber, messageText, tenantId);
+      return;
+    }
     const firstName = senderName.split(' ')[0];
     const welcome = settings.welcomeMessage.replace('{{name}}', firstName);
     await sendWhatsAppMessage(phoneNumberId, phoneNumber, welcome, accessToken);

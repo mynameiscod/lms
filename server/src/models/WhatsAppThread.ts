@@ -26,6 +26,11 @@ export interface IWhatsAppThread extends Document {
   botPaused: boolean;
   lastStaffReplyAt?: Date;
   lastStaffReplyBy?: mongoose.Types.ObjectId;
+  /** Last message we sent (any source). */
+  lastOutboundAt?: Date;
+  /** Someone marked the conversation as dealt with (e.g. they called instead of replying). */
+  handledAt?: Date;
+  handledBy?: mongoose.Types.ObjectId;
   assignedTo?: mongoose.Types.ObjectId | null;
   assignedAt?: Date;
   links?: IWhatsAppThreadLinks;
@@ -48,6 +53,9 @@ const WhatsAppThreadSchema = new Schema<IWhatsAppThread>({
   botPaused: { type: Boolean, default: false },
   lastStaffReplyAt: Date,
   lastStaffReplyBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  lastOutboundAt: Date,
+  handledAt: Date,
+  handledBy: { type: Schema.Types.ObjectId, ref: 'User' },
   assignedTo: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   assignedAt: Date,
   links: {

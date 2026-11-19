@@ -102,7 +102,7 @@ export async function chatStaff(tenantId: string): Promise<{ _id: string; name: 
 // ── Bell when someone writes in ─────────────────────────────────────────────
 
 /**
- * Notify the owner of the conversation, or — when nobody owns it — everyone who can chat.
+ * Notify the owner of the conversation (the lead's counsellor when it is a lead), or — when nobody owns it — everyone who can chat.
  * A burst of messages from one person rings once per 10 minutes.
  */
 export async function notifyInbound(tenantId: string, phone: string, preview: string) {
@@ -110,7 +110,8 @@ export async function notifyInbound(tenantId: string, phone: string, preview: st
     .select('assignedTo lastNotifiedAt contactName links').lean();
   if (!t) return;
   if (t.lastNotifiedAt && Date.now() - new Date(t.lastNotifiedAt).getTime() < NOTIFY_GAP_MS) return;
-  const recipients = t.assignedTo ? [String(t.assignedTo)] : (await chatStaff(tenantId)).map((s) => s._id);
+  const owner = (await effectiveOwner(tenantId, t)).id;
+  const recipients = owner ? [owner] : (await chatStaff(tenantId)).map((s) => s._id);
   if (!recipients.length) return;
   const who = t.links?.placementName || t.links?.leadName || t.links?.userName || t.contactName || `+${phone}`;
   await createNotifications(tenantId, recipients, 'general', `💬 WhatsApp from ${who}`, preview || 'New message', `/whatsapp-inbox?phone=${phone}`);
@@ -118,29 +119,71 @@ export async function notifyInbound(tenantId: string, phone: string, preview: st
   for (const r of recipients) emitWaUser(r, 'wa:notify', { phone, who });
 }
 
+// ── One owner ────────────────────────────────────────────────────────────────
+
+/**
+ * Who owns a conversation (decided 2026-11-19): when the number belongs to a lead that has a
+ * counsellor, that counsellor — the chat follows the lead. Otherwise whoever owns the chat itself.
+ */
+export async function effectiveOwner(tenantId: string, t: { assignedTo?: any; links?: { leadId?: any } } | null): Promise<{ id: string | null; from: 'lead' | 'chat' | null }> {
+  if (t?.links?.leadId) {
+    const lead: any = await Lead.findOne({ _id: t.links.leadId, tenantId: oid(tenantId) }).select('assignedTo').lean();
+    if (lead?.assignedTo) return { id: String(lead.assignedTo), from: 'lead' };
+  }
+  if (t?.assignedTo) return { id: String(t.assignedTo), from: 'chat' };
+  return { id: null, from: null };
+}
+
+async function setLeadCounsellor(tenantId: string, leadId: any, toUserId: string | null, actorId: string) {
+  const now = new Date();
+  const who = toUserId ? fullName(await User.findById(toUserId).select('firstName lastName').lean()) || 'a team member' : null;
+  await Lead.updateOne({ _id: leadId, tenantId: oid(tenantId) }, {
+    $set: toUserId
+      ? { assignedTo: oid(toUserId), 'assignment.assignedTo': oid(toUserId), 'assignment.assignedAt': now }
+      : { assignedTo: null },
+    $push: { activities: { type: 'assignment', description: toUserId ? `Counsellor set to ${who} from the WhatsApp inbox` : 'Counsellor removed from the WhatsApp inbox', createdBy: mongoose.isValidObjectId(actorId) ? oid(actorId) : undefined, createdAt: now } },
+  });
+}
+
+// ── What is happening in a conversation ─────────────────────────────────────
+
+const BOT_LIVE_MS = 48 * 60 * 60 * 1000;
+
+/** Numbers an automation is talking to right now: a workflow run in progress, or the old bot mid-questions. */
+export async function automationPhones(tenantId: string): Promise<string[]> {
+  const { WorkflowRun } = await import('../models/Workflow');
+  const WhatsAppConversationState = (await import('../models/WhatsAppConversationState')).default;
+  const [runs, bot, paused] = await Promise.all([
+    WorkflowRun.distinct('phone', { tenantId: oid(tenantId), status: { $in: ['running', 'waiting'] }, phone: { $nin: [null, ''] } }),
+    WhatsAppConversationState.distinct('phone', { tenantId: String(tenantId), conversationStep: 'in_progress', lastMessageAt: { $gte: new Date(Date.now() - BOT_LIVE_MS) } }),
+    WhatsAppThread.distinct('phone', { tenantId: oid(tenantId), botPaused: true }),
+  ]);
+  const stopped = new Set(paused.map(String));
+  return Array.from(new Set([...runs.map(String), ...bot.map(String).filter((p) => !stopped.has(p))]));
+}
+
+export type InboxStatus = 'needs_reply' | 'automation' | 'waiting_lead' | 'idle';
+
 // ── The inbox list ───────────────────────────────────────────────────────────
 
-export type InboxFilter = 'all' | 'unread' | 'mine' | 'unassigned' | 'placement' | 'lead' | 'student';
+export type InboxFilter = 'all' | 'needs_reply' | 'automation' | 'unread' | 'mine' | 'unassigned' | 'placement' | 'lead' | 'student';
+export interface InboxQuery {
+  filter?: InboxFilter; q?: string; page?: number; limit?: number;
+  owner?: string; stageId?: string; source?: string; type?: 'lead' | 'placement' | 'student' | ''; window?: 'open' | 'closing' | 'closed' | '';
+  access?: { placement: boolean; leads: boolean };
+}
 
-export async function listInbox(
-  tenantId: string, userId: string,
-  opts: { filter?: InboxFilter; q?: string; page?: number; limit?: number; access?: { placement: boolean; leads: boolean } },
-) {
+const EPOCH = new Date(0);
+const DAY = 24 * 60 * 60 * 1000;
+const CLOSING_MS = 3 * 60 * 60 * 1000;
+
+export async function listInbox(tenantId: string, userId: string, opts: InboxQuery) {
   const tid = oid(tenantId);
   // Older threads (from before linking existed) get their records worked out once, so filters are right.
   const unlinked = await WhatsAppThread.find({ tenantId: tid, linkedAt: { $exists: false } }).select('phone').limit(300).lean();
   for (const u of unlinked as any[]) await linkThread(tenantId, u.phone).catch(() => {});
 
   const match: any = { tenantId: tid };
-  switch (opts.filter) {
-    case 'unread': match.unreadCount = { $gt: 0 }; break;
-    case 'mine': match.assignedTo = oid(userId); break;
-    case 'unassigned': match.assignedTo = null; break;
-    case 'placement': match['links.placementId'] = { $exists: true }; break;
-    case 'lead': match['links.leadId'] = { $exists: true }; break;
-    case 'student': match['links.userId'] = { $exists: true }; break;
-    default: break;
-  }
   // Hide conversations that belong only to a module this person cannot open.
   const and: any[] = [];
   if (opts.access && !opts.access.placement) {
@@ -150,7 +193,6 @@ export async function listInbox(
     and.push({ $or: [{ 'links.leadId': { $exists: false } }, { 'links.placementId': { $exists: true } }, { 'links.userId': { $exists: true } }] });
   }
   if (and.length) match.$and = and;
-
   const q = String(opts.q || '').trim();
   if (q) {
     const digits = q.replace(/\D/g, '');
@@ -160,34 +202,91 @@ export async function listInbox(
       { contactName: rx }, { 'links.placementName': rx }, { 'links.leadName': rx }, { 'links.userName': rx }, { lastPreview: rx },
     ];
   }
+
+  const auto = await automationPhones(tenantId);
+  const now = Date.now();
+  const me = oid(userId);
+
+  const base: any[] = [
+    { $match: match },
+    { $lookup: {
+      from: 'leads', let: { lid: '$links.leadId' },
+      pipeline: [{ $match: { $expr: { $eq: ['$_id', '$$lid'] } } }, { $project: { assignedTo: 1, stageId: 1, source: 1, priority: 1, lastContactedAt: 1 } }],
+      as: 'lead',
+    } },
+    { $addFields: { lead: { $arrayElemAt: ['$lead', 0] } } },
+    { $addFields: {
+      owner: { $ifNull: ['$lead.assignedTo', { $ifNull: ['$assignedTo', null] }] },
+      // Answered in the chat, marked handled, or the counsellor contacted the lead (a call) after they wrote.
+      seenAt: { $max: [{ $ifNull: ['$lastStaffReplyAt', EPOCH] }, { $ifNull: ['$handledAt', EPOCH] }, { $ifNull: ['$lead.lastContactedAt', EPOCH] }] },
+      auto: { $in: ['$phone', auto] },
+    } },
+    { $addFields: {
+      needsReply: { $and: [{ $gt: [{ $ifNull: ['$lastInboundAt', EPOCH] }, '$seenAt'] }, { $not: ['$auto'] }] },
+    } },
+  ];
+
+  const f: any = {};
+  switch (opts.filter) {
+    case 'needs_reply': f.needsReply = true; break;
+    case 'automation': f.auto = true; break;
+    case 'unread': f.unreadCount = { $gt: 0 }; break;
+    case 'mine': f.owner = me; break;
+    case 'unassigned': f.owner = null; break;
+    case 'placement': f['links.placementId'] = { $exists: true }; break;
+    case 'lead': f['links.leadId'] = { $exists: true }; break;
+    case 'student': f['links.userId'] = { $exists: true }; break;
+    default: break;
+  }
+  if (opts.owner === 'none') f.owner = null;
+  else if (opts.owner && mongoose.isValidObjectId(opts.owner)) f.owner = oid(opts.owner);
+  if (opts.stageId && mongoose.isValidObjectId(opts.stageId)) f['lead.stageId'] = oid(opts.stageId);
+  if (opts.source) f['lead.source'] = String(opts.source).toLowerCase().slice(0, 60);
+  if (opts.type === 'lead') f['links.leadId'] = { $exists: true };
+  if (opts.type === 'placement') f['links.placementId'] = { $exists: true };
+  if (opts.type === 'student') f['links.userId'] = { $exists: true };
+  if (opts.window === 'open') f.lastInboundAt = { $gt: new Date(now - DAY) };
+  if (opts.window === 'closing') f.lastInboundAt = { $gt: new Date(now - DAY), $lte: new Date(now - DAY + CLOSING_MS) };
+  if (opts.window === 'closed') f.$or = [{ lastInboundAt: { $lte: new Date(now - DAY) } }, { lastInboundAt: null }];
+
   const limit = Math.min(Math.max(opts.limit || 30, 1), 100);
   const page = Math.max(opts.page || 1, 1);
 
-  const [rows, total, counts] = await Promise.all([
-    WhatsAppThread.aggregate([
-      { $match: match },
-      { $addFields: { hasUnread: { $cond: [{ $gt: ['$unreadCount', 0] }, 1, 0] } } },
-      { $sort: { hasUnread: -1, lastMessageAt: -1 } },
-      { $skip: (page - 1) * limit },
-      { $limit: limit },
-      { $lookup: { from: 'users', localField: 'assignedTo', foreignField: '_id', as: 'assignee' } },
-      { $project: { 'assignee.password': 0, 'assignee.passport': 0 } },
-    ]),
-    WhatsAppThread.countDocuments(match),
-    WhatsAppThread.aggregate([
-      { $match: { tenantId: tid } },
-      { $group: {
+  const [out] = await WhatsAppThread.aggregate([
+    ...base,
+    { $facet: {
+      rows: [
+        { $match: f },
+        // Waiting for us first (oldest wait first would bury new ones, so newest activity first within each group).
+        { $addFields: { rank: { $cond: ['$needsReply', 2, { $cond: [{ $gt: ['$unreadCount', 0] }, 1, 0] }] } } },
+        { $sort: { rank: -1, lastMessageAt: -1 } },
+        { $skip: (page - 1) * limit },
+        { $limit: limit },
+        { $lookup: { from: 'users', localField: 'owner', foreignField: '_id', as: 'ownerDoc', pipeline: [{ $project: { firstName: 1, lastName: 1, email: 1 } }] } },
+        { $lookup: { from: 'leadstages', localField: 'lead.stageId', foreignField: '_id', as: 'stageDoc', pipeline: [{ $project: { name: 1, color: 1 } }] } },
+      ],
+      total: [{ $match: f }, { $count: 'n' }],
+      counts: [{ $group: {
         _id: null,
-        unread: { $sum: { $cond: [{ $gt: ['$unreadCount', 0] }, 1, 0] } },
-        mine: { $sum: { $cond: [{ $eq: ['$assignedTo', oid(userId)] }, 1, 0] } },
-        unassigned: { $sum: { $cond: [{ $eq: [{ $ifNull: ['$assignedTo', null] }, null] }, 1, 0] } },
         all: { $sum: 1 },
-      } },
-    ]),
+        needs_reply: { $sum: { $cond: ['$needsReply', 1, 0] } },
+        automation: { $sum: { $cond: ['$auto', 1, 0] } },
+        unread: { $sum: { $cond: [{ $gt: ['$unreadCount', 0] }, 1, 0] } },
+        mine: { $sum: { $cond: [{ $eq: ['$owner', me] }, 1, 0] } },
+        unassigned: { $sum: { $cond: [{ $eq: ['$owner', null] }, 1, 0] } },
+      } }],
+    } },
   ]);
 
+  const statusOf = (t: any): InboxStatus => {
+    if (t.auto) return 'automation';
+    if (t.needsReply) return 'needs_reply';
+    if (t.lastOutboundAt || t.lastStaffReplyAt) return 'waiting_lead';
+    return 'idle';
+  };
+  const c = out?.counts?.[0] || {};
   return {
-    rows: rows.map((t: any) => ({
+    rows: (out?.rows || []).map((t: any) => ({
       phone: t.phone,
       name: t.links?.placementName || t.links?.leadName || t.links?.userName || t.contactName || '',
       contactName: t.contactName,
@@ -200,13 +299,47 @@ export async function listInbox(
       lastMessageAt: t.lastMessageAt,
       lastInboundAt: t.lastInboundAt,
       unreadCount: t.unreadCount || 0,
-      assignedTo: t.assignee?.[0] ? { _id: String(t.assignee[0]._id), name: fullName(t.assignee[0]) || t.assignee[0].email } : null,
+      status: statusOf(t),
+      waitingSince: t.needsReply ? t.lastInboundAt : undefined,
+      assignedTo: t.ownerDoc?.[0] ? { _id: String(t.ownerDoc[0]._id), name: fullName(t.ownerDoc[0]) || t.ownerDoc[0].email } : null,
+      ownerFrom: t.lead?.assignedTo ? 'lead' : t.assignedTo ? 'chat' : null,
+      lead: t.lead ? {
+        stage: t.stageDoc?.[0] ? { name: t.stageDoc[0].name, color: t.stageDoc[0].color } : null,
+        source: t.lead.source || '',
+        priority: t.lead.priority || '',
+      } : null,
     })),
-    total,
+    total: out?.total?.[0]?.n || 0,
     page,
     limit,
-    counts: counts[0] ? { all: counts[0].all, unread: counts[0].unread, mine: counts[0].mine, unassigned: counts[0].unassigned } : { all: 0, unread: 0, mine: 0, unassigned: 0 },
+    counts: {
+      all: c.all || 0, needs_reply: c.needs_reply || 0, automation: c.automation || 0,
+      unread: c.unread || 0, mine: c.mine || 0, unassigned: c.unassigned || 0,
+    },
   };
+}
+
+/** Choices for the inbox filter dropdowns. */
+export async function inboxOptions(tenantId: string) {
+  const LeadStage = (await import('../models/LeadStage')).default;
+  const tid = oid(tenantId);
+  const [staff, stages, sources] = await Promise.all([
+    chatStaff(tenantId),
+    LeadStage.find({ tenantId: tid }).select('name color order').sort({ order: 1 }).lean(),
+    Lead.distinct('source', { tenantId: tid }),
+  ]);
+  return {
+    staff,
+    stages: (stages as any[]).map((s) => ({ _id: String(s._id), name: s.name, color: s.color })),
+    sources: (sources as any[]).filter(Boolean).map(String).sort(),
+  };
+}
+
+/** "Done — no reply needed" (they were called, or the message needs no answer). */
+export async function markHandled(tenantId: string, phone: string, userId: string) {
+  const r = await WhatsAppThread.updateOne({ tenantId: oid(tenantId), phone }, { $set: { handledAt: new Date(), handledBy: oid(userId), unreadCount: 0 } });
+  if (!r.matchedCount) throw new InboxError('Conversation not found', 404);
+  emitWaThread(tenantId, { phone, reason: 'read' });
 }
 
 // ── Assignment ───────────────────────────────────────────────────────────────
@@ -214,11 +347,12 @@ export async function listInbox(
 /**
  * Anyone who can chat may take an unowned conversation or let go of their own. Moving a
  * conversation between other people needs `isAdmin` (an institute admin or template manager).
+ * When the number is a lead, the lead's counsellor changes too — one owner for both.
  */
 export async function assignThread(tenantId: string, actor: { id: string; isAdmin: boolean }, phone: string, toUserId: string | null) {
-  const t: any = await WhatsAppThread.findOne({ tenantId: oid(tenantId), phone }).select('assignedTo').lean();
+  const t: any = await WhatsAppThread.findOne({ tenantId: oid(tenantId), phone }).select('assignedTo links').lean();
   if (!t) throw new InboxError('Conversation not found', 404);
-  const current = t.assignedTo ? String(t.assignedTo) : null;
+  const current = (await effectiveOwner(tenantId, t)).id;
   const selfAction = (!current && toUserId === actor.id) || (current === actor.id && (toUserId === null || toUserId === actor.id));
   if (!selfAction && !actor.isAdmin) throw new InboxError('Only an admin can move a conversation that belongs to someone else.', 403);
   if (toUserId) {
@@ -227,6 +361,7 @@ export async function assignThread(tenantId: string, actor: { id: string; isAdmi
     if (!staff.some((s) => s._id === toUserId)) throw new InboxError('That person cannot use WhatsApp chat — tick it on their role first.');
   }
   await WhatsAppThread.updateOne({ _id: t._id }, { $set: { assignedTo: toUserId ? oid(toUserId) : null, assignedAt: new Date() } });
+  if (t.links?.leadId && current !== toUserId) await setLeadCounsellor(tenantId, t.links.leadId, toUserId, actor.id);
   emitWaThread(tenantId, { phone, reason: 'assign' });
   if (toUserId && toUserId !== actor.id) {
     await createNotifications(tenantId, [toUserId], 'general', '💬 A WhatsApp chat was assigned to you', `+${phone}`, `/whatsapp-inbox?phone=${phone}`).catch(() => {});
@@ -235,14 +370,18 @@ export async function assignThread(tenantId: string, actor: { id: string; isAdmi
   return { assignedTo: toUserId };
 }
 
-/** The first person to reply owns the conversation (decided 2026-10-06) — unless someone already does. */
+/**
+ * The first person to reply owns the conversation (decided 2026-10-06) — unless someone already
+ * does. A lead without a counsellor gets the replier as counsellor too.
+ */
 export async function autoAssign(tenantId: string, phone: string, userId?: string) {
   if (!userId || !mongoose.isValidObjectId(userId)) return;
-  const r = await WhatsAppThread.updateOne(
-    { tenantId: oid(tenantId), phone, $or: [{ assignedTo: null }, { assignedTo: { $exists: false } }] },
-    { $set: { assignedTo: oid(userId), assignedAt: new Date() } },
-  );
-  if (r.modifiedCount) emitWaThread(tenantId, { phone, reason: 'assign' });
+  const t: any = await WhatsAppThread.findOne({ tenantId: oid(tenantId), phone }).select('assignedTo links').lean();
+  if (!t) return;
+  if ((await effectiveOwner(tenantId, t)).id) return;
+  await WhatsAppThread.updateOne({ _id: t._id }, { $set: { assignedTo: oid(userId), assignedAt: new Date() } });
+  if (t.links?.leadId) await setLeadCounsellor(tenantId, t.links.leadId, userId, userId);
+  emitWaThread(tenantId, { phone, reason: 'assign' });
 }
 
 // ── Quick replies ────────────────────────────────────────────────────────────

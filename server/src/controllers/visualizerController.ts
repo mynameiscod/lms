@@ -38,6 +38,12 @@ export async function resolveAccess(tenantId: string, userId: string): Promise<V
   const user: any = await User.findById(userId).select(LEARNER_AUDIENCE_FIELDS).lean();
   if (!user) return { allowed: false, via: 'none' };
   if (STAFF_ROLES.has(user.role)) return { allowed: true, via: 'staff' };
+  // An LMS demo student reaches the visualizer only when the LMS Demo screen switched it on (middleware/lmsDemoScope).
+  {
+    const { lmsDemoScopeFor } = await import('../services/lmsDemoService');
+    const demo = await lmsDemoScopeFor(userId);
+    if (demo) return demo.on('visualizer') ? { allowed: true, via: 'all_lms' } : { allowed: false, via: 'none' };
+  }
 
   const grants = await VisualizerAccess.find({ tenantId }).select('targetType targetId').lean();
   if (!grants.length) return { allowed: false, via: 'none' };

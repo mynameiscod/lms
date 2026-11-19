@@ -695,3 +695,13 @@
 @media (max-width: 390px) {
   .mq-stats-grid { grid-template-columns: 1fr; }
 }
+
+/* Laptops render the app at zoom .75 (index.css); this page was sized for 100%, so its labels read at 7-8 real px.
+   Zoom it back up, as the CareerPilot pages do. Tablets and phones are not zoomed. */
+@media (min-width: 1025px) { .mq-page { zoom: 1.25; } }
+
+/* One column (tablets, phones): the drawing keeps the size it was drawn at, centred, instead of stretching its desk
+   and tiles across the whole card; the Start Quiz button stays on it. */
+@media (max-width: 1050px) {
+  .mq-featured-art { width: 100%; max-width: 340px; margin: 0 auto; }
+}

@@ -281,3 +281,7 @@
   .aim2-side { width: 250px; }
   .aim2-topic { flex-direction: column; gap: 10px; }
 }
+
+/* In the LMS shell (no CareerPilot zoom-up): a touch larger on wide screens, as the CareerPilot pages are in theirs. */
+@media (min-width: 1200px) and (max-width: 1599px) { .main-content .aim.aim2 { zoom: 1.05; } }
+@media (min-width: 1600px) { .main-content .aim.aim2 { zoom: 1.12; } }

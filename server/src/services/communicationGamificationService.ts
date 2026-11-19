@@ -85,7 +85,7 @@ export async function getAchievementsForStudent(tenantId: string, studentId: str
 
 /** Batch leaderboard ranked by average + streak + consistency (not one lucky attempt). */
 export async function computeLeaderboard(tenantId: string, callerId: string, batchId?: string) {
-  const uFilter: any = { tenantId, role: 'STUDENT', isActive: { $ne: false } };
+  const uFilter: any = { tenantId, role: 'STUDENT', isActive: { $ne: false }, 'lmsDemo.at': { $exists: false } }; // demo students never rank
   // A batch's lab cohort: its own students minus those taken over by a placement batch, plus
   // the members of a placement batch that takes the Communication Lab over.
   if (batchId && mongoose.isValidObjectId(batchId)) {

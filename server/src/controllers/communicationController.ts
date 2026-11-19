@@ -86,6 +86,40 @@ export const getToday = async (req: Request, res: Response) => {
      * Still admin-controlled: an untagged challenge is invisible here, exactly as an
      * unassigned one is invisible to a batch.
      */
+    /*
+     * An LMS demo student: the challenges chosen on the LMS Demo screen, in that order. Today's is
+     * the one already started today, else the first one not tried yet, so a demo of a few days
+     * still shows several kinds of speaking task.
+     */
+    {
+      const { lmsDemoScopeFor } = await import('../services/lmsDemoService');
+      const demo = await lmsDemoScopeFor(uId(req));
+      if (demo) {
+        const order = demo.oids('speakingIds');
+        // None picked on the LMS Demo screen: the institute's own active questions, in their usual order,
+        // so the lab is never empty for a demo student.
+        const list = order.length
+          ? (await CommunicationChallenge.find({ tenantId, _id: { $in: order }, active: true }).lean())
+            .sort((a: any, b: any) => order.findIndex(o => String(o) === String(a._id)) - order.findIndex(o => String(o) === String(b._id)))
+          : await CommunicationChallenge.find({ tenantId, active: true }).sort({ sequenceNumber: 1, _id: 1 }).limit(30).lean();
+        if (!list.length) return res.json({ challenge: null, status: 'not_started' });
+        const attemptToday = await CommunicationAttempt.findOne({ tenantId, studentId: uId(req), practiceDate: today, kind: { $ne: 'coach' } }).sort({ createdAt: -1 }).lean();
+        const tried = new Set((await CommunicationAttempt.distinct('challengeId', { tenantId, studentId: uId(req), kind: { $ne: 'coach' } })).map(String));
+        const startedId = attemptToday?.challengeId ? String(attemptToday.challengeId) : null;
+        const challenge = (startedId && list.find(c => String(c._id) === startedId)) || list.find(c => !tried.has(String(c._id))) || list[tried.size % list.length];
+        const streakDoc = await CommunicationStreak.findOne({ tenantId, studentId: uId(req) }).lean();
+        return res.json({
+          challenge,
+          status: attemptToday && String(attemptToday.challengeId) === String(challenge._id) ? (attemptToday.status || 'completed') : 'not_started',
+          attempt: attemptToday && String(attemptToday.challengeId) === String(challenge._id) ? attemptToday : null,
+          currentStreak: streakDoc?.currentStreak || 0,
+          longestStreak: streakDoc?.longestStreak || 0,
+          dayNumber: list.findIndex(c => String(c._id) === String(challenge._id)) + 1,
+          totalChallenges: list.length,
+        });
+      }
+    }
+
     if (!me?.batchId) {
       if (!me?.passport?.active) return res.json({ challenge: null, status: 'not_started' });
 
@@ -288,6 +322,12 @@ export const submit = async (req: Request, res: Response) => {
     const priorCount = await CommunicationAttempt.countDocuments({ tenantId, studentId: uId(req), challengeId, practiceDate });
     const { isDemoUser } = await import('../services/demoService');
     if (priorCount >= (challenge.maxAttempts || 2) && !(await isDemoUser(String(uId(req))))) { cleanup(file.path); return res.status(429).json({ message: `Maximum ${challenge.maxAttempts} attempts reached for today.` }); }
+    // An LMS demo student: a few sessions a day in all (LMS Demo settings), each one evaluated by AI.
+    {
+      const { takeDemoUse } = await import('../services/lmsDemoService');
+      const use = await takeDemoUse(String(uId(req)), 'comm');
+      if (use.demo && !use.ok) { cleanup(file.path); return res.status(429).json({ code: 'DEMO_COMM_LIMIT', message: `You have used today's ${use.limit} Communication Lab session${use.limit === 1 ? '' : 's'}. More tomorrow.` }); }
+    }
 
     // 1) Transcribe (Whisper) from the temp file
     let transcript = ''; let durationSec = 0;
@@ -538,7 +578,7 @@ export const adminDashboard = async (req: Request, res: Response) => {
     const today = validDate(req.query.date);
     const monthAgo = ymdMinus(today, 30);
 
-    const students = await User.find({ tenantId, role: 'STUDENT', isActive: { $ne: false } }).select('_id batchId').lean();
+    const students = await User.find({ tenantId, role: 'STUDENT', isActive: { $ne: false }, 'lmsDemo.at': { $exists: false } }).select('_id batchId').lean();
     const totalStudents = students.length;
     const studentIds = students.map((s: any) => s._id);
 
@@ -581,7 +621,7 @@ export const adminStudents = async (req: Request, res: Response) => {
     const tenantId = tId(req);
     const today = validDate(req.query.date);
     const weekAgo = ymdMinus(today, 7);
-    const filter: any = { tenantId, role: 'STUDENT', isActive: { $ne: false } };
+    const filter: any = { tenantId, role: 'STUDENT', isActive: { $ne: false }, 'lmsDemo.at': { $exists: false } };
     if (req.query.batchId && mongoose.isValidObjectId(String(req.query.batchId))) filter.batchId = new mongoose.Types.ObjectId(String(req.query.batchId));
 
     const students = await User.find(filter).select('firstName lastName email batchId').lean();

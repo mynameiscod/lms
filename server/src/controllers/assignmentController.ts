@@ -586,10 +586,13 @@ class AssignmentController {
       let averageScore = 0;
       
       try {
-        totalSubmissions = await Submission.countDocuments({ tenant: tenantObjectId, status: 'submitted' });
+        const { lmsDemoUserIds } = await import('../services/lmsDemoService');
+        const demoIds = await lmsDemoUserIds();
+        const notDemo = demoIds.length ? { student: { $nin: demoIds } } : {};
+        totalSubmissions = await Submission.countDocuments({ tenant: tenantObjectId, status: 'submitted', ...notDemo });
         
         const scoreAgg = await Submission.aggregate([
-          { $match: { tenant: tenantObjectId, status: 'submitted', 'grading.score': { $exists: true, $ne: null } } },
+          { $match: { tenant: tenantObjectId, status: 'submitted', 'grading.score': { $exists: true, $ne: null }, ...notDemo } },
           { $group: { _id: null, avgScore: { $avg: '$grading.score' } } }
         ]);
         averageScore = scoreAgg[0]?.avgScore || 0;
@@ -752,7 +755,8 @@ class AssignmentController {
       const students = await User.find({ 
         tenantId: tenantObjectId, 
         role: 'STUDENT',
-        isActive: true 
+        isActive: true,
+        'lmsDemo.at': { $exists: false }, // LMS demo students are not in the institute's reports
       }).select('firstName lastName email').lean();
 
       // Get published assignments count
@@ -842,7 +846,7 @@ class AssignmentController {
     if (batchIds.size) or.push({ batchId: { $in: valid(batchIds) } });
     if (studentIds.size) or.push({ _id: { $in: valid(studentIds) } });
     if (!or.length) return [];
-    const q: any = { tenantId: tenantObjectId, role: 'STUDENT', isActive: true, $or: or };
+    const q: any = { tenantId: tenantObjectId, role: 'STUDENT', isActive: true, 'lmsDemo.at': { $exists: false }, $or: or };
     if (batchFilter) {
       if (!Types.ObjectId.isValid(String(batchFilter))) return [];
       q.batchId = new Types.ObjectId(String(batchFilter));

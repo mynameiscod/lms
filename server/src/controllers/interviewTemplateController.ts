@@ -1,3 +1,4 @@
+import InterviewTemplateModel from '../models/InterviewTemplate';
 import { Request, Response } from 'express';
 import interviewTemplateService from '../services/interviewTemplateService';
 import * as settings from '../services/settingsService';
@@ -461,7 +462,15 @@ export const getStudentAssignments = async (req: Request, res: Response) => {
 export const getPracticeTemplates = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;
-    const { templates } = await interviewTemplateService.getTemplates(tenantId, { status: 'published', limit: 100 });
+    let { templates } = await interviewTemplateService.getTemplates(tenantId, { status: 'published', limit: 100 });
+    // An LMS demo student sees only the interviews chosen on the LMS Demo screen, in that order.
+    const { lmsDemoScopeFor } = await import('../services/lmsDemoService');
+    const demo = await lmsDemoScopeFor((req as any).userId || (req as any).user?.id);
+    if (demo) {
+      const order = demo.oids('interviewIds').map(String);
+      const picked = await InterviewTemplateModel.find({ _id: { $in: order }, tenantId, status: 'published' }).lean();
+      templates = picked.sort((a: any, b: any) => order.indexOf(String(a._id)) - order.indexOf(String(b._id))) as any;
+    }
     const slim = (templates || []).map((t: any) => ({
       _id: t._id,
       title: t.title,
@@ -485,6 +494,15 @@ export const startAttempt = async (req: Request, res: Response) => {
 
     if (!templateId) {
       return res.status(400).json({ success: false, message: 'templateId is required' });
+    }
+
+    // An LMS demo student: only the chosen interviews, a few a day.
+    const { lmsDemoScopeFor, takeDemoUse } = await import('../services/lmsDemoService');
+    const demo = await lmsDemoScopeFor(userId);
+    if (demo) {
+      if (!demo.ids('interviewIds').has(String(templateId))) return res.status(403).json({ success: false, code: 'DEMO_SCOPE', message: 'This interview is not part of the demo.' });
+      const use = await takeDemoUse(String(userId), 'mock');
+      if (!use.ok) return res.status(429).json({ success: false, code: 'DEMO_MOCK_LIMIT', message: `You have used today's ${use.limit} mock interview${use.limit === 1 ? '' : 's'}. More tomorrow.` });
     }
 
     const attempt = await interviewTemplateService.startAttempt(templateId, userId, tenantId, assignmentId, mode === 'conversational' ? 'conversational' : 'structured');

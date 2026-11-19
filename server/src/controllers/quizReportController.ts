@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { QuizAnalyticsService } from '../services/quizAnalyticsService';
 import Quiz from '../models/Quiz';
+import { notDemoStudents } from '../services/lmsDemoService';
 import QuizAttempt from '../models/QuizAttempt';
 import User from '../models/User';
 import Batch from '../models/Batch';
@@ -53,7 +54,7 @@ export const getQuizAttempts = async (req: Request, res: Response) => {
     const sortDir = sortOrder === 'asc' ? 1 : -1;
 
     // Get attempts with student details
-    const attempts = await QuizAttempt.find({
+    const attempts = await QuizAttempt.find({ ...(await notDemoStudents('studentId', true)),
       quizId,
       status: 'submitted'
     })
@@ -75,7 +76,7 @@ export const getQuizAttempts = async (req: Request, res: Response) => {
     );
 
     // Get total count
-    const total = await QuizAttempt.countDocuments({
+    const total = await QuizAttempt.countDocuments({ ...(await notDemoStudents('studentId', true)),
       quizId,
       status: 'submitted'
     });
@@ -214,7 +215,7 @@ export const getTopPerformers = async (req: Request, res: Response) => {
     const limitNum = parseInt(limit as string) || 10;
 
     // Get top performers
-    const performers = await QuizAttempt.find({
+    const performers = await QuizAttempt.find({ ...(await notDemoStudents('studentId', true)),
       quizId,
       status: 'submitted'
     })
@@ -259,13 +260,13 @@ export const getQuizzesForReporting = async (req: Request, res: Response) => {
     const quizzesWithStats = await Promise.all(
       quizzes.map(async (quiz) => {
         // Count SUBMITTED attempts for statistics
-        const submittedAttempts = await QuizAttempt.find({
+        const submittedAttempts = await QuizAttempt.find({ ...(await notDemoStudents('studentId', true)),
           quizId: quiz._id,
           status: 'submitted'
         }).lean();
 
         // Show total attempts (submitted + other relevant statuses for better visibility)
-        const totalAttemptCount = await QuizAttempt.countDocuments({
+        const totalAttemptCount = await QuizAttempt.countDocuments({ ...(await notDemoStudents('studentId', true)),
           quizId: quiz._id,
           status: { $in: ['submitted', 'in_progress', 'grading'] }
         });
@@ -343,7 +344,7 @@ export const getQuizDistributionStats = async (req: Request, res: Response) => {
     const totalSentTo = targetStudents.length;
 
     // Get all attempts for this quiz
-    const attempts = await QuizAttempt.find({ quizId }).lean();
+    const attempts = await QuizAttempt.find({ ...(await notDemoStudents('studentId', true)), quizId }).lean();
 
     // Map student IDs who have attempted
     const studentAttemptMap = new Map<string, { status: string; attempts: number; latestAttempt: any }>();

@@ -1,3 +1,4 @@
+import { notDemoStudents } from '../services/lmsDemoService';
 import { Request, Response } from 'express';
 import { trialAllowsAnother } from '../services/trialService';
 import mongoose from 'mongoose';
@@ -268,6 +269,31 @@ async function memberToday(req: Request, res: Response, u: any, d: string) {
 }
 
 // GET /thinking-lab/today — the student's current challenge (creates one if none today).
+/* ── LMS demo students (services/lmsDemoService.ts) ─────────────────────────────────────────────
+ * The questions chosen on the LMS Demo screen (shared-bank ThinkingQuestions), in that order. Each
+ * "next" hands out the first one not given yet, today — a demo is a few days long, so it does not
+ * wait for tomorrow. Nothing a demo student does counts towards question statistics or boards.
+ */
+async function lmsDemoNext(req: Request, u: any, d: string, lastSeq: number): Promise<{ ch: any; p: any; position: number; total: number } | null> {
+  const { lmsDemoScopeFor } = await import('../services/lmsDemoService');
+  const demo = await lmsDemoScopeFor(uId(req));
+  if (!demo) return null;
+  const order = demo.oids('thinkingIds').map(String);
+  const given = new Set((await DailyChallenge.distinct('problemId', { tenantId: tId(req), studentId: uId(req) })).map(String));
+  const pickId = order.find(id => !given.has(id));
+  if (!pickId) return { ch: null, p: null, position: order.length, total: order.length };
+  const q: any = await ThinkingQuestion.findOne({ _id: pickId, status: 'PUBLISHED' }).lean();
+  const p = asProblem(q);
+  if (!p) return { ch: null, p: null, position: order.length, total: order.length };
+  const ch = await DailyChallenge.create({
+    tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '),
+    date: d, seq: lastSeq + 1, problemId: p._id, contentKind: 'question',
+    difficulty: p.difficulty, language: p.language, code: p.starterCode || '', status: 'assigned', startedAt: new Date(),
+  });
+  return { ch, p, position: order.indexOf(pickId) + 1, total: order.length };
+}
+const isLmsDemoUser = async (req: Request) => !!(await (await import('../services/lmsDemoService')).lmsDemoScopeFor(uId(req)));
+
 export const getToday = async (req: Request, res: Response) => {
   try {
     const d = today();
@@ -299,6 +325,18 @@ export const getToday = async (req: Request, res: Response) => {
 
     // A CareerPilot member with no batch schedule: today's problem comes from the member bank.
     if (!sc && isCareerPilotMember(u?.passport)) return memberToday(req, res, u, d);
+
+    // An LMS demo student: the current question if one is open, else the next chosen one.
+    if (await isLmsDemoUser(req)) {
+      const cur: any = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req) }).sort({ createdAt: -1 });
+      if (cur && !['submitted', 'solved'].includes(cur.status)) return res.json({ challenge: challengeView(cur, await contentOf(cur)) });
+      const nx = await lmsDemoNext(req, u, d, cur?.seq || 0);
+      if (!nx?.ch) {
+        if (cur) return res.json({ challenge: challengeView(cur, await contentOf(cur)), member: { position: nx?.total || 0, total: nx?.total || 0 } });
+        return res.json({ challenge: null, empty: true, reason: 'no_assignment', message: 'Thinking Lab questions for the demo are being prepared.' });
+      }
+      return res.json({ challenge: challengeView(nx.ch, nx.p), member: { position: nx.position, total: nx.total } });
+    }
 
     // Still nothing: say WHY, because "not scheduled", "your plan starts Monday" and
     // "today is a rest day" need very different responses from the student.
@@ -362,6 +400,13 @@ export const nextChallenge = async (req: Request, res: Response) => {
     // random "next" — the student is finished until the next scheduled challenge.
     // A member follows the same one-a-day rhythm; their next problem unlocks tomorrow.
     const u: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
+
+    // An LMS demo student goes straight on to the next chosen question.
+    if (await isLmsDemoUser(req)) {
+      const nx = await lmsDemoNext(req, u, d, last?.seq || 0);
+      if (!nx?.ch) return res.json({ challenge: null, empty: true, message: "You've tried every Thinking Lab question in this demo. Great work!" });
+      return res.json({ challenge: challengeView(nx.ch, nx.p), member: { position: nx.position, total: nx.total } });
+    }
 
     // A DEMO ACCOUNT goes straight on to the next question of its plan, today.
     const { isDemoUser } = await import('../services/demoService');
@@ -494,7 +539,9 @@ export const submit = async (req: Request, res: Response) => {
       ch.xpEarned = Math.max(xpBefore, r.xpEarned);
       reward = { ...r.reward, xpNow: r.xpEarned };
     }
-    const firstSolve = !member && allPassed && !ch.gameAwarded;
+    const lmsDemo = await isLmsDemoUser(req);
+    // Demo students earn no game stats: they would show on the institute's Thinking Lab board.
+    const firstSolve = !member && !lmsDemo && allPassed && !ch.gameAwarded;
     if (firstSolve) {
       const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
       const gs: any = await StudentGameStats.findOneAndUpdate(
@@ -508,7 +555,7 @@ export const submit = async (req: Request, res: Response) => {
       (ch as any).gameAwarded = true;
     }
     await ch.save();
-    if (allPassed && !(await (await import('../services/demoService')).isDemoUser(uId(req)))) await bumpSolved(p);
+    if (allPassed && !lmsDemo && !(await (await import('../services/demoService')).isDemoUser(uId(req)))) await bumpSolved(p);
 
     res.json({
       allPassed, passedCount, total: results.length,
@@ -596,13 +643,13 @@ export const leaderboard = async (req: Request, res: Response) => {
       else d.setDate(1);
       const since = ymd(d);
       const agg = await DailyChallenge.aggregate([
-        { $match: { tenantId: tId(req), passed: true, date: { $gte: since }, ...(onlyIds ? { studentId: { $in: onlyIds } } : {}) } },
+        { $match: { tenantId: tId(req), passed: true, date: { $gte: since }, ...(onlyIds ? { studentId: { $in: onlyIds } } : await notDemoStudents()) } },
         { $group: { _id: '$studentId', name: { $first: '$studentName' }, xp: { $sum: '$xpEarned' }, solved: { $sum: 1 } } },
         { $sort: { xp: -1 } }, { $limit: limit },
       ]);
       rows = agg.map((r: any) => ({ studentId: String(r._id), name: r.name || 'Student', xp: r.xp, solved: r.solved }));
     } else {
-      const q: any = { tenantId: tId(req) };
+      const q: any = { tenantId: tId(req), ...(await notDemoStudents()) };
       if (onlyIds) q.studentId = { $in: onlyIds };
       else if (scope === 'batch' && me?.batchId) {
         // The student's lab cohort — their placement batch when it takes the lab over.
@@ -630,6 +677,7 @@ export const voiceExplain = async (req: Request, res: Response) => {
 
     const { text, durationSec } = await transcribeFile(file.path, tId(req), 'thinking_lab_voice_stt');
     if (!text.trim()) return res.status(422).json({ message: "Couldn't hear a clear explanation — try recording again in a quieter spot." });
+    { const { takeDemoAi } = await import('../services/lmsDemoService'); const use = await takeDemoAi(uId(req)); if (use.demo && !use.ok) return res.status(429).json({ code: 'DEMO_AI_LIMIT', message: `You have used today's ${use.limit} AI questions. More tomorrow.` }); }
     const evalRes = await lab.evaluateVoiceExplanation({ statement: p?.statement || '', transcript: text, durationSec, tenantId: tId(req) });
     const voiceEval = { transcript: text, durationSec, ...evalRes };
     ch.voiceEval = voiceEval;
@@ -753,6 +801,7 @@ export const explain = async (req: Request, res: Response) => {
     if (!ch) return res.status(404).json({ message: 'Challenge not found' });
     if (!ch.code) return res.status(400).json({ message: 'Submit a solution first.' });
     const p: any = await contentOf(ch);
+    { const { takeDemoAi } = await import('../services/lmsDemoService'); const use = await takeDemoAi(uId(req)); if (use.demo && !use.ok) return res.status(429).json({ code: 'DEMO_AI_LIMIT', message: `You have used today's ${use.limit} AI questions. More tomorrow.` }); }
     const out = await lab.explainStepByStep({ statement: p?.statement || '', code: ch.code, language: ch.language, expectedTime: p?.expectedTimeComplexity, tenantId: tId(req) });
     res.json({ explanation: out });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
@@ -1040,9 +1089,10 @@ export const puzzleHint = async (req: Request, res: Response) => {
  */
 export const assigned = async (req: Request, res: Response) => {
   try {
-    const u: any = await User.findById(uId(req)).select(USER_FIELDS + ' role').lean();
+    const u: any = await User.findById(uId(req)).select(USER_FIELDS + ' role lmsDemo.at').lean();
     if (!u) return res.json({ assigned: false });
     if (u.role !== 'STUDENT' || (!u.batchId && isCareerPilotMember(u.passport))) return res.json({ assigned: true });
+    if (u.lmsDemo?.at) return res.json({ assigned: true });
     if (!u.batchId) return res.json({ assigned: false });
     // A placement batch that takes the Thinking Lab over supplies it (same rule as getToday).
     u.batchId = await labBatchFor(tId(req), uId(req), u.batchId, 'thinking');

@@ -44,6 +44,19 @@ onAudienceChange.push(() => cache.clear());
  */
 const demoMemo = new WeakMap<object, Promise<string[] | null>>();
 function demoScope(l: Learner): Promise<string[] | null> {
+  if (l.isLmsDemo && !l.isStaff) {
+    let hit = demoMemo.get(l as object);
+    if (!hit) {
+      // An LMS demo student: the problems chosen on the LMS Demo screen (none when Coding Practice is off).
+      hit = (async () => {
+        const { lmsDemoScopeFor } = await import('./lmsDemoService');
+        const d = await lmsDemoScopeFor(l.userId);
+        return d && d.on('codingPractice') ? [...d.ids('problemIds')] : [];
+      })();
+      demoMemo.set(l as object, hit);
+    }
+    return hit;
+  }
   if (!l.isCareerPilot || l.isStaff) return Promise.resolve(null);
   let hit = demoMemo.get(l as object);
   if (!hit) {
@@ -60,7 +73,7 @@ function demoScope(l: Learner): Promise<string[] | null> {
 const seen = async (l: Learner) => ((await demoScope(l)) ? { status: 'published' } : visible(l.tenantId));
 
 export function assertMayUseLibrary(l: Learner) {
-  if (!l.isCareerPilot && !l.isStaff) throw new PbError('The problem library is for CareerPilot members.', 403);
+  if (!l.isCareerPilot && !l.isStaff && !l.isLmsDemo) throw new PbError('The problem library is for CareerPilot members.', 403);
 }
 
 /**
@@ -71,6 +84,7 @@ export function assertMayUseLibrary(l: Learner) {
  * When the plan named its own problems (practicePicked), the trial shows exactly those.
  */
 async function trialScope(l: Learner): Promise<string[] | null> {
+  if (l.isLmsDemo && !l.isStaff) return (await demoScope(l)) || [];
   if (!l.isCareerPilot || l.isStaff) return null;
   const demo = await demoScope(l);
   if (demo) return demo;

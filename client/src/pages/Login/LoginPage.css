@@ -277,3 +277,9 @@
   .login-card-head h2 { font-size: 24px; }
   .login-input-wrap input { height: 50px; font-size: 16px; /* avoid iOS zoom */ }
 }
+
+/* "New to CodeBegun? Try a free demo" under the form: the way into /demo for prospective students. */
+.login-demo-cta { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.16); font-size: 14px; color: rgba(255, 255, 255, 0.8); }
+.login-demo-cta a { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: #9FDCE6; text-decoration: none; }
+.login-demo-cta a:hover { color: #fff; text-decoration: underline; }
+.login-demo-cta a svg { width: 16px; height: 16px; }

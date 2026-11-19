@@ -25,6 +25,10 @@ async function readerFilter(tenantId: string, userId: string) {
   const demo = await demoContext(userId);
   const chosen = (demo?.config?.bookIds || []).map(String);
   if (chosen.length) return { status: 'published', _id: { $in: chosen } };
+  // An LMS demo student reads exactly the books chosen on the LMS Demo screen (none when none are chosen).
+  const { lmsDemoScopeFor } = await import('./lmsDemoService');
+  const lmsDemo = await lmsDemoScopeFor(userId);
+  if (lmsDemo) return { status: 'published', _id: { $in: lmsDemo.oids('bookKeys') } };
   const u: any = await User.findById(userId).select(`${LEARNER_AUDIENCE_FIELDS} passport.stage passport.careerTrack.key`).lean();
   /* Shared CareerPilot rule (learnerAudience.ts): unlike the old inline `passport.active` test it
      also honours expiry, so a lapsed member reads as LMS here, exactly like a never-member. */

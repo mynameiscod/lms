@@ -33,16 +33,20 @@ export interface Learner {
   /** On a trial, not a membership: the library (trial-limited) yes, sets sent to all members no. */
   isTrialOnly?: boolean;
   isStaff: boolean;
+  /** An LMS demo student: the practice library limited to the chosen problems, and no sets. */
+  isLmsDemo?: boolean;
 }
 
 export async function loadLearner(userId: string, tenantId: string): Promise<Learner> {
-  const u: any = await User.findById(userId).select(`${LEARNER_AUDIENCE_FIELDS} passport.trial`).lean();
+  const u: any = await User.findById(userId).select(`${LEARNER_AUDIENCE_FIELDS} passport.trial lmsDemo.at`).lean();
   if (!u) throw new PbError('Account not found', 401);
   // One definition shared with the Code Visualizer and content audience gating (learnerAudience.ts).
   const aud = learnerAudienceOf(u);
   return {
     userId: String(userId), tenantId, role: u.role, batchId: u.batchId ? String(u.batchId) : '',
-    isLms: aud.lms,
+    // A demo student is not sent the institute's "all LMS students" sets; the demo's own problems come through the library.
+    isLms: aud.lms && !u.lmsDemo?.at,
+    isLmsDemo: !!u.lmsDemo?.at,
     // A running trial counts too; problemLibraryService then limits it to the trial's own problems.
     isCareerPilot: aud.careerpilot || trialActive(u.passport),
     isTrialOnly: !aud.careerpilot && trialActive(u.passport),
@@ -249,10 +253,11 @@ export async function gradeAndRecord(
   let reward: { xp: number } | null = null;
   if (!l.isStaff) {
     const { isDemoUser } = await import('./demoService');
-    if (!(await isDemoUser(String(l.userId)))) {
+    // Demo accounts (CareerPilot or LMS) leave problem statistics and game stats alone.
+    if (!l.isLmsDemo && !(await isDemoUser(String(l.userId)))) {
       await CodingProblem.updateOne({ _id: p._id }, { $inc: { 'stats.attempts': 1, ...(firstAccept ? { 'stats.accepted': 1 } : {}) } });
     }
-    if (firstAccept) reward = await rewardFirstSolve(l, p);
+    if (firstAccept && !l.isLmsDemo) reward = await rewardFirstSolve(l, p);
   }
   return { result: r, recorded: true, submissionId: sub._id, late, firstAccept, reward };
 }

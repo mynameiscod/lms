@@ -216,6 +216,9 @@ export async function checkDeadlineGate(
   now: Date = new Date(),
 ): Promise<{ allowed: boolean; late: boolean; reason?: string; dueAt: Date | null; policy: DeadlinePolicy }> {
   const d = await resolveForStudent(tenantId, studentId, contentType, contentId);
+  // A demo student tries the work whatever its batch dates say; the demo has its own end date.
+  const { lmsDemoScopeFor } = await import('./lmsDemoService');
+  if (await lmsDemoScopeFor(studentId)) return { allowed: true, late: false, dueAt: null, policy: d.policy };
   // Enforce for the new delivery paths (per-batch schedule + curriculum day). Baked /
   // un-migrated content keeps its existing enforcement in-service — zero change.
   if (d.source !== 'schedule' && d.source !== 'curriculum') {

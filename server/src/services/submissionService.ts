@@ -15,6 +15,7 @@ import { resolveForStudent } from './assessmentDeliveryService';
 import { scheduleAppliedEvidence } from './appliedEvidenceService';
 import { Types } from 'mongoose';
 import crypto from 'crypto';
+import User from '../models/User';
 
 interface StartSubmissionInput {
   tenant: Types.ObjectId;
@@ -43,6 +44,27 @@ interface GradeSubmissionInput {
   manualScore?: number;
   overallFeedback?: string;
   privateFeedback?: string;
+}
+
+/** An LMS demo student (services/lmsDemoService.ts): no late penalty, and the counsellor hears about each submission. */
+async function isLmsDemoStudent(studentId: any): Promise<boolean> {
+  const { lmsDemoScopeFor } = await import('./lmsDemoService');
+  return !!(await lmsDemoScopeFor(studentId));
+}
+
+/**
+ * A demo student's work goes to their counsellor, not a trainer's marking queue: a line on the
+ * lead with what was handed in and the auto score. Best effort, never fails the submission.
+ */
+async function tellCounsellor(studentId: any, assignment: any, submission: any): Promise<void> {
+  try {
+    if (!(await isLmsDemoStudent(studentId))) return;
+    const { noteOnLead } = await import('./lmsDemoService');
+    const user: any = await User.findById(studentId).select('lmsDemo firstName').lean();
+    const pct = typeof submission?.percentage === 'number' && submission.status !== SubmissionStatus.SUBMITTED ? ` · scored ${submission.percentage}%` : '';
+    const theory = submission?.theoryAnswer ? ` · answer: "${String(submission.theoryAnswer).replace(/\s+/g, ' ').slice(0, 220)}"` : '';
+    await noteOnLead(user, `📝 Submitted the demo assignment "${assignment?.title || 'Assignment'}"${pct}${theory}.`, { hot: true });
+  } catch { /* the submission stands */ }
 }
 
 class SubmissionService {
@@ -458,7 +480,7 @@ class SubmissionService {
     let penalty = 0;
     let status = SubmissionStatus.SUBMITTED;
     
-    if (assignment.dueDate && new Date() > assignment.dueDate) {
+    if (assignment.dueDate && new Date() > assignment.dueDate && !(await isLmsDemoStudent(studentId))) {
       status = SubmissionStatus.LATE;
       if (assignment.lateSubmissionDeadline && new Date() <= assignment.lateSubmissionDeadline) {
         penalty = Math.round(autoScore * (assignment.lateSubmissionPenalty / 100));
@@ -509,6 +531,7 @@ class SubmissionService {
     // The final auto-grade is the evaluation. Only a really-executed one becomes evidence; that is
     // decided from what was stored above, not here.
     scheduleAppliedEvidence({ tenantId: String(tenant), submissionId: String(updated._id), evaluation: 'AUTO_GRADED' });
+    void tellCounsellor(studentId, assignment, updated);
 
     return updated;
   }
@@ -568,7 +591,7 @@ class SubmissionService {
     let penalty = 0;
     let status = SubmissionStatus.GRADED; // MCQ is auto-graded
     
-    if (assignment.dueDate && new Date() > assignment.dueDate) {
+    if (assignment.dueDate && new Date() > assignment.dueDate && !(await isLmsDemoStudent(studentId))) {
       status = SubmissionStatus.LATE;
       penalty = Math.round(autoScore * (assignment.lateSubmissionPenalty / 100));
     }
@@ -591,6 +614,7 @@ class SubmissionService {
 
     await submission.save();
     await assignmentService.updateStats(assignment._id, tenant);
+    void tellCounsellor(studentId, assignment, submission);
 
     return submission;
   }
@@ -624,7 +648,7 @@ class SubmissionService {
 
     // Check late submission
     let status = SubmissionStatus.SUBMITTED;
-    if (assignment.dueDate && new Date() > assignment.dueDate) {
+    if (assignment.dueDate && new Date() > assignment.dueDate && !(await isLmsDemoStudent(studentId))) {
       status = SubmissionStatus.LATE;
     }
 
@@ -637,6 +661,7 @@ class SubmissionService {
     submission.shareToken = crypto.randomUUID();
 
     await submission.save();
+    void tellCounsellor(studentId, assignment, submission);
     return submission;
   }
 
@@ -707,6 +732,10 @@ class SubmissionService {
     options?: { status?: SubmissionStatus; page?: number; limit?: number }
   ): Promise<{ submissions: ISubmission[]; total: number }> {
     const query: any = { assignment: assignmentId, tenant };
+    // Demo students' work goes to their counsellor, not the trainer's queue.
+    const { lmsDemoUserIds } = await import('./lmsDemoService');
+    const demoIds = await lmsDemoUserIds();
+    if (demoIds.length) query.student = { $nin: demoIds };
     
     if (options?.status) {
       query.status = options.status;
@@ -743,9 +772,12 @@ class SubmissionService {
     assignmentId: string | Types.ObjectId,
     tenant: Types.ObjectId
   ): Promise<any> {
+    const { lmsDemoUserIds } = await import('./lmsDemoService');
+    const demoIds = await lmsDemoUserIds();
     const submissions = await Submission.find({
       assignment: assignmentId,
       tenant,
+      ...(demoIds.length ? { student: { $nin: demoIds } } : {}),
       status: { $in: [SubmissionStatus.SUBMITTED, SubmissionStatus.GRADED, SubmissionStatus.LATE] }
     });
 

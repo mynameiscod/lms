@@ -79,7 +79,11 @@ export function audienceIncludes(kind: 'lms' | 'careerpilot', audience: any): bo
  * stay. CareerPilot members are managed on the CareerPilot Members screen.
  */
 export const LMS_USERS_FILTER = {
-  $nor: [{ role: 'STUDENT', 'passport.product': { $nin: [null, ''] }, batchId: null }],
+  $nor: [
+    { role: 'STUDENT', 'passport.product': { $nin: [null, ''] }, batchId: null },
+    // LMS demo students have their own tab on the LMS Demo screen.
+    { 'lmsDemo.at': { $exists: true } },
+  ],
 };
 
 /**

@@ -277,8 +277,15 @@ export const studyAssistant = async (req: Request, res: Response) => {
         prompt = `${base}The student asks: "${question}". Answer helpfully and concisely, grounded in the topic material above when relevant.`;
     }
 
+    // A demo student has a small daily allowance (LMS Demo settings). Real students are not limited here.
+    const { takeDemoAi } = await import('../services/lmsDemoService');
+    const allowance = await takeDemoAi(String((req as any).user?.id || ''));
+    if (!allowance.ok) {
+      return res.status(429).json({ code: 'DEMO_AI_LIMIT', message: `You have used today's ${allowance.limit} AI questions. More tomorrow, or talk to a counsellor to join.`, left: 0, limit: allowance.limit });
+    }
+
     const answer = await aiComplete(prompt, action === 'mcqs' ? 1200 : 900);
-    res.json({ answer });
+    res.json({ answer, ...(allowance.demo ? { aiLeft: allowance.left, aiLimit: allowance.limit } : {}) });
   } catch (err: any) {
     console.error('studyAssistant error:', err);
     res.status(500).json({ message: err?.message || 'Assistant failed' });

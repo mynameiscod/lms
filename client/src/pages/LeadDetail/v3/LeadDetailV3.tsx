@@ -16,6 +16,7 @@ import LeadLifecycle from './LeadLifecycle';
 import LeadTimeline, { toRows } from './LeadTimeline';
 import QualificationChecklist from './QualificationChecklist';
 import EditLeadModal from './EditLeadModal';
+import GiveDemoFromLead from '../../../components/lmsDemo/GiveDemoFromLead';
 import '../LeadDetailV2.css';
 import './LeadDetailV3.css';
 
@@ -83,7 +84,7 @@ const LeadDetailV3: React.FC = () => {
   const [stageDialog, setStageDialog] = useState<{ open: boolean; stageId: string | null }>({ open: false, stageId: null });
   const [meetingsVersion, setMeetingsVersion] = useState(0);
   const [showChat, setShowChat] = useState(false);
-  const [modal, setModal] = useState<null | 'activity' | 'followup' | 'demo' | 'edit' | 'assign' | 'convert'>(null);
+  const [modal, setModal] = useState<null | 'activity' | 'followup' | 'demo' | 'edit' | 'assign' | 'convert' | 'lmsdemo'>(null);
   const [busy, setBusy] = useState(false);
   const [act, setAct] = useState({ type: 'call', text: '', outcome: '', file: null as File | null });
   const [fu, setFu] = useState({ at: '', reason: '', note: '' });
@@ -245,6 +246,7 @@ const LeadDetailV3: React.FC = () => {
               <div className="ldv-menu" role="menu">
                 <button role="menuitem" onClick={() => { setMenu(null); setAct({ type: 'note', text: '', outcome: '', file: null }); setModal('activity'); }}>Log activity</button>
                 <button role="menuitem" onClick={() => { setMenu(null); setDemo({ at: '', notes: '' }); setModal('demo'); }}>Book demo</button>
+                <button role="menuitem" onClick={() => { setMenu(null); setModal('lmsdemo'); }}>Give LMS demo access</button>
                 <button role="menuitem" onClick={() => { setMenu(null); whatsapp(); }}>WhatsApp chat</button>
                 {canReassign && <button role="menuitem" onClick={openAssign}>Reassign</button>}
                 {(['hot', 'warm', 'cold'] as const).map(p => (
@@ -481,6 +483,8 @@ const LeadDetailV3: React.FC = () => {
         <div className="d-flex justify-content-end gap-2"><button className="btn btn-outline-secondary btn-sm" onClick={() => setModal(null)}>Cancel</button>
           <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => run(() => leadApi.updateLead(lead._id, { assignedTo: assignTo || null }), assignTo ? 'Lead reassigned' : 'Lead unassigned')}>{busy ? 'Saving…' : 'Save'}</button></div>
       </Modal>
+
+      {modal === 'lmsdemo' && <GiveDemoFromLead leadId={lead._id} leadName={lead.name} phone={lead.phone} onClose={() => setModal(null)} />}
 
       <Modal isOpen={modal === 'convert'} onClose={() => setModal(null)} title="Convert to student" size="small">
         <p className="small text-muted">Creates a student account for {lead.name}{lead.email ? ` (${lead.email})` : ''} and moves the lead to your Enrolled stage.</p>

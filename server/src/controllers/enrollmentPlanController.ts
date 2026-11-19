@@ -1116,6 +1116,8 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       curriculum: { title: curriculum.title, totalDays: curriculum.totalDays, topics: curriculum.topics },
       dayNumber,
       dayDate: dayDate.toISOString(),
+      /** The day's own title from Curriculum Builder, for the day header. */
+      dayTitle: (dayPlan as any)?.title || null,
       topic: topic || null,
       items: populatedItems,
       isDayCompleted,

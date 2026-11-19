@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../types';
 import User from '../models/User';
 import { jwtSecret } from '../config/secrets';
 import { PARTNER_ROLE, partnerMayReach } from './placementPartnerScope';
+import { lmsDemoMayReach } from './lmsDemoScope';
 
 export const authMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
@@ -24,7 +25,7 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     console.log(`[AUTH] Token valid for user: ${decoded.id}`);
     
     // Check if user still exists and is active
-    const user = await User.findById(decoded.id).select('isActive customRoleId role');
+    const user = await User.findById(decoded.id).select('isActive customRoleId role lmsDemo');
     if (!user) {
       console.log('[AUTH] User not found in database');
       return res.status(401).json({ 
@@ -49,6 +50,18 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     // A placement office login reaches the Talent Portal only — see placementPartnerScope.
     if (req.user!.role === PARTNER_ROLE && !partnerMayReach(req.method, req.originalUrl, String(user._id))) {
       return res.status(403).json({ success: false, message: 'This account can only open the Talent Portal.', code: 'PARTNER_SCOPE' });
+    }
+    // An LMS demo student reaches the learning plan only, and only the end screen once the demo is over — see lmsDemoScope.
+    const demo = (user as any).lmsDemo;
+    if (demo?.at) {
+      const until = demo.endedAt && new Date(demo.endedAt) < new Date(demo.expiresAt) ? new Date(demo.endedAt) : new Date(demo.expiresAt);
+      const ended = until.getTime() <= Date.now();
+      const features = ended ? {} : (((await (await import('../services/lmsDemoService')).cachedConfig()) as any).features || {});
+      if (!lmsDemoMayReach(req.method, req.originalUrl, String(user._id), ended, features)) {
+        return res.status(403).json(ended
+          ? { success: false, code: 'DEMO_ENDED', message: 'Your demo has ended. Talk to a counsellor to continue.' }
+          : { success: false, code: 'DEMO_SCOPE', message: 'This is not part of the demo.' });
+      }
     }
     next();
   } catch (error) {

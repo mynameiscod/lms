@@ -398,7 +398,9 @@ export async function updateEmployee(tenantId: string, actorId: string, id: stri
   if (custom) patch.customFields = { ...(e.customFields ? Object.fromEntries((e.customFields as any).entries()) : {}), ...custom };
   if (patch.status === 'exited' && !patch.exitDate && !e.exitDate) patch.exitDate = new Date();
   if (patch.status && patch.status !== 'exited' && e.status === 'exited') { patch.exitDate = null; patch.exitReason = ''; }
+  const prevStatus = e.status || 'active';
   e.set(patch);
+  syncRoleHistory(e, prevStatus, actorId);
   if (perms.sensitive) applySensitive(e, body.sensitive, [...SENSITIVE_TEXT, ...SENSITIVE_ENC]);
   await e.save();
   if (e.userId) {
@@ -419,6 +421,39 @@ export async function updateSelf(tenantId: string, employeeId: string, body: any
   applySensitive(e, body.sensitive, ['bankAccountHolder', 'bankName', 'bankIfsc', 'bankBranch', 'bankAccountNumber', 'pan', 'aadhaar', 'uan']);
   await e.save();
   return e.toObject();
+}
+
+const STATUS_LABEL: Record<string, string> = { active: 'Active', probation: 'On probation', on_notice: 'Serving notice', on_leave: 'On leave', exited: 'Exited' };
+
+/**
+ * Keeps the role history in step with the job details: the joining entry follows the joining date
+ * (and picks up the role when it was blank), a status change is recorded, and an exit is one entry
+ * that follows the exit date and reason. Exported for tests.
+ */
+export function syncRoleHistory(e: any, prevStatus: string, actorId: string) {
+  const hist: any[] = e.roleHistory;
+  const join = hist.find((h) => h.type === 'joining');
+  if (join) {
+    if (e.joiningDate) join.effectiveFrom = e.joiningDate;
+    if (!join.designation && !join.department && !join.grade) { join.designation = e.designation; join.department = e.department; join.grade = e.grade; }
+  } else {
+    hist.push({ effectiveFrom: e.joiningDate || e.createdAt || new Date(), type: 'joining', designation: e.designation, department: e.department, grade: e.grade, note: 'Joined', createdBy: oid(actorId) });
+  }
+  const status = e.status || 'active';
+  const role = { designation: e.designation, department: e.department, grade: e.grade, createdBy: oid(actorId) };
+  const exitNote = () => ['Exited', e.exitReason].filter(Boolean).join(' — ');
+  if (status === 'exited') {
+    // The exit since the last rejoin, if any: edit it rather than adding another.
+    const sorted = [...hist].sort((a, b) => +new Date(a.createdAt || a.effectiveFrom) - +new Date(b.createdAt || b.effectiveFrom));
+    let exit: any = null;
+    for (const h of sorted) { if (h.type === 'exit') exit = h; if (h.type === 'rejoin') exit = null; }
+    if (exit) { exit.effectiveFrom = e.exitDate || exit.effectiveFrom; exit.note = exitNote(); }
+    else hist.push({ ...role, effectiveFrom: e.exitDate || new Date(), type: 'exit', note: exitNote() });
+  } else if (prevStatus === 'exited') {
+    hist.push({ ...role, effectiveFrom: new Date(), type: 'rejoin', note: `Back — ${STATUS_LABEL[status] || status}` });
+  } else if (prevStatus !== status) {
+    hist.push({ ...role, effectiveFrom: new Date(), type: 'status_change', note: `${STATUS_LABEL[prevStatus] || prevStatus} → ${STATUS_LABEL[status] || status}` });
+  }
 }
 
 export interface HikeInput { type?: string; effectiveFrom?: string; newCtc?: number; designation?: string; department?: string; grade?: string; reportingManagerId?: string | null; note?: string }

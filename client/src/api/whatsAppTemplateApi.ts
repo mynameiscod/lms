@@ -54,8 +54,12 @@ export interface WaPurpose {
 
 export interface WaCompat { ok: boolean; errors: string[]; warnings: string[] }
 
+/** What a broadcast is for. Only 'sales' replies may start the bot or become leads. */
+export type WaBroadcastPurpose = 'sales' | 'hiring' | 'wishes' | 'update';
+export interface WaReplyLead { _id: string; name: string; phone: string; createdAt: string }
+
 export interface WaBroadcast {
-  _id: string; templateName: string; audience: string; total: number; sent: number; failed: number;
+  _id: string; templateName: string; audience: string; purpose?: WaBroadcastPurpose; total: number; sent: number; failed: number;
   status: 'running' | 'done' | 'failed'; failures: { phone: string; error: string }[]; createdAt: string; finishedAt?: string;
   /** What Meta reported afterwards for the messages of this broadcast. */
   outcome?: { delivered: number; read: number; failed: number; pending: number };
@@ -98,9 +102,12 @@ export const waTemplateApi = {
   compatibility: () => axios.get(`${BASE}/usage/compatibility`, h()).then(d) as Promise<Record<string, Record<string, WaCompat>>>,
   assign: (purpose: string, templateId: string | null) => axios.put(`${BASE}/usage/${purpose}`, { templateId }, h()).then(d) as Promise<{ ok: boolean; warnings: string[] }>,
   sendTest: (id: string, phone: string, values: string[], buttonParam?: string, force?: boolean) => axios.post(`${BASE}/${id}/test`, { phone, values, buttonParam, force: force === true }, h()),
-  broadcast: (id: string, body: { phones?: string; batchId?: string; leads?: WaLeadFilter; audience?: WaSourceAudience; values: string[]; buttonParam?: string }) =>
+  broadcast: (id: string, body: { phones?: string; batchId?: string; leads?: WaLeadFilter; audience?: WaSourceAudience; values: string[]; buttonParam?: string; purpose?: WaBroadcastPurpose }) =>
     axios.post(`${BASE}/${id}/broadcast`, body, h()).then(d) as Promise<WaBroadcast>,
   broadcasts: () => axios.get(`${BASE}/broadcasts`, h()).then(d) as Promise<WaBroadcast[]>,
+  replyLeads: (id: string) => axios.get(`${BASE}/broadcasts/${id}/reply-leads`, h()).then(d) as Promise<WaReplyLead[]>,
+  setPurpose: (id: string, purpose: WaBroadcastPurpose) => axios.put(`${BASE}/broadcasts/${id}/purpose`, { purpose }, h()).then(d) as Promise<{ purpose: WaBroadcastPurpose; recipients: number; leads: WaReplyLead[] }>,
+  archiveReplyLeads: (id: string) => axios.post(`${BASE}/broadcasts/${id}/archive-reply-leads`, {}, h()).then(d) as Promise<{ archived: number }>,
   batches: () => axios.get(`${BASE}/batches`, h()).then(d) as Promise<{ _id: string; name: string }[]>,
   leadFilters: () => axios.get(`${BASE}/lead-filters`, h()).then(d) as Promise<WaLeadFilterOptions>,
   leadAudience: (id: string, f: WaLeadFilter) => axios.post(`${BASE}/${id}/lead-audience`, f, h()).then(d) as Promise<WaLeadAudience>,

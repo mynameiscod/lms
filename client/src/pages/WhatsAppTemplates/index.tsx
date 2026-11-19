@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import './waTemplates.css';
 import {
   waTemplateApi, errMsg, WaTemplate, WaTemplateInput, WaPurpose, WaCompat, WaBroadcast, WaButton, WaCategory, WaMessage, WaDeliverySummary,
-  WaLeadFilter, WaLeadFilterOptions, WaLeadAudience, WaAudienceSource, WaAudienceFilter, WaSourcePreview,
+  WaLeadFilter, WaLeadFilterOptions, WaLeadAudience, WaAudienceSource, WaAudienceFilter, WaSourcePreview, WaBroadcastPurpose, WaReplyLead,
 } from '../../api/whatsAppTemplateApi';
 
 /**
@@ -422,6 +422,14 @@ const Editor: React.FC<{ initial?: WaTemplate | null; draft?: WaTemplateInput | 
 
 // ── Send (test / broadcast) ──────────────────────────────────────────────────
 
+/** What a broadcast is for. Replies to anything but sales stay in the inbox: no bot, no new lead. */
+const PURPOSE_LOOK: Record<WaBroadcastPurpose, { label: string; icon: string; reply: string }> = {
+  sales: { label: 'Sales / admissions', icon: 'bi-mortarboard-fill', reply: 'Replies are leads: the bot may answer and a lead is created.' },
+  hiring: { label: 'Hiring / jobs', icon: 'bi-briefcase-fill', reply: 'Replies go to the inbox only. No bot, no lead.' },
+  wishes: { label: 'Wishes / greetings', icon: 'bi-balloon-heart-fill', reply: 'Replies go to the inbox only. No bot, no lead.' },
+  update: { label: 'Update to students / participants', icon: 'bi-megaphone-fill', reply: 'Replies go to the inbox only. No bot, no lead.' },
+};
+
 const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: string) => void }> = ({ t, onClose, onDone }) => {
   const [mode, setMode] = useState<'test' | 'broadcast'>('test');
   const [phone, setPhone] = useState('');
@@ -441,9 +449,12 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
   const [leadOpts, setLeadOpts] = useState<WaLeadFilterOptions | null>(null);
   const [leadFilter, setLeadFilter] = useState<WaLeadFilter>({ stageIds: [], sources: [], passoutYears: [], skipAlreadySent: true });
   const [leadPreview, setLeadPreview] = useState<WaLeadAudience | null>(null);
+  const [purpose, setPurpose] = useState<WaBroadcastPurpose | ''>('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const isAuth = t.category === 'AUTHENTICATION';
+  // CRM leads are sales unless said otherwise; every other list must say what it is for.
+  const effPurpose: WaBroadcastPurpose | '' = purpose || (audience === 'leads' ? 'sales' : '');
   const hasBtn = t.shape.urlButtonIndex >= 0;
 
   useEffect(() => { if (mode === 'broadcast' && !batches.length) waTemplateApi.batches().then(setBatches).catch(() => {}); }, [mode, batches.length]);
@@ -501,6 +512,7 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
         const b = await waTemplateApi.broadcast(t._id, {
           phones: audience === 'paste' ? phones : undefined, batchId: audience === 'batch' ? batchId : undefined,
           leads: audience === 'leads' ? leadFilter : undefined, audience: isSource ? { source: audience, pick, skipAlreadySent: srcSkip } : undefined, values, buttonParam: hasBtn ? buttonParam : undefined,
+          purpose: effPurpose || undefined,
         });
         onDone(`Broadcast started to ${b.total} recipient${b.total === 1 ? '' : 's'} — follow it under Sent history.`);
       }
@@ -532,6 +544,17 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
         </>
       ) : (
         <>
+          <label style={label}>What is this message for?</label>
+          <div className="wat-purpose" role="radiogroup" aria-label="What is this message for?">
+            {(Object.keys(PURPOSE_LOOK) as WaBroadcastPurpose[]).map((k) => (
+              <button key={k} type="button" role="radio" aria-checked={effPurpose === k} className={effPurpose === k ? 'on' : ''} onClick={() => setPurpose(k)}>
+                <i className={`bi ${PURPOSE_LOOK[k].icon}`} /> {PURPOSE_LOOK[k].label}
+              </button>
+            ))}
+          </div>
+          <div style={{ ...hint, color: effPurpose && effPurpose !== 'sales' ? C.green : effPurpose ? C.amber : C.red }}>
+            {effPurpose ? PURPOSE_LOOK[effPurpose].reply : 'Choose one. Hiring, wishes and updates never start the bot or create leads when people reply.'}
+          </div>
           <label style={label}>Recipients</label>
           <div style={{ display: 'flex', gap: '6px 14px', fontSize: 13, flexWrap: 'wrap' }}>
             <label><input type="radio" checked={audience === 'paste'} onChange={() => setAudience('paste')} /> Paste numbers</label>
@@ -656,7 +679,7 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
       {err && <div style={{ background: C.redBg, color: C.red, borderRadius: 8, padding: '8px 12px', fontSize: 13, marginTop: 12 }}>{err}</div>}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
         <button style={btn()} onClick={onClose}>Cancel</button>
-        <button style={btn('primary')} disabled={busy || (mode === 'broadcast' && audience === 'leads' && !leadPreview?.total) || (mode === 'broadcast' && isSource && !srcPreview?.total)} onClick={go}>
+        <button style={btn('primary')} disabled={busy || (mode === 'broadcast' && !effPurpose) || (mode === 'broadcast' && audience === 'leads' && !leadPreview?.total) || (mode === 'broadcast' && isSource && !srcPreview?.total)} onClick={go}>
           {busy ? 'Sending…' : mode === 'test' ? 'Send test' : audience === 'leads' && leadPreview ? `Send to ${leadPreview.total} leads` : isSource && srcPreview ? `Send to ${srcPreview.total} ${srcPreview.total === 1 ? 'person' : 'people'}` : 'Send now'}
         </button>
       </div>
@@ -1166,7 +1189,49 @@ const DeliveryLog: React.FC<{ templates: WaTemplate[] }> = ({ templates }) => {
 
 // ── Sent history tab ─────────────────────────────────────────────────────────
 
-const HistoryTab: React.FC<{ history: WaBroadcast[] }> = ({ history }) => {
+/** Per broadcast: say what it was for, and archive leads that replies to a non-sales message created. */
+const PurposeRow: React.FC<{ b: WaBroadcast; onChanged: () => void }> = ({ b, onChanged }) => {
+  const [leads, setLeads] = useState<WaReplyLead[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const nonSales = !!b.purpose && b.purpose !== 'sales';
+  useEffect(() => {
+    if (!nonSales && b.purpose) return;
+    waTemplateApi.replyLeads(b._id).then(setLeads).catch(() => setLeads([]));
+  }, [b._id, b.purpose, nonSales]);
+  const choose = async (p: WaBroadcastPurpose) => {
+    setBusy(true); setMsg('');
+    try { const r = await waTemplateApi.setPurpose(b._id, p); setLeads(r.leads); onChanged(); } catch (e) { setMsg(errMsg(e)); }
+    setBusy(false);
+  };
+  const archive = async () => {
+    if (!leads?.length || !window.confirm(`Archive the ${leads.length} lead${leads.length === 1 ? '' : 's'} created when people replied to this ${PURPOSE_LOOK[b.purpose as WaBroadcastPurpose]?.label.toLowerCase() || ''} message?\n\nThey can be restored from Lead Archive.`)) return;
+    setBusy(true);
+    try { const r = await waTemplateApi.archiveReplyLeads(b._id); setMsg(`Archived ${r.archived} lead${r.archived === 1 ? '' : 's'}.`); setLeads([]); } catch (e) { setMsg(errMsg(e)); }
+    setBusy(false);
+  };
+  return (
+    <div className="wat-bcast-purpose">
+      <label className="wat-select"><span>For:</span>
+        <select value={b.purpose || ''} disabled={busy} onChange={(e) => e.target.value && choose(e.target.value as WaBroadcastPurpose)} aria-label="What this broadcast was for">
+          {!b.purpose && <option value="">Not set (replies treated as leads)</option>}
+          {(Object.keys(PURPOSE_LOOK) as WaBroadcastPurpose[]).map((k) => <option key={k} value={k}>{PURPOSE_LOOK[k].label}</option>)}
+        </select>
+      </label>
+      <small className="sub">{b.purpose ? PURPOSE_LOOK[b.purpose].reply : 'Sent before this choice existed. If it was hiring, wishes or an update, set it so their replies stop going to the bot.'}</small>
+      {leads && leads.length > 0 && (
+        <div className="wat-bcast-leads">
+          <i className="bi bi-exclamation-triangle-fill" />
+          <span><b>{leads.length} lead{leads.length === 1 ? ' was' : 's were'} created</b> when people replied: {leads.slice(0, 4).map((l) => l.name).join(', ')}{leads.length > 4 ? '…' : ''}</span>
+          {nonSales && <button type="button" className="wat-btn ghost sm" disabled={busy} onClick={archive}>Archive them</button>}
+        </div>
+      )}
+      {msg && <small className="sub">{msg}</small>}
+    </div>
+  );
+};
+
+const HistoryTab: React.FC<{ history: WaBroadcast[]; onChanged: () => void }> = ({ history, onChanged }) => {
   if (!history.length) return <div className="wat-card wat-empty">Nothing sent yet. Use "Send" on an approved template.</div>;
   return (
     <div className="wat-history">
@@ -1178,6 +1243,7 @@ const HistoryTab: React.FC<{ history: WaBroadcast[] }> = ({ history }) => {
           <div key={b._id} className="wat-card wat-bcast">
             <div className="wat-bcast-top">
               <div className="wat-name"><i className="fa-brands fa-whatsapp" /><div><b>{b.templateName}</b><small>{b.audience} · {when(b.createdAt)}</small></div></div>
+              {b.purpose && <Pill cls={b.purpose === 'sales' ? 'blue' : 'teal'} icon={PURPOSE_LOOK[b.purpose].icon}>{PURPOSE_LOOK[b.purpose].label}</Pill>}
               {b.status === 'running' ? <Pill cls="amber" icon="bi-hourglass-split">Sending… {b.sent + b.failed}/{b.total}</Pill> : b.status === 'failed' ? <Pill cls="red" icon="bi-x-circle">Stopped</Pill> : <Pill cls="green" icon="bi-check-circle">Finished</Pill>}
             </div>
             <div className="wat-bcast-bar" aria-hidden>
@@ -1193,6 +1259,7 @@ const HistoryTab: React.FC<{ history: WaBroadcast[] }> = ({ history }) => {
               {o.pending > 0 && <span><b>{o.pending}</b> waiting for Meta</span>}
             </div>
             {failed > b.failed && <small className="sub">Meta accepted all of them, then reported {o.failed} as not delivered. See the Delivery log for why.</small>}
+            <PurposeRow b={b} onChanged={onChanged} />
             {b.failures?.length > 0 && (
               <details className="wat-bcast-fail"><summary>Refused at send time ({b.failures.length})</summary>
                 {b.failures.map((f, i) => <div key={i}>{f.phone}: {f.error}</div>)}
@@ -1336,7 +1403,7 @@ const WhatsAppTemplates: React.FC = () => {
           {tab === 'templates' && <TemplatesTab templates={templates} busy={busy} onNew={() => setEditor({})} onEdit={(t) => setEditor({ initial: t })} onSend={setSending} onDelete={remove} onRefresh={loadAll} />}
           {tab === 'usage' && <UsageTab templates={templates} usage={usage} compat={compat} busy={busy} onAssign={assign} onCreateFor={(p) => setEditor({ draft: draftForPurpose(p) })} />}
           {tab === 'delivery' && <DeliveryLog templates={templates} />}
-          {tab === 'history' && <HistoryTab history={history} />}
+          {tab === 'history' && <HistoryTab history={history} onChanged={loadHistory} />}
         </>
       ) : null}
 

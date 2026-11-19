@@ -1,3 +1,4 @@
+import { quietReason } from './whatsAppReplyContext';
 import mongoose from 'mongoose';
 import WhatsAppThread from '../models/WhatsAppThread';
 import WhatsAppConversationState from '../models/WhatsAppConversationState';
@@ -79,7 +80,10 @@ export async function threadContext(tenantId: string, rawPhone: string) {
     .slice(0, 12)
     .map(([k, v]) => ({ label: humanKey(k), value: String(v) }));
 
+  const quiet = await quietReason(tenantId, phone).catch(() => null);
   return {
+    /** Why nothing automatic answers this person (reply to a hiring/wishes message, student…). */
+    quiet,
     owner: ownerUser ? { _id: String(ownerUser._id), name: fullName(ownerUser), from: owner.from } : null,
     lead: lead ? {
       _id: String(lead._id),

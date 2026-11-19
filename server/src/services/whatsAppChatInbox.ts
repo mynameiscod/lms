@@ -169,7 +169,7 @@ export type InboxStatus = 'needs_reply' | 'automation' | 'waiting_lead' | 'idle'
 export type InboxFilter = 'all' | 'needs_reply' | 'automation' | 'unread' | 'mine' | 'unassigned' | 'placement' | 'lead' | 'student';
 export interface InboxQuery {
   filter?: InboxFilter; q?: string; page?: number; limit?: number;
-  owner?: string; stageId?: string; source?: string; type?: 'lead' | 'placement' | 'student' | ''; window?: 'open' | 'closing' | 'closed' | '';
+  owner?: string; stageId?: string; source?: string; type?: 'lead' | 'placement' | 'student' | 'not_sales' | ''; window?: 'open' | 'closing' | 'closed' | '';
   access?: { placement: boolean; leads: boolean };
 }
 
@@ -245,6 +245,7 @@ export async function listInbox(tenantId: string, userId: string, opts: InboxQue
   if (opts.type === 'lead') f['links.leadId'] = { $exists: true };
   if (opts.type === 'placement') f['links.placementId'] = { $exists: true };
   if (opts.type === 'student') f['links.userId'] = { $exists: true };
+  if (opts.type === 'not_sales') { f['replyContext.kind'] = { $in: ['hiring', 'wishes', 'update'] }; f['links.leadId'] = { $exists: false }; }
   if (opts.window === 'open') f.lastInboundAt = { $gt: new Date(now - DAY) };
   if (opts.window === 'closing') f.lastInboundAt = { $gt: new Date(now - DAY), $lte: new Date(now - DAY + CLOSING_MS) };
   if (opts.window === 'closed') f.$or = [{ lastInboundAt: { $lte: new Date(now - DAY) } }, { lastInboundAt: null }];
@@ -303,6 +304,7 @@ export async function listInbox(tenantId: string, userId: string, opts: InboxQue
       waitingSince: t.needsReply ? t.lastInboundAt : undefined,
       assignedTo: t.ownerDoc?.[0] ? { _id: String(t.ownerDoc[0]._id), name: fullName(t.ownerDoc[0]) || t.ownerDoc[0].email } : null,
       ownerFrom: t.lead?.assignedTo ? 'lead' : t.assignedTo ? 'chat' : null,
+      replyTo: !t.links?.leadId && t.replyContext?.kind && t.replyContext.kind !== 'sales' ? { kind: t.replyContext.kind, templateName: t.replyContext.templateName || '' } : null,
       lead: t.lead ? {
         stage: t.stageDoc?.[0] ? { name: t.stageDoc[0].name, color: t.stageDoc[0].color } : null,
         source: t.lead.source || '',

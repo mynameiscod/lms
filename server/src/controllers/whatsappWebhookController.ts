@@ -17,6 +17,7 @@ import { reviveIfArchived } from '../services/leadArchiveService';
 import { extractReferral, applyReferralToLead, lookupAd, adFields, referralActivity, AdReferral } from '../services/whatsAppAdReferralService';
 import { linkLeadToCampaign } from './adCampaignController';
 import { onInbound, attachLeadToRuns, hasLiveRun, workflowWelcomesNewLeads } from '../services/workflow/engine';
+import { quietReason } from '../services/whatsAppReplyContext';
 import WhatsAppChatMessage from '../models/WhatsAppChatMessage';
 
 // ===================== TYPES =====================
@@ -308,6 +309,13 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
         const messageText = stored?.botText ?? ((message.type === 'text' && message.text?.body) || message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || '');
         if (!messageText) continue;
 
+        // A reply to a hiring / wishes / update message, or from a student or placement candidate who is
+        // not a lead: kept in the inbox for a person. No bot, no workflows, no new lead. (An ad click is sales.)
+        if (!referral) {
+          const quiet = await quietReason(tenantInfo.tenantId, phoneNumber).catch(() => null);
+          if (quiet) continue;
+        }
+
         // Workflow Builder first: answers to a workflow's question, STOP/START, keyword and
         // out-of-office replies. When a workflow took the message, the old qualification bot stays quiet.
         const botPaused = await isBotPaused(tenantInfo.tenantId, phoneNumber);
@@ -422,6 +430,11 @@ async function keepAdOnLead(phone: string, name: string, tenantId: string, refer
 }
 
 // ===================== ENSURE LEAD EXISTS =====================
+
+/** Make (or find) the CRM lead for a WhatsApp number — also used by the inbox's "Turn into a lead". */
+export async function leadFromWhatsApp(phone: string, name: string, tenantId: string) {
+  return ensureLeadExists(phone, name, tenantId, 'warm');
+}
 
 async function ensureLeadExists(phone: string, name: string, tenantId: string, priority: 'hot' | 'warm' | 'cold', referral?: AdReferral) {
   try {

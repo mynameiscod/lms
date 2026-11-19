@@ -626,11 +626,25 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
   }
 };
 
+/** The edit form's "interest" fields, as dotted $set keys — only known keys and values get through. */
+function interestSet(i: any): Record<string, any> {
+  if (!i || typeof i !== 'object') return {};
+  const out: Record<string, any> = {};
+  const pick = (k: string, ok: string[]) => { if (ok.includes(i[k])) out[`interests.${k}`] = i[k]; };
+  pick('mode', ['online', 'offline', 'hybrid', 'undecided']);
+  pick('urgency', ['immediate', 'soon', 'exploring']);
+  pick('affordability', ['ready', 'needs_emi', 'budget_concern', 'unknown']);
+  for (const k of ['placement', 'demoInterest', 'campusVisitInterest']) if (typeof i[k] === 'boolean') out[`interests.${k}`] = i[k];
+  if (typeof i.location === 'string') out['interests.location'] = i.location.trim().slice(0, 120);
+  if (Array.isArray(i.technologies)) out['interests.technologies'] = i.technologies.map(String).map((x: string) => x.trim()).filter(Boolean).slice(0, 20);
+  return out;
+}
+
 // Update a lead (scope-enforced)
 export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
-    const { name, email, phone, courseInterest, source, stageId, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason, customFields, priority, demoBookedAt, demoNotes } = req.body;
+    const { name, email, phone, courseInterest, source, stageId, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason, customFields, priority, demoBookedAt, demoNotes, interests, language } = req.body;
 
     const scopeFilter = await buildLeadScopeFilter(req);
 
@@ -687,7 +701,9 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
         ...(customFields !== undefined && { customFields }),
         ...(priority !== undefined && { priority }),
         ...(demoBookedAt !== undefined && { demoBookedAt: demoBookedAt || null }),
-        ...(demoNotes !== undefined && { demoNotes })
+        ...(demoNotes !== undefined && { demoNotes }),
+        ...(language !== undefined && ['english', 'telugu', 'hindi'].includes(language) && { language }),
+        ...interestSet(interests),
       },
       { new: true, runValidators: true }
     )

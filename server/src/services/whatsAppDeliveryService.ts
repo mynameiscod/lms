@@ -106,35 +106,84 @@ export async function applyDeliveryStatuses(statuses: MetaStatus[]): Promise<num
  * sees a problem (a dead token, an unapproved template, a spike of unreachable numbers) without
  * scrolling the list.
  */
-export async function deliverySummary(tenantId: string) {
-  const since = new Date(Date.now() - 24 * 3600 * 1000);
-  const match = { tenantId: new mongoose.Types.ObjectId(tenantId), createdAt: { $gte: since } };
-  const [total, failedRows] = await Promise.all([
-    WhatsAppMessageLog.countDocuments(match),
+/** What to do about the common failures, in plain words (shown under each reason). */
+const ADVICE: Record<number, string> = {
+  131049: 'Send results, reminders and notices as UTILITY templates. Send MARKETING only to people who wrote to you recently or asked for updates, and never the same promotion twice in a week (keep "Skip people already sent" ticked).',
+  131050: 'They switched off marketing from businesses. Stop sending them marketing; utility messages still work.',
+  131026: 'Check the number first: an Indian mobile is +91 followed by 10 digits. If the format is right, the person is not on WhatsApp (or must update the app) — call or SMS instead.',
+  130472: 'Nothing to fix. Meta keeps a small random group out of marketing messages as an experiment. Use a UTILITY template for anything important.',
+  131047: 'Their 24-hour window has closed. Send an approved template instead of a free-text reply.',
+  131048: 'Too many people blocked or reported recent messages. Slow down, send to fewer people, and make the template clearly useful.',
+  132001: 'The template is not approved in this language yet. Sync from Meta and pick an approved one.',
+  131042: 'Pay the failed WhatsApp bill in Meta Business Manager → Billing & payments.',
+  190: 'Reconnect WhatsApp: the access token has expired.',
+};
+const DAY_MS = 24 * 3600 * 1000;
+const VALID_IN = /^91[6-9]\d{9}$/;
+
+/**
+ * Sends over the last `days` days at a glance: totals by outcome, the change against the period
+ * before, and the most common failure reasons with what to do about each.
+ */
+export async function deliverySummary(tenantId: string, days = 1) {
+  const span = Math.min(Math.max(Math.round(days) || 1, 1), 90) * DAY_MS;
+  const tid = new mongoose.Types.ObjectId(tenantId);
+  const since = new Date(Date.now() - span);
+  const match = { tenantId: tid, createdAt: { $gte: since } };
+  const [byStatus, prevTotal, failedRows, failedTo] = await Promise.all([
+    WhatsAppMessageLog.aggregate([{ $match: match }, { $group: { _id: '$status', n: { $sum: 1 } } }]),
+    WhatsAppMessageLog.countDocuments({ tenantId: tid, createdAt: { $gte: new Date(since.getTime() - span), $lt: since } }),
     WhatsAppMessageLog.aggregate([
       { $match: { ...match, status: 'failed' } },
-      { $group: { _id: { code: '$errorCode', title: '$errorTitle', detail: '$errorDetail' }, count: { $sum: 1 }, last: { $max: '$createdAt' } } },
-      { $sort: { count: -1 } }, { $limit: 5 },
+      { $group: { _id: { code: '$errorCode', title: '$errorTitle', detail: '$errorDetail' }, count: { $sum: 1 }, last: { $max: '$createdAt' }, templates: { $addToSet: '$templateName' } } },
+      { $sort: { count: -1 } }, { $limit: 6 },
     ]),
+    WhatsAppMessageLog.distinct('to', { ...match, status: 'failed' }),
   ]);
+  const n = (k: string) => (byStatus.find((r: any) => r._id === k) as any)?.n || 0;
   const reasons = failedRows.map((r: any) => ({
     code: r._id.code, count: r.count, last: r.last,
     reason: explainWaError(r._id.code, r._id.title || r._id.detail),
+    advice: (r._id.code && ADVICE[r._id.code]) || '',
+    templates: (r.templates || []).slice(0, 4),
   }));
-  return { total, failed: reasons.reduce((n: number, r: any) => n + r.count, 0), reasons };
+  const total = byStatus.reduce((t: number, r: any) => t + r.n, 0);
+  return {
+    days: span / DAY_MS,
+    total, prevTotal,
+    delivered: n('delivered') + n('read'),
+    read: n('read'),
+    failed: n('failed'),
+    pending: n('accepted') + n('sent'),
+    /** Failed numbers that are not a valid Indian mobile (+91 and 10 digits starting 6–9). */
+    badNumbers: (failedTo as string[]).filter((p) => String(p).startsWith('91') && !VALID_IN.test(String(p))).length,
+    reasons,
+  };
 }
 
 /** Recent sends for the Templates screen, newest first, with a plain-English reason on failures. */
-export async function listMessages(tenantId: string, q: { phone?: string; templateId?: string; limit?: number; status?: string }) {
+export async function listMessages(tenantId: string, q: { phone?: string; templateId?: string; limit?: number; status?: string; source?: string; days?: number; q?: string }) {
   const filter: any = { tenantId };
-  if (q.status === 'failed') filter.status = 'failed';
+  if (q.status === 'delivered') filter.status = { $in: ['delivered', 'read'] };
+  else if (q.status === 'pending') filter.status = { $in: ['accepted', 'sent'] };
+  else if (['failed', 'read'].includes(String(q.status))) filter.status = q.status;
+  if (['test', 'broadcast', 'system'].includes(String(q.source))) filter.source = q.source;
+  if (q.days && Number(q.days) > 0) filter.createdAt = { $gte: new Date(Date.now() - Math.min(Number(q.days), 365) * DAY_MS) };
+  const text = String(q.q || '').trim();
+  if (text) {
+    const digits = text.replace(/\D/g, '');
+    filter.$or = [
+      { templateName: { $regex: text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+      ...(digits.length >= 4 ? [{ to: { $regex: digits } }] : []),
+    ];
+  }
   if (q.templateId && mongoose.Types.ObjectId.isValid(q.templateId)) filter.templateId = q.templateId;
   if (q.phone) {
     const digits = String(q.phone).replace(/\D/g, '').slice(-10);
     if (digits) filter.to = { $regex: `${digits}$` };
   }
   const rows = await WhatsAppMessageLog.find(filter)
-    .sort({ createdAt: -1 }).limit(Math.min(Math.max(Number(q.limit) || 50, 1), 200)).lean();
+    .sort({ createdAt: -1 }).limit(Math.min(Math.max(Number(q.limit) || 50, 1), 1000)).lean();
   return rows.map((r: any) => ({
     ...r,
     reason: r.status === 'failed' ? explainWaError(r.errorCode, r.errorTitle || r.errorDetail) : undefined,

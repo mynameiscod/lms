@@ -1,3 +1,4 @@
+import WhatsAppMessageLog from '../models/WhatsAppMessageLog';
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Batch from '../models/Batch';
@@ -94,12 +95,15 @@ export const sendTest = wrap(async (req, res) => {
 
 /** GET /whatsapp-templates/messages?phone=&templateId=&limit= — recent sends and what became of them. */
 export const messages = wrap(async (req, res) => {
-  const { phone, templateId, limit, status } = req.query as any;
-  res.json({ success: true, data: await listMessages(tId(req), { phone, templateId, limit: Number(limit) || 50, status }) });
+  const { phone, templateId, limit, status, source, days, q } = req.query as any;
+  const str = (v: any) => (typeof v === 'string' ? v.slice(0, 80) : undefined);
+  res.json({ success: true, data: await listMessages(tId(req), {
+    phone: str(phone), templateId: str(templateId), limit: Number(limit) || 50, status: str(status), source: str(source), days: Number(days) || undefined, q: str(q),
+  }) });
 });
 
 export const messagesSummary = wrap(async (req, res) => {
-  res.json({ success: true, data: await deliverySummary(tId(req)) });
+  res.json({ success: true, data: await deliverySummary(tId(req), Number((req.query as any).days) || 1) });
 });
 
 export const broadcast = wrap(async (req, res) => {
@@ -149,7 +153,19 @@ export const leadFilters = wrap(async (req, res) => {
 });
 
 export const broadcasts = wrap(async (req, res) => {
-  res.json({ success: true, data: await svc.listBroadcasts(tId(req)) });
+  // "Sent" only means Meta accepted it; what really happened arrives later per message — add it here.
+  const list: any[] = await svc.listBroadcasts(tId(req));
+  const ids = list.map((b) => b._id);
+  const rows: any[] = ids.length ? await WhatsAppMessageLog.aggregate([
+    { $match: { broadcastId: { $in: ids } } },
+    { $group: { _id: { b: '$broadcastId', s: '$status' }, n: { $sum: 1 } } },
+  ]) : [];
+  const out = list.map((b) => {
+    const mine = rows.filter((r) => String(r._id.b) === String(b._id));
+    const c = (k: string[]) => mine.filter((r) => k.includes(r._id.s)).reduce((t, r) => t + r.n, 0);
+    return { ...b, outcome: { delivered: c(['delivered', 'read']), read: c(['read']), failed: c(['failed']), pending: c(['accepted', 'sent']) } };
+  });
+  res.json({ success: true, data: out });
 });
 
 export const batches = wrap(async (req, res) => {

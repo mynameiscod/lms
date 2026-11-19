@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
 import { CONTENT_TYPE_ICONS, CONTENT_TYPE_LABELS, CONTENT_TYPE_COLORS } from '../../api/learningContentLibraryApi';
-import { VideoPlayer, NotesViewer, QAViewer, PracticeViewer } from './DayView';
+import { VideoPlayer, QAViewer, PracticeViewer } from './DayView';
 import InteractiveActivityViewer from './InteractiveActivityViewer';
+import NotesReader from './NotesReader';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLmsDemo, isDemoUser } from '../../components/lmsDemo/DemoShell';
 import './learningPlanDay.css';
@@ -160,9 +161,14 @@ const LearningPlanPro: React.FC = () => {
   const allDays: any[] = useMemo(() => (journey?.plan?.weeks || []).flatMap((w: any) => w.days || []), [journey]);
   const totalDays = data?.enrollment?.totalDays || journey?.plan?.totalDays || 0;
   const completedDaysCount = data?.enrollment?.completedDays?.length ?? journey?.progress?.completedDays ?? 0;
-  const [stripStart, setStripStart] = useState(1);
-  useEffect(() => { setStripStart(Math.max(1, dayNumber - 4)); }, [dayNumber]);
-  const stripDays = allDays.filter(d => d.day >= stripStart && d.day < stripStart + 10);
+  // Every day as a card in one scrolling row; the day on show is scrolled into view.
+  const daysRow = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = daysRow.current; if (!row) return;
+    const cur = row.querySelector<HTMLElement>('[aria-current="page"]');
+    if (cur) row.scrollTo({ left: Math.max(0, cur.offsetLeft - row.clientWidth / 2 + cur.clientWidth / 2), behavior: 'smooth' });
+  }, [dayNumber, allDays.length]);
+  const scrollDays = (dir: number) => { const row = daysRow.current; if (row) row.scrollBy({ left: dir * Math.max(240, row.clientWidth * 0.8), behavior: 'smooth' }); };
 
   if (loading) return <div className="lpd"><div className="lpd-state"><div className="lpd-spin" /> Loading your day…</div></div>;
   if (!data) return <div className="lpd"><div className="lpd-state err"><i className="bi bi-exclamation-circle" /> Could not load this day. <button type="button" onClick={load}>Try again</button></div></div>;
@@ -239,26 +245,32 @@ const LearningPlanPro: React.FC = () => {
           </div>
         </div>
         <div className="lpd-strip">
-          <button type="button" className="lpd-strip-arrow" onClick={() => setStripStart(s => Math.max(1, s - 5))} disabled={stripStart <= 1} aria-label="Earlier days"><i className="bi bi-chevron-left" /></button>
-          <div className="lpd-days">
-            {stripDays.map(d => {
+          <button type="button" className="lpd-strip-arrow" onClick={() => scrollDays(-1)} aria-label="Earlier days"><i className="bi bi-chevron-left" /></button>
+          <div className="lpd-days" ref={daysRow}>
+            {allDays.map(d => {
               const isCur = d.day === dayNumber;
               const st = d.locked ? 'locked' : d.status === 'completed' ? 'done' : isCur ? 'cur' : d.status === 'current' ? 'today' : 'next';
+              const label = st === 'done' ? 'Done' : st === 'locked' ? 'Locked' : isCur ? 'Open now' : st === 'today' ? 'Up next' : 'Not started';
               return (
                 <button key={d.day} type="button" disabled={d.locked} className={`lpd-day ${st}${isCur ? ' sel' : ''}`}
                   onClick={() => !d.locked && navigate(`/my-learning/${enrollmentId}/day/${d.day}`)} aria-current={isCur ? 'page' : undefined}>
-                  <small>Day</small><b>{d.day}</b>
-                  <i className={`bi ${st === 'done' ? 'bi-check-circle-fill' : st === 'locked' ? 'bi-lock-fill' : isCur ? 'bi-play-circle-fill' : 'bi-circle'}`} />
+                  <span className="lpd-day-top">
+                    <span className="lpd-day-n"><small>Day</small><b>{d.day}</b></span>
+                    <i className={`bi ${st === 'done' ? 'bi-check-circle-fill' : st === 'locked' ? 'bi-lock-fill' : isCur ? 'bi-play-circle-fill' : 'bi-circle'}`} />
+                  </span>
+                  <span className="lpd-day-title">{d.title || (isCur && dayTitle) || `Day ${d.day} lessons`}</span>
+                  <span className="lpd-day-st">{label}</span>
                 </button>
               );
             })}
           </div>
-          <button type="button" className="lpd-strip-arrow" onClick={() => setStripStart(s => Math.min(Math.max(1, totalDays - 9), s + 5))} disabled={stripStart + 10 > totalDays} aria-label="Later days"><i className="bi bi-chevron-right" /></button>
+          <button type="button" className="lpd-strip-arrow" onClick={() => scrollDays(1)} aria-label="Later days"><i className="bi bi-chevron-right" /></button>
         </div>
       </section>
 
       {/* ── Tasks · lesson · helpers ── */}
       <div className="lpd-grid">
+        <div className="lpd-col">
         <aside className="lpd-rail">
           <div className="lpd-rail-head"><b>Today's tasks</b><span>{dayDone}/{items.length}</span></div>
           <div className="lpd-tasks">
@@ -279,6 +291,46 @@ const LearningPlanPro: React.FC = () => {
             {items.length === 0 && <div className="lpd-empty-small"><i className="bi bi-calendar2-week" /> No lessons for this day yet.</div>}
           </div>
         </aside>
+
+        {/* Progress cards: under the task list on laptops, after everything else on phones. */}
+        <div className="lpd-extras">
+          {/* Today's goal */}
+          {!demo && (
+            <section className="lpd-card">
+              <div className="lpd-card-head"><b><i className="bi bi-bullseye" /> Today's goal</b><button type="button" className="lpd-link" onClick={() => { setGoalDraft(goal.targets); setGoalEdit(true); }}>Edit</button></div>
+              {goalItems.map(g => (
+                <div key={g.key} className={`lpd-goal${g.done ? ' done' : ''}`}><i className={`bi ${g.done ? 'bi-check-circle-fill' : 'bi-circle'}`} /> {g.label}</div>
+              ))}
+              <div className="lpd-mini-bar"><i style={{ width: `${goalPct}%` }} /></div>
+            </section>
+          )}
+
+          {/* Progress */}
+          <section className="lpd-card">
+            <div className="lpd-card-head"><b><i className="bi bi-graph-up" /> Course progress</b><span className="lpd-count">{donutPct}%</span></div>
+            <div className="lpd-prog">
+              <ProgressRow tone="green" label="Completed" value={progress.completed} />
+              <ProgressRow tone="amber" label="In progress" value={progress.inProgress} />
+              <ProgressRow tone="grey" label="Not started" value={progress.notStarted} />
+              <div className="lpd-prog-total">Total <b>{progress.total}</b> lessons · {fmtTime(summary?.timeSpentSeconds || 0)} spent</div>
+            </div>
+          </section>
+
+          {Array.isArray(summary?.badges) && summary.badges.length > 0 && (
+            <section className="lpd-card">
+              <div className="lpd-card-head"><b><i className="bi bi-award" /> Badges</b><span className="lpd-count">{summary.badges.filter((b: any) => b.earned).length}/{summary.badges.length}</span></div>
+              <div className="lpd-badges">
+                {summary.badges.map((b: any) => (
+                  <div key={b.id} title={b.hint} className={b.earned ? 'on' : ''}>
+                    <span>{b.earned ? b.icon : <i className="bi bi-lock-fill" />}</span>
+                    <b>{b.label}</b>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+        </div>
 
         <main className="lpd-stage">
           {data.isLocked ? (
@@ -397,42 +449,6 @@ const LearningPlanPro: React.FC = () => {
               {notes.length === 0 && <p className="lpd-muted">No notes yet.</p>}
             </div>
           </section>
-
-          {/* Today's goal */}
-          {!demo && (
-            <section className="lpd-card">
-              <div className="lpd-card-head"><b><i className="bi bi-bullseye" /> Today's goal</b><button type="button" className="lpd-link" onClick={() => { setGoalDraft(goal.targets); setGoalEdit(true); }}>Edit</button></div>
-              {goalItems.map(g => (
-                <div key={g.key} className={`lpd-goal${g.done ? ' done' : ''}`}><i className={`bi ${g.done ? 'bi-check-circle-fill' : 'bi-circle'}`} /> {g.label}</div>
-              ))}
-              <div className="lpd-mini-bar"><i style={{ width: `${goalPct}%` }} /></div>
-            </section>
-          )}
-
-          {/* Progress */}
-          <section className="lpd-card">
-            <div className="lpd-card-head"><b><i className="bi bi-graph-up" /> Course progress</b><span className="lpd-count">{donutPct}%</span></div>
-            <div className="lpd-prog">
-              <ProgressRow tone="green" label="Completed" value={progress.completed} />
-              <ProgressRow tone="amber" label="In progress" value={progress.inProgress} />
-              <ProgressRow tone="grey" label="Not started" value={progress.notStarted} />
-              <div className="lpd-prog-total">Total <b>{progress.total}</b> lessons · {fmtTime(summary?.timeSpentSeconds || 0)} spent</div>
-            </div>
-          </section>
-
-          {Array.isArray(summary?.badges) && summary.badges.length > 0 && (
-            <section className="lpd-card">
-              <div className="lpd-card-head"><b><i className="bi bi-award" /> Badges</b><span className="lpd-count">{summary.badges.filter((b: any) => b.earned).length}/{summary.badges.length}</span></div>
-              <div className="lpd-badges">
-                {summary.badges.map((b: any) => (
-                  <div key={b.id} title={b.hint} className={b.earned ? 'on' : ''}>
-                    <span>{b.earned ? b.icon : <i className="bi bi-lock-fill" />}</span>
-                    <b>{b.label}</b>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
         </aside>
       </div>
 
@@ -494,7 +510,7 @@ const ContentBody: React.FC<{ item: any }> = ({ item }) => {
   switch (c.type) {
     case 'video': return <VideoPlayer content={c} onWatchEnough={() => {}} />;
     case 'notes':
-    case 'worked_example': return <NotesViewer content={c} />;
+    case 'worked_example': return <NotesReader content={c} />;
     case 'tech_qa': case 'behavioral_qa': return <QAViewer content={c} />;
     case 'practice_coding': case 'practice_theory': case 'aptitude': return <PracticeViewer content={c} />;
     case 'interactive_activity': return c.htmlContent ? <InteractiveActivityViewer htmlContent={c.htmlContent} completed={false} onComplete={() => {}} /> : <p className="lpd-muted">No activity content.</p>;
@@ -504,7 +520,7 @@ const ContentBody: React.FC<{ item: any }> = ({ item }) => {
 
 const NotesViewerSafe: React.FC<{ item: any }> = ({ item }) => {
   const c = item.content;
-  if (c && (c.notesContent || c.notesFilePath)) return <NotesViewer content={c} />;
+  if (c && (c.notesContent || c.notesFilePath)) return <NotesReader content={c} />;
   return <p className="lpd-muted">No notes for this lesson.</p>;
 };
 

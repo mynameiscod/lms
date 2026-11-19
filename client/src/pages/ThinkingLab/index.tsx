@@ -60,8 +60,10 @@ const constraintLines = (c: unknown): string[] => {
 const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
 const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
-  const t = THEMES[variant];
+  // One look for both products: the LMS page uses the CareerPilot palette, banner and tabs too (behaviour still follows the variant).
+  const t = THEMES.careerpilot;
   const cp = variant === 'careerpilot';
+  const cpLook = true;
   const [challenge, setChallenge] = useState<TLChallenge | null>(null);
   const [memberPos, setMemberPos] = useState<{ position: number; total: number } | null>(null);
   const [stats, setStats] = useState<TLStats | null>(null);
@@ -308,7 +310,42 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
     <ThemeCtx.Provider value={t}>
     <div className={`tl-root tl-${variant}`}>
       {/* Header — CareerPilot uses the member pages' banner (the Mock Interview one, same classes), the LMS keeps its own. */}
-      {cp ? (
+      {!cp ? (
+        /* LMS: the flat header of the CareerPilot Thinking Lab (MemberThinkingLab) — title, actions, three stats
+           and today's problem on one line. No cards. */
+        <div className="pl plh tl3 tl-flat">
+          <section className="plh-top">
+            <div className="plh-copy">
+              <span className="plh-eyebrow">Thinking Lab</span>
+              <h1>Think First, Then <span>Code</span></h1>
+              <p>One new problem every day. Explain your approach, code it in any language, and get AI feedback on how you think.</p>
+            </div>
+            <div className="plh-bar">
+              <div className="plh-actions">
+                {p && (
+                  <button type="button" className="plh-btn primary" onClick={() => { setTab('challenge'); setOpen(true); }}>
+                    <i className={`bi ${done ? 'bi-check2-circle' : 'bi-play-fill'}`} aria-hidden /> {done ? 'Review Today’s Solution' : started ? 'Continue Solving' : 'Start Today’s Problem'}
+                  </button>
+                )}
+                <button type="button" className="plh-btn" onClick={() => setTab('progress')}><i className="bi bi-graph-up-arrow" aria-hidden /> My Progress</button>
+              </div>
+              <div className="plh-stats">
+                <div className="plh-stat" title="Days in a row"><i className="bi bi-fire ic tl3-fire" aria-hidden /><span><b>{stats?.streak ?? 0}</b><small>Day streak</small></span></div>
+                <div className="plh-stat"><i className="fa-regular fa-circle-check ic green" aria-hidden /><span><b>{stats?.solvedTotal ?? 0}</b><small>Solved</small></span></div>
+                <div className="plh-stat"><i className="bi bi-lightning-charge-fill ic tl-flat-xp" aria-hidden /><span><b>{stats?.xpTotal ?? 0}</b><small>Lab XP</small></span></div>
+              </div>
+            </div>
+            {p && (
+              <p className="plh-next">
+                <span>{done ? 'Done for today' : started ? 'Continue' : 'Today’s problem'}</span>
+                <button type="button" onClick={() => { setTab('challenge'); setOpen(true); }}>{p.title}</button>
+                {p.difficulty && <em className={`pl-diff ${p.difficulty}`}>{p.difficulty.charAt(0).toUpperCase() + p.difficulty.slice(1)}</em>}
+                <em className="tl3-xp"><i className="bi bi-lightning-charge-fill" aria-hidden /> {xpOf(p.xp)} XP{p.estimatedMinutes ? ` · ~${p.estimatedMinutes} min` : ''}</em>
+              </p>
+            )}
+          </section>
+        </div>
+      ) : cpLook ? (
         <div className="cp-iv-page iv2 tl-hero-wrap">
           <section className="iv2-hero">
             <div className="iv2-hero-copy">
@@ -408,7 +445,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
       )}
 
       {/* Tabs */}
-      {cp ? (
+      {cpLook ? (
         <nav className="tl-cp-tabs" role="tablist" aria-label="Thinking Lab">
           {([['challenge', 'Today’s Challenge'], ['progress', 'My Progress'], ['analytics', 'Analytics'], ['leaderboard', 'Leaderboard']] as [any, string][]).map(([k, l]) => (
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>

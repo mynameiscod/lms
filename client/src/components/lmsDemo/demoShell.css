@@ -128,3 +128,26 @@
 .dsh-page > .dsh-strip { margin: 0 0 16px !important; }
 .dsh-page > .dsh-end { padding: 4px 0 24px; }
 @media (max-width: 560px) { .dsh-page { padding: 10px 10px 24px; } .dsh-page > .dsh-strip { margin-bottom: 12px !important; } }
+
+/* The student shell caps some pages' first box at a fixed width (ai-mentor 980px, ...). The demo wrapper is that
+   first box now, so give it the full width back; the page inside keeps its own layout. */
+.student-core-remaining-surface[data-student-core-route] > .dsh-page,
+.main-content > .dsh-page { max-width: none !important; width: 100% !important; }
+.dsh-page { max-width: 1720px; margin-left: auto !important; margin-right: auto !important; }
+
+/* ── Light demo strip (2026-11-19): a slim teal-tinted bar, not a navy block. ── */
+.dsh-strip { background: linear-gradient(90deg, #E9F7F9, #F2F7FF) !important; color: #102A4F; border: 1px solid #CFE6EA; box-shadow: 0 4px 14px rgba(15, 46, 77, .05); }
+.dsh-strip.last { background: linear-gradient(90deg, #FFF4E0, #FFF9EE) !important; border-color: #F3E2BF; }
+.dsh-strip-tag { background: #fff; color: #287F91; box-shadow: 0 1px 4px rgba(15, 46, 77, .06); }
+.dsh-strip-clock { color: #102A4F; }
+.dsh-strip.last .dsh-strip-clock { color: #9A5A00; }
+.dsh-strip-hint { color: #5B6B80; }
+.dsh-strip-talk { background: #051D64; }
+.dsh-strip-talk:hover { background: #0B2D72; }
+
+/* End screen: light header too. */
+.dsh-end-hero { background: linear-gradient(120deg, #F4FBFC 0%, #FFFFFF 55%, #F3F7FF 100%) !important; color: #102A4F; border: 1px solid #DCEBF0; box-shadow: 0 10px 30px rgba(15, 46, 77, .07) !important; }
+.dsh-end-badge { background: #FFF4D6; color: #C98A00; }
+.dsh-end-hero h1 { color: #051D64 !important; }
+.dsh-end-hero > p { color: #33475B !important; }
+.dsh-end-stats div { background: #F4F8FC; border: 1px solid #E2EAF2; }

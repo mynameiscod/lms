@@ -96,3 +96,19 @@
 
 /* CareerPilot members: what today's problem pays, under the streak line. */
 .iv2 .iv2-strip > div > span.iv2-strip-xp { font-weight: 800; color: #17855B; }
+
+/* LMS page: use the width (the CareerPilot one sits in its own shell), and no second gutter inside the demo page. */
+.tl-root.tl-lms { max-width: 1500px; }
+.dsh-page .tl-root { padding: 0 0 24px; }
+
+@media (min-width: 1200px) and (max-width: 1599px) { .main-content .tl-root.tl-lms { zoom: 1.05; } }
+@media (min-width: 1600px) { .main-content .tl-root.tl-lms { zoom: 1.12; } }
+
+/* LMS header in the CareerPilot Thinking Lab style (flat, no cards). The wrapper borrows the practice-hub classes
+   (.pl.plh.tl3) for their colours and type only, not the page padding. */
+.tl-root .tl-flat.pl { padding: 6px 0 4px; background: none; }
+.tl-root .tl-flat .plh-top { padding: 4px 0 0; }
+.tl-root .tl-flat .plh-stat .ic.tl-flat-xp { color: #C98A00; }
+.tl-root .tl-flat .plh-next .tl3-xp { font-style: normal; }
+/* The puzzle card lines up with the tabs bar above it (the borrowed .pl wrapper adds side padding). */
+.tl-root .tl-puzzle.pl { padding-left: 0; padding-right: 0; }

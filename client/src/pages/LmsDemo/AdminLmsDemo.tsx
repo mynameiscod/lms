@@ -33,6 +33,21 @@ export default function AdminLmsDemo() {
   const [tenantOk, setTenantOk] = useState(true);
   const [loadErr, setLoadErr] = useState('');
   const [toast, setToast] = useState('');
+  // A tab with picks or switches not saved yet: asked before leaving it, so nothing is lost by a click.
+  const [dirty, setDirty] = useState(false);
+  const onDirty = useCallback((d: boolean) => setDirty(d), []);
+  const switchTab = (k: Tab) => {
+    if (k === tab) return;
+    if (dirty && !window.confirm('You have unsaved changes on this tab. Leave without saving them?')) return;
+    setDirty(false);
+    setTab(k);
+  };
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
 
   const loadConfig = useCallback(() => {
     lmsDemoApi.getConfig()
@@ -63,19 +78,19 @@ export default function AdminLmsDemo() {
 
       {!tenantOk && <div className="ldm-alert">No CodeBegun institute was found, so demo accounts cannot be made. Set PLATFORM_OWNER_TENANT_ID in Platform Settings.</div>}
       {loadErr && <div className="ldm-alert">{loadErr}</div>}
-      {cfg && activeCourses === 0 && <div className="ldm-alert warn">No demo courses yet. Add them on the <button type="button" onClick={() => setTab('courses')}>Demo courses</button> tab, or demo students will see an empty plan.</div>}
+      {cfg && activeCourses === 0 && <div className="ldm-alert warn">No demo courses yet. Add them on the <button type="button" onClick={() => switchTab('courses')}>Demo courses</button> tab, or demo students will see an empty plan.</div>}
 
       <nav className="ldm-tabs" role="tablist">
         {([['students', 'bi-people', 'Demo students'], ['courses', 'bi-collection-play', 'Demo courses'], ['features', 'bi-toggles', 'Features'], ['content', 'bi-list-check', 'Content'], ['settings', 'bi-sliders', 'Settings']] as const).map(([k, ic, l]) => (
-          <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><i className={`bi ${ic}`} /> {l}</button>
+          <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => switchTab(k)}><i className={`bi ${ic}`} /> {l}</button>
         ))}
       </nav>
 
       {tab === 'students' && <StudentsTab cfg={cfg} onToast={setToast} />}
       {tab === 'courses' && cfg && <CoursesTab cfg={cfg} plans={plans} onSaved={c => { setCfg(c); setToast('Demo courses saved'); }} />}
       {tab === 'settings' && cfg && <SettingsTab cfg={cfg} onSaved={c => { setCfg(c); setToast('Settings saved'); }} />}
-      {tab === 'features' && cfg && <FeaturesTab cfg={cfg} onSaved={c => { setCfg(c); setToast('Features saved'); }} onContent={() => setTab('content')} />}
-      {tab === 'content' && cfg && <ContentTab cfg={cfg} onSaved={c => { setCfg(c); setToast('Content saved'); }} />}
+      {tab === 'features' && cfg && <FeaturesTab cfg={cfg} onSaved={c => { setCfg(c); setToast('Features saved'); }} onContent={() => switchTab('content')} onDirty={onDirty} />}
+      {tab === 'content' && cfg && <ContentTab cfg={cfg} onSaved={c => { setCfg(c); setToast('Content saved'); }} onDirty={onDirty} />}
 
       {toast && <div className="ldm-toast" role="status"><i className="bi bi-check-circle-fill" /> {toast}</div>}
     </div>

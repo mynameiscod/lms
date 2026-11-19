@@ -96,8 +96,12 @@ export const getToday = async (req: Request, res: Response) => {
       const demo = await lmsDemoScopeFor(uId(req));
       if (demo) {
         const order = demo.oids('speakingIds');
-        const list = (await CommunicationChallenge.find({ tenantId, _id: { $in: order }, active: true }).lean())
-          .sort((a: any, b: any) => order.findIndex(o => String(o) === String(a._id)) - order.findIndex(o => String(o) === String(b._id)));
+        // None picked on the LMS Demo screen: the institute's own active questions, in their usual order,
+        // so the lab is never empty for a demo student.
+        const list = order.length
+          ? (await CommunicationChallenge.find({ tenantId, _id: { $in: order }, active: true }).lean())
+            .sort((a: any, b: any) => order.findIndex(o => String(o) === String(a._id)) - order.findIndex(o => String(o) === String(b._id)))
+          : await CommunicationChallenge.find({ tenantId, active: true }).sort({ sequenceNumber: 1, _id: 1 }).limit(30).lean();
         if (!list.length) return res.json({ challenge: null, status: 'not_started' });
         const attemptToday = await CommunicationAttempt.findOne({ tenantId, studentId: uId(req), practiceDate: today, kind: { $ne: 'coach' } }).sort({ createdAt: -1 }).lean();
         const tried = new Set((await CommunicationAttempt.distinct('challengeId', { tenantId, studentId: uId(req), kind: { $ne: 'coach' } })).map(String));

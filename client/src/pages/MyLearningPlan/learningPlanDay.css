@@ -228,9 +228,79 @@
 
 /* Helper cards: two columns under the lesson on laptops, a column of their own on wide screens.
    After the base .lpd-side rule on purpose, so this wins. */
-@media (min-width: 1100px) and (max-width: 1499px) {
-  .lpd-side { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+/* Left column = task list + progress cards (goal, progress, badges). On phones the column dissolves so the
+   lesson comes right after the task list and the progress cards go last. */
+.lpd-col { display: contents; }
+.lpd-extras { display: flex; flex-direction: column; gap: 16px; order: 3; }
+.lpd-stage { order: 1; }
+.lpd-side { order: 2; }
+@media (min-width: 1100px) {
+  .lpd-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .lpd .lpd-rail { position: static; }
+  .lpd-extras, .lpd-stage, .lpd-side { order: 0; }
 }
+@media (min-width: 1100px) and (max-width: 1499px) {
+  /* The left column runs all the way down; the AI helper and notes sit side by side under the lesson, same height. */
+  .lpd-col { grid-row: 1 / span 2; }
+  .lpd-stage { grid-column: 2; }
+  .lpd-side { grid-column: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+  .lpd-side .lpd-card { display: flex; flex-direction: column; }
+  .lpd-side .lpd-notes { flex: 1; }
+}
+/* Inside the demo frame the page lines up with the demo strip above it instead of stopping short. */
+.dsh-page > .lpd { max-width: none; }
+/* The tab underline sits 1px below the row; without this the row grew a vertical scrollbar. */
+.lpd .lpd-tabs { overflow-y: hidden; }
 
 /* Off the sidebar edge: the app shell gives the page no padding. */
 .main-content > .lpd { padding-left: clamp(12px, 2vw, 28px); padding-right: clamp(12px, 2vw, 28px); padding-top: 16px; }
+
+/* Day cards (2026-11 redesign): one scrolling row of real cards — day number, the day's title, its status. */
+.lpd .lpd-days { display: flex; grid-template-columns: none; gap: 12px; overflow-x: auto; scroll-snap-type: x proximity; padding: 4px 2px 8px; scrollbar-width: thin; }
+.lpd .lpd-day {
+  flex: 0 0 210px; scroll-snap-align: start; min-height: 0; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 8px;
+  padding: 14px 14px 12px; border-radius: 16px; border: 1px solid var(--line); background: #fff; text-align: left; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 46, 77, .04); transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.lpd .lpd-day:hover:not(:disabled) { transform: translateY(-2px); border-color: #9DBBD0; box-shadow: 0 10px 22px rgba(5, 29, 100, .09); }
+.lpd-day-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lpd-day-n { display: inline-flex; align-items: baseline; gap: 6px; }
+.lpd .lpd-day-n small { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.lpd .lpd-day-n b { font-size: 24px; line-height: 1; color: var(--ink); }
+.lpd .lpd-day-top i { margin: 0; font-size: 20px; color: #B6C3D1; }
+.lpd-day-title { min-height: 2.7em; font-size: 15px; font-weight: 700; line-height: 1.35; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lpd-day-st { align-self: flex-start; padding: 3px 10px; border-radius: 999px; background: var(--soft); color: var(--muted); font-size: 13.5px; font-weight: 800; }
+.lpd .lpd-day.done { background: #F6FCF9; border-color: #CCE9DC; }
+.lpd .lpd-day.done .lpd-day-top i { color: var(--green); }
+.lpd .lpd-day.done .lpd-day-st { background: var(--green-bg); color: var(--green); }
+.lpd .lpd-day.today .lpd-day-st { background: #EAF7F8; color: #287F91; }
+.lpd .lpd-day.sel { background: var(--navy); border-color: var(--navy); box-shadow: 0 12px 26px rgba(5, 29, 100, .25); }
+.lpd .lpd-day.sel .lpd-day-n small { color: #9FDCE6; }
+.lpd .lpd-day.sel .lpd-day-n b, .lpd .lpd-day.sel .lpd-day-top i, .lpd .lpd-day.sel .lpd-day-title { color: #fff; }
+.lpd .lpd-day.sel .lpd-day-st { background: rgba(255, 255, 255, .16); color: #fff; }
+.lpd .lpd-day.locked { opacity: .65; cursor: not-allowed; background: var(--soft); }
+.lpd .lpd-strip-arrow { height: auto; align-self: stretch; }
+@media (max-width: 900px) { .lpd .lpd-days { grid-template-columns: none; } }
+@media (max-width: 560px) { .lpd .lpd-day { flex-basis: 172px; padding: 12px; } .lpd .lpd-day-n b { font-size: 21px; } }
+
+/* ── Light day header (2026-11-19). ── */
+.lpd .lpd-hero {
+  background: radial-gradient(circle at 90% 10%, rgba(53, 154, 173, .15), transparent 35%), linear-gradient(120deg, #F4FBFC 0%, #FFFFFF 55%, #F3F7FF 100%);
+  color: var(--ink); border: 1px solid #DCEBF0; box-shadow: 0 10px 30px rgba(15, 46, 77, .07);
+}
+.lpd .lpd-hero::after { display: none; }
+.lpd .lpd-hero::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: linear-gradient(180deg, #359AAD, #1D5FD1); }
+.lpd .lpd-crumbs, .lpd .lpd-crumbs button { color: #287F91; }
+.lpd .lpd-crumbs button:hover { color: var(--navy); }
+.lpd .lpd-eyebrow { color: #287F91 !important; }
+.lpd .lpd-hero h1 { color: var(--navy) !important; }
+.lpd .lpd-hero h1 span { color: var(--text) !important; }
+.lpd .lpd-chips span { background: #fff; border-color: #D5E6EF; color: var(--navy); }
+.lpd .lpd-bar { background: #E3EEF6; }
+.lpd .lpd-bar i { background: linear-gradient(90deg, #359AAD, #1D5FD1); }
+.lpd .lpd-ring { background: conic-gradient(#359AAD var(--p), #E3EEF6 0); }
+.lpd .lpd-ring::after { background: #fff; }
+.lpd .lpd-ring b { color: var(--navy); }
+.lpd .lpd-ring span { color: var(--muted); }
+.lpd .lpd-daynav button { background: #fff; border-color: #C9D8E5; color: var(--navy); }
+.lpd .lpd-daynav button:hover:not(:disabled) { background: #EAF3FD; }

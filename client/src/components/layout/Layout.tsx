@@ -46,7 +46,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isCareerPilotAdmin = pathname.startsWith('/admin/passport') || pathname.startsWith('/admin/careerpilot');
   const isAdminCore = Boolean(user && user.role !== 'STUDENT' && !isCareerPilotAdmin);
   const studentCoreRouteKey = routeKeyFor(pathname);
-  const isRemainingStudentCore = Boolean(studentCoreRouteKey) && !isAdminCore && !isCareerPilotAdmin;
+  // Not for a demo student: those older per-route overrides cap widths and repaint pages that have their own current design.
+  const isRemainingStudentCore = Boolean(studentCoreRouteKey) && !isAdminCore && !isCareerPilotAdmin && !isDemoUser(user);
   const adminCoreRouteKey = isAdminCore ? surfaceRouteKeyFor(pathname, 'dashboard') : '';
   // Working time for Team Activity: a note once a minute while a staff member is really using the app.
   useStaffHeartbeat(isAdminCore, pathname);

@@ -120,3 +120,6 @@
   .qbs-go { min-height: 42px; font-size: 13.5px; padding: 0 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .qbs-book, .qbs-go { transition: none; } }
+
+/* Small phones: the clamped title keeps its own line box, so it never runs into the facts under it. */
+@media (max-width: 420px) { .qbs-info h3 { line-height: 1.35; } .qbs-info h3 button { display: -webkit-box; padding-bottom: 2px; } }

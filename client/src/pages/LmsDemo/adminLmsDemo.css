@@ -240,3 +240,6 @@
 
 /* The admin shell gives every input a border and padding; inside the search pill it must have neither. */
 .ldm .ldm-search input, .ldm .ldm-search input:focus { border: 0 !important; box-shadow: none !important; outline: none !important; padding: 0 !important; min-height: 0 !important; height: auto !important; background: transparent !important; }
+
+.ldm-save-wrap { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ldm-unsaved { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--amber-bg); color: var(--amber); font-size: 14px; font-weight: 800; }

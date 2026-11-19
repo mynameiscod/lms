@@ -129,3 +129,22 @@
 
 /* Off the sidebar edge: the app shell gives the page no padding. */
 .main-content > .jny { padding-left: clamp(12px, 2vw, 28px); padding-right: clamp(12px, 2vw, 28px); padding-top: 16px; }
+
+/* ── Light header (2026-11-19). ── */
+.jny .jny-hero {
+  background: radial-gradient(circle at 90% 10%, rgba(53, 154, 173, .15), transparent 35%), linear-gradient(120deg, #F4FBFC 0%, #FFFFFF 55%, #F3F7FF 100%);
+  color: var(--ink); border: 1px solid #DCEBF0; box-shadow: 0 10px 30px rgba(15, 46, 77, .07);
+}
+.jny .jny-hero::after { display: none; }
+.jny .jny-hero::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: linear-gradient(180deg, #359AAD, #1D5FD1); }
+.jny .jny-crumb { color: #287F91; }
+.jny .jny-crumb:hover { color: var(--navy); }
+.jny .jny-hero .jny-eyebrow { color: #287F91 !important; }
+.jny .jny-hero h1 { color: var(--navy) !important; }
+.jny .jny-chips span { background: #fff; border-color: #D5E6EF; color: var(--navy); }
+.jny .jny-bar { background: #E3EEF6; }
+.jny .jny-bar i { background: linear-gradient(90deg, #359AAD, #1D5FD1); }
+.jny .jny-ring { background: conic-gradient(#359AAD var(--p), #E3EEF6 0); }
+.jny .jny-ring::after { background: #fff; }
+.jny .jny-ring b { color: var(--navy); }
+.jny .jny-ring span { color: var(--muted); }

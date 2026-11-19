@@ -11,11 +11,12 @@ import { DEMO_FEATURE_META } from '../../components/lmsDemo/demoFeatures';
 
 /* ───────────────────────────── Features ───────────────────────────── */
 
-export function FeaturesTab({ cfg, onSaved, onContent }: { cfg: DemoConfig; onSaved: (c: DemoConfig) => void; onContent: () => void }) {
+export function FeaturesTab({ cfg, onSaved, onContent, onDirty }: { cfg: DemoConfig; onSaved: (c: DemoConfig) => void; onContent: () => void; onDirty?: (d: boolean) => void }) {
   const [on, setOn] = useState<Record<string, boolean>>(() => ({ ...(cfg.features || {}) }));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const dirty = DEMO_FEATURE_META.some(f => !!on[f.key] !== !!(cfg.features as any)?.[f.key]);
+  useEffect(() => { onDirty?.(dirty); }, [dirty, onDirty]);
   const counts = (cfg.content || {}) as Record<string, string[]>;
   const save = async () => {
     setBusy(true); setErr('');
@@ -29,7 +30,7 @@ export function FeaturesTab({ cfg, onSaved, onContent }: { cfg: DemoConfig; onSa
           <h2>Features</h2>
           <p className="ldm-sub">What a demo student can use besides My Learning Plan (always on). A switched-off feature is not in their menu and the server refuses it. Pick what each one shows on the <button type="button" className="ldm-inline-link" onClick={onContent}>Content</button> tab.</p>
         </div>
-        <button type="button" className="ldm-btn primary" onClick={save} disabled={busy || !dirty}>{busy ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>
+        <span className="ldm-save-wrap">{dirty && <span className="ldm-unsaved"><i className="bi bi-exclamation-circle" /> Unsaved changes</span>}<button type="button" className="ldm-btn primary" onClick={save} disabled={busy || !dirty}>{busy ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button></span>
       </div>
       {err && <div className="ldm-alert">{err}</div>}
       <div className="ldm-feat-grid">
@@ -78,7 +79,7 @@ const FEATURE_OF: Record<DemoListKind, string> = {
 };
 const idsOf = (p: Record<DemoListKind, DemoPick[]>) => JSON.stringify(Object.fromEntries(Object.entries(p).map(([k, v]) => [k, v.map(x => x.id)])));
 
-export function ContentTab({ cfg, onSaved }: { cfg: DemoConfig; onSaved: (c: DemoConfig) => void }) {
+export function ContentTab({ cfg, onSaved, onDirty }: { cfg: DemoConfig; onSaved: (c: DemoConfig) => void; onDirty?: (d: boolean) => void }) {
   const [picked, setPicked] = useState<Record<DemoListKind, DemoPick[]> | null>(null);
   const [orig, setOrig] = useState('');
   const [open, setOpen] = useState<DemoListKind>('problems');
@@ -88,6 +89,7 @@ export function ContentTab({ cfg, onSaved }: { cfg: DemoConfig; onSaved: (c: Dem
     lmsDemoApi.content().then(p => { setPicked(p); setOrig(idsOf(p)); }).catch(e => setErr(demoErr(e, 'Could not load the chosen content.')));
   }, []);
   const dirty = !!picked && idsOf(picked) !== orig;
+  useEffect(() => { onDirty?.(dirty); }, [dirty, onDirty]);
   const save = async () => {
     if (!picked) return;
     setBusy(true); setErr('');
@@ -104,7 +106,7 @@ export function ContentTab({ cfg, onSaved }: { cfg: DemoConfig; onSaved: (c: Dem
     <section className="ldm-card">
       <div className="ldm-card-head">
         <div><h2>Content</h2><p className="ldm-sub">Exactly what each feature shows a demo student — only these items, in this order. Quizzes and assignments placed on the demo courses' days open as well.</p></div>
-        <button type="button" className="ldm-btn primary" onClick={save} disabled={busy || !dirty}>{busy ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>
+        <span className="ldm-save-wrap">{dirty && <span className="ldm-unsaved"><i className="bi bi-exclamation-circle" /> Unsaved changes</span>}<button type="button" className="ldm-btn primary" onClick={save} disabled={busy || !dirty}>{busy ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button></span>
       </div>
       {err && <div className="ldm-alert">{err}</div>}
       <div className="ldm-content">

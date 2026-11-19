@@ -1,3 +1,4 @@
+import { coursesFromCustomFields } from '../utils/leadCourse';
 import mongoose, { Schema, Document } from 'mongoose';
 
 /** Every call outcome the server accepts. The lead page, follow-up calendar and API all use this one list. */
@@ -779,6 +780,12 @@ LeadSchema.index({ 'outpero.status': 1, 'outpero.nextAttemptAt': 1 });
  */
 LeadSchema.pre('save', function (next) {
   (this as any).$locals.wasNew = this.isNew;
+  // Course asked in the lead form but stored only as a raw answer: show it as the course interest.
+  const self: any = this;
+  if ((!self.courseInterest || !self.courseInterest.length) && self.customFields) {
+    const courses = coursesFromCustomFields(self.customFields);
+    if (courses.length) self.courseInterest = courses;
+  }
   next();
 });
 LeadSchema.post('save', function (doc: any) {

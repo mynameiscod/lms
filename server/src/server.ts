@@ -352,6 +352,12 @@ const startServer = async () => {
     startMetaRecoveryScheduler();
     startLeadAutomationScheduler(io);
     startWorkflowScheduler();
+    // Leads whose course is only in a raw form answer get it as their course interest (idempotent).
+    setTimeout(() => {
+      import('./utils/leadCourse').then((m) => m.backfillCourseInterest())
+        .then((n) => { if (n) console.log(`📚 Course interest filled from form answers on ${n} leads`); })
+        .catch((e) => console.error('[lead-course] backfill failed', e?.message));
+    }, 60_000);
     // Start Google Sheets sync cron (runs every 5 minutes)
     const GSHEET_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
     setInterval(async () => {

@@ -126,6 +126,9 @@ const PassportAdminJobOpenings = lazy(() => import('./pages/Passport/AdminJobOpe
 const DemoLanding = lazy(() => import('./pages/LmsDemo/DemoLanding'));
 const DemoEnter = lazy(() => import('./pages/LmsDemo/DemoEnter'));
 const AdminLmsDemo = lazy(() => import('./pages/LmsDemo/AdminLmsDemo'));
+const ReferEarn = lazy(() => import('./pages/ReferEarn'));
+const ReferLanding = lazy(() => import('./pages/ReferEarn/ReferLanding'));
+const AdminReferrals = lazy(() => import('./pages/ReferEarn/AdminReferrals'));
 const PassportAdminStudentRoadmap = lazy(() => import('./pages/Passport/AdminStudentRoadmap'));
 const PassportAdminStageSkills = lazy(() => import('./pages/Passport/AdminStageSkills'));
 const PassportAdminCoins = lazy(() => import('./pages/Passport/AdminCoins'));
@@ -614,6 +617,8 @@ const AppRoutes: React.FC = () => {
       {/* ── The free LMS demo (no auth): sign up, or open the one-tap link a counsellor sent ── */}
       <Route path="/demo" element={<DemoLanding />} />
       <Route path="/demo/enter" element={<DemoEnter />} />
+      {/* LMS Refer & Earn: the link a student shares (no auth) */}
+      <Route path="/refer/:code" element={<ReferLanding />} />
       {/* ── Public Tech Battles (no auth) ── */}
       {/* A live-class invitation link: guests join without an account */}
       <Route path="/live/:token" element={<LiveGuestJoin />} />
@@ -718,6 +723,12 @@ const AppRoutes: React.FC = () => {
       <Route path="/practice-library" element={<ProtectedRoute><Layout><PracticeLibrary base="/practice-library" /></Layout></ProtectedRoute>} />
       <Route path="/practice-library/:problemId" element={<ProtectedRoute><Layout><LibraryProblemOr base="/practice-library" legacy={<Navigate to="/practice-library" replace />} /></Layout></ProtectedRoute>} />
       {/* LMS Demo: demo courses, length, AI limit and demo students. A super admin, or a role they gave manage_lms_demo. */}
+      <Route path="/refer-and-earn" element={
+        <ProtectedRoute requiredRoles={['STUDENT']}><Layout><ReferEarn /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/referrals" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_referrals']}><Layout><AdminReferrals /></Layout></ProtectedRoute>
+      } />
       <Route path="/admin/lms-demo" element={
         <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_lms_demo']}><Layout><AdminLmsDemo /></Layout></ProtectedRoute>
       } />

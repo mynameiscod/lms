@@ -169,6 +169,8 @@ export interface ILead extends Document {
   interestConcerns: string[];
   customFields?: Map<string, any>;
   convertedStudentId?: mongoose.Types.ObjectId;
+  /** LMS Refer & Earn: the student who referred this lead (models/Referral.ts). */
+  referral?: { referralId?: mongoose.Types.ObjectId; referrerId?: mongoose.Types.ObjectId; referrerName?: string; code?: string };
   activities: ILeadActivity[];
   
   // Campaign tracking fields
@@ -431,6 +433,12 @@ const LeadSchema: Schema = new Schema(
     convertedStudentId: {
       type: mongoose.Types.ObjectId,
       ref: 'User'
+    },
+    referral: {
+      referralId: { type: mongoose.Types.ObjectId, ref: 'Referral' },
+      referrerId: { type: mongoose.Types.ObjectId, ref: 'User' },
+      referrerName: { type: String },
+      code: { type: String },
     },
     metaSubmissionIds: { type: [String], default: undefined },
     activities: [LeadActivitySchema],

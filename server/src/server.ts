@@ -26,6 +26,7 @@ import { startSlaCronScheduler } from './jobs/slaCron';
 import { startAICallWorker, stopAICallWorker } from './workers/aiCallWorker';
 import { startArchiveQuizScheduler } from './jobs/archiveQuizCron';
 import { startDueReminderScheduler } from './jobs/dueReminderCron';
+import { startReferralScheduler } from './services/referralService';
 import { startAssessmentMissedSweep } from './jobs/assessmentMissedSweepCron';
 import { startRecordingAlertScheduler } from './jobs/recordingAlertCron';
 import { startSpeakingReminderScheduler } from './jobs/speakingReminderCron';
@@ -397,6 +398,9 @@ const startServer = async () => {
 
     // Start learning-plan due-date reminder scheduler (in-app, daily)
     startDueReminderScheduler();
+
+    // LMS Refer & Earn: fee paid in full → hold → earned (hourly)
+    startReferralScheduler();
 
     // Start stale class-recording alert scheduler (in-app, every 10 min)
     startRecordingAlertScheduler();

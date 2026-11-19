@@ -110,6 +110,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     permissions: [
       { key: 'view_fees', label: 'View Fees, Dues & Receipts' },
       { key: 'manage_billing', label: 'Record Payments, Set Fees & Send Reminders' },
+      { key: 'manage_referrals', label: 'Refer & Earn: reward rules, referrals and paying out withdrawals' },
     ]
   },
   leads: {
@@ -483,6 +484,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_exams', 'view_exams',
     // Fees — view as well as record
     'view_fees',
+    // LMS Refer & Earn
+    'manage_referrals',
     // Features that now have a permission of their own
     ...FEATURE_PERMISSIONS,
   ],

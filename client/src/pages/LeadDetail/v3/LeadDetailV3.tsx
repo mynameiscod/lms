@@ -272,6 +272,7 @@ const LeadDetailV3: React.FC = () => {
       {lead.pendingApproval?.stageName && <div className="ldv-banner info">Waiting for a manager to approve the move to <b>{lead.pendingApproval.stageName}</b>{lead.pendingApproval.reason ? ` — ${lead.pendingApproval.reason}` : ''}.</div>}
       {lead.reEnquiryUnseen && <div className="ldv-banner info">🔁 Enquired again{lead.reEnquiryCount > 1 ? ` (${lead.reEnquiryCount} times)` : ''}{lead.lastReEnquiryAt ? `, ${when(lead.lastReEnquiryAt)}` : ''}. Call or add a note to clear this.</div>}
       {lead.convertedStudentId && <div className="ldv-banner good">Converted to a student account.</div>}
+      {lead.referral?.referrerName && <div className="ldv-banner info"><span>🤝 Referred by <b>{lead.referral.referrerName}</b>{lead.referral.code ? ` (code ${lead.referral.code})` : ''}. They earn the referral reward when this lead joins and pays the full fee.</span></div>}
 
       {/* ── profile ── */}
       <section className="ldv-profile">

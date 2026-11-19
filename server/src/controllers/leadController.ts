@@ -1411,6 +1411,8 @@ export const convertToStudent = async (req: AuthenticatedRequest, res: Response<
       metadata: { studentId: student._id }
     });
     await lead.save();
+    // LMS Refer & Earn: a referred lead that becomes a student moves its referral to "joined".
+    import('../services/referralService').then((m) => m.syncForStudent(String(student._id))).catch(() => {});
 
     // Move to the institute's "enrolled" stage (by milestone; legacy name "Converted" as fallback).
     const enrolledStage = await enrolledStageFor(String(req.tenantId));

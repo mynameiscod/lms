@@ -143,6 +143,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Fee Details', path: '/student/fee-details', roles: ['STUDENT'], icon: 'fa-solid fa-wallet', featureKey: 'feeDetails' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-users', permissions: ['manage_tenant_users'] },
     { label: 'Fees', path: '/fees', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-money-bill-wave', permissions: ['view_fees', 'manage_billing'] },
+    // LMS Refer & Earn (CareerPilot has its own coin referral; the CareerPilot nav does not list this).
+    { label: 'Refer & Earn', path: '/refer-and-earn', roles: ['STUDENT'], icon: 'fa-solid fa-gift' },
+    { label: 'Referrals', path: '/admin/referrals', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-handshake-angle', permissions: ['manage_referrals'] },
     { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-user-shield', permissions: ['manage_roles'] },
     { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_tenant_courses'] },
     { label: 'Skill Assessment', path: '/assessment-admin', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-clipboard-question', permissions: ['manage_skill_assessment', 'create_quiz', 'edit_quiz'] },
@@ -596,7 +599,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'CAREER',                  labels: ['Resume Builder', 'Career Profiles', 'Project Builder', 'Job Tracker', 'AI Mentor'] },
     { title: 'CRM & GROWTH',            labels: ['Leads'] },
     { title: 'DRIVES & INTERVIEWS',     labels: ['Placement Desk', 'Drives', 'Question Books'] },
-    { title: 'BILLING',                 labels: ['Fees'] },
+    { title: 'BILLING',                 labels: ['Fees', 'Referrals'] },
     { title: 'EMPLOYEES',               labels: ['Employee Portal', 'Employees', 'Employee Activity', 'Expenses'] },
     { title: 'EVENTS',                  labels: ['Tech Battles', 'Hackathons', 'Event APIs'] },
     /**
@@ -647,7 +650,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const thinkingLabItems = filteredItems.filter(i => i.label === 'Thinking Lab');
   const learnItems = filteredItems.filter(i => ['My Learning Plan', 'My Tasks', 'My Work', 'Live Classes', 'Attendance', ...(demoMenu ? ['My Quizzes', 'My Assignments'] : [])].includes(i.label));
   const careerItems = filteredItems.filter(i => ['Code Playground', 'My Interviews', 'Resume Builder', 'Career Profile', 'AI Mentor', 'Job Tracker', 'Project Builder', 'Project Library', 'Resource Library', ...(demoMenu ? ['Code Visualizer'] : [])].includes(i.label));
-  const accountItems = filteredItems.filter(i => ['Fee Details', 'Apply Leave'].includes(i.label));
+  const accountItems = filteredItems.filter(i => ['Fee Details', 'Refer & Earn', 'Apply Leave'].includes(i.label));
   const placementItems = filteredItems.filter(i => ['Drives', 'Interview Experiences', 'Interview Question Books'].includes(i.label));
   const studentGrouped = new Set<any>([...homeItems, ...dailyPracticeItems, ...thinkingLabItems, ...learnItems, ...careerItems, ...accountItems, ...placementItems, ...supportItems]);
   const studentMiscItems = filteredItems.filter(i => !studentGrouped.has(i));

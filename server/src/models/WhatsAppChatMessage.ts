@@ -7,7 +7,7 @@ import mongoose, { Schema, Document } from 'mongoose';
  * reply a person sends us (text, photo, PDF, voice note) and everything we send them (chat replies,
  * templates, broadcasts, bot questions). A thread is (tenantId, phone). Kept for two years.
  */
-export type WaChatKind = 'text' | 'template' | 'image' | 'document' | 'audio' | 'video' | 'sticker' | 'location' | 'button' | 'contacts' | 'unsupported';
+export type WaChatKind = 'text' | 'template' | 'image' | 'document' | 'audio' | 'video' | 'sticker' | 'location' | 'button' | 'contacts' | 'unsupported' | 'note';
 export type WaChatStatus = 'received' | 'accepted' | 'sent' | 'delivered' | 'read' | 'failed';
 
 export interface IWhatsAppChatMessage extends Document {

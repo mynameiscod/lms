@@ -4,10 +4,12 @@ import WhatsAppThread from '../models/WhatsAppThread';
 import WhatsAppTemplate from '../models/WhatsAppTemplate';
 import { getWhatsAppCredentialCandidates, waPost, normalizeTo } from './assessmentOtpService';
 import { recordSend, explainWaError } from './whatsAppDeliveryService';
-import { recordOutbound } from './whatsAppChatStore';
+import { recordOutbound, recordNote } from './whatsAppChatStore';
+import WhatsAppConversationState from '../models/WhatsAppConversationState';
+import User from '../models/User';
 import { sendTemplateTo, WaTemplateError } from './whatsAppTemplateService';
 import { templateShape } from './whatsAppTemplateShape';
-import { autoAssign } from './whatsAppChatInbox';
+import { autoAssign, effectiveOwner } from './whatsAppChatInbox';
 import { emitWaThread } from '../realtime/whatsAppChatRealtime';
 import * as bunny from './bunnyStorageService';
 
@@ -57,6 +59,10 @@ export async function getThread(tenantId: string, rawPhone: string, opts: { befo
     sentBy: m.sentBy ? [m.sentBy.firstName, m.sentBy.lastName].filter(Boolean).join(' ') : undefined,
   }));
   const t: any = thread;
+  // One owner: the lead's counsellor when the number is a lead with one, otherwise the chat's own owner.
+  const eff = await effectiveOwner(tenantId, t ? { assignedTo: t.assignedTo?._id, links: t.links } : null);
+  const owner: { user: any; from: 'lead' | 'chat' | null } = { from: eff.from, user: null };
+  if (eff.id) owner.user = eff.from === 'chat' && t?.assignedTo ? t.assignedTo : await User.findById(eff.id).select('firstName lastName email').lean();
   return {
     phone,
     messages,
@@ -65,7 +71,8 @@ export async function getThread(tenantId: string, rawPhone: string, opts: { befo
     botPaused: !!t?.botPaused,
     unreadCount: t?.unreadCount || 0,
     contactName: t?.contactName,
-    assignedTo: t?.assignedTo ? { _id: String(t.assignedTo._id), name: [t.assignedTo.firstName, t.assignedTo.lastName].filter(Boolean).join(' ') || t.assignedTo.email } : null,
+    assignedTo: owner.user ? { _id: String(owner.user._id), name: [owner.user.firstName, owner.user.lastName].filter(Boolean).join(' ') || owner.user.email } : null,
+    ownerFrom: owner.from,
     links: {
       placementId: t?.links?.placementId ? String(t.links.placementId) : undefined, placementName: t?.links?.placementName,
       leadId: t?.links?.leadId ? String(t.links.leadId) : undefined, leadName: t?.links?.leadName,
@@ -83,8 +90,34 @@ export async function getThread(tenantId: string, rawPhone: string, opts: { befo
  * if nobody owns the chat yet, the replier does (both decided 2026-10-06).
  */
 async function takeOver(tenantId: string, phone: string, userId: string) {
-  await WhatsAppThread.updateOne({ tenantId: oid(tenantId), phone }, { $set: { botPaused: true } }, { upsert: true });
+  const now = new Date();
+  const before: any = await WhatsAppThread.findOneAndUpdate(
+    { tenantId: oid(tenantId), phone },
+    { $set: { botPaused: true, lastStaffReplyAt: now, ...(mongoose.isValidObjectId(userId) ? { lastStaffReplyBy: oid(userId) } : {}) } },
+    { upsert: true, new: false },
+  ).select('botPaused').lean();
   await autoAssign(tenantId, phone, userId);
+  // One automation at a time: say in the chat what stopped, so nobody wonders why the questions ended.
+  try {
+    const who = await nameOf(userId);
+    const { stopForTakeover } = await import('./workflow/engine');
+    const stopped = await stopForTakeover(tenantId, phone, who);
+    if (stopped.length) await recordNote(tenantId, phone, `⚡ ${stopped.join(', ')} stopped — ${who} took over this chat`);
+    if (!before?.botPaused) {
+      const st: any = await WhatsAppConversationState.findOne({ phone, tenantId: String(tenantId), conversationStep: 'in_progress' }).select('currentQuestionIndex lastMessageAt').lean();
+      if (st && Date.now() - new Date(st.lastMessageAt).getTime() < 48 * 60 * 60 * 1000) {
+        await recordNote(tenantId, phone, `🤖 Old bot stopped after question ${(st.currentQuestionIndex || 0) + 1} — ${who} took over this chat`);
+      }
+    }
+  } catch (e: any) {
+    console.warn('[wa-chat] takeover note failed', e?.message);
+  }
+}
+
+async function nameOf(userId?: string) {
+  if (!userId || !mongoose.isValidObjectId(userId)) return 'A team member';
+  const u: any = await User.findById(userId).select('firstName lastName').lean();
+  return [u?.firstName, u?.lastName].filter(Boolean).join(' ') || 'A team member';
 }
 
 export async function sendText(tenantId: string, userId: string, rawPhone: string, text: string) {
@@ -128,9 +161,12 @@ export async function sendTemplate(tenantId: string, userId: string, rawPhone: s
   return { ok: true };
 }
 
-export async function setBotPaused(tenantId: string, rawPhone: string, paused: boolean) {
+export async function setBotPaused(tenantId: string, rawPhone: string, paused: boolean, userId?: string) {
   const phone = phoneOf(rawPhone);
-  await WhatsAppThread.updateOne({ tenantId: oid(tenantId), phone }, { $set: { botPaused: !!paused } }, { upsert: true });
+  const before: any = await WhatsAppThread.findOneAndUpdate({ tenantId: oid(tenantId), phone }, { $set: { botPaused: !!paused } }, { upsert: true, new: false }).select('botPaused').lean();
+  if (!!before?.botPaused !== !!paused) {
+    await recordNote(tenantId, phone, paused ? `🤖 Old bot paused by ${await nameOf(userId)}` : `🤖 Old bot switched back on by ${await nameOf(userId)}`);
+  }
   emitWaThread(tenantId, { phone, reason: 'bot' });
   return { botPaused: !!paused };
 }

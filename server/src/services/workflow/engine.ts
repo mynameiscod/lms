@@ -620,6 +620,36 @@ export async function stopRuns(filter: Record<string, any>, reason: string): Pro
   return runs.length;
 }
 
+/**
+ * A person on the team replied in the chat: conversational runs for this number stop (questions,
+ * welcome flows, auto-replies), so the lead never gets the bot and a human at the same time.
+ * Reminder-type runs (demos, stage sequences) keep going. Returns the stopped workflows' names.
+ */
+export async function stopForTakeover(tenantId: string, rawPhone: string, who: string): Promise<string[]> {
+  const phone = normalizeTo(rawPhone);
+  const live = await WorkflowRun.find({ tenantId: oid(tenantId), phone, status: { $in: ['running', 'waiting'] } }).select('_id workflowId waitingFor').lean();
+  if (!live.length) return [];
+  const wfs = await Workflow.find({ _id: { $in: live.map((r: any) => r.workflowId) } }).select('name trigger.type').lean();
+  const byId = new Map(wfs.map((w: any) => [String(w._id), w]));
+  const chatty = live.filter((r: any) => r.waitingFor === 'reply' || ['lead_created', 'message_received'].includes((byId.get(String(r.workflowId)) as any)?.trigger?.type));
+  if (!chatty.length) return [];
+  await stopRuns({ _id: { $in: chatty.map((r: any) => r._id) } }, `${who} took over the chat`);
+  return Array.from(new Set(chatty.map((r: any) => (byId.get(String(r.workflowId)) as any)?.name || 'Workflow')));
+}
+
+/** Is a workflow talking to this number right now? (The old bot stays quiet if so.) */
+export async function hasLiveRun(tenantId: string, rawPhone: string): Promise<boolean> {
+  return !!(await WorkflowRun.exists({ tenantId: oid(tenantId), phone: normalizeTo(rawPhone), status: { $in: ['running', 'waiting'] } }));
+}
+
+/** An active "New lead arrives" workflow that covers WhatsApp leads replaces the old bot's welcome. */
+export async function workflowWelcomesNewLeads(tenantId: string): Promise<boolean> {
+  return !!(await Workflow.exists({
+    tenantId: oid(tenantId), status: 'active', 'trigger.type': 'lead_created',
+    $or: [{ 'trigger.config.sources': { $exists: false } }, { 'trigger.config.sources': { $size: 0 } }, { 'trigger.config.sources': 'whatsapp' }],
+  }));
+}
+
 /* ── WhatsApp messages coming in ─────────────────────────────────────────── */
 export interface InboundResult { handled: boolean; answered: number; started: number; optOut?: boolean }
 

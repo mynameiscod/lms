@@ -1,9 +1,10 @@
-/* WhatsApp Inbox. Prefix: wai-. Two panes on desktop, one at a time on a phone. */
-.wai { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 16px; padding: 20px 22px 28px; height: calc(100vh / var(--app-zoom, .75) - 96px); box-sizing: border-box; }
-.wai-left, .wai-right { background: #fff; border: 1px solid #e8edf4; border-radius: 14px; min-height: 0; display: flex; flex-direction: column; }
+/* WhatsApp Inbox. Prefix: wai-. List | chat | details on desktop, one pane at a time on a phone. */
+.wai { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); gap: 14px; padding: 18px 20px 24px; height: calc(100vh / var(--app-zoom, .75) - 96px); box-sizing: border-box; }
+.wai.with-ctx { grid-template-columns: minmax(320px, 380px) minmax(0, 1fr) minmax(280px, 330px); }
+.wai-left, .wai-right, .wai-ctx { background: #fff; border: 1px solid #e8edf4; border-radius: 16px; min-height: 0; display: flex; flex-direction: column; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
 .wai-left { padding: 16px 12px 10px; }
 .wai-right { padding: 14px 16px; overflow: hidden; }
-/* The conversation fills the whole right pane: the message list takes all the spare height, the composer stays at the bottom. */
+/* The conversation fills the whole middle pane: the message list takes all the spare height, the composer stays at the bottom. */
 .wai-right > .wac { flex: 1; min-height: 0; }
 .wai-right .wac-list { flex: 1; height: auto; min-height: 0; }
 
@@ -11,22 +12,36 @@
 .wai-head h1 { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 2px; display: flex; gap: 8px; align-items: center; }
 .wai-head h1 i { color: #16a34a; }
 .wai-head p { font-size: 12.5px; color: #64748b; margin: 0 0 10px; }
-.wai-search { border: 1px solid #dbe2ec; border-radius: 10px; padding: 8px 11px; font-size: 13.5px; margin: 0 4px 8px; }
-.wai-filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 4px 8px; border-bottom: 1px solid #eef1f6; }
-.wai-filters button { border: 1px solid #e2e8f0; background: #fff; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700; color: #475569; cursor: pointer; }
-.wai-filters button span { margin-left: 4px; color: #94a3b8; }
-.wai-filters button.on { background: #0f172a; border-color: #0f172a; color: #fff; }
-.wai-filters button.on span { color: #cbd5e1; }
+.wai-search-wrap { position: relative; margin: 0 4px 10px; }
+.wai-search-wrap i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px; }
+.wai-search { width: 100%; box-sizing: border-box; border: 1px solid #dbe2ec; border-radius: 10px; padding: 9px 11px 9px 32px; font-size: 13.5px; background: #f8fafc; }
+.wai-search:focus { outline: none; border-color: #86efac; background: #fff; box-shadow: 0 0 0 3px rgba(34, 197, 94, .12); }
+
+.wai-tabs { display: flex; gap: 4px; padding: 0 4px 8px; overflow-x: auto; scrollbar-width: none; }
+.wai-tabs::-webkit-scrollbar { display: none; }
+.wai-tabs button { flex: 0 0 auto; border: 1px solid #e2e8f0; background: #fff; border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 700; color: #475569; cursor: pointer; white-space: nowrap; }
+.wai-tabs button span { margin-left: 5px; color: #94a3b8; font-weight: 700; }
+.wai-tabs button.hot span { background: #ef4444; color: #fff; border-radius: 999px; padding: 0 6px; }
+.wai-tabs button.on { background: #0f172a; border-color: #0f172a; color: #fff; }
+.wai-tabs button.on span { color: #cbd5e1; }
+.wai-tabs button.on.hot span { color: #fff; }
+
+.wai-drops { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 4px 10px; border-bottom: 1px solid #eef1f6; }
+.wai-drops select { min-width: 0; border: 1px solid #e2e8f0; border-radius: 9px; padding: 6px 8px; font-size: 12px; color: #334155; background: #fff; cursor: pointer; }
+.wai-drops select.set { border-color: #22c55e; background: #f0fdf4; color: #166534; font-weight: 700; }
+.wai-clear { grid-column: 1 / -1; justify-self: start; border: 0; background: none; color: #4f46e5; font-weight: 700; font-size: 12px; cursor: pointer; padding: 2px 0; }
 .wai-err { background: #fef2f2; color: #b91c1c; border-radius: 8px; padding: 8px 10px; font-size: 12.5px; margin: 8px 4px 0; }
 
 .wai-list { list-style: none; margin: 6px 0 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
 .wai-empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 30px 12px; }
-.wai-row { display: flex; gap: 10px; width: 100%; text-align: left; border: 0; background: none; padding: 10px 8px; border-radius: 10px; cursor: pointer; }
+.wai-row { display: flex; gap: 10px; width: 100%; text-align: left; border: 0; border-left: 3px solid transparent; background: none; padding: 10px 8px 10px 7px; border-radius: 10px; cursor: pointer; }
 .wai-row:hover { background: #f8fafc; }
 .wai-row.on { background: #eef2ff; }
+.wai-row.st-needs_reply { border-left-color: #ef4444; }
 .wai-avatar { width: 38px; height: 38px; border-radius: 50%; background: #e2e8f0; color: #334155; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.wai-avatar.lg { width: 42px; height: 42px; font-size: 14px; background: #dcfce7; color: #15803d; }
 .wai-row.unread .wai-avatar { background: #dcfce7; color: #15803d; }
-.wai-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wai-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .wai-line1, .wai-line2 { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .wai-line1 b { font-size: 13.5px; color: #0f172a; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wai-line1 time { font-size: 11px; color: #94a3b8; flex: 0 0 auto; }
@@ -34,25 +49,97 @@
 .wai-preview { font-size: 12.5px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wai-row.unread .wai-preview { color: #0f172a; font-weight: 600; }
 .wai-count { background: #16a34a; color: #fff; border-radius: 999px; font-size: 11px; font-weight: 800; min-width: 18px; padding: 0 5px; line-height: 18px; text-align: center; flex: 0 0 auto; }
-.wai-tags { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; font-size: 11px; }
+.wai-line3 { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.wai-line3:empty { display: none; }
+
+.wai-status { display: inline-flex; gap: 4px; align-items: center; border-radius: 6px; padding: 1px 7px; font-size: 11px; font-weight: 700; line-height: 18px; white-space: nowrap; }
+.wai-status.reply { background: #fee2e2; color: #b91c1c; }
+.wai-status.auto { background: #ccfbf1; color: #0f766e; }
+.wai-status.wait { background: #f1f5f9; color: #475569; }
+.wai-closing { font-size: 11px; font-weight: 700; color: #b45309; display: inline-flex; gap: 3px; align-items: center; }
+
+.wai-tags { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; font-size: 11px; }
 .wai-tag { border-radius: 6px; padding: 0 6px; font-weight: 700; line-height: 17px; }
 .wai-tag.p { background: #e0f2fe; color: #0369a1; }
-.wai-tag.l { background: #fef3c7; color: #b45309; }
 .wai-tag.s { background: #ede9fe; color: #6d28d9; }
-.wai-owner { color: #64748b; }
+.wai-tag.n { background: #f1f5f9; color: #64748b; }
+.wai-stage { --c: #64748b; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; padding: 0 6px; line-height: 17px; font-size: 11px; font-weight: 700; color: #334155; background: color-mix(in srgb, var(--c) 14%, #fff); }
+.wai-stage::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
+.wai-src { color: #64748b; font-weight: 600; }
+.wai-src::before { content: '· '; color: #cbd5e1; }
+.wai-owner { color: #334155; font-weight: 600; display: inline-flex; gap: 3px; align-items: center; margin-left: auto; }
+.wai-owner i { color: #94a3b8; }
 .wai-owner.none { color: #b45309; }
+.wai-owner.none i { color: #f59e0b; }
 .wai-more { border: 0; background: none; color: #4f46e5; font-weight: 700; font-size: 12.5px; cursor: pointer; padding: 8px; }
 
-.wai-placeholder { margin: auto; text-align: center; color: #94a3b8; }
-.wai-placeholder i { font-size: 40px; }
-.wai-chat-head { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
-.wai-chat-head h2 { font-size: 18px; font-weight: 800; color: #0f172a; margin: 0; }
-.wai-chat-sub { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12.5px; color: #64748b; margin-top: 2px; align-items: center; }
+.wai-placeholder { margin: auto; text-align: center; color: #94a3b8; max-width: 420px; }
+.wai-placeholder > i { font-size: 40px; }
+.wai-howto { list-style: none; padding: 0; margin: 16px 0 0; text-align: left; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; color: #64748b; }
+.wai-howto .wai-status { margin-right: 6px; }
+
+.wai-chat-head { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eef1f6; }
+.wai-chat-title { flex: 1; min-width: 0; }
+.wai-chat-head h2 { font-size: 17px; font-weight: 800; color: #0f172a; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wai-chat-sub { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12.5px; color: #64748b; margin-top: 3px; align-items: center; }
 .wai-chat-sub a { color: #4f46e5; font-weight: 700; text-decoration: none; }
-.wai-back { display: none; border: 0; background: #f1f5f9; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; }
+.wai-chat-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+.wai-btn { border: 1px solid #16a34a; background: #16a34a; color: #fff; border-radius: 9px; padding: 6px 11px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
+.wai-btn.ghost { background: #fff; color: #334155; border-color: #dbe2ec; }
+.wai-btn.ghost.on { background: #f1f5f9; }
+.wai-back { display: none; border: 0; background: #f1f5f9; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; flex: 0 0 auto; }
+
+/* Details panel */
+.wai-ctx { padding: 14px 12px; overflow-y: auto; gap: 10px; }
+.wai-ctx-top { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+.wai-ctx-top b { font-size: 15px; color: #0f172a; }
+.wai-icon-btn { border: 0; background: #f1f5f9; border-radius: 8px; width: 28px; height: 28px; cursor: pointer; color: #475569; }
+.wai-ctx-empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 30px 0; }
+.wai-card { border: 1px solid #eef1f6; border-radius: 12px; padding: 10px 12px; }
+.wai-card h3 { font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; display: flex; gap: 6px; align-items: center; }
+.wai-card h3 i { color: #16a34a; font-size: 13px; }
+.wai-big { font-size: 15px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
+.wai-big.none { color: #b45309; }
+.wai-hint { font-size: 12px; color: #64748b; margin: 6px 0 0; line-height: 1.45; }
+.wai-hint a { color: #4f46e5; font-weight: 700; text-decoration: none; }
+.wai-ok { font-size: 12.5px; color: #15803d; margin: 0; display: flex; gap: 6px; align-items: flex-start; }
+.wai-dl { display: grid; grid-template-columns: 96px 1fr; gap: 5px 8px; margin: 0; font-size: 12.5px; }
+.wai-dl dt { color: #94a3b8; font-weight: 600; }
+.wai-dl dd { margin: 0; color: #0f172a; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.wai-dl dd small { color: #64748b; font-weight: 500; }
+.wai-dl a { color: #4f46e5; text-decoration: none; }
+.wai-prio { border-radius: 6px; padding: 0 6px; font-size: 11px; font-weight: 800; }
+.wai-prio.hot { background: #fee2e2; color: #b91c1c; }
+.wai-prio.warm { background: #fef3c7; color: #b45309; }
+.wai-prio.cold { background: #e0f2fe; color: #0369a1; }
+.wai-answers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.wai-answers li { display: grid; grid-template-columns: 1fr; gap: 1px; background: #f8fafc; border-radius: 8px; padding: 6px 8px; }
+.wai-answers span { font-size: 11.5px; color: #64748b; }
+.wai-answers b { font-size: 13px; color: #0f172a; }
+.wai-answers small { font-size: 10.5px; color: #94a3b8; }
+.wai-run { display: flex; gap: 8px; align-items: flex-start; padding: 5px 0; font-size: 12.5px; }
+.wai-run div { display: flex; flex-direction: column; min-width: 0; }
+.wai-run a { color: #0f172a; font-weight: 700; text-decoration: none; }
+.wai-run b { color: #0f172a; }
+.wai-run small { color: #64748b; font-size: 11.5px; }
+.wai-run.past { opacity: .8; }
+.wai-run-dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 4px; flex: 0 0 auto; background: #cbd5e1; }
+.wai-run-dot.live { background: #14b8a6; box-shadow: 0 0 0 3px rgba(20, 184, 166, .2); }
+.wai-run-dot.done { background: #22c55e; }
+.wai-run-dot.stop { background: #94a3b8; }
+.wai-run-dot.fail { background: #ef4444; }
+.wai-sub { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em; margin-top: 6px; }
+.wai-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #64748b; }
+.wai-legend .wac-tag { margin: 0 6px 0 0; }
+.wai-legend-in { display: inline-block; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 1px 7px; font-size: 11px; font-weight: 700; color: #334155; margin-right: 6px; }
+
+@media (max-width: 1280px) {
+  .wai.with-ctx { grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); }
+  .wai.with-ctx .wai-ctx { position: fixed; right: 16px; top: 80px; bottom: 16px; width: min(340px, calc(100vw - 32px)); z-index: 30; box-shadow: 0 20px 50px rgba(15, 23, 42, .2); }
+}
 
 @media (max-width: 900px) {
-  .wai { grid-template-columns: 1fr; height: auto; min-height: calc(100vh / var(--app-zoom, 1) - 90px); padding: 12px 16px 20px; }
+  .wai, .wai.with-ctx { grid-template-columns: 1fr; height: auto; min-height: calc(100vh / var(--app-zoom, 1) - 90px); padding: 12px 16px 20px; }
   .wai.has-chat .wai-left { display: none; }
   .wai:not(.has-chat) .wai-right { display: none; }
   .wai-left { max-height: none; }
@@ -60,4 +147,6 @@
   .wai-right { overflow: visible; }
   .wai-right .wac-list { flex: none; height: 58vh; }
   .wai-back { display: inline-flex; align-items: center; justify-content: center; }
+  .wai-chat-head { flex-wrap: wrap; }
+  .wai-chat-actions { width: 100%; }
 }

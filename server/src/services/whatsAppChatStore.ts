@@ -121,7 +121,7 @@ export async function recordOutbound(tenantId: string, rawPhone: string, f: {
     const staff = f.source === 'chat' && f.sentBy && mongoose.isValidObjectId(f.sentBy);
     await WhatsAppThread.updateOne(
       { tenantId: oid(tenantId), phone },
-      { $set: { lastMessageAt: now, lastPreview: preview(f.kind || 'text', f.body), ...(staff ? { lastStaffReplyAt: now, lastStaffReplyBy: oid(f.sentBy!) } : {}) } },
+      { $set: { lastMessageAt: now, lastOutboundAt: now, lastPreview: preview(f.kind || 'text', f.body), ...(staff ? { lastStaffReplyAt: now, lastStaffReplyBy: oid(f.sentBy!) } : {}) } },
       { upsert: true },
     );
     emitWaThread(tenantId, { phone, reason: 'out' });
@@ -129,6 +129,21 @@ export async function recordOutbound(tenantId: string, rawPhone: string, f: {
   } catch (e: any) {
     console.warn('[wa-chat] could not record outbound message', e?.message);
     return null;
+  }
+}
+
+/**
+ * A grey line in the conversation that only staff see ("Workflow stopped — Siva took over").
+ * Not sent to WhatsApp and does not change the list preview. Never throws.
+ */
+export async function recordNote(tenantId: string, rawPhone: string, text: string) {
+  try {
+    const phone = normalizeTo(rawPhone);
+    if (!phone || phone.length < 10 || !mongoose.isValidObjectId(tenantId)) return;
+    await WhatsAppChatMessage.create({ tenantId: oid(tenantId), phone, direction: 'out', kind: 'note', body: text.slice(0, 500), status: 'sent', source: 'system' });
+    emitWaThread(tenantId, { phone, reason: 'out' });
+  } catch (e: any) {
+    console.warn('[wa-chat] could not record note', e?.message);
   }
 }
 

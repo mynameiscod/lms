@@ -5,6 +5,8 @@ import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { roleGuard, permissionsOf } from '../middleware/roleGuard';
 import * as svc from '../services/whatsAppChatService';
 import * as inbox from '../services/whatsAppChatInbox';
+import { threadContext } from '../services/whatsAppChatContext';
+import { normalizeTo } from '../services/assessmentOtpService';
 import * as bunny from '../services/bunnyStorageService';
 
 /**
@@ -48,7 +50,8 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: svc
 // ── Shared inbox ─────────────────────────────────────────────────────────────
 
 router.get('/inbox', wrap(async (req, res) => {
-  const { filter, q, page } = req.query as any;
+  const { filter, q, page, owner, stageId, source, type, window } = req.query as any;
+  const str = (v: any) => (typeof v === 'string' ? v.slice(0, 80) : undefined);
   const user = (req as any).user;
   const p = user?.role === 'SUPER_ADMIN' ? null : await permissionsOf(user);
   const has = (keys: string[]) => !p || keys.some((k) => p.includes(k));
@@ -57,7 +60,24 @@ router.get('/inbox', wrap(async (req, res) => {
     placement: has(['manage_placement_program', 'manage_placement', 'manage_tenant']),
     leads: has(['manage_leads', 'view_leads', 'manage_tenant']),
   };
-  res.json({ success: true, data: await inbox.listInbox(tId(req), uId(req), { filter, q, page: Number(page) || 1, access }) });
+  res.json({ success: true, data: await inbox.listInbox(tId(req), uId(req), {
+    filter: str(filter) as any, q: str(q), page: Number(page) || 1, access,
+    owner: str(owner), stageId: str(stageId), source: str(source),
+    type: ['lead', 'placement', 'student'].includes(type) ? type : '', window: ['open', 'closing', 'closed'].includes(window) ? window : '',
+  }) });
+}));
+
+router.get('/inbox/options', wrap(async (req, res) => {
+  res.json({ success: true, data: await inbox.inboxOptions(tId(req)) });
+}));
+
+router.get('/threads/:phone/context', wrap(async (req, res) => {
+  res.json({ success: true, data: await threadContext(tId(req), req.params.phone) });
+}));
+
+router.post('/threads/:phone/handled', wrap(async (req, res) => {
+  await inbox.markHandled(tId(req), normalizeTo(String(req.params.phone)), uId(req));
+  res.json({ success: true });
 }));
 
 router.get('/staff', wrap(async (req, res) => {
@@ -142,7 +162,7 @@ router.post('/threads/:phone/read', wrap(async (req, res) => {
 }));
 
 router.put('/threads/:phone/bot', wrap(async (req, res) => {
-  res.json({ success: true, data: await svc.setBotPaused(tId(req), req.params.phone, !!req.body?.paused) });
+  res.json({ success: true, data: await svc.setBotPaused(tId(req), req.params.phone, !!req.body?.paused, uId(req)) });
 }));
 
 export default router;

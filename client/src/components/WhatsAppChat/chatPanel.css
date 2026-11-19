@@ -74,3 +74,17 @@
 .wac-qr-edit { display: flex; flex-direction: column; gap: 6px; }
 .wac-qr-edit input, .wac-qr-edit textarea { border: 1px solid #dbe2ec; border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 13px; }
 .wac-qr-actions { display: flex; justify-content: flex-end; gap: 6px; }
+
+/* Who sent it (2026-11-19): one colour per sender type, and grey system notes. */
+.wac-tag { display: inline-flex; gap: 5px; align-items: center; text-transform: none; letter-spacing: 0; font-size: 11px; border-radius: 6px; padding: 1px 7px; margin-bottom: 4px; }
+.wac-tag.team { background: #dbeafe; color: #1d4ed8; }
+.wac-tag.bot { background: #ede9fe; color: #6d28d9; }
+.wac-tag.flow { background: #ccfbf1; color: #0f766e; }
+.wac-tag.cast { background: #fce7f3; color: #be185d; }
+.wac-tag.auto { background: #e2e8f0; color: #475569; }
+.wac-bubble.out.by-bot, .wac-bubble.out.by-flow, .wac-bubble.out.by-auto, .wac-bubble.out.by-cast { background: #f0fdf4; border: 1px dashed #86efac; }
+.wac-note-line { display: flex; justify-content: center; margin: 4px 0; }
+.wac-note-line span { background: rgba(255, 255, 255, .9); color: #475569; font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 4px 12px; box-shadow: 0 1px .5px rgba(11, 20, 26, .1); text-align: center; }
+.wac-owner-wrap { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; color: #64748b; font-weight: 600; }
+.wac-bot.on { border-color: #c4b5fd; color: #6d28d9; background: #f5f3ff; }
+.wac-bot.off { color: #64748b; }

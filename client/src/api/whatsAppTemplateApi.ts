@@ -57,6 +57,8 @@ export interface WaCompat { ok: boolean; errors: string[]; warnings: string[] }
 export interface WaBroadcast {
   _id: string; templateName: string; audience: string; total: number; sent: number; failed: number;
   status: 'running' | 'done' | 'failed'; failures: { phone: string; error: string }[]; createdAt: string; finishedAt?: string;
+  /** What Meta reported afterwards for the messages of this broadcast. */
+  outcome?: { delivered: number; read: number; failed: number; pending: number };
 }
 
 /** CRM leads to broadcast to. An empty list means "any". */
@@ -105,9 +107,9 @@ export const waTemplateApi = {
   audienceSources: () => axios.get(`${BASE}/audiences`, h()).then(d) as Promise<WaAudienceSource[]>,
   audienceFilters: (key: string) => axios.get(`${BASE}/audiences/${key}/filters`, h()).then(d) as Promise<WaAudienceFilter[]>,
   audiencePreview: (id: string, a: WaSourceAudience) => axios.post(`${BASE}/${id}/audience-preview`, a, h()).then(d) as Promise<WaSourcePreview>,
-  messages: (q: { phone?: string; templateId?: string; limit?: number; status?: 'failed' } = {}) =>
+  messages: (q: { phone?: string; templateId?: string; limit?: number; status?: '' | 'failed' | 'delivered' | 'read' | 'pending'; source?: string; days?: number; q?: string } = {}) =>
     axios.get(`${BASE}/messages`, { ...h(), params: q }).then(d) as Promise<WaMessage[]>,
-  messagesSummary: () => axios.get(`${BASE}/messages/summary`, h()).then(d) as Promise<WaDeliverySummary>,
+  messagesSummary: (days = 1) => axios.get(`${BASE}/messages/summary`, { ...h(), params: { days } }).then(d) as Promise<WaDeliverySummary>,
   /** Upload a PDF (brochure) for a Document header; returns the public link Meta fetches. */
   uploadPdf: (file: File) => {
     const form = new FormData();
@@ -118,8 +120,10 @@ export const waTemplateApi = {
 
 /** The last 24 hours of sends: totals and the most common failure reasons. */
 export interface WaDeliverySummary {
-  total: number; failed: number;
-  reasons: { code?: number; count: number; last: string; reason: string }[];
+  days: number; total: number; prevTotal: number; delivered: number; read: number; failed: number; pending: number;
+  /** Failed numbers that are not a valid Indian mobile. */
+  badNumbers: number;
+  reasons: { code?: number; count: number; last: string; reason: string; advice: string; templates: string[] }[];
 }
 
 export const errMsg = (e: any, fallback = 'Something went wrong') => e?.response?.data?.message || e?.message || fallback;

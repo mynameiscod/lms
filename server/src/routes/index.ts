@@ -101,6 +101,7 @@ import passportRoutes from './passportRoutes';
 import { careerPilotActivity, careerPilotMemberActivity } from '../middleware/careerPilotActivity';
 import publicPassportRoutes from './publicPassportRoutes';
 import lmsDemoRoutes, { publicLmsDemoRoutes } from './lmsDemoRoutes';
+import referralRoutes, { publicReferralRoutes } from './referralRoutes';
 import conceptLessonRoutes from './conceptLessonRoutes';
 import interactiveLessonRoutes from './interactiveLessonRoutes';
 import adminLogsRoute from './adminLogsRoute';
@@ -169,6 +170,7 @@ router.use(moduleGate);
 // /passport is the legacy path and must keep answering, because member card links
 // already sent to recruiters point at it and cannot be recalled.
 router.use('/public/lms-demo', publicLmsDemoRoutes); // the free LMS demo sign-up (no auth)
+router.use('/public/refer', publicReferralRoutes); // LMS Refer & Earn: the link a student shares (no auth)
 router.use('/public/careerpilot', careerPilotActivity, publicPassportRoutes);
 router.use('/public/passport', careerPilotActivity, publicPassportRoutes);
 // Problem Bank external API — API-key auth (not a user session); for colleges, partners and Interview Pilot.
@@ -341,6 +343,7 @@ router.use('/curricula', learningCurriculumRoutes);
 router.use('/adaptive', adaptiveCurriculumRoutes);
 router.use('/enrollment-plans', careerPilotMemberActivity, enrollmentPlanRoutes);
 router.use('/lms-demo', lmsDemoRoutes); // LMS demo students + the LMS Demo admin screen
+router.use('/referrals', referralRoutes); // LMS Refer & Earn: student page + admin Referrals screen
 router.use('/projects', projectRoutes);
 router.use('/job-applications', jobApplicationRoutes);
 router.use('/ai-mentor', mentorRoutes);

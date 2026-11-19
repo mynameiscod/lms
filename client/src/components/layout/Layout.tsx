@@ -20,7 +20,7 @@ const STUDENT_CORE_REMAINING_ROUTES = [
   '/student/fee-details', '/student/college', '/student/my-applications', '/student/alumni-directory',
   '/notifications', '/my-interviews', '/student/interviews', '/my-leave', '/playground', '/project-builder',
   '/job-tracker', '/ai-mentor', '/resource-library', '/hms-classes', '/ai-communication-lab', '/thinking-lab',
-  '/logic-gym', '/resume-builder', '/career-profile', '/profile', '/interview-questions',
+  '/logic-gym', '/resume-builder', '/career-profile', '/profile', '/interview-questions', '/refer-and-earn',
 ];
 
 const routeKeyFor = (pathname: string) => {

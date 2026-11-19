@@ -142,4 +142,12 @@ FeeSchema.pre('save', function(next) {
   next();
 });
 
+// LMS Refer & Earn: a fee paid in full (or refunded) moves the referral of this student on.
+FeeSchema.post('save', function (doc: any) {
+  if (!doc?.studentId) return;
+  import('../services/referralService')
+    .then((m) => m.syncForStudent(String(doc.studentId)))
+    .catch((e) => console.error('[referral] fee sync failed', e?.message));
+});
+
 export default mongoose.model<IFee>('Fee', FeeSchema);

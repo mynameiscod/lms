@@ -766,6 +766,8 @@ LeadSchema.index({ archiveRunId: 1 }, { partialFilterExpression: { archiveRunId:
 LeadSchema.index({ tenantId: 1, assignedTo: 1 });
 LeadSchema.index({ tenantId: 1, nextFollowUp: 1 });
 LeadSchema.index({ tenantId: 1, source: 1 });
+// Sales Teams: the every-minute "a lead was assigned to you" alert reads recent assignments across institutes.
+LeadSchema.index({ 'assignment.assignedAt': -1 }, { sparse: true });
 LeadSchema.index({ tenantId: 1, createdAt: -1 });
 LeadSchema.index({ tenantId: 1, campaignId: 1 });
 LeadSchema.index({ tenantId: 1, 'sourceDetails.adId': 1 });

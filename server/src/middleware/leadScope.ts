@@ -46,6 +46,17 @@ export async function resolveLeadScope(req: AuthenticatedRequest): Promise<DataS
  * Build a MongoDB filter condition that restricts lead visibility by scope.
  * Returns an object to merge into the query filter.
  */
+/** Members of the Sales Teams this person manages (services/salesTeamService.ts). */
+async function salesTeamMemberIds(req: AuthenticatedRequest): Promise<mongoose.Types.ObjectId[]> {
+  try {
+    const { managedMemberIds } = await import('../services/salesTeamService');
+    return await managedMemberIds(String(req.tenantId || req.user!.tenantId), String(req.user!.id));
+  } catch (e: any) {
+    console.error('[lead-scope] sales team lookup failed', e?.message);
+    return [];
+  }
+}
+
 export async function buildLeadScopeFilter(req: AuthenticatedRequest): Promise<Record<string, any>> {
   const scope = await resolveLeadScope(req);
 
@@ -64,11 +75,15 @@ export async function buildLeadScopeFilter(req: AuthenticatedRequest): Promise<R
 
     const teamIds = teamMembers.map(m => m._id);
     teamIds.push(new mongoose.Types.ObjectId(String(req.user!.id)) as any); // include self
+    teamIds.push(...(await salesTeamMemberIds(req)) as any[]);
 
     return { assignedTo: { $in: teamIds } };
   }
 
-  // OWN: only leads assigned to this user
+  // OWN: only leads assigned to this user — plus, for a Sales Teams manager, their members' leads
+  // (they review those leads every day).
+  const members = await salesTeamMemberIds(req);
+  if (members.length) return { assignedTo: { $in: [new mongoose.Types.ObjectId(String(req.user!.id)), ...members] } };
   return { assignedTo: new mongoose.Types.ObjectId(String(req.user!.id)) };
 }
 

@@ -1,4 +1,5 @@
 import { useEmployeeStatus } from '../../hooks/useEmployeeStatus';
+import { salesTeamApi } from '../../api/salesTeamApi';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import { moduleForPath } from '../../config/tenantModules';
@@ -35,7 +36,7 @@ const HIDDEN_FROM_MENU = new Set<string>([
 const GIVEN_ONLY_PERMISSIONS = new Set([
   'support_agent', 'support_manager',
   'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
-  'manage_careerpilot_limits', 'manage_lms_demo',
+  'manage_careerpilot_limits', 'manage_lms_demo', 'manage_sales_teams',
 ]);
 
 interface MenuItem {
@@ -53,6 +54,8 @@ interface MenuItem {
   needsEmployee?: boolean;
   /** Also shown to anyone who has people reporting to them, whatever their permissions. */
   orTeam?: boolean;
+  /** Sales Teams: shown only to a team's manager / a team member (decided by the server, /sales-teams/me). */
+  needsSales?: 'manager' | 'member';
 }
 
 /** The demo student's menu entries: the same labels, paths and icons a real student sees. */
@@ -112,6 +115,15 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     thinkingLabApi.assigned().then(a => alive && setLabAssigned(!!a.assigned)).catch(() => alive && setLabAssigned(true));
     return () => { alive = false; };
   }, [user?.role, (user as any)?.batchId]);
+
+  /* Sales Teams: My Team for a team's manager, My Day for a member (the server knows who is which). */
+  const [sales, setSales] = useState({ manager: false, member: false });
+  useEffect(() => {
+    if (!user || user.role === 'STUDENT') return;
+    let alive = true;
+    salesTeamApi.me().then(m => alive && setSales({ manager: m.managerOf.length > 0, member: !!m.memberOf })).catch(() => {});
+    return () => { alive = false; };
+  }, [user?.role, (user as any)?.id]);
 
   const isActive = (path?: string) => path ? location.pathname === path : false;
 
@@ -383,6 +395,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'Analytics', path: '/leads/analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-simple', permissions: ['manage_leads', 'view_lead_analytics'] },
         { label: 'My Performance', path: '/lead-my-performance', roles: ['STAFF'], icon: 'fa-solid fa-trophy', permissions: ['view_leads', 'edit_leads', 'create_leads'] },
         { label: 'Manager Board', path: '/lead-manager-board', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-clipboard-user', permissions: ['manage_leads', 'view_lead_analytics'] },
+        { label: 'My Team', path: '/my-team', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-people-group', needsSales: 'manager' },
+        { label: 'My Day', path: '/my-day', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-sun', needsSales: 'member' },
+        { label: 'Sales Teams', path: '/sales-teams', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-sitemap', permissions: ['manage_sales_teams'] },
         { label: 'Team Activity', path: '/team-activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-column', permissions: ['view_lead_analytics'] },
         { label: 'Sales Content', path: '/sales-content', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-file-invoice', permissions: ['view_leads', 'create_leads'] },
         { label: 'Lead Sources', path: '/lead-sources', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-plug-circle-bolt', permissions: ['manage_leads'] },
@@ -410,6 +425,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     // The employee portal belongs to whoever is linked to an employee record, whatever their role;
     // the team screens also open for a manager, whatever their permissions.
     if (item.needsEmployee) return employee.isEmployee;
+    if (item.needsSales) return item.needsSales === 'manager' ? sales.manager : sales.member;
     if (item.orTeam && employee.hasTeam) return true;
 
     const roleAllowed = !!(user.role && item.roles.includes(user.role));

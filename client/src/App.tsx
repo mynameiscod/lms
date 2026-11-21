@@ -8,6 +8,7 @@ import { StudentFeaturesProvider, useStudentFeatures, StudentFeatures } from './
 import { TenantModulesProvider } from './contexts/TenantModulesContext';
 import { BatchModulesProvider } from './contexts/BatchModulesContext';
 import { SocketProvider, useSocket } from './contexts/SocketContext';
+import LeadAssignedAlert from './components/LeadAssignedAlert';
 import { Layout } from './components/layout';
 import { Spinner } from './components/common';
 
@@ -129,6 +130,9 @@ const AdminLmsDemo = lazy(() => import('./pages/LmsDemo/AdminLmsDemo'));
 const ReferEarn = lazy(() => import('./pages/ReferEarn'));
 const ReferLanding = lazy(() => import('./pages/ReferEarn/ReferLanding'));
 const AdminReferrals = lazy(() => import('./pages/ReferEarn/AdminReferrals'));
+const AdminSalesTeams = lazy(() => import('./pages/SalesTeams/AdminSalesTeams'));
+const SalesMyTeam = lazy(() => import('./pages/SalesTeams/MyTeam'));
+const SalesMemberDay = lazy(() => import('./pages/SalesTeams/MemberDay'));
 const PassportAdminStudentRoadmap = lazy(() => import('./pages/Passport/AdminStudentRoadmap'));
 const PassportAdminStageSkills = lazy(() => import('./pages/Passport/AdminStageSkills'));
 const PassportAdminCoins = lazy(() => import('./pages/Passport/AdminCoins'));
@@ -726,6 +730,13 @@ const AppRoutes: React.FC = () => {
       <Route path="/refer-and-earn" element={
         <ProtectedRoute requiredRoles={['STUDENT']}><Layout><ReferEarn /></Layout></ProtectedRoute>
       } />
+      {/* Sales Teams (Leads add-on). Who sees what is decided by the server: admin, the team's manager, the member. */}
+      <Route path="/sales-teams" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_sales_teams']}><Layout><AdminSalesTeams /></Layout></ProtectedRoute>
+      } />
+      <Route path="/my-team" element={<ProtectedRoute><Layout><SalesMyTeam /></Layout></ProtectedRoute>} />
+      <Route path="/my-team/member/:userId" element={<ProtectedRoute><Layout><SalesMemberDay /></Layout></ProtectedRoute>} />
+      <Route path="/my-day" element={<ProtectedRoute><Layout><SalesMemberDay /></Layout></ProtectedRoute>} />
       <Route path="/admin/referrals" element={
         <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_referrals']}><Layout><AdminReferrals /></Layout></ProtectedRoute>
       } />
@@ -3053,6 +3064,7 @@ const App: React.FC = () => {
             <SocketProvider>
               <BrowserRouter>
                 <HotLeadToast />
+                <LeadAssignedAlert />
                 <AppRoutes />
                 <AdminLogGate />
                 <CelebrationHost />

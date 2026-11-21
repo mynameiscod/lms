@@ -27,7 +27,7 @@ export default function LeadAssignedAlert() {
     socket.on('connect', join);
     const onAssigned = (p: any) => {
       const id = Date.now() + Math.random();
-      setAlerts(prev => [...prev.slice(-2), { id, title: String(p?.title || 'New lead assigned'), body: String(p?.body || ''), link: String(p?.link || '/leads') }]);
+      setAlerts(prev => [...prev.slice(-2), { id, title: String(p?.title || 'New lead assigned').replace(/^📞\s*/u, ''), body: String(p?.body || ''), link: String(p?.link || '/leads') }]);
       window.dispatchEvent(new Event(NOTIFICATIONS_REFRESH));
       setTimeout(() => setAlerts(prev => prev.filter(a => a.id !== id)), 12000);
     };

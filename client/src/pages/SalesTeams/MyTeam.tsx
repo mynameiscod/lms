@@ -109,7 +109,7 @@ export default function MyTeam() {
                 </div>
                 <div className="stm-member-nums">
                   <div><b>{m.metrics.whatsapp}</b><span>WhatsApp</span></div>
-                  <div><b>{m.metrics.leadsWorked}</b><span>Leads worked</span></div>
+                  <div title="Leads worked"><b>{m.metrics.leadsWorked}</b><span>Worked</span></div>
                   <div><b>{m.metrics.demos}</b><span>Demos</span></div>
                   <div><b>{m.metrics.enrollments}</b><span>Enrolled</span></div>
                 </div>

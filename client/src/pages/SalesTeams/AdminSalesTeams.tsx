@@ -219,7 +219,7 @@ function TeamDialog({ team, staff, onClose, onSaved }: { team: TeamRow | null; s
           <div className="stm-field">
             <span>Colour</span>
             <div className="stm-swatches" role="radiogroup" aria-label="Team colour">
-              {COLORS.map(c => <button key={c} type="button" role="radio" aria-checked={color === c} aria-label={c} className={color === c ? 'on' : ''} style={{ background: c }} onClick={() => setColor(c)} />)}
+              {COLORS.map(c => <button key={c} type="button" role="radio" aria-checked={color === c} aria-label={c} className={`stm-sw${color === c ? " on" : ""}`} style={{ background: c }} onClick={() => setColor(c)} />)}
             </div>
           </div>
         </div>

@@ -656,9 +656,10 @@ export function startSalesTeamScheduler() {
       console.error('[sales-teams] tick failed', e?.message);
     }
   };
-  const h = setInterval(tick, 60 * 1000);
+  // Every 20 s: a new lead's owner hears about it within seconds. The daily runs are claimed once per day.
+  const h = setInterval(tick, 20 * 1000);
   h.unref?.();
   setTimeout(tick, 20 * 1000).unref?.();
-  console.log('📊 Sales teams scheduler started (alerts every minute, reports 9 PM IST)');
+  console.log('📊 Sales teams scheduler started (lead alerts every 20 s, reports 9 PM IST)');
   return h;
 }

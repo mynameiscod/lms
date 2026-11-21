@@ -51,7 +51,7 @@ export default function MemberDay() {
     <div className="stm">
       {!self && <Link to={`/my-team${teamQ ? `?team=${teamQ}` : ''}${data.day !== data.today ? `${teamQ ? '&' : '?'}day=${data.day}` : ''}`} className="stm-back"><i className="bi bi-arrow-left" /> Back to team</Link>}
       <header className="stm-head">
-        <div className="stm-head-main row">
+        <div className="stm-head-main with-avatar">
           <Avatar name={data.user?.name || ''} color={data.team?.color} size={54} />
           <div>
             <span className="stm-eyebrow">{self ? 'Leads · My Day' : `Leads · ${data.team?.name || 'Report'}`}</span>
@@ -201,8 +201,8 @@ function NoteCard({ data, onSaved }: { data: Data; onSaved: () => void }) {
       {editing ? (
         <form className="stm-form" onSubmit={save}>
           <label>What I did today<textarea value={f.done} onChange={e => setF({ ...f, done: e.target.value })} rows={3} maxLength={2000} placeholder="Calls, demos booked, admissions closed…" /></label>
-          <label>Blockers <em>(optional)</em><textarea value={f.blockers} onChange={e => setF({ ...f, blockers: e.target.value })} rows={2} maxLength={2000} placeholder="Anything stopping you" /></label>
-          <label>Plan for tomorrow <em>(optional)</em><textarea value={f.tomorrow} onChange={e => setF({ ...f, tomorrow: e.target.value })} rows={2} maxLength={2000} /></label>
+          <label><span>Blockers <em>(optional)</em></span><textarea value={f.blockers} onChange={e => setF({ ...f, blockers: e.target.value })} rows={2} maxLength={2000} placeholder="Anything stopping you" /></label>
+          <label><span>Plan for tomorrow <em>(optional)</em></span><textarea value={f.tomorrow} onChange={e => setF({ ...f, tomorrow: e.target.value })} rows={2} maxLength={2000} /></label>
           {err && <div className="stm-alert">{err}</div>}
           <div className="stm-form-actions">
             {data.note && <button type="button" className="stm-btn ghost" onClick={() => setEditing(false)}>Cancel</button>}
@@ -256,7 +256,7 @@ function ReviewCard({ data, userId, onSaved }: { data: Data; userId?: string; on
                 </button>
               ))}
             </div>
-            <label>Comment for {data.user?.name?.split(' ')[0] || 'them'} <em>(optional)</em><textarea value={comment} onChange={e => setComment(e.target.value)} rows={3} maxLength={1000} placeholder="What went well, what to do first tomorrow" /></label>
+            <label><span>Comment for {data.user?.name?.split(' ')[0] || 'them'} <em>(optional)</em></span><textarea value={comment} onChange={e => setComment(e.target.value)} rows={3} maxLength={1000} placeholder="What went well, what to do first tomorrow" /></label>
             {err && <div className="stm-alert">{err}</div>}
             <button type="submit" className="stm-btn primary wide" disabled={!rating || busy}>{busy ? 'Saving…' : 'Mark reviewed'}</button>
           </form>

@@ -24,7 +24,7 @@
 /* Header */
 .stm-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 24px; flex-wrap: wrap; }
 .stm-head-main { min-width: 0; }
-.stm-head-main.row { display: flex; align-items: center; gap: 16px; }
+.stm-head-main.with-avatar { display: flex; align-items: center; gap: 16px; }
 .stm-eyebrow { font-size: 14px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--teal); }
 .stm-head h1 { display: flex; align-items: center; gap: 12px; margin: 4px 0 6px; font-size: clamp(26px, 2.4vw, 34px); font-weight: 800; color: var(--ink); }
 .stm-head p { margin: 0; max-width: 820px; font-size: 16.5px; line-height: 1.5; color: var(--text); }
@@ -267,7 +267,7 @@
 .stm-team-head h3 { margin: 0; font-size: 20px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stm-team-actions { display: flex; gap: 6px; }
 .stm-team-mgr { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--soft); }
-.stm-team-mgr span { display: block; font-size: 13px; font-weight: 700; color: var(--muted); }
+.stm-team-mgr > div span { display: block; font-size: 13px; font-weight: 700; color: var(--muted); }
 .stm-team-mgr b { font-size: 16px; color: var(--ink); }
 .stm-team-members > span { font-size: 13.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
 .stm-team-members ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -335,7 +335,7 @@
   .stm { gap: 16px; }
   .stm-head h1 { font-size: 24px; }
   .stm-head p { font-size: 15.5px; }
-  .stm-head-main.row { align-items: flex-start; }
+  .stm-head-main.with-avatar { align-items: flex-start; }
   .stm-tile { padding: 12px; gap: 10px; }
   .stm-tile-ic { width: 36px; height: 36px; font-size: 16px; }
   .stm-tile b { font-size: 23px; }
@@ -372,3 +372,16 @@
   .stm-member-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 10px; }
   .stm-ov-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* The admin shell forces every table to 680px on phones (AdminCore.css); these tables have their own phone layout. */
+.stm .stm-ov-table, .stm-modal .stm-tgrid { min-width: 0 !important; }
+.stm-form label.stm-search { flex-direction: row; align-items: center; gap: 8px; font-weight: 500; }
+.stm-form .stm-search input { border: 0 !important; box-shadow: none !important; outline: 0 !important; min-height: 0 !important; padding: 0 !important; background: none !important; flex: 1; }
+/* Beat the admin shell form rules (AdminCore.css, :not() chains with !important). */
+.stm-modal .stm-form .stm-search input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+.stm-modal .stm-form .stm-search input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus { border: 0 !important; box-shadow: none !important; min-height: 0 !important; padding: 0 !important; }
+.stm-modal .stm-swatches button.stm-sw, .stm-modal .stm-swatches button.stm-sw:hover { flex: none; width: 30px !important; height: 30px !important; min-width: 0 !important; min-height: 0 !important; padding: 0 !important; border-radius: 50% !important; border: 3px solid #fff !important; }
+@media (max-width: 420px) { .stm-tiles .stm-tile-ic { display: none; } .stm-tile { padding: 12px 14px; } }
+/* Tablet and phone: the note and the review come first, so a manager does not scroll past every number to review. */
+@media (max-width: 1180px) { .stm-day-side { order: -1; } }
+@media (max-width: 560px) { .stm-target-grid { grid-template-columns: 1fr; gap: 12px; } }

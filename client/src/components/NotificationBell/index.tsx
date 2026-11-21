@@ -50,6 +50,13 @@ const NotificationBell: React.FC = () => {
     return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
   }, [fetchUnreadCount]);
 
+  // A live nudge (a lead assigned to you, a review…) refreshes the badge without waiting for the poll.
+  useEffect(() => {
+    const onRefresh = () => fetchUnreadCount();
+    window.addEventListener('cb:notifications-refresh', onRefresh);
+    return () => window.removeEventListener('cb:notifications-refresh', onRefresh);
+  }, [fetchUnreadCount]);
+
   // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {

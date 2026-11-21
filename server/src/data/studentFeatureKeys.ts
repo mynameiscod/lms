@@ -17,6 +17,8 @@ export const STUDENT_FEATURE_KEYS = [
   'aiCommunicationLab', 'liveClasses', 'collegePortal', 'myApplications', 'alumniDirectory',
   // Menu items that had no switch of their own
   'myTasks', 'applyLeave', 'interviewExperiences', 'questionBooks', 'drives', 'myPractice', 'codingPractice', 'codeVisualizer',
+  // LMS Refer & Earn
+  'referEarn',
 ] as const;
 
 export type StudentFeatureKey = typeof STUDENT_FEATURE_KEYS[number];

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import User from '../models/User';
-import { QuestionBook, BookQuestion, BookProgress } from '../models/QuestionBook';
+import { QuestionBook, BookQuestion, BookProgress, QuestionBookAccess } from '../models/QuestionBook';
 import { learnerAudienceOf, LEARNER_AUDIENCE_FIELDS } from './learnerAudience';
 
 export class BookError extends Error {
@@ -18,35 +18,58 @@ const COLORS = ['#4f46e5', '#0d9488', '#be123c', '#b45309', '#0369a1', '#7c3aed'
 
 /* ── Who may see what ───────────────────────────────────────────────────────────────────── */
 
-/** Books a student may read: published, CodeBegun's or their institute's, for their product. */
+/**
+ * Books a student may read: published, CodeBegun's or their institute's, for their product, year and
+ * track. The institute's choice on "Who gets which book" wins; a book nobody chose for keeps its own
+ * default. Returned as an id list inside $and, so callers can still add their own `_id` condition.
+ */
 async function readerFilter(tenantId: string, userId: string) {
   // A demo account reads exactly the books its demo plan chose for the year shown (any library).
   const { demoContext } = await import('./demoService');
   const demo = await demoContext(userId);
   const chosen = (demo?.config?.bookIds || []).map(String);
-  if (chosen.length) return { status: 'published', _id: { $in: chosen } };
+  if (chosen.length) return { status: 'published', $and: [{ _id: { $in: chosen } }] };
   // An LMS demo student reads exactly the books chosen on the LMS Demo screen (none when none are chosen).
   const { lmsDemoScopeFor } = await import('./lmsDemoService');
   const lmsDemo = await lmsDemoScopeFor(userId);
-  if (lmsDemo) return { status: 'published', _id: { $in: lmsDemo.oids('bookKeys') } };
+  if (lmsDemo) return { status: 'published', $and: [{ _id: { $in: lmsDemo.oids('bookKeys') } }] };
   const u: any = await User.findById(userId).select(`${LEARNER_AUDIENCE_FIELDS} passport.stage passport.careerTrack.key`).lean();
   /* Shared CareerPilot rule (learnerAudience.ts): unlike the old inline `passport.active` test it
      also honours expiry, so a lapsed member reads as LMS here, exactly like a never-member. */
   const cp = learnerAudienceOf(u).careerpilot;
-  const base: any = {
-    status: 'published',
-    $or: [{ scope: 'global' }, { scope: 'tenant', tenantId }],
-    audience: { $in: ['all', cp ? 'careerpilot' : 'lms'] },
-  };
-  if (!cp) return base;
-  // A CareerPilot member sees the books for their year and, from Year 3, their career track.
-  const { stage, track } = readerTarget(u);
-  const open = (field: string) => [{ [field]: { $exists: false } }, { [field]: { $size: 0 } }];
-  base.$and = [
-    { $or: [...open('stages'), { stages: stage }] },
-    { $or: [...open('tracks'), ...(track ? [{ tracks: track }] : [])] },
-  ];
-  return base;
+  const target = cp ? readerTarget(u) : null;
+  const books: any[] = await QuestionBook.find({ status: 'published', $or: [{ scope: 'global' }, { scope: 'tenant', tenantId }] })
+    .select('audience stages tracks').lean();
+  const chosenFor = await accessMap(tenantId, books.map((b) => b._id));
+  const ids = books.filter((b) => canRead(effectiveAccess(b, chosenFor.get(String(b._id))), target)).map((b) => b._id);
+  return { status: 'published', $and: [{ _id: { $in: ids } }] };
+}
+
+export type Access = { lms: boolean; careerpilot: boolean; stages: string[]; tracks: string[] };
+
+/** The book's own default readers (set by its author). */
+export function defaultAccess(b: any): Access {
+  const aud = b?.audience || 'all';
+  return { lms: aud !== 'careerpilot', careerpilot: aud !== 'lms', stages: [...(b?.stages || [])], tracks: [...(b?.tracks || [])] };
+}
+
+/** The institute's choice if it made one, otherwise the book's default. */
+export function effectiveAccess(b: any, chosen?: any): Access {
+  return chosen ? { lms: !!chosen.lms, careerpilot: !!chosen.careerpilot, stages: [...(chosen.stages || [])], tracks: [...(chosen.tracks || [])] } : defaultAccess(b);
+}
+
+/** LMS reader: target null. CareerPilot member: their year and track (readerTarget). */
+export function canRead(a: Access, target: { stage: string; track: string | null } | null): boolean {
+  if (!target) return a.lms;
+  if (!a.careerpilot) return false;
+  if (a.stages.length && !a.stages.includes(target.stage)) return false;
+  if (a.tracks.length && !(target.track && a.tracks.includes(target.track))) return false;
+  return true;
+}
+
+async function accessMap(tenantId: string, bookIds: any[]) {
+  const rows: any[] = bookIds.length && tenantId ? await QuestionBookAccess.find({ tenantId, bookId: { $in: bookIds } }).lean() : [];
+  return new Map(rows.map((r) => [String(r.bookId), r]));
 }
 
 /**
@@ -238,6 +261,70 @@ export async function bulkAdd(a: Actor, bookId: string, chapterId: string, text:
   await BookQuestion.insertMany(rows.map((r) => ({ bookId: book._id, chapterId, order: order++, question: r.question.slice(0, 4000), answer: r.answer.slice(0, 12000) })));
   await recount(book._id);
   return { added: rows.length };
+}
+
+/* ── Who gets which book (per institute) ─────────────────────────────────────────────────── */
+
+/** Every book this institute's students could get, with the default and the institute's choice. */
+export async function accessList(a: Actor) {
+  const [books, targets] = await Promise.all([
+    QuestionBook.find({ $or: [{ scope: 'global' }, { scope: 'tenant', tenantId: a.tenantId }] }).sort({ kind: 1, order: 1, title: 1 }).lean(),
+    bookTargets(),
+  ]);
+  const chosen = await accessMap(a.tenantId, books.map((b: any) => b._id));
+  return {
+    targets,
+    books: books.map((b: any) => {
+      const c: any = chosen.get(String(b._id));
+      return {
+        id: String(b._id), title: b.title, subject: b.subject, kind: b.kind, color: b.color, emblem: b.emblem,
+        scope: b.scope, status: b.status, questionCount: b.questionCount,
+        defaults: defaultAccess(b),
+        access: effectiveAccess(b, c),
+        changed: !!c,
+        changedBy: c?.updatedByName || null,
+        changedAt: c?.updatedAt || null,
+      };
+    }),
+  };
+}
+
+function cleanAccess(body: any, base: Access): Access {
+  const stages = Array.isArray(body.stages) ? body.stages.map(String).filter((x: string) => (BOOK_STAGES as readonly string[]).includes(x)) : base.stages;
+  const tracks = Array.isArray(body.tracks) ? body.tracks.map((x: any) => str(x, 60)).filter(Boolean).slice(0, 40) : base.tracks;
+  return {
+    lms: typeof body.lms === 'boolean' ? body.lms : base.lms,
+    careerpilot: typeof body.careerpilot === 'boolean' ? body.careerpilot : base.careerpilot,
+    stages: [...new Set<string>(stages)],
+    tracks: [...new Set<string>(tracks)],
+  };
+}
+
+/** Set who gets these books in this institute. One book or many; only the fields sent change. */
+export async function saveAccess(a: Actor & { name?: string }, bookIds: string[], body: any) {
+  const ids = [...new Set((bookIds || []).filter(isId))];
+  if (!ids.length) throw new BookError('Choose at least one book.');
+  if (ids.length > 500) throw new BookError('Too many books at once.');
+  const books: any[] = await QuestionBook.find({ _id: { $in: ids }, $or: [{ scope: 'global' }, { scope: 'tenant', tenantId: a.tenantId }] }).lean();
+  if (books.length !== ids.length) throw new BookError('One of these books is not available to this institute.', 404);
+  const chosen = await accessMap(a.tenantId, ids);
+  for (const b of books) {
+    const next = cleanAccess(body || {}, effectiveAccess(b, chosen.get(String(b._id))));
+    await QuestionBookAccess.updateOne(
+      { tenantId: a.tenantId, bookId: b._id },
+      { $set: { ...next, updatedBy: a.userId, updatedByName: a.name || '' } },
+      { upsert: true },
+    );
+  }
+  return accessList(a);
+}
+
+/** Back to each book's own default for this institute. */
+export async function resetAccess(a: Actor, bookIds: string[]) {
+  const ids = (bookIds || []).filter(isId);
+  if (!ids.length) throw new BookError('Choose at least one book.');
+  await QuestionBookAccess.deleteMany({ tenantId: a.tenantId, bookId: { $in: ids } });
+  return accessList(a);
 }
 
 /* ── Students: the shelf, the book, progress ────────────────────────────────────────────── */

@@ -1,4 +1,5 @@
 import { useEmployeeStatus } from '../../hooks/useEmployeeStatus';
+import { salesTeamApi } from '../../api/salesTeamApi';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import { moduleForPath } from '../../config/tenantModules';
@@ -35,7 +36,7 @@ const HIDDEN_FROM_MENU = new Set<string>([
 const GIVEN_ONLY_PERMISSIONS = new Set([
   'support_agent', 'support_manager',
   'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
-  'manage_careerpilot_limits', 'manage_lms_demo',
+  'manage_careerpilot_limits', 'manage_lms_demo', 'manage_sales_teams', 'manage_question_books',
 ]);
 
 interface MenuItem {
@@ -53,6 +54,8 @@ interface MenuItem {
   needsEmployee?: boolean;
   /** Also shown to anyone who has people reporting to them, whatever their permissions. */
   orTeam?: boolean;
+  /** Sales Teams: shown only to a team's manager / a team member (decided by the server, /sales-teams/me). */
+  needsSales?: 'manager' | 'member';
 }
 
 /** The demo student's menu entries: the same labels, paths and icons a real student sees. */
@@ -113,6 +116,15 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     return () => { alive = false; };
   }, [user?.role, (user as any)?.batchId]);
 
+  /* Sales Teams: My Team for a team's manager, My Day for a member (the server knows who is which). */
+  const [sales, setSales] = useState({ manager: false, member: false });
+  useEffect(() => {
+    if (!user || user.role === 'STUDENT') return;
+    let alive = true;
+    salesTeamApi.me().then(m => alive && setSales({ manager: m.managerOf.length > 0, member: !!m.memberOf })).catch(() => {});
+    return () => { alive = false; };
+  }, [user?.role, (user as any)?.id]);
+
   const isActive = (path?: string) => path ? location.pathname === path : false;
 
   // Keep the active item in view: expand the group that holds the current route,
@@ -144,7 +156,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-users', permissions: ['manage_tenant_users'] },
     { label: 'Fees', path: '/fees', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-money-bill-wave', permissions: ['view_fees', 'manage_billing'] },
     // LMS Refer & Earn (CareerPilot has its own coin referral; the CareerPilot nav does not list this).
-    { label: 'Refer & Earn', path: '/refer-and-earn', roles: ['STUDENT'], icon: 'fa-solid fa-gift' },
+    { label: 'Refer & Earn', path: '/refer-and-earn', roles: ['STUDENT'], icon: 'fa-solid fa-gift', featureKey: 'referEarn' as keyof StudentFeatures },
     { label: 'Referrals', path: '/admin/referrals', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-handshake-angle', permissions: ['manage_referrals'] },
     { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-user-shield', permissions: ['manage_roles'] },
     { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_tenant_courses'] },
@@ -316,7 +328,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'My Interviews', path: '/my-interviews', roles: ['STUDENT'], icon: 'fa-solid fa-microphone-lines', featureKey: 'scheduledInterviews' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Interview Experiences', path: '/interview-experiences', roles: ['STUDENT'], icon: 'fa-solid fa-comments', featureKey: 'interviewExperiences' as keyof StudentFeatures },
     { label: 'Interview Question Books', path: '/question-books', roles: ['STUDENT'], icon: 'fa-solid fa-book-open', featureKey: 'questionBooks' as keyof StudentFeatures },
-    { label: 'Question Books', path: '/admin/question-books', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-book-open', permissions: ['manage_interview_hub', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant', 'manage_tenant_users', 'manage_interviews'] },
+    { label: 'Question Books', path: '/admin/question-books', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-book-open', permissions: ['manage_question_books', 'manage_interview_hub', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant', 'manage_tenant_users', 'manage_interviews'] },
     { label: 'Apply Leave', path: '/my-leave', roles: ['STUDENT'], icon: 'fa-solid fa-calendar-xmark', moduleKey: 'attendance', featureKey: 'applyLeave' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Code Playground', path: '/playground', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-code', moduleKey: 'codeAssessments', featureKey: 'codePlayground' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Project Builder', path: '/project-builder', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-rocket', moduleKey: 'careerPilot', featureKey: 'projectBuilder' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
@@ -383,6 +395,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'Analytics', path: '/leads/analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-simple', permissions: ['manage_leads', 'view_lead_analytics'] },
         { label: 'My Performance', path: '/lead-my-performance', roles: ['STAFF'], icon: 'fa-solid fa-trophy', permissions: ['view_leads', 'edit_leads', 'create_leads'] },
         { label: 'Manager Board', path: '/lead-manager-board', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-clipboard-user', permissions: ['manage_leads', 'view_lead_analytics'] },
+        { label: 'My Team', path: '/my-team', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-people-group', needsSales: 'manager' },
+        { label: 'My Day', path: '/my-day', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-sun', needsSales: 'member' },
+        { label: 'Sales Teams', path: '/sales-teams', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-sitemap', permissions: ['manage_sales_teams'] },
         { label: 'Team Activity', path: '/team-activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-column', permissions: ['view_lead_analytics'] },
         { label: 'Sales Content', path: '/sales-content', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-file-invoice', permissions: ['view_leads', 'create_leads'] },
         { label: 'Lead Sources', path: '/lead-sources', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-plug-circle-bolt', permissions: ['manage_leads'] },
@@ -410,6 +425,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     // The employee portal belongs to whoever is linked to an employee record, whatever their role;
     // the team screens also open for a manager, whatever their permissions.
     if (item.needsEmployee) return employee.isEmployee;
+    if (item.needsSales) return item.needsSales === 'manager' ? sales.manager : sales.member;
     if (item.orTeam && employee.hasTeam) return true;
 
     const roleAllowed = !!(user.role && item.roles.includes(user.role));
@@ -492,7 +508,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
    */
   const demoMenu: MenuItem[] | null = isDemoUser(user)
     ? [
-        { label: 'My Learning Plan', path: '/my-learning', roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap' },
+        { label: 'My Learning Plan', path: '/my-learning', roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', featureKey: 'learningPlan' as keyof StudentFeatures },
         ...demoFeaturesOn(demoMe).map(f => ({ ...DEMO_MENU[f.key], roles: ['STUDENT'] })),
       ]
     : null;

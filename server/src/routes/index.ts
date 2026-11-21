@@ -102,6 +102,7 @@ import { careerPilotActivity, careerPilotMemberActivity } from '../middleware/ca
 import publicPassportRoutes from './publicPassportRoutes';
 import lmsDemoRoutes, { publicLmsDemoRoutes } from './lmsDemoRoutes';
 import referralRoutes, { publicReferralRoutes } from './referralRoutes';
+import salesTeamRoutes from './salesTeamRoutes';
 import conceptLessonRoutes from './conceptLessonRoutes';
 import interactiveLessonRoutes from './interactiveLessonRoutes';
 import adminLogsRoute from './adminLogsRoute';
@@ -344,6 +345,7 @@ router.use('/adaptive', adaptiveCurriculumRoutes);
 router.use('/enrollment-plans', careerPilotMemberActivity, enrollmentPlanRoutes);
 router.use('/lms-demo', lmsDemoRoutes); // LMS demo students + the LMS Demo admin screen
 router.use('/referrals', referralRoutes); // LMS Refer & Earn: student page + admin Referrals screen
+router.use('/sales-teams', salesTeamRoutes); // Leads add-on: sales teams, daily member reports, manager review
 router.use('/projects', projectRoutes);
 router.use('/job-applications', jobApplicationRoutes);
 router.use('/ai-mentor', mentorRoutes);

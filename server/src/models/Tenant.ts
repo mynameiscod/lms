@@ -45,6 +45,7 @@ export interface IStudentFeatures {
   myPractice?: boolean;
   codingPractice?: boolean;
   codeVisualizer?: boolean;
+  referEarn?: boolean;
 }
 
 /** The CareerPilot student's menu: false = hidden by the admin. */
@@ -274,7 +275,8 @@ const TenantSchema: Schema = new Schema(
       drives: { type: Boolean, default: true },
       myPractice: { type: Boolean, default: true },
       codingPractice: { type: Boolean, default: true },
-      codeVisualizer: { type: Boolean, default: true }
+      codeVisualizer: { type: Boolean, default: true },
+      referEarn: { type: Boolean, default: true }
     },
     careerPilotFeatures: {
       plan: { type: Boolean, default: true },

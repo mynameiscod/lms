@@ -11,7 +11,8 @@ export type StudentFeatureKey =
   | 'aiMentor' | 'projectBuilder' | 'resourceLibrary' | 'codePlayground' | 'careerProfile'
   | 'aiCommunicationLab' | 'liveClasses' | 'collegePortal' | 'myApplications' | 'alumniDirectory'
   // Menu items that used to have no switch
-  | 'myTasks' | 'applyLeave' | 'interviewExperiences' | 'questionBooks' | 'drives' | 'myPractice' | 'codingPractice' | 'codeVisualizer';
+  | 'myTasks' | 'applyLeave' | 'interviewExperiences' | 'questionBooks' | 'drives' | 'myPractice' | 'codingPractice' | 'codeVisualizer'
+  | 'referEarn';
 
 export type FeatureGroup = 'Home' | 'Daily Practice' | 'My Learning' | 'Prep & Career' | 'College' | 'My Account';
 
@@ -54,6 +55,7 @@ export const FEATURE_MODULE_MAP: Record<StudentFeatureKey, string | null> = {
   myPractice:           'practicePass',
   codingPractice:       null,
   codeVisualizer:       'codeVisualizer',
+  referEarn:            null,
 };
 
 export interface FeatureMeta {
@@ -104,6 +106,7 @@ export const FEATURE_META: FeatureMeta[] = [
   { key: 'alumniDirectory',     label: 'Alumni Directory',         description: 'Browse alumni and request mentoring', icon: '🎓', group: 'College' },
   // My Account
   { key: 'feeDetails',          label: 'Fee Details',              description: 'Student fee ledger, payments and receipts', icon: '💰', group: 'My Account' },
+  { key: 'referEarn',           label: 'Refer & Earn',             description: 'Refer friends to a course and earn a reward when they join', icon: '🎁', group: 'My Account' },
   { key: 'applyLeave',          label: 'Apply Leave',              description: 'Ask for leave and see how it was decided', icon: '🏖', group: 'My Account' },
 ];
 

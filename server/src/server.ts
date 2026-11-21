@@ -27,6 +27,8 @@ import { startAICallWorker, stopAICallWorker } from './workers/aiCallWorker';
 import { startArchiveQuizScheduler } from './jobs/archiveQuizCron';
 import { startDueReminderScheduler } from './jobs/dueReminderCron';
 import { startReferralScheduler } from './services/referralService';
+import { startSalesTeamScheduler } from './services/salesTeamService';
+import { registerUserSocket } from './realtime/userSocket';
 import { startAssessmentMissedSweep } from './jobs/assessmentMissedSweepCron';
 import { startRecordingAlertScheduler } from './jobs/recordingAlertCron';
 import { startSpeakingReminderScheduler } from './jobs/speakingReminderCron';
@@ -114,6 +116,7 @@ const startServer = async () => {
     app.set('io', io);
     // WhatsApp chat live updates — its own authenticated room (see realtime/whatsAppChatRealtime).
     registerWaChatSocket(io);
+    registerUserSocket(io);
 
     console.log('🔌 Setting up WebSocket handlers...');
 
@@ -401,6 +404,9 @@ const startServer = async () => {
 
     // LMS Refer & Earn: fee paid in full → hold → earned (hourly)
     startReferralScheduler();
+
+    // Sales Teams: lead-assigned alerts (every minute), daily reports at 9 PM IST
+    startSalesTeamScheduler();
 
     // Start stale class-recording alert scheduler (in-app, every 10 min)
     startRecordingAlertScheduler();

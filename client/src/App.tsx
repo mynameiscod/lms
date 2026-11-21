@@ -9,6 +9,7 @@ import { TenantModulesProvider } from './contexts/TenantModulesContext';
 import { BatchModulesProvider } from './contexts/BatchModulesContext';
 import { SocketProvider, useSocket } from './contexts/SocketContext';
 import LeadAssignedAlert from './components/LeadAssignedAlert';
+import CallOutcomePrompt from './components/CallOutcomePrompt';
 import { Layout } from './components/layout';
 import { Spinner } from './components/common';
 
@@ -3065,6 +3066,7 @@ const App: React.FC = () => {
               <BrowserRouter>
                 <HotLeadToast />
                 <LeadAssignedAlert />
+                <CallOutcomePrompt />
                 <AppRoutes />
                 <AdminLogGate />
                 <CelebrationHost />

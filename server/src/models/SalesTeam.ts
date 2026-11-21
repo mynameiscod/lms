@@ -14,11 +14,13 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 /* ───────────────────────── Targets (optional) ───────────────────────── */
 
-export const TARGET_KEYS = ['calls', 'connected', 'followUpsDone', 'demos', 'enrollments'] as const;
+export const TARGET_KEYS = ['fastCalls', 'calls', 'connected', 'followUpsDone', 'demos', 'enrollments'] as const;
 export type TargetKey = typeof TARGET_KEYS[number];
 export type Targets = Partial<Record<TargetKey, number>>;
 
 const TargetsSchema = new Schema({
+  /** New leads called within 5 minutes of being assigned. */
+  fastCalls:     { type: Number, min: 0 },
   calls:         { type: Number, min: 0 },
   connected:     { type: Number, min: 0 },
   followUpsDone: { type: Number, min: 0 },
@@ -64,27 +66,48 @@ export const SalesTeam = mongoose.model<ISalesTeam>('SalesTeam', SalesTeamSchema
 
 /* ───────────────────────── A member's day ───────────────────────── */
 
+/**
+ * A member's day (v2, 2026-11-21). Counted around LEADS, not raw timeline entries:
+ *  - a "call" is the Call button / a logged call on one lead, counted once per 10 minutes; connected and
+ *    not connected come only from a recorded outcome, presses with none are "outcome missing";
+ *  - speed to call is per new lead, from assignment to that person to their first call;
+ *  - entries the system writes on someone's behalf (drips, workflows, AI calls, "follow-up done") never count;
+ *  - follow-ups are today's, plus older ones still open; the automatic "call this new lead" tasks are left out.
+ */
 export interface DayMetrics {
-  newAssigned: number;
-  untouched: number;
-  leadsWorked: number;
+  v: 2;
+  // Calls
   calls: number;
+  leadsCalled: number;
   connected: number;
   notConnected: number;
+  outcomeMissing: number;
+  outcomes: Record<string, number>;
   talkSeconds: number;
+  // Messages and notes
   whatsapp: number;
+  leadsMessaged: number;
   notes: number;
-  emails: number;
+  // New leads and speed to call
+  newAssigned: number;
+  calledWithin5: number;
+  calledWithin30: number;
+  calledLate: number;
+  notCalled: number;
+  avgFirstCallMin: number | null;
+  // Work
+  leadsWorked: number;
   stageMoves: number;
+  leadsMovedForward: number;
+  // Follow-ups
   followUpsDue: number;
   followUpsDone: number;
   followUpsMissed: number;
-  overdueNow: number;
+  carriedOver: number;
+  // Results
   demos: number;
   seats: number;
   enrollments: number;
-  /** Average minutes from assignment to the first call, for leads assigned that day (null = none called). */
-  avgFirstCallMin: number | null;
 }
 
 export const RATINGS = ['good', 'ok', 'needs_work'] as const;

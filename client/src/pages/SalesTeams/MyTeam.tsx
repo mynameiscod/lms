@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { salesTeamApi, stErr, SalesMe, TeamDay, Targets, TARGET_KEYS, TARGET_LABEL, fmtDay, talk } from '../../api/salesTeamApi';
-import { DayPicker, LivePill, Avatar, TargetBar, ReviewChip, Dialog, Toast, useToast, Empty, Loading } from './shared';
+import { salesTeamApi, stErr, SalesMe, TeamDay, Targets, TARGET_KEYS, TARGET_LABEL, fmtDay } from '../../api/salesTeamApi';
+import { DayPicker, LivePill, Avatar, ReviewChip, Dialog, Toast, useToast, Empty, Loading } from './shared';
 import './salesTeams.css';
 
 /**
@@ -73,12 +73,12 @@ export default function MyTeam() {
       )}
 
       <section className="stm-tiles" aria-label="Team totals">
-        <Tile icon="bi-telephone" label="Calls" value={t.calls} sub={`${t.connected} connected · ${talk(t.talkSeconds)} talk`} />
-        <Tile icon="bi-check2-square" label="Follow-ups done" value={t.followUpsDone} sub={`${t.followUpsMissed} missed · ${t.overdueNow} overdue`} tone={t.followUpsMissed ? 'warn' : ''} />
-        <Tile icon="bi-person-plus" label="New leads" value={t.newAssigned} sub={`${t.untouched} not touched yet`} tone={t.untouched ? 'warn' : ''} />
-        <Tile icon="bi-people" label="Leads worked" value={t.leadsWorked} sub={`${t.whatsapp} WhatsApp · ${t.notes} notes`} />
+        <Tile icon="bi-stopwatch" label="New leads called in 5 min" value={t.calledWithin5} sub={`of ${t.newAssigned} new · ${t.notCalled} not called yet`} tone={t.notCalled ? 'warn' : 'good'} />
+        <Tile icon="bi-telephone" label="Leads called" value={t.leadsCalled} sub={`${t.calls} calls · ${t.connected} connected`} />
+        <Tile icon="bi-question-circle" label="Calls with no outcome" value={t.outcomeMissing} sub={t.outcomeMissing ? 'Ask them to record how it went' : 'Every call has an outcome'} tone={t.outcomeMissing ? 'warn' : ''} />
+        <Tile icon="bi-check2-square" label="Follow-ups done today" value={t.followUpsDone} sub={`${t.followUpsMissed} missed today · ${t.carriedOver} from earlier`} tone={t.followUpsMissed ? 'warn' : ''} />
         <Tile icon="bi-easel" label="Demos" value={t.demos} sub={`${t.seats} seat${t.seats === 1 ? '' : 's'} reserved`} />
-        <Tile icon="bi-mortarboard" label="Enrollments" value={t.enrollments} sub={t.avgFirstCallMin !== null ? `First call in ${t.avgFirstCallMin} min avg` : 'No new-lead calls yet'} tone="good" />
+        <Tile icon="bi-mortarboard" label="Enrollments" value={t.enrollments} sub={`${t.leadsMovedForward} leads moved stage`} tone="good" />
       </section>
 
       <div className="stm-section-head">
@@ -89,11 +89,12 @@ export default function MyTeam() {
       {data.members.length === 0 ? <Empty icon="bi-people">No members in this team.</Empty> : (
         <div className="stm-members">
           {data.members.map(m => {
+            const x = m.metrics;
             const flags: { tone: string; text: string }[] = [];
-            if (m.metrics.untouched) flags.push({ tone: 'bad', text: `${m.metrics.untouched} untouched lead${m.metrics.untouched === 1 ? '' : 's'}` });
-            if (m.metrics.followUpsMissed) flags.push({ tone: 'bad', text: `${m.metrics.followUpsMissed} missed follow-up${m.metrics.followUpsMissed === 1 ? '' : 's'}` });
-            if (m.metrics.overdueNow > m.metrics.followUpsMissed) flags.push({ tone: 'warn', text: `${m.metrics.overdueNow} overdue` });
-            if (m.targets?.calls && m.metrics.calls < m.targets.calls * 0.5 && !data.live) flags.push({ tone: 'warn', text: 'Below half the call target' });
+            if (x.notCalled) flags.push({ tone: 'bad', text: `${x.notCalled} new lead${x.notCalled === 1 ? '' : 's'} not called` });
+            if (x.calledLate) flags.push({ tone: 'warn', text: `${x.calledLate} called after 30 min` });
+            if (x.outcomeMissing) flags.push({ tone: 'warn', text: `${x.outcomeMissing} call${x.outcomeMissing === 1 ? '' : 's'} with no outcome` });
+            if (x.followUpsMissed) flags.push({ tone: 'bad', text: `${x.followUpsMissed} follow-up${x.followUpsMissed === 1 ? '' : 's'} missed` });
             const href = `/my-team/member/${m.user._id}?team=${data.team._id}${data.day !== data.today ? `&day=${data.day}` : ''}`;
             return (
               <article key={m.user._id} className="stm-member" onClick={() => navigate(href)} role="link" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter') navigate(href); }}>
@@ -102,16 +103,22 @@ export default function MyTeam() {
                   <div className="stm-member-id"><b>{m.user.name}</b><span>{m.user.email}</span></div>
                   <ReviewChip review={m.review} open={data.reviewOpen} />
                 </div>
-                <div className="stm-member-bars">
-                  <TargetBar label="Calls" value={m.metrics.calls} target={m.targets?.calls} />
-                  <TargetBar label="Connected" value={m.metrics.connected} target={m.targets?.connected} />
-                  <TargetBar label="Follow-ups done" value={m.metrics.followUpsDone} target={m.targets?.followUpsDone} />
+                <div className={`stm-member-speed${x.newAssigned ? '' : ' empty'}`}>
+                  {x.newAssigned ? (
+                    <>
+                      <div className="stm-member-speed-top"><span>New leads</span><b>{x.calledWithin5} of {x.newAssigned} called in 5 min{m.targets?.fastCalls ? <em> · target {m.targets.fastCalls}</em> : null}</b></div>
+                      <div className="stm-speed-bar sm">
+                        <i className="fast" style={{ width: `${(x.calledWithin5 / x.newAssigned) * 100}%` }} /><i className="ok" style={{ width: `${(x.calledWithin30 / x.newAssigned) * 100}%` }} />
+                        <i className="slow" style={{ width: `${(x.calledLate / x.newAssigned) * 100}%` }} /><i className="none" style={{ width: `${(x.notCalled / x.newAssigned) * 100}%` }} />
+                      </div>
+                    </>
+                  ) : <span className="stm-muted">No new leads assigned this day</span>}
                 </div>
                 <div className="stm-member-nums">
-                  <div><b>{m.metrics.whatsapp}</b><span>WhatsApp</span></div>
-                  <div title="Leads worked"><b>{m.metrics.leadsWorked}</b><span>Worked</span></div>
-                  <div><b>{m.metrics.demos}</b><span>Demos</span></div>
-                  <div><b>{m.metrics.enrollments}</b><span>Enrolled</span></div>
+                  <div title="Different leads they called"><b>{x.leadsCalled}</b><span>Called</span></div>
+                  <div title="Calls where they recorded Connected"><b>{x.connected}</b><span>Connected</span></div>
+                  <div title="Follow-ups done today"><b>{x.followUpsDone}</b><span>Follow-ups</span></div>
+                  <div><b>{x.demos}</b><span>Demos</span></div>
                 </div>
                 <div className="stm-member-foot">
                   <div className="stm-flags">

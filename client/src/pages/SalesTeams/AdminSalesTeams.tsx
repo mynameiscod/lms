@@ -49,7 +49,7 @@ function OverviewTab({ onTeams }: { onTeams: () => void }) {
 
   if (err && !data) return <div className="stm-alert">{err}</div>;
   if (!data) return <Loading />;
-  const all = data.teams.reduce((a, t) => ({ calls: a.calls + t.totals.calls, connected: a.connected + t.totals.connected, demos: a.demos + t.totals.demos, enrollments: a.enrollments + t.totals.enrollments, members: a.members + t.members.length }), { calls: 0, connected: 0, demos: 0, enrollments: 0, members: 0 });
+  const all = data.teams.reduce((a, t) => ({ newAssigned: a.newAssigned + t.totals.newAssigned, fast: a.fast + t.totals.calledWithin5, notCalled: a.notCalled + t.totals.notCalled, leadsCalled: a.leadsCalled + t.totals.leadsCalled, connected: a.connected + t.totals.connected, enrollments: a.enrollments + t.totals.enrollments, members: a.members + t.members.length }), { newAssigned: 0, fast: 0, notCalled: 0, leadsCalled: 0, connected: 0, enrollments: 0, members: 0 });
 
   return (
     <>
@@ -63,8 +63,8 @@ function OverviewTab({ onTeams }: { onTeams: () => void }) {
         <>
           <section className="stm-tiles compact" aria-label="All teams">
             <div className="stm-tile"><span className="stm-tile-ic"><i className="bi bi-diagram-3" /></span><div><span className="stm-tile-label">Teams</span><b>{data.teams.length}</b><small>{all.members} members</small></div></div>
-            <div className="stm-tile"><span className="stm-tile-ic"><i className="bi bi-telephone" /></span><div><span className="stm-tile-label">Calls</span><b>{all.calls}</b><small>{all.connected} connected</small></div></div>
-            <div className="stm-tile"><span className="stm-tile-ic"><i className="bi bi-easel" /></span><div><span className="stm-tile-label">Demos</span><b>{all.demos}</b><small>across every team</small></div></div>
+            <div className={`stm-tile ${all.notCalled ? 'warn' : 'good'}`}><span className="stm-tile-ic"><i className="bi bi-stopwatch" /></span><div><span className="stm-tile-label">New leads called in 5 min</span><b>{all.fast} / {all.newAssigned}</b><small>{all.notCalled} not called yet</small></div></div>
+            <div className="stm-tile"><span className="stm-tile-ic"><i className="bi bi-telephone" /></span><div><span className="stm-tile-label">Leads called</span><b>{all.leadsCalled}</b><small>{all.connected} connected</small></div></div>
             <div className="stm-tile good"><span className="stm-tile-ic"><i className="bi bi-mortarboard" /></span><div><span className="stm-tile-label">Enrollments</span><b>{all.enrollments}</b><small>{fmtDay(data.day, { day: 'numeric', month: 'short' })}</small></div></div>
           </section>
           <div className="stm-ov-grid">
@@ -78,23 +78,25 @@ function OverviewTab({ onTeams }: { onTeams: () => void }) {
                   <Link className="stm-btn sm" to={`/my-team?team=${t._id}${data.day !== data.today ? `&day=${data.day}` : ''}`}>Open team <i className="bi bi-arrow-right" /></Link>
                 </div>
                 <div className="stm-ov-nums">
-                  <div><b>{t.totals.calls}</b><span>Calls</span></div>
+                  <div className={t.totals.notCalled ? 'bad' : ''} title="New leads not called yet"><b>{t.totals.notCalled}</b><span>Not called</span></div>
+                  <div title="New leads called within 5 minutes"><b>{t.totals.calledWithin5}/{t.totals.newAssigned}</b><span>In 5 min</span></div>
+                  <div><b>{t.totals.leadsCalled}</b><span>Leads called</span></div>
                   <div><b>{t.totals.connected}</b><span>Connected</span></div>
-                  <div><b>{t.totals.followUpsDone}</b><span>Follow-ups</span></div>
-                  <div className={t.totals.followUpsMissed ? 'bad' : ''}><b>{t.totals.followUpsMissed}</b><span>Missed</span></div>
-                  <div><b>{t.totals.demos}</b><span>Demos</span></div>
+                  <div className={t.totals.outcomeMissing ? 'warn' : ''} title="Calls with no outcome recorded"><b>{t.totals.outcomeMissing}</b><span>No outcome</span></div>
                   <div><b>{t.totals.enrollments}</b><span>Enrolled</span></div>
                 </div>
                 <div className="stm-ov-table-wrap">
                   <table className="stm-ov-table">
-                    <thead><tr><th scope="col">Member</th><th scope="col">Calls</th><th scope="col">Conn.</th><th scope="col">F-ups</th><th scope="col">Missed</th><th scope="col">Untouched</th></tr></thead>
+                    <thead><tr><th scope="col">Member</th><th scope="col">New</th><th scope="col">In 5 min</th><th scope="col">Not called</th><th scope="col">Called</th><th scope="col">No outcome</th></tr></thead>
                     <tbody>
                       {t.members.map(m => (
                         <tr key={m.user._id}>
                           <th scope="row"><Link to={`/my-team/member/${m.user._id}?team=${t._id}${data.day !== data.today ? `&day=${data.day}` : ''}`}>{m.user.name}</Link></th>
-                          <td data-label="Calls">{m.metrics.calls}</td><td data-label="Conn.">{m.metrics.connected}</td><td data-label="F-ups">{m.metrics.followUpsDone}</td>
-                          <td data-label="Missed" className={m.metrics.followUpsMissed ? 'bad' : ''}>{m.metrics.followUpsMissed}</td>
-                          <td data-label="Untouched" className={m.metrics.untouched ? 'bad' : ''}>{m.metrics.untouched}</td>
+                          <td data-label="New">{m.metrics.newAssigned}</td>
+                          <td data-label="In 5 min">{m.metrics.calledWithin5}</td>
+                          <td data-label="Not called" className={m.metrics.notCalled ? 'bad' : ''}>{m.metrics.notCalled}</td>
+                          <td data-label="Called">{m.metrics.leadsCalled}</td>
+                          <td data-label="No outcome" className={m.metrics.outcomeMissing ? 'warn' : ''}>{m.metrics.outcomeMissing}</td>
                         </tr>
                       ))}
                     </tbody>

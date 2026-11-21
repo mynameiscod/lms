@@ -36,7 +36,7 @@ const HIDDEN_FROM_MENU = new Set<string>([
 const GIVEN_ONLY_PERMISSIONS = new Set([
   'support_agent', 'support_manager',
   'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
-  'manage_careerpilot_limits', 'manage_lms_demo', 'manage_sales_teams',
+  'manage_careerpilot_limits', 'manage_lms_demo', 'manage_sales_teams', 'manage_question_books',
 ]);
 
 interface MenuItem {
@@ -156,7 +156,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-users', permissions: ['manage_tenant_users'] },
     { label: 'Fees', path: '/fees', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-money-bill-wave', permissions: ['view_fees', 'manage_billing'] },
     // LMS Refer & Earn (CareerPilot has its own coin referral; the CareerPilot nav does not list this).
-    { label: 'Refer & Earn', path: '/refer-and-earn', roles: ['STUDENT'], icon: 'fa-solid fa-gift' },
+    { label: 'Refer & Earn', path: '/refer-and-earn', roles: ['STUDENT'], icon: 'fa-solid fa-gift', featureKey: 'referEarn' as keyof StudentFeatures },
     { label: 'Referrals', path: '/admin/referrals', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-handshake-angle', permissions: ['manage_referrals'] },
     { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-user-shield', permissions: ['manage_roles'] },
     { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_tenant_courses'] },
@@ -328,7 +328,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'My Interviews', path: '/my-interviews', roles: ['STUDENT'], icon: 'fa-solid fa-microphone-lines', featureKey: 'scheduledInterviews' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Interview Experiences', path: '/interview-experiences', roles: ['STUDENT'], icon: 'fa-solid fa-comments', featureKey: 'interviewExperiences' as keyof StudentFeatures },
     { label: 'Interview Question Books', path: '/question-books', roles: ['STUDENT'], icon: 'fa-solid fa-book-open', featureKey: 'questionBooks' as keyof StudentFeatures },
-    { label: 'Question Books', path: '/admin/question-books', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-book-open', permissions: ['manage_interview_hub', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant', 'manage_tenant_users', 'manage_interviews'] },
+    { label: 'Question Books', path: '/admin/question-books', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-book-open', permissions: ['manage_question_books', 'manage_interview_hub', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant', 'manage_tenant_users', 'manage_interviews'] },
     { label: 'Apply Leave', path: '/my-leave', roles: ['STUDENT'], icon: 'fa-solid fa-calendar-xmark', moduleKey: 'attendance', featureKey: 'applyLeave' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Code Playground', path: '/playground', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-code', moduleKey: 'codeAssessments', featureKey: 'codePlayground' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Project Builder', path: '/project-builder', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-rocket', moduleKey: 'careerPilot', featureKey: 'projectBuilder' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
@@ -508,7 +508,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
    */
   const demoMenu: MenuItem[] | null = isDemoUser(user)
     ? [
-        { label: 'My Learning Plan', path: '/my-learning', roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap' },
+        { label: 'My Learning Plan', path: '/my-learning', roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', featureKey: 'learningPlan' as keyof StudentFeatures },
         ...demoFeaturesOn(demoMe).map(f => ({ ...DEMO_MENU[f.key], roles: ['STUDENT'] })),
       ]
     : null;

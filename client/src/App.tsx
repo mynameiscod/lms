@@ -728,7 +728,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/practice-library/:problemId" element={<ProtectedRoute><Layout><LibraryProblemOr base="/practice-library" legacy={<Navigate to="/practice-library" replace />} /></Layout></ProtectedRoute>} />
       {/* LMS Demo: demo courses, length, AI limit and demo students. A super admin, or a role they gave manage_lms_demo. */}
       <Route path="/refer-and-earn" element={
-        <ProtectedRoute requiredRoles={['STUDENT']}><Layout><ReferEarn /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['STUDENT']}><FeatureRoute feature="referEarn"><Layout><ReferEarn /></Layout></FeatureRoute></ProtectedRoute>
       } />
       {/* Sales Teams (Leads add-on). Who sees what is decided by the server: admin, the team's manager, the member. */}
       <Route path="/sales-teams" element={

@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { questionBookApi, AdminBook, AdminQ } from '../../api/questionBookApi';
 import { Modal, useToast, Markdown } from '../ProblemBank/shared';
 import { BookCover } from './Library';
+import BookAccess from './BookAccess';
 import '../ProblemBank/ProblemBank.css';
 import './book.css';
 
@@ -284,6 +285,11 @@ export const BookEditor: React.FC = () => {
 const QuestionBooksAdmin: React.FC = () => {
   const nav = useNavigate();
   const toast = useToast();
+  const { user } = useAuth() as any;
+  // "Who gets which book": a super admin, or a role a super admin gave manage_question_books.
+  const canAccess = user?.role === 'SUPER_ADMIN' || (user?.permissions || []).includes('manage_question_books');
+  const [tab, setTab] = useState<'books' | 'access'>(() => (new URLSearchParams(window.location.search).get('tab') === 'access' ? 'access' : 'books'));
+  const pickTab = (t: 'books' | 'access') => { setTab(t); const u = new URL(window.location.href); if (t === 'access') u.searchParams.set('tab', 'access'); else u.searchParams.delete('tab'); window.history.replaceState(null, '', u.toString()); };
   const [books, setBooks] = useState<AdminBook[] | null>(null);
   const [creating, setCreating] = useState(false);
   const load = useCallback(() => questionBookApi.admin.books().then(setBooks).catch(() => setBooks([])), []);
@@ -294,9 +300,15 @@ const QuestionBooksAdmin: React.FC = () => {
         <div className="pb-head">
           <div className="pb-grow"><h1>Question Books</h1><p>Write interview questions and model answers as books — by topic (Java, SQL, DSA, HR…) or by company. Students read them like a notebook: question, think, flip for the answer, mark what they know, star for their cheat sheet.</p></div>
           <button className="pb-btn" onClick={() => nav('/question-books')}><i className="fa-regular fa-eye" /> Student view</button>
-          <button className="pb-btn pb-btn-primary" onClick={() => setCreating(true)}><i className="fa-solid fa-plus" /> New book</button>
+          {tab === 'books' && <button className="pb-btn pb-btn-primary" onClick={() => setCreating(true)}><i className="fa-solid fa-plus" /> New book</button>}
         </div>
-        {!books ? <span className="pb-spinner" /> : !books.length ? (
+        {canAccess && (
+          <nav className="qb-tabs" role="tablist" aria-label="Question Books">
+            <button type="button" role="tab" aria-selected={tab === 'books'} className={tab === 'books' ? 'on' : ''} onClick={() => pickTab('books')}><i className="fa-solid fa-book" /> Books</button>
+            <button type="button" role="tab" aria-selected={tab === 'access'} className={tab === 'access' ? 'on' : ''} onClick={() => pickTab('access')}><i className="fa-solid fa-user-check" /> Who gets which book</button>
+          </nav>
+        )}
+        {tab === 'access' && canAccess ? <BookAccess onToast={toast.show} /> : !books ? <span className="pb-spinner" /> : !books.length ? (
           <div className="pb-card pb-empty"><div style={{ fontSize: 44 }}>📚</div><h2>No books yet</h2><p className="pb-muted">Start with the topics your students are asked about most — Java, SQL, OOPs, HR.</p>
             <button className="pb-btn pb-btn-primary" onClick={() => setCreating(true)}>Create the first book</button></div>
         ) : (

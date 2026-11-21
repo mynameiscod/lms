@@ -274,6 +274,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'view_member_activity', label: "Member Activity Trail: see everything a member did, on their profile" },
       { key: 'manage_lms_demo', label: 'LMS Demo: demo courses, length, AI limit, and give, extend or end a student demo' },
       { key: 'manage_sales_teams', label: "Sales Teams: set up teams and managers, and see every team's daily reports" },
+      { key: 'manage_question_books', label: 'Question Books: manage books, and choose which books LMS students and CareerPilot members get' },
     ]
   },
   /*
@@ -407,7 +408,7 @@ export const FEATURE_PERMISSIONS = [
  */
 export const SUPER_ADMIN_GRANTED = [
   'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
-  'manage_careerpilot_limits', 'manage_lms_demo', 'manage_sales_teams',
+  'manage_careerpilot_limits', 'manage_lms_demo', 'manage_sales_teams', 'manage_question_books',
 ];
 
 /**

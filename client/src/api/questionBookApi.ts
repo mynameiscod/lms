@@ -33,6 +33,15 @@ export interface AdminBook {
 }
 export interface AdminQ extends BookQ { order: number }
 
+/** Who reads a book: LMS students, CareerPilot members, and for members which years / tracks (empty = all). */
+export interface BookAccess { lms: boolean; careerpilot: boolean; stages: string[]; tracks: string[] }
+export interface AccessRow {
+  id: string; title: string; subject: string; kind: 'topic' | 'company'; color: string; emblem: string;
+  scope: 'global' | 'tenant'; status: 'draft' | 'published'; questionCount: number;
+  defaults: BookAccess; access: BookAccess; changed: boolean; changedBy: string | null; changedAt: string | null;
+}
+export interface AccessList { targets: { stages: { key: string; label: string }[]; tracks: { key: string; name: string }[] }; books: AccessRow[] }
+
 export const questionBookApi = {
   shelf: () => axios.get(`${BASE}/shelf`, h()).then(d) as Promise<ShelfBook[]>,
   book: (slug: string) => axios.get(`${BASE}/books/${encodeURIComponent(slug)}`, h()).then(d) as Promise<ReadBook>,
@@ -52,5 +61,9 @@ export const questionBookApi = {
     deleteQ: (id: string, qid: string) => axios.delete(`${BASE}/admin/books/${id}/questions/${qid}`, h()).then(d),
     reorder: (id: string, chapterId: string, ids: string[]) => axios.post(`${BASE}/admin/books/${id}/reorder`, { chapterId, ids }, h()).then(d),
     bulk: (id: string, chapterId: string, text: string, dryRun: boolean) => axios.post(`${BASE}/admin/books/${id}/bulk`, { chapterId, text, dryRun }, h()).then(d) as Promise<{ parsed?: { question: string; answer: string }[]; added?: number }>,
+    // Who gets which book (per institute): manage_question_books
+    access: () => axios.get(`${BASE}/admin/access`, h()).then(d) as Promise<AccessList>,
+    saveAccess: (bookIds: string[], body: Partial<BookAccess>) => axios.put(`${BASE}/admin/access`, { bookIds, ...body }, h()).then(d) as Promise<AccessList>,
+    resetAccess: (bookIds: string[]) => axios.post(`${BASE}/admin/access/reset`, { bookIds }, h()).then(d) as Promise<AccessList>,
   },
 };

@@ -13,6 +13,7 @@ export interface StudentFeatures {
   codingSnippets: boolean;
   classHub: boolean;
   feeDetails: boolean;
+  referEarn: boolean;
   scheduledInterviews: boolean;
   resumeBuilder: boolean;
   learningPlan: boolean;
@@ -50,6 +51,7 @@ const DEFAULT_FEATURES: StudentFeatures = {
   codingSnippets: true,
   classHub: true,
   feeDetails: true,
+  referEarn: true,
   scheduledInterviews: true,
   resumeBuilder: true,
   learningPlan: true,

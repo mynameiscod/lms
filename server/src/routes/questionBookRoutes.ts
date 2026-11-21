@@ -3,6 +3,7 @@ import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
 import * as svc from '../services/questionBookService';
+import User from '../models/User';
 
 /**
  * Question Books — staff write topic and company books of interview questions; LMS students
@@ -19,7 +20,14 @@ const wrap = (fn: (req: Request) => Promise<any>) => async (req: Request, res: R
     res.status(status).json({ success: false, message: e?.message || 'Something went wrong' });
   }
 };
-const staff = roleGuard(['manage_interview_hub', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant', 'manage_tenant_users', 'manage_interviews']);
+const staff = roleGuard(['manage_question_books', 'manage_interview_hub', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant', 'manage_tenant_users', 'manage_interviews']);
+// Who gets which book: a super admin, or a role a super admin gave manage_question_books.
+const accessAdmin = roleGuard(['manage_question_books']);
+const named = async (req: Request) => {
+  const a = actor(req);
+  const u: any = await User.findById(a.userId).select('firstName lastName email').lean();
+  return { ...a, name: u ? [u.firstName, u.lastName === '-' ? '' : u.lastName].filter(Boolean).join(' ') || u.email : '' };
+};
 
 // ── Staff ──
 router.get('/admin/books', staff, wrap((req) => svc.adminBooks(actor(req))));
@@ -34,6 +42,11 @@ router.put('/admin/books/:id/questions/:qid', staff, wrap((req) => svc.saveQuest
 router.delete('/admin/books/:id/questions/:qid', staff, wrap((req) => svc.deleteQuestion(actor(req), req.params.id, req.params.qid)));
 router.post('/admin/books/:id/reorder', staff, wrap((req) => svc.reorderQuestions(actor(req), req.params.id, String(req.body?.chapterId || ''), req.body?.ids || [])));
 router.post('/admin/books/:id/bulk', staff, wrap((req) => svc.bulkAdd(actor(req), req.params.id, String(req.body?.chapterId || ''), String(req.body?.text || ''), !!req.body?.dryRun)));
+
+// ── Who gets which book (per institute) ──
+router.get('/admin/access', accessAdmin, wrap((req) => svc.accessList(actor(req))));
+router.put('/admin/access', accessAdmin, wrap(async (req) => svc.saveAccess(await named(req), req.body?.bookIds || [], req.body || {})));
+router.post('/admin/access/reset', accessAdmin, wrap((req) => svc.resetAccess(actor(req), req.body?.bookIds || [])));
 
 // ── Readers ──
 router.get('/shelf', wrap((req) => svc.shelf(actor(req).tenantId, actor(req).userId)));

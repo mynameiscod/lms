@@ -518,14 +518,16 @@ const CodePlayground: React.FC = () => {
   );
 
   return (
-    <div className={`cp-root ${full ? 'cp-full' : ''}${inCareerPilot ? ' cpg' : ''}${narrow ? ' cp-narrow' : ''}`} ref={rootRef}
+    /* One look in both products (.cpg: a white card, light title header, navy editor chrome); the LMS keeps its
+       own features (tabs, starter code, save, run with input). The LMS used to render an unframed strip. */
+    <div className={`cp-root ${full ? 'cp-full' : ''} cpg${inCareerPilot ? '' : ' cp-lms'}${narrow ? ' cp-narrow' : ''}`} ref={rootRef}
          style={full || narrow || !fitH ? undefined : { height: fitH }}>
       {toast && (
         <div className="cp-toast" role="status" onClick={() => setToast('')}>
           <i className="bi bi-info-circle" /> {toast}
         </div>
       )}
-      {inCareerPilot && !full && (
+      {!full && (
         <div className="cpg-head">
           <span className="cpg-head-ic"><i className="bi bi-terminal" aria-hidden /></span>
           <div className="cpg-head-t">

@@ -285,3 +285,53 @@
 /* In the LMS shell (no CareerPilot zoom-up): a touch larger on wide screens, as the CareerPilot pages are in theirs. */
 @media (min-width: 1200px) and (max-width: 1599px) { .main-content .aim.aim2 { zoom: 1.05; } }
 @media (min-width: 1600px) { .main-content .aim.aim2 { zoom: 1.12; } }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LMS layout (.aml, /ai-mentor): a light page header over one full-width chat card that fills the screen.
+   The CareerPilot layout above (.aim2 with the side panel) is unchanged.
+   ════════════════════════════════════════════════════════════════════════════ */
+.aim.aml { height: auto; min-height: 0; max-width: 1440px; gap: 16px; padding-bottom: 0; }
+@media (min-width: 1025px) { .main-content .aim.aml { zoom: 1.12; } }
+
+.aml-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.aml-avatar { position: relative; flex: none; width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; font-size: 26px; color: #fff; background: linear-gradient(135deg, #359AAD, #1976D2); box-shadow: 0 10px 22px rgba(25, 118, 210, .22); }
+.aml-avatar em { position: absolute; right: -3px; bottom: -3px; width: 16px; height: 16px; border-radius: 50%; background: #2FB27F; border: 3px solid #F4F8FC; }
+.aml-title { flex: 1; min-width: 240px; }
+.aml-eyebrow { font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--aim-teal); }
+.aml-title h1 { margin: 2px 0 4px; font-size: clamp(22px, 2vw, 28px); font-weight: 800; color: var(--aim-ink); }
+.aml-title p { margin: 0; max-width: 720px; font-size: 14.5px; line-height: 1.5; color: #4A5D73; }
+.aml-side { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.aml-online { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; background: #E8F7EF; border: 1px solid #C8EAD7; color: #13784F; font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+.aml-online i { font-size: 8px; }
+.aml-new { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 15px; border-radius: 11px; border: 1px solid var(--aim-border-strong); background: #fff; color: var(--aim-navy); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.aml-new:hover { border-color: var(--aim-navy); }
+
+.aml-chat { display: flex; flex-direction: column; min-height: 480px; border-radius: 20px; overflow: hidden; border: 1px solid var(--aim-border); background: #fff; box-shadow: 0 12px 32px rgba(15, 46, 77, .07); }
+.aml-chat .aim2-thread { flex: 1; min-height: 0; background: linear-gradient(180deg, #F7FAFD 0%, #fff 70%) !important; }
+.aml-chat .aim2-empty { padding: 18px 10px 8px; }
+.aml-chat .aim2-grid { max-width: 900px; }
+.aml-can { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.aml-can li { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; background: #fff; border: 1px solid var(--aim-border); color: var(--aim-ink); font-size: 13.5px; font-weight: 600; }
+.aml-can li i { color: #1B7D91; }
+.aml-chat .aim2-dock { padding: 12px 20px 14px; }
+.aml-chat .aim-composer { max-width: 980px; width: 100%; margin: 0 auto; }
+.aml-chat .aim-quick { max-width: 980px; width: 100%; margin: 0 auto; }
+
+@media (max-width: 760px) {
+  .aml-head { gap: 12px; }
+  .aml-avatar { width: 46px; height: 46px; font-size: 22px; border-radius: 14px; }
+  .aml-title p { display: none; }
+  .aml-side { width: 100%; justify-content: space-between; }
+  .aml-chat { min-height: 70vh; height: auto !important; }
+  .aml-chat .aim2-grid { grid-template-columns: 1fr; }
+  .aml-chat .aim2-thread, .aml-chat .aim2-dock { padding-left: 12px; padding-right: 12px; }
+  .aml-chat .aim2-empty h2 { font-size: 20px; }
+}
+
+/* There is room here: icon beside the text (the 1280 rule above is for the narrow CareerPilot panel). */
+.aml-chat .aim2-topic { flex-direction: row; align-items: center; gap: 12px; }
+@media (max-width: 560px) {
+  .aml-can { display: none; }
+  .aml-chat { overflow: visible; }
+  .aml-chat .aim2-dock { position: sticky; bottom: 0; z-index: 2; border-radius: 0 0 20px 20px; box-shadow: 0 -8px 20px rgba(15, 46, 77, .06); }
+}

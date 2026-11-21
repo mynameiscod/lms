@@ -1320,7 +1320,7 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
-              <AIMentor />
+              <AIMentor variant="lms" />
             </Layout>
           </ProtectedRoute>
         }

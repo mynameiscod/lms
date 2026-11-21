@@ -118,6 +118,12 @@ const LeadDetailV3: React.FC = () => {
   }, [leadId]);
 
   useEffect(() => { load(); }, [load]);
+  // The "How did the call go?" prompt saved an outcome for this lead: show it.
+  useEffect(() => {
+    const onAct = (e: Event) => { if ((e as CustomEvent).detail?.leadId === leadId) load(); };
+    window.addEventListener('cb:lead-activity', onAct);
+    return () => window.removeEventListener('cb:lead-activity', onAct);
+  }, [leadId, load]);
   useEffect(() => {
     leadPipelineApi.get().then((r: any) => setPipeline(r.data?.stages || [])).catch(() => {});
     qualificationApi.getConfig().then((r: any) => setQuestions(r.data?.questions || [])).catch(() => {});
@@ -145,9 +151,9 @@ const LeadDetailV3: React.FC = () => {
   const openStage = (stageId: string | null) => { setMenu(null); setStageDialog({ open: true, stageId }); };
   const callNow = () => {
     if (!lead?.phone) return;
-    leadApi.logCallClick(lead._id).catch(() => {});
+    // When they come back, the app asks "How did the call go?" (components/CallOutcomePrompt).
+    leadApi.logCallClick(lead._id, lead.name).catch(() => {});
     window.location.href = `tel:${lead.phone}`;
-    setAct({ type: 'call', text: '', outcome: '', file: null }); setModal('activity');
   };
   const whatsapp = () => {
     if (!lead?.phone) return;
@@ -163,8 +169,11 @@ const LeadDetailV3: React.FC = () => {
   };
 
   const saveActivity = () => {
-    if (!act.text.trim()) { notify('danger', 'Write what happened'); return; }
-    run(() => leadApi.addActivity(lead._id, { type: act.type, description: act.text.trim(), ...(act.type === 'call' && act.outcome ? { callOutcome: act.outcome } : {}) }, act.file || undefined), 'Activity logged');
+    // A call with an outcome needs no words: the outcome is what happened.
+    const callWithOutcome = act.type === 'call' && !!act.outcome;
+    if (!act.text.trim() && !callWithOutcome) { notify('danger', act.type === 'call' ? 'Choose how the call went, or write what happened' : 'Write what happened'); return; }
+    const text = act.text.trim() || `Call: ${outcomeLabel(act.outcome)}`;
+    run(() => leadApi.addActivity(lead._id, { type: act.type, description: text, ...(act.type === 'call' && act.outcome ? { callOutcome: act.outcome } : {}) }, act.file || undefined), 'Activity logged');
   };
   const saveFollowUp = () => {
     if (!fu.at) { notify('danger', 'Pick when to follow up'); return; }
@@ -285,7 +294,7 @@ const LeadDetailV3: React.FC = () => {
               {lead.subStageId?.name && <span className="ldv-substage">{lead.subStageId.name}{lead.reasonId?.name ? ` · ${lead.reasonId.name}` : ''}</span>}
             </div>
             <div className="ldv-contact">
-              <span><i className="bi bi-telephone" aria-hidden="true" /> <a href={`tel:${lead.phone}`} onClick={() => leadApi.logCallClick(lead._id).catch(() => {})}>{lead.phone}</a>
+              <span><i className="bi bi-telephone" aria-hidden="true" /> <a href={`tel:${lead.phone}`} onClick={() => leadApi.logCallClick(lead._id, lead.name).catch(() => {})}>{lead.phone}</a>
                 <button className="ldv-wa" onClick={whatsapp} title="WhatsApp" aria-label="Open WhatsApp chat"><i className="bi bi-whatsapp" /></button></span>
               {lead.email && <span><i className="bi bi-envelope" aria-hidden="true" /> <a href={`mailto:${lead.email}`}>{lead.email}</a></span>}
               {location && <span><i className="bi bi-geo-alt" aria-hidden="true" /> {location}</span>}

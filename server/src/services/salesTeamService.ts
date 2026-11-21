@@ -9,14 +9,15 @@ import {
 import { createNotifications } from '../notifications/notificationService';
 import { istDay, istMinuteOfDay, istRange } from '../utils/istTime';
 import { emitToUser } from '../realtime/userSocket';
+import { analyseDay, emptyDayMetrics } from './salesDayAnalysis';
 
 /**
  * SALES TEAMS — the rules (models/SalesTeam.ts has the shape).
  *
  *   Teams      set up by the super admin (or a role given manage_sales_teams): one manager + members,
  *              one level, a member in one active team; a manager is never a member and vice versa.
- *   Reports    each member's day, counted from the CRM: calls, outcomes, WhatsApp, notes, follow-ups,
- *              stage moves, demos, seats, enrollments, untouched leads, speed to first call.
+ *   Reports    each member's day, counted around leads (services/salesDayAnalysis.ts): calls grouped per
+ *              lead, outcomes, speed to call per new lead, follow-ups, stage moves, demos, seats, enrollments.
  *              "Today" is live; at 21:00 IST the day is saved, the manager is told, and at 23:55 the
  *              saved numbers are refreshed quietly so late work still counts. Past days read the saved copy.
  *   Notes      a member may add an end-of-day note (done / blockers / tomorrow), today or yesterday.
@@ -32,15 +33,27 @@ export class SalesError extends Error {
 const oid = (v: any) => new mongoose.Types.ObjectId(String(v));
 const validId = (v: any) => mongoose.Types.ObjectId.isValid(String(v || ''));
 const nameOf = (u: any) => [u?.firstName, u?.lastName === '-' ? '' : u?.lastName].filter(Boolean).join(' ').trim() || u?.email || 'User';
-const SYSTEM_NOTE = '^(🤖|📞 AI call|📣|⚠️ No call or note)';
-const WORK_TYPES = ['call', 'whatsapp', 'email', 'note', 'status_change', 'meeting'];
-const OPEN_FOLLOWUP = ['scheduled', 'pending', 'missed'];
+const OPEN_FOLLOWUP = ['scheduled', 'pending', 'missed', 'rescheduled'];
 
-export const emptyMetrics = (): DayMetrics => ({
-  newAssigned: 0, untouched: 0, leadsWorked: 0, calls: 0, connected: 0, notConnected: 0, talkSeconds: 0,
-  whatsapp: 0, notes: 0, emails: 0, stageMoves: 0, followUpsDue: 0, followUpsDone: 0, followUpsMissed: 0,
-  overdueNow: 0, demos: 0, seats: 0, enrollments: 0, avgFirstCallMin: null,
-});
+export const emptyMetrics = emptyDayMetrics;
+
+/** Add up members' days (the average speed is re-averaged over every called new lead). */
+export function sumMetrics(list: (DayMetrics | undefined)[]): DayMetrics {
+  const t = emptyDayMetrics();
+  let speedSum = 0, speedN = 0;
+  for (const m of list) {
+    if (!m) continue;
+    for (const k of Object.keys(t) as (keyof DayMetrics)[]) {
+      if (k === 'v' || k === 'avgFirstCallMin' || k === 'outcomes') continue;
+      (t as any)[k] += Number((m as any)[k]) || 0;
+    }
+    for (const [o, n] of Object.entries(m.outcomes || {})) t.outcomes[o] = (t.outcomes[o] || 0) + n;
+    const called = (m.calledWithin5 || 0) + (m.calledWithin30 || 0) + (m.calledLate || 0);
+    if (typeof m.avgFirstCallMin === 'number' && called) { speedSum += m.avgFirstCallMin * called; speedN += called; }
+  }
+  t.avgFirstCallMin = speedN ? Math.round(speedSum / speedN) : null;
+  return t;
+}
 
 /* ═══════════════════════════════ Who is looking ═══════════════════════════════ */
 
@@ -213,111 +226,20 @@ export async function saveTargets(viewer: Viewer, teamId: string, body: any) {
 
 /* ═══════════════════════════════ Counting a day ═══════════════════════════════ */
 
-/** Every member's numbers for one IST day (or the part of it so far). */
+/** Every member's numbers for one IST day (or the part of it so far). services/salesDayAnalysis.ts does the counting. */
 export async function computeMetrics(tenantId: string, userIds: string[], day: string, now = new Date()): Promise<Map<string, DayMetrics>> {
-  const out = new Map<string, DayMetrics>(userIds.map((id) => [id, emptyMetrics()]));
-  if (!userIds.length) return out;
-  const t = oid(tenantId);
-  const ids = userIds.map(oid);
-  const { start, end } = istRange(day, day);
-  const cutoff = now < end ? now : end;
-
-  const [acts, assigned, fus, miles] = await Promise.all([
-    Lead.aggregate([
-      { $match: { tenantId: t, activities: { $elemMatch: { createdBy: { $in: ids }, createdAt: { $gte: start, $lte: end } } } } },
-      { $project: { activities: 1 } },
-      { $unwind: '$activities' },
-      { $match: { 'activities.createdBy': { $in: ids }, 'activities.createdAt': { $gte: start, $lte: end } } },
-      { $addFields: {
-        a: '$activities',
-        sys: { $regexMatch: { input: { $ifNull: ['$activities.description', ''] }, regex: SYSTEM_NOTE } },
-      } },
-      { $group: {
-        _id: '$a.createdBy',
-        calls: { $sum: { $cond: [{ $eq: ['$a.type', 'call'] }, 1, 0] } },
-        connected: { $sum: { $cond: [{ $and: [{ $eq: ['$a.type', 'call'] }, { $eq: ['$a.callOutcome', 'connected'] }] }, 1, 0] } },
-        notConnected: { $sum: { $cond: [{ $and: [{ $eq: ['$a.type', 'call'] }, { $gt: [{ $strLenCP: { $ifNull: ['$a.callOutcome', ''] } }, 0] }, { $ne: ['$a.callOutcome', 'connected'] }] }, 1, 0] } },
-        talkSeconds: { $sum: { $cond: [{ $eq: ['$a.type', 'call'] }, { $ifNull: ['$a.callDuration', 0] }, 0] } },
-        whatsapp: { $sum: { $cond: [{ $eq: ['$a.type', 'whatsapp'] }, 1, 0] } },
-        emails: { $sum: { $cond: [{ $eq: ['$a.type', 'email'] }, 1, 0] } },
-        notes: { $sum: { $cond: [{ $and: [{ $eq: ['$a.type', 'note'] }, { $not: ['$sys'] }] }, 1, 0] } },
-        stageMoves: { $sum: { $cond: [{ $eq: ['$a.type', 'status_change'] }, 1, 0] } },
-        worked: { $addToSet: { $cond: [{ $and: [{ $in: ['$a.type', WORK_TYPES] }, { $not: ['$sys'] }] }, '$_id', null] } },
-      } },
-    ]),
-    Lead.find({ tenantId: t, assignedTo: { $in: ids }, 'assignment.assignedAt': { $gte: start, $lte: end } })
-      .select('assignedTo assignment.assignedAt activities.type activities.createdBy activities.createdAt activities.description').lean(),
-    FollowUpReminder.aggregate([
-      { $match: { tenantId: t, assignedTo: { $in: ids }, $or: [{ scheduledAt: { $lte: end } }, { completedAt: { $gte: start, $lte: end } }] } },
-      { $group: {
-        _id: '$assignedTo',
-        due: { $sum: { $cond: [{ $and: [{ $gte: ['$scheduledAt', start] }, { $lte: ['$scheduledAt', end] }, { $ne: ['$status', 'cancelled'] }] }, 1, 0] } },
-        done: { $sum: { $cond: [{ $and: [{ $eq: ['$status', 'completed'] }, { $gte: ['$completedAt', start] }, { $lte: ['$completedAt', end] }] }, 1, 0] } },
-        missed: { $sum: { $cond: [{ $and: [{ $gte: ['$scheduledAt', start] }, { $lt: ['$scheduledAt', cutoff] }, { $in: ['$status', OPEN_FOLLOWUP] }] }, 1, 0] } },
-        overdue: { $sum: { $cond: [{ $and: [{ $lt: ['$scheduledAt', cutoff] }, { $in: ['$status', OPEN_FOLLOWUP] }] }, 1, 0] } },
-      } },
-    ]),
-    Lead.aggregate([
-      { $match: { tenantId: t, assignedTo: { $in: ids }, $or: [
-        { 'milestones.demoAt': { $gte: start, $lte: end } },
-        { 'milestones.seatReservedAt': { $gte: start, $lte: end } },
-        { 'milestones.enrolledAt': { $gte: start, $lte: end } },
-      ] } },
-      { $group: {
-        _id: '$assignedTo',
-        demos: { $sum: { $cond: [{ $and: [{ $gte: ['$milestones.demoAt', start] }, { $lte: ['$milestones.demoAt', end] }] }, 1, 0] } },
-        seats: { $sum: { $cond: [{ $and: [{ $gte: ['$milestones.seatReservedAt', start] }, { $lte: ['$milestones.seatReservedAt', end] }] }, 1, 0] } },
-        enrollments: { $sum: { $cond: [{ $and: [{ $gte: ['$milestones.enrolledAt', start] }, { $lte: ['$milestones.enrolledAt', end] }] }, 1, 0] } },
-      } },
-    ]),
-  ]);
-
-  for (const a of acts) {
-    const m = out.get(String(a._id));
-    if (!m) continue;
-    Object.assign(m, {
-      calls: a.calls, connected: a.connected, notConnected: a.notConnected, talkSeconds: Math.round(a.talkSeconds || 0),
-      whatsapp: a.whatsapp, emails: a.emails, notes: a.notes, stageMoves: a.stageMoves,
-      leadsWorked: (a.worked || []).filter(Boolean).length,
-    });
-  }
-  const sysRe = new RegExp(SYSTEM_NOTE);
-  const firstCalls = new Map<string, number[]>();
-  for (const l of assigned as any[]) {
-    const uid = String(l.assignedTo);
-    const m = out.get(uid);
-    if (!m) continue;
-    m.newAssigned++;
-    const since = new Date(l.assignment.assignedAt).getTime();
-    const mine = (l.activities || []).filter((x: any) => String(x.createdBy) === uid && new Date(x.createdAt).getTime() >= since && new Date(x.createdAt) <= cutoff);
-    if (!mine.some((x: any) => WORK_TYPES.includes(x.type) && !sysRe.test(x.description || ''))) m.untouched++;
-    const call = mine.filter((x: any) => x.type === 'call').sort((x: any, y: any) => +new Date(x.createdAt) - +new Date(y.createdAt))[0];
-    if (call) {
-      const arr = firstCalls.get(uid) || [];
-      arr.push((new Date(call.createdAt).getTime() - since) / 60000);
-      firstCalls.set(uid, arr);
-    }
-  }
-  for (const [uid, arr] of firstCalls) {
-    const m = out.get(uid);
-    if (m && arr.length) m.avgFirstCallMin = Math.round(arr.reduce((s, x) => s + x, 0) / arr.length);
-  }
-  for (const f of fus) {
-    const m = out.get(String(f._id));
-    if (m) Object.assign(m, { followUpsDue: f.due, followUpsDone: f.done, followUpsMissed: f.missed, overdueNow: f.overdue });
-  }
-  for (const x of miles) {
-    const m = out.get(String(x._id));
-    if (m) Object.assign(m, { demos: x.demos, seats: x.seats, enrollments: x.enrollments });
-  }
-  return out;
+  const res = await analyseDay(tenantId, userIds, day, { now });
+  return new Map([...res].map(([k, v]) => [k, v.metrics]));
 }
 
-/** Saved numbers for past days; live numbers for today (and for a past day that was never saved). */
+/**
+ * Saved numbers for past days; live numbers for today, for a past day that was never saved, and for a day
+ * saved by the first version of the report (it counted Call-button presses as calls).
+ */
 async function metricsForDay(tenantId: string, userIds: string[], day: string) {
   const today = istDay();
   const saved = day < today
-    ? await DailyTeamReport.find({ tenantId: oid(tenantId), day, userId: { $in: userIds.map(oid) }, generatedAt: { $exists: true } }).lean()
+    ? await DailyTeamReport.find({ tenantId: oid(tenantId), day, userId: { $in: userIds.map(oid) }, generatedAt: { $exists: true }, 'metrics.v': 2 }).lean()
     : [];
   const savedBy = new Map(saved.map((r: any) => [String(r.userId), r.metrics as DayMetrics]));
   const missing = userIds.filter((id) => !savedBy.has(id));
@@ -368,13 +290,7 @@ export async function teamDay(viewer: Viewer, teamId: string, dayRaw?: string) {
       review: reviewView(r),
     };
   });
-  const totals = emptyMetrics();
-  for (const m of members) for (const k of Object.keys(totals) as (keyof DayMetrics)[]) {
-    if (k === 'avgFirstCallMin') continue;
-    (totals as any)[k] += (m.metrics as any)?.[k] || 0;
-  }
-  const speeds = members.map((m) => m.metrics?.avgFirstCallMin).filter((x): x is number => typeof x === 'number');
-  totals.avgFirstCallMin = speeds.length ? Math.round(speeds.reduce((s, x) => s + x, 0) / speeds.length) : null;
+  const totals = sumMetrics(members.map((m) => m.metrics));
   return {
     team: { _id: String(team._id), name: team.name, color: team.color, manager: cards.get(String(team.managerId)), defaultTargets: team.defaultTargets || null },
     day, today: istDay(), live, reviewOpen: reviewOpen(day),
@@ -398,36 +314,28 @@ export async function memberDay(viewer: Viewer, memberId: string, dayRaw?: strin
   const day = pickDay(dayRaw);
   const t = oid(viewer.tenantId);
   const uid = oid(memberId);
-  const { start, end } = istRange(day, day);
+  const { end } = istRange(day, day);
   const now = new Date();
   const cutoff = now < end ? now : end;
+  const today = istDay();
   const trendDays = Array.from({ length: 7 }, (_, i) => shiftDay(day, i - 6));
 
-  const [{ metrics, live }, report, cards, timeline, followUps, trendSaved] = await Promise.all([
-    metricsForDay(viewer.tenantId, [memberId], day),
+  const [analysed, saved, report, cards, followUps, trendSaved] = await Promise.all([
+    analyseDay(viewer.tenantId, [memberId], day, { rows: true, now }),
+    day < today ? DailyTeamReport.findOne({ tenantId: t, day, userId: uid, generatedAt: { $exists: true }, 'metrics.v': 2 }).select('metrics').lean() : null,
     DailyTeamReport.findOne({ tenantId: t, day, userId: uid }).lean(),
     userCards([memberId, ...(team ? [team.managerId] : [])]),
-    Lead.aggregate([
-      { $match: { tenantId: t, activities: { $elemMatch: { createdBy: uid, createdAt: { $gte: start, $lte: end } } } } },
-      { $project: { name: 1, phone: 1, activities: 1 } },
-      { $unwind: '$activities' },
-      { $match: { 'activities.createdBy': uid, 'activities.createdAt': { $gte: start, $lte: end } } },
-      { $sort: { 'activities.createdAt': -1 } },
-      { $limit: 300 },
-      { $project: { _id: 0, leadId: '$_id', leadName: '$name', phone: '$phone', type: '$activities.type', description: '$activities.description', callOutcome: '$activities.callOutcome', callDuration: '$activities.callDuration', at: '$activities.createdAt' } },
-    ]),
-    FollowUpReminder.find({ tenantId: t, assignedTo: uid, status: { $in: OPEN_FOLLOWUP }, scheduledAt: { $lt: cutoff } })
-      .sort({ scheduledAt: 1 }).limit(50).select('leadId title scheduledAt status').populate('leadId', 'name phone').lean(),
-    DailyTeamReport.find({ tenantId: t, userId: uid, day: { $in: trendDays }, generatedAt: { $exists: true } }).select('day metrics').lean(),
+    FollowUpReminder.find({ tenantId: t, assignedTo: uid, status: { $in: OPEN_FOLLOWUP }, scheduledAt: { $lt: cutoff }, automationKey: { $not: /^first-contact:/ } })
+      .sort({ scheduledAt: 1 }).limit(100).select('leadId title scheduledAt status').populate('leadId', 'name phone').lean(),
+    DailyTeamReport.find({ tenantId: t, userId: uid, day: { $in: trendDays }, generatedAt: { $exists: true }, 'metrics.v': 2 }).select('day metrics').lean(),
   ]);
-  const trendBy = new Map(trendSaved.map((r: any) => [r.day, r.metrics]));
-  if (trendDays.includes(istDay())) trendBy.set(istDay(), live ? metrics.get(memberId) : (await computeMetrics(viewer.tenantId, [memberId], istDay())).get(memberId));
-  const leadsWorked = new Map<string, { leadId: string; name: string; phone: string; actions: number; last: Date }>();
-  for (const a of timeline as any[]) {
-    const k = String(a.leadId);
-    const cur = leadsWorked.get(k) || { leadId: k, name: a.leadName, phone: a.phone, actions: 0, last: a.at };
-    cur.actions++;
-    leadsWorked.set(k, cur);
+  const mine = analysed.get(memberId)!;
+  // A saved past day keeps its 9 PM numbers; the lead rows are always read fresh.
+  const metrics: DayMetrics = (saved as any)?.metrics || mine.metrics;
+  const trendBy = new Map<string, DayMetrics>(trendSaved.map((r: any) => [r.day, r.metrics]));
+  trendBy.set(day, metrics);
+  for (const d of trendDays.filter((x) => !trendBy.has(x) && x <= today)) {
+    trendBy.set(d, (await computeMetrics(viewer.tenantId, [memberId], d)).get(memberId)!);
   }
   const r: any = report;
   return {
@@ -435,14 +343,13 @@ export async function memberDay(viewer: Viewer, memberId: string, dayRaw?: strin
     team: team ? { _id: String(team._id), name: team.name, color: team.color, manager: cards.get(String(team.managerId)) } : null,
     canReview: !!team && (viewer.isAdmin || String(team.managerId) === viewer.userId) && viewer.userId !== memberId,
     isSelf: viewer.userId === memberId,
-    day, today: istDay(), live, reviewOpen: reviewOpen(day),
-    metrics: metrics.get(memberId),
-    targets: (day < istDay() && r?.targets) || (team ? targetsFor(team, memberId) : null) || null,
+    day, today, live: day === today, reviewOpen: reviewOpen(day), now,
+    metrics,
+    targets: (day < today && r?.targets) || (team ? targetsFor(team, memberId) : null) || null,
     note: r?.note && hasNote(r) ? { done: r.note.done || '', blockers: r.note.blockers || '', tomorrow: r.note.tomorrow || '', at: r.note.at } : null,
-    noteEditable: viewer.userId === memberId && !!team && day >= shiftDay(istDay(), -1) && r?.review?.status !== 'reviewed',
+    noteEditable: viewer.userId === memberId && !!team && day >= shiftDay(today, -1) && r?.review?.status !== 'reviewed',
     review: reviewView(r),
-    timeline,
-    leadsWorked: [...leadsWorked.values()],
+    leads: mine.rows,
     openFollowUps: followUps.map((f: any) => ({ _id: String(f._id), title: f.title, scheduledAt: f.scheduledAt, status: f.status, lead: f.leadId ? { _id: String(f.leadId._id), name: f.leadId.name, phone: f.leadId.phone } : null })),
     trend: trendDays.map((d) => ({ day: d, metrics: trendBy.get(d) || null })),
   };
@@ -452,7 +359,7 @@ export async function memberDay(viewer: Viewer, memberId: string, dayRaw?: strin
 export async function myHistory(viewer: Viewer) {
   const rows: any[] = await DailyTeamReport.find({ tenantId: oid(viewer.tenantId), userId: oid(viewer.userId), day: { $gte: shiftDay(istDay(), -30) } })
     .sort({ day: -1 }).limit(30).lean();
-  return rows.map((r) => ({ day: r.day, metrics: r.metrics || null, targets: r.targets || null, hasNote: hasNote(r), review: reviewView(r) }));
+  return rows.map((r) => ({ day: r.day, metrics: r.metrics?.v === 2 ? r.metrics : null, targets: r.targets || null, hasNote: hasNote(r), review: reviewView(r) }));
 }
 
 /* ═══════════════════════════════ Notes and reviews ═══════════════════════════════ */
@@ -522,11 +429,7 @@ export async function overview(tenantId: string, dayRaw?: string) {
     day, today, live,
     teams: teams.map((t) => {
       const ids = (t.memberIds || []).map(String);
-      const totals = emptyMetrics();
-      for (const id of ids) {
-        const m: any = metrics.get(id);
-        for (const k of Object.keys(totals) as (keyof DayMetrics)[]) if (k !== 'avgFirstCallMin') (totals as any)[k] += m?.[k] || 0;
-      }
+      const totals = sumMetrics(ids.map((id: string) => metrics.get(id)));
       const reviewGrid = last7.map((d) => {
         const rows = reviews.filter((r: any) => String(r.teamId) === String(t._id) && r.day === d && ids.includes(String(r.userId)));
         const reviewed = rows.filter((r: any) => r.review?.status === 'reviewed').length;

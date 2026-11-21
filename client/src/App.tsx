@@ -9,6 +9,7 @@ import { TenantModulesProvider } from './contexts/TenantModulesContext';
 import { BatchModulesProvider } from './contexts/BatchModulesContext';
 import { SocketProvider, useSocket } from './contexts/SocketContext';
 import LeadAssignedAlert from './components/LeadAssignedAlert';
+import CallOutcomePrompt from './components/CallOutcomePrompt';
 import { Layout } from './components/layout';
 import { Spinner } from './components/common';
 
@@ -1319,7 +1320,7 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
-              <AIMentor />
+              <AIMentor variant="lms" />
             </Layout>
           </ProtectedRoute>
         }
@@ -3065,6 +3066,7 @@ const App: React.FC = () => {
               <BrowserRouter>
                 <HotLeadToast />
                 <LeadAssignedAlert />
+                <CallOutcomePrompt />
                 <AppRoutes />
                 <AdminLogGate />
                 <CelebrationHost />

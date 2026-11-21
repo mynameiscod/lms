@@ -10,6 +10,7 @@ import FollowUpReminder from '../../models/FollowUpReminder';
 import Notification from '../../models/Notification';
 import { SalesTeam, DailyTeamReport, SalesAssignAlert } from '../../models/SalesTeam';
 import * as svc from '../../services/salesTeamService';
+import { analyseDay } from '../../services/salesDayAnalysis';
 import { buildLeadScopeFilter } from '../../middleware/leadScope';
 import { istDay, istRange } from '../../utils/istTime';
 
@@ -24,6 +25,7 @@ async function staff(key: string, role = 'STAFF') {
   await db().collection('users').insertOne({ _id, tenantId: tid, role, firstName: key, lastName: 'K', email: `${key}@x.in`, isActive: true });
   return String(_id);
 }
+const analyse = async (userId: string, now: Date) => (await analyseDay(String(tid), [userId], istDay(), { rows: true, now })).get(userId)!;
 const V = (key: string, isAdmin = false): svc.Viewer => ({ userId: String(ids[key]), tenantId: String(tid), isAdmin });
 
 describe('Sales Teams', () => {
@@ -57,43 +59,70 @@ describe('Sales Teams', () => {
     expect(list[0].members.map((m: any) => m.name)).toEqual(['bda1 K', 'bda2 K']);
   });
 
-  it('counts a member\'s day from the CRM', async () => {
+  it('counts a member\'s day around leads: grouped calls, outcomes, speed per lead, no system entries', async () => {
     const stage = new mongoose.Types.ObjectId();
     const mk = (name: string, phone: string, extra: any = {}) => new Lead({ tenantId: tid, name, phone, source: 'walkin', stageId: stage, createdBy: ids.mgr, ...extra } as any).save();
-    // Assigned today at 9:00, called at 9:20 (connected, 2 min), WhatsApp, a note.
+    const dial = (h: number) => ({ type: 'call', description: 'Call started (dialler opened). Outcome not recorded yet.', createdBy: ids.bda1, createdAt: at(h), metadata: { dialed: true } });
+    // Asha: assigned 9:00. Call pressed at 9:03 and again at 9:05, outcome recorded 9:06 -> ONE connected call,
+    // first call 3 minutes after assignment. A second call at 11:00, not answered.
     await mk('Asha', '9000000001', {
       assignedTo: ids.bda1, assignment: { assignedTo: ids.bda1, assignedAt: at(9) },
       milestones: { demoAt: at(15) },
       activities: [
-        { type: 'call', description: 'Called', createdBy: ids.bda1, createdAt: at(9.333), callOutcome: 'connected', callDuration: 120 },
-        { type: 'whatsapp', description: 'Sent brochure', createdBy: ids.bda1, createdAt: at(9.5) },
-        { type: 'note', description: 'Wants weekend batch', createdBy: ids.bda1, createdAt: at(9.6) },
-        { type: 'note', description: '⚠️ No call or note by the assigned owner', createdBy: ids.bda1, createdAt: at(10) }, // system: not counted
-      ],
-    });
-    // Assigned today, never touched.
-    await mk('Bala', '9000000002', { assignedTo: ids.bda1, assignment: { assignedTo: ids.bda1, assignedAt: at(10) } });
-    // An old lead, called today but not answered; stage moved.
-    await mk('Chitra', '9000000003', {
-      assignedTo: ids.bda1,
-      activities: [
+        dial(9.05), dial(9.0833),
+        { type: 'call', description: 'Talked, wants weekend batch', createdBy: ids.bda1, createdAt: at(9.1), callOutcome: 'connected', callDuration: 120 },
         { type: 'call', description: 'No answer', createdBy: ids.bda1, createdAt: at(11), callOutcome: 'not_answered' },
-        { type: 'status_change', description: 'Moved to Contacting', createdBy: ids.bda1, createdAt: at(11.1) },
-        { type: 'call', description: 'Yesterday', createdBy: ids.bda1, createdAt: new Date(start.getTime() - 3600_000) }, // not today
+        { type: 'whatsapp', description: 'WhatsApp opened. No message sent yet.', createdBy: ids.bda1, createdAt: at(9.2), metadata: { opened: true } },
+        { type: 'whatsapp', description: 'WhatsApp opened. No message sent yet.', createdBy: ids.bda1, createdAt: at(9.25), metadata: { opened: true } },
+        { type: 'note', description: 'Wants weekend batch', createdBy: ids.bda1, createdAt: at(9.6) },
+        // Written by the system under her name: never counted.
+        { type: 'note', description: '✅ Follow-up done: Follow up with Asha.', createdBy: ids.bda1, createdAt: at(9.7) },
+        { type: 'note', description: '⚠️ No call or note by the assigned owner 60 minutes after this lead was assigned.', createdBy: ids.bda1, createdAt: at(10) },
+        { type: 'whatsapp', description: '[AUTO DRIP] New Lead: Hello', createdBy: ids.bda1, createdAt: at(10.5) },
+        { type: 'note', description: '🤖 Workflow note', createdBy: ids.bda1, createdAt: at(10.6), metadata: { workflowId: 'w1' } },
       ],
     });
+    // Bala: assigned 10:00, never called.
+    await mk('Bala', '9000000002', { assignedTo: ids.bda1, assignment: { assignedTo: ids.bda1, assignedAt: at(10) } });
+    // Chitra: an older lead. Call pressed at 12:00, no outcome recorded; stage moved.
+    await mk('Chitra', '9000000003', {
+      assignedTo: ids.bda1, assignment: { assignedTo: ids.bda1, assignedAt: new Date(start.getTime() - 86400_000) },
+      activities: [
+        dial(12),
+        { type: 'status_change', description: 'Moved to Contacting', createdBy: ids.bda1, createdAt: at(12.1) },
+        { type: 'call', description: 'Yesterday', createdBy: ids.bda1, createdAt: new Date(start.getTime() - 3600_000), callOutcome: 'connected' }, // not today
+      ],
+    });
+    // Deepa: assigned 13:00, first call 13:40 (late), no outcome.
+    await mk('Deepa', '9000000004', { assignedTo: ids.bda1, assignment: { assignedTo: ids.bda1, assignedAt: at(13) }, activities: [dial(13 + 40 / 60)] });
     await FollowUpReminder.create([
       { tenantId: tid, leadId: new mongoose.Types.ObjectId(), assignedTo: ids.bda1, createdBy: ids.mgr, type: 'call', title: 'F1', scheduledAt: at(8), status: 'completed', completedAt: at(9) },
       { tenantId: tid, leadId: new mongoose.Types.ObjectId(), assignedTo: ids.bda1, createdBy: ids.mgr, type: 'call', title: 'F2', scheduledAt: at(1), status: 'scheduled' },
       { tenantId: tid, leadId: new mongoose.Types.ObjectId(), assignedTo: ids.bda1, createdBy: ids.mgr, type: 'call', title: 'F3', scheduledAt: new Date(start.getTime() - 86400_000), status: 'scheduled' },
+      // The automatic "call this new lead" task is left out: speed to call already measures it.
+      { tenantId: tid, leadId: new mongoose.Types.ObjectId(), assignedTo: ids.bda1, createdBy: ids.mgr, type: 'call', title: 'Call Bala', scheduledAt: at(10.5), status: 'scheduled', automationKey: 'first-contact:x' },
     ] as any);
 
     const m = (await svc.computeMetrics(String(tid), [String(ids.bda1)], today, at(23))).get(String(ids.bda1))!;
     expect(m).toMatchObject({
-      newAssigned: 2, untouched: 1, calls: 2, connected: 1, notConnected: 1, talkSeconds: 120,
-      whatsapp: 1, notes: 1, stageMoves: 1, leadsWorked: 2, demos: 1,
-      followUpsDue: 2, followUpsDone: 1, followUpsMissed: 1, overdueNow: 2, avgFirstCallMin: 20,
+      v: 2,
+      calls: 4, leadsCalled: 3, connected: 1, notConnected: 1, outcomeMissing: 2, talkSeconds: 120,
+      outcomes: { connected: 1, not_answered: 1 },
+      whatsapp: 1, leadsMessaged: 1, notes: 1,
+      newAssigned: 3, calledWithin5: 1, calledWithin30: 0, calledLate: 1, notCalled: 1, avgFirstCallMin: 22,
+      leadsWorked: 3, stageMoves: 1, leadsMovedForward: 1, demos: 1,
+      followUpsDue: 2, followUpsDone: 1, followUpsMissed: 1, carriedOver: 1,
     });
+
+    // One row per lead: the not-called new lead first, then new leads in the order they came, then the rest.
+    const day = await analyse(String(ids.bda1), at(23));
+    expect(day.rows.map((r: any) => r.name)).toEqual(['Bala', 'Asha', 'Deepa', 'Chitra']);
+    const asha = day.rows.find((r: any) => r.name === 'Asha');
+    expect(asha).toMatchObject({ isNew: true, minutesToCall: 3, calls: 2, connectedCalls: 1, lastOutcome: 'not_answered', whatsapp: 1, notes: 1 });
+    expect(asha.entries.filter((e: any) => e.system)).toHaveLength(4);
+    expect(day.rows.find((r: any) => r.name === 'Deepa')).toMatchObject({ minutesToCall: 40, lastOutcome: 'missing' });
+    expect(day.rows.find((r: any) => r.name === 'Bala')).toMatchObject({ firstCallAt: null, calls: 0, waitingMin: 13 * 60 });
+    expect(day.rows.find((r: any) => r.name === 'Chitra')).toMatchObject({ isNew: false, minutesToCall: null, calls: 1, lastOutcome: 'missing' });
   });
 
   it('a manager sees their members\' leads; a member sees only their own', async () => {
@@ -103,7 +132,7 @@ describe('Sales Teams', () => {
     const bdaScope: any = await buildLeadScopeFilter(asUser('bda1'));
     const bdaIds = bdaScope.assignedTo?.$in ? bdaScope.assignedTo.$in.map(String) : [String(bdaScope.assignedTo)];
     expect(bdaIds).toEqual([String(ids.bda1)]);
-    expect(await Lead.countDocuments({ tenantId: tid, ...mgrScope })).toBe(3);
+    expect(await Lead.countDocuments({ tenantId: tid, ...mgrScope })).toBe(4);
   });
 
   it('access: the manager and the member, not another manager', async () => {
@@ -112,12 +141,13 @@ describe('Sales Teams', () => {
     const view: any = await svc.teamDay(V('mgr'), teamId);
     expect(view.live).toBe(true);
     expect(view.members).toHaveLength(2);
-    expect(view.totals.calls).toBe(2);
+    expect(view.totals.calls).toBe(4);
+    expect(view.totals.notCalled).toBe(1);
     expect((await svc.teamDay(V('boss', true), teamId)).members).toHaveLength(2);
     const mine: any = await svc.memberDay(V('bda1'), String(ids.bda1));
     expect(mine.isSelf).toBe(true);
     expect(mine.canReview).toBe(false);
-    expect(mine.leadsWorked).toHaveLength(2);
+    expect(mine.leads).toHaveLength(4);
     expect(mine.trend).toHaveLength(7);
   });
 
@@ -135,7 +165,8 @@ describe('Sales Teams', () => {
     await svc.saveNote(V('bda1'), { done: '22 calls, 1 demo booked', blockers: 'Leads not picking up after 6 PM' });
     expect(await svc.snapshotDay(today, { announce: true })).toBe(2);
     const saved: any = await DailyTeamReport.findOne({ userId: ids.bda1, day: today }).lean();
-    expect(saved.metrics.calls).toBe(2);
+    expect(saved.metrics.calls).toBe(4);
+    expect(saved.metrics.v).toBe(2);
     expect(saved.note.done).toContain('22 calls');
     expect(saved.targets.calls).toBe(60);
     expect(await Notification.countDocuments({ userId: ids.mgr, title: /reports are ready/ })).toBe(1);
@@ -158,7 +189,7 @@ describe('Sales Teams', () => {
     await expect(svc.overview(String(tid))).resolves.toBeTruthy();
     const o: any = await svc.overview(String(tid));
     expect(o.teams).toHaveLength(1);
-    expect(o.teams[0].totals.calls).toBe(2);
+    expect(o.teams[0].totals.calls).toBe(4);
     expect(o.teams[0].reviewGrid).toHaveLength(7);
   });
 

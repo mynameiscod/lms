@@ -1,4 +1,5 @@
 import { pushClientError } from '../utils/errorStore';
+import { markPendingCall } from '../utils/pendingCall';
 import { loginRedirectFor } from '../utils/loginPath';
 
 // Use relative URL (no hardcoded domain) - works with any deployment
@@ -2056,7 +2057,11 @@ export const leadApi = {
   },
   getTeamPerson: async (userId: string, date: string) => authenticatedFetch(`${API_BASE_URL}/leads/team-activity/person?userId=${encodeURIComponent(userId)}&date=${encodeURIComponent(date)}`),
   /** The Call button was pressed: counts as one call in Team Activity (a repeat within two minutes is ignored). */
-  logCallClick: async (leadId: string) => authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/call-click`, { method: 'POST' }),
+  logCallClick: async (leadId: string, name?: string) => {
+    // Ask "How did the call go?" when they come back (components/CallOutcomePrompt).
+    markPendingCall(leadId, name);
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/call-click`, { method: 'POST' });
+  },
   addActivity: async (leadId: string, data: { type: string; description: string; callOutcome?: string; disposition?: string }, recordingFile?: File) => {
     if (recordingFile) {
       // Use FormData so the audio file can be sent as multipart

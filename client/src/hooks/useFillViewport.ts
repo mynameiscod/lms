@@ -50,6 +50,10 @@ export function useFillViewport<T extends HTMLElement = HTMLDivElement>(gap = 26
   useEffect(() => {
     measure();
     window.addEventListener('resize', measure);
+    // The first measurement can run before the chrome above has its final height (fonts, the top bar, a
+    // tab bar loading in), which left the page a quarter short of the screen. Measure again once it settles.
+    const later = [120, 400, 1200].map((ms) => window.setTimeout(measure, ms));
+    window.addEventListener('load', measure);
 
     let ro: ResizeObserver | undefined;
     const parent = ref.current?.parentElement;
@@ -60,6 +64,8 @@ export function useFillViewport<T extends HTMLElement = HTMLDivElement>(gap = 26
 
     return () => {
       window.removeEventListener('resize', measure);
+      window.removeEventListener('load', measure);
+      later.forEach((t) => window.clearTimeout(t));
       ro?.disconnect();
     };
   }, [measure]);

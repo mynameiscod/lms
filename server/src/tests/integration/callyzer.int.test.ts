@@ -139,3 +139,13 @@ describe('calls on leads', () => {
     expect(doc.activities).toHaveLength(1);
   });
 });
+
+describe('sandbox window', () => {
+  it('reads the allowed dates from the sandbox error, in Indian time', () => {
+    const { allowedWindow } = require('../../services/callyzerService');
+    const w = allowedWindow('Data can only be accessed from 2026-11-23 to 2026-12-07. Make sure your dates are within this range.');
+    expect(new Date(w.from * 1000).toISOString()).toBe('2026-11-22T18:30:00.000Z');
+    expect(new Date((w.to + 1) * 1000).toISOString()).toBe('2026-12-07T18:30:00.000Z');
+    expect(allowedWindow('Your subscription has expired.')).toBeNull();
+  });
+});

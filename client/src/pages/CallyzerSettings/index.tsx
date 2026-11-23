@@ -161,7 +161,12 @@ const CallyzerSettings: React.FC = () => {
         {!emps ? (
           <button className="opo-btn ghost" onClick={loadEmps} disabled={!cfg.apiKeySet || busy === 'emps'}>{busy === 'emps' ? 'Loading…' : 'Load phones from Callyzer'}</button>
         ) : emps.employees.length === 0 ? (
-          <p className="opo-hint">No phones registered in Callyzer yet. Install the Callyzer Biz app on each counsellor's phone and log in.</p>
+          <p className="opo-hint">
+            No phones found yet. Callyzer lists a phone here once it has synced calls, or straight away if its <b>Lead</b> feature is on
+            (Callyzer → Manage → Employees). Install the <b>Callyzer Biz</b> app on each counsellor's phone, log in, allow call log and
+            recording access, make a call, then press the button again.
+            <button className="opo-btn ghost" style={{ marginLeft: 8 }} onClick={loadEmps} disabled={busy === 'emps'}>{busy === 'emps' ? 'Loading…' : 'Check again'}</button>
+          </p>
         ) : (
           <div className="cz-table-wrap">
             <table className="cz-table">
@@ -170,7 +175,7 @@ const CallyzerSettings: React.FC = () => {
                 {emps.employees.map((e) => (
                   <tr key={e.empNumber}>
                     <td data-label="Phone"><b>{e.empName || 'No name'}</b><div className="opo-muted">{e.empNumber}{e.appUninstalled ? ' · app uninstalled' : ''}</div></td>
-                    <td data-label="Recording">{e.recordingOn ? <span className="opo-pill ok">On</span> : <span className="opo-pill warn">Off in Callyzer</span>}</td>
+                    <td data-label="Recording">{e.recordingOn === null ? <span className="opo-muted">Not known</span> : e.recordingOn ? <span className="opo-pill ok">On</span> : <span className="opo-pill warn">Off in Callyzer</span>}</td>
                     <td data-label="Last synced">{e.lastSyncAt ? e.lastSyncAt.replace(/:\d{2}( [A-Z]+)?$/, '') : '—'}</td>
                     <td data-label="Staff member">
                       <select className="opo-input sm" value={e.staffId || ''} onChange={(ev) => map(e, ev.target.value)} disabled={busy === 'map'} aria-label={`Staff member for ${e.empNumber}`}>

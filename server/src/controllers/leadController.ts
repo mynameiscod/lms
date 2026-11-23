@@ -986,10 +986,15 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
       const since = now.getTime() - OPEN_CALL_WINDOW_MS;
       let idx = -1;
       (existing.activities || []).forEach((a: any, i: number) => {
-        if (a.type === 'call' && a.metadata?.dialed === true && !a.callOutcome && String(a.createdBy) === mine && new Date(a.createdAt).getTime() >= since) idx = i;
+        // Also a call Callyzer already filled in from the phone with a guessed outcome: the person's answer wins.
+        const open = (a.metadata?.dialed === true && !a.callOutcome) || a.metadata?.callyzerAutoOutcome === true;
+        if (a.type === 'call' && open && String(a.createdBy) === mine && new Date(a.createdAt).getTime() >= since) idx = i;
       });
       if (idx >= 0) {
-        const $set: any = { [`activities.${idx}.description`]: description, [`activities.${idx}.metadata`]: { dialed: false, startedAt: (existing.activities as any)[idx].createdAt }, 'telecallerMetrics.lastActionAt': now, reEnquiryUnseen: false };
+        const prev: any = (existing.activities as any)[idx];
+        // Keep what Callyzer attached (its ids for the call and recording); the person's description replaces the guess.
+        const meta = { ...(prev.metadata || {}), dialed: false, startedAt: prev.metadata?.startedAt || prev.createdAt, callyzerAutoOutcome: false };
+        const $set: any = { [`activities.${idx}.description`]: description, [`activities.${idx}.metadata`]: meta, 'telecallerMetrics.lastActionAt': now, reEnquiryUnseen: false };
         if (activityData.callOutcome) $set[`activities.${idx}.callOutcome`] = activityData.callOutcome;
         if (activityData.callDuration !== undefined) $set[`activities.${idx}.callDuration`] = activityData.callDuration;
         if (activityData.callStatus) $set[`activities.${idx}.callStatus`] = activityData.callStatus;

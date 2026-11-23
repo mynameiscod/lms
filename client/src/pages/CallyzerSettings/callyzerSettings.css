@@ -1,0 +1,20 @@
+/* Callyzer calls — builds on the Outpero page's opo-* styles. */
+.opo .cz-env { grid-template-columns: repeat(2, 1fr); }
+.cz-table-wrap { overflow-x: auto; }
+.cz-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cz-table th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; color: #64748b; padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+.cz-table td { padding: 10px; border-bottom: 1px solid #eef1f6; vertical-align: top; }
+.cz-table select { min-width: 200px; }
+.cz-calls { list-style: none; padding: 0; margin: 12px 0 0; }
+.cz-calls li { padding: 10px 0; border-bottom: 1px solid #eef1f6; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.cz-call-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cz-audio { width: 100%; max-width: 420px; height: 34px; }
+@media (max-width: 720px) {
+  .opo .cz-env { grid-template-columns: 1fr; }
+  .cz-table thead { display: none; }
+  .cz-table, .cz-table tbody, .cz-table tr, .cz-table td { display: block; width: 100%; }
+  .cz-table tr { border: 1px solid #e2e8f0; border-radius: 10px; padding: 6px 4px; margin-bottom: 10px; }
+  .cz-table td { border: 0; padding: 6px 10px; }
+  .cz-table td::before { content: attr(data-label); display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+  .cz-table select { min-width: 0; width: 100%; }
+}

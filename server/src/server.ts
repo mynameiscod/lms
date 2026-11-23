@@ -47,6 +47,7 @@ import { startPartnerReplyScheduler } from './jobs/partnerReplyCron';
 import { registerWaChatSocket } from './realtime/whatsAppChatRealtime';
 import { registerSocketAuth, socketUser, mayJoinTenant, mayJoinStaff, mayHostLiveClass } from './realtime/socketAuth';
 import { startOutperoForwardScheduler } from './jobs/outperoForwardCron';
+import { startCallyzerScheduler } from './jobs/callyzerCron';
 import { startMetaCrmScheduler } from './jobs/metaCrmCron';
 import { startLeadAutomationScheduler } from './jobs/leadAutomationCron';
 import { startWorkflowScheduler } from './jobs/workflowCron';
@@ -443,6 +444,8 @@ const startServer = async () => {
 
     // Send leads queued for Outpero (bulk sends, retries)
     startOutperoForwardScheduler();
+    // Pull counsellors' phone calls + recordings from Callyzer
+    startCallyzerScheduler();
     startMetaCrmScheduler();
 
     // Add each month's recurring company costs (rent, subscriptions)

@@ -24,7 +24,7 @@ export interface CallyzerDelivery { at: string; headerNames: string[]; employees
 
 export interface CallyzerEmployee {
   empName: string; empNumber: string; ten: string;
-  recordingOn: boolean; appUninstalled: boolean;
+  recordingOn: boolean | null; appUninstalled: boolean; fromCalls?: boolean;
   lastCallAt: string | null; lastSyncAt: string | null; appVersion: string | null;
   staffId: string | null; staffName: string | null; matchedBy: 'admin' | 'profile' | null;
 }

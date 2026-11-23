@@ -516,10 +516,35 @@ export async function receiveWebhook(tenantId: string, body: any, headers: Recor
 
 // ── Sync from the API ────────────────────────────────────────────────────────
 
+/**
+ * The sandbox only answers for the 15 days locked in Callyzer and says so in its error
+ * ("Data can only be accessed from 2026-11-23 to 2026-12-07"). Returns that window in seconds.
+ */
+export function allowedWindow(message: string): { from: number; to: number } | null {
+  const m = /accessed from (\d{4})-(\d{2})-(\d{2}) to (\d{4})-(\d{2})-(\d{2})/i.exec(message || '');
+  if (!m) return null;
+  const from = (Date.UTC(+m[1], +m[2] - 1, +m[3]) - TZ_OFFSET_MS) / 1000;
+  const to = (Date.UTC(+m[4], +m[5] - 1, +m[6] + 1) - TZ_OFFSET_MS) / 1000 - 1;
+  return { from, to };
+}
+
 /** Calls in a window, page by page. `by` = when the call happened or when the phone synced it. */
-export async function fetchCalls(tenantId: string, fromSec: number, toSec: number, by: 'call' | 'synced'): Promise<NormCall[]> {
+export async function fetchCalls(tenantId: string, fromSec: number, toSec: number, by: 'call' | 'synced', maxPages = MAX_PAGES): Promise<NormCall[]> {
+  try {
+    return await fetchPages(tenantId, fromSec, toSec, by, maxPages);
+  } catch (e: any) {
+    const w = e instanceof CallyzerError ? allowedWindow(e.message) : null;
+    if (!w) throw e;
+    const from = Math.max(fromSec, w.from);
+    const to = Math.min(toSec, w.to);
+    if (from >= to) return [];
+    return fetchPages(tenantId, from, to, by, maxPages);
+  }
+}
+
+async function fetchPages(tenantId: string, fromSec: number, toSec: number, by: 'call' | 'synced', maxPages: number): Promise<NormCall[]> {
   const out: NormCall[] = [];
-  for (let page = 1; page <= MAX_PAGES; page++) {
+  for (let page = 1; page <= maxPages; page++) {
     const r = await api<any[]>(tenantId, 'POST', '/call-log/history', {
       [`${by === 'call' ? 'call' : 'synced'}_from`]: Math.floor(fromSec),
       [`${by === 'call' ? 'call' : 'synced'}_to`]: Math.floor(toSec),
@@ -634,6 +659,17 @@ export async function employees(tenantId: string) {
     list.push(...rows);
     if (rows.length < 100) break;
   }
+  // Callyzer lists only phones with its Lead feature switched on; phones seen in the last
+  // 3 days of calls are added so every phone that makes calls can be matched.
+  const known = new Set(list.map((e) => last10(e.emp_number)));
+  const now = Math.floor(Date.now() / 1000);
+  const recent = await fetchCalls(tenantId, now - 3 * 86400, now, 'call', 3).catch(() => [] as NormCall[]);
+  for (const c of recent) {
+    const ten = last10(c.empNumber);
+    if (ten.length !== 10 || known.has(ten)) continue;
+    known.add(ten);
+    list.push({ emp_name: c.empName, emp_number: c.empNumber, fromCalls: true });
+  }
   const byPhone = await staffByPhone(tenantId);
   const overrides = employeeOverrides(tenantId);
   const staff: any[] = await User.find({ tenantId: oid(tenantId), role: { $ne: 'STUDENT' }, isActive: { $ne: false } }).select('firstName lastName email phone role').sort({ firstName: 1 }).lean();
@@ -647,7 +683,7 @@ export async function employees(tenantId: string) {
       const staffId = override || auto?.id || null;
       return {
         empName: e.emp_name, empNumber: e.emp_number, ten,
-        recordingOn: !!e.is_call_recording_active, appUninstalled: !!e.device_preference?.is_app_uninstalled,
+        recordingOn: e.fromCalls ? null : !!e.is_call_recording_active, appUninstalled: !!e.device_preference?.is_app_uninstalled, fromCalls: !!e.fromCalls,
         lastCallAt: e.last_call_at || null, lastSyncAt: e.last_sync_req_at || null, appVersion: e.app_version || null,
         staffId, staffName: staffId ? nameOf.get(staffId) || 'Unknown user' : null, matchedBy: override ? 'admin' : auto ? 'profile' : null,
       };

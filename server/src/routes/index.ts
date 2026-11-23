@@ -138,6 +138,9 @@ import externalApiRoutes from './externalApiRoutes';
 import codeJudgeRoutes from './codeJudgeRoutes';
 import { moduleGate } from '../middleware/moduleGate';
 import outperoRoutes from './outperoRoutes';
+import callyzerRoutes from './callyzerRoutes';
+import * as callyzer from '../services/callyzerService';
+import { sendFileWithRanges } from '../services/bunnyStorageService';
 import leadArchiveRoutes from './leadArchiveRoutes';
 import eventApiRoutes, { publicEventRoutes } from './eventApiRoutes';
 import tenantIntegrationsRoutes from './tenantIntegrationsRoutes';
@@ -191,6 +194,34 @@ router.post('/public/outpero/calls/:token', async (req, res) => {
     res.status(500).json({ success: false, message: 'Could not store the call' });
   }
 });
+// Public: Callyzer's webhook (call logs from counsellors' phones). The token in the path is the
+// institute's secret (Leads → Callyzer calls); an unknown token gets 404 and nothing is stored.
+router.post('/public/callyzer/webhook/:token', async (req, res) => {
+  const tenantId = callyzer.tenantForToken(String(req.params.token || ''));
+  if (!tenantId) return res.status(404).json({ success: false, message: 'Unknown webhook' });
+  try {
+    const r = await runWithTenant(tenantId, () => callyzer.receiveWebhook(tenantId, req.body, req.headers as any));
+    res.json({ success: true, data: r });
+  } catch (e: any) {
+    console.error('[callyzer-webhook] delivery failed', e?.message);
+    res.status(500).json({ success: false, message: 'Could not store the calls' });
+  }
+});
+// Public: a call recording, played from the lead page. The signature in the link is the permission
+// (only the server can make it, and only people who can open the lead are given the link).
+router.get('/public/callyzer/recordings/:id/:sig', async (req, res) => {
+  try {
+    const call: any = await callyzer.callForRecordingLink(String(req.params.id), String(req.params.sig));
+    if (!call) return res.status(404).json({ success: false, message: 'Recording not found' });
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    if (call.recordingKey) return await sendFileWithRanges(req as any, res, call.recordingKey, 'audio/mpeg');
+    if (call.recordingUrl) return res.redirect(302, call.recordingUrl);
+    res.status(404).json({ success: false, message: 'The recording has not arrived yet' });
+  } catch (e: any) {
+    console.error('[callyzer-recording] play failed', e?.message);
+    if (!res.headersSent) res.status(502).json({ success: false, message: 'Could not load the recording' });
+  }
+});
 // Public: which institute owns the domain this page was opened on (custom domains).
 // PDFs for WhatsApp template headers — Meta downloads them from here at every send (public by design).
 router.get('/public/wa-files/:tenantId/:name', servePdf);
@@ -211,6 +242,7 @@ router.get('/public/branding/:idOrSlug', async (req, res) => {
 });
 router.use('/event-apis', eventApiRoutes); // Event APIs: admin-defined registration APIs for the website
 router.use('/lead-archive', leadArchiveRoutes); // Leads → Archive (admins): archive by filter, restore, delete after 3 years
+router.use('/callyzer', callyzerRoutes); // leads → Callyzer (counsellors' own SIM calls + recordings)
 router.use('/outpero', outperoRoutes); // leads → Outpero AI calls (off / manual / auto)
 router.use('/tenant-integrations', tenantIntegrationsRoutes); // institute admin: own Razorpay, UPI, email, Meta pixel
 router.use('/public/assessment', publicAssessmentRoutes); // specific first

@@ -70,6 +70,7 @@ const PlacementProgramAdmin = lazy(() => import('./pages/PlacementProgramAdmin')
 const MyPlacementInterviews = lazy(() => import('./pages/PlacementProgramAdmin/MyInterviews'));
 const WhatsAppInbox = lazy(() => import('./pages/WhatsAppInbox'));
 const OutperoSettings = lazy(() => import('./pages/OutperoSettings'));
+const CallyzerSettings = lazy(() => import('./pages/CallyzerSettings'));
 const EventApis = lazy(() => import('./pages/EventApis'));
 const LeadArchivePage = lazy(() => import('./pages/LeadArchive'));
 const EventApiEditor = lazy(() => import('./pages/EventApis/EventEditor'));
@@ -1745,6 +1746,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <EventApiEditor />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/callyzer"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <CallyzerSettings />
             </Layout>
           </ProtectedRoute>
         }

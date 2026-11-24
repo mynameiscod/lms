@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../types';
 import { permissionsOf } from '../middleware/roleGuard';
 import * as svc from '../services/salesTeamService';
+import * as report from '../services/salesLeadReport';
 import { istDay } from '../utils/istTime';
 
 /** SALES TEAMS over HTTP. Rules and numbers live in services/salesTeamService.ts. */
@@ -52,3 +53,9 @@ export const review = wrap((req, v) => svc.reviewMember(v, req.params.userId, re
 export const myDay = wrap((req, v) => svc.memberDay(v, v.userId, String(req.query.day || '')));
 export const myNote = wrap((req, v) => svc.saveNote(v, req.body || {}));
 export const myHistory = wrap((_req, v) => svc.myHistory(v));
+
+// Lead report (stages, sub-stages, follow-ups, probables) — services/salesLeadReport.ts
+export const leadReport = wrap((req, v) => report.leadReport(v, { ...(req.query as any), exportAll: req.query.export === '1' }));
+export const probableBatches = wrap((_req, v) => report.probableBatches(v));
+export const markProbable = wrap((req, v) => report.markProbable(v, req.params.leadId, req.body || {}));
+export const unmarkProbable = wrap((req, v) => report.unmarkProbable(v, req.params.leadId));

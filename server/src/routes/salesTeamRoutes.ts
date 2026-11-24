@@ -32,4 +32,10 @@ router.get('/my/day', ctrl.myDay);
 router.put('/my/note', ctrl.myNote);
 router.get('/my/history', ctrl.myHistory);
 
+// Lead report: a member sees their own leads, a manager their team's, an admin every team's
+router.get('/report', ctrl.leadReport);
+router.get('/probables/batches', ctrl.probableBatches);
+router.put('/probables/:leadId', ctrl.markProbable);
+router.delete('/probables/:leadId', ctrl.unmarkProbable);
+
 export default router;

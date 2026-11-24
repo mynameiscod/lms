@@ -106,3 +106,40 @@ export const OUTCOME_LABEL: Record<string, string> = {
   wrong_number: 'Wrong number', switched_off: 'Switched off', callback_requested: 'Callback requested', missing: 'Outcome not recorded',
 };
 export const outcomeLabel = (o: string) => OUTCOME_LABEL[o] || o.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+
+/* ── Lead report: stages, sub-stages, follow-ups, probables (server: services/salesLeadReport.ts) ── */
+export type ReportView = 'new' | 'followups' | 'all' | 'probables';
+export type Chance = 'high' | 'medium' | 'low';
+export interface Probable { batchId: string; batchName: string; batchStart: string; chance: Chance; note: string; markedByName: string; markedAt: string; joined: boolean }
+export interface ReportRow {
+  leadId: string; name: string; phone: string; email: string; source: string; course: string;
+  owner: Person | null;
+  stage: { _id: string; name: string; color: string } | null;
+  subStage: { _id: string; name: string; color: string | null } | null;
+  createdAt: string | null; assignedAt: string | null; reassigned: boolean;
+  nextFollowUp: string | null; followUp: 'overdue' | 'today' | 'upcoming' | null;
+  lastContactedAt: string | null; lastCallOutcome: string | null;
+  probable: Probable | null;
+}
+export interface StageCount { _id: string; name: string; color: string; count: number; subStages: { _id: string; name: string; color: string | null; count: number }[] }
+export interface LeadReport {
+  view: ReportView; day: string; today: string; live: boolean; as: 'admin' | 'manager' | 'member';
+  teams: { _id: string; name: string; color: string; members: Person[] }[];
+  filters: { teamId: string; userId: string; stageId: string; subStageId: string; due: string; batchId: string; q: string };
+  tabs: { new: number; followups: number; dueToday: number; overdue: number; all: number; probables: number };
+  stages: StageCount[];
+  total: number; page: number; pageSize: number; pages: number;
+  rows: ReportRow[];
+  members: { userId: string; new: number; dueToday: number; overdue: number; all: number; probables: number }[] | null;
+  batches: { batchId: string; name: string; startDate: string; count: number; joined: number; high: number }[] | null;
+}
+export interface BatchOption { _id: string; name: string; startDate: string; mode: string | null; course: string }
+export interface ReportParams { view?: ReportView; day?: string; teamId?: string; userId?: string; stageId?: string; subStageId?: string; due?: string; batchId?: string; q?: string; page?: number; export?: '1' }
+
+export const leadReportApi = {
+  report: (p: ReportParams) => get<LeadReport>('/report', p),
+  batches: () => get<BatchOption[]>('/probables/batches'),
+  mark: (leadId: string, b: { batchId: string; chance: Chance; note?: string }) => send<Probable>('put', `/probables/${leadId}`, b),
+  unmark: (leadId: string) => send<{ removed: boolean }>('delete', `/probables/${leadId}`),
+};
+export const CHANCE_LABEL: Record<Chance, string> = { high: 'High chance', medium: 'Medium', low: 'Low' };

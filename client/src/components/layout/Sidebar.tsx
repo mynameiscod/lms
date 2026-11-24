@@ -55,7 +55,7 @@ interface MenuItem {
   /** Also shown to anyone who has people reporting to them, whatever their permissions. */
   orTeam?: boolean;
   /** Sales Teams: shown only to a team's manager / a team member (decided by the server, /sales-teams/me). */
-  needsSales?: 'manager' | 'member';
+  needsSales?: 'manager' | 'member' | 'any';
 }
 
 /** The demo student's menu entries: the same labels, paths and icons a real student sees. */
@@ -117,11 +117,11 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   }, [user?.role, (user as any)?.batchId]);
 
   /* Sales Teams: My Team for a team's manager, My Day for a member (the server knows who is which). */
-  const [sales, setSales] = useState({ manager: false, member: false });
+  const [sales, setSales] = useState({ manager: false, member: false, any: false });
   useEffect(() => {
     if (!user || user.role === 'STUDENT') return;
     let alive = true;
-    salesTeamApi.me().then(m => alive && setSales({ manager: m.managerOf.length > 0, member: !!m.memberOf })).catch(() => {});
+    salesTeamApi.me().then(m => alive && setSales({ manager: m.managerOf.length > 0, member: !!m.memberOf, any: m.isAdmin || m.managerOf.length > 0 || !!m.memberOf })).catch(() => {});
     return () => { alive = false; };
   }, [user?.role, (user as any)?.id]);
 
@@ -397,6 +397,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'Manager Board', path: '/lead-manager-board', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-clipboard-user', permissions: ['manage_leads', 'view_lead_analytics'] },
         { label: 'My Team', path: '/my-team', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-people-group', needsSales: 'manager' },
         { label: 'My Day', path: '/my-day', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-sun', needsSales: 'member' },
+        { label: 'Lead Report', path: '/lead-report', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-column', needsSales: 'any' },
         { label: 'Sales Teams', path: '/sales-teams', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-sitemap', permissions: ['manage_sales_teams'] },
         { label: 'Team Activity', path: '/team-activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-column', permissions: ['view_lead_analytics'] },
         { label: 'Sales Content', path: '/sales-content', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-file-invoice', permissions: ['view_leads', 'create_leads'] },
@@ -425,7 +426,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     // The employee portal belongs to whoever is linked to an employee record, whatever their role;
     // the team screens also open for a manager, whatever their permissions.
     if (item.needsEmployee) return employee.isEmployee;
-    if (item.needsSales) return item.needsSales === 'manager' ? sales.manager : sales.member;
+    if (item.needsSales) return item.needsSales === 'any' ? sales.any : item.needsSales === 'manager' ? sales.manager : sales.member;
     if (item.orTeam && employee.hasTeam) return true;
 
     const roleAllowed = !!(user.role && item.roles.includes(user.role));

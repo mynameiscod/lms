@@ -135,6 +135,7 @@ const AdminReferrals = lazy(() => import('./pages/ReferEarn/AdminReferrals'));
 const AdminSalesTeams = lazy(() => import('./pages/SalesTeams/AdminSalesTeams'));
 const SalesMyTeam = lazy(() => import('./pages/SalesTeams/MyTeam'));
 const SalesMemberDay = lazy(() => import('./pages/SalesTeams/MemberDay'));
+const SalesLeadReport = lazy(() => import('./pages/SalesTeams/LeadReport'));
 const PassportAdminStudentRoadmap = lazy(() => import('./pages/Passport/AdminStudentRoadmap'));
 const PassportAdminStageSkills = lazy(() => import('./pages/Passport/AdminStageSkills'));
 const PassportAdminCoins = lazy(() => import('./pages/Passport/AdminCoins'));
@@ -739,6 +740,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/my-team" element={<ProtectedRoute><Layout><SalesMyTeam /></Layout></ProtectedRoute>} />
       <Route path="/my-team/member/:userId" element={<ProtectedRoute><Layout><SalesMemberDay /></Layout></ProtectedRoute>} />
       <Route path="/my-day" element={<ProtectedRoute><Layout><SalesMemberDay /></Layout></ProtectedRoute>} />
+      <Route path="/lead-report" element={<ProtectedRoute><Layout><SalesLeadReport /></Layout></ProtectedRoute>} />
       <Route path="/admin/referrals" element={
         <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_referrals']}><Layout><AdminReferrals /></Layout></ProtectedRoute>
       } />

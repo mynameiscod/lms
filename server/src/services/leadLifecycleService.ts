@@ -24,6 +24,7 @@ import LeadStage from '../models/LeadStage';
 import LeadSubStage from '../models/LeadSubStage';
 import LeadReason from '../models/LeadReason';
 import FollowUpReminder from '../models/FollowUpReminder';
+import { closeOpenFollowUps, REPLACED_NOTE } from './leadFollowUpService';
 import QualificationQuestionConfig from '../models/QualificationQuestionConfig';
 import { recordStageTransition } from '../controllers/leadStageHistoryController';
 import { pushLeadStageChange } from './googleSheetSyncService';
@@ -254,7 +255,10 @@ export async function changeStage(input: StageChangeInput): Promise<StageChangeR
     await FollowUpReminder.create({
       tenantId: tid, leadId: lead._id, assignedTo: owner, createdBy: actor.id, type: 'call',
       title: `Follow up: ${sub?.name || stage.name}`, description: note || undefined, scheduledAt: followUpAt,
-    }).catch(err => console.error('[lifecycle] follow-up create failed:', err?.message));
+    })
+      // One open follow-up per lead: this one replaces the older open ones.
+      .then(created => closeOpenFollowUps(tid, lead._id, created._id, REPLACED_NOTE))
+      .catch(err => console.error('[lifecycle] follow-up create failed:', err?.message));
   }
 
   if (!sameStage) {

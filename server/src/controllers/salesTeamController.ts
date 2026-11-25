@@ -23,7 +23,7 @@ const wrap = (fn: (req: AuthenticatedRequest, v: svc.Viewer) => Promise<any>) =>
   try { ok(res, await fn(req, await viewer(req))); } catch (e) { fail(res, e); }
 };
 const adminOnly = (fn: (req: AuthenticatedRequest, v: svc.Viewer) => Promise<any>) => wrap(async (req, v) => {
-  if (!v.isAdmin) throw new svc.SalesError(403, 'Only the super admin can manage sales teams.');
+  if (!v.isAdmin) throw new svc.SalesError(403, 'Only an admin with the Sales Teams permission can manage sales teams.');
   return fn(req, v);
 });
 

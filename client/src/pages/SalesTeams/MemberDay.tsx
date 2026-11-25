@@ -76,7 +76,7 @@ export default function MemberDay() {
   if (err && !data) return <div className="stm"><div className="stm-alert">{err}</div></div>;
   if (!data) return <div className="stm"><Loading /></div>;
   if (self && !data.team) {
-    return <div className="stm"><Empty icon="bi-people">You're not in a sales team yet. Once the super admin adds you to a team, your daily report shows here.</Empty></div>;
+    return <div className="stm"><Empty icon="bi-people">You're not in a sales team yet. Once your admin adds you to a team, your daily report shows here.</Empty></div>;
   }
 
   const m = data.metrics;

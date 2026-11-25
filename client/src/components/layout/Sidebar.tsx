@@ -36,7 +36,7 @@ const HIDDEN_FROM_MENU = new Set<string>([
 const GIVEN_ONLY_PERMISSIONS = new Set([
   'support_agent', 'support_manager',
   'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
-  'manage_careerpilot_limits', 'manage_lms_demo', 'manage_sales_teams', 'manage_question_books',
+  'manage_careerpilot_limits', 'manage_lms_demo', 'manage_question_books',
 ]);
 
 interface MenuItem {

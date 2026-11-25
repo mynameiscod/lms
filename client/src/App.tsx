@@ -335,6 +335,9 @@ const InterviewDetailPage = lazy(() => import('./pages/ScheduledInterviews/Inter
 const HmsClassesPage = lazy(() => import('./pages/HmsClasses'));
 const HmsRoomPage = lazy(() => import('./pages/HmsClasses/Room'));
 const LiveGuestJoin = lazy(() => import('./pages/HmsClasses/GuestJoin'));
+const BookDemo = lazy(() => import('./pages/DemoBooking/BookDemo'));
+const MyDemoBooking = lazy(() => import('./pages/DemoBooking/MyDemoBooking'));
+const DemoSlots = lazy(() => import('./pages/DemoBooking/DemoSlots'));
 const CommunicationLab = lazy(() => import('./pages/CommunicationLab'));
 const CommunicationLabAdmin = lazy(() => import('./pages/CommunicationLabAdmin'));
 const MyInterviewsPage = lazy(() => import('./pages/MyInterviews'));
@@ -637,6 +640,9 @@ const AppRoutes: React.FC = () => {
       {/* ── Public Tech Battles (no auth) ── */}
       {/* A live-class invitation link: guests join without an account */}
       <Route path="/live/:token" element={<LiveGuestJoin />} />
+      {/* CRM: Book a demo — the website's booking page and each visitor's booking link (no login) */}
+      <Route path="/book-demo/:slug" element={<BookDemo />} />
+      <Route path="/demo-booking/:token" element={<MyDemoBooking />} />
       <Route path="/placements/:token" element={<PlacementDeskPublic />} />
       <Route path="/battles" element={<BattleList />} />
       <Route path="/battles/exam/:token" element={<BattleExam />} />
@@ -742,6 +748,9 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute requiredRoles={['STUDENT']}><FeatureRoute feature="referEarn"><Layout><ReferEarn /></Layout></FeatureRoute></ProtectedRoute>
       } />
       {/* Sales Teams (Leads add-on). Who sees what is decided by the server: admin, the team's manager, the member. */}
+      <Route path="/demo-slots" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_demo_slots']}><Layout><DemoSlots /></Layout></ProtectedRoute>
+      } />
       <Route path="/sales-teams" element={
         <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_sales_teams']}><Layout><AdminSalesTeams /></Layout></ProtectedRoute>
       } />

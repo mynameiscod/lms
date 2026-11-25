@@ -209,3 +209,12 @@
 .ldb-drop .bi { font-size: 2rem; color: var(--ldb-accent); }
 .ldb-board { background: var(--ldb-surface); border: 1px solid var(--ldb-line); border-radius: var(--ldb-radius); overflow: hidden; }
 @media (max-width: 760px) { .ldb-today-sub { margin-left: 0; } .ldb-seg button { padding: 7px 9px; } }
+
+/* Count by: what the dates mean (2026-11-25) */
+.ldb-head-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.ldb-countby { display: inline-flex; background: var(--ldb-surface); border: 1px solid var(--ldb-line); border-radius: 10px; padding: 3px; }
+.ldb-countby button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; color: var(--ldb-muted); cursor: pointer; }
+.ldb-countby button.active { background: #1e3a8a; color: #fff; }
+.ldb-card-sub { font-size: 0.78rem; color: var(--ldb-muted); margin: -4px 0 10px; }
+.ldb-click-row { cursor: pointer; }
+.ldb-click-row:hover td { background: rgba(37, 99, 235, 0.06); }

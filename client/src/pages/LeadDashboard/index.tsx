@@ -18,6 +18,16 @@ import './LeadDashboard.css';
 
 type RangeKey = 'today' | 'yesterday' | 'this_month' | 'last_month' | '7' | '30' | '90' | 'all' | 'custom';
 type Tab = 'all' | 'mine' | 'dueToday' | 'overdue' | 'nurture' | 'lost';
+/**
+ * What the dates mean. 'activity' (default): each step counted on the day it happened — an old
+ * lead that reserves a seat today is today's seat reservation. 'created': leads that came in during
+ * the dates, and how far they got (for judging sources and campaigns).
+ */
+type CountBy = 'activity' | 'created';
+/** Funnel steps the list can filter as "reached" (server: config/leadDateBasis.ts). */
+const REACHED_STEPS: [string, string][] = [['connected', 'Connected'], ['qualified', 'Qualified'], ['demoAttended', 'Demo Attended'], ['seatReserved', 'Seat Reserved'], ['enrolled', 'Enrolled']];
+const DATE_FIELDS: [string, string][] = [['created', 'Lead created'], ['seatReserved', 'Seat reserved on'], ['enrolled', 'Enrolled on'], ['qualified', 'Qualified on'],
+  ['connected', 'Connected on'], ['demoAttended', 'Demo attended on'], ['lastContact', 'Last contact']];
 const RANGE_LABEL: Record<RangeKey, string> = {
   today: 'Today', yesterday: 'Yesterday', this_month: 'This month', last_month: 'Last month', '7': 'Last 7 days', '30': 'Last 30 days', '90': 'Last 90 days', all: 'All time', custom: 'Custom',
 };
@@ -84,7 +94,8 @@ const LeadDashboard: React.FC = () => {
   const [dash, setDash] = useState<any>(null);
   const [dashError, setDashError] = useState('');
   const [tab, setTab] = useState<Tab>(saved.tab || 'all');
-  const [filters, setFilters] = useState({ stageId: '', subStageId: '', course: '', source: '', campaign: '', assignedTo: '', ...(saved.filters || {}) });
+  const [countBy, setCountBy] = useState<CountBy>(saved.countBy === 'created' ? 'created' : 'activity');
+  const [filters, setFilters] = useState({ stageId: '', subStageId: '', course: '', source: '', campaign: '', assignedTo: '', reached: '', dateField: '', ...(saved.filters || {}) });
   const [searchInput, setSearchInput] = useState<string>(saved.search || '');
   const [search, setSearch] = useState<string>(saved.search || '');
   const [page, setPage] = useState<number>(saved.page || 1);
@@ -142,8 +153,8 @@ const LeadDashboard: React.FC = () => {
   }, [searchInput]);
   // Remember the filters so opening a lead and pressing Back brings them back.
   useEffect(() => {
-    try { sessionStorage.setItem(SAVED_KEY, JSON.stringify({ rangeKey, custom, tab, filters, extra, search: searchInput, sort, page, pageSize, view })); } catch { /* storage unavailable */ }
-  }, [rangeKey, custom, tab, filters, extra, searchInput, sort, page, pageSize, view]);
+    try { sessionStorage.setItem(SAVED_KEY, JSON.stringify({ rangeKey, custom, tab, filters, extra, search: searchInput, sort, page, pageSize, view, countBy })); } catch { /* storage unavailable */ }
+  }, [rangeKey, custom, tab, filters, extra, searchInput, sort, page, pageSize, view, countBy]);
   useEffect(() => { const close = () => setMenuFor(null); window.addEventListener('click', close); return () => window.removeEventListener('click', close); }, []);
 
   useEffect(() => {
@@ -165,27 +176,29 @@ const LeadDashboard: React.FC = () => {
 
   const loadDash = useCallback(() => {
     setDashError('');
-    leadReportApi.dashboard(range.from, range.to).then((r: any) => setDash(r.data)).catch((e: any) => setDashError(e.message || 'Could not load the dashboard'));
-  }, [range.from, range.to]);
+    leadReportApi.dashboard(range.from, range.to, countBy).then((r: any) => setDash(r.data)).catch((e: any) => setDashError(e.message || 'Could not load the dashboard'));
+  }, [range.from, range.to, countBy]);
   useEffect(() => { loadDash(); }, [loadDash]);
 
   // The table: tab + filters (+ the date range for the period tabs).
   const listParams = useMemo(() => {
     const p: any = { page, limit: pageSize, search: search || undefined, stageId: filters.stageId || undefined, subStageId: (filters.stageId && filters.subStageId) || undefined, course: filters.course || undefined,
       source: filters.source || undefined, campaign: filters.campaign || undefined, assignedTo: filters.assignedTo || undefined, sort: 'createdAt', dir: 'desc',
-      priority: extra.priority || undefined, adId: extra.adId || undefined, reEnquiry: extra.reEnquiry || undefined };
-    const period = { dateFrom: range.from, dateTo: range.to };
+      priority: extra.priority || undefined, adId: extra.adId || undefined, reEnquiry: extra.reEnquiry || undefined, reached: filters.reached || undefined };
+    // The dates mean what the dashboard counts by, unless "Dates:" is set. 'auto' = when the
+    // selected step happened (no step picked → when the lead came in).
+    const period = { dateFrom: range.from, dateTo: range.to, dateField: filters.dateField || (countBy === 'activity' ? 'auto' : 'created') };
     switch (tab) {
       case 'mine': Object.assign(p, period, { assignedTo: myId }); break;
       case 'dueToday': Object.assign(p, { followUp: 'today', openOnly: '1', sort: 'nextFollowUp', dir: 'asc' }); break;
       case 'overdue': Object.assign(p, { followUp: 'overdue', openOnly: '1', sort: 'nextFollowUp', dir: 'asc' }); break;
-      case 'nurture': Object.assign(p, { milestone: 'nurture', stageId: undefined, subStageId: undefined }); break;
-      case 'lost': Object.assign(p, period, { milestone: 'lost', stageId: undefined, subStageId: undefined }); break;
+      case 'nurture': Object.assign(p, { milestone: 'nurture', stageId: undefined, subStageId: undefined, reached: undefined }); break;
+      case 'lost': Object.assign(p, period, { milestone: 'lost', stageId: undefined, subStageId: undefined, reached: undefined, ...(!filters.dateField && countBy === 'activity' ? { dateField: 'lost' } : {}) }); break;
       default: Object.assign(p, period);
     }
     if (sort) Object.assign(p, { sort: sort.key, dir: sort.dir }); // a clicked column header wins
     return p;
-  }, [page, pageSize, search, filters, extra, sort, tab, range.from, range.to, myId]);
+  }, [page, pageSize, search, filters, extra, sort, tab, range.from, range.to, myId, countBy]);
 
   const loadLeads = useCallback(async () => {
     setLoadingLeads(true);
@@ -201,12 +214,22 @@ const LeadDashboard: React.FC = () => {
   const refreshAll = () => { loadDash(); loadLeads(); };
   const goTab = (t: Tab) => { setTab(t); setPage(1); tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
   const clearFilters = () => {
-    setFilters({ stageId: '', subStageId: '', course: '', source: '', campaign: '', assignedTo: '' });
+    setFilters({ stageId: '', subStageId: '', course: '', source: '', campaign: '', assignedTo: '', reached: '', dateField: '' });
     setExtra({ priority: '', adId: '', reEnquiry: false });
     setSearchInput(''); setSearch(''); setSort(null); setPage(1);
   };
   // Changing the stage clears the sub-stage: sub-stages belong to one stage.
   const setFilter = (k: keyof typeof filters, v: string) => { setFilters(f => ({ ...f, [k]: v, ...(k === 'stageId' ? { subStageId: '' } : {}) })); setPage(1); };
+  /** Stage dropdown: a stage the lead is in now, or "reached:<step>" (got there, later stages included). */
+  const setStageChoice = (v: string) => {
+    setFilters(f => (v.startsWith('reached:') ? { ...f, stageId: '', subStageId: '', reached: v.slice(8) } : { ...f, stageId: v, subStageId: '', reached: '' }));
+    setPage(1);
+  };
+  /** A funnel row opens the list with exactly the leads that row counts. */
+  const openFunnelStep = (key: string) => {
+    setFilters(f => ({ ...f, stageId: '', subStageId: '', reached: key === 'new' ? '' : key, dateField: '' }));
+    goTab('all');
+  };
 
   const exportExcel = async () => {
     try {
@@ -280,7 +303,7 @@ const LeadDashboard: React.FC = () => {
 
   // ── saved views ──
   const currentView = (): Record<string, string> => {
-    const v: Record<string, string> = { tab, rangeKey, ...filters, priority: extra.priority, adId: extra.adId, reEnquiry: extra.reEnquiry ? 'true' : '', search: searchInput,
+    const v: Record<string, string> = { tab, rangeKey, countBy, ...filters, priority: extra.priority, adId: extra.adId, reEnquiry: extra.reEnquiry ? 'true' : '', search: searchInput,
       ...(sort ? { sort: sort.key, dir: sort.dir } : {}), ...(rangeKey === 'custom' ? { dateFrom: custom.from, dateTo: custom.to } : {}) };
     Object.keys(v).forEach(k => { if (!v[k]) delete v[k]; });
     return v;
@@ -291,7 +314,8 @@ const LeadDashboard: React.FC = () => {
     setTab((f.tab as Tab) || 'all');
     setRangeKey((f.rangeKey as RangeKey) || 'this_month');
     if (f.rangeKey === 'custom') setCustom({ from: f.dateFrom || '', to: f.dateTo || '' });
-    setFilters({ stageId: f.stageId || '', subStageId: f.subStageId || '', course: f.course || '', source: f.source || '', campaign: f.campaign || '', assignedTo: f.assignedTo || '' });
+    setFilters({ stageId: f.stageId || '', subStageId: f.subStageId || '', course: f.course || '', source: f.source || '', campaign: f.campaign || '', assignedTo: f.assignedTo || '', reached: f.reached || '', dateField: f.dateField || '' });
+    if (f.countBy === 'created' || f.countBy === 'activity') setCountBy(f.countBy);
     setExtra({ priority: f.priority || '', adId: f.adId || '', reEnquiry: f.reEnquiry === 'true' });
     setSearchInput(f.search || ''); setSearch(f.search || '');
     setSort(f.sort ? { key: f.sort, dir: f.dir === 'asc' ? 'asc' : 'desc' } : null);
@@ -358,6 +382,13 @@ const LeadDashboard: React.FC = () => {
           <h1>Lead Dashboard</h1>
           <p>Track lead pipeline, conversions and team performance</p>
         </div>
+        <div className="ldb-head-controls">
+        <div className="ldb-countby" role="radiogroup" aria-label="Count by">
+          <button role="radio" aria-checked={countBy === 'activity'} className={countBy === 'activity' ? 'active' : ''} onClick={() => { setCountBy('activity'); setPage(1); }}
+            title="Each step is counted on the day it happened. A 3-month-old lead that reserves a seat today counts as today's seat reservation.">Happened in these dates</button>
+          <button role="radio" aria-checked={countBy === 'created'} className={countBy === 'created' ? 'active' : ''} onClick={() => { setCountBy('created'); setPage(1); }}
+            title="Leads that came in during these dates, and how far they got. Best for judging sources and campaigns.">Leads created in these dates</button>
+        </div>
         <div className="ldb-range" onClick={e => e.stopPropagation()}>
           <button className="ldb-range-btn" onClick={() => setRangeOpen(o => !o)} aria-haspopup="listbox" aria-expanded={rangeOpen}>
             <i className="bi bi-calendar3" /> {prettyRange(range)} <i className="bi bi-chevron-down" />
@@ -377,6 +408,7 @@ const LeadDashboard: React.FC = () => {
               )}
             </div>
           )}
+        </div>
         </div>
       </header>
 
@@ -419,23 +451,33 @@ const LeadDashboard: React.FC = () => {
       <section className="ldb-cards">
         <div className="ldb-card">
           <h2>Conversion Funnel</h2>
+          <p className="ldb-card-sub">
+            {countBy === 'activity'
+              ? 'Reached each stage in these dates, counted on the day it happened, whatever the lead\u2019s age.'
+              : 'Leads created in these dates, and how many of them reached each stage.'}
+          </p>
           {dash ? (
             <div className="ldb-funnel">
               <FunnelChart steps={dash.funnel} />
               <table className="ldb-mini-table">
-                <thead><tr><th>Stage</th><th className="num">Leads</th><th className="num">Conversion</th></tr></thead>
+                <thead><tr><th>Reached</th><th className="num">Leads</th>{countBy === 'created' && <th className="num">Conversion</th>}</tr></thead>
                 <tbody>
                   {dash.funnel.map((s: any, i: number) => (
-                    <tr key={s.key}>
+                    <tr key={s.key} className="ldb-click-row" onClick={() => openFunnelStep(s.key)} title={`Show these ${s.count} leads`}>
                       <td><span className="ldb-dot" style={{ background: FUNNEL_RAMP[i] }} aria-hidden="true" />{s.label}</td>
                       <td className="num">{fmtN(s.count)}</td>
-                      <td className="num" title="Share of the previous stage">{s.fromPrevious === null ? '–' : `${s.fromPrevious}%`}</td>
+                      {countBy === 'created' && <td className="num" title="Share of the previous stage">{s.fromPrevious === null ? '–' : `${s.fromPrevious}%`}</td>}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : <div className="ldb-skeleton" />}
+          <p className="ldb-footnote">
+            Each row includes leads that went further (Seat Reserved includes Enrolled). Click a row to see the leads.
+            {countBy === 'activity' && ' Different leads sit at each step, so there is no step conversion % here; switch to \u201cLeads created\u201d for that.'}
+            {' '}Demo Attended counts only when a demo meeting is marked attended.
+          </p>
         </div>
 
         <div className="ldb-card">
@@ -482,9 +524,14 @@ const LeadDashboard: React.FC = () => {
 
       {/* ── filters ── */}
       <div className="ldb-filters">
-        <select value={filters.stageId} onChange={e => setFilter('stageId', e.target.value)} aria-label="Stage" disabled={tab === 'nurture' || tab === 'lost'}>
+        <select value={filters.reached ? `reached:${filters.reached}` : filters.stageId} onChange={e => setStageChoice(e.target.value)} aria-label="Stage" disabled={tab === 'nurture' || tab === 'lost'}>
           <option value="">Stage: All</option>
-          {stages.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+          <optgroup label="Now in this stage">
+            {stages.map(s => <option key={s._id} value={s._id}>Now in: {s.name}</option>)}
+          </optgroup>
+          <optgroup label="Reached (includes later stages)">
+            {REACHED_STEPS.map(([k, label]) => <option key={k} value={`reached:${k}`}>Reached: {label}</option>)}
+          </optgroup>
         </select>
         {filters.stageId && tab !== 'nurture' && tab !== 'lost' && (subStagesByStage[filters.stageId] || []).length > 0 && (
           <select value={filters.subStageId} onChange={e => setFilter('subStageId', e.target.value)} aria-label="Sub-stage">
@@ -492,6 +539,11 @@ const LeadDashboard: React.FC = () => {
             {subStagesByStage[filters.stageId].map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
           </select>
         )}
+        <select value={filters.dateField} onChange={e => setFilter('dateField', e.target.value)} aria-label="What the dates mean" disabled={tab === 'dueToday' || tab === 'overdue' || tab === 'nurture'}
+          title="Which date the date range at the top applies to">
+          <option value="">Dates: {countBy === 'activity' ? 'when the step happened' : 'lead created'}</option>
+          {DATE_FIELDS.map(([k, label]) => <option key={k} value={k}>Dates: {label}</option>)}
+        </select>
         <select value={filters.course} onChange={e => setFilter('course', e.target.value)} aria-label="Course">
           <option value="">Course: All</option>
           {(dash?.options?.courses || []).map((c: string) => <option key={c} value={c}>{c}</option>)}

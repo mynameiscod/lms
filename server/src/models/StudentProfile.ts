@@ -19,6 +19,9 @@ export interface IStudentProfile extends Document {
     gender: 'Male' | 'Female' | 'Other' | 'Prefer not to say';
     dateOfBirth: Date;
     profilePhoto?: string; // URL to uploaded photo
+    /** Parent / guardian — used for inactivity alerts when the institute switches them on. */
+    parentName?: string;
+    parentMobile?: string;
   };
   
   // 2. Professional Profiles
@@ -132,6 +135,8 @@ const StudentProfileSchema: Schema = new Schema(
       surname: { type: String, trim: true },
       email: { type: String, required: true, lowercase: true, trim: true },
       mobileNumber: { type: String, trim: true },
+      parentName: { type: String, trim: true },
+      parentMobile: { type: String, trim: true },
       country: { type: String, trim: true },
       state: { type: String, trim: true },
       city: { type: String, trim: true },

@@ -4,6 +4,26 @@ import { Alert, Spinner } from '../../components/common';
 import { Attendance, AttendanceSummary, Batch } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import './MyAttendancePage.css';
+import { studentRulesApi, MeResponse } from '../../api/studentRulesApi';
+
+/** Today's QR check-in status (Student Rules → Office attendance). Shows nothing while that is off. */
+const TodayCheckIn: React.FC = () => {
+  const [me, setMe] = useState<MeResponse['attendance'] | null>(null);
+  useEffect(() => { studentRulesApi.me().then((r) => setMe(r.attendance)).catch(() => setMe(null)); }, []);
+  if (!me?.enabled) return null;
+  const rec = me.record;
+  const text = !rec?.inTime
+    ? 'Not checked in yet today. Scan the QR code on the classroom screen with your phone camera.'
+    : rec.outTime
+      ? `Checked in at ${rec.inTime}, checked out at ${rec.outTime}.`
+      : `Checked in at ${rec.inTime}${rec.late ? ' (late)' : ''}.${me.checkOut ? ' Scan again when you leave.' : ''}`;
+  return (
+    <div style={{ display: 'flex', gap: 10, alignItems: 'center', background: rec?.inTime ? '#f0fdf4' : '#eff6ff', border: `1px solid ${rec?.inTime ? '#86efac' : '#93c5fd'}`, borderRadius: 12, padding: '12px 14px', margin: '0 0 16px' }}>
+      <i className="fa-solid fa-qrcode" style={{ fontSize: 20, color: rec?.inTime ? '#16a34a' : '#2563eb' }} />
+      <span style={{ fontSize: 14 }}><b>Today:</b> {text}</span>
+    </div>
+  );
+};
 
 const localDate=(d:Date=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 type Preset='thisMonth'|'lastMonth'|'thisWeek'|'last7'|'custom';
@@ -32,6 +52,7 @@ export default function MyAttendancePage(){
  if(loading)return <Spinner fullScreen/>;
  return <div className="ma-page">
   <header className="ma-header"><div><h1>My Attendance</h1><p>Track your class attendance and stay consistent in your learning journey.</p></div>{batch&&<div className="ma-batch"><i className="bi bi-people"/><span>Batch <strong>{batch.name}</strong></span></div>}</header>
+  <TodayCheckIn/>
   {error&&<Alert type="error" message={error} onClose={()=>setError('')}/>} 
   <section className="ma-top-grid">
    <div className="ma-metric ma-overall"><div><span>OVERALL ATTENDANCE</span><strong>{display.percentage}%</strong><em className={display.percentage>=75?'good':'low'}>{rating}</em><small>{display.present} attended · {display.total} total classes</small></div><div className="ma-ring" style={{'--pct':`${display.percentage*3.6}deg`} as React.CSSProperties}><span>{display.percentage}%</span></div></div>

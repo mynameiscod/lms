@@ -25,7 +25,7 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     console.log(`[AUTH] Token valid for user: ${decoded.id}`);
     
     // Check if user still exists and is active
-    const user = await User.findById(decoded.id).select('isActive customRoleId role lmsDemo');
+    const user = await User.findById(decoded.id).select('isActive customRoleId role lmsDemo batchId tenantId');
     if (!user) {
       console.log('[AUTH] User not found in database');
       return res.status(401).json({ 
@@ -61,6 +61,20 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
         return res.status(403).json(ended
           ? { success: false, code: 'DEMO_ENDED', message: 'Your demo has ended. Talk to a counsellor to continue.' }
           : { success: false, code: 'DEMO_SCOPE', message: 'This is not part of the demo.' });
+      }
+    }
+    // Students: remember they used the LMS (inactivity alerts), and hold a student in a batch on the
+    // profile page until the profile is complete, when the institute has switched that on (Student Rules).
+    if (req.user!.role === 'STUDENT' && !demo?.at && (user as any).batchId) {
+      let blocked = false;
+      try {
+        const rules = await import('../services/studentRulesService');
+        rules.touchLastActive(String(user._id));
+        const tenantId = String((user as any).tenantId || '');
+        blocked = !!tenantId && !rules.profileGateAllows(req.method, req.originalUrl, String(user._id)) && await rules.profileGateBlocks(tenantId, String(user._id));
+      } catch { blocked = false; } // a rules lookup failing must never log the student out (the catch below answers 401)
+      if (blocked) {
+        return res.status(403).json({ success: false, code: 'PROFILE_INCOMPLETE', message: 'Complete your profile to 100% to use the LMS.' });
       }
     }
     next();

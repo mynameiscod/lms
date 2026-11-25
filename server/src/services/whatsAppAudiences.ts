@@ -184,8 +184,35 @@ const careerPilot: AudienceSource = {
   },
 };
 
+/* ── Inactive LMS students (Student Rules) ── */
+const INACTIVE_BANDS = [
+  { value: '2', label: '2+ days' }, { value: '3', label: '3+ days' }, { value: '7', label: '7+ days' }, { value: '14', label: '14+ days' },
+];
+const inactiveStudentsSource: AudienceSource = {
+  key: 'inactive_students',
+  label: 'Inactive LMS students',
+  description: 'Students in a running batch who have not opened the LMS for a while',
+  async filters(tenantId) {
+    const { inactiveStudents } = await import('./studentRulesService');
+    const list = await inactiveStudents(tenantId, 2);
+    return [
+      { key: 'days', label: 'Not opened the LMS for', single: true, options: INACTIVE_BANDS.map((b) => ({ ...b, count: list.filter((s) => s.daysInactive >= Number(b.value)).length })) },
+      { key: 'who', label: 'Send to', single: true, options: [{ value: 'student', label: 'The students' }, { value: 'parent', label: 'Their parents' }] },
+    ];
+  },
+  async resolve(tenantId, pick) {
+    const { inactiveStudents } = await import('./studentRulesService');
+    const days = Number(picked(pick, 'days')[0] || 2);
+    const toParent = picked(pick, 'who')[0] === 'parent';
+    const list = await inactiveStudents(tenantId, Number.isFinite(days) ? days : 2);
+    return list
+      .map((s) => (toParent ? { phone: s.parentMobile, name: s.parentName || 'Parent' } : { phone: s.phone, name: s.name }))
+      .filter((r) => r.phone);
+  },
+};
+
 /** The order here is the order on screen. Add a new module's people here. */
-export const AUDIENCE_SOURCES: AudienceSource[] = [hackathons, battles, events, placement, careerPilot];
+export const AUDIENCE_SOURCES: AudienceSource[] = [hackathons, battles, events, placement, careerPilot, inactiveStudentsSource];
 
 export const getAudienceSource = (key: string) => AUDIENCE_SOURCES.find((s) => s.key === key);
 

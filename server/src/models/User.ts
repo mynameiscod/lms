@@ -12,6 +12,8 @@ export interface IUser extends Document {
   batchId?: mongoose.Types.ObjectId;
   placementBatchIds?: mongoose.Types.ObjectId[]; // extra placement batches; home batch stays batchId
   batchJoinedDate?: Date;
+  /** Last time this person used the LMS (set at most hourly by authMiddleware) — drives inactivity alerts. */
+  lmsLastActiveAt?: Date;
   customRoleId?: mongoose.Types.ObjectId;
   managerId?: mongoose.Types.ObjectId;
   leadDataScope?: 'ALL' | 'TEAM' | 'OWN';
@@ -224,6 +226,7 @@ const UserSchema: Schema = new Schema(
       type: Date,
       default: null
     },
+    lmsLastActiveAt: { type: Date },
     customRoleId: {
       type: mongoose.Types.ObjectId,
       ref: 'Role',

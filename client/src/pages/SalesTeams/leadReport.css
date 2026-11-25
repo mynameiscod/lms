@@ -13,7 +13,7 @@
 .lrp-tabs button > i { grid-row: 1 / span 2; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--soft); color: var(--navy); font-size: 20px; }
 .lrp-tab-label { font-size: 15px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lrp-tab-n { font-size: 28px; font-weight: 800; line-height: 1.05; color: var(--ink); }
-.lrp-tab-over { position: absolute; top: 12px; right: 12px; padding: 3px 9px; border-radius: 999px; background: var(--red-bg); color: var(--red); font-size: 13px; font-weight: 800; font-style: normal; }
+.lrp-tab-over { grid-column: 2; justify-self: start; margin-top: 2px; padding: 2px 9px; border-radius: 999px; background: var(--red-bg); color: var(--red); font-size: 13px; font-weight: 800; font-style: normal; }
 .lrp-tabs button.on { border-color: var(--navy); background: var(--navy); box-shadow: 0 10px 24px rgba(5, 29, 100, .18); }
 .lrp-tabs button.on > i { background: rgba(255, 255, 255, .14); color: #fff; }
 .lrp-tabs button.on .lrp-tab-label { color: rgba(255, 255, 255, .8); }

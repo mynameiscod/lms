@@ -39,7 +39,7 @@
 .stm-form .dmo-check input, .dmo-check input { width: 18px; height: 18px; min-height: 0; flex: none; accent-color: var(--navy); }
 .dmo-check.big { align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; }
 .dmo-check.big input { margin-top: 3px; }
-.dmo-check.big span { display: flex; flex-direction: column; gap: 4px; }
+.dmo-check.big > span { display: flex; flex-direction: column; gap: 4px; }
 .dmo-check.big small { font-weight: 500; color: var(--muted); font-size: 14px; line-height: 1.45; }
 .dmo-repeat-body { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end; }
 .dmo-weekdays { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -53,6 +53,8 @@
 .dmo-join-pick button small { display: block; font-size: 13.5px; color: var(--muted); font-weight: 500; line-height: 1.4; margin-top: 2px; }
 .dmo-join-pick button.on { border-color: var(--navy); background: var(--tint); }
 .dmo-join-pick button:disabled { opacity: .45; cursor: not-allowed; }
+.stm-form .dmo-lbl, .dmo-lbl { display: block; }
+.dmo-lbl em { font-style: normal; font-weight: 500; color: var(--muted); }
 .dmo-p { margin: 0; font-size: 15.5px; line-height: 1.55; color: var(--text); }
 .dmo-p.small { font-size: 14.5px; color: var(--muted); }
 
@@ -90,7 +92,7 @@
 .dmo-snippet summary { cursor: pointer; font-weight: 700; color: var(--navy); font-size: 15px; }
 .dmo-snippet pre { margin: 10px 0; padding: 12px; background: #0E1B3D; color: #E2E8F0; border-radius: 10px; font-size: 13px; overflow-x: auto; white-space: pre; }
 
-@media (max-width: 1280px) {
+@media (max-width: 1100px) {
   .dmo-slot { grid-template-columns: 84px minmax(0, 1fr) 170px; }
   .dmo-slot-actions { grid-column: 1 / -1; justify-content: flex-start; padding-top: 10px; border-top: 1px solid var(--line); }
   .dmo-report-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -105,6 +107,7 @@
   .dmo-form .dmo-grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) {
+  .dmo-wide { display: none; }
   .dmo-form .dmo-grid2, .dmo-form .dmo-grid3, .dmo-settings .dmo-grid2, .dmo-join-pick { grid-template-columns: minmax(0, 1fr); }
   .dmo-seg { width: 100%; }
   .dmo-seg button { flex: 1; padding: 9px 8px; }

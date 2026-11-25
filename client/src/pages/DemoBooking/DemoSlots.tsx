@@ -30,8 +30,8 @@ export default function DemoSlots() {
         </div>
       </header>
       <nav className="stm-tabs big" role="tablist">
-        {([['slots', 'bi-calendar-week', 'Slots'], ['report', 'bi-bar-chart', 'Report'], ['settings', 'bi-gear', 'Settings & website']] as const).map(([k, ic, l]) => (
-          <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><i className={`bi ${ic}`} /> {l}</button>
+        {([['slots', 'bi-calendar-week', 'Slots', ''], ['report', 'bi-bar-chart', 'Report', ''], ['settings', 'bi-gear', 'Settings', ' & website']] as const).map(([k, ic, l, more]) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><i className={`bi ${ic}`} /> <span>{l}{more && <span className="dmo-wide">{more}</span>}</span></button>
         ))}
       </nav>
       {tab === 'slots' && <SlotsTab onToast={setToast} />}
@@ -213,14 +213,14 @@ function SlotDialog({ slot, onClose, onSaved }: { slot: DemoSlot | null; onClose
             <input list="dmo-courses" value={f.course} onChange={(e) => set('course', e.target.value)} disabled={!!slot} required maxLength={120} placeholder="e.g. Java Full Stack" />
             <datalist id="dmo-courses">{courses.map((c) => <option key={c} value={c} />)}</datalist>
           </label>
-          <label>Title <em>(optional)</em>
+          <label><span className="dmo-lbl">Title <em>(optional)</em></span>
             <input value={f.title} onChange={(e) => set('title', e.target.value)} maxLength={160} placeholder={f.course ? `Free demo: ${f.course}` : 'Free demo: <course>'} />
           </label>
         </div>
         <div className="dmo-grid3">
           <label>{slot ? 'Date' : 'First date'}<input type="date" value={f.date} min={today} onChange={(e) => set('date', e.target.value)} required /></label>
-          <label>Start time <em>(IST)</em><input type="time" value={f.time} onChange={(e) => set('time', e.target.value)} required /></label>
-          <label>Duration <em>(min)</em><input type="number" min={10} max={480} value={f.durationMin} placeholder={String(cfg?.defaultDurationMin ?? 60)} onChange={(e) => set('durationMin', e.target.value)} required={!!slot} /></label>
+          <label><span className="dmo-lbl">Start time <em>(IST)</em></span><input type="time" value={f.time} onChange={(e) => set('time', e.target.value)} required /></label>
+          <label><span className="dmo-lbl">Duration <em>(min)</em></span><input type="number" min={10} max={480} value={f.durationMin} placeholder={String(cfg?.defaultDurationMin ?? 60)} onChange={(e) => set('durationMin', e.target.value)} required={!!slot} /></label>
         </div>
 
         {!slot && (
@@ -242,7 +242,7 @@ function SlotDialog({ slot, onClose, onSaved }: { slot: DemoSlot | null; onClose
 
         <div className="dmo-grid3">
           <label>Seats<input type="number" min={slot ? Math.max(1, slot.booked) : 1} max={1000} value={f.seats} placeholder={String(cfg?.defaultSeats ?? 30)} onChange={(e) => set('seats', e.target.value)} required={!!slot} /></label>
-          <label>Booking closes <em>(min before)</em><input type="number" min={0} max={10080} value={f.cutoffMin} placeholder={String(cfg?.defaultCutoffMin ?? 30)} onChange={(e) => set('cutoffMin', e.target.value)} required={!!slot} /></label>
+          <label><span className="dmo-lbl">Booking closes <em>(min before)</em></span><input type="number" min={0} max={10080} value={f.cutoffMin} placeholder={String(cfg?.defaultCutoffMin ?? 30)} onChange={(e) => set('cutoffMin', e.target.value)} required={!!slot} /></label>
           <label>Who runs it
             <select value={f.hostId} onChange={(e) => set('hostId', e.target.value)} required>
               <option value="">Choose…</option>
@@ -266,7 +266,7 @@ function SlotDialog({ slot, onClose, onSaved }: { slot: DemoSlot | null; onClose
         {f.joinMethod === 'link' && (
           <label>Meeting link<input type="url" value={f.meetingLink} onChange={(e) => set('meetingLink', e.target.value)} required placeholder="https://meet.google.com/… or https://zoom.us/j/…" /></label>
         )}
-        <label>What the demo covers <em>(optional, shown on the booking page)</em>
+        <label><span className="dmo-lbl">What the demo covers <em>(optional, shown on the booking page)</em></span>
           <textarea rows={2} maxLength={1000} value={f.description} onChange={(e) => set('description', e.target.value)} placeholder="e.g. A live walk-through of the course, projects and placement support, with Q&A." />
         </label>
         <div className="stm-form-actions">
@@ -291,7 +291,7 @@ function CancelDialog({ slot, onClose, onDone }: { slot: DemoSlot; onClose: () =
       <form className="stm-form" onSubmit={go}>
         {err && <div className="stm-alert" role="alert">{err}</div>}
         <p className="dmo-p">{slot.title}, {fmtWhen(slot.startsAt)}. The {slot.booked} {slot.booked === 1 ? 'person' : 'people'} booked will get a message with a link to pick another time, and their demo is cancelled on their lead.</p>
-        <label>Reason <em>(optional, saved on each lead)</em><input value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Trainer unavailable" /></label>
+        <label><span className="dmo-lbl">Reason <em>(optional, saved on each lead)</em></span><input value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Trainer unavailable" /></label>
         <div className="stm-form-actions">
           <button type="button" className="stm-btn" onClick={onClose}>Keep it</button>
           <button type="submit" className="stm-btn danger-solid" disabled={busy}>{busy ? 'Cancelling…' : 'Cancel the demo'}</button>
@@ -492,13 +492,13 @@ function SettingsTab({ onToast }: { onToast: (s: string) => void }) {
         <form className="stm-form" onSubmit={save}>
           {err && <div className="stm-alert" role="alert">{err}</div>}
           <label className="dmo-check big"><input type="checkbox" checked={cfg.moveToDemoStage} onChange={(e) => set('moveToDemoStage', e.target.checked)} />
-            <span>Move the lead to the <b>Demo</b> stage when they book<small>Only forward: a lead already at Seat reserved or Enrolled stays where it is. Uses the stage marked with the Demo milestone in Lead Pipeline.</small></span>
+            <span><span className="dmo-lbl">Move the lead to the <b>Demo</b> stage when they book</span><small>Only forward: a lead already at Seat reserved or Enrolled stays where it is. Uses the stage marked with the Demo milestone in Lead Pipeline.</small></span>
           </label>
           <div className="dmo-grid2">
-            <label>Seats per slot <em>(default)</em><input type="number" min={1} max={1000} value={cfg.defaultSeats} onChange={(e) => set('defaultSeats', Number(e.target.value))} /></label>
-            <label>Booking closes <em>(minutes before, default)</em><input type="number" min={0} max={10080} value={cfg.defaultCutoffMin} onChange={(e) => set('defaultCutoffMin', Number(e.target.value))} /></label>
-            <label>Duration <em>(minutes, default)</em><input type="number" min={10} max={480} value={cfg.defaultDurationMin} onChange={(e) => set('defaultDurationMin', Number(e.target.value))} /></label>
-            <label>Counts as attended after <em>(minutes in our room)</em><input type="number" min={1} max={240} value={cfg.attendedMinutes} onChange={(e) => set('attendedMinutes', Number(e.target.value))} /></label>
+            <label><span className="dmo-lbl">Seats per slot <em>(default)</em></span><input type="number" min={1} max={1000} value={cfg.defaultSeats} onChange={(e) => set('defaultSeats', Number(e.target.value))} /></label>
+            <label><span className="dmo-lbl">Booking closes <em>(minutes before, default)</em></span><input type="number" min={0} max={10080} value={cfg.defaultCutoffMin} onChange={(e) => set('defaultCutoffMin', Number(e.target.value))} /></label>
+            <label><span className="dmo-lbl">Duration <em>(minutes, default)</em></span><input type="number" min={10} max={480} value={cfg.defaultDurationMin} onChange={(e) => set('defaultDurationMin', Number(e.target.value))} /></label>
+            <label><span className="dmo-lbl">Counts as attended after <em>(minutes in our room)</em></span><input type="number" min={1} max={240} value={cfg.attendedMinutes} onChange={(e) => set('attendedMinutes', Number(e.target.value))} /></label>
           </div>
           <label>Booking page heading<input value={cfg.pageTitle} maxLength={120} onChange={(e) => set('pageTitle', e.target.value)} /></label>
           <label>Booking page line<input value={cfg.pageSubtitle} maxLength={300} onChange={(e) => set('pageSubtitle', e.target.value)} /></label>

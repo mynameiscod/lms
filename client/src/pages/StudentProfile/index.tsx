@@ -18,6 +18,8 @@ import './StudentProfile.css';
 import ProfileView from './ProfileView';
 import { confirmDialog } from '../../components/feedback/appFeedback';
 import { useProfileGate } from '../../contexts/ProfileGateContext';
+import { AgreementConsentList, PendingAgreementsCard, usePendingAgreements, allAgreed, SignedRecordModal } from '../../components/agreements/AgreementConsent';
+import { acceptAll, agreementsApi, Consent, SignedRecord } from '../../api/agreementsApi';
 
 interface OAuthStatus {
   github: { connected: boolean; username?: string; profileUrl?: string; connectedAt?: string };
@@ -28,7 +30,7 @@ const StudentProfilePage: React.FC = () => {
   const { user, updateProfile } = useAuth();
   const { gate, blocked: gateBlocked, refresh: refreshGate } = useProfileGate();
   // Student Rules → Profile gate: what is still needed before the rest of the LMS opens.
-  const gateBanner = gateBlocked && gate ? (
+  const gateBanner = gateBlocked && gate && gate.profileRule && !gate.profileComplete ? (
     <div style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
       <div style={{ fontWeight: 700, color: '#9a3412', marginBottom: 4 }}>
         <i className="fa-solid fa-lock" /> Complete your profile to unlock the LMS ({gate.percent}% done)
@@ -41,6 +43,30 @@ const StudentProfilePage: React.FC = () => {
       </div>
     </div>
   ) : null;
+  // Terms & agreements (admin page /agreements): accepted on the last step, or from the card on the profile view.
+  const { pending: pendingAgreements, accepted: acceptedAgreements, reload: reloadAgreements } = usePendingAgreements(user?.role === 'STUDENT');
+  const [consents, setConsents] = useState<Record<string, Consent>>({});
+  const [consentTried, setConsentTried] = useState(false);
+  const [record, setRecord] = useState<SignedRecord | null>(null);
+  const agreementsDone = () => { reloadAgreements(); refreshGate(); setConsents({}); setConsentTried(false); };
+  const agreementsBlock = (
+    <>
+      <PendingAgreementsCard pending={pendingAgreements} onDone={agreementsDone} />
+      {acceptedAgreements.length > 0 && (
+        <div style={{ fontSize: 13, color: '#475569', margin: '0 0 14px' }}>
+          <i className="fa-solid fa-file-signature" /> Agreed:{' '}
+          {acceptedAgreements.map((a, i) => (
+            <React.Fragment key={a.id}>
+              {i > 0 && ', '}
+              <button type="button" onClick={async () => { try { setRecord(await agreementsApi.myRecord(a.id)); } catch { /* ignore */ } }}
+                style={{ background: 'none', border: 'none', padding: 0, color: '#2563eb', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>{a.title}</button>
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+      {record && <SignedRecordModal record={record} onClose={() => setRecord(null)} />}
+    </>
+  );
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -356,6 +382,30 @@ const StudentProfilePage: React.FC = () => {
     }
   };
 
+  /** Complete Profile: every pending term must be accepted (and signed, where asked) first. */
+  const handleComplete = async () => {
+    if (pendingAgreements.length) {
+      setConsentTried(true);
+      if (!allAgreed(pendingAgreements, consents)) {
+        setError('Please open and accept the Terms & Conditions before submitting.');
+        return;
+      }
+      try {
+        setSaving(true);
+        await acceptAll(pendingAgreements, consents);
+      } catch (e: any) {
+        setSaving(false);
+        setError(e.message);
+        reloadAgreements();
+        return;
+      }
+      setSaving(false);
+    }
+    const ok = await handleSave(true);
+    if (pendingAgreements.length) agreementsDone();
+    return ok;
+  };
+
   const handleNext = async () => {
     if (currentStep < totalSteps) {
       const errors = validateStep(currentStep);
@@ -480,6 +530,7 @@ const StudentProfilePage: React.FC = () => {
     return (
       <div className="student-profile-page">
         {gateBanner}
+        {agreementsBlock}
         <ProfileView
           profile={profile}
           photoUrl={profilePhotoPreview || profile.personalInfo?.profilePhoto || null}
@@ -1446,6 +1497,13 @@ const StudentProfilePage: React.FC = () => {
           </div>
         )}
 
+        {currentStep === totalSteps && pendingAgreements.length > 0 && (
+          <div style={{ margin: '18px 0 6px' }}>
+            <h3 style={{ fontSize: 16, margin: '0 0 8px' }}>📜 Terms &amp; Conditions</h3>
+            <AgreementConsentList agreements={pendingAgreements} consents={consents} onChange={setConsents} showErrors={consentTried} />
+          </div>
+        )}
+
         {/* Navigation Buttons */}
         <div className="form-navigation">
           <div className="nav-left">
@@ -1484,7 +1542,7 @@ const StudentProfilePage: React.FC = () => {
               <button 
                 type="button" 
                 className="btn btn-success"
-                onClick={() => handleSave(true)}
+                onClick={handleComplete}
                 disabled={saving}
               >
                 {saving ? '⏳ Submitting...' : '✅ Complete Profile'}

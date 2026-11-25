@@ -58,8 +58,13 @@ export interface CheckInResult {
 }
 
 export interface ProfileGate {
+  /** Something holds this student on the profile page: the profile rule, or an agreement to accept. */
   enabled: boolean; complete: boolean; percent: number; requireParentMobile: boolean;
   missing: { section: string; fields: string[] }[];
+  /** The complete-your-profile rule is on, and whether this profile meets it. */
+  profileRule?: boolean; profileComplete?: boolean;
+  /** Live agreements marked "hold the LMS until accepted" this student has not accepted yet. */
+  agreements?: { id: string; title: string }[];
 }
 
 export interface MeResponse {

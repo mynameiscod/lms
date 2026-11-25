@@ -9,6 +9,7 @@ import StudentProfile from '../models/StudentProfile';
 import StudentActivityLog from '../models/StudentActivityLog';
 import { computeProfileCompleteness, computeProfileMissing } from '../utils/profileCompleteness';
 import { sendByPurpose, purposeTemplate, estimateCost } from './purposeMessaging';
+import * as agreements from './agreementService';
 
 /**
  * Student Rules (see models/StudentRules.ts): office QR attendance, inactivity alerts, profile gate.
@@ -314,8 +315,11 @@ const GATE_TTL = 60_000;
 
 export async function profileGateStatus(tenantId: string, userId: string) {
   const r = await getRules(tenantId);
-  const enabled = !!r.profileGate.enabled;
-  const profile = await StudentProfile.findOne({ userId, tenantId }).lean<any>();
+  const profileRule = !!r.profileGate.enabled;
+  const [profile, mine] = await Promise.all([
+    StudentProfile.findOne({ userId, tenantId }).lean<any>(),
+    agreements.mine(tenantId, userId).catch(() => ({ pending: [] as any[] })),
+  ]);
   const percent = computeProfileCompleteness(profile);
   const missing = computeProfileMissing(profile);
   const parentMissing = r.profileGate.requireParentMobile && !String(profile?.personalInfo?.parentMobile || '').trim();
@@ -323,15 +327,25 @@ export async function profileGateStatus(tenantId: string, userId: string) {
     const sec = missing.find((m) => m.section === 'Personal Info');
     if (sec) sec.fields.push('Parent / guardian mobile'); else missing.unshift({ section: 'Personal Info', fields: ['Parent / guardian mobile'] });
   }
-  const complete = percent >= 100 && !parentMissing;
+  const profileComplete = percent >= 100 && !parentMissing;
+  // Terms & agreements the admin marked "hold the LMS until accepted" hold the student here too.
+  const blockingAgreements = (mine.pending || []).filter((a: any) => a.blockLms).map((a: any) => ({ id: a.id, title: a.title }));
+  const enabled = profileRule || blockingAgreements.length > 0;
+  const complete = (!profileRule || profileComplete) && blockingAgreements.length === 0;
   gateCache.set(`${tenantId}:${userId}`, { blocked: enabled && !complete, at: Date.now() });
-  return { enabled, complete, percent, missing, requireParentMobile: r.profileGate.requireParentMobile };
+  return {
+    enabled, complete, profileRule, profileComplete, percent,
+    missing: profileRule ? missing : [], requireParentMobile: r.profileGate.requireParentMobile, agreements: blockingAgreements,
+  };
 }
+
+/** Forget the cached answer, e.g. right after the student accepts an agreement. */
+export function forgetGate(tenantId: string, userId: string) { gateCache.delete(`${tenantId}:${userId}`); }
 
 /** Called on every student request — cheap: one cached settings read, one cached profile read a minute. */
 export async function profileGateBlocks(tenantId: string, userId: string): Promise<boolean> {
   const r = await getRules(tenantId);
-  if (!r.profileGate.enabled) return false;
+  if (!r.profileGate.enabled) return (await agreements.blockingCount(tenantId, userId)) > 0;
   const hit = gateCache.get(`${tenantId}:${userId}`);
   if (hit && Date.now() - hit.at < GATE_TTL) return hit.blocked;
   const st = await profileGateStatus(tenantId, userId);
@@ -340,7 +354,7 @@ export async function profileGateBlocks(tenantId: string, userId: string): Promi
 
 const API = '/api/v1';
 /** What a student with an incomplete profile can still reach: enough to log in and finish the profile. */
-const GATE_OPEN = ['/auth', '/student-profile', '/oauth', '/student-rules/me', '/student-rules/attendance/check-in']; // being in class still counts
+const GATE_OPEN = ['/auth', '/student-profile', '/oauth', '/student-rules/me', '/student-rules/attendance/check-in', '/agreements']; // check-in: being in class still counts; agreements: so they can be accepted
 const GATE_READ = ['/tenants', '/system-settings', '/notifications', '/student-features', '/batch-modules', '/tenant-modules'];
 const under = (path: string, prefix: string) => path === `${API}${prefix}` || path.startsWith(`${API}${prefix}/`);
 

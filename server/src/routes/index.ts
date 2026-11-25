@@ -16,6 +16,7 @@ import roleRoutes from './roleRoutes';
 import batchRoutes from './batchRoutes';
 import attendanceRoutes from './attendanceRoutes';
 import studentRulesRoutes from './studentRulesRoutes';
+import agreementRoutes from './agreementRoutes';
 import quizRoutes from './quizRoutes';
 import questionRoutes from './questionRoutes';
 import contentRoutes from './contentRoutes';
@@ -288,6 +289,7 @@ router.use('/roles', roleRoutes);
 router.use('/batches', batchRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/student-rules', studentRulesRoutes); // office QR attendance, inactivity alerts, profile gate
+router.use('/agreements', agreementRoutes); // terms & agreements students accept (and sign)
 router.use('/quizzes', careerPilotMemberActivity, quizRoutes);
 router.use('/assessment-items', assessmentItemRoutes);
 router.use('/hackathon-exams', hackathonExamRoutes);

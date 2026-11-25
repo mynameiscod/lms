@@ -9,6 +9,7 @@
  */
 
 import { CP_API_PREFIXES, CP_API_BASES, CP_FEATURE_KEYS } from './careerPilotFeatures';
+import { CRM_API_PREFIXES, CRM_FEATURE_KEYS } from './crmFeatures';
 
 export const ORIGINAL_MODULES = [
   'courses', 'attendance', 'quizzes', 'assignments', 'classRecordings', 'codeAssessments', 'mockInterviews',
@@ -41,6 +42,16 @@ export const MODULE_PARENT = {
   cpRoadmap: 'careerPilot',
   cpPractice: 'careerPilot',
   cpRewards: 'careerPilot',
+  // Leads / CRM, one feature at a time (crmFeatures.ts). Each follows leads until the platform administrator sets it.
+  crmPipeline: 'leads',
+  crmReports: 'leads',
+  crmSalesTeams: 'leads',
+  crmLeadReport: 'leads',
+  crmAutomation: 'leads',
+  crmSources: 'leads',
+  crmCalling: 'leads',
+  crmSalesContent: 'leads',
+  crmArchive: 'leads',
 } as const;
 
 /**
@@ -67,6 +78,10 @@ export function effectiveModules(stored: Record<string, unknown> | null | undefi
   }
   // A CareerPilot feature is part of CareerPilot: never on while CareerPilot itself is off.
   for (const k of CP_FEATURE_KEYS) out[k as ModuleKey] = out.careerPilot && out[k as ModuleKey];
+  // A CRM feature is part of the CRM: never on while Leads / CRM itself is off.
+  for (const k of CRM_FEATURE_KEYS) out[k as ModuleKey] = out.leads && out[k as ModuleKey];
+  // The Lead Report lists team members' leads: nothing to show without Sales Teams.
+  (out as any).crmLeadReport = (out as any).crmLeadReport && (out as any).crmSalesTeams;
   for (const k of ADMIN_MODULES) out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : true;
   return out;
 }
@@ -85,12 +100,12 @@ export const API_MODULE_PREFIXES: [string, ModuleKey][] = [
   ['/code-snippets', 'codeAssessments'], ['/coding-practice', 'codeAssessments'], ['/playground', 'codeAssessments'],
   ['/interview-questions', 'mockInterviews'], ['/interview-module', 'mockInterviews'], ['/scheduled-interviews', 'mockInterviews'],
   ['/college/placement', 'placement'], ['/college/alumni', 'placement'], ['/college/crt', 'placement'], ['/placement-partners', 'placement'],
-  ['/leads', 'leads'], ['/lead-stages', 'leads'], ['/lead-pipeline', 'leads'], ['/lead-views', 'leads'], ['/lead-reports', 'leads'], ['/lead-automation', 'leads'], ['/lead-dispositions', 'leads'], ['/lead-form-config', 'leads'],
+  ['/leads', 'leads'], ['/lead-stages', 'leads'], ['/lead-pipeline', 'leads'], ['/lead-views', 'leads'], ['/lead-reports', 'leads'], ['/lead-dispositions', 'leads'], ['/lead-form-config', 'leads'],
   ['/stage-history', 'leads'], ['/follow-ups', 'leads'], ['/lead-priority', 'leads'], ['/qualification', 'leads'],
-  ['/sales-content', 'leads'], ['/lead-ai', 'leads'], ['/lost-reasons', 'leads'], ['/google-sheet-integrations', 'leads'],
-  ['/lead-scoring', 'leads'], ['/lead-source-config', 'leads'], ['/lead-assignment', 'leads'],
+  ['/sales-content', 'leads'], ['/lead-ai', 'leads'], ['/lost-reasons', 'leads'],
+  ['/lead-scoring', 'leads'], ['/lead-assignment', 'leads'],
   ['/whatsapp-drip-config', 'leads'], ['/meetings', 'leads'], ['/sales-call-recordings', 'leads'], ['/ai-calls', 'leads'],
-  ['/outpero', 'leads'], ['/event-apis', 'leads'], ['/lead-archive', 'leads'], ['/meta-crm', 'leads'],
+  ['/lead-archive', 'leads'],
   ['/seat-reservations', 'feeManagement'], ['/fees', 'feeManagement'],
   ['/thinking-lab', 'thinkingLab'], ['/drills', 'thinkingLab'],
   ['/speaking', 'speakingPractice'],
@@ -116,6 +131,8 @@ export const API_MODULE_PREFIXES: [string, ModuleKey][] = [
   // CareerPilot: the whole product follows its module; each feature has its own switch on top (longest prefix wins)
   ...CP_API_BASES.map((b): [string, ModuleKey] => [b, 'careerPilot']),
   ...(CP_API_PREFIXES as [string, ModuleKey][]),
+  // CRM features with an API of their own (each is off whenever leads is off); the rest of /leads… stays under leads
+  ...(CRM_API_PREFIXES as [string, ModuleKey][]),
   ['/employees', 'employees'], ['/employee-portal', 'employees'], ['/employee-activity', 'employees'],
   ['/employee-expenses', 'expenses'], ['/company-expenses', 'expenses'],
   ['/ai-usage', 'aiSpend'], ['/admin/logs', 'apiLogs'], ['/tenant-integrations', 'integrations'], ['/concerns', 'concerns'],

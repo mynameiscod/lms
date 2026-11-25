@@ -211,8 +211,26 @@ const inactiveStudentsSource: AudienceSource = {
   },
 };
 
+const agreementPendingSource: AudienceSource = {
+  key: 'agreement_pending',
+  label: 'Terms not yet accepted',
+  description: 'Students who have not accepted a live Terms & Agreement yet — for a reminder',
+  async filters(tenantId) {
+    const { list } = await import('./agreementService');
+    const live = (await list(tenantId)).filter((a: any) => a.status === 'live');
+    return [{ key: 'agreement', label: 'Agreement', single: true, options: live.map((a: any) => ({ value: a.id, label: a.title, count: a.counts.pending })) }];
+  },
+  async resolve(tenantId, pick) {
+    const id = picked(pick, 'agreement')[0];
+    if (!id) return [];
+    const { responses } = await import('./agreementService');
+    const r = await responses(tenantId, id);
+    return r.rows.filter((x) => x.status !== 'accepted' && x.phone).map((x) => ({ phone: x.phone, name: x.name }));
+  },
+};
+
 /** The order here is the order on screen. Add a new module's people here. */
-export const AUDIENCE_SOURCES: AudienceSource[] = [hackathons, battles, events, placement, careerPilot, inactiveStudentsSource];
+export const AUDIENCE_SOURCES: AudienceSource[] = [hackathons, battles, events, placement, careerPilot, inactiveStudentsSource, agreementPendingSource];
 
 export const getAudienceSource = (key: string) => AUDIENCE_SOURCES.find((s) => s.key === key);
 

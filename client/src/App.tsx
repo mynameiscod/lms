@@ -102,6 +102,7 @@ const ProblemBankApi = lazy(() => import('./pages/ProblemBank/ApiAccess'));
 const ProblemBundles = lazy(() => import('./pages/ProblemBundles'));
 const PracticePassAdmin = lazy(() => import('./pages/PracticePass'));
 const StudentRulesPage = lazy(() => import('./pages/StudentRules'));
+const AgreementsPage = lazy(() => import('./pages/Agreements'));
 const AttendanceQrScreen = lazy(() => import('./pages/AttendanceQr'));
 const AttendanceCheckIn = lazy(() => import('./pages/AttendanceCheckIn'));
 const EmployeeDirectory = lazy(() => import('./pages/Employees/EmployeeDirectory'));
@@ -1600,6 +1601,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_student_rules', 'manage_tenant_settings', 'manage_tenant']}>
             <Layout>
               <StudentRulesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/agreements"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_agreements', 'manage_student_rules', 'manage_tenant_settings', 'manage_tenant']}>
+            <Layout>
+              <AgreementsPage />
             </Layout>
           </ProtectedRoute>
         }

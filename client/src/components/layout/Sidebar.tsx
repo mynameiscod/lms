@@ -176,6 +176,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'My Attendance', path: '/my-attendance', roles: ['INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: 'fa-solid fa-calendar-check', permissions: ['view_attendance'] },
         { label: 'Reports', path: '/attendance-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-pie', permissions: ['view_reports'] },
         { label: 'Student Rules', path: '/student-rules', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-scale-balanced', permissions: ['manage_student_rules', 'manage_tenant_settings', 'manage_tenant'] },
+        { label: 'Terms & Agreements', path: '/agreements', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-file-signature', permissions: ['manage_agreements', 'manage_student_rules', 'manage_tenant_settings', 'manage_tenant'] },
       ]
     },
     {

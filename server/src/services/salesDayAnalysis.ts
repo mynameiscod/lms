@@ -22,7 +22,7 @@ import { istRange } from '../utils/istTime';
 
 export const GROUP_MS = 10 * 60 * 1000;
 const SYSTEM_RE = /^(🤖|📞 AI call|📣|⚠️ No call or note|✅ Follow-up done|\[AUTO DRIP\]|AI call outcome)|\(broadcast\)|calls in a row without an answer/;
-const WORK_TYPES = new Set(['call', 'whatsapp', 'email', 'note', 'status_change', 'meeting']);
+export const WORK_TYPES = new Set(['call', 'whatsapp', 'email', 'note', 'status_change', 'meeting']);
 const OPEN_FOLLOWUP = ['scheduled', 'pending', 'missed', 'rescheduled'];
 
 /** Written by the system on someone's behalf, not by the person. */

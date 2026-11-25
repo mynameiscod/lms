@@ -123,4 +123,45 @@ describe('Sales lead report', () => {
     await report.unmarkProbable(V('bda1'), String(esha._id));
     expect((await report.leadReport(V('bda1'), { view: 'probables' })).tabs.probables).toBe(2);
   });
+
+  it('Worked today: new leads plus older ones the person worked on, counted for whoever did the work', async () => {
+    const act = (type: string, by: string, when: Date, extra: any = {}) => ({ _id: new mongoose.Types.ObjectId(), type, description: extra.description || `${type} entry`, createdBy: ids[by], createdAt: when, ...extra });
+    const push = (name: string, ...acts: any[]) => db().collection('leads').updateOne({ tenantId: tid, name }, { $push: { activities: { $each: acts } } } as any);
+    // bda1 calls an older lead (connected) and moves it; sends a WhatsApp on bda2's lead.
+    await push('Chitra', act('call', 'bda1', at(12), { callOutcome: 'connected' }), act('status_change', 'bda1', at(12.1)));
+    await push('Gita', act('whatsapp', 'bda1', at(13)));
+    // An automatic entry written as bda1 is not work; a call yesterday is not today.
+    await push('Deepa', act('note', 'bda1', at(14), { description: '🤖 Workflow message sent' }));
+    await push('Esha', act('call', 'bda1', new Date(start.getTime() - 86400_000)));
+    // bda2 marks a follow-up done on an older lead.
+    await push('Esha', act('note', 'bda2', at(15), { description: '✅ Follow-up done: call back' }));
+
+    const r: any = await report.leadReport(V('mgr'), { view: 'worked' });
+    expect(r.rows.map((x: any) => x.name).sort()).toEqual(['Asha', 'Bala', 'Chitra', 'Esha', 'Farah', 'Gita']);
+    expect(r.tabs).toMatchObject({ worked: 6, workedNew: 3 });
+    const count = (n: string) => r.stages.find((s: any) => s.name === n);
+    expect(count('Contacting')).toMatchObject({ count: 3, subStages: [{ name: 'Busy', count: 1 }, { name: 'No answer', count: 1 }, { name: 'No sub-stage', count: 1 }] });
+    expect(count('New').count).toBe(1);
+    expect(count('Enrolled').count).toBe(1);
+    expect(count('No stage').count).toBe(1);
+    expect(r.members.find((m: any) => m.userId === String(ids.bda1))).toMatchObject({ worked: 4, workedNew: 2 });
+    expect(r.members.find((m: any) => m.userId === String(ids.bda2))).toMatchObject({ worked: 2, workedNew: 1 });
+    const chitra = r.rows.find((x: any) => x.name === 'Chitra');
+    expect(chitra.doneToday).toMatchObject({ isNew: false, calls: 1, connected: 1, stageMoves: 1, by: ['bda1 K'] });
+    expect(r.rows.find((x: any) => x.name === 'Asha').doneToday.isNew).toBe(true);
+    expect(r.rows.find((x: any) => x.name === 'Esha').doneToday).toMatchObject({ followUpsDone: 1, calls: 0 });
+
+    // A member sees the leads they worked on, including a teammate's lead they messaged.
+    const mine: any = await report.leadReport(V('bda1'), { view: 'worked' });
+    expect(mine.rows.map((x: any) => x.name).sort()).toEqual(['Asha', 'Bala', 'Chitra', 'Gita']);
+    expect(mine.rows.find((x: any) => x.name === 'Gita').doneToday).toMatchObject({ whatsapp: 1 });
+    // The stage filter narrows the list but not the counts; search works too.
+    const busy: any = await report.leadReport(V('mgr'), { view: 'worked', stageId: String(sContact._id), subStageId: String(subBusy._id) });
+    expect(busy.rows.map((x: any) => x.name)).toEqual(['Bala']);
+    expect(busy.tabs.worked).toBe(6);
+    expect((await report.leadReport(V('mgr'), { view: 'worked', q: 'chit' })).rows.map((x: any) => x.name)).toEqual(['Chitra']);
+    // Yesterday: bda1's call on Esha, and Gita, assigned to bda2 yesterday.
+    const y = istDay(new Date(start.getTime() - 3600_000));
+    expect((await report.leadReport(V('mgr'), { view: 'worked', day: y })).tabs.worked).toBe(2);
+  });
 });

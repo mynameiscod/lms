@@ -9,6 +9,7 @@ import { SalesTeam } from '../models/SalesTeam';
 import { milestoneFromLegacy } from '../config/leadMilestones';
 import { istDay, istRange } from '../utils/istTime';
 import { SalesError, Viewer } from './salesTeamService';
+import { WORK_TYPES, isSystemEntry, groupEntries } from './salesDayAnalysis';
 
 /**
  * LEAD REPORT — the Sales Teams view of leads by stage and sub-stage. Read-only on leads; the only thing
@@ -23,6 +24,10 @@ import { SalesError, Viewer } from './salesTeamService';
  *              follow-up was before today. The same rule as Leads → Follow-up queue, so the numbers agree.
  *   All        every unarchived lead the people own.
  *   Probables  leads marked as likely to join a batch, grouped by the batch's start date.
+ *   Worked     every lead the person worked on that day (2026-11-25): their new leads, plus any older lead
+ *              they called, messaged, added a note or follow-up to, moved, booked a demo for, or marked a
+ *              follow-up done on. Counted for the person who did the work, whoever owns the lead. The same
+ *              activities as My Day (automatic entries never count), plus "follow-up done".
  *
  * Every tab returns the count of each stage and of each sub-stage inside it, worked out on the whole tab
  * (person, team and search applied; the stage being clicked is not), so the counts never move as you filter.
@@ -36,7 +41,7 @@ const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const PAGE_SIZE = 50;
 const EXPORT_MAX = 5000;
 
-export const REPORT_VIEWS = ['new', 'followups', 'all', 'probables'] as const;
+export const REPORT_VIEWS = ['new', 'worked', 'followups', 'all', 'probables'] as const;
 export type ReportView = typeof REPORT_VIEWS[number];
 const NONE = 'none';
 
@@ -135,6 +140,10 @@ export async function leadReport(viewer: Viewer, query: ReportQuery) {
     base.$or = [{ name: re }, { phone: re }, { email: re }];
   }
 
+  // Worked that day: one pass over that day's activities of these people (also gives the tab and member counts).
+  const worked = await workedOnDay(t, people, start, end, base.$or);
+  const workedIds = [...worked.leads.keys()].map(oid);
+
   // Probables in the people's leads (a small set: read once, used by the tab and the badges).
   const probableRows: any[] = await LeadProbable.find({ tenantId: t }).lean();
   const probableByLead = new Map(probableRows.map((p) => [String(p.leadId), p]));
@@ -159,6 +168,7 @@ export async function leadReport(viewer: Viewer, query: ReportQuery) {
     view === 'new' ? newFilter
       : view === 'followups' ? (due === 'today' ? dueToday : due === 'overdue' ? overdue : followAll)
         : view === 'probables' ? { ...base, _id: { $in: probableLeadIds } }
+          : view === 'worked' ? { tenantId: t, archivedAt: null, _id: { $in: workedIds } }
           : { ...base };
 
   // Stage / sub-stage filter (applies to the table only, not to the counts).
@@ -182,12 +192,12 @@ export async function leadReport(viewer: Viewer, query: ReportQuery) {
   const [stageCounts, total, leads, tabCounts, memberCounts] = await Promise.all([
     Lead.aggregate([{ $match: viewFilter }, { $group: { _id: { s: '$stageId', ss: '$subStageId' }, n: { $sum: 1 } } }]),
     Lead.countDocuments(rowFilter),
-    view === 'probables'
+    view === 'probables' || view === 'worked'
       ? Lead.find(rowFilter).select(ROW_FIELDS).populate('assignedTo', 'firstName lastName email').lean()
       : Lead.find(rowFilter).select(ROW_FIELDS).populate('assignedTo', 'firstName lastName email')
         .sort({ ...sort, _id: 1 }).skip(query.exportAll ? 0 : (page - 1) * limit).limit(limit).lean(),
     Promise.all([newFilter, dueToday, overdue, base, probAll].map((f) => Lead.countDocuments(f))),
-    scope.as === 'member' ? Promise.resolve(null) : memberBreakdown(people, { newFilter, dueToday, overdue, base, probAll }),
+    scope.as === 'member' ? Promise.resolve(null) : memberBreakdown(people, { newFilter, dueToday, overdue, base, probAll }, worked.perPerson),
   ]);
 
   // Probables sort by batch start, then the order they were marked, and page in memory (the set is small).
@@ -197,7 +207,14 @@ export async function leadReport(viewer: Viewer, query: ReportQuery) {
     pageLeads.sort((a, b) => (+p(a)?.batchStart || 0) - (+p(b)?.batchStart || 0) || (+p(a)?.createdAt || 0) - (+p(b)?.createdAt || 0));
     if (!query.exportAll) pageLeads = pageLeads.slice((page - 1) * limit, page * limit);
   }
+  // Worked: the latest work first, paged in memory (one day of one team's work).
+  if (view === 'worked') {
+    const at = (l: any) => +(worked.leads.get(String(l._id))?.lastAt || 0);
+    pageLeads.sort((a, b) => at(b) - at(a));
+    if (!query.exportAll) pageLeads = pageLeads.slice((page - 1) * limit, page * limit);
+  }
 
+  const nameById = new Map(scope.teams.flatMap((x) => x.members).map((m) => [m._id, m.name]));
   const stageById = new Map(book.stages.map((s) => [String(s._id), s]));
   const subById = new Map(book.subs.map((s) => [String(s._id), s]));
   const rows = pageLeads.map((l: any) => {
@@ -224,6 +241,7 @@ export async function leadReport(viewer: Viewer, query: ReportQuery) {
       lastContactedAt: l.lastContactedAt || null,
       lastCallOutcome: l.lastCallOutcome || null,
       probable: pr ? probableView(pr, l.stageId && book.enrolled.has(String(l.stageId))) : null,
+      doneToday: view === 'worked' ? doneView(worked.leads.get(String(l._id)), nameById) : null,
     };
   });
 
@@ -232,7 +250,7 @@ export async function leadReport(viewer: Viewer, query: ReportQuery) {
     view, day, today, live: day === today, as: scope.as,
     teams: scope.teams,
     filters: { teamId, userId, stageId, subStageId, due, batchId, q },
-    tabs: { new: nNew, followups: nDue + nOver, dueToday: nDue, overdue: nOver, all: nAll, probables: nProb },
+    tabs: { new: nNew, worked: worked.leads.size, workedNew: worked.newCount, followups: nDue + nOver, dueToday: nDue, overdue: nOver, all: nAll, probables: nProb },
     stages: stageTree(book, stageCounts as any[]),
     total, page, pageSize: limit, pages: Math.max(1, Math.ceil(total / limit)),
     rows,
@@ -281,14 +299,94 @@ function stageTree(book: Awaited<ReturnType<typeof stageBook>>, counts: { _id: {
   return out;
 }
 
+/* ═══════════════════════════════ Worked that day ═══════════════════════════════ */
+
+interface Done {
+  isNew: boolean; calls: number; connected: number; whatsapp: number; notes: number; stageMoves: number;
+  meetings: number; followUpsDone: number; by: Set<string>; lastAt: Date | null;
+}
+const FOLLOW_UP_DONE_RE = /^✅ Follow-up done/;
+const inRange = (d: any, start: Date, end: Date) => !!d && new Date(d) >= start && new Date(d) <= end;
+
+/**
+ * The leads these people worked on in [start, end]: what was done on each, and per person how many leads
+ * (and how many of those were new to them). A lead counts for a person when it was assigned to them that
+ * day, or they logged real work on it (WORK_TYPES, never automatic entries), or they marked one of its
+ * follow-ups done. `search` is the report's name/phone/email $or, when there is one.
+ */
+export async function workedOnDay(t: mongoose.Types.ObjectId, people: string[], start: Date, end: Date, search?: any[]) {
+  const leads = new Map<string, Done>();
+  const perPerson = new Map<string, { worked: number; workedNew: number }>(people.map((p) => [p, { worked: 0, workedNew: 0 }]));
+  if (!people.length) return { leads, perPerson, newCount: 0 };
+  const ids = people.map(oid);
+  const match: any = {
+    tenantId: t, archivedAt: null,
+    $and: [{ $or: [
+      { activities: { $elemMatch: { createdBy: { $in: ids }, createdAt: { $gte: start, $lte: end } } } },
+      { assignedTo: { $in: ids }, 'assignment.assignedAt': { $gte: start, $lte: end } },
+      { assignedTo: { $in: ids }, 'assignment.assignedAt': { $exists: false }, createdAt: { $gte: start, $lte: end } },
+    ] }, ...(search?.length ? [{ $or: search }] : [])],
+  };
+  const rows: any[] = await Lead.aggregate([
+    { $match: match },
+    { $project: {
+      assignedTo: 1, createdAt: 1, assignedAt: '$assignment.assignedAt',
+      acts: { $filter: { input: { $ifNull: ['$activities', []] }, as: 'a', cond: { $and: [
+        { $in: ['$$a.createdBy', ids] }, { $gte: ['$$a.createdAt', start] }, { $lte: ['$$a.createdAt', end] },
+      ] } } },
+    } },
+  ]);
+  let newCount = 0;
+  for (const l of rows) {
+    const id = String(l._id);
+    const d: Done = { isNew: false, calls: 0, connected: 0, whatsapp: 0, notes: 0, stageMoves: 0, meetings: 0, followUpsDone: 0, by: new Set(), lastAt: null };
+    const owner = l.assignedTo ? String(l.assignedTo) : '';
+    const assigned = l.assignedAt || (owner && inRange(l.createdAt, start, end) ? l.createdAt : null);
+    for (const p of people) {
+      const mine = (l.acts || []).filter((a: any) => String(a.createdBy) === p);
+      const work = mine.filter((a: any) => !isSystemEntry(a) && WORK_TYPES.has(a.type));
+      const fuDone = mine.filter((a: any) => FOLLOW_UP_DONE_RE.test(String(a.description || ''))).length;
+      const isNew = owner === p && inRange(assigned, start, end);
+      if (!work.length && !fuDone && !isNew) continue;
+      const calls = groupEntries(work.filter((a: any) => a.type === 'call'), id);
+      d.calls += calls.length;
+      d.connected += calls.filter((g) => g.outcome === 'connected').length;
+      d.whatsapp += groupEntries(work.filter((a: any) => a.type === 'whatsapp'), id).length;
+      d.notes += work.filter((a: any) => a.type === 'note' || a.type === 'email').length;
+      d.stageMoves += work.filter((a: any) => a.type === 'status_change').length;
+      d.meetings += work.filter((a: any) => a.type === 'meeting').length;
+      d.followUpsDone += fuDone;
+      d.isNew = d.isNew || isNew;
+      d.by.add(p);
+      for (const a of mine) if (!d.lastAt || new Date(a.createdAt) > d.lastAt) d.lastAt = new Date(a.createdAt);
+      if (isNew && (!d.lastAt || new Date(assigned) > d.lastAt)) d.lastAt = new Date(assigned);
+      const pp = perPerson.get(p)!;
+      pp.worked++;
+      if (isNew) pp.workedNew++;
+    }
+    if (d.by.size) { leads.set(id, d); if (d.isNew) newCount++; }
+  }
+  return { leads, perPerson, newCount };
+}
+
+/** What was done on a lead that day, for the "Done today" column. */
+function doneView(d: Done | undefined, names: Map<string, string>) {
+  if (!d) return null;
+  return {
+    isNew: d.isNew, calls: d.calls, connected: d.connected, whatsapp: d.whatsapp, notes: d.notes,
+    stageMoves: d.stageMoves, meetings: d.meetings, followUpsDone: d.followUpsDone, lastAt: d.lastAt,
+    by: [...d.by].map((id) => names.get(id) || 'User'),
+  };
+}
+
 /** The tab counts for each person, for a manager's or admin's "by member" strip. */
-async function memberBreakdown(people: string[], f: Record<'newFilter' | 'dueToday' | 'overdue' | 'base' | 'probAll', any>) {
+async function memberBreakdown(people: string[], f: Record<'newFilter' | 'dueToday' | 'overdue' | 'base' | 'probAll', any>, worked?: Map<string, { worked: number; workedNew: number }>) {
   const keys = ['new', 'dueToday', 'overdue', 'all', 'probables'] as const;
   const lists = await Promise.all([f.newFilter, f.dueToday, f.overdue, f.base, f.probAll].map((m) =>
     Lead.aggregate([{ $match: m }, { $group: { _id: '$assignedTo', n: { $sum: 1 } } }])));
   const out = new Map<string, Record<string, number>>(people.map((p) => [p, { new: 0, dueToday: 0, overdue: 0, all: 0, probables: 0 }]));
   lists.forEach((rows, i) => { for (const r of rows as any[]) { const e = out.get(String(r._id)); if (e) e[keys[i]] = r.n; } });
-  return [...out.entries()].map(([userId, c]) => ({ userId, ...c }));
+  return [...out.entries()].map(([userId, c]) => ({ userId, ...c, worked: worked?.get(userId)?.worked || 0, workedNew: worked?.get(userId)?.workedNew || 0 }));
 }
 
 /** Probables per batch (soonest start first), with how many have already joined (lead now in an enrolled stage). */

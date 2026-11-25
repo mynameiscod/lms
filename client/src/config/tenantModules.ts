@@ -15,6 +15,9 @@ export const ORIGINAL_MODULE_KEYS = [
 /** The CareerPilot features: parts of CareerPilot, never on while CareerPilot itself is off. */
 export const CAREERPILOT_FEATURE_KEYS = ['cpMembers', 'cpSetup', 'cpPathways', 'cpCareerMap', 'cpAssessment', 'cpContent', 'cpRoadmap', 'cpPractice', 'cpRewards'] as const;
 
+/** The Leads / CRM features: parts of the CRM, never on while Leads / CRM itself is off. Mirrors server/src/config/crmFeatures.ts. */
+export const CRM_FEATURE_KEYS = ['crmPipeline', 'crmReports', 'crmSalesTeams', 'crmLeadReport', 'crmAutomation', 'crmSources', 'crmCalling', 'crmSalesContent', 'crmArchive'] as const;
+
 export const MODULE_PARENT = {
   skillAssessment: 'leads',
   whatsapp: 'leads',
@@ -39,6 +42,16 @@ export const MODULE_PARENT = {
   cpRoadmap: 'careerPilot',
   cpPractice: 'careerPilot',
   cpRewards: 'careerPilot',
+  // Leads / CRM, one feature at a time. Each follows leads until the platform administrator sets it.
+  crmPipeline: 'leads',
+  crmReports: 'leads',
+  crmSalesTeams: 'leads',
+  crmLeadReport: 'leads',
+  crmAutomation: 'leads',
+  crmSources: 'leads',
+  crmCalling: 'leads',
+  crmSalesContent: 'leads',
+  crmArchive: 'leads',
 } as const;
 
 /** The institute-admin menu. Unset reads as ON for institutes that existed before; new ones start with all off. */
@@ -59,6 +72,8 @@ export function effectiveModules(stored?: Partial<Record<string, unknown>> | nul
     out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : out[parent];
   }
   for (const k of CAREERPILOT_FEATURE_KEYS) out[k] = out.careerPilot && out[k];
+  for (const k of CRM_FEATURE_KEYS) out[k] = out.leads && out[k];
+  out.crmLeadReport = out.crmLeadReport && out.crmSalesTeams; // lists team members' leads
   for (const k of ADMIN_MODULE_KEYS) out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : true;
   return out;
 }
@@ -113,6 +128,16 @@ export const MODULE_DEFS: ModuleDef[] = [
   { group: 'Admissions & money', key: 'skillAssessment', label: 'Skill Assessment', icon: 'fa-solid fa-clipboard-question', desc: 'Public skill assessment funnel & candidates' },
   { group: 'Admissions & money', key: 'marketing', label: 'Marketing', icon: 'fa-solid fa-bullhorn', desc: 'Campaigns, analytics, insights' },
   { group: 'Admissions & money', key: 'feeManagement', label: 'Fee Management', icon: 'fa-solid fa-wallet', desc: 'Seat reservations, payments, receipts, installments' },
+
+  { group: 'CRM features', key: 'crmPipeline', label: 'CRM: Pipeline, stages & sub-stages', icon: 'fa-solid fa-stairs', desc: 'Lead stages and sub-stages, qualification questions, lead form settings' },
+  { group: 'CRM features', key: 'crmReports', label: 'CRM: Dashboards & reports', icon: 'fa-solid fa-chart-simple', desc: 'Admissions dashboard, analytics, manager board, team activity, my performance' },
+  { group: 'CRM features', key: 'crmSalesTeams', label: 'CRM: Sales Teams', icon: 'fa-solid fa-sitemap', desc: 'Teams and managers, My Team and My Day daily reports' },
+  { group: 'CRM features', key: 'crmLeadReport', label: 'CRM: Lead Report & probables', icon: 'fa-solid fa-chart-column', desc: 'Leads by stage and sub-stage, follow-ups and overdue, probables per batch (needs Sales Teams)' },
+  { group: 'CRM features', key: 'crmAutomation', label: 'CRM: Automation & assignment', icon: 'fa-solid fa-diagram-project', desc: 'Workflows, CRM automation, lead assignment, lead scoring, priority settings' },
+  { group: 'CRM features', key: 'crmSources', label: 'CRM: Lead sources & integrations', icon: 'fa-solid fa-plug-circle-bolt', desc: 'Lead sources, Meta sync, Google Sheets, event APIs for the website' },
+  { group: 'CRM features', key: 'crmCalling', label: 'CRM: Calling (AI calls & Callyzer)', icon: 'fa-solid fa-phone-volume', desc: 'Outpero AI calls, AI call settings, Callyzer SIM calls and recordings' },
+  { group: 'CRM features', key: 'crmSalesContent', label: 'CRM: Sales content', icon: 'fa-solid fa-file-invoice', desc: 'Brochures, fee sheets and other content counsellors share' },
+  { group: 'CRM features', key: 'crmArchive', label: 'CRM: Archive & audit logs', icon: 'fa-solid fa-box-archive', desc: 'Archive and restore leads, lead audit logs' },
 
   { group: 'Institute admin', key: 'userManagement', label: 'Users', icon: 'fa-solid fa-users', desc: 'Add and manage students, instructors and staff' },
   { group: 'Institute admin', key: 'rolesManagement', label: 'Roles', icon: 'fa-solid fa-user-shield', desc: 'Custom roles and permissions' },
@@ -169,8 +194,16 @@ const PATH_MODULE: [string, ModuleKey][] = ([
   ['/admin/concerns', 'concerns'], ['/admin/support', 'careerPilot'], ['/admin/branding', 'branding'], ['/student-features', 'studentFeatures'], ['/admin/integrations', 'integrations'],
   ['/employee', 'employees'], ['/employees', 'employees'], ['/employee-activity', 'employees'], ['/employee-portal', 'employees'], ['/expenses', 'expenses'],
   ['/admin/ai-spend', 'aiSpend'], ['/admin/logs', 'apiLogs'],
-  ['/leads', 'leads'], ['/follow-ups', 'leads'], ['/follow-up-queue', 'leads'], ['/admissions-dashboard', 'leads'], ['/meta-sync', 'leads'], ['/lead-', 'leads'], ['/team-activity', 'leads'], ['/sales-content', 'leads'],
-  ['/qualification-settings', 'leads'], ['/google-sheet-integration', 'leads'], ['/admin/outpero', 'leads'], ['/event-apis', 'leads'], ['/ai-call-config', 'leads'],
+  ['/leads', 'leads'], ['/follow-ups', 'leads'], ['/follow-up-queue', 'leads'], ['/lead-', 'leads'],
+  // each CRM screen under its own switch (mirrors server/src/config/crmFeatures.ts `paths`)
+  ['/lead-stages', 'crmPipeline'], ['/qualification-settings', 'crmPipeline'], ['/lead-form-settings', 'crmPipeline'],
+  ['/admissions-dashboard', 'crmReports'], ['/leads/analytics', 'crmReports'], ['/lead-manager-board', 'crmReports'], ['/team-activity', 'crmReports'], ['/lead-my-performance', 'crmReports'],
+  ['/sales-teams', 'crmSalesTeams'], ['/my-team', 'crmSalesTeams'], ['/my-day', 'crmSalesTeams'], ['/lead-report', 'crmLeadReport'],
+  ['/workflows', 'crmAutomation'], ['/lead-automation', 'crmAutomation'], ['/lead-assignment-settings', 'crmAutomation'], ['/lead-scoring-settings', 'crmAutomation'], ['/lead-priority-settings', 'crmAutomation'],
+  ['/lead-sources', 'crmSources'], ['/meta-sync', 'crmSources'], ['/google-sheet-integration', 'crmSources'], ['/event-apis', 'crmSources'],
+  ['/admin/outpero', 'crmCalling'], ['/ai-call-config', 'crmCalling'], ['/admin/callyzer', 'crmCalling'],
+  ['/sales-content', 'crmSalesContent'],
+  ['/leads/archive', 'crmArchive'], ['/lead-audit-logs', 'crmArchive'],
 ] as [string, ModuleKey][]).sort((a, b) => b[0].length - a[0].length);
 
 export function moduleForPath(path?: string): ModuleKey | null {

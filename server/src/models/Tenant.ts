@@ -85,6 +85,15 @@ export interface ITenantModules {
   cpRoadmap?: boolean;
   cpPractice?: boolean;
   cpRewards?: boolean;
+  crmPipeline?: boolean;
+  crmReports?: boolean;
+  crmSalesTeams?: boolean;
+  crmLeadReport?: boolean;
+  crmAutomation?: boolean;
+  crmSources?: boolean;
+  crmCalling?: boolean;
+  crmSalesContent?: boolean;
+  crmArchive?: boolean;
   whatsapp?: boolean;
   learningPlans?: boolean;
   certificates?: boolean;
@@ -328,6 +337,15 @@ const TenantSchema: Schema = new Schema(
       cpRoadmap: { type: Boolean },
       cpPractice: { type: Boolean },
       cpRewards: { type: Boolean },
+      crmPipeline: { type: Boolean },
+      crmReports: { type: Boolean },
+      crmSalesTeams: { type: Boolean },
+      crmLeadReport: { type: Boolean },
+      crmAutomation: { type: Boolean },
+      crmSources: { type: Boolean },
+      crmCalling: { type: Boolean },
+      crmSalesContent: { type: Boolean },
+      crmArchive: { type: Boolean },
       whatsapp: { type: Boolean },
       learningPlans: { type: Boolean },
       certificates: { type: Boolean },

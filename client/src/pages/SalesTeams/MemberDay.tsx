@@ -3,7 +3,9 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   salesTeamApi, stErr, MemberDay as Data, HistoryRow, Rating, RATING_LABEL, LeadRow, fmtDay, talk, timeOf, mins, speedTone, outcomeLabel,
 } from '../../api/salesTeamApi';
-import { DayPicker, LivePill, Avatar, TargetBar, ReviewChip, Toast, useToast, Empty, Loading } from './shared';
+import { DayPicker, LivePill, Avatar, TargetBar, ReviewChip, Toast, useToast, Empty, Loading, SectionTabs } from './shared';
+import { LeadReportPanel } from './LeadReport';
+import { useTenantModules } from '../../contexts/TenantModulesContext';
 import './salesTeams.css';
 
 /**
@@ -14,6 +16,7 @@ import './salesTeams.css';
  * One row per lead (never one row per timeline entry): when it was assigned, when it was first called,
  * how many minutes that took, calls and their outcome, the stage it is in now and the next follow-up.
  * Entries the system wrote on the person's behalf are hidden unless asked for.
+ * The Leads tab is this person's lead report: stages, sub-stages, new / worked today, follow-ups, probables.
  */
 type Filter = 'all' | 'new' | 'notCalled' | 'missing' | 'connected';
 
@@ -32,6 +35,15 @@ export default function MemberDay() {
   const [open, setOpen] = useState<string>('');
   const [tick, setTick] = useState(Date.now());
   const [toast, setToast] = useToast();
+  const { isModuleEnabled } = useTenantModules();
+  const leadsOn = isModuleEnabled('crmLeadReport' as any);
+  const section = params.get('tab') === 'leads' && leadsOn ? 'leads' : 'day';
+  const setSection = (k: string, extra: Record<string, string> = {}) => {
+    const p = new URLSearchParams(params);
+    if (k === 'leads') p.set('tab', 'leads'); else p.delete('tab');
+    for (const [a, b] of Object.entries(extra)) p.set(a, b);
+    setParams(p, { replace: true });
+  };
 
   const load = useCallback(() => {
     const p = self ? salesTeamApi.myDay(day || undefined) : salesTeamApi.memberDay(userId!, day || undefined);
@@ -62,16 +74,6 @@ export default function MemberDay() {
       return true;
     });
   }, [data, filter, q]);
-  const stages = useMemo(() => {
-    const m = new Map<string, { name: string; color: string; n: number }>();
-    for (const r of data?.leads || []) {
-      const k = r.stage?.name || 'No stage';
-      const cur = m.get(k) || { name: k, color: r.stage?.color || '#94a3b8', n: 0 };
-      cur.n++;
-      m.set(k, cur);
-    }
-    return [...m.values()].sort((a, b) => b.n - a.n);
-  }, [data]);
 
   if (err && !data) return <div className="stm"><div className="stm-alert">{err}</div></div>;
   if (!data) return <div className="stm"><Loading /></div>;
@@ -105,6 +107,9 @@ export default function MemberDay() {
         </div>
       </header>
 
+      {leadsOn && <SectionTabs value={section} onChange={k => setSection(k)} tabs={[['day', 'bi-calendar-day', 'Day report'], ['leads', 'bi-diagram-3', 'Leads']]} />}
+
+      {section === 'leads' ? <LeadReportPanel embedded userId={self ? '' : userId} /> : (
       <div className="stm-day-grid">
         <div className="stm-day-main">
           {/* Speed to call: the first thing a manager checks */}
@@ -141,11 +146,11 @@ export default function MemberDay() {
               ['Leads worked', m.leadsWorked], ['Leads moved stage', m.leadsMovedForward], ['WhatsApp (leads)', m.leadsMessaged], ['Notes written', m.notes],
               ['Demos', m.demos], ['Seats reserved', m.seats], ['Enrollments', m.enrollments],
             ]} />
+            {/* Stage and sub-stage counts live in one place: Leads → Worked today. */}
             <div className="stm-group">
-              <h3><i className="bi bi-diagram-3" /> Status now</h3>
-              {stages.length === 0 ? <p className="stm-muted">No leads this day.</p> : (
-                <ul className="stm-stages">{stages.map(s => <li key={s.name}><i style={{ background: s.color }} />{s.name}<b>{s.n}</b></li>)}</ul>
-              )}
+              <h3><i className="bi bi-diagram-3" /> Stages</h3>
+              <p className="stm-muted">{m.leadsWorked} lead{m.leadsWorked === 1 ? '' : 's'} worked this day. See them by stage and sub-stage, with every lead.</p>
+              {leadsOn ? <button type="button" className="stm-btn sm" onClick={() => setSection('leads', { view: 'worked' })}><i className="bi bi-diagram-3" /> Worked {data.day === data.today ? 'today' : 'this day'} by stage <i className="bi bi-arrow-right" /></button> : null}
             </div>
           </section>
 
@@ -290,6 +295,7 @@ export default function MemberDay() {
           )}
         </aside>
       </div>
+      )}
       <Toast text={toast} />
     </div>
   );

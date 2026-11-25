@@ -1,3 +1,9 @@
+/* The lead report as a tab inside My Team / a member's page / Sales Teams: no page padding of its own. */
+.stm.lrp-embed { padding: 0; max-width: none; margin: 0; }
+.lrp-embed-bar { display: flex; justify-content: flex-end; }
+.lrp-embed-bar:empty, .lrp-embed-bar .stm-head-side:empty { display: none; }
+@media (max-width: 760px) { .lrp-embed-bar .stm-head-side { width: 100%; } }
+
 /* Sales Teams (AdminSalesTeams, MyTeam, MemberDay). CodeBegun palette; sizes written for the laptop zoom of .75
    like the other staff screens, so text reads at about 11–12 px on screen at 1280. */
 .stm, .stm-modal-bg {

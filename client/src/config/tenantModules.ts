@@ -16,7 +16,7 @@ export const ORIGINAL_MODULE_KEYS = [
 export const CAREERPILOT_FEATURE_KEYS = ['cpMembers', 'cpSetup', 'cpPathways', 'cpCareerMap', 'cpAssessment', 'cpContent', 'cpRoadmap', 'cpPractice', 'cpRewards'] as const;
 
 /** The Leads / CRM features: parts of the CRM, never on while Leads / CRM itself is off. Mirrors server/src/config/crmFeatures.ts. */
-export const CRM_FEATURE_KEYS = ['crmPipeline', 'crmReports', 'crmSalesTeams', 'crmLeadReport', 'crmAutomation', 'crmSources', 'crmCalling', 'crmSalesContent', 'crmArchive'] as const;
+export const CRM_FEATURE_KEYS = ['crmPipeline', 'crmReports', 'crmSalesTeams', 'crmLeadReport', 'crmAutomation', 'crmSources', 'crmCalling', 'crmSalesContent', 'crmArchive', 'crmDemoBooking'] as const;
 
 export const MODULE_PARENT = {
   skillAssessment: 'leads',
@@ -52,6 +52,7 @@ export const MODULE_PARENT = {
   crmCalling: 'leads',
   crmSalesContent: 'leads',
   crmArchive: 'leads',
+  crmDemoBooking: 'leads',
 } as const;
 
 /** The institute-admin menu. Unset reads as ON for institutes that existed before; new ones start with all off. */
@@ -74,6 +75,7 @@ export function effectiveModules(stored?: Partial<Record<string, unknown>> | nul
   for (const k of CAREERPILOT_FEATURE_KEYS) out[k] = out.careerPilot && out[k];
   for (const k of CRM_FEATURE_KEYS) out[k] = out.leads && out[k];
   out.crmLeadReport = out.crmLeadReport && out.crmSalesTeams; // lists team members' leads
+  out.crmDemoBooking = out.leads && raw.crmDemoBooking === true; // opens a public page: off until switched on
   for (const k of ADMIN_MODULE_KEYS) out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : true;
   return out;
 }
@@ -138,6 +140,7 @@ export const MODULE_DEFS: ModuleDef[] = [
   { group: 'CRM features', key: 'crmCalling', label: 'CRM: Calling (AI calls & Callyzer)', icon: 'fa-solid fa-phone-volume', desc: 'Outpero AI calls, AI call settings, Callyzer SIM calls and recordings' },
   { group: 'CRM features', key: 'crmSalesContent', label: 'CRM: Sales content', icon: 'fa-solid fa-file-invoice', desc: 'Brochures, fee sheets and other content counsellors share' },
   { group: 'CRM features', key: 'crmArchive', label: 'CRM: Archive & audit logs', icon: 'fa-solid fa-box-archive', desc: 'Archive and restore leads, lead audit logs' },
+  { group: 'CRM features', key: 'crmDemoBooking', label: 'CRM: Book a demo', icon: 'fa-solid fa-calendar-check', desc: 'Demo slots, the public booking page for the website, join links, attendance (starts off)' },
 
   { group: 'Institute admin', key: 'userManagement', label: 'Users', icon: 'fa-solid fa-users', desc: 'Add and manage students, instructors and staff' },
   { group: 'Institute admin', key: 'rolesManagement', label: 'Roles', icon: 'fa-solid fa-user-shield', desc: 'Custom roles and permissions' },
@@ -204,6 +207,7 @@ const PATH_MODULE: [string, ModuleKey][] = ([
   ['/admin/outpero', 'crmCalling'], ['/ai-call-config', 'crmCalling'], ['/admin/callyzer', 'crmCalling'],
   ['/sales-content', 'crmSalesContent'],
   ['/leads/archive', 'crmArchive'], ['/lead-audit-logs', 'crmArchive'],
+  ['/demo-slots', 'crmDemoBooking'],
 ] as [string, ModuleKey][]).sort((a, b) => b[0].length - a[0].length);
 
 export function moduleForPath(path?: string): ModuleKey | null {

@@ -94,6 +94,7 @@ export interface ITenantModules {
   crmCalling?: boolean;
   crmSalesContent?: boolean;
   crmArchive?: boolean;
+  crmDemoBooking?: boolean;
   whatsapp?: boolean;
   learningPlans?: boolean;
   certificates?: boolean;
@@ -346,6 +347,7 @@ const TenantSchema: Schema = new Schema(
       crmCalling: { type: Boolean },
       crmSalesContent: { type: Boolean },
       crmArchive: { type: Boolean },
+      crmDemoBooking: { type: Boolean },
       whatsapp: { type: Boolean },
       learningPlans: { type: Boolean },
       certificates: { type: Boolean },

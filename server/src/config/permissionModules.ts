@@ -60,6 +60,7 @@ export const PERMISSION_MODULE: Record<string, ModuleKey> = {
   archive_leads: 'crmArchive' as ModuleKey,
   view_lead_analytics: 'crmReports' as ModuleKey,
   manage_event_apis: 'crmSources' as ModuleKey,
+  manage_demo_slots: 'crmDemoBooking' as ModuleKey,
   // Practice & Coding: one tool each
   manage_practice_pass: 'practicePass',
   manage_problem_bank: 'problemBank',

@@ -36,6 +36,7 @@ import { startPracticePassScheduler } from './jobs/practicePassCron';
 import { startInactivityScheduler } from './jobs/inactivityCron';
 import { startInterviewHubScheduler } from './jobs/interviewHubCron';
 import { startInterviewReminderScheduler } from './jobs/interviewReminderCron';
+import { startDemoBookingScheduler } from './jobs/demoBookingCron';
 import { startLiveClassReminderScheduler } from './jobs/liveClassReminderCron';
 import { startBattleReminderScheduler } from './jobs/battleReminderCron';
 import { startPlacementReminderScheduler } from './jobs/placementReminderCron';
@@ -424,6 +425,9 @@ const startServer = async () => {
 
     // Start live-class "starts soon" reminder scheduler (in-app + email, 20m lead)
     startLiveClassReminderScheduler();
+
+    // CRM: Book a demo — reminders (1 day / 1 hour) and attendance after a room slot ends (every 2 min)
+    startDemoBookingScheduler();
 
     // Start Tech Battle reminder scheduler (email link at 24h / 1h / live, every 2 min)
     startBattleReminderScheduler();

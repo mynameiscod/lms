@@ -22,6 +22,8 @@ export interface PersonalInfo {
   gender: 'Male' | 'Female' | 'Other' | 'Prefer not to say';
   dateOfBirth: string;
   profilePhoto?: string;
+  parentName?: string;
+  parentMobile?: string;
 }
 
 export interface ProfessionalProfiles {

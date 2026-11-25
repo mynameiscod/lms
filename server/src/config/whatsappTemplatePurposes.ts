@@ -78,6 +78,24 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     help: 'Sent at 7 PM IST to students who have not finished today’s practice tasks. Only sent when a template is assigned here. Keep it UTILITY: a missed-practice reminder is transactional.',
   },
   {
+    key: 'INACTIVITY_STUDENT', label: 'Inactivity — nudge to the student', module: 'Student Rules',
+    settingsKey: 'WHATSAPP_TEMPLATE_INACTIVITY_STUDENT',
+    variables: ['Student first name', 'Days since they last opened the LMS (e.g. 2)'],
+    help: 'Sent in the morning (Student Rules → Inactivity alerts) to a student who has not opened the LMS for the set number of days. Once per spell of inactivity. Keep it UTILITY.',
+  },
+  {
+    key: 'INACTIVITY_TRAINER', label: 'Inactivity — daily list to the trainer', module: 'Student Rules',
+    settingsKey: 'WHATSAPP_TEMPLATE_INACTIVITY_TRAINER',
+    variables: ['Trainer first name', 'Batch name(s)', 'Number of inactive students', 'Names with days (e.g. "Ravi (3d), Priya (4d)")'],
+    help: 'ONE message per trainer, listing the students of their batches who just crossed the trainer threshold. Keep it UTILITY.',
+  },
+  {
+    key: 'INACTIVITY_PARENT', label: 'Inactivity — alert to the parent', module: 'Student Rules',
+    settingsKey: 'WHATSAPP_TEMPLATE_INACTIVITY_PARENT',
+    variables: ['Parent name (or "Parent")', 'Student name', 'Days since they last opened the LMS'],
+    help: 'Sent to the parent / guardian mobile on the student’s profile once the parent threshold is crossed. Keep it UTILITY and polite.',
+  },
+  {
     key: 'COMMUNICATION_REMINDER', label: 'Communication Coach — daily reminder', module: 'Communication Lab',
     settingsKey: 'WHATSAPP_TEMPLATE_COMMUNICATION_REMINDER',
     variables: ['Student first name', 'Where they are (e.g. "Today: 0 of 3 recordings done")'],

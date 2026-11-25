@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { loginRedirectFor } from './utils/loginPath';
 import { TenantProvider } from './contexts/TenantContext';
 import { StudentFeaturesProvider, useStudentFeatures, StudentFeatures } from './contexts/StudentFeaturesContext';
+import { ProfileGateProvider, useProfileGate, profileGateOpenPath } from './contexts/ProfileGateContext';
 import { TenantModulesProvider } from './contexts/TenantModulesContext';
 import { BatchModulesProvider } from './contexts/BatchModulesContext';
 import { SocketProvider, useSocket } from './contexts/SocketContext';
@@ -100,6 +101,9 @@ const QuestionPoolEditor = lazy(() => import('./pages/QuestionPools/PoolEditor')
 const ProblemBankApi = lazy(() => import('./pages/ProblemBank/ApiAccess'));
 const ProblemBundles = lazy(() => import('./pages/ProblemBundles'));
 const PracticePassAdmin = lazy(() => import('./pages/PracticePass'));
+const StudentRulesPage = lazy(() => import('./pages/StudentRules'));
+const AttendanceQrScreen = lazy(() => import('./pages/AttendanceQr'));
+const AttendanceCheckIn = lazy(() => import('./pages/AttendanceCheckIn'));
 const EmployeeDirectory = lazy(() => import('./pages/Employees/EmployeeDirectory'));
 const EmployeeProfile = lazy(() => import('./pages/Employees/EmployeeProfile'));
 const EmployeeSettings = lazy(() => import('./pages/Employees/EmployeeSettings'));
@@ -404,6 +408,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { isAuthenticated, loading, user } = useAuth();
   const { pathname, search } = useLocation();
   const { isFeatureEnabled: studentFeatureOn } = useStudentFeatures();
+  const { blocked: profileBlocked } = useProfileGate();
 
   if (loading) return <Spinner fullScreen />;
 
@@ -415,6 +420,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // trying to open goes along as ?next=, so the login says so and returns there afterwards.
     return <Navigate to={loginRedirectFor(pathname, search)} replace />;
   }
+
+  // Student Rules → Profile gate: the profile page only, until the profile is 100% complete.
+  if (user?.role === 'STUDENT' && profileBlocked && !profileGateOpenPath(pathname)) return <Navigate to="/profile" replace />;
 
   if (user?.role === 'STUDENT') {
     const feature = featureForStudentPath(pathname);
@@ -1585,6 +1593,30 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/student-rules"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_student_rules', 'manage_tenant_settings', 'manage_tenant']}>
+            <Layout>
+              <StudentRulesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Full-screen QR for the classroom TV / trainer laptop — no sidebar */}
+      <Route
+        path="/attendance/qr-screen"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR', 'STAFF']} requiredPermissions={['mark_attendance', 'manage_student_rules']}>
+            <AttendanceQrScreen />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Where the phone camera opens after scanning; handles "not logged in" itself */}
+      <Route path="/attendance/check-in" element={<AttendanceCheckIn />} />
 
       <Route
         path="/my-attendance"
@@ -3076,6 +3108,7 @@ const App: React.FC = () => {
           <TenantModulesProvider>
             <BatchModulesProvider>
             <SocketProvider>
+              <ProfileGateProvider>
               <BrowserRouter>
                 <HotLeadToast />
                 <LeadAssignedAlert />
@@ -3084,6 +3117,7 @@ const App: React.FC = () => {
                 <AdminLogGate />
                 <CelebrationHost />
               </BrowserRouter>
+              </ProfileGateProvider>
             </SocketProvider>
             </BatchModulesProvider>
           </TenantModulesProvider>

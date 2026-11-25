@@ -40,6 +40,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     permissions: [
       { key: 'mark_attendance', label: 'Mark Attendance' },
       { key: 'view_attendance', label: 'View Own Attendance' },
+      { key: 'manage_student_rules', label: 'Student Rules (QR attendance, inactivity alerts, profile gate)' },
     ]
   },
   quizzes: {

@@ -33,6 +33,7 @@ import { startAssessmentMissedSweep } from './jobs/assessmentMissedSweepCron';
 import { startRecordingAlertScheduler } from './jobs/recordingAlertCron';
 import { startSpeakingReminderScheduler } from './jobs/speakingReminderCron';
 import { startPracticePassScheduler } from './jobs/practicePassCron';
+import { startInactivityScheduler } from './jobs/inactivityCron';
 import { startInterviewHubScheduler } from './jobs/interviewHubCron';
 import { startInterviewReminderScheduler } from './jobs/interviewReminderCron';
 import { startLiveClassReminderScheduler } from './jobs/liveClassReminderCron';
@@ -415,6 +416,7 @@ const startServer = async () => {
     // Start speaking-practice reminder scheduler (in-app, daily)
     startSpeakingReminderScheduler();
     startPracticePassScheduler(); // Daily Practice Pass: hourly standings + 7 PM reminders
+    startInactivityScheduler(); // Student Rules: daily inactivity WhatsApps (student → trainer → parent)
     startInterviewHubScheduler(); // Interview Hub: email a reminder 2 days after an unanswered invite
 
     // Start AI-interview start-reminder scheduler (in-app, 30m lead, every 5 min)

@@ -17,6 +17,7 @@ import {
 import './StudentProfile.css';
 import ProfileView from './ProfileView';
 import { confirmDialog } from '../../components/feedback/appFeedback';
+import { useProfileGate } from '../../contexts/ProfileGateContext';
 
 interface OAuthStatus {
   github: { connected: boolean; username?: string; profileUrl?: string; connectedAt?: string };
@@ -25,6 +26,21 @@ interface OAuthStatus {
 
 const StudentProfilePage: React.FC = () => {
   const { user, updateProfile } = useAuth();
+  const { gate, blocked: gateBlocked, refresh: refreshGate } = useProfileGate();
+  // Student Rules → Profile gate: what is still needed before the rest of the LMS opens.
+  const gateBanner = gateBlocked && gate ? (
+    <div style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+      <div style={{ fontWeight: 700, color: '#9a3412', marginBottom: 4 }}>
+        <i className="fa-solid fa-lock" /> Complete your profile to unlock the LMS ({gate.percent}% done)
+      </div>
+      <div style={{ fontSize: 13.5, color: '#7c2d12' }}>
+        Your institute asks every student to finish their profile before using courses, quizzes and other features. Still needed:
+        <ul style={{ margin: '6px 0 0 18px' }}>
+          {gate.missing.map((m) => <li key={m.section}><b>{m.section}:</b> {m.fields.join(', ')}</li>)}
+        </ul>
+      </div>
+    </div>
+  ) : null;
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -323,6 +339,7 @@ const StudentProfilePage: React.FC = () => {
           setProfilePhoto(null);
         }
         setHasSaved(true);
+        refreshGate();
         if (toView) {
           setSuccess(null);
           setSavedMsg('Your profile has been saved.');
@@ -365,6 +382,7 @@ const StudentProfilePage: React.FC = () => {
         if (!p?.firstName?.trim()) errors['personalInfo.firstName'] = 'First name is required';
         if (!p?.surname?.trim()) errors['personalInfo.surname'] = 'Surname is required';
         if (!p?.mobileNumber?.trim()) errors['personalInfo.mobileNumber'] = 'Mobile number is required';
+        if (gate?.requireParentMobile && !p?.parentMobile?.trim()) errors['personalInfo.parentMobile'] = 'Parent / guardian mobile is required';
         if (!p?.gender) errors['personalInfo.gender'] = 'Gender is required';
         if (!p?.dateOfBirth) errors['personalInfo.dateOfBirth'] = 'Date of birth is required';
         if (!p?.country?.trim()) errors['personalInfo.country'] = 'Country is required';
@@ -461,6 +479,7 @@ const StudentProfilePage: React.FC = () => {
   if (!editing) {
     return (
       <div className="student-profile-page">
+        {gateBanner}
         <ProfileView
           profile={profile}
           photoUrl={profilePhotoPreview || profile.personalInfo?.profilePhoto || null}
@@ -473,6 +492,7 @@ const StudentProfilePage: React.FC = () => {
 
   return (
     <div className="student-profile-page">
+      {gateBanner}
       {hasSaved && (
         <button type="button" className="btn btn-secondary" style={{ marginBottom: 14 }} onClick={openView}>
           ← Back to my profile
@@ -699,6 +719,29 @@ const StudentProfilePage: React.FC = () => {
                   required
                 />
                 {validationErrors['personalInfo.mobileNumber'] && <small className="error-text">{validationErrors['personalInfo.mobileNumber']}</small>}
+              </div>
+            </div>
+
+            {/* Parent / guardian — for attendance and inactivity alerts */}
+            <div className="form-row two-columns">
+              <div className="form-group">
+                <label>Parent / Guardian Name</label>
+                <input
+                  type="text"
+                  value={profile.personalInfo?.parentName || ''}
+                  onChange={e => handleInputChange('personalInfo', 'parentName', e.target.value)}
+                  placeholder="e.g. Ramesh Kumar"
+                />
+              </div>
+              <div className={`form-group ${validationErrors['personalInfo.parentMobile'] ? 'has-error' : ''}`}>
+                <label>Parent / Guardian Mobile {gate?.requireParentMobile && <span className="required">*</span>}</label>
+                <input
+                  type="tel"
+                  value={profile.personalInfo?.parentMobile || ''}
+                  onChange={e => handleInputChange('personalInfo', 'parentMobile', e.target.value)}
+                  placeholder="+91 9876543210"
+                />
+                {validationErrors['personalInfo.parentMobile'] && <small className="error-text">{validationErrors['personalInfo.parentMobile']}</small>}
               </div>
             </div>
 

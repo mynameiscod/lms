@@ -7,18 +7,26 @@
 .lrp-search button { border: 0; background: none; color: var(--muted); font-size: 20px; line-height: 1; padding: 0; cursor: pointer; }
 
 /* Tabs: four cards with their counts */
-.lrp-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.lrp-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .lrp-tabs button { position: relative; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; align-items: center; column-gap: 12px; row-gap: 2px; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--line); background: #fff; color: var(--text); text-align: left; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
 .lrp-tabs button:hover { border-color: var(--line2); box-shadow: 0 6px 18px rgba(5, 29, 100, .06); }
 .lrp-tabs button > i { grid-row: 1 / span 2; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--soft); color: var(--navy); font-size: 20px; }
 .lrp-tab-label { font-size: 15px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lrp-tab-n { font-size: 28px; font-weight: 800; line-height: 1.05; color: var(--ink); }
-.lrp-tab-over { position: absolute; top: 12px; right: 12px; padding: 3px 9px; border-radius: 999px; background: var(--red-bg); color: var(--red); font-size: 13px; font-weight: 800; font-style: normal; }
+.lrp-tab-over { grid-column: 2; justify-self: start; margin-top: 2px; padding: 2px 9px; border-radius: 999px; background: var(--red-bg); color: var(--red); font-size: 13px; font-weight: 800; font-style: normal; }
 .lrp-tabs button.on { border-color: var(--navy); background: var(--navy); box-shadow: 0 10px 24px rgba(5, 29, 100, .18); }
 .lrp-tabs button.on > i { background: rgba(255, 255, 255, .14); color: #fff; }
 .lrp-tabs button.on .lrp-tab-label { color: rgba(255, 255, 255, .8); }
 .lrp-tabs button.on .lrp-tab-n { color: #fff; }
 .lrp-tabs button.on .lrp-tab-over { background: #fff; }
+/* Worked today: "27 older · 15 new" under its count */
+.lrp-tab-sub { grid-column: 2; font-style: normal; font-size: 13px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lrp-tabs button.on .lrp-tab-sub { color: rgba(255, 255, 255, .78); }
+.lrp-done { display: flex; flex-direction: column; gap: 4px; }
+.lrp-done-parts { display: flex; flex-wrap: wrap; gap: 4px; }
+.lrp-done-parts i { font-style: normal; padding: 2px 8px; border-radius: 999px; background: var(--tint); color: var(--navy); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.lrp-done em { font-style: normal; font-size: 13px; color: var(--muted); }
+.lrp-mlink { border: 0; background: none; padding: 0; font: inherit; font-weight: 800; color: var(--navy); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 
 /* The line under the tabs */
 .lrp-context { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; }
@@ -128,7 +136,7 @@
 
 /* Laptop */
 @media (max-width: 1180px) {
-  .lrp-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lrp-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* Narrow laptop / tablet: each lead becomes a card */
@@ -151,7 +159,9 @@
 @media (max-width: 760px) {
   .lrp-search { min-width: 0; flex: 1 1 100%; }
   .stm-head-side .stm-select { flex: 1 1 160px; }
-  .lrp-tabs { gap: 8px; }
+  .lrp-tabs { gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lrp-tabs button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .lrp-tab-sub { white-space: normal; }
   .lrp-tabs button { padding: 12px; column-gap: 10px; border-radius: 14px; }
   .lrp-tabs button > i { width: 36px; height: 36px; font-size: 17px; }
   .lrp-tab-label { font-size: 13.5px; white-space: normal; }

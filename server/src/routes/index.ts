@@ -105,6 +105,7 @@ import publicPassportRoutes from './publicPassportRoutes';
 import lmsDemoRoutes, { publicLmsDemoRoutes } from './lmsDemoRoutes';
 import referralRoutes, { publicReferralRoutes } from './referralRoutes';
 import salesTeamRoutes from './salesTeamRoutes';
+import demoBookingRoutes, { publicDemoRoutes } from './demoBookingRoutes';
 import conceptLessonRoutes from './conceptLessonRoutes';
 import interactiveLessonRoutes from './interactiveLessonRoutes';
 import adminLogsRoute from './adminLogsRoute';
@@ -263,6 +264,7 @@ router.post('/public/ses-events', express.json({ type: '*/*', limit: '1mb', veri
 router.use('/public', publicHackathonExamRoutes);
 router.use('/public', publicHackathonRoutes);
 router.use('/public', publicBattleRoutes); // Tech Battle public funnel (specific battle paths, before generic /public)
+router.use('/public/demo', publicDemoRoutes); // CRM: Book a demo — booking page + personal booking links (no auth)
 router.use('/public', publicLeadRoutes);
 router.use('/battles', battleRoutes);
 router.use('/placement-program', placementProgramRoutes);
@@ -381,6 +383,7 @@ router.use('/adaptive', adaptiveCurriculumRoutes);
 router.use('/enrollment-plans', careerPilotMemberActivity, enrollmentPlanRoutes);
 router.use('/lms-demo', lmsDemoRoutes); // LMS demo students + the LMS Demo admin screen
 router.use('/referrals', referralRoutes); // LMS Refer & Earn: student page + admin Referrals screen
+router.use('/demo-slots', demoBookingRoutes); // CRM: Book a demo — slots, attendees, settings
 router.use('/sales-teams', salesTeamRoutes); // Leads add-on: sales teams, daily member reports, manager review
 router.use('/projects', projectRoutes);
 router.use('/job-applications', jobApplicationRoutes);

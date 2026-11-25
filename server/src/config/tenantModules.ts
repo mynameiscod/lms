@@ -52,6 +52,7 @@ export const MODULE_PARENT = {
   crmCalling: 'leads',
   crmSalesContent: 'leads',
   crmArchive: 'leads',
+  crmDemoBooking: 'leads',
 } as const;
 
 /**
@@ -82,6 +83,8 @@ export function effectiveModules(stored: Record<string, unknown> | null | undefi
   for (const k of CRM_FEATURE_KEYS) out[k as ModuleKey] = out.leads && out[k as ModuleKey];
   // The Lead Report lists team members' leads: nothing to show without Sales Teams.
   (out as any).crmLeadReport = (out as any).crmLeadReport && (out as any).crmSalesTeams;
+  // Book a demo opens a public page, so it is on only once the platform administrator switches it on.
+  (out as any).crmDemoBooking = out.leads && raw.crmDemoBooking === true;
   for (const k of ADMIN_MODULES) out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : true;
   return out;
 }

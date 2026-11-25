@@ -131,6 +131,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'archive_leads', label: 'Archive Leads, Restore, and Delete Leads Archived 3+ Years' },
       // Teams belong to one institute (each institute sets up its own), so an institute admin gives this.
       { key: 'manage_sales_teams', label: "Sales Teams: set up teams and managers, and see every team's daily reports" },
+      { key: 'manage_demo_slots', label: 'Book a Demo: set up demo slots, see bookings and mark attendance' },
     ]
   },
   marketing: {
@@ -456,7 +457,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_billing',
     // Leads (full access)
     'manage_leads', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads',
-    'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads', 'archive_leads', 'manage_sales_teams',
+    'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads', 'archive_leads', 'manage_sales_teams', 'manage_demo_slots',
     // Marketing
     'manage_marketing',
     // Coding Snippets

@@ -26,9 +26,12 @@ describe('CRM features: tenant switches', () => {
     for (const f of CRM_FEATURES) for (const p of f.paths) expect(clientCfg).toContain(`['${p}', '${f.key}']`);
   });
 
-  it('an institute that has CRM today keeps every feature', () => {
+  it('an institute that has CRM today keeps every feature; Book a demo (a public page) starts off', () => {
     const m = effectiveModules({});
-    for (const k of CRM_FEATURE_KEYS) expect([k, (m as any)[k]]).toEqual([k, true]);
+    for (const k of CRM_FEATURE_KEYS.filter((x) => x !== 'crmDemoBooking')) expect([k, (m as any)[k]]).toEqual([k, true]);
+    expect((m as any).crmDemoBooking).toBe(false);
+    expect((effectiveModules({ crmDemoBooking: true }) as any).crmDemoBooking).toBe(true);
+    expect(clientCfg).toContain('out.crmDemoBooking = out.leads && raw.crmDemoBooking === true');
   });
 
   it('one feature can be switched off on its own; none is on while CRM is off', () => {
@@ -58,6 +61,8 @@ describe('CRM features: tenant switches', () => {
     expect(moduleForApiPath('/callyzer/calls')).toBe('crmCalling');
     expect(moduleForApiPath('/event-apis')).toBe('crmSources');
     expect(moduleForApiPath('/google-sheet-integrations/x')).toBe('crmSources');
+    expect(moduleForApiPath('/demo-slots/settings')).toBe('crmDemoBooking');
+    expect(moduleForApiPath('/public/demo/acme/slots')).not.toBe('crmDemoBooking'); // public: the service checks
     // read by the lead page or the lead list: never blocked by a feature switch
     for (const p of ['/leads', '/lead-stages', '/lead-form-config', '/lead-priority/leads/1/score', '/lead-archive', '/ai-calls', '/follow-ups', '/meetings', '/sales-content']) {
       expect([p, moduleForApiPath(p)]).toEqual([p, 'leads']);

@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { salesTeamApi, stErr, SalesMe, TeamDay, Targets, TARGET_KEYS, TARGET_LABEL, fmtDay } from '../../api/salesTeamApi';
-import { DayPicker, LivePill, Avatar, ReviewChip, Dialog, Toast, useToast, Empty, Loading } from './shared';
+import { DayPicker, LivePill, Avatar, ReviewChip, Dialog, Toast, useToast, Empty, Loading, SectionTabs } from './shared';
+import { LeadReportPanel } from './LeadReport';
+import { useTenantModules } from '../../contexts/TenantModulesContext';
 import './salesTeams.css';
 
 /**
  * MY TEAM — the manager's page. Every member's day (live today, saved at 9 PM for past days), problems
  * flagged, targets, and which reports still need a review. A member's card opens their full report.
+ * The Leads tab is the team's lead report (stages, sub-stages, new / worked today, follow-ups, probables).
  */
 export default function MyTeam() {
   const [params, setParams] = useSearchParams();
@@ -16,6 +19,9 @@ export default function MyTeam() {
   const [err, setErr] = useState('');
   const [targetsOpen, setTargetsOpen] = useState(false);
   const [toast, setToast] = useToast();
+  const { isModuleEnabled } = useTenantModules();
+  const leadsOn = isModuleEnabled('crmLeadReport' as any);
+  const section = params.get('tab') === 'leads' && leadsOn ? 'leads' : 'members';
 
   useEffect(() => { salesTeamApi.me().then(setMe).catch(e => setErr(stErr(e))); }, []);
   const teamId = params.get('team') || me?.managerOf[0]?._id || '';
@@ -62,6 +68,9 @@ export default function MyTeam() {
         </div>
       </header>
 
+      {leadsOn && <SectionTabs value={section} onChange={k => setQuery('tab', k === 'leads' ? 'leads' : '')} tabs={[['members', 'bi-people', 'Members'], ['leads', 'bi-diagram-3', 'Leads']]} />}
+
+      {section === 'leads' ? <LeadReportPanel embedded teamId={data.team._id} /> : (<>
       {data.pending.count > 0 && (
         <div className="stm-banner">
           <i className="bi bi-clipboard-check" />
@@ -132,6 +141,7 @@ export default function MyTeam() {
           })}
         </div>
       )}
+      </>)}
 
       {targetsOpen && <TargetsDialog data={data} onClose={() => setTargetsOpen(false)} onSaved={() => { setTargetsOpen(false); setToast('Targets saved'); load(); }} />}
       <Toast text={toast} />

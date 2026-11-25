@@ -44,6 +44,9 @@ export const CRM_FEATURES: CrmFeature[] = [
     paths: ['/sales-content'], gate: [] },
   { key: 'crmArchive', label: 'CRM: Archive & audit logs', desc: 'Archive and restore leads, lead audit logs',
     paths: ['/leads/archive', '/lead-audit-logs'], gate: [] },
+  // Unlike the others this one starts OFF (tenantModules.effectiveModules): it opens a public booking page.
+  { key: 'crmDemoBooking', label: 'CRM: Book a demo', desc: 'Demo slots, the public booking page for the website, join links, attendance (starts off)',
+    paths: ['/demo-slots'], gate: ['/demo-slots'] },
 ];
 
 export const CRM_FEATURE_KEYS = CRM_FEATURES.map((f) => f.key);

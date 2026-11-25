@@ -78,6 +78,17 @@ export function Empty({ icon, children }: { icon: string; children: React.ReactN
   return <div className="stm-empty"><i className={`bi ${icon}`} /><div>{children}</div></div>;
 }
 
+/** Page-level tabs (Day report / Leads, Members / Leads). */
+export function SectionTabs({ value, onChange, tabs }: { value: string; onChange: (k: string) => void; tabs: [string, string, string][] }) {
+  return (
+    <nav className="stm-tabs big" role="tablist">
+      {tabs.map(([k, ic, l]) => (
+        <button key={k} type="button" role="tab" aria-selected={value === k} className={value === k ? 'on' : ''} onClick={() => onChange(k)}><i className={`bi ${ic}`} /> {l}</button>
+      ))}
+    </nav>
+  );
+}
+
 export function Loading() {
   return <div className="stm-state"><span className="stm-spin" /> Loading…</div>;
 }

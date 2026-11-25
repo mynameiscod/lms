@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import {
-  leadReportApi, stErr, LeadReport as Report, ReportRow, ReportView, ReportParams, BatchOption, Chance, CHANCE_LABEL,
-  fmtDay, timeOf, outcomeLabel,
+  leadReportApi, stErr, LeadReport as Report, ReportRow, ReportView, ReportParams, BatchOption, Chance, CHANCE_LABEL, DoneToday,
+  fmtDay, timeOf, outcomeLabel, salesTeamApi, SalesMe,
 } from '../../api/salesTeamApi';
 import { DayPicker, Avatar, Dialog, Toast, useToast, Empty, Loading } from './shared';
 import './salesTeams.css';
@@ -10,21 +10,36 @@ import './leadReport.css';
 
 /**
  * LEAD REPORT — leads by stage and sub-stage, for a sales member (own leads), a manager (their team) and
- * the super admin (every team). Tabs: New today · Follow-ups & overdue · All leads · Probables. Every tab
+ * the super admin (every team). Tabs: New today · Worked today · Follow-ups & overdue · All leads · Probables. Every tab
  * shows how many leads sit in each stage and sub-stage; clicking one filters the list. A lead can be marked
  * "probable" for an upcoming batch. Read-only on leads: nothing here changes a lead.
+ *
+ * Since 2026-11-25 it is not a page of its own: it is the "Leads" tab of My Day (the member), a member's
+ * page (manager) and My Team (the whole team). The old /lead-report address sends people there.
  */
 
 const TABS: { key: ReportView; label: string; icon: string }[] = [
   { key: 'new', label: 'New today', icon: 'bi-stars' },
+  { key: 'worked', label: 'Worked today', icon: 'bi-lightning-charge' },
   { key: 'followups', label: 'Follow-ups & overdue', icon: 'bi-alarm' },
   { key: 'all', label: 'All leads', icon: 'bi-collection' },
   { key: 'probables', label: 'Probables', icon: 'bi-bullseye' },
 ];
 const dateTime = (iso: string) => `${fmtDay(new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }), { day: 'numeric', month: 'short' })}, ${timeOf(iso)}`;
+/** "Called 2× · Moved stage · WhatsApp" for the Worked tab. */
+export function doneParts(d: DoneToday): string[] {
+  const out: string[] = [];
+  if (d.calls) out.push(d.calls > 1 ? `Called ${d.calls}×` : 'Called');
+  if (d.stageMoves) out.push(d.stageMoves > 1 ? `Moved ${d.stageMoves}×` : 'Moved stage');
+  if (d.whatsapp) out.push(d.whatsapp > 1 ? `WhatsApp ${d.whatsapp}×` : 'WhatsApp');
+  if (d.followUpsDone) out.push('Follow-up done');
+  if (d.meetings) out.push('Demo / meeting');
+  if (d.notes) out.push(d.notes > 1 ? `${d.notes} notes` : 'Note / follow-up');
+  return out;
+}
 const dateOnly = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
 
-export default function LeadReport() {
+export function LeadReportPanel({ embedded = false, teamId: lockTeam = '', userId: lockUser = '', showDay = false }: { embedded?: boolean; teamId?: string; userId?: string; showDay?: boolean }) {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState<Report | null>(null);
   const [err, setErr] = useState('');
@@ -38,8 +53,11 @@ export default function LeadReport() {
   const query: ReportParams = useMemo(() => {
     const p: any = { view };
     ['day', 'teamId', 'userId', 'stageId', 'subStageId', 'due', 'batchId', 'q', 'page'].forEach(k => { const v = params.get(k); if (v) p[k] = k === 'page' ? Number(v) : v; });
+    // Inside My Team / a member's page the host decides the team and the person.
+    if (lockTeam) p.teamId = lockTeam;
+    if (lockUser) p.userId = lockUser;
     return p;
-  }, [params, view]);
+  }, [params, view, lockTeam, lockUser]);
 
   const load = useCallback(() => {
     setBusy(true);
@@ -68,9 +86,10 @@ export default function LeadReport() {
   async function exportCsv() {
     try {
       const all = await leadReportApi.report({ ...query, page: undefined, export: '1' });
-      const head = ['Name', 'Phone', 'Email', 'Course', 'Source', 'Owner', 'Stage', 'Sub-stage', 'Assigned at', 'Next follow-up', 'Follow-up', 'Last call', 'Probable batch', 'Batch starts', 'Chance'];
+      const head = ['Name', 'Phone', 'Email', 'Course', 'Source', 'Owner', 'Stage', 'Sub-stage', ...(view === 'worked' ? ['New that day', 'Done that day', 'Worked by'] : []), 'Assigned at', 'Next follow-up', 'Follow-up', 'Last call', 'Probable batch', 'Batch starts', 'Chance'];
       const lines = all.rows.map(r => [
         r.name, r.phone, r.email, r.course, r.source, r.owner?.name || '', r.stage?.name || '', r.subStage?.name || '',
+        ...(view === 'worked' ? [r.doneToday?.isNew ? 'Yes' : 'No', r.doneToday ? doneParts(r.doneToday).join(', ') : '', (r.doneToday?.by || []).join(', ')] : []),
         r.assignedAt ? dateTime(r.assignedAt) : '', r.nextFollowUp ? dateTime(r.nextFollowUp) : '', r.followUp || '',
         r.lastCallOutcome ? outcomeLabel(r.lastCallOutcome) : '', r.probable?.batchName || '', r.probable ? dateOnly(r.probable.batchStart) : '', r.probable ? CHANCE_LABEL[r.probable.chance] : '',
       ]);
@@ -84,23 +103,24 @@ export default function LeadReport() {
     } catch (e) { setErr(stErr(e, 'Could not export.')); }
   }
 
-  if (err && !data) return <div className="stm"><div className="stm-alert">{err}</div></div>;
-  if (!data) return <div className="stm"><Loading /></div>;
+  const shell = embedded ? 'stm lrp lrp-embed' : 'stm';
+  if (err && !data) return <div className={shell}><div className="stm-alert">{err}</div></div>;
+  if (!data) return <div className={shell}><Loading /></div>;
 
   const f = data.filters;
   const people = data.teams.filter(t => !f.teamId || t._id === f.teamId).flatMap(t => t.members);
   const personName = new Map(data.teams.flatMap(t => t.members).map(m => [m._id, m.name]));
   const showOwner = data.as !== 'member';
-  const tabCount: Record<ReportView, number> = { new: data.tabs.new, followups: data.tabs.followups, all: data.tabs.all, probables: data.tabs.probables };
+  const tabCount: Record<ReportView, number> = { new: data.tabs.new, worked: data.tabs.worked, followups: data.tabs.followups, all: data.tabs.all, probables: data.tabs.probables };
   const stages = data.stages.filter(s => !hideEmpty || s.count > 0 || s._id === f.stageId);
   const stageTotal = data.stages.reduce((n, s) => n + s.count, 0);
   const activeStage = data.stages.find(s => s._id === f.stageId);
   const activeSub = activeStage?.subStages.find(s => s._id === f.subStageId);
 
   return (
-    <div className="stm lrp">
-      <header className="stm-head">
-        <div className="stm-head-main">
+    <div className={`stm lrp${embedded ? ' lrp-embed' : ''}`}>
+      <header className={embedded ? 'lrp-embed-bar' : 'stm-head'}>
+        {!embedded && <div className="stm-head-main">
           <span className="stm-eyebrow">Leads · Lead Report</span>
           <h1>Lead report</h1>
           <p>
@@ -108,15 +128,15 @@ export default function LeadReport() {
               : data.as === 'manager' ? 'Your team\'s leads by stage and sub-stage. Pick a member to see only theirs.'
                 : 'Every sales team\'s leads by stage and sub-stage. Pick a team or a member to narrow it down.'}
           </p>
-        </div>
+        </div>}
         <div className="stm-head-side">
-          {data.as === 'admin' && data.teams.length > 1 && (
+          {!lockTeam && data.as === 'admin' && data.teams.length > 1 && (
             <select className="stm-select" value={f.teamId} onChange={e => set({ teamId: e.target.value, userId: undefined })} aria-label="Team">
               <option value="">All teams</option>
               {data.teams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
             </select>
           )}
-          {showOwner && (
+          {showOwner && !lockUser && (
             <select className="stm-select" value={f.userId} onChange={e => set({ userId: e.target.value })} aria-label="Member">
               <option value="">{data.as === 'admin' && !f.teamId ? 'All members' : 'Whole team'}</option>
               {people.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
@@ -138,6 +158,7 @@ export default function LeadReport() {
             <span className="lrp-tab-label">{t.label}</span>
             <b className="lrp-tab-n">{tabCount[t.key]}</b>
             {t.key === 'followups' && data.tabs.overdue > 0 && <em className="lrp-tab-over" title="Overdue">{data.tabs.overdue} overdue</em>}
+            {t.key === 'worked' && data.tabs.worked > 0 && <em className="lrp-tab-sub">{data.tabs.worked - data.tabs.workedNew} older · {data.tabs.workedNew} new</em>}
           </button>
         ))}
       </nav>
@@ -149,7 +170,13 @@ export default function LeadReport() {
         {view === 'new' && (
           <>
             <p><b>{data.tabs.new}</b> lead{data.tabs.new === 1 ? '' : 's'} assigned {data.live ? 'today' : `on ${fmtDay(data.day)}`}. A lead created earlier and handed over that day is marked <span className="lrp-tag re">Reassigned</span>.</p>
-            <DayPicker day={data.day} today={data.today} onChange={d => set({ day: d === data.today ? undefined : d })} />
+            {(!embedded || showDay) && <DayPicker day={data.day} today={data.today} onChange={d => set({ day: d === data.today ? undefined : d })} />}
+          </>
+        )}
+        {view === 'worked' && (
+          <>
+            <p><b>{data.tabs.worked}</b> lead{data.tabs.worked === 1 ? '' : 's'} worked {data.live ? 'today' : `on ${fmtDay(data.day)}`}: <b>{data.tabs.workedNew}</b> new and <b>{data.tabs.worked - data.tabs.workedNew}</b> older ones called, messaged, moved or followed up. Stages are where each lead is now.</p>
+            {(!embedded || showDay) && <DayPicker day={data.day} today={data.today} onChange={d => set({ day: d === data.today ? undefined : d })} />}
           </>
         )}
         {view === 'followups' && (
@@ -238,12 +265,13 @@ export default function LeadReport() {
           <div className="lrp-card-head"><h2>By member</h2></div>
           <div className="lrp-mtable-wrap">
             <table className="lrp-mtable">
-              <thead><tr><th>Member</th><th>New today</th><th>Due today</th><th>Overdue</th><th>All leads</th><th>Probables</th></tr></thead>
+              <thead><tr><th>Member</th><th>New today</th><th>Worked today</th><th>Due today</th><th>Overdue</th><th>All leads</th><th>Probables</th></tr></thead>
               <tbody>
                 {data.members.slice().sort((a, b) => (personName.get(a.userId) || '').localeCompare(personName.get(b.userId) || '')).map(m => (
                   <tr key={m.userId}>
                     <td><button type="button" className="lrp-person" onClick={() => set({ userId: m.userId })}><Avatar name={personName.get(m.userId) || '?'} size={30} /> {personName.get(m.userId)}</button></td>
                     <td data-label="New today">{m.new}</td>
+                    <td data-label="Worked today"><button type="button" className="lrp-mlink" onClick={() => set({ userId: m.userId, view: 'worked', stageId: undefined, subStageId: undefined })} title={`${m.worked - m.workedNew} older · ${m.workedNew} new`}>{m.worked}</button></td>
                     <td data-label="Due today">{m.dueToday}</td>
                     <td data-label="Overdue" className={m.overdue ? 'bad' : ''}>{m.overdue}</td>
                     <td data-label="All leads">{m.all}</td>
@@ -277,7 +305,7 @@ export default function LeadReport() {
                   <th>Lead</th>
                   {showOwner && <th>Owner</th>}
                   <th>Stage · sub-stage</th>
-                  <th>{view === 'new' ? 'Assigned' : view === 'probables' ? 'Batch' : 'Next follow-up'}</th>
+                  <th>{view === 'new' ? 'Assigned' : view === 'worked' ? 'Done today' : view === 'probables' ? 'Batch' : 'Next follow-up'}</th>
                   <th>Last call</th>
                   <th>Probable</th>
                   <th aria-label="Open" />
@@ -290,14 +318,16 @@ export default function LeadReport() {
                       <b>{r.name}</b>
                       <span>{r.phone}{r.course ? ` · ${r.course}` : ''}</span>
                       {r.reassigned && <span className="lrp-tag re">Reassigned</span>}
+                      {view === 'worked' && r.doneToday?.isNew && <span className="lrp-tag ok">New today</span>}
                     </td>
                     {showOwner && <td data-label="Owner">{r.owner?.name || '—'}</td>}
                     <td data-label="Stage">
                       {r.stage ? <span className="lrp-stage-pill" style={{ ['--c' as any]: r.stage.color }}><i className="lrp-dot" />{r.stage.name}</span> : <span className="stm-muted">No stage</span>}
                       {r.subStage && <span className="lrp-sub">{r.subStage.name}</span>}
                     </td>
-                    <td data-label={view === 'new' ? 'Assigned' : view === 'probables' ? 'Batch' : 'Follow-up'}>
-                      {view === 'new' ? (r.assignedAt ? timeOf(r.assignedAt) : r.createdAt ? timeOf(r.createdAt) : '—')
+                    <td data-label={view === 'new' ? 'Assigned' : view === 'worked' ? 'Done today' : view === 'probables' ? 'Batch' : 'Follow-up'}>
+                      {view === 'worked' ? <DoneCell d={r.doneToday} showBy={showOwner} />
+                        : view === 'new' ? (r.assignedAt ? timeOf(r.assignedAt) : r.createdAt ? timeOf(r.createdAt) : '—')
                         : view === 'probables' && r.probable ? <span className="lrp-when">{r.probable.batchName}<em>Starts {dateOnly(r.probable.batchStart)}</em></span>
                           : r.nextFollowUp ? <span className={`lrp-fu ${r.followUp}`}>{r.followUp === 'overdue' ? 'Overdue · ' : r.followUp === 'today' ? 'Today · ' : ''}{dateTime(r.nextFollowUp)}</span>
                             : <span className="stm-muted">None set</span>}
@@ -321,6 +351,7 @@ export default function LeadReport() {
           <Empty icon={view === 'new' ? 'bi-inbox' : view === 'followups' ? 'bi-check2-circle' : 'bi-search'}>
             {f.q || f.stageId ? 'No leads match these filters.'
               : view === 'new' ? `No leads were assigned ${data.live ? 'today' : 'on this day'}.`
+              : view === 'worked' ? `No leads worked ${data.live ? 'yet today' : 'on this day'}.`
                 : view === 'followups' ? 'Nothing due and nothing overdue. All caught up.'
                   : view === 'probables' ? 'No probables here yet.' : 'No leads yet.'}
           </Empty>
@@ -410,4 +441,34 @@ function ProbableDialog({ row, onClose, onSaved }: { row: ReportRow; onClose: ()
       </div>
     </Dialog>
   );
+}
+
+/** The Worked tab's "Done today" cell: what was done, the last time, and (for managers) by whom. */
+function DoneCell({ d, showBy }: { d?: DoneToday | null; showBy: boolean }) {
+  if (!d) return <span className="stm-muted">—</span>;
+  const parts = doneParts(d);
+  return (
+    <span className="lrp-done">
+      {parts.length ? <span className="lrp-done-parts">{parts.map(p => <i key={p}>{p}</i>)}</span> : <span className="stm-muted">Assigned, nothing done yet</span>}
+      <em>{d.lastAt ? `Last at ${timeOf(d.lastAt)}` : ''}{showBy && d.by.length ? `${d.lastAt ? ' · ' : ''}by ${d.by.join(', ')}` : ''}</em>
+    </span>
+  );
+}
+
+/**
+ * /lead-report — the old address. The report now lives in the Leads tab of My Day (a member), My Team
+ * (a manager) and Sales Teams → a team (an admin). Saved links and bookmarks land there.
+ */
+export default function LeadReportRedirect() {
+  const [params] = useSearchParams();
+  const [me, setMe] = useState<SalesMe | null>(null);
+  const [err, setErr] = useState('');
+  useEffect(() => { salesTeamApi.me().then(setMe).catch(e => setErr(stErr(e))); }, []);
+  if (err) return <div className="stm"><div className="stm-alert">{err}</div></div>;
+  if (!me) return <div className="stm"><Loading /></div>;
+  const keep = new URLSearchParams(params);
+  keep.set('tab', 'leads');
+  if (me.managerOf.length) { keep.set('team', keep.get('teamId') || me.managerOf[0]._id); keep.delete('teamId'); return <Navigate to={`/my-team?${keep}`} replace />; }
+  if (me.isAdmin) return <Navigate to={`/sales-teams?${keep}`} replace />;
+  return <Navigate to={`/my-day?${keep}`} replace />;
 }

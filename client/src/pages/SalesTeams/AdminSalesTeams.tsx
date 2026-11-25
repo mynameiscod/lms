@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { salesTeamApi, stErr, Overview, TeamRow, StaffOption, fmtDay } from '../../api/salesTeamApi';
 import { DayPicker, LivePill, Avatar, Dialog, Toast, useToast, Empty, Loading } from './shared';
+import { LeadReportPanel } from './LeadReport';
+import { useTenantModules } from '../../contexts/TenantModulesContext';
 import './salesTeams.css';
 
 /**
@@ -10,11 +12,16 @@ import './salesTeams.css';
  *             each manager reviewed their team's reports over the last 7 days.
  *   Teams     set up teams: a manager (any staff role) and members. One level, one team per member.
  */
-type Tab = 'overview' | 'teams';
+type Tab = 'overview' | 'teams' | 'leads';
 const COLORS = ['#051D64', '#359AAD', '#6246C9', '#C87808', '#17885D', '#C93737', '#0B6E99', '#9C27B0'];
 
 export default function AdminSalesTeams() {
-  const [tab, setTab] = useState<Tab>('overview');
+  const [params, setParams] = useSearchParams();
+  const { isModuleEnabled } = useTenantModules();
+  const leadsOn = isModuleEnabled('crmLeadReport' as any);
+  const asked = params.get('tab');
+  const tab: Tab = asked === 'teams' ? 'teams' : asked === 'leads' && leadsOn ? 'leads' : 'overview';
+  const setTab = (k: Tab) => { const p = new URLSearchParams(); if (k !== 'overview') p.set('tab', k); setParams(p, { replace: true }); };
   const [toast, setToast] = useToast();
   return (
     <div className="stm">
@@ -26,11 +33,11 @@ export default function AdminSalesTeams() {
         </div>
       </header>
       <nav className="stm-tabs big" role="tablist">
-        {([['overview', 'bi-speedometer2', 'Overview'], ['teams', 'bi-diagram-3', 'Teams']] as const).map(([k, ic, l]) => (
+        {([['overview', 'bi-speedometer2', 'Overview'], ['teams', 'bi-diagram-3', 'Teams'], ...(leadsOn ? [['leads', 'bi-diagram-3-fill', 'Leads']] : [])] as [Tab, string, string][]).map(([k, ic, l]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><i className={`bi ${ic}`} /> {l}</button>
         ))}
       </nav>
-      {tab === 'overview' ? <OverviewTab onTeams={() => setTab('teams')} /> : <TeamsTab onToast={setToast} />}
+      {tab === 'overview' ? <OverviewTab onTeams={() => setTab('teams')} /> : tab === 'leads' ? <LeadReportPanel embedded showDay /> : <TeamsTab onToast={setToast} />}
       <Toast text={toast} />
     </div>
   );

@@ -108,7 +108,9 @@ export const OUTCOME_LABEL: Record<string, string> = {
 export const outcomeLabel = (o: string) => OUTCOME_LABEL[o] || o.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 
 /* ── Lead report: stages, sub-stages, follow-ups, probables (server: services/salesLeadReport.ts) ── */
-export type ReportView = 'new' | 'followups' | 'all' | 'probables';
+export type ReportView = 'new' | 'worked' | 'followups' | 'all' | 'probables';
+/** What was done on a lead on the chosen day (Worked tab). */
+export interface DoneToday { isNew: boolean; calls: number; connected: number; whatsapp: number; notes: number; stageMoves: number; meetings: number; followUpsDone: number; lastAt: string | null; by: string[] }
 export type Chance = 'high' | 'medium' | 'low';
 export interface Probable { batchId: string; batchName: string; batchStart: string; chance: Chance; note: string; markedByName: string; markedAt: string; joined: boolean }
 export interface ReportRow {
@@ -120,17 +122,18 @@ export interface ReportRow {
   nextFollowUp: string | null; followUp: 'overdue' | 'today' | 'upcoming' | null;
   lastContactedAt: string | null; lastCallOutcome: string | null;
   probable: Probable | null;
+  doneToday?: DoneToday | null;
 }
 export interface StageCount { _id: string; name: string; color: string; count: number; subStages: { _id: string; name: string; color: string | null; count: number }[] }
 export interface LeadReport {
   view: ReportView; day: string; today: string; live: boolean; as: 'admin' | 'manager' | 'member';
   teams: { _id: string; name: string; color: string; members: Person[] }[];
   filters: { teamId: string; userId: string; stageId: string; subStageId: string; due: string; batchId: string; q: string };
-  tabs: { new: number; followups: number; dueToday: number; overdue: number; all: number; probables: number };
+  tabs: { new: number; worked: number; workedNew: number; followups: number; dueToday: number; overdue: number; all: number; probables: number };
   stages: StageCount[];
   total: number; page: number; pageSize: number; pages: number;
   rows: ReportRow[];
-  members: { userId: string; new: number; dueToday: number; overdue: number; all: number; probables: number }[] | null;
+  members: { userId: string; new: number; worked: number; workedNew: number; dueToday: number; overdue: number; all: number; probables: number }[] | null;
   batches: { batchId: string; name: string; startDate: string; count: number; joined: number; high: number }[] | null;
 }
 export interface BatchOption { _id: string; name: string; startDate: string; mode: string | null; course: string }

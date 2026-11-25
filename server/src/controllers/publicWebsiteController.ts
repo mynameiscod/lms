@@ -28,7 +28,7 @@ const fail = (res: Response, status: number, message: string, data?: any) =>
   res.status(status).json({ success: false, message, ...(data ? { data } : {}) });
 
 /** Last ten digits of an Indian mobile, however it was typed. Empty when it cannot be one. */
-const normalizePhone = (raw: unknown): string => {
+export const normalizePhone = (raw: unknown): string => {
   let d = String(raw ?? '').replace(/\D/g, '');
   if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
   else if (d.length === 13 && d.startsWith('091')) d = d.slice(3);
@@ -40,6 +40,21 @@ const clip = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
 
 async function tenantBySlug(slug: string) {
   return Tenant.findOne({ slug: String(slug || '').toLowerCase(), isActive: true });
+}
+
+/**
+ * Spend a phone's OTP proof (the verificationToken from /otp/verify). Returns a function that gives
+ * the proof back (when the submit then fails, so the visitor can press it again), or null when the
+ * proof is missing, used or expired. Used by the course-lead form and by Book a demo.
+ */
+export async function spendWebsiteVerification(tenantId: string, phone: string, token: string): Promise<null | (() => Promise<unknown>)> {
+  const t = clip(token, 128);
+  if (!t || !phone) return null;
+  const proof = await WebsiteVerification.findOneAndUpdate(
+    { tenantId, phone, tokenHash: sha(t), usedAt: { $exists: false }, tokenExpiresAt: { $gt: new Date() } },
+    { $set: { usedAt: new Date() } }, { new: true });
+  if (!proof) return null;
+  return () => WebsiteVerification.updateOne({ _id: proof._id }, { $unset: { usedAt: 1 } }).catch(() => undefined);
 }
 
 // ── POST /otp/send ────────────────────────────────────────────────────────────────────────────

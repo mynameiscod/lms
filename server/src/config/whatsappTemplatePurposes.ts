@@ -162,6 +162,24 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     help: 'Sent about 15 minutes before a live class starts, to everyone invited. Same four variables as the invitation. Keep it UTILITY.',
   },
   {
+    key: 'DEMO_BOOKED', label: 'Book a demo — booking confirmed', module: 'CRM: Book a demo',
+    settingsKey: 'WHATSAPP_TEMPLATE_DEMO_BOOKED',
+    variables: ['Visitor first name', 'Demo title', 'Date and time (IST)', 'Their booking link'],
+    help: 'Sent when someone books a demo from the website. Keep it UTILITY, e.g. "Hi {{1}}, your free demo {{2}} is booked for {{3}} IST. Join, reschedule or cancel here: {{4}}". The link is personal and works without logging in.',
+  },
+  {
+    key: 'DEMO_REMINDER', label: 'Book a demo — reminder', module: 'CRM: Book a demo',
+    settingsKey: 'WHATSAPP_TEMPLATE_DEMO_REMINDER',
+    variables: ['Visitor first name', 'Demo title', 'Date and time (IST)', 'Their booking link'],
+    help: 'Sent 1 day and 1 hour before the demo. Same four variables as the confirmation. Keep it UTILITY.',
+  },
+  {
+    key: 'DEMO_UPDATE', label: 'Book a demo — moved, cancelled or missed', module: 'CRM: Book a demo',
+    settingsKey: 'WHATSAPP_TEMPLATE_DEMO_UPDATE',
+    variables: ['Visitor first name', 'What happened (e.g. "Your demo Java Full Stack on Thu 27 Nov, 7 pm was cancelled")', 'Link to their booking or to pick another slot'],
+    help: 'Sent when the institute moves or cancels a demo, or the visitor missed it. Keep it UTILITY, e.g. "Hi {{1}}, {{2}}. Pick a time that suits you here: {{3}}".',
+  },
+  {
     key: 'PLACEMENT_AGREEMENT_SENT', label: 'Placement Program — agreement to sign', module: 'Placement Program',
     settingsKey: 'WHATSAPP_TEMPLATE_PLACEMENT_AGREEMENT_SENT',
     variables: ['Candidate first name', 'Link to their page'],

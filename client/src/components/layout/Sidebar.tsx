@@ -36,7 +36,7 @@ const HIDDEN_FROM_MENU = new Set<string>([
 const GIVEN_ONLY_PERMISSIONS = new Set([
   'support_agent', 'support_manager',
   'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
-  'manage_careerpilot_limits', 'manage_lms_demo', 'manage_sales_teams', 'manage_question_books',
+  'manage_careerpilot_limits', 'manage_lms_demo', 'manage_question_books',
 ]);
 
 interface MenuItem {
@@ -427,7 +427,12 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     // The employee portal belongs to whoever is linked to an employee record, whatever their role;
     // the team screens also open for a manager, whatever their permissions.
     if (item.needsEmployee) return employee.isEmployee;
-    if (item.needsSales) return item.needsSales === 'any' ? sales.any : item.needsSales === 'manager' ? sales.manager : sales.member;
+    if (item.needsSales) {
+      // The Sales Teams screens are a CRM feature the platform administrator switches per institute.
+      const salesModule = moduleForPath(item.path);
+      if (salesModule && !isModuleEnabled(salesModule)) return false;
+      return item.needsSales === 'any' ? sales.any : item.needsSales === 'manager' ? sales.manager : sales.member;
+    }
     if (item.orTeam && employee.hasTeam) return true;
 
     const roleAllowed = !!(user.role && item.roles.includes(user.role));

@@ -61,7 +61,7 @@ async function scopeFor(viewer: Viewer): Promise<Scope> {
   }
   if (as === 'member') {
     const own: any = await SalesTeam.findOne({ tenantId: t, memberIds: u, active: true }).lean();
-    if (!own) throw new SalesError(403, 'The lead report is for sales team members, their managers and the super admin.');
+    if (!own) throw new SalesError(403, 'The lead report is for sales team members, their managers and admins.');
     const me: any = await User.findById(u).select('firstName lastName email').lean();
     return { as, teams: [{ _id: String(own._id), name: own.name, color: own.color, members: [{ _id: viewer.userId, name: nameOf(me) }] }], allIds: [viewer.userId] };
   }

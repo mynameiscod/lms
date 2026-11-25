@@ -36,7 +36,7 @@ export default function MyTeam() {
   const setQuery = (k: string, v: string) => { const p = new URLSearchParams(params); if (v) p.set(k, v); else p.delete(k); setParams(p, { replace: true }); };
 
   if (me && !teamId) {
-    return <div className="stm"><Empty icon="bi-people">You don't manage a sales team yet. The super admin sets up teams in <b>Leads → Sales Teams</b>.</Empty></div>;
+    return <div className="stm"><Empty icon="bi-people">You don't manage a sales team yet. Your admin sets up teams in <b>Leads → Sales Teams</b>.</Empty></div>;
   }
   if (err && !data) return <div className="stm"><div className="stm-alert">{err}</div></div>;
   if (!data) return <div className="stm"><Loading /></div>;

@@ -20,6 +20,7 @@ import { pushLeadStageChange } from '../services/googleSheetSyncService';
 import { scheduleDripOnStageEntry } from '../services/whatsAppDripService';
 import { changeStage, LifecycleError, StageChangeResult, enrolledStageFor } from '../services/leadLifecycleService';
 import { isMilestone, milestoneFromLegacy } from '../config/leadMilestones';
+import { LEAD_DATE_FIELDS, LEAD_REACHED_FIELDS, dateFieldForMilestone } from '../config/leadDateBasis';
 import { onCallLogged } from '../services/leadAutomationService';
 import { listCounsellors, isCounsellor, COUNSELLOR_RULE_TEXT } from '../services/leadCounsellorService';
 
@@ -97,7 +98,7 @@ const mergeMatch = (target: Record<string, any>, extra: Record<string, any>) => 
 
 // Build common filter from query params, merged with scope filter
 const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<string, any> = {}) => {
-  const { stageId, source, assignedTo, search, dateFrom, dateTo, priority, hasPendingApproval, adId, reEnquiry, subStageId, course, campaign, followUp } = query;
+  const { stageId, source, assignedTo, search, dateFrom, dateTo, priority, hasPendingApproval, adId, reEnquiry, subStageId, course, campaign, followUp, reached, dateField } = query;
   // Archived leads are out of the working lists; Leads → Archive shows them.
   const filter: any = { tenantId, ...scopeFilter, archivedAt: null };
   if (stageId) filter.stageId = stageId;
@@ -108,6 +109,9 @@ const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<strin
   if (!serverIds(query._closedStageIds)) delete query._closedStageIds;
   if (!stageId && Array.isArray(query._milestoneStageIds)) filter.stageId = { $in: query._milestoneStageIds };
   if (subStageId && mongoose.Types.ObjectId.isValid(String(subStageId))) filter.subStageId = subStageId;
+  // "Reached Seat Reserved" = ever got there, so leads that went on to Enrolled are included (the funnel's count).
+  const reachedPath = LEAD_REACHED_FIELDS[String(reached || '')];
+  if (reachedPath) filter[reachedPath] = { $exists: true, $ne: null };
   const esc = (s: any) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   if (course) filter.courseInterest = new RegExp(esc(course), 'i');
   // Inside $and so the search box's own $or cannot overwrite it.
@@ -144,21 +148,39 @@ const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<strin
     ];
   }
   if (dateFrom || dateTo) {
-    filter.createdAt = {};
+    // What the dates mean: when the lead came in (default), or when a step happened ("Seat reserved on").
+    const datePath = LEAD_DATE_FIELDS[String(dateField || '')] || 'createdAt';
+    const range: any = {};
     // A bare YYYY-MM-DD is an IST calendar day, the same as the Lead Dashboard counts it —
     // otherwise "Today" in the table would run 05:30 to 05:30 IST and disagree with the cards.
     const isDay = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
-    if (dateFrom) { const s = String(dateFrom); filter.createdAt.$gte = isDay(s) ? new Date(`${s}T00:00:00.000+05:30`) : new Date(s); }
+    if (dateFrom) { const s = String(dateFrom); range.$gte = isDay(s) ? new Date(`${s}T00:00:00.000+05:30`) : new Date(s); }
     if (dateTo) {
       const s = String(dateTo);
       let endDate: Date;
       if (isDay(s)) endDate = new Date(`${s}T23:59:59.999+05:30`);
       else { endDate = new Date(s); endDate.setHours(23, 59, 59, 999); }
-      filter.createdAt.$lte = endDate;
+      range.$lte = endDate;
     }
+    filter[datePath] = range;
   }
   return filter;
 };
+
+/**
+ * dateField=auto ("Happened in these dates"): the dates follow the step being looked at — "Reached
+ * Seat Reserved" or a stage that means Seat Reserved → when the seat was reserved; no step → created.
+ */
+async function resolveAutoDateField(query: any, tenantId: string) {
+  if (query.dateField !== 'auto') return;
+  if (LEAD_REACHED_FIELDS[String(query.reached || '')]) { query.dateField = String(query.reached); return; }
+  if (query.stageId && mongoose.Types.ObjectId.isValid(String(query.stageId))) {
+    const st = await LeadStage.findOne({ _id: query.stageId, tenantId }).select('milestone category isLostStage').lean();
+    query.dateField = st ? dateFieldForMilestone(milestoneFromLegacy(st as any)) : 'created';
+    return;
+  }
+  query.dateField = 'created';
+}
 
 // Get all leads for tenant with filters + data scope
 export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
@@ -174,6 +196,7 @@ export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiRespo
       const all = await LeadStage.find({ tenantId: req.tenantId }).select('milestone category isLostStage').lean();
       query._closedStageIds = all.filter((s: any) => ['lost', 'enrolled'].includes(milestoneFromLegacy(s))).map((s: any) => s._id);
     }
+    await resolveAutoDateField(query, String(req.tenantId));
     const filter = buildLeadFilter(query, req.tenantId!, scopeFilter);
 
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
@@ -221,7 +244,9 @@ export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiRespo
 export const exportLeads = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const scopeFilter = await buildLeadScopeFilter(req);
-    const filter = buildLeadFilter(req.query, req.tenantId!, scopeFilter);
+    const exportQuery: any = { ...req.query };
+    await resolveAutoDateField(exportQuery, String(req.tenantId));
+    const filter = buildLeadFilter(exportQuery, req.tenantId!, scopeFilter);
 
     const leads = await Lead.find(filter)
       .populate('stageId', 'name')

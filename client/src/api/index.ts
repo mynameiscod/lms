@@ -3479,8 +3479,8 @@ export const metaCrmApi = {
 // Admissions reports (server: routes/leadReportRoutes.ts)
 export const leadReportApi = {
   /** Lead Dashboard: tiles, funnel, trend, follow-up tasks, tab counts. Omit dates for all time. */
-  dashboard: (from?: string, to?: string) => {
-    const q = new URLSearchParams(); if (from) q.append('from', from); if (to) q.append('to', to);
+  dashboard: (from?: string, to?: string, countBy?: 'created' | 'activity') => {
+    const q = new URLSearchParams(); if (from) q.append('from', from); if (to) q.append('to', to); if (countBy) q.append('countBy', countBy);
     return authenticatedFetch(`${API_BASE_URL}/lead-reports/dashboard?${q.toString()}`);
   },
   admissions: (params: { from: string; to: string; assignedTo?: string; source?: string; course?: string }) => {

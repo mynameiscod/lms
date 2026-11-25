@@ -31,7 +31,8 @@ router.get('/admissions', authMiddleware, tenantResolver, roleGuard(['view_lead_
 });
 
 /**
- * GET /dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD — Lead Dashboard (both optional = all time).
+ * GET /dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD&countBy=created|activity — Lead Dashboard (dates optional = all time;
+ * countBy: dates mean when the lead was created, or when each step happened).
  * Anyone who can see leads; numbers are limited to the leads they may see.
  */
 router.get('/dashboard', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), async (req: AuthenticatedRequest, res: Response) => {
@@ -42,7 +43,7 @@ router.get('/dashboard', authMiddleware, tenantResolver, roleGuard(['view_leads'
     if ((from && Number.isNaN(from.getTime())) || (to && Number.isNaN(to.getTime())) || (from && to && from > to)) {
       return res.status(400).json({ success: false, message: 'Invalid date range' });
     }
-    const data = await leadDashboard({ tenantId: String(req.tenantId), scope: await buildLeadScopeFilter(req), userId: String(req.user!.id), from, to });
+    const data = await leadDashboard({ tenantId: String(req.tenantId), scope: await buildLeadScopeFilter(req), userId: String(req.user!.id), from, to, countBy: q.countBy === 'activity' ? 'activity' : 'created' });
     res.json({ success: true, data });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message || 'Failed to load the dashboard' });

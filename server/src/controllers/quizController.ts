@@ -7,7 +7,6 @@ import QuizAttempt from '../models/QuizAttempt';
 import QuizSubmission from '../models/QuizSubmission';
 import Question from '../models/Question';
 import User from '../models/User';
-import Content from '../models/Content';
 import { EmailService } from '../services/emailService';
 import AssessmentSchedule from '../models/AssessmentSchedule';
 import mongoose from 'mongoose';
@@ -24,6 +23,14 @@ export const createQuiz = async (req: Request, res: Response) => {
 
     if (!title || !totalMarks || !totalTime) {
       return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // A reusable (non-link) quiz starts with no audience: batch_wise + no batches = nobody until
+    // it is assigned. "everyone" here only ever came from the wizard's External option leaking
+    // into a Reusable quiz, and it put the quiz in front of every student in the institute.
+    if (!rest.isExternalQuiz && (rest.accessibleTo === 'everyone' || !rest.accessibleTo)) {
+      rest.accessibleTo = 'batch_wise';
+      rest.selectedBatches = rest.selectedBatches || [];
     }
 
     // Clean up empty strings for optional ObjectId fields
@@ -50,98 +57,10 @@ export const createQuiz = async (req: Request, res: Response) => {
       tenantId
     );
 
-    // Create announcement for the new quiz
-    try {
-      const user = await User.findById(userId);
-      const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Instructor';
-      const announcement = new Content({
-        type: 'announcement',
-        title: `New Quiz: ${title}`,
-        description: description || '',
-        content: `A new quiz "${title}" has been created and is available for students.\n\nStart Date: ${new Date(startDate).toLocaleDateString()}\nEnd Date: ${new Date(endDate).toLocaleDateString()}`,
-        author: {
-          userId,
-          name: userName,
-          role: 'instructor'
-        },
-        tenant: tenantId,
-        tags: ['quiz', title.toLowerCase()],
-        visibility: 'all_students',
-        isPublished: true,
-        viewCount: 0
-      });
-      await announcement.save();
-    } catch (annError) {
-      // Log error but don't fail the quiz creation
-      console.error('Failed to create announcement:', annError);
-    }
-
-    // Send email notifications to target students (skip for external quizzes — they use token links)
-    if (!rest.isExternalQuiz) try {
-      const emailService = new EmailService();
-      let targetStudents: any[] = [];
-
-      // Determine target students based on quiz accessibility
-      const accessibleTo = rest.accessibleTo || 'everyone';
-      
-      if (accessibleTo === 'everyone') {
-        // Get all students in the tenant
-        targetStudents = await User.find({ 
-          tenantId, 
-          role: 'STUDENT',
-          isActive: true 
-        }).select('_id firstName lastName email').lean();
-      } else if (accessibleTo === 'batch_wise' && rest.selectedBatches && rest.selectedBatches.length > 0) {
-        // Get students in selected batches
-        targetStudents = await User.find({ 
-          tenantId, 
-          role: 'STUDENT',
-          isActive: true,
-          batchId: { $in: rest.selectedBatches }
-        }).select('_id firstName lastName email').lean();
-      } else if (accessibleTo === 'individual' && rest.selectedStudents && rest.selectedStudents.length > 0) {
-        // Get individual selected students
-        targetStudents = await User.find({ 
-          _id: { $in: rest.selectedStudents },
-          tenantId,
-          role: 'STUDENT',
-          isActive: true
-        }).select('_id firstName lastName email').lean();
-      }
-
-      console.log(`📧 Sending quiz notification emails to ${targetStudents.length} students...`);
-
-      // Send emails to all target students (in parallel, limited batch)
-      const emailPromises = targetStudents.map(async (student) => {
-        try {
-          await emailService.sendQuizNotificationEmail(
-            student.email,
-            `${student.firstName} ${student.lastName}`.trim(),
-            title,
-            description,
-            new Date(startDate),
-            new Date(endDate),
-            totalTime,
-            totalMarks,
-            startTime,
-            endTime
-          );
-        } catch (emailErr) {
-          console.error(`Failed to send email to ${student.email}:`, emailErr);
-        }
-      });
-
-      // Execute all email sends (don't await to not block response)
-      Promise.all(emailPromises).then(() => {
-        console.log(`✅ Quiz notification emails sent to ${targetStudents.length} students`);
-      }).catch((err) => {
-        console.error('Error sending quiz notification emails:', err);
-      });
-
-    } catch (emailError) {
-      // Log error but don't fail the quiz creation
-      console.error('Failed to send quiz notification emails:', emailError);
-    }
+    // No announcement and no email here. A new quiz is library content: students hear about it
+    // when it is assigned to their batch or to them (Assign to Batches → assessmentAssignNotify).
+    // This used to email every student in the institute whenever the hidden audience was
+    // "everyone" — e.g. after ticking External and switching back to Reusable in the wizard.
 
     res.status(201).json(quiz);
   } catch (error: any) {
@@ -977,22 +896,17 @@ export const reassignNonAttendees = async (req: Request, res: Response) => {
     }
 
     // Send reminder emails
-    const emailService = new EmailService();
-    const emailPromises = nonAttendees.map((student: any) =>
-      emailService.sendQuizNotificationEmail(
+    const emailService = new EmailService(String(tenantId));
+    // A library quiz carries a 10-year window; that is not a deadline worth printing.
+    const due = new Date(`${new Date(newEndDate).toISOString().slice(0, 10)}T${quiz.endTime || '23:59'}:00+05:30`);
+    const realDue = !isNaN(due.getTime()) && due.getTime() - Date.now() < 366 * 86_400_000 ? due : null;
+    for (const student of nonAttendees as any[]) {
+      await emailService.sendQuizNotificationEmail(
         student.email,
-        `${student.firstName} ${student.lastName}`,
-        `[Reminder] ${quiz.title}`,
-        quiz.description,
-        new Date(quiz.startDate),
-        new Date(newEndDate),
-        quiz.totalTime,
-        quiz.totalMarks,
-        quiz.startTime,
-        quiz.endTime
-      ).catch(() => {})
-    );
-    await Promise.all(emailPromises);
+        `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+        { title: quiz.title, description: quiz.description, dueAt: realDue, totalTime: quiz.totalTime, totalMarks: quiz.totalMarks, reminder: true },
+      );
+    }
 
     res.json({
       success: true,

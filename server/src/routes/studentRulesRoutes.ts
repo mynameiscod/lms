@@ -10,6 +10,22 @@ import User from '../models/User';
  * Student Rules — office QR attendance, inactivity alerts, profile gate (services/studentRulesService.ts).
  */
 const router = express.Router();
+
+/**
+ * Public (no login): the check-in page swaps the scanned screen code for a 15-minute ticket as soon
+ * as it opens, so slow phones and students who must log in first still check in. Registered before
+ * the auth middleware on purpose.
+ */
+router.post('/attendance/scan', async (req, res) => {
+  try {
+    res.json({ success: true, data: await svc.exchangeScan(String(req.body?.token || '')) });
+  } catch (e: any) {
+    if (e instanceof svc.RuleError) return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    console.error('[student-rules] scan', e?.message);
+    return res.status(500).json({ success: false, message: 'Something went wrong. Please try again.' });
+  }
+});
+
 router.use(authMiddleware);
 router.use(tenantResolver);
 

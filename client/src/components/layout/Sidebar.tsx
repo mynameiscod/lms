@@ -12,6 +12,7 @@ import { StudentFeatureKey } from '../../config/studentFeatureCatalog';
 import visualizerApi from '../../api/visualizerApi';
 import { thinkingLabApi } from '../../api/thinkingLabApi';
 import { useLmsDemo, isDemoUser, demoFeaturesOn } from '../lmsDemo/DemoShell';
+import { useProfileGate, profileGateOpenPath } from '../../contexts/ProfileGateContext';
 import './Sidebar.css';
 
 /**
@@ -90,6 +91,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   });
   const location = useLocation();
   const { user } = useAuth();
+  const { blocked: profileBlocked, gate: profileGate } = useProfileGate();
   const { me: demoMe } = useLmsDemo();
   const { isFeatureEnabled } = useStudentFeatures();
   const { isModuleEnabled } = useTenantModules();
@@ -528,6 +530,19 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     ? roleFilteredItems.filter(i => inCareerPilotNav(i.label))
     : roleFilteredItems;
 
+  /**
+   * Profile gate (Student Rules): while a student's profile is not 100% (or a required agreement is
+   * not accepted) every page except the profile is closed. The menu shows that instead of looking
+   * usable: items are greyed out with a lock and lead to the profile page.
+   */
+  const gateLocked = user?.role === 'STUDENT' && profileBlocked;
+  const lockedPath = (path?: string) => gateLocked && !!path && !profileGateOpenPath(path);
+  const lockTitle = 'Complete your profile to 100% to open this';
+  const linkProps = (path: string, cls: string) => lockedPath(path)
+    ? { to: '/profile', className: `${cls} sidebar-link-locked`, 'aria-disabled': true, title: lockTitle }
+    : { to: path, className: cls };
+  const lockIcon = (path?: string) => lockedPath(path) ? <span className="sidebar-lock" aria-hidden="true"><i className="fa-solid fa-lock"></i></span> : null;
+
   const renderMenuItem = (item: MenuItem, isSubmenu = false) => {
     // A demo student's items were chosen by the LMS Demo switches; the usual per-item rules do not apply.
     if (!demoMenu && !hasAccessToMenu(item)) return null;
@@ -543,13 +558,13 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         return (
           <li key={only.path} className={isSubmenu ? 'submenu-item' : ''}>
             <Link
-              to={only.path!}
+              {...linkProps(only.path!, `sidebar-link ${isActive(only.path) ? 'active' : ''}`)}
               ref={isActive(only.path) ? activeRef : undefined}
-              className={`sidebar-link ${isActive(only.path) ? 'active' : ''}`}
               onClick={onMobileClose}
             >
               <span className="menu-icon"><i className={item.icon || only.icon}></i></span>
               <span className="sidebar-label">{item.label}</span>
+              {lockIcon(only.path)}
             </Link>
           </li>
         );
@@ -571,11 +586,13 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
               {visibleSubitems.map((subitem) => (
                 <li key={subitem.path}>
                   <Link
-                    to={subitem.path!}
+                    {...linkProps(subitem.path!, `sidebar-link submenu-link ${isActive(subitem.path) ? 'active' : ''}`)}
                     ref={isActive(subitem.path) ? activeRef : undefined}
-                    className={`sidebar-link submenu-link ${isActive(subitem.path) ? 'active' : ''}`}                    onClick={onMobileClose}                  >
+                    onClick={onMobileClose}
+                  >
                     {subitem.icon && <span className="submenu-icon"><i className={subitem.icon}></i></span>}
                     <span className="sidebar-label">{subitem.label}</span>
+                    {lockIcon(subitem.path)}
                   </Link>
                 </li>
               ))}
@@ -588,13 +605,13 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     return (
       <li key={item.path} className={isSubmenu ? 'submenu-item' : ''}>
         <Link
-          to={item.path!}
+          {...linkProps(item.path!, `sidebar-link ${isActive(item.path) ? 'active' : ''}`)}
           ref={isActive(item.path) ? activeRef : undefined}
-          className={`sidebar-link ${isActive(item.path) ? 'active' : ''}`}
           onClick={onMobileClose}
         >
           <span className="menu-icon"><i className={item.icon}></i></span>
           <span className="sidebar-label">{item.label}</span>
+          {lockIcon(item.path)}
         </Link>
       </li>
     );
@@ -712,6 +729,17 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
 
       {/* Navigation - grouped for students */}
       <nav className="sidebar-nav">
+        {gateLocked && (
+          <Link to="/profile" className="sidebar-gate-note" onClick={onMobileClose}>
+            <span className="sidebar-gate-icon"><i className="fa-solid fa-lock"></i></span>
+            <span className="sidebar-gate-text">
+              {profileGate?.profileRule && !profileGate?.profileComplete
+                ? <><b>Complete your profile to 100%</b> to unlock the menu{typeof profileGate?.percent === 'number' ? ` (now ${profileGate.percent}%)` : ''}.</>
+                : <><b>Accept the terms</b> on your profile page to unlock the menu.</>}
+              <span className="sidebar-gate-cta">Go to my profile →</span>
+            </span>
+          </Link>
+        )}
         {isStudent ? (
           <>
             {homeItems.length > 0 && (

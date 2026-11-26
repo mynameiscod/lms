@@ -158,21 +158,72 @@ function makeToken(r: IStudentRules, tenantId: string, batch: string, now = Date
   return `${b64u(payload)}.${sign(r.qrSecret, payload)}`;
 }
 
+/**
+ * How long a scanned code still counts. The screen shows a new code every few seconds, but a phone
+ * can take 30–60 s to open the link (camera app → browser → LMS loading), so the code on screen now
+ * and the ones from the last minute are accepted. Being on the office network is the real proof.
+ */
+const QR_GRACE_MS = 60_000;
+/**
+ * A scan turned into a ticket the moment the check-in page opens (before login, see exchangeScan),
+ * so a student who first has to log in — common on iPhone, where the camera opens Safari, not the
+ * browser they normally use — still checks in with the code they scanned.
+ */
+const TICKET_MS = 15 * 60_000;
+
 function readToken(r: IStudentRules, tenantId: string, token: string): { batch: string } {
-  const [p, sig] = String(token || '').split('.');
+  const t = parseScan(r, token);
+  if (t.tenantId !== tenantId) throw new RuleError('This QR code is not from your institute.', 'QR_INVALID');
+  return { batch: t.batch };
+}
+
+/** The tenant a scanned code or ticket claims, before its signature is checked (public scan page). */
+export function scanTenant(token: string): string | null {
+  const parts = String(token || '').split('.');
+  const p = parts[0] === 'k' ? parts[1] : parts[0];
+  try {
+    const tid = Buffer.from(p || '', 'base64url').toString('utf8').split('.')[0];
+    return mongoose.isValidObjectId(tid) ? tid : null;
+  } catch { return null; }
+}
+
+function parseScan(r: IStudentRules, token: string): { tenantId: string; batch: string } {
+  const parts = String(token || '').split('.');
+  const isTicket = parts[0] === 'k';
+  const [p, sig] = isTicket ? parts.slice(1) : parts;
   if (!p || !sig) throw new RuleError('This is not an attendance QR code.', 'QR_INVALID');
   let payload = '';
   try { payload = Buffer.from(p, 'base64url').toString('utf8'); } catch { throw new RuleError('This is not an attendance QR code.', 'QR_INVALID'); }
-  const [tid, batch, winStr] = payload.split('.');
-  const expected = sign(r.qrSecret, payload);
-  if (tid !== tenantId || expected.length !== sig.length || !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) {
+  const [tid, batch, numStr] = payload.split('.');
+  const expected = sign(r.qrSecret, isTicket ? `k|${payload}` : payload);
+  if (expected.length !== sig.length || !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) {
     throw new RuleError('This QR code is not from your institute.', 'QR_INVALID');
   }
-  const cur = Math.floor(Date.now() / 1000 / r.attendance.qrSeconds);
-  const win = Number(winStr);
-  // The code on screen now, or the one just before it (a scan that took a few seconds).
-  if (!(win === cur || win === cur - 1)) throw new RuleError('This QR code has expired. Scan the code on the screen again.', 'QR_EXPIRED');
-  return { batch };
+  const n = Number(numStr);
+  if (isTicket) {
+    if (!(Date.now() - n * 1000 <= TICKET_MS)) throw new RuleError('This scan is too old. Scan the code on the screen again.', 'QR_EXPIRED');
+  } else {
+    const cur = Math.floor(Date.now() / 1000 / r.attendance.qrSeconds);
+    const back = Math.max(1, Math.ceil(QR_GRACE_MS / 1000 / r.attendance.qrSeconds));
+    if (!(n <= cur && cur - n <= back)) throw new RuleError('This QR code has expired. Scan the code on the screen again.', 'QR_EXPIRED');
+  }
+  return { tenantId: tid, batch };
+}
+
+/**
+ * Public, no login: swap a freshly scanned screen code for a ticket that lasts 15 minutes. Being
+ * in the office is still checked when the student actually checks in.
+ */
+export async function exchangeScan(token: string): Promise<{ ticket: string }> {
+  const tid = scanTenant(token);
+  // Public: never create settings for a made-up institute id (getRules would).
+  if (!tid || !(await StudentRules.exists({ tenantId: tid }))) throw new RuleError('This is not an attendance QR code.', 'QR_INVALID');
+  const r = await getRules(tid);
+  if (!r.attendance.enabled) throw new RuleError('Office attendance is switched off at your institute.', 'OFF');
+  if (String(token).startsWith('k.')) { parseScan(r, token); return { ticket: String(token) }; }
+  const { batch } = parseScan(r, token);
+  const payload = `${tid}.${batch}.${Math.floor(Date.now() / 1000)}`;
+  return { ticket: `k.${b64u(payload)}.${sign(r.qrSecret, `k|${payload}`)}` };
 }
 
 export async function qrForScreen(tenantId: string, batchId: string | undefined, ip: string, origin: string) {

@@ -96,6 +96,8 @@ export const studentRulesApi = {
   save: async (rules: Partial<StudentRules>): Promise<StudentRules> => d(await axios.put(BASE, rules, h())),
   qr: async (batchId: string): Promise<QrScreen> =>
     d(await axios.get(`${BASE}/attendance/qr`, { ...h(), params: { batchId: batchId || 'all', origin: window.location.origin } })),
+  /** Public: swap a scanned screen code for a 15-minute ticket (works before login). */
+  scan: async (token: string): Promise<{ ticket: string }> => d(await axios.post(`${BASE}/attendance/scan`, { token })),
   checkIn: async (body: { token: string; lat?: number; lng?: number; deviceId?: string }): Promise<CheckInResult> =>
     d(await axios.post(`${BASE}/attendance/check-in`, body, h())),
   me: async (): Promise<MeResponse> => d(await axios.get(`${BASE}/me`, h())),

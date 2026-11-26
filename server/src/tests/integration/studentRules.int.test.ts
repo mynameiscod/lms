@@ -78,6 +78,39 @@ describe('Student Rules', () => {
     await expect(svc.checkIn(tid, s, { token: `${stale}.${sig}` }, OFFICE)).rejects.toMatchObject({ code: 'QR_INVALID' }); // signature no longer matches
   });
 
+  it('accepts a code scanned up to a minute ago, and refuses an older one', async () => {
+    const s = await mkStudent('slowphone@x.test');
+    const t = await screen();
+    const real = Date.now;
+    try {
+      Date.now = () => real() + 50_000; // phone took 50 s to open the link
+      expect((await svc.checkIn(tid, s, { token: t, deviceId: 'slow' }, OFFICE)).action).toBe('in');
+      Date.now = () => real() + 5 * 60_000;
+      await expect(svc.exchangeScan(t)).rejects.toMatchObject({ code: 'QR_EXPIRED' });
+    } finally { Date.now = real; }
+  });
+
+  it('scan ticket: swapped before login, still checks in 10 minutes later, but not from home or after 15 minutes', async () => {
+    const s = await mkStudent('safari@x.test');
+    const t = await screen();
+    const { ticket } = await svc.exchangeScan(t);
+    expect(ticket.startsWith('k.')).toBe(true);
+    expect((await svc.exchangeScan(ticket)).ticket).toBe(ticket); // reload of the page keeps the same ticket
+    const real = Date.now;
+    try {
+      Date.now = () => real() + 10 * 60_000;
+      await svc.qrForScreen(tid, undefined, OFFICE, 'https://lms.test'); // the screen keeps refreshing
+      await expect(svc.checkIn(tid, s, { token: ticket }, HOME)).rejects.toMatchObject({ code: 'NOT_OFFICE_NETWORK' });
+      expect((await svc.checkIn(tid, s, { token: ticket, deviceId: 'iphone' }, OFFICE)).action).toBe('in');
+      Date.now = () => real() + 16 * 60_000;
+      await expect(svc.checkIn(tid, s, { token: ticket }, OFFICE)).rejects.toMatchObject({ code: 'QR_EXPIRED' });
+    } finally { Date.now = real; }
+    // A forged ticket, and a made-up institute, are refused.
+    await expect(svc.exchangeScan(`${ticket.slice(0, -3)}abc`)).rejects.toMatchObject({ code: 'QR_INVALID' });
+    const fake = `${Buffer.from(`${new mongoose.Types.ObjectId()}.all.1`).toString('base64url')}.xxxxxxxxxxxxxxxxxxxxxx`;
+    await expect(svc.exchangeScan(fake)).rejects.toMatchObject({ code: 'QR_INVALID' });
+  });
+
   it('one phone checks in only one student a day', async () => {
     const a = await mkStudent('kiran@x.test');
     const b = await mkStudent('kavya@x.test');

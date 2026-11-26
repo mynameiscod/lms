@@ -1153,6 +1153,37 @@ export const weeklyReportApi = {
     if (!r.ok) throw new Error(data.message || 'Failed to build the batch report');
     return data.data as { label: string; students: any[] };
   },
+  /** Excel for everyone: start building (scope 'all' or a batch id), poll, then download. */
+  startExport: async (scope: string, from: string, to: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/export`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ scope, from, to }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Could not start the export');
+    return data.data as { id: string; status: string; done: number; total: number };
+  },
+  exportStatus: async (id: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/export/${id}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Could not read the export');
+    return data.data as { id: string; status: 'running' | 'done' | 'failed'; done: number; total: number; fileName: string; error: string; scopeName: string };
+  },
+  downloadExport: async (id: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/export/${id}/file`, { headers: getAuthHeaders() });
+    if (!r.ok) {
+      let msg = 'Download failed';
+      try { msg = (await r.json()).message || msg; } catch { /* not JSON */ }
+      throw new Error(msg);
+    }
+    const blob = await r.blob();
+    const name = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || 'progress-report.xlsx';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return name;
+  },
   /** Downloads the PDF or Excel file of a student's custom-range report. */
   downloadPeriod: async (studentId: string, from: string, to: string, copy: 'staff' | 'student', format: 'pdf' | 'xlsx') => {
     const r = await fetch(`${API_BASE_URL}/weekly-reports/period/student/${studentId}?from=${from}&to=${to}&copy=${copy}&format=${format}`, { headers: getAuthHeaders() });

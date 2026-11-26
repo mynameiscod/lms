@@ -10,6 +10,7 @@ import { estimateCost, purposeTemplate, waCostPerMessage } from '../services/pur
 import { channelsOf, deliver, sendMany, allBatchStudents } from '../services/weeklyReportSender';
 import { getPeriodReport, getBatchPeriodSummaries, searchStudents, parseRange, periodReportXlsx, periodFileName, PeriodRangeError, ReportCopy } from '../services/periodReportService';
 import { periodReportPdf } from '../services/periodReportPdf';
+import { startExport, exportStatus, exportFile } from '../services/reportExportService';
 
 // GET /weekly-reports/summaries?batchId=&weekStart=
 // Per-student score/grade for a batch+week, plus whether/when each was already sent.
@@ -282,5 +283,41 @@ export const getBatchPeriodReport = async (req: AuthenticatedRequest, res: Respo
     res.json({ success: true, data: { label, students: await getBatchPeriodSummaries(req.tenantId!, batchId, from || '', to || '') } });
   } catch (err: any) {
     rangeFail(res, err, 'Failed to build the batch report');
+  }
+};
+
+// ── Excel for everyone (2026-11-26) ──────────────────────────────────────
+// POST /weekly-reports/period/export  { scope: 'all' | batchId, from, to } → starts building
+export const startPeriodExport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { scope, from, to } = req.body as { scope?: string; from?: string; to?: string };
+    const job: any = await startExport(req.tenantId!, req.user?.id, String(scope || 'all'), String(from || ''), String(to || ''));
+    res.json({ success: true, data: { id: String(job._id), status: job.status, done: job.done, total: job.total } });
+  } catch (err: any) {
+    rangeFail(res, err, 'Could not start the export');
+  }
+};
+
+// GET /weekly-reports/period/export/:id → progress
+export const getPeriodExport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const s = await exportStatus(req.tenantId!, req.params.id);
+    if (!s) return res.status(404).json({ success: false, message: 'Export not found' });
+    res.json({ success: true, data: s });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to read the export' });
+  }
+};
+
+// GET /weekly-reports/period/export/:id/file → the .xlsx
+export const downloadPeriodExport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const f = await exportFile(req.tenantId!, req.params.id);
+    if (!f) return res.status(404).json({ success: false, message: 'The file is not ready or has expired' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${f.fileName}"`);
+    res.send(f.file);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Download failed' });
   }
 };

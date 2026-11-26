@@ -258,3 +258,17 @@
   .cr-seg { display: flex; }
   .cr-seg button { flex: 1; }
 }
+
+/* Excel for everyone */
+.cr-export { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #E2EAF2; }
+.cr-export-label { font-size: 12.5px; color: #64748B; margin-right: 4px; }
+.cr-progress { margin-top: 12px; border-radius: 10px; padding: 10px 12px; background: #F4F8FC; border: 1px solid #E2EAF2; }
+.cr-progress.done { background: #ECFDF5; border-color: #A7F3D0; color: #047857; }
+.cr-progress.failed { background: #FEF2F2; border-color: #FECACA; color: #B91C1C; }
+.cr-progress-text { font-size: 13px; overflow-wrap: anywhere; }
+.cr-progress-bar { height: 8px; border-radius: 6px; background: #E2EAF2; overflow: hidden; margin: 8px 0 6px; }
+.cr-progress-bar span { display: block; height: 100%; background: #359AAD; transition: width .4s; }
+.cr-link { background: none; border: none; padding: 0; color: #051D64; font-weight: 700; text-decoration: underline; cursor: pointer; font-size: 13px; }
+@media (max-width: 640px) {
+  .cr-export .wr-btn { flex: 1 1 100%; }
+}

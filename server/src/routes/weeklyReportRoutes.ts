@@ -13,6 +13,9 @@ import {
   searchStudentsForReport,
   getStudentPeriodReport,
   getBatchPeriodReport,
+  startPeriodExport,
+  getPeriodExport,
+  downloadPeriodExport,
 } from '../controllers/weeklyReportController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -39,5 +42,8 @@ router.put('/settings', canReport, updateSettings);
 router.get('/students', canReport, searchStudentsForReport);
 router.get('/period/student/:studentId', canReport, getStudentPeriodReport);
 router.get('/period/batch', canReport, getBatchPeriodReport);
+router.post('/period/export', canReport, startPeriodExport);
+router.get('/period/export/:id', canReport, getPeriodExport);
+router.get('/period/export/:id/file', canReport, downloadPeriodExport);
 
 export default router;

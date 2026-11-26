@@ -41,6 +41,7 @@ import { runWeeklyReportTick } from '../../jobs/weeklyReportCron';
 import * as XLSX from 'xlsx';
 import { getPeriodReport, getBatchPeriodSummaries, parseRange, periodReportXlsx, PeriodRangeError } from '../../services/periodReportService';
 import { periodReportPdf } from '../../services/periodReportPdf';
+import { startExport, exportStatus, exportFile } from '../../services/reportExportService';
 
 const ADMIN = new mongoose.Types.ObjectId();
 let TENANT: string;
@@ -270,6 +271,62 @@ describe('custom date range report', () => {
     const rows = await getBatchPeriodSummaries(TENANT, String(BATCH_A._id), '2026-11-09', '2026-11-22');
     expect(rows.map(x => x.name)).toEqual(['Asha K']);
     expect(rows[0].glance.find(g => g.key === 'quizzes')!.state).toBe('missed');
+  });
+});
+
+describe('Excel for everyone', () => {
+  const waitDone = async (id: string) => {
+    for (let i = 0; i < 200; i++) {
+      const s = await exportStatus(TENANT, id);
+      if (s && s.status !== 'running') return s;
+      await new Promise(r => setTimeout(r, 100));
+    }
+    throw new Error('export did not finish');
+  };
+
+  it('builds one file for every batch: filterable numbers, item sheets, frozen header, colour rules', async () => {
+    const job: any = await startExport(TENANT, String(ADMIN), 'all', '2026-11-09', '2026-11-22');
+    expect(job.total).toBe(2);
+    const s = await waitDone(String(job._id));
+    expect(s).toMatchObject({ status: 'done', done: 2, total: 2 });
+    const f = (await exportFile(TENANT, String(job._id)))!;
+    expect(f.fileName).toMatch(/^progress_All-batches_2026-11-09_to_2026-11-22\.xlsx$/);
+
+    const wb = XLSX.read(f.file, { type: 'buffer' });
+    expect(wb.SheetNames).toEqual(['Students', 'Quizzes', 'Assignments', 'Interviews', 'Drives', 'About']);
+    const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets.Students);
+    expect(rows.map(r => r.Batch)).toEqual(['Batch A', 'Batch B']);
+    const asha = rows[0];
+    expect(typeof asha.Score).toBe('number');
+    expect(asha['Quizzes missed']).toBe(1);
+    expect(asha['Speaking days expected']).toBe(3);
+    expect(asha['Speaking days done']).toBe(1);
+    expect(asha['Communication Lab']).toBe('Partly done');
+    expect(rows[1].Score).toBeUndefined();           // nothing scored → empty, not 0
+    const quizzes: any[] = XLSX.utils.sheet_to_json(wb.Sheets.Quizzes);
+    expect(quizzes).toEqual([expect.objectContaining({ Student: 'Asha K', Quiz: 'Arrays check', Status: 'Missed' })]);
+    expect(wb.Sheets.Students['!autofilter']).toBeTruthy();
+
+    // What SheetJS can't write, added afterwards: frozen panes, header style, conditional colours.
+    const zip: any = (XLSX as any).CFB.read(f.file, { type: 'buffer' });
+    const sheet1 = Buffer.from((XLSX as any).CFB.find(zip, '/xl/worksheets/sheet1.xml').content).toString();
+    expect(sheet1).toContain('<pane xSplit="2" ySplit="1" topLeftCell="C2" activePane="bottomRight" state="frozen"/>');
+    expect(sheet1).toMatch(/<conditionalFormatting sqref="D2:D3"><cfRule type="expression" dxfId="1" priority="\d+"><formula>AND\(ISNUMBER\(D2\),D2&gt;=70\)<\/formula>/);
+    expect(sheet1.indexOf('<conditionalFormatting')).toBeLessThan(sheet1.indexOf('<ignoredErrors') === -1 ? Infinity : sheet1.indexOf('<ignoredErrors'));
+    expect(sheet1.indexOf('<autoFilter')).toBeLessThan(sheet1.indexOf('<conditionalFormatting'));
+    const styles = Buffer.from((XLSX as any).CFB.find(zip, '/xl/styles.xml').content).toString();
+    expect(styles).toContain('<dxfs count="5">');
+  });
+
+  it('one batch only, and a range over 12 months is refused', async () => {
+    const job: any = await startExport(TENANT, String(ADMIN), String(BATCH_A._id), '2026-11-09', '2026-11-22');
+    await waitDone(String(job._id));
+    const f = (await exportFile(TENANT, String(job._id)))!;
+    const rows: any[] = XLSX.utils.sheet_to_json(XLSX.read(f.file, { type: 'buffer' }).Sheets.Students);
+    expect(rows.map(r => r.Student)).toEqual(['Asha K']);
+    await expect(startExport(TENANT, String(ADMIN), 'all', '2024-01-01', '2026-11-22')).rejects.toThrow(/12 months/);
+    // Another institute can't read it.
+    expect(await exportStatus(String(new mongoose.Types.ObjectId()), String(job._id))).toBeNull();
   });
 });
 

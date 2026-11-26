@@ -61,6 +61,10 @@ const CustomReport: React.FC<{ batches: BatchOpt[]; defaultBatchId: string }> = 
   const [report, setReport] = useState<any | null>(null);
   const [batchRows, setBatchRows] = useState<{ label: string; students: any[] } | null>(null);
   const [downloading, setDownloading] = useState<'' | 'pdf' | 'xlsx'>('');
+  // Excel for everyone: built in the background, polled, then downloaded.
+  const [exp, setExp] = useState<{ id: string; status: 'running' | 'done' | 'failed'; done: number; total: number; label: string; fileName?: string; error?: string } | null>(null);
+  const pollRef = useRef<any>(null);
+  useEffect(() => () => clearTimeout(pollRef.current), []);
 
   useEffect(() => { if (!batchId && defaultBatchId) setBatchId(defaultBatchId); }, [defaultBatchId, batchId]);
 
@@ -98,6 +102,30 @@ const CustomReport: React.FC<{ batches: BatchOpt[]; defaultBatchId: string }> = 
     try { await weeklyReportApi.downloadPeriod(report.student.id, from, to, copy, format); }
     catch (e: any) { setErr(e.message || 'Download failed'); }
     finally { setDownloading(''); }
+  };
+
+  const startExport = async (scope: 'all' | 'batch') => {
+    setErr('');
+    clearTimeout(pollRef.current);
+    const label = scope === 'all' ? 'All batches' : (batches.find((b) => b._id === batchId)?.name || 'This batch');
+    try {
+      const j = await weeklyReportApi.startExport(scope === 'all' ? 'all' : batchId, from, to);
+      setExp({ id: j.id, status: 'running', done: j.done, total: j.total, label });
+      const poll = async () => {
+        try {
+          const st = await weeklyReportApi.exportStatus(j.id);
+          setExp((e) => (e && e.id === j.id ? { ...e, ...st } : e));
+          if (st.status === 'running') { pollRef.current = setTimeout(poll, 2000); return; }
+          if (st.status === 'done') {
+            const name = await weeklyReportApi.downloadExport(j.id);
+            setExp((e) => (e && e.id === j.id ? { ...e, fileName: name } : e));
+          }
+        } catch (e: any) {
+          setExp((x) => (x && x.id === j.id ? { ...x, status: 'failed', error: e.message || 'Something went wrong' } : x));
+        }
+      };
+      pollRef.current = setTimeout(poll, 1200);
+    } catch (e: any) { setErr(e.message || 'Could not start the export'); }
   };
 
   const openStudent = (s: any) => {
@@ -184,6 +212,24 @@ const CustomReport: React.FC<{ batches: BatchOpt[]; defaultBatchId: string }> = 
           )}
           <button className="wr-btn primary cr-go" disabled={loading} onClick={() => run()}>{loading ? 'Building…' : 'Show report'}</button>
         </div>
+        {mode === 'batch' && (
+          <div className="cr-export">
+            <span className="cr-export-label">Excel for everyone, with filters and coloured scores:</span>
+            <button className="wr-btn outline sm" disabled={exp?.status === 'running' || !batchId} onClick={() => startExport('batch')}>⬇ Excel — this batch</button>
+            <button className="wr-btn outline sm" disabled={exp?.status === 'running'} onClick={() => startExport('all')}>⬇ Excel — all batches</button>
+          </div>
+        )}
+        {mode === 'batch' && exp && (
+          <div className={`cr-progress ${exp.status}`} role="status" aria-live="polite">
+            {exp.status === 'running' && <>
+              <div className="cr-progress-text">Building the Excel file for <b>{exp.label}</b>… {exp.done} of {exp.total} students</div>
+              <div className="cr-progress-bar"><span style={{ width: `${exp.total ? Math.round((exp.done / exp.total) * 100) : 0}%` }} /></div>
+              <div className="cr-muted">You can keep working; it downloads by itself when ready.</div>
+            </>}
+            {exp.status === 'done' && <div className="cr-progress-text">✓ {exp.fileName ? <>Downloaded <b>{exp.fileName}</b></> : 'Ready'} — {exp.total} students. <button className="cr-link" onClick={() => weeklyReportApi.downloadExport(exp.id).catch((e) => setErr(e.message))}>Download again</button></div>}
+            {exp.status === 'failed' && <div className="cr-progress-text">✕ {exp.error || 'The export failed.'}</div>}
+          </div>
+        )}
         <div className="cr-hint">Up to 12 months. Long ranges take a few seconds{mode === 'batch' ? ' per student' : ''}.</div>
       </div>
 

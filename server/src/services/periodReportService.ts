@@ -118,7 +118,7 @@ export function weekBreakdown(r: WeeklyReportData, start: Date, end: Date): Week
 }
 
 /** Staff: every drive the student was put forward for, with the result. Student: attended only. */
-async function driveLog(tenantId: string, studentId: string, start: Date, end: Date, copy: ReportCopy, attended: WeeklyReportData['drives']): Promise<DriveLogRow[]> {
+export async function driveLog(tenantId: string, studentId: string, start: Date, end: Date, copy: ReportCopy, attended: WeeklyReportData['drives']): Promise<DriveLogRow[]> {
   if (copy === 'student') return attended.map((d) => ({ ...d }));
   const cands: any[] = await PlacementDeskCandidate.find({ tenantId, studentId, day: { $gte: ymd(start), $lte: ymd(end) } })
     .select('driveId day status roundReached offerCtc companyFeedback').lean();

@@ -1108,6 +1108,33 @@ export const weeklyReportApi = {
     if (!r.ok) throw new Error(data.message || 'Failed to send');
     return data;
   },
+  sendToAll: async (weekStart: string, channels: ('email' | 'whatsapp')[] = ['email']) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/send-all`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ weekStart, channels }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to send');
+    return data;
+  },
+  getSettings: async () => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/settings`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to load settings');
+    return data.data as {
+      autoSend: boolean; channels: ('email' | 'whatsapp')[]; lastAutoWeek: string | null; lastAutoAt: string | null;
+      lastAutoResult: { sent: number; failed: number; skippedEmpty: number; skippedAlreadySent: number } | null;
+      whatsappTemplateReady: boolean;
+    };
+  },
+  updateSettings: async (autoSend: boolean, channels: ('email' | 'whatsapp')[]) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/settings`, {
+      method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ autoSend, channels }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to save');
+    return data;
+  },
+  /** batchId 'all' = every active batch. */
   estimate: async (batchId: string) => {
     const r = await fetch(`${API_BASE_URL}/weekly-reports/estimate?batchId=${batchId}`, { headers: getAuthHeaders() });
     const data = await r.json();

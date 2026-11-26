@@ -2,33 +2,37 @@ import { Types } from 'mongoose';
 import User from '../models/User';
 import Attendance from '../models/Attendance';
 import QuizAttempt from '../models/QuizAttempt';
-import Quiz from '../models/Quiz';
 import Submission, { SubmissionStatus } from '../models/Submission';
-import Assignment from '../models/Assignment';
 import InterviewAttempt from '../models/InterviewAttempt';
 import ScheduledInterview from '../models/ScheduledInterview';
 import InterviewScheduleFeedback from '../models/InterviewScheduleFeedback';
-import CommunicationSchedule from '../models/CommunicationSchedule';
-import CommunicationAttempt from '../models/CommunicationAttempt';
-import ScheduledChallenge from '../models/ScheduledChallenge';
-import DailyChallenge from '../models/DailyChallenge';
 import { PracticeDay, PracticeStanding, PracticePolicy } from '../models/PracticePass';
+import { PlacementDeskCandidate, PlacementDeskDrive, ATTENDED_STATUSES } from '../models/PlacementDesk';
 import { recomputeStudent } from './practicePassService';
+import { resolveAssignedQuizzes } from './studentWorkService';
+import assignmentService from './assignmentService';
+import { communicationWeek, thinkingWeek, labScore, weekDates, CommunicationWeek, ThinkingWeek } from './weeklyReportLabs';
 
 // ── Types ────────────────────────────────────────────────────────────────
 export interface WeeklyReportData {
   student: { id: string; name: string; firstName: string; email: string; batchId: string; batchName: string };
   period: { startISO: string; endISO: string; label: string; generatedAtISO: string };
   overall: { score: number; grade: string; label: string; message: string; hasData: boolean };
-  quizzes: { assigned: number; attempted: number; avgScore: number; topScore: number; timeLabel: string };
-  assignments: { assigned: number; submitted: number; avgScore: number; scoredCount: number; awaitingGrading: number; pending: number; timeLabel: string };
+  quizzes: { assigned: number; attempted: number; missed: number; pending: number; missedTitles: string[]; avgScore: number; topScore: number; timeLabel: string };
+  assignments: { assigned: number; submitted: number; missed: number; missedTitles: string[]; avgScore: number; scoredCount: number; awaitingGrading: number; pending: number; timeLabel: string };
   attendance: { percentage: number; present: number; absent: number; late: number; leave: number; totalClasses: number };
   interview: { taken: number; avgRating: number; avgScore: number; scheduled: number; absent: number; remarks: string; breakdown: { label: string; rating: number }[] };
-  challenges: {
-    communication: { assigned: number; completed: number; missed: number };
-    thinking: { assigned: number; completed: number; missed: number };
-    totalAssigned: number; totalCompleted: number; totalMissed: number;
-  };
+  communication: CommunicationWeek;
+  thinking: ThinkingWeek;
+  /** One line per area for the "This week at a glance" strip and the staff table. */
+  /**
+   * Company drives the student attended this week (Placement Desk). Empty = the section is not
+   * shown. Only that they went: outcomes and company feedback stay admin-only.
+   */
+  drives: { company: string; role: string; day: string; mode: string }[];
+  glance: GlanceItem[];
+  /** Nothing happened and nothing was expected — batch and automatic sends skip this student. */
+  isEmpty: boolean;
   /** Daily Practice Pass for the week — null when the institute has not switched it on. */
   practice: {
     days: { date: string; weekday: string; met: boolean; excused: string | null; done: Record<string, number>; required: Record<string, number> }[];
@@ -41,6 +45,10 @@ export interface WeeklyReportData {
   } | null;
 }
 
+export type GlanceState = 'done' | 'partial' | 'missed' | 'pending' | 'none';
+export type GlanceKey = 'classes' | 'quizzes' | 'assignments' | 'interview' | 'communication' | 'thinking';
+export interface GlanceItem { key: GlanceKey; label: string; state: GlanceState; detail: string }
+
 export interface StudentWeeklySummary {
   id: string;
   name: string;
@@ -51,6 +59,9 @@ export interface StudentWeeklySummary {
   practiceDays?: string;
   practicePct?: number;
   onHold?: boolean;
+  glance: GlanceItem[];
+  isEmpty: boolean;
+  drivesAttended: number;
 }
 
 // ── Week helpers ─────────────────────────────────────────────────────────
@@ -113,6 +124,39 @@ function labelFor(score: number): { label: string; message: string } {
   return { label: 'Needs Focus', message: "Let's turn it around — attend classes, attempt quizzes and submit assignments this week." };
 }
 
+// -- At a glance -------------------------------------------------------------
+function ratioState(done: number, expected: number): GlanceState {
+  if (expected <= 0) return 'none';
+  if (done >= expected) return 'done';
+  return done > 0 ? 'partial' : 'missed';
+}
+function workState(done: number, assigned: number, missed: number): GlanceState {
+  if (!assigned) return 'none';
+  if (done >= assigned) return 'done';
+  if (done > 0) return 'partial';
+  return missed > 0 ? 'missed' : 'pending';
+}
+function labGlance(key: GlanceKey, label: string, w: CommunicationWeek | ThinkingWeek): GlanceItem {
+  if (w.expectedDays) return { key, label, state: ratioState(w.doneDays, w.expectedDays), detail: `${w.doneDays}/${w.expectedDays} days` };
+  if (w.activeDays) return { key, label, state: 'done', detail: `Practised ${w.activeDays} day${w.activeDays > 1 ? 's' : ''}` };
+  return { key, label, state: 'none', detail: 'Nothing set' };
+}
+export function buildGlance(r: Pick<WeeklyReportData, 'attendance' | 'quizzes' | 'assignments' | 'interview' | 'communication' | 'thinking'>): GlanceItem[] {
+  const { attendance: at, quizzes: q, assignments: a, interview: iv } = r;
+  return [
+    { key: 'classes', label: 'Classes', state: ratioState(at.present, at.totalClasses - at.leave), detail: at.totalClasses ? `${at.present}/${at.totalClasses} attended` : 'No classes' },
+    { key: 'quizzes', label: 'Quizzes', state: workState(q.attempted, q.assigned, q.missed), detail: q.assigned ? `${q.attempted}/${q.assigned} done` : 'None set' },
+    { key: 'assignments', label: 'Assignments', state: workState(a.submitted, a.assigned, a.missed), detail: a.assigned ? `${a.submitted}/${a.assigned} submitted` : 'None set' },
+    {
+      key: 'interview', label: 'Mock interview',
+      state: iv.taken > 0 ? 'done' : iv.absent > 0 ? 'missed' : iv.scheduled > 0 ? 'pending' : 'none',
+      detail: iv.taken > 0 ? `${iv.taken} taken` : iv.absent > 0 ? 'Absent' : iv.scheduled > 0 ? 'Scheduled' : 'None this week',
+    },
+    labGlance('communication', 'Communication Lab', r.communication),
+    labGlance('thinking', 'Thinking Lab', r.thinking),
+  ];
+}
+
 // ── Core computation ─────────────────────────────────────────────────────
 export class WeeklyReportService {
   private async attendance(studentId: string, tenantId: string, start: Date, end: Date) {
@@ -141,29 +185,42 @@ export class WeeklyReportService {
     const topScore = done.length ? Math.max(...done.map(pct)) : 0;
     const timeSec = done.reduce((s, a) => s + Math.min(a.timeSpent || 0, 4 * 3600), 0); // cap 4h/attempt
 
-    // "Assigned" = quizzes accessible to this student whose window overlapped the week
-    const assigned = await Quiz.countDocuments({
-      tenantId,
-      startDate: { $lte: end },
-      endDate: { $gte: start },
-      $and: [
-        { $or: [{ archivedAt: null }, { archivedAt: { $exists: false } }] },
-        accessibleFilter(batchId, studentId),
-      ],
-    });
-
-    return { assigned: Math.max(assigned, done.length), attempted: done.length, avgScore, topScore, timeLabel: fmtDuration(timeSec) };
+    // "Assigned this week" = the quizzes on the student's own list (batch assignment, picked
+    // students, or the quiz's audience) that opened or fell due this week, or that they took this
+    // week. Same rule as the student's screen, so staff and student read the same number.
+    const list = await resolveAssignedQuizzes(tenantId, studentId, batchId || null).catch(() => []);
+    const takenThisWeek = new Set(done.map(a => String(a.quizId)));
+    const inWeek = (d: Date | null | undefined) => !!d && d >= start && d <= end;
+    const now = new Date();
+    let assigned = 0, attempted = 0, missed = 0;
+    const missedTitles: string[] = [];
+    for (const q of list) {
+      const id = String(q.quiz._id);
+      const opened = q.startAt
+        || (q.schedule?.createdAt ? new Date(q.schedule.createdAt) : null)
+        || (q.source === 'baked' && q.quiz.startDate ? new Date(q.quiz.startDate) : null);
+      if (!(inWeek(q.dueAt) || inWeek(opened) || takenThisWeek.has(id))) continue;
+      assigned++;
+      const finished = q.attempts.some((a: any) => (a.status === 'submitted' || a.status === 'grading') && new Date(a.submittedAt || a.createdAt) <= end);
+      if (finished) attempted++;
+      else if (q.dueAt && inWeek(q.dueAt) && q.dueAt < now) { missed++; missedTitles.push(String(q.quiz.title || 'Quiz')); }
+    }
+    assigned = Math.max(assigned, attempted, takenThisWeek.size);
+    attempted = Math.max(attempted, takenThisWeek.size);
+    return {
+      assigned, attempted, missed, pending: Math.max(0, assigned - attempted - missed), missedTitles: missedTitles.slice(0, 3),
+      avgScore, topScore, timeLabel: fmtDuration(timeSec),
+    };
   }
 
   private async assignments(studentId: string, tenantId: string, batchId: string, start: Date, end: Date) {
     const subs = await Submission.find({ student: studentId, tenant: tenantId, submittedAt: { $gte: start, $lte: end } })
       .populate('assignment', 'totalPoints dueDate');
-    // Count DISTINCT assignments submitted (a student can have multiple attempts per assignment).
-    const submittedIds = new Set(
+    // DISTINCT assignments handed in this week (a student can have several attempts per assignment).
+    const submittedThisWeek = new Set(
       subs.filter(s => s.status !== SubmissionStatus.NOT_STARTED)
         .map(s => String((s.assignment as any)?._id || s.assignment))
     );
-    const submitted = submittedIds.size;
     // "Scored" = has an actual score (auto-graded coding/MCQ set finalScore on submit; theory only
     // after a mentor grades it). Average over SCORED — not just status==='graded' — so auto-graded
     // coding/MCQ count, and un-graded theory shows as "awaiting grading" instead of a misleading 0%.
@@ -175,24 +232,54 @@ export class WeeklyReportService {
       return total ? Math.round(((s.finalScore ?? s.totalScore ?? 0) / total) * 100) : 0;
     };
     const avgScore = scored.length ? Math.round(scored.reduce((sum, s) => sum + pct(s), 0) / scored.length) : 0;
-    const awaitingGrading = Math.max(0, submitted - scored.length);
     // Cap each submission's time — it's wall-clock (open→submit), so leaving one open for days
     // inflates it to 100+ hours. Cap at 4h/submission for a sane weekly total.
     const CAP = 4 * 3600;
     const timeSec = subs.reduce((sum, s) => sum + Math.min((s as any).timeSpent || 0, CAP), 0);
 
-    const assigned = await Assignment.countDocuments({
-      tenant: tenantId,
-      status: 'published',
-      $and: [
-        { $or: [{ dueDate: { $gte: start, $lte: end } }, { startDate: { $gte: start, $lte: end } }, { startDate: { $lte: end }, dueDate: { $gte: start } }] },
-        { $or: accessibleFilterAssignment(batchId, studentId) },
-      ],
-    });
+    // "Assigned this week" from the student's own assignment list (batch assignment, picked
+    // students, or the assignment's own batches) — opened or due this week, or handed in this week.
+    const list: any[] = await assignmentService.getStudentAssignments(
+      new Types.ObjectId(tenantId), new Types.ObjectId(studentId), batchId ? new Types.ObjectId(batchId) : undefined,
+    ).catch(() => []);
+    const inWeek = (d: any) => !!d && new Date(d) >= start && new Date(d) <= end;
+    const DONE = ['submitted', 'grading', 'graded', 'late'];
+    const now = new Date();
+    let assigned = 0, submitted = 0, missed = 0;
+    const missedTitles: string[] = [];
+    for (const a of list) {
+      const id = String(a._id);
+      const dueAt = a.delivery?.dueAt ? new Date(a.delivery.dueAt) : null;
+      if (!(inWeek(dueAt) || inWeek(a.delivery?.startAt) || submittedThisWeek.has(id))) continue;
+      assigned++;
+      const sub = a.submission;
+      const handedIn = submittedThisWeek.has(id)
+        || (!!sub && DONE.includes(sub.status) && (!sub.submittedAt || new Date(sub.submittedAt) <= end));
+      if (handedIn) submitted++;
+      else if (dueAt && inWeek(dueAt) && dueAt < now) { missed++; missedTitles.push(String(a.title || 'Assignment')); }
+    }
+    assigned = Math.max(assigned, submitted, submittedThisWeek.size);
+    submitted = Math.max(submitted, submittedThisWeek.size);
+    const awaitingGrading = Math.max(0, submittedThisWeek.size - new Set(scored.map(s => String((s.assignment as any)?._id || s.assignment))).size);
+    return {
+      assigned, submitted, missed, missedTitles: missedTitles.slice(0, 3), avgScore, scoredCount: scored.length, awaitingGrading,
+      pending: Math.max(0, assigned - submitted - missed), timeLabel: fmtDuration(timeSec),
+    };
+  }
 
-    const finalAssigned = Math.max(assigned, submitted);
-    const pending = Math.max(0, finalAssigned - submitted); // assignments not yet submitted
-    return { assigned: finalAssigned, submitted, avgScore, scoredCount: scored.length, awaitingGrading, pending, timeLabel: fmtDuration(timeSec) };
+  /** Placement Desk drives held this week that the student turned up to (not cancelled ones). */
+  private async drives(studentId: string, tenantId: string, start: Date) {
+    const days = weekDates(ymd(start));
+    const rows: any[] = await PlacementDeskCandidate.find({
+      tenantId, studentId, day: { $gte: days[0], $lte: days[6] }, status: { $in: ATTENDED_STATUSES },
+    }).select('driveId day').lean().catch(() => []);
+    if (!rows.length) return [];
+    const drives: any[] = await PlacementDeskDrive.find({ _id: { $in: rows.map((r) => r.driveId) }, status: { $ne: 'cancelled' } })
+      .select('companyName role day mode').lean();
+    const modes: Record<string, string> = { on_campus: 'On campus', virtual: 'Online', walk_in: 'Walk-in', at_company: 'At the company' };
+    return drives
+      .sort((a, b) => String(a.day).localeCompare(String(b.day)))
+      .map((d) => ({ company: String(d.companyName || ''), role: String(d.role || ''), day: String(d.day || ''), mode: modes[d.mode] || '' }));
   }
 
   private async interviews(studentId: string, tenantId: string, start: Date, end: Date) {
@@ -242,47 +329,22 @@ export class WeeklyReportService {
     return { taken, avgScore, avgRating: Math.round((avgScore / 20) * 10) / 10, scheduled: scheduledList.length, absent, remarks: String(remarks).slice(0, 240), breakdown };
   }
 
-  // Daily-lab challenges: assigned (admin-scheduled for the batch) vs completed vs missed.
-  // Only SCHEDULED challenges count (the ones with a window) — free daily practice is not "assigned".
-  private async challenges(studentId: string, tenantId: string, batchId: string, start: Date, end: Date) {
-    const empty = { communication: { assigned: 0, completed: 0, missed: 0 }, thinking: { assigned: 0, completed: 0, missed: 0 }, totalAssigned: 0, totalCompleted: 0, totalMissed: 0 };
-    if (!batchId) return empty;
-    const startYmd = ymd(start), endYmd = ymd(end);
-    // Each lab is counted against the batch that supplies it (a placement batch may take it over).
+  /** Both labs, each counted against the batch that supplies it (a placement batch may take it over). */
+  private async labs(studentId: string, tenantId: string, batchId: string, start: Date, practice: WeeklyReportData['practice']) {
+    const dates = weekDates(ymd(start));
     const { labBatchFor } = await import('./placementBatchService');
-    const [commBatch, thinkBatch] = await Promise.all([
-      labBatchFor(tenantId, studentId, batchId, 'communication'),
-      labBatchFor(tenantId, studentId, batchId, 'thinking'),
+    const [commBatch, thinkBatch] = batchId
+      ? await Promise.all([
+        labBatchFor(tenantId, studentId, batchId, 'communication'),
+        labBatchFor(tenantId, studentId, batchId, 'thinking'),
+      ])
+      : [null, null];
+    const days = practice ? practice.days.map((d) => ({ date: d.date, excused: d.excused, required: d.required })) : null;
+    const [communication, thinking] = await Promise.all([
+      communicationWeek(tenantId, studentId, commBatch, dates, days),
+      thinkingWeek(tenantId, studentId, thinkBatch, dates, days),
     ]);
-
-    // Communication Lab
-    const [commSched, commDone] = await Promise.all([
-      CommunicationSchedule.find({ tenantId, batchId: commBatch, date: { $gte: startYmd, $lte: endYmd } }).select('date').lean(),
-      CommunicationAttempt.find({ tenantId, studentId, status: 'completed', practiceDate: { $gte: startYmd, $lte: endYmd } }).select('practiceDate').lean(),
-    ]);
-    const commDates = new Set(commSched.map((s: any) => s.date));
-    const commCompletedDates = new Set(commDone.map((a: any) => a.practiceDate));
-    const commAssigned = commDates.size;
-    const commCompleted = [...commDates].filter(d => commCompletedDates.has(d)).length;
-
-    // Thinking Lab
-    const [thinkSched, thinkDone] = await Promise.all([
-      ScheduledChallenge.find({ tenantId, batchId: thinkBatch, date: { $gte: startYmd, $lte: endYmd } }).select('date').lean(),
-      DailyChallenge.find({ tenantId, studentId, date: { $gte: startYmd, $lte: endYmd }, $or: [{ passed: true }, { status: 'solved' }] }).select('date').lean(),
-    ]);
-    const thinkDates = new Set(thinkSched.map((s: any) => s.date));
-    const thinkSolvedDates = new Set(thinkDone.map((c: any) => c.date));
-    const thinkAssigned = thinkDates.size;
-    const thinkCompleted = [...thinkDates].filter(d => thinkSolvedDates.has(d)).length;
-
-    const communication = { assigned: commAssigned, completed: commCompleted, missed: Math.max(0, commAssigned - commCompleted) };
-    const thinking = { assigned: thinkAssigned, completed: thinkCompleted, missed: Math.max(0, thinkAssigned - thinkCompleted) };
-    return {
-      communication, thinking,
-      totalAssigned: commAssigned + thinkAssigned,
-      totalCompleted: commCompleted + thinkCompleted,
-      totalMissed: communication.missed + thinking.missed,
-    };
+    return { communication, thinking };
   }
 
   /** Full weekly report for one student. Returns null if the student doesn't exist. */
@@ -296,29 +358,40 @@ export class WeeklyReportService {
     const batchId = (student.batchId as any)?._id?.toString() || '';
     const sid = student._id.toString();
 
-    const [attendance, quizzes, assignments, interview, challenges, practice] = await Promise.all([
+    const [attendance, quizzes, assignments, interview, practice, drives] = await Promise.all([
       this.attendance(sid, tenantId, start, end),
       this.quizzes(sid, tenantId, batchId, start, end),
       this.assignments(sid, tenantId, batchId, start, end),
       this.interviews(sid, tenantId, start, end),
-      this.challenges(sid, tenantId, batchId, start, end),
       this.practice(sid, tenantId, start),
+      this.drives(sid, tenantId, start),
     ]);
+    // The labs read the practice days to know which days a lab was expected.
+    const { communication, thinking } = await this.labs(sid, tenantId, batchId, start, practice);
 
     // Completion-aware weighted overall score. A section that was ASSIGNED but not done drags
-    // the score down (performance × completion), so skipping all assignments can't still read
-    // "Excellent". Weights: Quizzes 30 / Assignments 30 / Attendance 20 / Interview 20, normalized
-    // over the sections that applied this week.
+    // the score down (performance x completion), so skipping everything can't still read
+    // "Excellent". Weights: Quizzes 25 / Assignments 25 / Attendance 15 / Interview 15 /
+    // Communication Lab 10 / Thinking Lab 10, normalized over the sections that applied this week.
     const clamp = (n: number) => Math.max(0, Math.min(100, n));
     const comps: { v: number; w: number }[] = [];
-    if (quizzes.assigned > 0) comps.push({ v: clamp(quizzes.avgScore * (quizzes.attempted / quizzes.assigned)), w: 30 });
-    if (assignments.assigned > 0) comps.push({ v: clamp(assignments.avgScore * (assignments.submitted / assignments.assigned)), w: 30 });
-    if (attendance.totalClasses > 0) comps.push({ v: attendance.percentage, w: 20 });
-    if (interview.taken > 0) comps.push({ v: interview.avgScore, w: 20 });
+    if (quizzes.assigned > 0) comps.push({ v: clamp(quizzes.avgScore * (quizzes.attempted / quizzes.assigned)), w: 25 });
+    if (assignments.assigned > 0) comps.push({ v: clamp(assignments.avgScore * (assignments.submitted / assignments.assigned)), w: 25 });
+    if (attendance.totalClasses > 0) comps.push({ v: attendance.percentage, w: 15 });
+    if (interview.taken > 0) comps.push({ v: interview.avgScore, w: 15 });
+    const comm = labScore(communication);
+    if (comm !== null) comps.push({ v: clamp(comm), w: 10 });
+    const think = labScore(thinking);
+    if (think !== null) comps.push({ v: clamp(think), w: 10 });
     const hasData = comps.length > 0;
     const totW = comps.reduce((s, c) => s + c.w, 0);
     const score = hasData ? Math.round(comps.reduce((s, c) => s + c.v * c.w, 0) / totW) : 0;
     const { label: perfLabel, message } = labelFor(score);
+
+    const glance = buildGlance({ attendance, quizzes, assignments, interview, communication, thinking });
+    const isEmpty = !hasData && !practice
+      && glance.every((g) => g.state === 'none')
+      && !communication.recordings && !thinking.attempted && !drives.length;
 
     return {
       student: {
@@ -335,8 +408,12 @@ export class WeeklyReportService {
       assignments,
       attendance,
       interview,
-      challenges,
+      communication,
+      thinking,
       practice,
+      drives,
+      glance,
+      isEmpty,
     };
   }
 
@@ -401,6 +478,9 @@ export class WeeklyReportService {
         score: report?.overall.score ?? 0,
         grade: report?.overall.grade ?? 'D',
         hasData: report?.overall.hasData ?? false,
+        glance: report?.glance ?? [],
+        isEmpty: report?.isEmpty ?? true,
+        drivesAttended: report?.drives.length ?? 0,
         ...(report?.practice ? {
           practiceDays: `${report.practice.metDays} of ${report.practice.countedDays}`,
           practicePct: report.practice.pct,
@@ -410,22 +490,6 @@ export class WeeklyReportService {
     }
     return out;
   }
-}
-
-// Quiz accessibility ($or fragment merged into the query object)
-function accessibleFilter(batchId: string, studentId: string) {
-  const or: any[] = [{ accessibleTo: 'everyone' }, { accessibleTo: { $exists: false } }];
-  if (batchId) or.push({ accessibleTo: 'batch_wise', selectedBatches: batchId });
-  or.push({ accessibleTo: 'individual', selectedStudents: studentId });
-  return { $or: or };
-}
-// Assignment accessibility (returns an array for use inside a $and/$or). Mirrors the student's
-// own list: their batch or them — "everyone" delivers to nobody, a legacy row only to its batch.
-function accessibleFilterAssignment(batchId: string, studentId: string): any[] {
-  const or: any[] = [];
-  if (batchId) or.push({ accessibleTo: 'batch_wise', selectedBatches: batchId }, { accessibleTo: { $exists: false }, batch: batchId });
-  or.push({ accessibleTo: 'individual', selectedStudents: studentId });
-  return or;
 }
 
 export const weeklyReportService = new WeeklyReportService();

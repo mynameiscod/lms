@@ -7,6 +7,9 @@ import {
   sendToBatch,
   getBatches,
   estimateBatch,
+  sendToAll,
+  getSettings,
+  updateSettings,
 } from '../controllers/weeklyReportController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -26,6 +29,9 @@ router.get('/student/:studentId', canReport, getStudentReport);
 router.get('/student/:studentId/preview', canReport, getStudentReportHtml);
 router.post('/send', canReport, sendToStudent);
 router.post('/send-batch', canReport, sendToBatch);
+router.post('/send-all', canReport, sendToAll);
 router.get('/estimate', canReport, estimateBatch);
+router.get('/settings', canReport, getSettings);
+router.put('/settings', canReport, updateSettings);
 
 export default router;

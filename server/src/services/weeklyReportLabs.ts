@@ -38,6 +38,10 @@ export interface CommunicationWeek extends LabCommon {
   strength: string;
   improve: string;
   focus: string;
+  /** Each scored recording's day and score — the period report's trend. */
+  scores: { date: string; score: number }[];
+  /** First recordings vs last recordings of the period (needs 2+ evaluated). */
+  skillsChange: { label: string; from: number; to: number }[];
 }
 
 export interface ThinkingWeek extends LabCommon {
@@ -48,6 +52,7 @@ export interface ThinkingWeek extends LabCommon {
   hintsUsed: number;
   strength: string;
   weakness: string;
+  scores: { date: string; score: number }[];
 }
 
 /** Practice-pass days as the weekly report already holds them. */
@@ -63,9 +68,14 @@ const clip = (s: unknown, n = 160) => {
 
 /** The 7 'YYYY-MM-DD' dates of the week, Monday first. */
 export function weekDates(startYmd: string): string[] {
+  return rangeDates(startYmd, 7);
+}
+
+/** `count` consecutive 'YYYY-MM-DD' dates from startYmd. */
+export function rangeDates(startYmd: string, count: number): string[] {
   const out: string[] = [];
   const base = new Date(`${startYmd}T00:00:00Z`);
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < count; i++) {
     const d = new Date(base); d.setUTCDate(d.getUTCDate() + i);
     out.push(d.toISOString().slice(0, 10));
   }
@@ -108,13 +118,14 @@ const commScore = (a: any): number | null => {
 export async function communicationWeek(
   tenantId: string, studentId: string, labBatchId: any, dates: string[], practice: PracticeDayLite[] | null,
 ): Promise<CommunicationWeek> {
-  const first = dates[0], last = dates[6];
-  const prev = weekDates(new Date(Date.parse(`${first}T00:00:00Z`) - 7 * 86_400_000).toISOString().slice(0, 10));
+  const first = dates[0], last = dates[dates.length - 1];
+  // The window just before, of the same length ("last week" for a weekly report).
+  const prev = rangeDates(new Date(Date.parse(`${first}T00:00:00Z`) - dates.length * 86_400_000).toISOString().slice(0, 10), dates.length);
   const [sched, attempts, prevAttempts] = await Promise.all([
     labBatchId ? CommunicationSchedule.find({ tenantId, batchId: labBatchId, date: { $gte: first, $lte: last } }).select('date').lean() : [],
     CommunicationAttempt.find({ tenantId, studentId, status: 'completed', practiceDate: { $gte: first, $lte: last } })
       .select('practiceDate evaluation overriddenScore wordsPerMinute createdAt').sort({ createdAt: -1 }).lean(),
-    CommunicationAttempt.find({ tenantId, studentId, status: 'completed', practiceDate: { $gte: prev[0], $lte: prev[6] } })
+    CommunicationAttempt.find({ tenantId, studentId, status: 'completed', practiceDate: { $gte: prev[0], $lte: prev[prev.length - 1] } })
       .select('evaluation overriddenScore').lean(),
   ]);
 
@@ -127,6 +138,15 @@ export async function communicationWeek(
   };
   const wpm = (attempts as any[]).map((a) => a.evaluation?.speakingSpeed?.wordsPerMinute ?? a.wordsPerMinute).filter((x: any) => typeof x === 'number' && x > 0);
   const fillers = evaluated.map((a) => a.evaluation?.fillerWords?.total).filter((x: any) => typeof x === 'number');
+  // Oldest first, for the trend and the start-vs-end comparison.
+  const chrono = [...evaluated].sort((a, b) => String(a.practiceDate).localeCompare(String(b.practiceDate)) || +new Date(a.createdAt) - +new Date(b.createdAt));
+  const SKILLS: [string, string][] = [['Overall', 'overallScore'], ['Clarity', 'clarityScore'], ['Fluency', 'fluencyScore'], ['Grammar', 'grammarScore'], ['Confidence', 'confidenceScore']];
+  const n = Math.min(3, Math.floor(chrono.length / 2));
+  const skillsChange = n >= 1 ? SKILLS.map(([label, k]) => {
+    const pick = (xs: any[]) => avg(xs.map((a) => a.evaluation?.[k]).filter((x: any) => typeof x === 'number'));
+    const from = pick(chrono.slice(0, n)), to = pick(chrono.slice(-n));
+    return from === null || to === null ? null : { label, from, to };
+  }).filter((x): x is { label: string; from: number; to: number } => !!x) : [];
 
   return {
     source,
@@ -141,6 +161,10 @@ export async function communicationWeek(
     strength: clip(mostCommon(evaluated.map((a) => a.evaluation?.strengths?.[0] || ''))),
     improve: clip(mostCommon(evaluated.map((a) => a.evaluation?.areasToImprove?.[0] || ''))),
     focus: clip(evaluated.find((a) => a.evaluation?.nextPracticeFocus)?.evaluation?.nextPracticeFocus || '', 200),
+    scores: (attempts as any[]).map((a) => ({ date: a.practiceDate, score: commScore(a) }))
+      .filter((x): x is { date: string; score: number } => x.score !== null)
+      .sort((a, b) => a.date.localeCompare(b.date)),
+    skillsChange,
   };
 }
 
@@ -149,7 +173,7 @@ const DONE_THINKING = (c: any) => c.passed || c.status === 'solved' || c.status 
 export async function thinkingWeek(
   tenantId: string, studentId: string, labBatchId: any, dates: string[], practice: PracticeDayLite[] | null,
 ): Promise<ThinkingWeek> {
-  const first = dates[0], last = dates[6];
+  const first = dates[0], last = dates[dates.length - 1];
   const [sched, challenges] = await Promise.all([
     labBatchId ? ScheduledChallenge.find({ tenantId, batchId: labBatchId, date: { $gte: first, $lte: last } }).select('date').lean() : [],
     DailyChallenge.find({ tenantId, studentId, date: { $gte: first, $lte: last } })
@@ -175,6 +199,8 @@ export async function thinkingWeek(
     hintsUsed: (challenges as any[]).reduce((s, c) => s + (c.hintsUsed || 0), 0),
     strength: clip(mostCommon(withFeedback.map((c) => c.aiFeedback?.strengths?.[0] || ''))),
     weakness: clip(mostCommon(withFeedback.map((c) => c.aiFeedback?.weaknesses?.[0] || ''))),
+    scores: done.filter((c) => typeof c.score === 'number').map((c) => ({ date: c.date, score: c.score }))
+      .sort((a, b) => a.date.localeCompare(b.date)),
   };
 }
 

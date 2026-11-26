@@ -38,6 +38,9 @@ import { communicationWeek, weekDates } from '../../services/weeklyReportLabs';
 import { getWeeklyReportEmailHtml } from '../../services/weeklyReportEmailTemplate';
 import { sendMany } from '../../services/weeklyReportSender';
 import { runWeeklyReportTick } from '../../jobs/weeklyReportCron';
+import * as XLSX from 'xlsx';
+import { getPeriodReport, getBatchPeriodSummaries, parseRange, periodReportXlsx, PeriodRangeError } from '../../services/periodReportService';
+import { periodReportPdf } from '../../services/periodReportPdf';
 
 const ADMIN = new mongoose.Types.ObjectId();
 let TENANT: string;
@@ -207,6 +210,66 @@ describe('placement drives', () => {
     const r = (await weeklyReportService.getReport(String(s1._id), TENANT, WEEK))!;
     expect(r.drives).toEqual([]);
     expect(getWeeklyReportEmailHtml(r)).not.toContain('Placement drives');
+  });
+});
+
+describe('custom date range report', () => {
+  it('covers the whole range, week by week, with every item listed', async () => {
+    const r = (await getPeriodReport(TENANT, String(s1._id), '2026-11-09', '2026-11-22', 'staff'))!;
+    expect(r.days).toBe(14);
+    expect(r.weeks.map(w => w.start)).toEqual(['2026-11-09', '2026-11-16']);
+    expect(r.weeks[1].communication).toEqual({ done: 1, expected: 3, active: 2 });
+    expect(r.weeks[0].communication).toEqual({ done: 0, expected: 0, active: 1 }); // the 10 Nov recording
+    expect(r.weeks[1].quizzes).toEqual({ done: 0, set: 1, missed: 1 });
+    expect(r.quizzes.items).toEqual([expect.objectContaining({ title: 'Arrays check', status: 'missed', score: null })]);
+    expect(r.assignments.items).toEqual([expect.objectContaining({ title: 'Linked lists', status: 'missed' })]);
+    expect(r.communication.recordings).toBe(3);
+    expect(r.communication.scores.map(x => x.date)).toEqual(['2026-11-10', '2026-11-17', '2026-11-21']);
+    expect(r.communication.skillsChange.find(x => x.label === 'Overall')).toEqual({ label: 'Overall', from: 50, to: 60 });
+    expect(r.overall.message).not.toMatch(/week/);
+  });
+
+  it('staff copy lists every drive with its result; the student copy only drives attended, no result', async () => {
+    const companyId = new mongoose.Types.ObjectId();
+    const went: any = await PlacementDeskDrive.create({ tenantId: TENANT, companyId, companyName: 'Acme', date: new Date('2026-11-19T00:00:00Z'), day: '2026-11-19', role: 'Dev', mode: 'virtual', status: 'completed' } as any);
+    const missed: any = await PlacementDeskDrive.create({ tenantId: TENANT, companyId, companyName: 'Beta', date: new Date('2026-11-12T00:00:00Z'), day: '2026-11-12', role: 'QA', status: 'completed' } as any);
+    await PlacementDeskCandidate.create({ tenantId: TENANT, driveId: went._id, companyId, day: '2026-11-19', kind: 'student', studentId: s1._id, name: 'x', status: 'offered', offerCtc: 4.5, companyFeedback: 'Strong Java' } as any);
+    await PlacementDeskCandidate.create({ tenantId: TENANT, driveId: missed._id, companyId, day: '2026-11-12', kind: 'student', studentId: s1._id, name: 'x', status: 'no_show' } as any);
+
+    const staff = (await getPeriodReport(TENANT, String(s1._id), '2026-11-09', '2026-11-22', 'staff'))!;
+    expect(staff.driveLog).toEqual([
+      expect.objectContaining({ company: 'Beta', status: 'Did not attend' }),
+      expect.objectContaining({ company: 'Acme', status: 'Offered', offerCtc: 4.5, companyFeedback: 'Strong Java', mode: 'Online' }),
+    ]);
+    const student = (await getPeriodReport(TENANT, String(s1._id), '2026-11-09', '2026-11-22', 'student'))!;
+    expect(student.driveLog).toEqual([{ company: 'Acme', role: 'Dev', day: '2026-11-19', mode: 'Online' }]);
+
+    const pdf = await periodReportPdf(TENANT, student);
+    expect(pdf.subarray(0, 4).toString()).toBe('%PDF');
+    const xlsx = XLSX.read(periodReportXlsx(staff), { type: 'buffer' });
+    expect(xlsx.SheetNames).toEqual(['Summary', 'Week by week', 'Quizzes', 'Assignments', 'Attendance', 'Interviews', 'Communication Lab', 'Thinking Lab', 'Drives']);
+    const drivesSheet: any[][] = XLSX.utils.sheet_to_json(xlsx.Sheets.Drives, { header: 1 });
+    expect(drivesSheet[2]).toEqual(expect.arrayContaining(['Acme', 'Offered', 4.5, 'Strong Java']));
+    const studentDrives: any[][] = XLSX.utils.sheet_to_json(XLSX.read(periodReportXlsx(student), { type: 'buffer' }).Sheets.Drives, { header: 1 });
+    expect(studentDrives[0]).toEqual(['Day', 'Company', 'Role', 'Held']);
+  });
+
+  it('refuses a backwards range or one longer than 12 months', () => {
+    expect(() => parseRange('2026-11-22', '2026-11-09')).toThrow(PeriodRangeError);
+    expect(() => parseRange('2025-01-01', '2026-11-20')).toThrow(/12 months/);
+    expect(() => parseRange('', '2026-11-20')).toThrow(PeriodRangeError);
+  });
+
+  it('a 12-month range builds, and the batch view covers every student', async () => {
+    const year = (await getPeriodReport(TENANT, String(s1._id), '2025-11-24', '2026-11-22', 'staff'))!;
+    expect(year.days).toBe(364);
+    expect(year.weeks.length).toBe(52);
+    const pdf = await periodReportPdf(TENANT, year);
+    expect(pdf.length).toBeGreaterThan(1000);
+
+    const rows = await getBatchPeriodSummaries(TENANT, String(BATCH_A._id), '2026-11-09', '2026-11-22');
+    expect(rows.map(x => x.name)).toEqual(['Asha K']);
+    expect(rows[0].glance.find(g => g.key === 'quizzes')!.state).toBe('missed');
   });
 });
 

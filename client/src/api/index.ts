@@ -1134,6 +1134,41 @@ export const weeklyReportApi = {
     if (!r.ok) throw new Error(data.message || 'Failed to save');
     return data;
   },
+  // ── Custom-range report ──
+  searchStudents: async (q: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/students?q=${encodeURIComponent(q)}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to search');
+    return data.data as { id: string; name: string; email: string; batchName: string }[];
+  },
+  periodStudent: async (studentId: string, from: string, to: string, copy: 'staff' | 'student') => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/student/${studentId}?from=${from}&to=${to}&copy=${copy}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to build the report');
+    return data.data;
+  },
+  periodBatch: async (batchId: string, from: string, to: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/batch?batchId=${batchId}&from=${from}&to=${to}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to build the batch report');
+    return data.data as { label: string; students: any[] };
+  },
+  /** Downloads the PDF or Excel file of a student's custom-range report. */
+  downloadPeriod: async (studentId: string, from: string, to: string, copy: 'staff' | 'student', format: 'pdf' | 'xlsx') => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/student/${studentId}?from=${from}&to=${to}&copy=${copy}&format=${format}`, { headers: getAuthHeaders() });
+    if (!r.ok) {
+      let msg = 'Download failed';
+      try { msg = (await r.json()).message || msg; } catch { /* not JSON */ }
+      throw new Error(msg);
+    }
+    const blob = await r.blob();
+    const name = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || `report.${format}`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
   /** batchId 'all' = every active batch. */
   estimate: async (batchId: string) => {
     const r = await fetch(`${API_BASE_URL}/weekly-reports/estimate?batchId=${batchId}`, { headers: getAuthHeaders() });

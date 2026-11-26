@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { weeklyReportApi } from '../../api';
 import './WeeklyReports.css';
+import CustomReport from './CustomReport';
 
 interface BatchOpt { _id: string; name: string; }
 type GlanceState = 'done' | 'partial' | 'missed' | 'pending' | 'none';
@@ -79,7 +80,7 @@ function downloadCsv(rows: StudentSummary[], weekLabel: string, batchName: strin
 
 const WeeklyReports: React.FC = () => {
   const weeks = useMemo(() => weekOptions(8), []);
-  const [tab, setTab] = useState<'progress' | 'send'>('progress');
+  const [tab, setTab] = useState<'progress' | 'send' | 'custom'>('progress');
   const [batches, setBatches] = useState<BatchOpt[]>([]);
   const [batchId, setBatchId] = useState('');
   const [weekStart, setWeekStart] = useState(weeks[0]?.value || '');
@@ -235,7 +236,7 @@ const WeeklyReports: React.FC = () => {
         <p className="wr-sub">See who did what this week — classes, quizzes, assignments, mock interviews and both labs — and send each student their report.</p>
       </div>
 
-      <div className="wr-toolbar">
+      {tab !== 'custom' && <div className="wr-toolbar">
         <label className="wr-field">
           <span>Batch</span>
           <select value={batchId} onChange={e => setBatchId(e.target.value)}>
@@ -249,14 +250,17 @@ const WeeklyReports: React.FC = () => {
             {weeks.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
           </select>
         </label>
-      </div>
+      </div>}
 
       <div className="wr-tabs" role="tablist">
         <button role="tab" aria-selected={tab === 'progress'} className={tab === 'progress' ? 'on' : ''} onClick={() => setTab('progress')}>Who did what</button>
         <button role="tab" aria-selected={tab === 'send'} className={tab === 'send' ? 'on' : ''} onClick={() => setTab('send')}>Send reports</button>
+        <button role="tab" aria-selected={tab === 'custom'} className={tab === 'custom' ? 'on' : ''} onClick={() => setTab('custom')}>Custom report</button>
       </div>
 
       {msg && <div className={`wr-alert ${msg.type}`}><span>{msg.text}</span><button onClick={() => setMsg(null)} aria-label="Close">✕</button></div>}
+
+      {tab === 'custom' && <CustomReport batches={batches} defaultBatchId={batchId} />}
 
       {tab === 'progress' && (
         <>

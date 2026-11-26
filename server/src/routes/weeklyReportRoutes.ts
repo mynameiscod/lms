@@ -10,6 +10,9 @@ import {
   sendToAll,
   getSettings,
   updateSettings,
+  searchStudentsForReport,
+  getStudentPeriodReport,
+  getBatchPeriodReport,
 } from '../controllers/weeklyReportController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -33,5 +36,8 @@ router.post('/send-all', canReport, sendToAll);
 router.get('/estimate', canReport, estimateBatch);
 router.get('/settings', canReport, getSettings);
 router.put('/settings', canReport, updateSettings);
+router.get('/students', canReport, searchStudentsForReport);
+router.get('/period/student/:studentId', canReport, getStudentPeriodReport);
+router.get('/period/batch', canReport, getBatchPeriodReport);
 
 export default router;

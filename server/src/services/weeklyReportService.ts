@@ -11,17 +11,17 @@ import { PlacementDeskCandidate, PlacementDeskDrive, ATTENDED_STATUSES } from '.
 import { recomputeStudent } from './practicePassService';
 import { resolveAssignedQuizzes } from './studentWorkService';
 import assignmentService from './assignmentService';
-import { communicationWeek, thinkingWeek, labScore, weekDates, CommunicationWeek, ThinkingWeek } from './weeklyReportLabs';
+import { communicationWeek, thinkingWeek, labScore, rangeDates, CommunicationWeek, ThinkingWeek } from './weeklyReportLabs';
 
 // ── Types ────────────────────────────────────────────────────────────────
 export interface WeeklyReportData {
   student: { id: string; name: string; firstName: string; email: string; batchId: string; batchName: string };
   period: { startISO: string; endISO: string; label: string; generatedAtISO: string };
   overall: { score: number; grade: string; label: string; message: string; hasData: boolean };
-  quizzes: { assigned: number; attempted: number; missed: number; pending: number; missedTitles: string[]; avgScore: number; topScore: number; timeLabel: string };
-  assignments: { assigned: number; submitted: number; missed: number; missedTitles: string[]; avgScore: number; scoredCount: number; awaitingGrading: number; pending: number; timeLabel: string };
-  attendance: { percentage: number; present: number; absent: number; late: number; leave: number; totalClasses: number };
-  interview: { taken: number; avgRating: number; avgScore: number; scheduled: number; absent: number; remarks: string; breakdown: { label: string; rating: number }[] };
+  quizzes: { assigned: number; attempted: number; missed: number; pending: number; missedTitles: string[]; avgScore: number; topScore: number; timeLabel: string; items: WorkItem[] };
+  assignments: { assigned: number; submitted: number; missed: number; missedTitles: string[]; avgScore: number; scoredCount: number; awaitingGrading: number; pending: number; timeLabel: string; items: WorkItem[] };
+  attendance: { percentage: number; present: number; absent: number; late: number; leave: number; totalClasses: number; log: { date: string; status: string }[] };
+  interview: { taken: number; avgRating: number; avgScore: number; scheduled: number; absent: number; remarks: string; breakdown: { label: string; rating: number }[]; items: InterviewItem[] };
   communication: CommunicationWeek;
   thinking: ThinkingWeek;
   /** One line per area for the "This week at a glance" strip and the staff table. */
@@ -44,6 +44,10 @@ export interface WeeklyReportData {
     streak: number;
   } | null;
 }
+
+/** One quiz or assignment in the period: its anchor day (due, else opened, else handed in). */
+export interface WorkItem { title: string; date: string; dueAt: string | null; status: 'done' | 'missed' | 'pending'; score: number | null; doneAt: string | null }
+export interface InterviewItem { date: string; kind: string; title: string; score: number | null; absent: boolean; remarks: string }
 
 export type GlanceState = 'done' | 'partial' | 'missed' | 'pending' | 'none';
 export type GlanceKey = 'classes' | 'quizzes' | 'assignments' | 'interview' | 'communication' | 'thinking';
@@ -97,7 +101,7 @@ export function resolveWeek(weekStartISO?: string): { start: Date; end: Date; la
 }
 
 // Date → 'YYYY-MM-DD' (for matching challenge date strings)
-const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 // seconds → "2h 35m" / "45m" / "0m"
 function fmtDuration(totalSeconds: number): string {
@@ -117,6 +121,32 @@ function gradeFor(score: number): string {
   if (score >= 50) return 'C';
   return 'D';
 }
+/** Days from start to end inclusive (both local midnights). */
+const daysBetween = (start: Date, end: Date) => Math.round((new Date(end).setHours(0, 0, 0, 0) - new Date(start).setHours(0, 0, 0, 0)) / 86_400_000) + 1;
+
+/**
+ * The weighted overall score. A section that was SET but not done drags it down (performance ×
+ * completion), so skipping everything can't still read "Excellent". Weights: Quizzes 25 /
+ * Assignments 25 / Attendance 15 / Interview 15 / Communication Lab 10 / Thinking Lab 10,
+ * normalised over the sections that applied.
+ */
+export function weightedScore(x: {
+  quiz?: { set: number; done: number; avg: number }; work?: { set: number; done: number; avg: number };
+  attendancePct?: number | null; interviewAvg?: number | null; comm?: number | null; think?: number | null;
+}): { score: number; hasData: boolean } {
+  const clamp = (n: number) => Math.max(0, Math.min(100, n));
+  const comps: { v: number; w: number }[] = [];
+  if (x.quiz && x.quiz.set > 0) comps.push({ v: clamp(x.quiz.avg * (x.quiz.done / x.quiz.set)), w: 25 });
+  if (x.work && x.work.set > 0) comps.push({ v: clamp(x.work.avg * (x.work.done / x.work.set)), w: 25 });
+  if (x.attendancePct !== null && x.attendancePct !== undefined) comps.push({ v: x.attendancePct, w: 15 });
+  if (x.interviewAvg !== null && x.interviewAvg !== undefined) comps.push({ v: x.interviewAvg, w: 15 });
+  if (x.comm !== null && x.comm !== undefined) comps.push({ v: clamp(x.comm), w: 10 });
+  if (x.think !== null && x.think !== undefined) comps.push({ v: clamp(x.think), w: 10 });
+  if (!comps.length) return { score: 0, hasData: false };
+  const totW = comps.reduce((s, c) => s + c.w, 0);
+  return { score: Math.round(comps.reduce((s, c) => s + c.v * c.w, 0) / totW), hasData: true };
+}
+
 function labelFor(score: number): { label: string; message: string } {
   if (score >= 85) return { label: 'Excellent!', message: "Outstanding week — you're setting the pace. Keep this momentum going!" };
   if (score >= 70) return { label: 'Good Job!', message: "You're doing great. Stay focused and aim even higher next week!" };
@@ -172,7 +202,8 @@ export class WeeklyReportService {
       return false;
     }).length;
     const totalClasses = records.length;
-    return { totalClasses, present, absent, leave, late, percentage: totalClasses ? Math.round((present / totalClasses) * 100) : 0 };
+    const log = records.map(r => ({ date: ymd(new Date(r.date)), status: String(r.status) })).sort((a, b) => a.date.localeCompare(b.date));
+    return { totalClasses, present, absent, leave, late, percentage: totalClasses ? Math.round((present / totalClasses) * 100) : 0, log };
   }
 
   private async quizzes(studentId: string, tenantId: string, batchId: string, start: Date, end: Date) {
@@ -194,6 +225,7 @@ export class WeeklyReportService {
     const now = new Date();
     let assigned = 0, attempted = 0, missed = 0;
     const missedTitles: string[] = [];
+    const items: WorkItem[] = [];
     for (const q of list) {
       const id = String(q.quiz._id);
       const opened = q.startAt
@@ -201,15 +233,22 @@ export class WeeklyReportService {
         || (q.source === 'baked' && q.quiz.startDate ? new Date(q.quiz.startDate) : null);
       if (!(inWeek(q.dueAt) || inWeek(opened) || takenThisWeek.has(id))) continue;
       assigned++;
-      const finished = q.attempts.some((a: any) => (a.status === 'submitted' || a.status === 'grading') && new Date(a.submittedAt || a.createdAt) <= end);
-      if (finished) attempted++;
-      else if (q.dueAt && inWeek(q.dueAt) && q.dueAt < now) { missed++; missedTitles.push(String(q.quiz.title || 'Quiz')); }
+      const fin = q.attempts.filter((a: any) => (a.status === 'submitted' || a.status === 'grading') && new Date(a.submittedAt || a.createdAt) <= end);
+      const finished = fin.length > 0;
+      let status: WorkItem['status'] = 'pending';
+      if (finished) { attempted++; status = 'done'; }
+      else if (q.dueAt && inWeek(q.dueAt) && q.dueAt < now) { missed++; missedTitles.push(String(q.quiz.title || 'Quiz')); status = 'missed'; }
+      const best = fin.length ? Math.max(...fin.map(pct)) : null;
+      const doneAt = fin.length ? new Date(fin[fin.length - 1].submittedAt || fin[fin.length - 1].createdAt) : null;
+      const anchor = (q.dueAt && inWeek(q.dueAt)) ? q.dueAt : (opened && inWeek(opened)) ? opened : (doneAt || q.dueAt || opened || start);
+      items.push({ title: String(q.quiz.title || 'Quiz'), date: ymd(new Date(anchor)), dueAt: q.dueAt ? new Date(q.dueAt).toISOString() : null, status, score: best, doneAt: doneAt ? doneAt.toISOString() : null });
     }
+    items.sort((a, b) => a.date.localeCompare(b.date));
     assigned = Math.max(assigned, attempted, takenThisWeek.size);
     attempted = Math.max(attempted, takenThisWeek.size);
     return {
       assigned, attempted, missed, pending: Math.max(0, assigned - attempted - missed), missedTitles: missedTitles.slice(0, 3),
-      avgScore, topScore, timeLabel: fmtDuration(timeSec),
+      avgScore, topScore, timeLabel: fmtDuration(timeSec), items,
     };
   }
 
@@ -247,6 +286,8 @@ export class WeeklyReportService {
     const now = new Date();
     let assigned = 0, submitted = 0, missed = 0;
     const missedTitles: string[] = [];
+    const items: WorkItem[] = [];
+    const subPct = (sub: any) => (typeof sub?.percentage === 'number' ? Math.round(sub.percentage) : null);
     for (const a of list) {
       const id = String(a._id);
       const dueAt = a.delivery?.dueAt ? new Date(a.delivery.dueAt) : null;
@@ -255,23 +296,28 @@ export class WeeklyReportService {
       const sub = a.submission;
       const handedIn = submittedThisWeek.has(id)
         || (!!sub && DONE.includes(sub.status) && (!sub.submittedAt || new Date(sub.submittedAt) <= end));
-      if (handedIn) submitted++;
-      else if (dueAt && inWeek(dueAt) && dueAt < now) { missed++; missedTitles.push(String(a.title || 'Assignment')); }
+      let status: WorkItem['status'] = 'pending';
+      if (handedIn) { submitted++; status = 'done'; }
+      else if (dueAt && inWeek(dueAt) && dueAt < now) { missed++; missedTitles.push(String(a.title || 'Assignment')); status = 'missed'; }
+      const startAt = a.delivery?.startAt ? new Date(a.delivery.startAt) : null;
+      const doneAt = handedIn && sub?.submittedAt ? new Date(sub.submittedAt) : null;
+      const anchor = (dueAt && inWeek(dueAt)) ? dueAt : (startAt && inWeek(startAt)) ? startAt : (doneAt || dueAt || startAt || start);
+      items.push({ title: String(a.title || 'Assignment'), date: ymd(new Date(anchor)), dueAt: dueAt ? dueAt.toISOString() : null, status, score: handedIn ? subPct(sub) : null, doneAt: doneAt ? doneAt.toISOString() : null });
     }
+    items.sort((x, y) => x.date.localeCompare(y.date));
     assigned = Math.max(assigned, submitted, submittedThisWeek.size);
     submitted = Math.max(submitted, submittedThisWeek.size);
     const awaitingGrading = Math.max(0, submittedThisWeek.size - new Set(scored.map(s => String((s.assignment as any)?._id || s.assignment))).size);
     return {
       assigned, submitted, missed, missedTitles: missedTitles.slice(0, 3), avgScore, scoredCount: scored.length, awaitingGrading,
-      pending: Math.max(0, assigned - submitted - missed), timeLabel: fmtDuration(timeSec),
+      pending: Math.max(0, assigned - submitted - missed), timeLabel: fmtDuration(timeSec), items,
     };
   }
 
   /** Placement Desk drives held this week that the student turned up to (not cancelled ones). */
-  private async drives(studentId: string, tenantId: string, start: Date) {
-    const days = weekDates(ymd(start));
+  private async drives(studentId: string, tenantId: string, start: Date, end: Date) {
     const rows: any[] = await PlacementDeskCandidate.find({
-      tenantId, studentId, day: { $gte: days[0], $lte: days[6] }, status: { $in: ATTENDED_STATUSES },
+      tenantId, studentId, day: { $gte: ymd(start), $lte: ymd(end) }, status: { $in: ATTENDED_STATUSES },
     }).select('driveId day').lean().catch(() => []);
     if (!rows.length) return [];
     const drives: any[] = await PlacementDeskDrive.find({ _id: { $in: rows.map((r) => r.driveId) }, status: { $ne: 'cancelled' } })
@@ -295,7 +341,7 @@ export class WeeklyReportService {
 
     // Scheduled / manual MOCK interviews for the student this week. Include ALL feedbacks
     // (present AND absent) so we can show attendance — previously absent showed as "none".
-    const scheduledList = await ScheduledInterview.find({ tenantId, date: { $gte: start, $lte: end }, students: studentId as any }).select('_id').lean();
+    const scheduledList = await ScheduledInterview.find({ tenantId, date: { $gte: start, $lte: end }, students: studentId as any }).select('_id date title').lean();
     const schedIds = scheduledList.map((s: any) => s._id);
     const allFbs: any[] = schedIds.length
       ? await InterviewScheduleFeedback.find({ tenantId, studentId, interviewId: { $in: schedIds } }).lean()
@@ -326,12 +372,30 @@ export class WeeklyReportService {
       .flatMap(f => [f.overallComment, ...(f.criteriaRatings || []).filter((c: any) => c.key === 'remarks').map((c: any) => c.comment)])
       .filter((s: any) => s && String(s).trim())[0] || '';
 
-    return { taken, avgScore, avgRating: Math.round((avgScore / 20) * 10) / 10, scheduled: scheduledList.length, absent, remarks: String(remarks).slice(0, 240), breakdown };
+    const schedById = new Map(scheduledList.map((x: any) => [String(x._id), x]));
+    const fbRemark = (f: any) => String([f.overallComment, ...(f.criteriaRatings || []).filter((c: any) => c.key === 'remarks').map((c: any) => c.comment)]
+      .filter((x: any) => x && String(x).trim())[0] || '').slice(0, 300);
+    const items: InterviewItem[] = [
+      ...aiAttempts.map((a: any) => ({
+        date: ymd(new Date(a.submittedAt)), kind: 'AI interview', title: 'AI interview',
+        score: typeof a.overallPercentage === 'number' ? Math.round(a.overallPercentage) : null, absent: false, remarks: '',
+      })),
+      ...allFbs.map((f: any) => {
+        const sc: any = schedById.get(String(f.interviewId));
+        return {
+          date: sc?.date ? ymd(new Date(sc.date)) : '', kind: 'Mock interview', title: String(sc?.title || 'Mock interview'),
+          score: f.attendanceStatus !== 'absent' && typeof f.overallScore === 'number' ? Math.round(f.overallScore * 10) : null,
+          absent: f.attendanceStatus === 'absent', remarks: f.attendanceStatus === 'absent' ? '' : fbRemark(f),
+        };
+      }),
+    ].sort((a, b) => a.date.localeCompare(b.date));
+
+    return { taken, avgScore, avgRating: Math.round((avgScore / 20) * 10) / 10, scheduled: scheduledList.length, absent, remarks: String(remarks).slice(0, 240), breakdown, items };
   }
 
   /** Both labs, each counted against the batch that supplies it (a placement batch may take it over). */
-  private async labs(studentId: string, tenantId: string, batchId: string, start: Date, practice: WeeklyReportData['practice']) {
-    const dates = weekDates(ymd(start));
+  private async labs(studentId: string, tenantId: string, batchId: string, start: Date, end: Date, practice: WeeklyReportData['practice']) {
+    const dates = rangeDates(ymd(start), daysBetween(start, end));
     const { labBatchFor } = await import('./placementBatchService');
     const [commBatch, thinkBatch] = batchId
       ? await Promise.all([
@@ -349,12 +413,17 @@ export class WeeklyReportService {
 
   /** Full weekly report for one student. Returns null if the student doesn't exist. */
   async getReport(studentId: string, tenantId: string, weekStartISO?: string): Promise<WeeklyReportData | null> {
+    const { start, end, label } = resolveWeek(weekStartISO);
+    return this.build(studentId, tenantId, start, end, label, false);
+  }
+
+  /** The report for any start..end (local days, inclusive). The weekly report is this for Mon–Sun. */
+  async build(studentId: string, tenantId: string, start: Date, end: Date, label: string, range: boolean): Promise<WeeklyReportData | null> {
     const student = await User.findOne({ _id: studentId, tenantId, role: 'STUDENT' })
       .populate('batchId', 'name')
       .select('firstName lastName email batchId');
     if (!student) return null;
 
-    const { start, end, label } = resolveWeek(weekStartISO);
     const batchId = (student.batchId as any)?._id?.toString() || '';
     const sid = student._id.toString();
 
@@ -363,32 +432,24 @@ export class WeeklyReportService {
       this.quizzes(sid, tenantId, batchId, start, end),
       this.assignments(sid, tenantId, batchId, start, end),
       this.interviews(sid, tenantId, start, end),
-      this.practice(sid, tenantId, start),
-      this.drives(sid, tenantId, start),
+      this.practice(sid, tenantId, start, end),
+      this.drives(sid, tenantId, start, end),
     ]);
     // The labs read the practice days to know which days a lab was expected.
-    const { communication, thinking } = await this.labs(sid, tenantId, batchId, start, practice);
+    const { communication, thinking } = await this.labs(sid, tenantId, batchId, start, end, practice);
 
-    // Completion-aware weighted overall score. A section that was ASSIGNED but not done drags
-    // the score down (performance x completion), so skipping everything can't still read
-    // "Excellent". Weights: Quizzes 25 / Assignments 25 / Attendance 15 / Interview 15 /
-    // Communication Lab 10 / Thinking Lab 10, normalized over the sections that applied this week.
-    const clamp = (n: number) => Math.max(0, Math.min(100, n));
-    const comps: { v: number; w: number }[] = [];
-    if (quizzes.assigned > 0) comps.push({ v: clamp(quizzes.avgScore * (quizzes.attempted / quizzes.assigned)), w: 25 });
-    if (assignments.assigned > 0) comps.push({ v: clamp(assignments.avgScore * (assignments.submitted / assignments.assigned)), w: 25 });
-    if (attendance.totalClasses > 0) comps.push({ v: attendance.percentage, w: 15 });
-    if (interview.taken > 0) comps.push({ v: interview.avgScore, w: 15 });
-    const comm = labScore(communication);
-    if (comm !== null) comps.push({ v: clamp(comm), w: 10 });
-    const think = labScore(thinking);
-    if (think !== null) comps.push({ v: clamp(think), w: 10 });
-    const hasData = comps.length > 0;
-    const totW = comps.reduce((s, c) => s + c.w, 0);
-    const score = hasData ? Math.round(comps.reduce((s, c) => s + c.v * c.w, 0) / totW) : 0;
+    const { score, hasData } = weightedScore({
+      quiz: { set: quizzes.assigned, done: quizzes.attempted, avg: quizzes.avgScore },
+      work: { set: assignments.assigned, done: assignments.submitted, avg: assignments.avgScore },
+      attendancePct: attendance.totalClasses > 0 ? attendance.percentage : null,
+      interviewAvg: interview.taken > 0 ? interview.avgScore : null,
+      comm: labScore(communication),
+      think: labScore(thinking),
+    });
     const { label: perfLabel, message } = labelFor(score);
 
     const glance = buildGlance({ attendance, quizzes, assignments, interview, communication, thinking });
+    if (range) for (const g of glance) g.detail = g.detail.replace('None this week', 'None in this period');
     const isEmpty = !hasData && !practice
       && glance.every((g) => g.state === 'none')
       && !communication.recordings && !thinking.attempted && !drives.length;
@@ -403,7 +464,7 @@ export class WeeklyReportService {
         batchName: (student.batchId as any)?.name || '',
       },
       period: { startISO: start.toISOString(), endISO: end.toISOString(), label, generatedAtISO: new Date().toISOString() },
-      overall: { score, grade: gradeFor(score), label: perfLabel, message, hasData },
+      overall: { score, grade: gradeFor(score), label: perfLabel, message: range ? message.replace(/next week/g, 'from here').replace(/this week/g, 'from now on').replace(/week/g, 'period') : message, hasData },
       quizzes,
       assignments,
       attendance,
@@ -421,13 +482,13 @@ export class WeeklyReportService {
    * The Daily Practice Pass for the reported week: each day met / missed / excused, with what
    * was done. Recomputed first so the email reflects the latest rules and approved leave.
    */
-  private async practice(studentId: string, tenantId: string, start: Date) {
+  private async practice(studentId: string, tenantId: string, start: Date, end: Date) {
     const on = await PracticePolicy.exists({ tenantId, scope: 'tenant', startDate: { $exists: true, $ne: null } });
     if (!on) return null;
     await recomputeStudent(tenantId, studentId).catch(() => null);
     const pad = (n: number) => String(n).padStart(2, '0');
     const dates: string[] = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0, n = daysBetween(start, end); i < n; i++) {
       const d = new Date(start); d.setDate(d.getDate() + i);
       dates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
     }

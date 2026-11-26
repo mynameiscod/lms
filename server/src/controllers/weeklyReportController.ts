@@ -8,6 +8,8 @@ import Batch from '../models/Batch';
 import User from '../models/User';
 import { estimateCost, purposeTemplate, waCostPerMessage } from '../services/purposeMessaging';
 import { channelsOf, deliver, sendMany, allBatchStudents } from '../services/weeklyReportSender';
+import { getPeriodReport, getBatchPeriodSummaries, searchStudents, parseRange, periodReportXlsx, periodFileName, PeriodRangeError, ReportCopy } from '../services/periodReportService';
+import { periodReportPdf } from '../services/periodReportPdf';
 
 // GET /weekly-reports/summaries?batchId=&weekStart=
 // Per-student score/grade for a batch+week, plus whether/when each was already sent.
@@ -228,5 +230,57 @@ export const getBatches = async (req: AuthenticatedRequest, res: Response) => {
     res.json({ success: true, data: batches });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message || 'Failed to load batches' });
+  }
+};
+
+// ── Custom-range student report (2026-11-26) ─────────────────────────────
+// GET /weekly-reports/students?q=  → student picker
+export const searchStudentsForReport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    res.json({ success: true, data: await searchStudents(req.tenantId!, String(req.query.q || '')) });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to search students' });
+  }
+};
+
+const copyOf = (v: unknown): ReportCopy => (v === 'student' ? 'student' : 'staff');
+const rangeFail = (res: Response, err: any, fallback: string) =>
+  err instanceof PeriodRangeError
+    ? res.status(400).json({ success: false, message: err.message })
+    : res.status(500).json({ success: false, message: err?.message || fallback });
+
+// GET /weekly-reports/period/student/:studentId?from=&to=&copy=staff|student[&format=pdf|xlsx]
+export const getStudentPeriodReport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { from, to, copy, format } = req.query as Record<string, string | undefined>;
+    if (!/^[a-f0-9]{24}$/i.test(req.params.studentId)) return res.status(404).json({ success: false, message: 'Student not found' });
+    const report = await getPeriodReport(req.tenantId!, req.params.studentId, from || '', to || '', copyOf(copy));
+    if (!report) return res.status(404).json({ success: false, message: 'Student not found' });
+    if (format === 'xlsx') {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${periodFileName(report, 'xlsx')}"`);
+      return res.send(periodReportXlsx(report));
+    }
+    if (format === 'pdf') {
+      const pdf = await periodReportPdf(req.tenantId!, report);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${periodFileName(report, 'pdf')}"`);
+      return res.send(pdf);
+    }
+    res.json({ success: true, data: report });
+  } catch (err: any) {
+    rangeFail(res, err, 'Failed to build the report');
+  }
+};
+
+// GET /weekly-reports/period/batch?batchId=&from=&to=  → "who did what" over the range
+export const getBatchPeriodReport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { batchId, from, to } = req.query as Record<string, string | undefined>;
+    if (!batchId) return res.status(400).json({ success: false, message: 'batchId is required' });
+    const { label } = parseRange(from, to);
+    res.json({ success: true, data: { label, students: await getBatchPeriodSummaries(req.tenantId!, batchId, from || '', to || '') } });
+  } catch (err: any) {
+    rangeFail(res, err, 'Failed to build the batch report');
   }
 };

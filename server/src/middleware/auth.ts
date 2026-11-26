@@ -25,7 +25,7 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     console.log(`[AUTH] Token valid for user: ${decoded.id}`);
     
     // Check if user still exists and is active
-    const user = await User.findById(decoded.id).select('isActive customRoleId role lmsDemo batchId tenantId');
+    const user = await User.findById(decoded.id).select('isActive customRoleId role lmsDemo batchId tenantId studentStatus lmsJoinedAt batchJoinedDate createdAt accessUntil');
     if (!user) {
       console.log('[AUTH] User not found in database');
       return res.status(401).json({ 
@@ -63,9 +63,20 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
           : { success: false, code: 'DEMO_SCOPE', message: 'This is not part of the demo.' });
       }
     }
+    // Students: their LMS access window (365 days from first joining unless extended) — after it,
+    // nothing but logging out works. Never let a lookup failure lock anyone out.
+    if (req.user!.role === 'STUDENT' && !demo?.at && (user as any).batchId) {
+      let ended: { ended: boolean; until: Date | null } = { ended: false, until: null };
+      try { ended = await (await import('../services/studentLifecycleService')).accessEnded(user); } catch { /* fail open */ }
+      if (ended.ended && ended.until) {
+        const { accessEndedMessage } = await import('../services/studentLifecycleService');
+        return res.status(401).json({ success: false, code: 'ACCESS_ENDED', message: accessEndedMessage(ended.until) });
+      }
+    }
     // Students: remember they used the LMS (inactivity alerts), and hold a student in a batch on the
     // profile page until the profile is complete, when the institute has switched that on (Student Rules).
-    if (req.user!.role === 'STUDENT' && !demo?.at && (user as any).batchId) {
+    // A student whose course is completed is past onboarding, so the profile gate no longer holds them.
+    if (req.user!.role === 'STUDENT' && !demo?.at && (user as any).batchId && (user as any).studentStatus !== 'completed') {
       let blocked = false;
       try {
         const rules = await import('../services/studentRulesService');

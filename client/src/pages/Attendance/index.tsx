@@ -179,7 +179,7 @@ const AttendancePage: React.FC = () => {
 
       // Filter students by role AND batch enrollment (not by date yet - that's done in effect)
       const studentsInBatch = allUsers.filter((u: User) => 
-        u.role === 'STUDENT' && u.batchId === batch._id && u.isActive
+        u.role === 'STUDENT' && u.batchId === batch._id && u.isActive && (u as any).studentStatus !== 'completed' // course completed: no longer in daily attendance
       );
       
       // Store all students in batch (unfiltered by date)

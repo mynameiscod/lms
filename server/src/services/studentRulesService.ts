@@ -47,7 +47,12 @@ export async function getRules(tenantId: string, fresh = false): Promise<IStuden
 /** What the admin page sees: everything except the signing secret. */
 export function publicRules(r: IStudentRules) {
   const { qrSecret, ...rest } = r as any;
-  return rest;
+  return { ...rest, access: accessRules(r) };
+}
+
+/** Access-window settings with defaults (institutes set up before they existed have none stored). */
+export function accessRules(r: IStudentRules) {
+  return { days: 365, reminderEnabled: false, reminderDaysBefore: 15, ...((r as any).access || {}) } as { days: number; reminderEnabled: boolean; reminderDaysBefore: number };
 }
 
 const bool = (v: any, d: boolean) => (typeof v === 'boolean' ? v : d);
@@ -114,10 +119,17 @@ export async function updateRules(tenantId: string, body: any, userId: string) {
     enabled: bool(g.enabled, cg.enabled),
     requireParentMobile: bool(g.requireParentMobile, cg.requireParentMobile),
   };
+  const ac = body?.access || {};
+  const cac = accessRules(cur);
+  const access = {
+    days: num(ac.days, cac.days, 30, 3650),
+    reminderEnabled: bool(ac.reminderEnabled, cac.reminderEnabled),
+    reminderDaysBefore: num(ac.reminderDaysBefore, cac.reminderDaysBefore, 1, 90),
+  };
 
   await StudentRules.updateOne(
     { tenantId },
-    { $set: { attendance, inactivity, profileGate, updatedBy: new mongoose.Types.ObjectId(userId) } },
+    { $set: { attendance, inactivity, profileGate, access, updatedBy: new mongoose.Types.ObjectId(userId) } },
   );
   rulesCache.delete(tenantId);
   gateCache.clear();
@@ -455,7 +467,7 @@ export async function inactiveStudents(tenantId: string, minDays = 1): Promise<I
   const batchById = new Map(batches.map((b) => [String(b._id), b]));
   const students = await User.find({
     tenantId, role: 'STUDENT', isActive: true, batchId: { $in: batches.map((b) => b._id) },
-    studentStatus: { $nin: ['inactive', 'discontinued'] }, 'lmsDemo.at': { $exists: false },
+    studentStatus: { $nin: ['inactive', 'discontinued', 'completed'] }, 'lmsDemo.at': { $exists: false },
   }).select('firstName lastName phone batchId batchJoinedDate createdAt lmsLastActiveAt').lean<any[]>();
   if (!students.length) return [];
 

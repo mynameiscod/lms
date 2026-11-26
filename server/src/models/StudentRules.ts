@@ -57,6 +57,11 @@ export interface IStudentRules {
     /** Also require the parent's mobile number (needed for parent alerts). */
     requireParentMobile: boolean;
   };
+  /**
+   * LMS access window (services/studentLifecycleService.ts): students can log in for `days` from the
+   * day they first joined a batch, unless an admin extends it. The reminder WhatsApp is off by default.
+   */
+  access?: { days: number; reminderEnabled: boolean; reminderDaysBefore: number };
   /** Signs the QR tokens. Generated once per institute. */
   qrSecret: string;
   updatedBy?: mongoose.Types.ObjectId;
@@ -93,6 +98,11 @@ const StudentRulesSchema = new Schema<IStudentRules>(
     profileGate: {
       enabled: { type: Boolean, default: false },
       requireParentMobile: { type: Boolean, default: false },
+    },
+    access: {
+      days: { type: Number, default: 365 },
+      reminderEnabled: { type: Boolean, default: false },
+      reminderDaysBefore: { type: Number, default: 15 },
     },
     qrSecret: { type: String, required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },

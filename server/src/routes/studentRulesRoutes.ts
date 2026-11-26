@@ -77,10 +77,10 @@ router.get('/me', async (req: AuthenticatedRequest, res) => {
     const [attendance, profileGate, me] = await Promise.all([
       svc.myToday(tenantId, uid(req)),
       svc.profileGateStatus(tenantId, uid(req)),
-      User.findById(uid(req)).select('role batchId lmsDemo').lean<any>(),
+      User.findById(uid(req)).select('role batchId lmsDemo studentStatus').lean<any>(),
     ]);
     // The same people authMiddleware holds back: LMS students in a batch, not demo or CareerPilot-only accounts.
-    const applies = me?.role === 'STUDENT' && !!me?.batchId && !me?.lmsDemo?.at;
+    const applies = me?.role === 'STUDENT' && !!me?.batchId && !me?.lmsDemo?.at && me?.studentStatus !== 'completed';
     res.json({ success: true, data: { attendance, profileGate: { ...profileGate, enabled: profileGate.enabled && applies }, applies } });
   } catch (e) { fail(res, e); }
 });

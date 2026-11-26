@@ -62,6 +62,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // straight to /login with no error shown.
             if (!response.ok) {
               if (response.status === 401) {
+                // LMS access window over: say so on the login page.
+                const body = await response.clone().json().catch(() => ({} as any));
+                if (body?.code === 'ACCESS_ENDED' && body.message) localStorage.setItem('loginMessage', body.message);
                 localStorage.removeItem('user');
                 localStorage.removeItem('token');
                 localStorage.removeItem('tenantId');
@@ -274,7 +277,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Don't intercept the login/register/forgot-password/setup-password/refresh endpoints themselves
         const isAuthEndpoint = /\/(login|register|register-organization|forgot-password|reset-password|setup-password|refresh-token)/.test(url);
         if (!isAuthEndpoint) {
-          logout('Your session has expired. Please log in again.');
+          const body = await response.clone().json().catch(() => ({} as any));
+          logout(body?.code === 'ACCESS_ENDED' && body.message ? body.message
+            : body?.code === 'ACCOUNT_DEACTIVATED' ? 'Your account has been deactivated. Please contact your administrator.'
+            : 'Your session has expired. Please log in again.');
         }
       }
       return response;

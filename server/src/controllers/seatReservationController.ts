@@ -318,6 +318,8 @@ export const convertToStudent = async (req: AuthenticatedRequest, res: Response)
 
     // Update batch if provided
     if (batchId) {
+      // The access window counts from the first join; a later batch does not restart it.
+      if (!(student as any).lmsJoinedAt) (student as any).lmsJoinedAt = student.batchJoinedDate || new Date();
       student.batchId = batchId;
       student.batchJoinedDate = new Date();
       await student.save();

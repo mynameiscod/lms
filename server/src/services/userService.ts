@@ -29,6 +29,7 @@ export class UserService {
       profileComplete: false,
       batchId: batchId || undefined,
       batchJoinedDate: batchId ? new Date() : undefined,
+      lmsJoinedAt: batchId ? new Date() : undefined, // start of the LMS access window
       customRoleId: customRoleId || undefined
     });
 

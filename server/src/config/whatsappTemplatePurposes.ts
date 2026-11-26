@@ -96,6 +96,12 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     help: 'Sent to the parent / guardian mobile on the student’s profile once the parent threshold is crossed. Keep it UTILITY and polite.',
   },
   {
+    key: 'ACCESS_ENDING', label: 'LMS access — ending soon (to the student)', module: 'Student Rules',
+    settingsKey: 'WHATSAPP_TEMPLATE_ACCESS_ENDING',
+    variables: ['Student first name', 'Access end date (e.g. 12 Dec 2026)', 'Days left (e.g. 15)'],
+    help: 'Sent once per end date, the set number of days before a student’s LMS access ends (Student Rules → Access). Off until switched on there AND a template is assigned here. Keep it UTILITY.',
+  },
+  {
     key: 'COMMUNICATION_REMINDER', label: 'Communication Coach — daily reminder', module: 'Communication Lab',
     settingsKey: 'WHATSAPP_TEMPLATE_COMMUNICATION_REMINDER',
     variables: ['Student first name', 'Where they are (e.g. "Today: 0 of 3 recordings done")'],

@@ -8,6 +8,7 @@ import {
 } from '../../config/studentFeatureCatalog';
 import { Batch, User } from '../../types';
 import PlacementModal from './PlacementModal';
+import CloseBatchModal, { ClosedBatchCard } from './CloseBatchModal';
 import './BatchesPage.css';
 
 interface Department { _id: string; name: string; code: string; }
@@ -37,6 +38,15 @@ const BatchesPage: React.FC = () => {
   const [modulesBatch, setModulesBatch] = useState<Batch | null>(null);
   // Placement batches (Batches → 🎯): members drawn from other batches
   const [placementBatch, setPlacementBatch] = useState<Batch | null>(null);
+  // Closing batches: the close form, and the closed batches' reports (hidden from every list once closed).
+  const [closingId, setClosingId] = useState<string | null>(null);
+  const [showClosed, setShowClosed] = useState(false);
+  const [closedList, setClosedList] = useState<any[] | null>(null);
+  const loadClosed = async () => { try { setClosedList(await batchApi.closedBatches()); } catch (e: any) { setError(e.message); } };
+  const reopen = async (id: string) => {
+    if (!window.confirm('Reopen this batch? It will show in batch lists and dropdowns again.')) return;
+    try { await batchApi.reopenBatch(id); setSuccess('Batch reopened'); loadClosed(); fetchData(); } catch (e: any) { setError(e.message); }
+  };
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [tenantModules, setTenantModules] = useState<Record<string, boolean>>({});
 
@@ -379,7 +389,17 @@ const BatchesPage: React.FC = () => {
         <select className="bm-status" value={statusFilter} onChange={e => { setStatusFilter(e.target.value as any); setPage(1); }}>
           <option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option>
         </select>
+        <label className="bm-closed-toggle"><input type="checkbox" checked={showClosed} onChange={e => { setShowClosed(e.target.checked); if (e.target.checked && !closedList) loadClosed(); }} /> Show closed batches</label>
       </div>
+
+      {showClosed && (
+        <div className="bm-closed-wrap">
+          <h3 className="bm-closed-title">🏁 Closed batches {closedList ? `(${closedList.length})` : ''}</h3>
+          {!closedList ? <p className="bm-sub">Loading…</p> : closedList.length === 0 ? <p className="bm-sub">No closed batches yet.</p> : (
+            <div className="bm-grid">{closedList.map(b => <ClosedBatchCard key={b._id} b={b} onReopen={reopen} fmt={fmtDate} />)}</div>
+          )}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <div className="bm-empty-card">No batches found. Create your first batch to get started.</div>
@@ -403,11 +423,15 @@ const BatchesPage: React.FC = () => {
                       <div className="bm-batch-name">{batch.name} <span className={`bm-badge ${batch.isActive ? 'active' : 'inactive'}`}>{batch.isActive ? 'Active' : 'Inactive'}</span>{(batch as any).kind === 'placement' && <span className="bm-badge placement">🎯 Placement</span>}</div>
                       {cTitle && <div className="bm-batch-course">{cTitle}</div>}
                       <div className="bm-batch-dates">{fmtDate(batch.startDate)} - {fmtDate(batch.endDate)}</div>
+                      {batch.endDate && new Date(batch.endDate).getTime() < Date.now() - 86_400_000 && (
+                        <button type="button" className="bm-ended-chip" onClick={() => setClosingId(batch._id)} title="This batch has passed its end date">⏰ Ended — close it?</button>
+                      )}
                     </div>
                     <div className="bm-batch-actions">
                       <button className="bm-icon-btn" onClick={() => openEdit(batch)} title="Edit">✏️</button>
                       <button className="bm-icon-btn" onClick={() => setModulesBatch(batch)} title="Modules for this batch">🧩</button>
                       <button className="bm-icon-btn" onClick={() => setPlacementBatch(batch)} title="Placement batch: members from other batches">🎯</button>
+                      <button className="bm-icon-btn" onClick={() => setClosingId(batch._id)} title="Close batch: write the closing report, finish or move students">🏁</button>
                       <button className="bm-icon-btn del" onClick={() => handleDelete(batch)} title="Delete">🗑️</button>
                     </div>
                   </div>
@@ -450,6 +474,14 @@ const BatchesPage: React.FC = () => {
             </div>
           )}
         </>
+      )}
+
+      {closingId && (
+        <CloseBatchModal
+          batchId={closingId}
+          onClose={() => setClosingId(null)}
+          onClosed={(msg) => { setClosingId(null); setSuccess(msg); fetchData(); if (closedList) loadClosed(); }}
+        />
       )}
 
       {placementBatch && (

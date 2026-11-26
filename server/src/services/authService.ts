@@ -163,6 +163,13 @@ export class AuthService {
     // CareerPilot members live in CareerPilot only. Letting one in here put the LMS in front of a member.
     if (!canUseLms(user)) throw new Error(WRONG_DOOR_LMS);
 
+    // A student's LMS access window has ended (365 days from first joining unless an admin extended it).
+    try {
+      const life = await import('./studentLifecycleService');
+      const a = await life.accessEnded(user);
+      if (a.ended && a.until) throw new Error(life.accessEndedMessage(a.until));
+    } catch (e: any) { if (/access ended/i.test(e?.message || '')) throw e; /* lookup failed: let them in */ }
+
     const tenant = await Tenant.findById(user.tenantId);
     // A deactivated institute is locked out entirely (the platform administrator is not).
     if (user.role !== 'SUPER_ADMIN' && tenant && (tenant as any).isActive === false) {

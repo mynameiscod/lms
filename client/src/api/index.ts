@@ -62,7 +62,9 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     localStorage.removeItem('tenantId');
     
     // Redirect to login with appropriate message
-    const message = errorData.code === 'ACCOUNT_DEACTIVATED' 
+    const message = errorData.code === 'ACCESS_ENDED' && errorData.message
+      ? errorData.message
+      : errorData.code === 'ACCOUNT_DEACTIVATED'
       ? 'Your account has been deactivated. Please contact your administrator.'
       : 'Your session has expired. Please log in again.';
     
@@ -632,7 +634,31 @@ export const userApi = {
     return response.json();
   },
 
-  setStudentStatus: async (userId: string, body: { status: 'active' | 'inactive' | 'discontinued'; date?: string; reason?: string; note?: string }) => {
+  /** One status for several students at once. */
+  setStudentStatusMany: async (body: { userIds: string[]; status: 'active' | 'inactive' | 'discontinued' | 'completed'; date?: string; reason?: string; note?: string }) => {
+    const response = await fetch(`${API_BASE_URL}/users/bulk/student-status`, {
+      method: 'PATCH',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.message || 'Failed to change status');
+    return json;
+  },
+
+  /** Extend / change a student's LMS access end date; until=null goes back to the default window. */
+  setStudentAccess: async (userId: string, body: { until: string | null; reason: string }) => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/access`, {
+      method: 'PATCH',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.message || 'Failed to change access');
+    return json;
+  },
+
+  setStudentStatus: async (userId: string, body: { status: 'active' | 'inactive' | 'discontinued' | 'completed'; date?: string; reason?: string; note?: string }) => {
     const response = await fetch(`${API_BASE_URL}/users/${userId}/student-status`, {
       method: 'PATCH',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
@@ -891,7 +917,21 @@ export const roleApi = {
 };
 
 // Batch API
+const batchJson = async (r: Response, fallback: string) => {
+  const json = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(json.message || fallback);
+  return json.data;
+};
 export const batchApi = {
+  /** Closing a batch (Batches → Close batch). */
+  closePreview: async (batchId: string) =>
+    batchJson(await fetch(`${API_BASE_URL}/batches/${batchId}/close-preview`, { headers: getAuthHeaders() }), 'Failed to load the batch'),
+  closeBatch: async (batchId: string, body: { closedOn?: string; notes?: string; discountedCount?: number | null; actions: Record<string, 'complete' | 'move' | 'keep'>; moveTo?: string }) =>
+    batchJson(await fetch(`${API_BASE_URL}/batches/${batchId}/close`, { method: 'POST', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), 'Failed to close the batch'),
+  reopenBatch: async (batchId: string) =>
+    batchJson(await fetch(`${API_BASE_URL}/batches/${batchId}/reopen`, { method: 'POST', headers: getAuthHeaders() }), 'Failed to reopen the batch'),
+  closedBatches: async () =>
+    batchJson(await fetch(`${API_BASE_URL}/batches/closed/list`, { headers: getAuthHeaders() }), 'Failed to load closed batches'),
   getBatches: async () => {
     const response = await fetch(`${API_BASE_URL}/batches`, {
       method: 'GET',

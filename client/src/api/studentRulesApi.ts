@@ -36,6 +36,8 @@ export interface StudentRules {
     skipSundays: boolean;
   };
   profileGate: { enabled: boolean; requireParentMobile: boolean };
+  /** LMS access window: days from first joining a batch, and the (off by default) "access ending" WhatsApp. */
+  access: { days: number; reminderEnabled: boolean; reminderDaysBefore: number };
   updatedAt?: string;
 }
 

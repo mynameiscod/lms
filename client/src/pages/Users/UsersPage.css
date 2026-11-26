@@ -21,3 +21,13 @@
 @media (max-width:640px){.status-options,.status-fields{grid-template-columns:1fr}}
 
 .placement-chip{display:inline-block;margin:2px 0 0 4px;padding:1px 7px;border-radius:99px;background:#EEF2FF;color:#4338CA;font-size:11px;white-space:nowrap}
+
+/* Course completed + LMS access window (studentLifecycleService) */
+.status-badge.completed{background:#E0E7FF;color:#4338CA}
+.status-options.four{grid-template-columns:repeat(2,1fr)}
+.status-warn.ok{background:#EEF2FF;color:#3730A3}
+.status-history{display:flex;flex-direction:column;gap:6px}.status-history>span{font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em}
+.status-history ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px;max-height:170px;overflow:auto}.status-history li{font-size:12px;color:#475569;line-height:1.4}
+.access-cell{display:block;margin-top:3px;font-size:9px;font-weight:650;color:#64748B;white-space:nowrap}.access-cell.soon{color:#B45309}.access-cell.ended{color:#DC2626}
+.pick-col{width:34px;text-align:center}.pick-col input{cursor:pointer}
+.users-picked-bar{display:flex;align-items:center;gap:8px;font-size:11px}.users-picked-bar button{border:1px solid #0F2C59;background:#0F2C59;color:#fff;border-radius:7px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;gap:5px;align-items:center}.users-picked-bar button.ghost{background:#fff;color:#334155;border-color:#CBD5E1}

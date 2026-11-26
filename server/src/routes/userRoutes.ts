@@ -11,6 +11,8 @@ import {
   deactivateUser,
   activateUser,
   setStudentStatus,
+  setStudentStatusMany,
+  setStudentAccess,
   inviteStudent,
   setupPassword,
   updateProfile,
@@ -82,6 +84,9 @@ router.patch('/:userId/deactivate', roleGuard(['manage_tenant_users']), deactiva
 // Activate user
 router.patch('/:userId/activate', roleGuard(['manage_tenant_users']), activateUser);
 router.patch('/:userId/student-status', roleGuard(['change_student_status']), setStudentStatus);
+router.patch('/bulk/student-status', roleGuard(['change_student_status']), setStudentStatusMany);
+// Extend / change a student's LMS access end date (365 days from first joining by default).
+router.patch('/:userId/access', roleGuard(['change_student_status']), setStudentAccess);
 
 // Delete user
 router.delete('/:userId', roleGuard(['manage_tenant_users']), deleteUser);

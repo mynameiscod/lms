@@ -98,3 +98,32 @@
   .wbt-courses li input:not([type="checkbox"]) { flex: 1 1 100%; }
   .wbt-add-course input { flex: 1 1 100%; }
 }
+
+
+/* Top bar card (common date) */
+.wbt-topcard { background: #051D64; background-image: linear-gradient(135deg, #051D64, #0B2D72); border-top: 4px solid #359AAD; color: #fff; border-radius: 14px; padding: 16px 18px; margin-bottom: 18px; }
+.wbt-topcard-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.wbt-page .wbt-topcard-head h2 { margin: 2px 0 0; font-size: 17px; color: #fff !important; }
+.wbt-topcard-live { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 12px; background: rgba(255,255,255,.08); border-radius: 12px; padding: 12px 14px; }
+.wbt-topcard-actions { display: flex; align-items: center; gap: 12px; }
+.wbt-topcard-muted { font-size: 12px; color: #C9D6EE; margin-top: 4px; }
+.wbt-topcard-none { margin-top: 12px; font-size: 13.5px; color: #E2EAF2; line-height: 1.55; background: rgba(255,255,255,.08); border-radius: 12px; padding: 12px 14px; }
+.wbt-topcard-none b { color: #fff; }
+.wbt-btn.light { background: rgba(255,255,255,.1); color: #fff; border: 1.5px solid rgba(255,255,255,.55); }
+.wbt-btn.light:hover:not(:disabled) { background: rgba(255,255,255,.18); }
+.wbt-link.light { color: #7FD3E0; }
+.wbt-seats.light button { background: transparent; color: #fff; border-color: rgba(255,255,255,.55); }
+.wbt-seats.light button:hover:not(:disabled) { background: rgba(255,255,255,.12); }
+.wbt-seats.light b { color: #fff; }
+.wbt-seats.light span { color: #C9D6EE; }
+.wbt-list.light .wbt-row { border-top-color: rgba(255,255,255,.12); }
+.wbt-list.light .wbt-row-main b { color: #fff; }
+.wbt-list.light .wbt-row-main span { font-size: 12.5px; color: #C9D6EE; }
+.wbt-list.light .wbt-row.started .wbt-row-main b, .wbt-list.light .wbt-row.hidden .wbt-row-main b { color: #94A3B8; }
+.wbt-list.light .wbt-icon { background: transparent; color: #fff; border-color: rgba(255,255,255,.4); }
+.wbt-list.light .wbt-icon.danger { color: #FCA5A5; }
+.wbt-section-title { font-size: 15px; color: #102A4F; margin: 0 0 10px; }
+@media (max-width: 640px) {
+  .wbt-topcard-head { flex-direction: column; }
+  .wbt-topcard-actions { width: 100%; justify-content: space-between; }
+}

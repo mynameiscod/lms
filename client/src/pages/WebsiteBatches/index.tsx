@@ -38,12 +38,14 @@ const WebsiteBatches: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   const active = useMemo(() => (data?.courses || []).filter((c) => c.active), [data]);
-  const topBar = useMemo(() => {
+  const commonLive = useMemo(() => data?.common.batches.find((b) => b.id === data.common.live) || null, [data]);
+  // With no common date, the website's top bar falls back to the soonest course batch.
+  const fallback = useMemo(() => {
     const lives = active.map((c) => ({ c, b: c.batches.find((b) => b.id === c.live) })).filter((x) => x.b) as { c: CourseCard; b: WebsiteBatchRow }[];
     return lives.sort((x, y) => x.b.startDate.localeCompare(y.b.startDate) || y.b.seatsLeft - x.b.seatsLeft)[0] || null;
   }, [active]);
 
-  const openNew = (courseKey = active[0]?.key || '') => setForm({ courseKey, startDate: data ? tomorrow(data.today) : '', seatsLeft: '', mode: '', showOnWebsite: true });
+  const openNew = (courseKey = 'common') => setForm({ courseKey, startDate: data ? tomorrow(data.today) : '', seatsLeft: '', mode: '', showOnWebsite: true });
   const openEdit = (b: WebsiteBatchRow) => setForm({ id: b.id, courseKey: b.courseKey, startDate: b.startDate, seatsLeft: String(b.seatsLeft), mode: b.mode, showOnWebsite: b.showOnWebsite, history: b.history });
 
   const save = async () => {
@@ -96,20 +98,60 @@ const WebsiteBatches: React.FC = () => {
         </div>
         <div className="wbt-head-actions">
           <button className="wbt-btn ghost" onClick={() => setCoursesOpen(true)}><i className="fa-solid fa-list" /> Courses</button>
-          <button className="wbt-btn primary" onClick={() => openNew()} disabled={!active.length}><i className="fa-solid fa-plus" /> Add batch</button>
+          <button className="wbt-btn primary" onClick={() => openNew(active[0]?.key || 'common')}><i className="fa-solid fa-plus" /> Add batch</button>
         </div>
       </div>
 
       {msg && <div className={`wbt-alert ${msg.type}`} role="status"><span>{msg.text}</span><button onClick={() => setMsg(null)} aria-label="Close">✕</button></div>}
 
-      {!loading && (
-        <div className={`wbt-topbar ${topBar ? '' : 'none'}`}>
-          <div className="wbt-topbar-label">Top bar on every page now shows</div>
-          {topBar
-            ? <div className="wbt-topbar-text"><b>Next batch</b> · {topBar.c.name} · starts {topBar.b.displayDate} ({daysText(topBar.b.daysLeft)}) · <b>only {topBar.b.seatsLeft} seats left</b></div>
-            : <div className="wbt-topbar-text">Nothing — no upcoming batch with seats, so the website hides the bar. Add a batch below.</div>}
-        </div>
+      {!loading && data && (
+        <section className="wbt-topcard">
+          <div className="wbt-topcard-head">
+            <div>
+              <div className="wbt-topbar-label">Top bar — home page and every page</div>
+              <h2>Common batch date and seats</h2>
+            </div>
+            <button className="wbt-btn light sm" onClick={() => openNew('common')}><i className="fa-solid fa-plus" /> Common date</button>
+          </div>
+          {commonLive ? (
+            <div className="wbt-topcard-live">
+              <div>
+                <div className="wbt-topbar-text"><b>Next Batch</b> · Starts {commonLive.displayDate} ({daysText(commonLive.daysLeft)}) · <b>Only {commonLive.seatsLeft} seats left</b></div>
+                {commonLive.history[0] && <div className="wbt-topcard-muted">Last change {fmtWhen(commonLive.history[0].at)}{commonLive.history[0].byName ? ` by ${commonLive.history[0].byName}` : ''}</div>}
+              </div>
+              <div className="wbt-topcard-actions">
+                <div className="wbt-seats light" aria-label="Seats left">
+                  <button onClick={() => bump(commonLive, -1)} disabled={busyId === commonLive.id} aria-label="One seat less">−</button>
+                  <div><b>{commonLive.seatsLeft}</b><span>seats left</span></div>
+                  <button onClick={() => bump(commonLive, +1)} disabled={busyId === commonLive.id} aria-label="One seat more">+</button>
+                </div>
+                <button className="wbt-btn light sm" onClick={() => openEdit(commonLive)}><i className="fa-solid fa-pen" /> Edit</button>
+              </div>
+            </div>
+          ) : (
+            <div className="wbt-topcard-none">
+              No common date set — the top bar now shows the soonest course batch: {fallback ? <b>{fallback.c.name} · {fallback.b.displayDate} · {fallback.b.seatsLeft} seats</b> : <b>nothing (the bar is hidden)</b>}.{' '}
+              <button className="wbt-link light" onClick={() => openNew('common')}>Set a common date</button>
+            </div>
+          )}
+          {data.common.batches.filter((b) => b.id !== data.common.live).length > 0 && (
+            <ul className="wbt-list light">
+              {data.common.batches.filter((b) => b.id !== data.common.live).map((b) => (
+                <li key={b.id} className={`wbt-row ${b.state}`}>
+                  <div className="wbt-row-main"><b>{b.displayDate}</b><span>{b.seatsLeft} seats</span></div>
+                  <span className={`wbt-pill ${b.state}`}>{STATE_LABEL[b.state]}</span>
+                  <div className="wbt-row-actions">
+                    <button className="wbt-icon" onClick={() => openEdit(b)} aria-label={`Edit common date ${b.displayDate}`}><i className="fa-solid fa-pen" /></button>
+                    <button className="wbt-icon danger" onClick={() => remove(b)} disabled={busyId === b.id} aria-label={`Remove common date ${b.displayDate}`}><i className="fa-solid fa-trash" /></button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
+
+      {!loading && <h3 className="wbt-section-title">Course pages — each course's own batch</h3>}
 
       {loading ? <div className="wbt-empty">Loading…</div> : (
         <div className="wbt-grid">
@@ -171,7 +213,7 @@ const WebsiteBatches: React.FC = () => {
 
       {!loading && (
         <div className="wbt-help">
-          <b>How the website chooses:</b> for each course, the earliest batch that is shown, has seats left and starts after today. Set seats to 0 when a batch is full, or let the start date pass — the website moves to the next batch by itself. Add the next two or three batches ahead so a course is never empty.
+          <b>How the website chooses:</b> the top bar shows the common date; each course page shows its own course. In both, the earliest entry that is shown, has seats left and starts after today wins. Set seats to 0 when a batch is full, or let the start date pass — the website moves to the next batch by itself. Add the next two or three batches ahead so a course is never empty.
         </div>
       )}
 
@@ -180,6 +222,7 @@ const WebsiteBatches: React.FC = () => {
           <div className="wbt-form">
             <label><span>Course</span>
               <select value={form.courseKey} onChange={(e) => setForm({ ...form, courseKey: e.target.value })}>
+                <option value="common">Top bar — common date (home page, every page)</option>
                 {active.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
               </select>
             </label>
@@ -196,7 +239,7 @@ const WebsiteBatches: React.FC = () => {
             </label>
             <label className="wbt-check"><input type="checkbox" checked={form.showOnWebsite} onChange={(e) => setForm({ ...form, showOnWebsite: e.target.checked })} /> Show on website</label>
             {data && form.startDate && form.startDate <= data.today && <div className="wbt-warn">This date is today or earlier, so the website won't show this batch.</div>}
-            {form.seatsLeft.trim() === '0' && <div className="wbt-warn">0 seats left: the website will show this course's next batch instead.</div>}
+            {form.seatsLeft.trim() === '0' && <div className="wbt-warn">0 seats left: the website will show the next {form.courseKey === 'common' ? 'common date' : 'batch of this course'} instead.</div>}
             {form.history && form.history.length > 0 && (
               <div className="wbt-history">
                 <div className="wbt-history-title">Changes</div>

@@ -103,6 +103,29 @@ describe('which batch the website shows', () => {
     expect((await publicNextBatch(TENANT, 'java_full_stack'))!.startDate).toBe(day(30));
   });
 
+  it('the top bar has its own common date and seats; course pages keep their own', async () => {
+    await createBatch(TENANT, ADMIN, { courseKey: 'java_full_stack', startDate: day(4), seatsLeft: 9 });
+    // No common entry yet → the top bar falls back to the soonest course batch.
+    expect(await publicNextBatch(TENANT)).toMatchObject({ course: 'java_full_stack', source: 'soonest_course' });
+
+    const c1: any = await createBatch(TENANT, ADMIN, { courseKey: 'common', startDate: day(6), seatsLeft: 25 });
+    await createBatch(TENANT, ADMIN, { courseKey: 'common', startDate: day(40), seatsLeft: 30 });
+    const top = (await publicNextBatch(TENANT))!;
+    expect(top).toMatchObject({ course: 'common', courseName: 'All courses', startDate: day(6), seatsLeft: 25, source: 'common' });
+    expect(top.courses!.map(c => c.course)).toEqual(['java_full_stack']);      // course pages unaffected
+    expect((await publicNextBatch(TENANT, 'java_full_stack'))!.startDate).toBe(day(4));
+    expect((await publicNextBatch(TENANT, 'common'))!.startDate).toBe(day(6));
+
+    // Common full → the next common date.
+    await updateBatch(TENANT, ADMIN, String(c1._id), { seatsLeft: 0 });
+    expect((await publicNextBatch(TENANT))!).toMatchObject({ startDate: day(40), seatsLeft: 30, source: 'common' });
+
+    const view = await adminOverview(TENANT);
+    expect(view.common.batches.map(b => b.state)).toEqual(['full', 'live']);
+    expect(view.courses.map(c => c.key)).not.toContain('common');
+    await expect(saveCourse(TENANT, { key: 'common', name: 'x' })).rejects.toThrow(/kept for the top bar/);
+  });
+
   it('refuses bad input and other institutes’ batches', async () => {
     await expect(createBatch(TENANT, ADMIN, { courseKey: 'java_full_stack', startDate: 'tomorrow', seatsLeft: 5 })).rejects.toThrow(/start date/);
     await expect(createBatch(TENANT, ADMIN, { courseKey: 'java_full_stack', startDate: day(5), seatsLeft: -1 })).rejects.toThrow(/Seats left/);

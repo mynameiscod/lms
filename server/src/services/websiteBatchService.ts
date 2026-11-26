@@ -5,7 +5,9 @@
  * AFTER today (Indian time). So setting seats to 0, or reaching the start date, moves the website on
  * to that course's next batch by itself. No such batch → nothing (the website hides the bar).
  *
- * The top bar (no course asked for) shows the soonest of those across all courses.
+ * The top bar (no course asked for) has its own common date and seats: batches under the reserved
+ * key "common", chosen by the same rule. With no common batch it falls back to the soonest course
+ * batch, so the bar is never empty while any course has one.
  */
 import mongoose from 'mongoose';
 import { WebsiteCourse, WebsiteBatch } from '../models/WebsiteBatch';
@@ -19,6 +21,10 @@ export const DEFAULT_WEBSITE_COURSES: { key: string; name: string }[] = [
   { key: 'fde', name: 'Forward Deployed AI Engineer' },
   { key: 'generative_ai', name: 'Generative AI / AI-ML' },
 ];
+
+/** Reserved course key for the top bar's own common date and seats. */
+export const COMMON = 'common';
+export const COMMON_NAME = 'All courses';
 
 export class WebsiteBatchError extends Error {
   constructor(message: string, public status = 400) { super(message); }
@@ -63,6 +69,7 @@ export async function saveCourse(tenantId: string, body: { id?: string; key?: st
   } else {
     const key = String(body.key || '').trim().toLowerCase();
     if (!KEY.test(key)) throw new WebsiteBatchError('The key must be 2–40 lowercase letters, numbers or _ (for example java_full_stack).');
+    if (key === COMMON) throw new WebsiteBatchError('"common" is kept for the top bar. Pick another key.');
     if (!name) throw new WebsiteBatchError('Give the course a name.');
     if (await WebsiteCourse.exists({ tenantId, key })) throw new WebsiteBatchError('A course with that key already exists.');
     const order = (await WebsiteCourse.countDocuments({ tenantId }));
@@ -106,7 +113,7 @@ const describe = (before: any, after: any) => {
 
 export async function createBatch(tenantId: string, user: { id?: string; name?: string }, body: any) {
   const v = cleanInput(body, false);
-  if (!(await WebsiteCourse.exists({ tenantId, key: v.courseKey }))) throw new WebsiteBatchError('Pick a course from the list.');
+  if (v.courseKey !== COMMON && !(await WebsiteCourse.exists({ tenantId, key: v.courseKey }))) throw new WebsiteBatchError('Pick a course from the list.');
   const doc = await WebsiteBatch.create({
     tenantId, ...v, showOnWebsite: v.showOnWebsite ?? true,
     createdBy: user.id, updatedBy: user.id,
@@ -121,7 +128,7 @@ export async function updateBatch(tenantId: string, user: { id?: string; name?: 
   const before: any = await WebsiteBatch.findOne({ _id: id, tenantId }).lean();
   if (!before) throw new WebsiteBatchError('Batch not found', 404);
   const v = cleanInput(body, true);
-  if (v.courseKey && !(await WebsiteCourse.exists({ tenantId, key: v.courseKey }))) throw new WebsiteBatchError('Pick a course from the list.');
+  if (v.courseKey && v.courseKey !== COMMON && !(await WebsiteCourse.exists({ tenantId, key: v.courseKey }))) throw new WebsiteBatchError('Pick a course from the list.');
   const after = { ...before, ...v };
   const change = describe(before, after);
   if (!change) return before;
@@ -146,21 +153,23 @@ export async function adminOverview(tenantId: string) {
   const [courses, batches] = await Promise.all([listCourses(tenantId), WebsiteBatch.find({ tenantId }).sort({ startDate: 1 }).lean()]);
   const today = todayIST();
   const live = pickLive(batches as any[], today);
+  const rows = (key: string) => {
+    const shown = live.get(key);
+    return (batches as any[]).filter((b) => b.courseKey === key).map((b) => ({
+      id: String(b._id), courseKey: b.courseKey, startDate: b.startDate, displayDate: displayDate(b.startDate),
+      daysLeft: daysBetween(today, b.startDate), seatsLeft: b.seatsLeft, mode: b.mode || '', showOnWebsite: b.showOnWebsite !== false,
+      state: b.startDate <= today ? 'started' : b.showOnWebsite === false ? 'hidden' : b.seatsLeft <= 0 ? 'full' : shown && String(shown._id) === String(b._id) ? 'live' : 'queued',
+      updatedAt: b.updatedAt, history: (b.history || []).slice(-10).reverse().map((h: any) => ({ at: h.at, byName: h.byName || '', change: h.change })),
+    }));
+  };
+  const commonLive = live.get(COMMON);
   return {
     today,
+    /** The top bar's own common date and seats. */
+    common: { key: COMMON, name: COMMON_NAME, live: commonLive ? String(commonLive._id) : null, batches: rows(COMMON) },
     courses: courses.map((c) => {
-      const mine = (batches as any[]).filter((b) => b.courseKey === c.key);
       const shown = live.get(c.key);
-      return {
-        ...c,
-        live: shown ? String(shown._id) : null,
-        batches: mine.map((b) => ({
-          id: String(b._id), courseKey: b.courseKey, startDate: b.startDate, displayDate: displayDate(b.startDate),
-          daysLeft: daysBetween(today, b.startDate), seatsLeft: b.seatsLeft, mode: b.mode || '', showOnWebsite: b.showOnWebsite !== false,
-          state: b.startDate <= today ? 'started' : b.showOnWebsite === false ? 'hidden' : b.seatsLeft <= 0 ? 'full' : shown && String(shown._id) === String(b._id) ? 'live' : 'queued',
-          updatedAt: b.updatedAt, history: (b.history || []).slice(-10).reverse().map((h: any) => ({ at: h.at, byName: h.byName || '', change: h.change })),
-        })),
-      };
+      return { ...c, live: shown ? String(shown._id) : null, batches: rows(c.key) };
     }),
   };
 }
@@ -182,43 +191,49 @@ export interface PublicBatch {
 }
 
 const CACHE_MS = 60_000;
-const cache = new Map<string, { at: number; today: string; all: PublicBatch[] }>();
+const cache = new Map<string, { at: number; today: string; all: PublicBatch[]; common: PublicBatch | null }>();
 export function invalidate(tenantId: string) { cache.delete(String(tenantId)); }
 
-async function publicAll(tenantId: string): Promise<PublicBatch[]> {
+async function publicAll(tenantId: string): Promise<{ all: PublicBatch[]; common: PublicBatch | null }> {
   const today = todayIST();
   const hit = cache.get(tenantId);
-  if (hit && hit.today === today && Date.now() - hit.at < CACHE_MS) return hit.all;
+  if (hit && hit.today === today && Date.now() - hit.at < CACHE_MS) return hit;
   const [courses, batches] = await Promise.all([
     WebsiteCourse.find({ tenantId, active: { $ne: false } }).sort({ order: 1 }).lean(),
     WebsiteBatch.find({ tenantId, showOnWebsite: { $ne: false }, seatsLeft: { $gt: 0 }, startDate: { $gt: today } }).sort({ startDate: 1 }).lean(),
   ]);
   const live = pickLive(batches as any[], today);
+  const toPublic = (key: string, name: string, b: any): PublicBatch => ({
+    course: key, courseName: name, startDate: b.startDate, displayDate: displayDate(b.startDate),
+    daysLeft: daysBetween(today, b.startDate), seatsLeft: b.seatsLeft, mode: b.mode || '',
+    updatedAt: new Date(b.updatedAt).toISOString(),
+  });
   const all: PublicBatch[] = [];
   for (const c of courses as any[]) {
     const b = live.get(c.key);
-    if (!b) continue;
-    all.push({
-      course: c.key, courseName: c.name, startDate: b.startDate, displayDate: displayDate(b.startDate),
-      daysLeft: daysBetween(today, b.startDate), seatsLeft: b.seatsLeft, mode: b.mode || '',
-      updatedAt: new Date(b.updatedAt).toISOString(),
-    });
+    if (b) all.push(toPublic(c.key, c.name, b));
   }
-  cache.set(tenantId, { at: Date.now(), today, all });
-  return all;
+  const cb = live.get(COMMON);
+  const entry = { at: Date.now(), today, all, common: cb ? toPublic(COMMON, COMMON_NAME, cb) : null };
+  cache.set(tenantId, entry);
+  return entry;
 }
 
 /**
- * The website's answer. With a course: that course's batch, or null. Without: the soonest batch of
- * all courses (the top bar), plus every course's batch in `courses`; null when there is none at all.
+ * The website's answer.
+ *  - ?course=<key>: that course's batch, or null (the course page hides its batch section).
+ *  - no course (the top bar on every page): the common date and seats staff set for the top bar;
+ *    with none, the soonest course batch. `source` says which. Every course's batch is in `courses`.
+ *    null when there is nothing at all.
  */
-export async function publicNextBatch(tenantId: string, course?: string): Promise<(PublicBatch & { courses?: PublicBatch[] }) | null> {
-  const all = await publicAll(String(tenantId));
+export async function publicNextBatch(tenantId: string, course?: string): Promise<(PublicBatch & { source?: 'common' | 'soonest_course'; courses?: PublicBatch[] }) | null> {
+  const { all, common } = await publicAll(String(tenantId));
   const key = String(course || '').trim().toLowerCase();
-  if (key) return all.find((b) => b.course === key) || null;
+  if (key) return key === COMMON ? common : all.find((b) => b.course === key) || null;
+  if (common) return { ...common, source: 'common', courses: all };
   if (!all.length) return null;
   const soonest = [...all].sort((a, b) => a.startDate.localeCompare(b.startDate) || b.seatsLeft - a.seatsLeft)[0];
-  return { ...soonest, courses: all };
+  return { ...soonest, source: 'soonest_course', courses: all };
 }
 
 /** Course key → name, for website leads (a course on this list may tag a lead). */

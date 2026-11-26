@@ -3643,7 +3643,9 @@ const wbJson = async (r: Response) => {
 };
 export const websiteBatchApi = {
   overview: async () => (await wbJson(await fetch(`${API_BASE_URL}/website-batches`, { headers: getAuthHeaders() }))).data as {
-    today: string; courses: (WebsiteCourseRow & { live: string | null; batches: WebsiteBatchRow[] })[];
+    today: string;
+    common: { key: string; name: string; live: string | null; batches: WebsiteBatchRow[] };
+    courses: (WebsiteCourseRow & { live: string | null; batches: WebsiteBatchRow[] })[];
   },
   create: async (body: { courseKey: string; startDate: string; seatsLeft: number; mode?: string; showOnWebsite?: boolean }) =>
     wbJson(await fetch(`${API_BASE_URL}/website-batches`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) })),

@@ -13,6 +13,8 @@ import Chapter from '../models/Chapter';
 import { EmailService } from './emailService';
 import { createNotifications } from '../notifications/notificationService';
 import { studentSchedulesMap, policyFromRow } from './assessmentDeliveryService';
+import AssessmentSchedule from '../models/AssessmentSchedule';
+import { notifyAssigned } from './assessmentAssignNotify';
 import { computeStatus, DEFAULT_POLICY } from './deadlinePolicyService';
 import { Types } from 'mongoose';
 import { audienceFilterFor, audienceIncludes, isContentAudience, ContentAudience } from './learnerAudience';
@@ -412,6 +414,17 @@ class AssignmentService {
 
       console.log(`📧 Sending assignment notifications to ${students.length} students (accessibleTo: ${accessibleTo})`);
       await this.emailStudents(students, assignment);
+
+      // Batches/students it was given through Assign to Batches while still a draft hear now,
+      // with their own batch's dates. Students emailed just above are not emailed twice.
+      const rows = await AssessmentSchedule.find({ contentType: 'assignment', contentId: assignment._id, status: 'active' })
+        .select('batchId batchName studentIds startAt dueAt').lean() as any[];
+      if (rows.length) {
+        await notifyAssigned(String(tenant), 'assignment', String(assignment._id), rows.map(r => r.batchId
+          ? { batchId: String(r.batchId), batchName: r.batchName, startAt: r.startAt, dueAt: r.dueAt }
+          : { studentIds: (r.studentIds || []).map(String), startAt: r.startAt, dueAt: r.dueAt }),
+          students.map((u: any) => String(u._id)));
+      }
     } catch (err) {
       console.error('Error sending assignment notifications:', err);
     }
@@ -430,17 +443,20 @@ class AssignmentService {
     for (let i = 0; i < students.length; i++) {
       const student = students[i];
       try {
-        await emailService.sendAssignmentNotificationEmail(
+        const ok = await emailService.sendAssignmentNotificationEmail(
           student.email,
-          `${student.firstName} ${student.lastName}`,
-          assignment.title,
-          assignment.type,
-          assignment.description,
-          assignment.dueDate || new Date(),
-          assignment.totalPoints,
-          assignment.difficulty
+          `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+          {
+            title: assignment.title,
+            type: assignment.type,
+            description: assignment.description,
+            difficulty: assignment.difficulty,
+            totalPoints: assignment.totalPoints,
+            opensAt: (assignment as any).startDate || null,
+            dueAt: assignment.dueDate || null,
+          }
         );
-        sent++;
+        if (ok) sent++; else failed++;
       } catch (err) {
         failed++;
         console.error(`Failed to send email to ${student.email}:`, err);

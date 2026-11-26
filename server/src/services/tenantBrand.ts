@@ -71,6 +71,12 @@ export async function getBrand(tenantId?: string | null): Promise<Brand> {
 export function rebrand(text: string, brand: Brand): string {
   if (!text || brand.isPlatformOwner) return text;
   let s = text;
+  // A header logo on a white band (data-cb-logo="header") → the institute's logo, or its name in
+  // navy so the band is not left empty. Before the general rule below, which would drop it.
+  s = s.replace(/<img\b[^>]*data-cb-logo=["']header["'][^>]*>/gi,
+    brand.logoUrl
+      ? `<img src="${brand.logoUrl}" alt="${escapeHtml(brand.name)}" style="height:44px;width:auto;display:block;border:0;" />`
+      : `<div style="font-size:22px;line-height:28px;font-weight:800;color:#051D64;">${escapeHtml(brand.name)}</div>`);
   // Logo image → the institute's logo, or no image at all.
   s = s.replace(/<img\b[^>]*src=["']https:\/\/platform\.codebegun\.com\/assets\/logo\.png["'][^>]*>/gi,
     brand.logoUrl ? `<img src="${brand.logoUrl}" alt="${escapeHtml(brand.name)}" style="height:40px;width:auto;display:block;" />` : '');
@@ -83,7 +89,7 @@ export function rebrand(text: string, brand: Brand): string {
   s = s.replace(/CodeBegun Learning Management System/g, brand.name);
   s = s.replace(/CodeBegun LMS/g, brand.name);
   // Leaves codebegun.com / CodeBegun.in style addresses alone (a sentence-ending full stop is fine).
-  s = s.replace(/(?<![\w./@-])CodeBegun(?![\w-]*\.(com|in|io))/g, brand.name);
+  s = s.replace(/(?<![\w./@-])CodeBegun(?![\w-]*\.(com|in|io)\b)/g, brand.name);
   // Links to the platform → the institute's own verified domain (the same app answers there).
   // Last, so the logo swap above still recognises CodeBegun's logo URL.
   if (brand.baseUrl) s = s.replace(/https:\/\/platform\.codebegun\.com/g, brand.baseUrl);

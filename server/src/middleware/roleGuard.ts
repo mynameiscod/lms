@@ -132,6 +132,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       // Teams belong to one institute (each institute sets up its own), so an institute admin gives this.
       { key: 'manage_sales_teams', label: "Sales Teams: set up teams and managers, and see every team's daily reports" },
       { key: 'manage_demo_slots', label: 'Book a Demo: set up demo slots, see bookings and mark attendance' },
+      { key: 'manage_website_batches', label: 'Website Batches: set the next batch date and seats left shown on your website' },
     ]
   },
   marketing: {
@@ -457,7 +458,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_billing',
     // Leads (full access)
     'manage_leads', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads',
-    'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads', 'archive_leads', 'manage_sales_teams', 'manage_demo_slots',
+    'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads', 'archive_leads', 'manage_sales_teams', 'manage_demo_slots', 'manage_website_batches',
     // Marketing
     'manage_marketing',
     // Coding Snippets

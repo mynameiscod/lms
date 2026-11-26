@@ -29,6 +29,7 @@ import studentReportRoutes from './studentReportRoutes';
 import examRoutes from './examRoutes';
 import labTrackRoutes from './labTrackRoutes';
 import weeklyReportRoutes from './weeklyReportRoutes';
+import websiteBatchRoutes from './websiteBatchRoutes';
 import activityRoutes from './activityRoutes';
 import interviewQuestionRoutes from './interviewQuestionRoutes';
 import topicRoutes from './topicRoutes';
@@ -310,6 +311,7 @@ router.use('/student-reports', studentReportRoutes);
 router.use('/exams', examRoutes);
 router.use('/lab-tracks', labTrackRoutes);
 router.use('/weekly-reports', weeklyReportRoutes);
+router.use('/website-batches', websiteBatchRoutes); // next batch date + seats shown on the public website
 router.use('/activity', activityRoutes);
 router.use('/candidate-proof', candidateProofRoutes);
 router.use('/interview-questions', interviewQuestionRoutes);

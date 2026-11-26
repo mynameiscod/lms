@@ -114,6 +114,11 @@ export const POLICIES = {
     keyBy: req => { const t = String((req.body || {}).requestId ?? '').trim(); return t ? `req:${t}` : null; },
     message: 'Too many attempts. Please request a new code.',
   },
+  /** The website's read-only next-batch call: every page view may ask (browsers cache 60 s). */
+  websiteRead: {
+    max: 600, windowMs: 10 * 60_000,
+    message: 'Too many requests from this network. Please try again later.',
+  },
   websiteIp: {
     max: 60, windowMs: 60 * 60_000,
     message: 'Too many requests from this network. Please try again later.',

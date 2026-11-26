@@ -3628,3 +3628,28 @@ export const leadAutomationApi = {
   get: () => authenticatedFetch(`${API_BASE_URL}/lead-automation`),
   save: (rules: Record<string, any>) => authenticatedFetch(`${API_BASE_URL}/lead-automation`, { method: 'PUT', body: JSON.stringify({ rules }) }),
 };
+
+// ── Website Batches: the next batch date + seats shown on the public website ──
+export interface WebsiteCourseRow { id: string; key: string; name: string; active: boolean; order: number }
+export interface WebsiteBatchRow {
+  id: string; courseKey: string; startDate: string; displayDate: string; daysLeft: number; seatsLeft: number; mode: string;
+  showOnWebsite: boolean; state: 'live' | 'queued' | 'full' | 'hidden' | 'started'; updatedAt: string;
+  history: { at: string; byName: string; change: string }[];
+}
+const wbJson = async (r: Response) => {
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.message || 'Something went wrong');
+  return data;
+};
+export const websiteBatchApi = {
+  overview: async () => (await wbJson(await fetch(`${API_BASE_URL}/website-batches`, { headers: getAuthHeaders() }))).data as {
+    today: string; courses: (WebsiteCourseRow & { live: string | null; batches: WebsiteBatchRow[] })[];
+  },
+  create: async (body: { courseKey: string; startDate: string; seatsLeft: number; mode?: string; showOnWebsite?: boolean }) =>
+    wbJson(await fetch(`${API_BASE_URL}/website-batches`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) })),
+  update: async (id: string, body: Partial<{ courseKey: string; startDate: string; seatsLeft: number; mode: string; showOnWebsite: boolean }>) =>
+    wbJson(await fetch(`${API_BASE_URL}/website-batches/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) })),
+  remove: async (id: string) => wbJson(await fetch(`${API_BASE_URL}/website-batches/${id}`, { method: 'DELETE', headers: getAuthHeaders() })),
+  saveCourse: async (body: { id?: string; key?: string; name?: string; active?: boolean }) =>
+    (await wbJson(await fetch(`${API_BASE_URL}/website-batches/courses`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) }))).data as WebsiteCourseRow[],
+};

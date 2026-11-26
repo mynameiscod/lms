@@ -390,7 +390,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'],
       icon: 'fa-solid fa-user-tag',
       moduleKey: 'leads',
-      permissions: ['manage_leads', 'view_leads', 'create_leads', 'edit_leads', 'manage_event_apis'],
+      permissions: ['manage_leads', 'view_leads', 'create_leads', 'edit_leads', 'manage_event_apis', 'manage_website_batches'],
       submenu: [
         { label: 'Lead Dashboard', path: '/leads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-gauge-high', permissions: ['view_leads', 'manage_leads'] },
         { label: 'Admissions Dashboard', path: '/admissions-dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-chart-column', permissions: ['view_lead_analytics', 'manage_leads'] },
@@ -403,6 +403,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'My Team', path: '/my-team', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-people-group', needsSales: 'manager' },
         { label: 'My Day', path: '/my-day', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-sun', needsSales: 'member' },
         { label: 'Sales Teams', path: '/sales-teams', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-sitemap', permissions: ['manage_sales_teams'] },
+        { label: 'Website Batches', path: '/website-batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-plus', permissions: ['manage_website_batches'] },
         { label: 'Demo Slots', path: '/demo-slots', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-check', permissions: ['manage_demo_slots'] },
         { label: 'Team Activity', path: '/team-activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-column', permissions: ['view_lead_analytics'] },
         { label: 'Sales Content', path: '/sales-content', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-file-invoice', permissions: ['view_leads', 'create_leads'] },

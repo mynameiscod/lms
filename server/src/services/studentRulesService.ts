@@ -579,6 +579,13 @@ async function record(tenantId: string, studentId: string, kind: Kind, lastActiv
 
 const pause = () => new Promise((ok) => setTimeout(ok, 150));
 
+/** "21 Nov 2026" — the last day the student used the LMS, for templates that say "your last activity was on …". */
+const lastSeenLabel = (s: InactiveStudent) => {
+  if (!s.lastActiveAt) return 'not yet (never logged in)';
+  const [y, m, d] = s.lastActiveDay.split('-').map(Number);
+  return `${d} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1]} ${y}`;
+};
+
 /** Send today's due inactivity messages. Each message type is skipped while it has no template assigned. */
 export async function runInactivity(tenantId: string) {
   const plan = await inactivityPlan(tenantId);
@@ -586,7 +593,7 @@ export async function runInactivity(tenantId: string) {
 
   if (plan.templates.student) {
     for (const s of plan.rows.filter((x) => x.due.student)) {
-      const r = await sendByPurpose(tenantId, s.phone, INACTIVITY_PURPOSES.student, [s.firstName, String(s.daysInactive)]);
+      const r = await sendByPurpose(tenantId, s.phone, INACTIVITY_PURPOSES.student, [s.firstName, String(s.daysInactive), lastSeenLabel(s)]);
       await record(tenantId, s.studentId, 'student', s.lastActiveDay, s.daysInactive, r.ok, r.error);
       r.ok ? result.student++ : result.failed++;
       await pause();
@@ -594,7 +601,7 @@ export async function runInactivity(tenantId: string) {
   }
   if (plan.templates.parent) {
     for (const s of plan.rows.filter((x) => x.due.parent)) {
-      const r = await sendByPurpose(tenantId, s.parentMobile, INACTIVITY_PURPOSES.parent, [s.parentName || 'Parent', s.name || s.firstName, String(s.daysInactive)]);
+      const r = await sendByPurpose(tenantId, s.parentMobile, INACTIVITY_PURPOSES.parent, [s.parentName || 'Parent', s.name || s.firstName, String(s.daysInactive), lastSeenLabel(s)]);
       await record(tenantId, s.studentId, 'parent', s.lastActiveDay, s.daysInactive, r.ok, r.error);
       r.ok ? result.parent++ : result.failed++;
       await pause();

@@ -80,7 +80,7 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
   {
     key: 'INACTIVITY_STUDENT', label: 'Inactivity — nudge to the student', module: 'Student Rules',
     settingsKey: 'WHATSAPP_TEMPLATE_INACTIVITY_STUDENT',
-    variables: ['Student first name', 'Days since they last opened the LMS (e.g. 2)'],
+    variables: ['Student first name', 'Days since they last opened the LMS (e.g. 2)', 'Last active date (e.g. 21 Nov 2026)'],
     help: 'Sent in the morning (Student Rules → Inactivity alerts) to a student who has not opened the LMS for the set number of days. Once per spell of inactivity. Keep it UTILITY.',
   },
   {
@@ -92,7 +92,7 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
   {
     key: 'INACTIVITY_PARENT', label: 'Inactivity — alert to the parent', module: 'Student Rules',
     settingsKey: 'WHATSAPP_TEMPLATE_INACTIVITY_PARENT',
-    variables: ['Parent name (or "Parent")', 'Student name', 'Days since they last opened the LMS'],
+    variables: ['Parent name (or "Parent")', 'Student name', 'Days since they last opened the LMS', 'Last active date (e.g. 21 Nov 2026)'],
     help: 'Sent to the parent / guardian mobile on the student’s profile once the parent threshold is crossed. Keep it UTILITY and polite.',
   },
   {

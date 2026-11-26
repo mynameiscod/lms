@@ -16,11 +16,28 @@ interface Batch {
 
 const FILTER_KEY = 'usersPage.filters.v1';
 
-type StudentStatus = 'active' | 'inactive' | 'discontinued';
-const STATUS_LABEL: Record<StudentStatus, string> = { active: 'Active', inactive: 'Inactive', discontinued: 'Discontinued' };
+type StudentStatus = 'active' | 'inactive' | 'discontinued' | 'completed';
+const STATUS_LABEL: Record<StudentStatus, string> = { active: 'Active', inactive: 'Inactive', discontinued: 'Discontinued', completed: 'Course completed' };
 const STATUS_REASONS = ['Fees / financial', 'Got a job', 'Personal / family', 'Health', 'Relocated', 'Not interested', 'Joined another institute', 'Never attended', 'Other'];
-// Login on = Active. Login off = Discontinued when marked so, otherwise Inactive (incl. deleted).
-const effectiveStatus = (u: any): StudentStatus => (u.isActive ? 'active' : (u.studentStatus === 'discontinued' ? 'discontinued' : 'inactive'));
+const COMPLETED_REASONS = ['Course finished', 'Placed', 'Batch closed', 'Other'];
+const reasonsFor = (s: StudentStatus) => (s === 'completed' ? COMPLETED_REASONS : STATUS_REASONS);
+const STATUS_HINT: [StudentStatus, string][] = [
+  ['active', 'Attending classes. Can log in.'],
+  ['completed', 'Finished the course. Can still log in until access ends.'],
+  ['inactive', 'Never really came to classes. Login off.'],
+  ['discontinued', 'Joined, then stopped coming. Login off.'],
+];
+// Login on = Active (or Course completed). Login off = Discontinued when marked so, otherwise Inactive (incl. deleted).
+const effectiveStatus = (u: any): StudentStatus => (u.isActive
+  ? (u.studentStatus === 'completed' ? 'completed' : 'active')
+  : (u.studentStatus === 'discontinued' ? 'discontinued' : 'inactive'));
+const DAY_MS = 86_400_000;
+/** LMS access window state for a student row: ended / ending within 30 days / fine. */
+const accessState = (u: any): 'ended' | 'soon' | 'ok' | 'none' => {
+  if (!u.accessEndsAt) return 'none';
+  const left = new Date(u.accessEndsAt).getTime() - Date.now();
+  return left < 0 ? 'ended' : left <= 30 * DAY_MS ? 'soon' : 'ok';
+};
 const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
 
 const UsersPage: React.FC = () => {
@@ -39,6 +56,15 @@ const UsersPage: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState<string>(saved.roleFilter ?? 'all');
   // Deleted users are soft-deleted (inactive), so the list defaults to active people only.
   const [activeFilter, setActiveFilter] = useState<'all' | StudentStatus>(saved.activeFilter ?? 'active');
+  const [accessFilter, setAccessFilter] = useState<'all' | 'soon' | 'ended'>(saved.accessFilter ?? 'all');
+  // Several students at once: tick rows, then "Change status".
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
+  // Extend access
+  const [accessUser, setAccessUser] = useState<any | null>(null);
+  const [accessForm, setAccessForm] = useState<{ until: string; reason: string }>({ until: '', reason: '' });
+  const [accessSaving, setAccessSaving] = useState(false);
+  const [accessError, setAccessError] = useState('');
   const { user: me } = useAuth();
   const canChangeStatus = userCan(me as any, ['change_student_status'], ['TENANT_ADMIN']);
   const [statusUser, setStatusUser] = useState<User | null>(null);
@@ -72,8 +98,8 @@ const UsersPage: React.FC = () => {
   useEffect(() => { fetchData(); }, []);
 
   useEffect(() => {
-    try { sessionStorage.setItem(FILTER_KEY, JSON.stringify({ searchTerm, batchFilter, roleFilter, activeFilter, currentPage, itemsPerPage })); } catch { /* storage unavailable */ }
-  }, [searchTerm, batchFilter, roleFilter, activeFilter, currentPage, itemsPerPage]);
+    try { sessionStorage.setItem(FILTER_KEY, JSON.stringify({ searchTerm, batchFilter, roleFilter, activeFilter, accessFilter, currentPage, itemsPerPage })); } catch { /* storage unavailable */ }
+  }, [searchTerm, batchFilter, roleFilter, activeFilter, accessFilter, currentPage, itemsPerPage]);
 
   // The Add User / Bulk Actions / row menus are <details>: close them on any outside click
   // or after picking an item.
@@ -130,8 +156,9 @@ const UsersPage: React.FC = () => {
     const matchesBatch = batchFilter === 'all' || user.batchId === batchFilter || ((user as any).placementBatchIds || []).map(String).includes(batchFilter);
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesActive = activeFilter === 'all' || effectiveStatus(user) === activeFilter;
-    return matchesSearch && matchesBatch && matchesRole && matchesActive;
-  }), [users, searchTerm, batchFilter, roleFilter, activeFilter]);
+    const matchesAccess = accessFilter === 'all' || accessState(user) === accessFilter;
+    return matchesSearch && matchesBatch && matchesRole && matchesActive && matchesAccess;
+  }), [users, searchTerm, batchFilter, roleFilter, activeFilter, accessFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -260,22 +287,64 @@ const UsersPage: React.FC = () => {
   const openStatusModal = (user: User) => {
     const cur = effectiveStatus(user);
     setStatusUser(user);
+    setBulkStatusOpen(false);
     setStatusError('');
-    setStatusForm({ status: cur === 'active' ? 'discontinued' : 'active', date: todayISO(), reason: '', note: '' });
+    setStatusForm({ status: cur === 'active' ? 'completed' : 'active', date: todayISO(), reason: '', note: '' });
   };
+  const openBulkStatus = () => {
+    setStatusUser(null);
+    setBulkStatusOpen(true);
+    setStatusError('');
+    setStatusForm({ status: 'completed', date: todayISO(), reason: '', note: '' });
+  };
+  const closeStatusModal = () => { setStatusUser(null); setBulkStatusOpen(false); };
   const saveStatus = async () => {
-    if (!statusUser) return;
+    if (!statusUser && !bulkStatusOpen) return;
     if (statusForm.status !== 'active' && !statusForm.reason) { setStatusError('Pick a reason'); return; }
     setStatusSaving(true); setStatusError('');
+    const body = { status: statusForm.status, date: statusForm.date || undefined, reason: statusForm.reason || undefined, note: statusForm.note || undefined };
     try {
-      const res = await userApi.setStudentStatus(statusUser._id, { status: statusForm.status, date: statusForm.date || undefined, reason: statusForm.reason || undefined, note: statusForm.note || undefined });
-      const updated = res.data || {};
-      setUsers(prev => prev.map(u => (u._id === statusUser._id ? { ...u, ...updated } : u)));
-      setSuccess(`${statusUser.firstName} ${statusUser.lastName} is now ${STATUS_LABEL[statusForm.status]}`);
-      setStatusUser(null);
+      if (bulkStatusOpen) {
+        const ids = Array.from(picked);
+        const res = await userApi.setStudentStatusMany({ userIds: ids, ...body });
+        setSuccess(`${res.data?.updated ?? ids.length} student(s) marked ${STATUS_LABEL[statusForm.status]}`);
+        setPicked(new Set());
+        setBulkStatusOpen(false);
+        fetchData();
+      } else if (statusUser) {
+        const res = await userApi.setStudentStatus(statusUser._id, body);
+        const updated = res.data || {};
+        setUsers(prev => prev.map(u => (u._id === statusUser._id ? { ...u, ...updated } : u)));
+        setSuccess(`${statusUser.firstName} ${statusUser.lastName} is now ${STATUS_LABEL[statusForm.status]}`);
+        setStatusUser(null);
+      }
     } catch (err: any) { setStatusError(err.message || 'Failed to change status'); }
     finally { setStatusSaving(false); }
   };
+
+  const openAccessModal = (user: any) => {
+    setAccessUser(user);
+    setAccessError('');
+    const base = user.accessEndsAt ? new Date(user.accessEndsAt) : new Date();
+    const suggest = new Date(Math.max(base.getTime(), Date.now()) + 90 * DAY_MS);
+    suggest.setMinutes(suggest.getMinutes() - suggest.getTimezoneOffset());
+    setAccessForm({ until: suggest.toISOString().slice(0, 10), reason: '' });
+  };
+  const saveAccess = async (reset = false) => {
+    if (!accessUser) return;
+    if (!accessForm.reason.trim()) { setAccessError('Write why (for example: student asked, placement still in progress)'); return; }
+    if (!reset && !accessForm.until) { setAccessError('Pick the new end date'); return; }
+    setAccessSaving(true); setAccessError('');
+    try {
+      const res = await userApi.setStudentAccess(accessUser._id, { until: reset ? null : accessForm.until, reason: accessForm.reason.trim() });
+      const updated = res.data || {};
+      setUsers(prev => prev.map(u => (u._id === accessUser._id ? { ...u, ...updated } : u)));
+      setSuccess(`${accessUser.firstName} ${accessUser.lastName}: access ${reset ? 'back to the default window' : 'extended'} — until ${formatJoined(updated.accessEndsAt)}`);
+      setAccessUser(null);
+    } catch (err: any) { setAccessError(err.message || 'Failed to change access'); }
+    finally { setAccessSaving(false); }
+  };
+  const togglePick = (id: string) => setPicked(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   if (loading) return <Spinner fullScreen />;
 
@@ -315,7 +384,8 @@ const UsersPage: React.FC = () => {
         <div className="users-search"><i className="bi bi-search" /><input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search by name, email or mobile..." /></div>
         <div className={`filters-cluster ${showFilters ? 'mobile-open' : ''}`}>
           <label><span>Role</span><select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}><option value="all">All Roles</option>{Array.from(new Set(users.map(u => u.role))).map(r => <option value={r} key={r}>{prettyRole(r)}</option>)}</select></label>
-          <label><span>Status</span><select value={activeFilter} onChange={e => setActiveFilter(e.target.value as any)}><option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="discontinued">Discontinued</option></select></label>
+          <label><span>Status</span><select value={activeFilter} onChange={e => setActiveFilter(e.target.value as any)}><option value="all">All Status</option><option value="active">Active</option><option value="completed">Course completed</option><option value="inactive">Inactive</option><option value="discontinued">Discontinued</option></select></label>
+          <label><span>LMS access</span><select value={accessFilter} onChange={e => { setAccessFilter(e.target.value as any); setCurrentPage(1); }}><option value="all">Any</option><option value="soon">Ending in 30 days</option><option value="ended">Ended</option></select></label>
           <label><span>Batch</span><select value={batchFilter} onChange={e => setBatchFilter(e.target.value)}><option value="all">All Batches</option>{batches.map(b => <option value={b._id} key={b._id}>{b.name}</option>)}</select></label>
         </div>
         <button className="mobile-filter-button" onClick={() => setShowFilters(v => !v)}><i className="bi bi-funnel" /> Filters</button>
@@ -326,19 +396,22 @@ const UsersPage: React.FC = () => {
       </div>
 
       <section className="users-list-card">
-        <div className="users-list-head"><h2>Users <span>({filteredUsers.length})</span></h2><span>{filteredUsers.length} users found</span></div>
+        <div className="users-list-head"><h2>Users <span>({filteredUsers.length})</span></h2>{canChangeStatus && picked.size > 0
+          ? <span className="users-picked-bar"><b>{picked.size} selected</b><button onClick={openBulkStatus}><i className="bi bi-person-lines-fill" /> Change status</button><button className="ghost" onClick={() => setPicked(new Set())}>Clear</button></span>
+          : <span>{filteredUsers.length} users found</span>}</div>
         {filteredUsers.length === 0 ? <div className="users-empty"><i className="bi bi-people" /><strong>No users found</strong><span>Try changing your search or filters.</span></div> : <>
           <div className="users-table-wrap">
             <table className="users-table">
-              <thead><tr><th>User</th><th>Contact</th><th>Role</th><th>Batch</th><th>Status</th><th>Joined On</th><th className="actions-col">Actions</th></tr></thead>
+              <thead><tr>{canChangeStatus && <th className="pick-col"><input type="checkbox" aria-label="Select all students on this page" checked={paginatedUsers.some(u => u.role === 'STUDENT') && paginatedUsers.filter(u => u.role === 'STUDENT').every(u => picked.has(u._id))} onChange={e => { const on = e.target.checked; setPicked(prev => { const n = new Set(prev); paginatedUsers.filter(u => u.role === 'STUDENT').forEach(u => (on ? n.add(u._id) : n.delete(u._id))); return n; }); }} /></th>}<th>User</th><th>Contact</th><th>Role</th><th>Batch</th><th>Status</th><th>Joined / Access</th><th className="actions-col">Actions</th></tr></thead>
               <tbody>{paginatedUsers.map(user => <tr key={user._id} className={!user.isActive ? 'inactive-row' : ''}>
+                {canChangeStatus && <td className="pick-col">{user.role === 'STUDENT' && <input type="checkbox" aria-label={`Select ${user.firstName} ${user.lastName}`} checked={picked.has(user._id)} onChange={() => togglePick(user._id)} />}</td>}
                 <td data-label="User"><div className="user-identity"><span className="avatar">{(user.firstName?.[0] || '')}{(user.lastName?.[0] || '')}</span><div><button className={user.role === 'STUDENT' ? 'name-link' : 'plain-name'} onClick={() => user.role === 'STUDENT' && navigate(`/users/${user._id}`, { state: { user } })}>{user.firstName} {user.lastName}</button><small>{user.email}{currentUser && (currentUser._id === user._id || currentUser.id === user._id) && <span className="you-badge">You</span>}</small>{user.role === 'STUDENT' && user.completeness != null && <small className="completion">{user.completeness}% profile complete</small>}</div></div></td>
                 <td data-label="Contact"><div className="contact-cell"><span><i className="bi bi-envelope" />{user.email}</span>{user.phone && <span><i className="bi bi-telephone" />{user.phone}</span>}</div></td>
                 <td data-label="Role"><span className={`role-badge ${user.role.toLowerCase()}`}>{prettyRole(user.role)}</span>{user.customRoleId && <span className="role-badge custom">{roles.find(r => r._id === user.customRoleId)?.name || 'Custom'}</span>}{(user as { employeeCode?: string }).employeeCode && <span className="role-badge employee" title="This login belongs to an employee. They can open the Employee Portal.">Employee · {(user as { employeeCode?: string }).employeeCode}</span>}</td>
                 <td data-label="Batch"><span className="batch-cell">{batchName(user)}</span>{((user as any).placementBatchIds || []).map((id: string) => { const pb = batches.find(b => b._id === String(id)); return pb ? <span key={id} className="placement-chip" title="Placement batch (home batch unchanged)">🎯 {pb.name}</span> : null; })}</td>
                 <td data-label="Status"><StatusBadge user={user} fmt={formatJoined} /></td>
-                <td data-label="Joined On"><span className="joined-cell">{formatJoined(user.createdAt)}</span></td>
-                <td data-label="Actions" className="actions-col"><details className="row-actions"><summary aria-label={`Actions for ${user.firstName} ${user.lastName}`}><i className="bi bi-three-dots-vertical" /></summary><div>{user.role === 'STUDENT' && <button onClick={() => navigate(`/users/${user._id}`, { state: { user } })}><i className="bi bi-eye" /> View details</button>}<button onClick={() => openEditModal(user)}><i className="bi bi-person-gear" /> Change role</button>{user.role === 'STUDENT' && canChangeStatus ? <button onClick={() => openStatusModal(user)}><i className="bi bi-person-lines-fill" /> Change status</button> : user.isActive ? <button onClick={() => handleDeactivateUser(user)}><i className="bi bi-person-dash" /> Deactivate</button> : <button onClick={() => handleActivateUser(user)}><i className="bi bi-person-check" /> Activate</button>}<button className="danger" onClick={() => handleDeleteUser(user)}><i className="bi bi-trash3" /> Delete</button></div></details></td>
+                <td data-label="Joined / Access"><span className="joined-cell">{formatJoined((user as any).accessStart || user.createdAt)}</span>{(user as any).accessEndsAt && <small className={`access-cell ${accessState(user)}`} title="LMS access ends (365 days from first joining unless extended)">{accessState(user) === 'ended' ? 'Access ended ' : 'Access until '}{formatJoined((user as any).accessEndsAt)}</small>}</td>
+                <td data-label="Actions" className="actions-col"><details className="row-actions"><summary aria-label={`Actions for ${user.firstName} ${user.lastName}`}><i className="bi bi-three-dots-vertical" /></summary><div>{user.role === 'STUDENT' && <button onClick={() => navigate(`/users/${user._id}`, { state: { user } })}><i className="bi bi-eye" /> View details</button>}<button onClick={() => openEditModal(user)}><i className="bi bi-person-gear" /> Change role</button>{user.role === 'STUDENT' && canChangeStatus && (user as any).accessEndsAt && <button onClick={() => openAccessModal(user)}><i className="bi bi-calendar-plus" /> Extend access</button>}{user.role === 'STUDENT' && canChangeStatus ? <button onClick={() => openStatusModal(user)}><i className="bi bi-person-lines-fill" /> Change status</button> : user.isActive ? <button onClick={() => handleDeactivateUser(user)}><i className="bi bi-person-dash" /> Deactivate</button> : <button onClick={() => handleActivateUser(user)}><i className="bi bi-person-check" /> Activate</button>}<button className="danger" onClick={() => handleDeleteUser(user)}><i className="bi bi-trash3" /> Delete</button></div></details></td>
               </tr>)}</tbody>
             </table>
           </div>
@@ -383,25 +456,49 @@ const UsersPage: React.FC = () => {
         {editingUser && <div className="role-modal-content"><div className="user-info"><strong>{editingUser.firstName} {editingUser.lastName}</strong><span>{editingUser.email}</span></div><div className="form-group"><label>Base Role</label><select value={selectedRole} onChange={e => setSelectedRole(e.target.value)} className="form-select"><option value="">Select a role</option><option value="STUDENT">Student</option><option value="INSTRUCTOR">Instructor</option><option value="STAFF">Staff</option><option value="TENANT_ADMIN">Tenant Admin</option></select></div><div className="form-group"><label>Custom Permission Role <span className="optional-label">(Optional)</span></label><select value={selectedCustomRoleId} onChange={e => setSelectedCustomRoleId(e.target.value)} className="form-select"><option value="">Use default permissions</option>{roles.map(r => <option key={r._id} value={r._id}>{r.name} ({r.permissions.length} permissions)</option>)}</select></div>{selectedCustomRoleId && selectedRole === 'STUDENT' && <p className="role-hint" style={{ margin: '-4px 0 12px', fontSize: 13, color: '#52637A', lineHeight: 1.5 }}>They keep the student pages and also get every page this role opens. For a team member, choose <b>Staff</b> as the base role so they see only the role's pages.</p>}{selectedCustomRoleId && <p style={{ margin: '0 0 12px', fontSize: 13, color: '#13784F', lineHeight: 1.5 }}>Takes effect straight away — their menu updates the next time they switch back to their tab.</p>}<div className="modal-actions"><Button type="button" onClick={closeRoleModal} className="btn-secondary">Cancel</Button><Button type="button" onClick={handleRoleChange} loading={submitting} className="btn-primary">Update Role</Button></div></div>}
       </Modal>
 
-      <Modal isOpen={!!statusUser} onClose={() => setStatusUser(null)} title="Change Student Status" size="medium">
-        {statusUser && <div className="status-modal">
-          <div className="user-info"><strong>{statusUser.firstName} {statusUser.lastName}</strong><span>{statusUser.email} · now <b>{STATUS_LABEL[effectiveStatus(statusUser)]}</b></span></div>
-          <div className="status-options">
-            {([['active', 'Attending classes. Can log in.'], ['inactive', 'Never really came to classes. Login off.'], ['discontinued', 'Joined, then stopped coming. Login off.']] as [StudentStatus, string][]).map(([k, hint]) => (
+      <Modal isOpen={!!statusUser || bulkStatusOpen} onClose={closeStatusModal} title={bulkStatusOpen ? `Change status — ${picked.size} students` : 'Change Student Status'} size="medium">
+        {(statusUser || bulkStatusOpen) && <div className="status-modal">
+          {statusUser
+            ? <div className="user-info"><strong>{statusUser.firstName} {statusUser.lastName}</strong><span>{statusUser.email} · now <b>{STATUS_LABEL[effectiveStatus(statusUser)]}</b></span></div>
+            : <div className="user-info"><strong>{picked.size} students selected</strong><span>All of them get the same status, date and reason.</span></div>}
+          <div className="status-options four">
+            {STATUS_HINT.map(([k, hint]) => (
               <label key={k} className={`status-option ${statusForm.status === k ? 'on' : ''}`}>
-                <input type="radio" name="student-status" checked={statusForm.status === k} onChange={() => setStatusForm(f => ({ ...f, status: k }))} />
+                <input type="radio" name="student-status" checked={statusForm.status === k} onChange={() => setStatusForm(f => ({ ...f, status: k, reason: '' }))} />
                 <span><span className={`status-badge ${k}`}>{STATUS_LABEL[k]}</span><small>{hint}</small></span>
               </label>
             ))}
           </div>
           <div className="status-fields">
-            <label><span>{statusForm.status === 'active' ? 'Active from' : 'Since'}</span><input type="date" max={todayISO()} value={statusForm.date} onChange={e => setStatusForm(f => ({ ...f, date: e.target.value }))} /></label>
-            {statusForm.status !== 'active' && <label><span>Reason *</span><select value={statusForm.reason} onChange={e => setStatusForm(f => ({ ...f, reason: e.target.value }))}><option value="">Select a reason</option>{STATUS_REASONS.map(r => <option key={r} value={r}>{r}</option>)}</select></label>}
+            <label><span>{statusForm.status === 'active' ? 'Active from' : statusForm.status === 'completed' ? 'Completed on' : 'Since'}</span><input type="date" max={todayISO()} value={statusForm.date} onChange={e => setStatusForm(f => ({ ...f, date: e.target.value }))} /></label>
+            {statusForm.status !== 'active' && <label><span>Reason *</span><select value={statusForm.reason} onChange={e => setStatusForm(f => ({ ...f, reason: e.target.value }))}><option value="">Select a reason</option>{reasonsFor(statusForm.status).map(r => <option key={r} value={r}>{r}</option>)}</select></label>}
           </div>
           {statusForm.status !== 'active' && <label className="status-note"><span>Note (optional)</span><textarea rows={2} maxLength={500} value={statusForm.note} onChange={e => setStatusForm(f => ({ ...f, note: e.target.value }))} placeholder="Anything the team should know" /></label>}
-          {statusForm.status !== 'active' && <p className="status-warn"><i className="bi bi-info-circle" /> The student cannot log in and is left out of attendance, reports and reminders. Switch back to Active any time.</p>}
+          {(statusForm.status === 'inactive' || statusForm.status === 'discontinued') && <p className="status-warn"><i className="bi bi-info-circle" /> The student cannot log in and is left out of attendance, reports and reminders. Switch back to Active any time.</p>}
+          {statusForm.status === 'completed' && <p className="status-warn ok"><i className="bi bi-mortarboard" /> The student keeps LMS access until their access end date, stops getting inactivity reminders and is no longer held on the profile page.</p>}
+          {statusUser && ((statusUser as any).studentStatusHistory || []).length > 0 && <div className="status-history">
+            <span>History</span>
+            <ul>{[...((statusUser as any).studentStatusHistory || [])].reverse().slice(0, 8).map((h: any, n: number) => <li key={n}><span className={`status-badge ${h.status}`}>{STATUS_LABEL[h.status as StudentStatus] || h.status}</span> {formatJoined(h.at)}{h.reason ? ` · ${h.reason}` : ''}{h.note ? ` — ${h.note}` : ''}</li>)}</ul>
+          </div>}
           {statusError && <Alert type="error" message={statusError} />}
-          <div className="modal-actions"><Button className="btn-secondary" onClick={() => setStatusUser(null)} disabled={statusSaving}>Cancel</Button><Button className="btn-primary" onClick={saveStatus} disabled={statusSaving}>{statusSaving ? 'Saving...' : 'Save status'}</Button></div>
+          <div className="modal-actions"><Button className="btn-secondary" onClick={closeStatusModal} disabled={statusSaving}>Cancel</Button><Button className="btn-primary" onClick={saveStatus} disabled={statusSaving}>{statusSaving ? 'Saving...' : 'Save status'}</Button></div>
+        </div>}
+      </Modal>
+
+      <Modal isOpen={!!accessUser} onClose={() => setAccessUser(null)} title="LMS access" size="medium">
+        {accessUser && <div className="status-modal">
+          <div className="user-info"><strong>{accessUser.firstName} {accessUser.lastName}</strong><span>First joined {formatJoined(accessUser.accessStart)} · access {accessState(accessUser) === 'ended' ? 'ended' : 'until'} <b>{formatJoined(accessUser.accessEndsAt)}</b>{accessUser.accessUntil ? ' (extended)' : ' (default window)'}</span></div>
+          <div className="status-fields">
+            <label><span>New end date *</span><input type="date" value={accessForm.until} onChange={e => setAccessForm(f => ({ ...f, until: e.target.value }))} /></label>
+          </div>
+          <label className="status-note"><span>Why *</span><textarea rows={2} maxLength={300} value={accessForm.reason} onChange={e => setAccessForm(f => ({ ...f, reason: e.target.value }))} placeholder="e.g. Student asked — placement still in progress" /></label>
+          <p className="status-warn ok"><i className="bi bi-info-circle" /> The student can log in until the end of that day. After it, login stops with “Your LMS access ended on …”. Nothing is deleted.</p>
+          {(accessUser.accessHistory || []).length > 0 && <div className="status-history">
+            <span>History</span>
+            <ul>{[...(accessUser.accessHistory || [])].reverse().slice(0, 8).map((h: any, n: number) => <li key={n}>{formatJoined(h.at)}: {h.from ? formatJoined(h.from) : '—'} → <b>{h.to ? formatJoined(h.to) : '—'}</b> · {h.reason}</li>)}</ul>
+          </div>}
+          {accessError && <Alert type="error" message={accessError} />}
+          <div className="modal-actions">{accessUser.accessUntil && <Button className="btn-secondary" onClick={() => saveAccess(true)} disabled={accessSaving}>Back to default window</Button>}<Button className="btn-secondary" onClick={() => setAccessUser(null)} disabled={accessSaving}>Cancel</Button><Button className="btn-primary" onClick={() => saveAccess(false)} disabled={accessSaving}>{accessSaving ? 'Saving...' : 'Save end date'}</Button></div>
         </div>}
       </Modal>
     </div>

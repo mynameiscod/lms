@@ -151,11 +151,24 @@ export interface IUser extends Document {
   };
   // Student enrolment status. Inactive = never really attended; Discontinued = joined, then
   // stopped coming. Both also set isActive=false (login blocked, left out of reports).
-  studentStatus?: 'active' | 'inactive' | 'discontinued';
+  // Completed = finished the course; unlike the other two it keeps login (until access ends).
+  studentStatus?: 'active' | 'inactive' | 'discontinued' | 'completed';
   studentStatusAt?: Date;
   studentStatusReason?: string;
   studentStatusNote?: string;
   studentStatusBy?: mongoose.Types.ObjectId;
+  /** Every status change, newest last (services/studentLifecycleService.ts). */
+  studentStatusHistory?: { status: string; at: Date; reason?: string; note?: string; by?: mongoose.Types.ObjectId; changedAt: Date; source?: string }[];
+  /**
+   * LMS access window. Starts on the day the student FIRST joined a batch (lmsJoinedAt; batchJoinedDate
+   * resets on every batch move, so it cannot be the start) and lasts the institute's access days
+   * (365 by default). accessUntil is set only when an admin extends or changes it.
+   */
+  lmsJoinedAt?: Date;
+  accessUntil?: Date;
+  accessHistory?: { from?: Date; to?: Date; reason: string; by?: mongoose.Types.ObjectId; at: Date }[];
+  /** The access end date the "access ending" WhatsApp was last sent for (once per end date). */
+  accessReminderFor?: Date;
   avatar?: string;
   bio?: string;
   linkedin?: string;
@@ -418,11 +431,36 @@ const UserSchema: Schema = new Schema(
       }, { _id: false }),
       default: undefined,
     },
-    studentStatus: { type: String, enum: ['active', 'inactive', 'discontinued'] },
+    studentStatus: { type: String, enum: ['active', 'inactive', 'discontinued', 'completed'] },
     studentStatusAt: { type: Date },
     studentStatusReason: { type: String, trim: true },
     studentStatusNote: { type: String, trim: true, maxlength: 500 },
     studentStatusBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    studentStatusHistory: {
+      type: [new Schema({
+        status: { type: String, required: true },
+        at: { type: Date, required: true },
+        reason: { type: String, trim: true },
+        note: { type: String, trim: true, maxlength: 500 },
+        by: { type: Schema.Types.ObjectId, ref: 'User' },
+        changedAt: { type: Date, default: Date.now },
+        source: { type: String, trim: true },
+      }, { _id: false })],
+      default: undefined,
+    },
+    lmsJoinedAt: { type: Date },
+    accessUntil: { type: Date },
+    accessHistory: {
+      type: [new Schema({
+        from: { type: Date },
+        to: { type: Date },
+        reason: { type: String, trim: true, maxlength: 300 },
+        by: { type: Schema.Types.ObjectId, ref: 'User' },
+        at: { type: Date, default: Date.now },
+      }, { _id: false })],
+      default: undefined,
+    },
+    accessReminderFor: { type: Date },
     avatar: {
       type: String,
       default: null

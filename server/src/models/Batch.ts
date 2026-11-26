@@ -34,6 +34,20 @@ export interface IBatch extends Document {
   // takesOverLabs come from this batch for its members instead of from their home batch.
   kind?: 'regular' | 'placement';
   takesOverLabs?: ('thinking' | 'communication')[];
+  /**
+   * Closed batches (Batches → Close batch) are isActive=false plus closedAt, so every batch list and
+   * dropdown — which already shows active batches only — leaves them out. closeReport is the snapshot
+   * written at closing: the counts, who moved where, and the admin's notes.
+   */
+  closedAt?: Date;
+  closedBy?: mongoose.Types.ObjectId;
+  closeReport?: {
+    closedOn: Date;
+    counts: { total: number; completed: number; placed: number; discontinued: number; inactive: number; active: number; moved: number };
+    movedTo?: { batchId: mongoose.Types.ObjectId; name: string; count: number }[];
+    discountedCount?: number;
+    notes?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -140,7 +154,19 @@ const BatchSchema: Schema = new Schema(
       default: []
     },
     kind: { type: String, enum: ['regular', 'placement'], default: 'regular' },
-    takesOverLabs: { type: [{ type: String, enum: ['thinking', 'communication'] }], default: [] }
+    takesOverLabs: { type: [{ type: String, enum: ['thinking', 'communication'] }], default: [] },
+    closedAt: { type: Date },
+    closedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    closeReport: {
+      type: new Schema({
+        closedOn: { type: Date },
+        counts: { total: Number, completed: Number, placed: Number, discontinued: Number, inactive: Number, active: Number, moved: Number },
+        movedTo: [{ _id: false, batchId: { type: Schema.Types.ObjectId, ref: 'Batch' }, name: String, count: Number }],
+        discountedCount: { type: Number },
+        notes: { type: String, trim: true, maxlength: 4000 },
+      }, { _id: false }),
+      default: undefined,
+    }
   },
   { timestamps: true }
 );

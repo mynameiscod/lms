@@ -11,7 +11,7 @@ import '../ProblemBank/ProblemBank.css';
  *  - Profile gate: students in a batch must complete their profile 100% before using the LMS.
  */
 
-type Tab = 'attendance' | 'inactivity' | 'profile';
+type Tab = 'attendance' | 'inactivity' | 'profile' | 'access';
 const errMsg = (e: any, fallback: string) => e?.response?.data?.message || fallback;
 const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Never');
 
@@ -56,7 +56,7 @@ const StudentRulesPage: React.FC = () => {
   if (err) return <div className="pb-root"><div className="pb-page"><div className="pb-alert pb-alert-bad">{err}</div></div></div>;
   if (!rules || !data) return <div className="pb-root"><div className="pb-page pb-muted"><span className="pb-spinner" /> Loading…</div></div>;
 
-  const set = <K extends 'attendance' | 'inactivity' | 'profileGate'>(k: K, patch: Partial<StudentRules[K]>) => setRules({ ...rules, [k]: { ...(rules[k] as object), ...patch } } as StudentRules);
+  const set = <K extends 'attendance' | 'inactivity' | 'profileGate' | 'access'>(k: K, patch: Partial<StudentRules[K]>) => setRules({ ...rules, [k]: { ...(rules[k] as object), ...patch } } as StudentRules);
   const dirty = JSON.stringify(rules) !== JSON.stringify(data.rules);
 
   const pill = (on: boolean) => <span className={`pb-pill ${on ? 'pb-badge-ok' : 'pb-badge-neutral'}`} style={{ marginLeft: 6 }}>{on ? 'On' : 'Off'}</span>;
@@ -82,11 +82,13 @@ const StudentRulesPage: React.FC = () => {
           <button className={tab === 'attendance' ? 'on' : ''} onClick={() => setTab('attendance')}><i className="fa-solid fa-qrcode" /> Office attendance {pill(data.rules.attendance.enabled)}</button>
           <button className={tab === 'inactivity' ? 'on' : ''} onClick={() => setTab('inactivity')}><i className="fa-solid fa-bell" /> Inactivity alerts {pill(data.rules.inactivity.enabled)}</button>
           <button className={tab === 'profile' ? 'on' : ''} onClick={() => setTab('profile')}><i className="fa-solid fa-id-card" /> Profile gate {pill(data.rules.profileGate.enabled)}</button>
+          <button className={tab === 'access' ? 'on' : ''} onClick={() => setTab('access')}><i className="fa-solid fa-calendar-check" /> LMS access <span className="pb-pill pb-badge-neutral" style={{ marginLeft: 6 }}>{data.rules.access?.days ?? 365} days</span></button>
         </div>
 
         {tab === 'attendance' && <AttendanceTab rules={rules} set={(p) => set('attendance', p)} data={data} busy={busy} save={save} reload={load} />}
         {tab === 'inactivity' && <InactivityTab rules={rules} set={(p) => set('inactivity', p)} busy={busy} save={save} toast={toast} />}
         {tab === 'profile' && <ProfileTab rules={rules} set={(p) => set('profileGate', p)} busy={busy} save={save} />}
+        {tab === 'access' && <AccessTab rules={rules} set={(p) => set('access', p)} busy={busy} save={save} />}
       </div>
       {toast.node}
     </div>
@@ -364,6 +366,46 @@ const ProfileTab: React.FC<{
       <div className="pb-row" style={{ marginTop: 10 }}>
         <span className="pb-grow" />
         <button className="pb-btn pb-btn-primary" disabled={busy} onClick={() => save(rules)}>{busy && <span className="pb-spinner" />} Save profile gate</button>
+      </div>
+    </div>
+  );
+};
+
+/* ── LMS access window ─────────────────────────────────────────────────────────────────────── */
+
+const AccessTab: React.FC<{
+  rules: StudentRules; set: (p: Partial<StudentRules['access']>) => void; busy: boolean;
+  save: (r: StudentRules, ok?: string) => Promise<boolean>;
+}> = ({ rules, set, busy, save }) => {
+  const a = rules.access || { days: 365, reminderEnabled: false, reminderDaysBefore: 15 };
+  return (
+    <div className="pb-card" style={{ padding: 18 }}>
+      <h2 style={{ margin: 0 }}>How long students can use the LMS</h2>
+      <p className="pb-muted" style={{ fontSize: 13.5 }}>
+        A student in a batch can log in for this many days from the day they <b>first</b> joined a batch (moving to another batch does not restart it).
+        After that, login stops with “Your LMS access ended on …”. Nothing is deleted. To give one student more time, open <Link to="/users">Users</Link> → ⋮ → <b>Extend access</b> and pick the exact date.
+        Course-completed students keep access until their date too. Staff, CareerPilot members and demo students are not affected.
+      </p>
+      <label className="pb-row" style={{ gap: 8, fontSize: 14 }}>
+        <b>Access lasts</b>
+        <input className="pb-input" type="number" min={30} max={3650} value={a.days} onChange={(e) => set({ days: Number(e.target.value) })} style={{ width: 100 }} />
+        <span>days from first joining</span>
+      </label>
+
+      <h3 style={{ margin: '18px 0 4px', fontSize: 15 }}>“Access ending soon” WhatsApp</h3>
+      <p className="pb-muted" style={{ fontSize: 13 }}>
+        Sent once to the student, the set number of days before their access ends, at the same morning hour as the inactivity alerts.
+        It also needs a template: <Link to="/admin/whatsapp-templates">WhatsApp Templates</Link> → assign one to <b>LMS access — ending soon</b> (values: first name, end date, days left).
+      </p>
+      <Switch checked={a.reminderEnabled} onChange={(v) => set({ reminderEnabled: v })}><b>Send the “access ending soon” reminder</b></Switch>
+      <label className="pb-row" style={{ gap: 8, fontSize: 14, marginTop: 6 }}>
+        <span>Send it</span>
+        <input className="pb-input" type="number" min={1} max={90} value={a.reminderDaysBefore} onChange={(e) => set({ reminderDaysBefore: Number(e.target.value) })} style={{ width: 80 }} />
+        <span>days before access ends</span>
+      </label>
+      <div className="pb-row" style={{ marginTop: 14 }}>
+        <span className="pb-grow" />
+        <button className="pb-btn pb-btn-primary" disabled={busy} onClick={() => save(rules)}>{busy && <span className="pb-spinner" />} Save LMS access</button>
       </div>
     </div>
   );

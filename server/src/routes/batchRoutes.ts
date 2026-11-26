@@ -19,8 +19,28 @@ import {
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
+import * as lifecycle from '../services/studentLifecycleService';
 
 const router = express.Router();
+
+/* ── Closing a batch (services/studentLifecycleService.ts) ── */
+const MANAGE = ['manage_tenant_courses'];
+const uid = (req: any) => String(req.user?.id || req.userId || '');
+const lfail = (res: express.Response, e: any) =>
+  res.status(e instanceof lifecycle.LifecycleError ? e.status : 500).json({ success: false, message: e?.message || 'Something went wrong' });
+// Closed batches with their reports (registered before /:batchId).
+router.get('/closed/list', authMiddleware, tenantResolver, roleGuard(MANAGE), async (req: any, res) => {
+  try { res.json({ success: true, data: await lifecycle.closedBatches(req.tenantId) }); } catch (e) { lfail(res, e); }
+});
+router.get('/:batchId/close-preview', authMiddleware, tenantResolver, roleGuard(MANAGE), async (req: any, res) => {
+  try { res.json({ success: true, data: await lifecycle.closePreview(req.tenantId, req.params.batchId) }); } catch (e) { lfail(res, e); }
+});
+router.post('/:batchId/close', authMiddleware, tenantResolver, roleGuard(MANAGE), async (req: any, res) => {
+  try { res.json({ success: true, data: await lifecycle.closeBatch(req.tenantId, req.params.batchId, req.body || {}, uid(req)) }); } catch (e) { lfail(res, e); }
+});
+router.post('/:batchId/reopen', authMiddleware, tenantResolver, roleGuard(MANAGE), async (req: any, res) => {
+  try { res.json({ success: true, data: await lifecycle.reopenBatch(req.tenantId, req.params.batchId) }); } catch (e) { lfail(res, e); }
+});
 
 // Create batch (requires manage_tenant_courses permission)
 router.post('/', authMiddleware, tenantResolver, roleGuard(['manage_tenant_courses']), createBatch);

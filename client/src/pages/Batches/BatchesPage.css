@@ -303,3 +303,10 @@ select.bm-input { cursor: pointer; }
 .pl-filters select,.pl-filters input{padding:7px 10px;border:1px solid #CBD5E1;border-radius:8px;font:inherit;font-size:13px}
 .pl-filters input{flex:1}
 @media (max-width:640px){.pl-kinds,.pl-labs{grid-template-columns:1fr}.pl-filters{flex-direction:column}}
+
+/* Closing batches */
+.bm-closed-toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#475569;white-space:nowrap;cursor:pointer}
+.bm-closed-wrap{margin:0 0 18px;padding:14px;border:1px dashed #cbd5e1;border-radius:14px;background:#f8fafc}
+.bm-closed-title{margin:0 0 10px;font-size:15px;color:#0f172a}
+.bm-ended-chip{margin-top:6px;border:1px solid #fcd34d;background:#fffbeb;color:#b45309;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;cursor:pointer}
+.bm-ended-chip:hover{background:#fef3c7}

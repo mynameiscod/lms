@@ -229,8 +229,40 @@ const agreementPendingSource: AudienceSource = {
   },
 };
 
+/** Students by status (incl. Course completed) and LMS access ending / ended (studentLifecycleService). */
+const studentLifecycleSource: AudienceSource = {
+  key: 'student_lifecycle',
+  label: 'Students by status / access',
+  description: 'Course-completed students, or students whose LMS access ends soon or has ended',
+  async filters() {
+    return [{ key: 'group', label: 'Group', single: true, options: [
+      { value: 'completed', label: 'Course completed' },
+      { value: 'ending30', label: 'Access ends in the next 30 days' },
+      { value: 'ended', label: 'Access has ended' },
+    ] }];
+  },
+  async resolve(tenantId, pick) {
+    const group = picked(pick, 'group')[0] || 'completed';
+    const User = (await import('../models/User')).default;
+    const life = await import('./studentLifecycleService');
+    const { getRules, accessRules } = await import('./studentRulesService');
+    const days = accessRules(await getRules(tenantId)).days;
+    const q: any = { tenantId, role: 'STUDENT', batchId: { $ne: null }, 'lmsDemo.at': { $exists: false }, phone: { $nin: [null, ''] } };
+    if (group === 'completed') q.studentStatus = 'completed';
+    else q.isActive = { $ne: false };
+    const rows = await User.find(q).select(`${life.ACCESS_FIELDS} firstName lastName phone studentStatus`).lean<any[]>();
+    const now = Date.now();
+    return rows.filter((u) => {
+      if (group === 'completed') return true;
+      const until = life.accessUntilOf(u, days);
+      if (!until) return false;
+      return group === 'ended' ? until.getTime() < now : until.getTime() >= now && until.getTime() - now <= 30 * 86_400_000;
+    }).map((u) => ({ phone: u.phone, name: `${u.firstName || ''} ${u.lastName || ''}`.trim() }));
+  },
+};
+
 /** The order here is the order on screen. Add a new module's people here. */
-export const AUDIENCE_SOURCES: AudienceSource[] = [hackathons, battles, events, placement, careerPilot, inactiveStudentsSource, agreementPendingSource];
+export const AUDIENCE_SOURCES: AudienceSource[] = [hackathons, battles, events, placement, careerPilot, inactiveStudentsSource, agreementPendingSource, studentLifecycleSource];
 
 export const getAudienceSource = (key: string) => AUDIENCE_SOURCES.find((s) => s.key === key);
 

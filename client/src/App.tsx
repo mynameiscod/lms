@@ -339,6 +339,7 @@ const LiveGuestJoin = lazy(() => import('./pages/HmsClasses/GuestJoin'));
 const BookDemo = lazy(() => import('./pages/DemoBooking/BookDemo'));
 const MyDemoBooking = lazy(() => import('./pages/DemoBooking/MyDemoBooking'));
 const DemoSlots = lazy(() => import('./pages/DemoBooking/DemoSlots'));
+const WebsiteBatches = lazy(() => import('./pages/WebsiteBatches'));
 const CommunicationLab = lazy(() => import('./pages/CommunicationLab'));
 const CommunicationLabAdmin = lazy(() => import('./pages/CommunicationLabAdmin'));
 const MyInterviewsPage = lazy(() => import('./pages/MyInterviews'));
@@ -751,6 +752,10 @@ const AppRoutes: React.FC = () => {
       {/* Sales Teams (Leads add-on). Who sees what is decided by the server: admin, the team's manager, the member. */}
       <Route path="/demo-slots" element={
         <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_demo_slots']}><Layout><DemoSlots /></Layout></ProtectedRoute>
+      } />
+      {/* Website Batches: the next batch date + seats left the public website shows. */}
+      <Route path="/website-batches" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_website_batches']}><Layout><WebsiteBatches /></Layout></ProtectedRoute>
       } />
       <Route path="/sales-teams" element={
         <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_sales_teams']}><Layout><AdminSalesTeams /></Layout></ProtectedRoute>

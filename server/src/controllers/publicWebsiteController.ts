@@ -7,6 +7,7 @@ import WebsiteVerification, { IWebsiteVerification } from '../models/WebsiteVeri
 import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { recordReEnquiry } from '../services/leadReEnquiryService';
 import { WEBSITE_COURSES } from '../config/websiteCourses';
+import { websiteCourseName } from '../services/websiteBatchService';
 
 /**
  * Website APIs for the course landing pages (FDE first):
@@ -150,7 +151,14 @@ export const submitCourseLead = async (req: Request, res: Response) => {
     if (!tenant) return fail(res, 404, 'Invalid form endpoint.');
     const tenantId = String(tenant._id);
 
-    const course = WEBSITE_COURSES[clip(b.course, 40).toLowerCase()];
+    // The built-in list first, then the institute's Website Batches course list (same keys the
+    // website uses for its next-batch bar), so a course added there can take leads too.
+    const courseKey = clip(b.course, 40).toLowerCase();
+    let course = WEBSITE_COURSES[courseKey];
+    if (!course) {
+      const listed = /^[a-z0-9_]{2,40}$/.test(courseKey) ? await websiteCourseName(tenantId, courseKey) : null;
+      if (listed) course = { key: courseKey, name: listed };
+    }
     if (!course) return fail(res, 400, 'Unknown course.');
 
     const name = clip(b.name, 120);

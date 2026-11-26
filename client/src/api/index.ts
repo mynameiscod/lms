@@ -1108,6 +1108,99 @@ export const weeklyReportApi = {
     if (!r.ok) throw new Error(data.message || 'Failed to send');
     return data;
   },
+  sendToAll: async (weekStart: string, channels: ('email' | 'whatsapp')[] = ['email']) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/send-all`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ weekStart, channels }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to send');
+    return data;
+  },
+  getSettings: async () => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/settings`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to load settings');
+    return data.data as {
+      autoSend: boolean; channels: ('email' | 'whatsapp')[]; lastAutoWeek: string | null; lastAutoAt: string | null;
+      lastAutoResult: { sent: number; failed: number; skippedEmpty: number; skippedAlreadySent: number } | null;
+      whatsappTemplateReady: boolean;
+    };
+  },
+  updateSettings: async (autoSend: boolean, channels: ('email' | 'whatsapp')[]) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/settings`, {
+      method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ autoSend, channels }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to save');
+    return data;
+  },
+  // ── Custom-range report ──
+  searchStudents: async (q: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/students?q=${encodeURIComponent(q)}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to search');
+    return data.data as { id: string; name: string; email: string; batchName: string }[];
+  },
+  periodStudent: async (studentId: string, from: string, to: string, copy: 'staff' | 'student') => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/student/${studentId}?from=${from}&to=${to}&copy=${copy}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to build the report');
+    return data.data;
+  },
+  periodBatch: async (batchId: string, from: string, to: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/batch?batchId=${batchId}&from=${from}&to=${to}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to build the batch report');
+    return data.data as { label: string; students: any[] };
+  },
+  /** Excel for everyone: start building (scope 'all' or a batch id), poll, then download. */
+  startExport: async (scope: string, from: string, to: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/export`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ scope, from, to }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Could not start the export');
+    return data.data as { id: string; status: string; done: number; total: number };
+  },
+  exportStatus: async (id: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/export/${id}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Could not read the export');
+    return data.data as { id: string; status: 'running' | 'done' | 'failed'; done: number; total: number; fileName: string; error: string; scopeName: string };
+  },
+  downloadExport: async (id: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/export/${id}/file`, { headers: getAuthHeaders() });
+    if (!r.ok) {
+      let msg = 'Download failed';
+      try { msg = (await r.json()).message || msg; } catch { /* not JSON */ }
+      throw new Error(msg);
+    }
+    const blob = await r.blob();
+    const name = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || 'progress-report.xlsx';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return name;
+  },
+  /** Downloads the PDF or Excel file of a student's custom-range report. */
+  downloadPeriod: async (studentId: string, from: string, to: string, copy: 'staff' | 'student', format: 'pdf' | 'xlsx') => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/student/${studentId}?from=${from}&to=${to}&copy=${copy}&format=${format}`, { headers: getAuthHeaders() });
+    if (!r.ok) {
+      let msg = 'Download failed';
+      try { msg = (await r.json()).message || msg; } catch { /* not JSON */ }
+      throw new Error(msg);
+    }
+    const blob = await r.blob();
+    const name = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || `report.${format}`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+  /** batchId 'all' = every active batch. */
   estimate: async (batchId: string) => {
     const r = await fetch(`${API_BASE_URL}/weekly-reports/estimate?batchId=${batchId}`, { headers: getAuthHeaders() });
     const data = await r.json();
@@ -3534,4 +3627,31 @@ export const leadReportApi = {
 export const leadAutomationApi = {
   get: () => authenticatedFetch(`${API_BASE_URL}/lead-automation`),
   save: (rules: Record<string, any>) => authenticatedFetch(`${API_BASE_URL}/lead-automation`, { method: 'PUT', body: JSON.stringify({ rules }) }),
+};
+
+// ── Website Batches: the next batch date + seats shown on the public website ──
+export interface WebsiteCourseRow { id: string; key: string; name: string; active: boolean; order: number }
+export interface WebsiteBatchRow {
+  id: string; courseKey: string; startDate: string; displayDate: string; daysLeft: number; seatsLeft: number; mode: string;
+  showOnWebsite: boolean; state: 'live' | 'queued' | 'full' | 'hidden' | 'started'; updatedAt: string;
+  history: { at: string; byName: string; change: string }[];
+}
+const wbJson = async (r: Response) => {
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.message || 'Something went wrong');
+  return data;
+};
+export const websiteBatchApi = {
+  overview: async () => (await wbJson(await fetch(`${API_BASE_URL}/website-batches`, { headers: getAuthHeaders() }))).data as {
+    today: string;
+    common: { key: string; name: string; live: string | null; batches: WebsiteBatchRow[] };
+    courses: (WebsiteCourseRow & { live: string | null; batches: WebsiteBatchRow[] })[];
+  },
+  create: async (body: { courseKey: string; startDate: string; seatsLeft: number; mode?: string; showOnWebsite?: boolean }) =>
+    wbJson(await fetch(`${API_BASE_URL}/website-batches`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) })),
+  update: async (id: string, body: Partial<{ courseKey: string; startDate: string; seatsLeft: number; mode: string; showOnWebsite: boolean }>) =>
+    wbJson(await fetch(`${API_BASE_URL}/website-batches/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) })),
+  remove: async (id: string) => wbJson(await fetch(`${API_BASE_URL}/website-batches/${id}`, { method: 'DELETE', headers: getAuthHeaders() })),
+  saveCourse: async (body: { id?: string; key?: string; name?: string; active?: boolean }) =>
+    (await wbJson(await fetch(`${API_BASE_URL}/website-batches/courses`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) }))).data as WebsiteCourseRow[],
 };

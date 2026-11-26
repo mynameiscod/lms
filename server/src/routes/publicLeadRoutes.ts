@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { rateLimit } from '../middleware/rateLimit';
 import { sendWebsiteOtp, verifyWebsiteOtp, submitCourseLead } from '../controllers/publicWebsiteController';
+import { getPublicNextBatch } from '../controllers/websiteBatchController';
 import { submitPublicLeadForm, getPublicFormConfig, submitWebsiteLead } from '../controllers/publicLeadController';
 import { registerForWeeklyQuizFromWebsite, getQuizByToken, startQuizSession, submitQuizByToken, quizHeartbeat } from '../controllers/publicQuizController';
 
@@ -54,6 +55,8 @@ router.post('/:tenantSlug/website-lead', multipart, submitWebsiteLead);
 // Course landing pages (FDE): verify the phone by WhatsApp OTP, then submit the lead.
 router.post('/:tenantSlug/otp/send', rateLimit('websiteIp'), rateLimit('websiteOtpSend'), sendWebsiteOtp);
 router.post('/:tenantSlug/otp/verify', rateLimit('websiteIp'), rateLimit('websiteOtpVerify'), verifyWebsiteOtp);
+// The website's "next batch" date and seats (read-only, no personal data; cached 60 s).
+router.get('/:tenantSlug/next-batch', rateLimit('websiteRead'), getPublicNextBatch);
 router.post('/:tenantSlug/course-lead', rateLimit('websiteIp'), submitCourseLead);
 
 // Register for the current weekly/featured public quiz (called from external website)

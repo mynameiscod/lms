@@ -8,6 +8,7 @@
 import mongoose from 'mongoose';
 import {
   WebsiteStat, WebsiteCompany, WebsitePlacement, COMPANY_TYPES, CompanyType, PLACEMENT_TAGS, PlacementTag, PLACEMENT_TAG_LABEL,
+  STAT_SECTIONS, StatSection,
 } from '../models/WebsiteContent';
 import { WebsiteContentError, ownsImage } from './websiteMediaService';
 import { listCourses } from './websiteBatchService';
@@ -38,6 +39,7 @@ export const packageText = (lpa?: number | null) =>
 
 function statFields(b: any, partial: boolean) {
   const out: any = {};
+  if (!partial) out.section = (STAT_SECTIONS as readonly string[]).includes(b.section) ? b.section : 'placements';
   if (!partial || has(b, 'value')) {
     out.value = clip(b.value, 20);
     if (!out.value) throw new WebsiteContentError('Type the number, e.g. 92% or 500+.');
@@ -271,7 +273,7 @@ const byOrder = (x: any, y: any) => (x.order ?? 0) - (y.order ?? 0) || String(x.
 /** Everything for the Website Content screen, drafts included. */
 export async function adminPlacements(tenantId: string, mediaUrl: MediaUrl) {
   const [stats, companies, students, courses] = await Promise.all([
-    WebsiteStat.find({ tenantId }).lean(),
+    WebsiteStat.find({ tenantId, section: 'placements' }).lean(),
     WebsiteCompany.find({ tenantId }).lean(),
     WebsitePlacement.find({ tenantId }).lean(),
     listCourses(tenantId),
@@ -313,7 +315,7 @@ export async function adminPlacements(tenantId: string, mediaUrl: MediaUrl) {
  */
 export async function publicPlacements(tenantId: string, mediaUrl: MediaUrl, q: Record<string, unknown> = {}) {
   const [stats, companies, students, courses] = await Promise.all([
-    WebsiteStat.find({ tenantId, published: true }).lean(),
+    WebsiteStat.find({ tenantId, section: 'placements', published: true }).lean(),
     WebsiteCompany.find({ tenantId, published: true }).lean(),
     WebsitePlacement.find({ tenantId, published: true, consent: true }).lean(),
     listCourses(tenantId),
@@ -404,4 +406,13 @@ export async function companyByName(tenantId: string, a: Actor, name: string) {
   const nameKey = n.toLowerCase().replace(/\s+/g, ' ');
   const found = await WebsiteCompany.findOne({ tenantId, nameKey });
   return found || createCompany(tenantId, a, { name: n });
+}
+
+/** The numbers of one section, for its tab (drafts included) or for the website (published only). */
+export async function statsOf(tenantId: string, section: StatSection, publishedOnly: boolean) {
+  const rows: any[] = await WebsiteStat.find({ tenantId, section, ...(publishedOnly ? { published: true } : {}) }).lean();
+  rows.sort(byOrder);
+  return publishedOnly
+    ? rows.map((s) => ({ value: s.value, label: s.label }))
+    : rows.map((s) => ({ id: String(s._id), value: s.value, label: s.label, published: !!s.published, history: s.history || [], updatedAt: s.updatedAt }));
 }

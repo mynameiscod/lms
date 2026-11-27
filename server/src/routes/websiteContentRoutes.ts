@@ -6,7 +6,7 @@ import { roleGuard } from '../middleware/roleGuard';
 import { MAX_IMAGE_BYTES } from '../services/websiteMediaService';
 import * as ctrl from '../controllers/websiteContentController';
 
-/** Website Content screen: placement numbers, companies and placed students shown on the public website. */
+/** Website Content screen: placements, Tech Battle, events, courses, testimonials, trainers and site settings for the public website. */
 const router = express.Router();
 router.use(authMiddleware);
 router.use(tenantResolver);
@@ -20,6 +20,17 @@ const oneImage: express.RequestHandler = (req, res, next) => upload.single('file
 });
 
 router.get('/placements', canManage, ctrl.getPlacements);
+router.get('/sections', canManage, ctrl.getSections);
+router.put('/tech-battle/settings', canManage, ctrl.putBattleSettings);
+router.get('/tech-battle/battles/:battleId/leaderboard', canManage, ctrl.getBattleTop);
+router.put('/tech-battle/battles/:battleId', canManage, ctrl.putBattleNote);
+router.post('/courses', canManage, ctrl.postCourse);
+router.put('/courses/:key', canManage, ctrl.putCourse);
+router.put('/settings', canManage, ctrl.putSettings);
+router.post('/x/:list/reorder', canManage, ctrl.reorderSection);
+router.post('/x/:list', canManage, ctrl.createSection);
+router.put('/x/:list/:id', canManage, ctrl.updateSection);
+router.delete('/x/:list/:id', canManage, ctrl.removeSection);
 router.get('/lms-offers', canManage, ctrl.getLmsOffers);
 router.post('/media', canManage, oneImage, ctrl.uploadMedia);
 router.post('/companies/by-name', canManage, ctrl.companyByName);

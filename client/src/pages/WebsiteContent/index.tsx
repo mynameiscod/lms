@@ -1,115 +1,67 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { websiteContentApi, WcStat, WcCompany, WcStudent, WcOffer, WcList, WcCompanyType, WcHistory } from '../../api';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { websiteContentApi, websiteSectionsApi, WcCompany, WcStudent, WcOffer, WcList, WcCompanyType, WcHistory, WcSections } from '../../api';
 import { Modal } from '../../components/common';
+import { Msg, initials, monthText, lpaText, History, StatusPill, useReorder, ImagePick, NumbersEditor } from './shared';
+import { TechBattlePane, EventsPane, CoursesPane, TestimonialsPane, TrainersPane, SitePane } from './Sections';
 import './WebsiteContent.css';
 
 /**
- * Website Content (2026-11-27): what the public website shows — this first stage is Placements:
- * placement numbers, hiring companies and placed students. Nothing is calculated; the website shows
+ * Website Content (2026-11-27): everything the public website shows — placements, Tech Battle,
+ * events, courses, testimonials, trainers and site settings. Nothing is calculated; the website shows
  * exactly what is typed here, published items only, within about a minute.
  */
 
 type Data = Awaited<ReturnType<typeof websiteContentApi.placements>>;
 type Tab = 'numbers' | 'companies' | 'students';
-type Msg = { type: 'ok' | 'err'; text: string } | null;
+type Section = 'placements' | 'battle' | 'events' | 'courses' | 'testimonials' | 'trainers' | 'site';
+
+const SECTIONS: [Section, string, string][] = [
+  ['placements', 'Placements', 'fa-briefcase'],
+  ['battle', 'Tech Battle', 'fa-trophy'],
+  ['events', 'Events', 'fa-calendar-days'],
+  ['courses', 'Courses', 'fa-book-open'],
+  ['testimonials', 'Testimonials', 'fa-circle-play'],
+  ['trainers', 'Trainers', 'fa-chalkboard-user'],
+  ['site', 'Site settings', 'fa-sliders'],
+];
 
 const TYPE_LABEL: Record<WcCompanyType, string> = { product: 'Product', service: 'Service', startup: 'Startup', other: 'Other' };
-const fmtWhen = (iso: string) => new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-const initials = (name: string) => name.split(/\s+/).filter(Boolean).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
-const monthText = (ym: string) => (ym ? new Date(`${ym}-01T00:00:00`).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '');
-const lpaText = (n: number | null | undefined) => (n === null || n === undefined || Number.isNaN(n) ? '' : `₹ ${Number.isInteger(n) ? n : n.toFixed(1).replace(/\.0$/, '')} LPA`);
 
-/* ── small pieces ──────────────────────────────────────────────────────────────────────────── */
-
-const History: React.FC<{ items?: WcHistory[] }> = ({ items }) => (items && items.length ? (
-  <details className="wct-history">
-    <summary>Changes ({items.length})</summary>
-    <ul>{items.map((h, i) => <li key={i}><span>{fmtWhen(h.at)}{h.byName ? ` · ${h.byName}` : ''}</span> {h.change}</li>)}</ul>
-  </details>
-) : null);
-
-const StatusPill: React.FC<{ on: boolean }> = ({ on }) => <span className={`wct-pill ${on ? 'pub' : 'draft'}`}>{on ? 'Published' : 'Draft'}</span>;
-
-/** Drag to reorder (desktop) plus earlier/later buttons (touch and keyboard). */
-function useReorder<T extends { id: string }>(items: T[], save: (ids: string[]) => Promise<void>) {
-  const [order, setOrder] = useState<T[]>(items);
-  const drag = useRef<string | null>(null);
-  useEffect(() => setOrder(items), [items]);
-  const commit = async (next: T[]) => { setOrder(next); await save(next.map((x) => x.id)); };
-  const move = (id: string, delta: number) => {
-    const i = order.findIndex((x) => x.id === id);
-    const j = i + delta;
-    if (i < 0 || j < 0 || j >= order.length) return;
-    const next = [...order];
-    [next[i], next[j]] = [next[j], next[i]];
-    commit(next);
-  };
-  const props = (id: string) => ({
-    draggable: true,
-    onDragStart: (e: React.DragEvent) => { drag.current = id; e.dataTransfer.effectAllowed = 'move'; },
-    onDragOver: (e: React.DragEvent) => { if (drag.current && drag.current !== id) e.preventDefault(); },
-    onDrop: (e: React.DragEvent) => {
-      e.preventDefault();
-      const from = order.findIndex((x) => x.id === drag.current);
-      const to = order.findIndex((x) => x.id === id);
-      drag.current = null;
-      if (from < 0 || to < 0 || from === to) return;
-      const next = [...order];
-      const [it] = next.splice(from, 1);
-      next.splice(to, 0, it);
-      commit(next);
-    },
-    onDragEnd: () => { drag.current = null; },
-  });
-  return { order, move, props };
-}
-
-const ImagePick: React.FC<{
-  kind: 'photo' | 'logo'; url: string | null; fallback: string; onUploaded: (id: string, url: string) => void; onClear: () => void; onError: (m: string) => void;
-}> = ({ kind, url, fallback, onUploaded, onClear, onError }) => {
-  const [busy, setBusy] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
-  const pick = async (f?: File) => {
-    if (!f) return;
-    if (f.size > 8 * 1024 * 1024) return onError('The image is larger than 8 MB.');
-    setBusy(true);
-    try { const r = await websiteContentApi.upload(kind, f); onUploaded(r.id, r.url); }
-    catch (e: any) { onError(e.message || 'Could not upload the image'); }
-    finally { setBusy(false); if (input.current) input.current.value = ''; }
-  };
-  return (
-    <div className={`wct-imgpick ${kind}`}>
-      <div className="wct-imgpick-preview">{url ? <img src={url} alt="" /> : <span>{fallback}</span>}</div>
-      <div className="wct-imgpick-side">
-        <input ref={input} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" hidden onChange={(e) => pick(e.target.files?.[0])} />
-        <button type="button" className="wct-btn ghost sm" disabled={busy} onClick={() => input.current?.click()}>
-          <i className="fa-solid fa-upload" /> {busy ? 'Uploading…' : url ? 'Change' : `Upload ${kind}`}
-        </button>
-        {url && !busy && <button type="button" className="wct-link" onClick={onClear}>Remove</button>}
-        <small>{kind === 'photo' ? 'Cropped to a square around the face. JPG, PNG or WebP, up to 8 MB.' : 'Fitted inside the logo strip; transparent backgrounds are kept.'}</small>
-      </div>
-    </div>
-  );
-};
+const API_GUIDE: { key: keyof WcSections['apiUrls']; title: string; fields: React.ReactNode }[] = [
+  { key: 'placements', title: 'Placements', fields: <><code>stats</code>, <code>companies</code> (logo strip), <code>students</code> (cards: <code>name</code>, <code>photoUrl</code>, <code>course</code>, <code>role</code>, <code>company</code>, <code>package.text</code>, <code>quote</code>, <code>tags</code>…). Optional <code>?course=&amp;year=&amp;companyType=&amp;featured=1&amp;sort=package|recent&amp;limit=</code>.</> },
+  { key: 'techBattle', title: 'Tech Battle', fields: <><code>next</code> (title, <code>date</code>, <code>time</code>, <code>startAt</code> for the countdown, <code>partnerCollege</code>, <code>registerOpen</code>; empty when no battle is live), <code>eligibility</code>, <code>topics</code>, <code>prizes</code>, <code>everyone</code>, <code>stats</code>, <code>past</code> (winners). Registration stays at <code>/battles/current/register</code>.</> },
+  { key: 'events', title: 'Events', fields: <>Each event's <code>status</code> (upcoming / ongoing / past, from its dates), <code>title</code>, <code>startDate</code>, <code>venue</code>, <code>prizes</code>, <code>registerUrl</code>, <code>imageUrl</code>. Optional <code>?status=upcoming&amp;type=hackathon&amp;limit=</code>.</> },
+  { key: 'courses', title: 'Courses', fields: <>Course cards with <code>fee</code>, <code>duration</code>, <code>tags</code>, <code>badge</code> and <code>nextBatch</code>. Add <code>/&lt;key&gt;</code> for one course page: <code>modules</code>, <code>tools</code>, <code>projects</code>, <code>timeline</code>, <code>faqs</code>.</> },
+  { key: 'testimonials', title: 'Testimonials', fields: <><code>name</code>, <code>thumbUrl</code>, <code>videoUrl</code>, <code>company</code>, <code>package.text</code> or <code>label</code>.</> },
+  { key: 'trainers', title: 'Trainers', fields: <><code>name</code>, <code>photoUrl</code>, <code>title</code>, <code>company</code>, <code>experience</code>, <code>skills</code>, <code>linkedin</code>.</> },
+  { key: 'site', title: 'Site settings', fields: <><code>topBar</code> (empty when switched off) and the home page <code>stats</code>.</> },
+  { key: 'nextBatch', title: 'Next batch (Website Batches)', fields: <>Unchanged: the top bar date and seats, <code>?course=</code> for a course.</> },
+];
 
 /* ── page ──────────────────────────────────────────────────────────────────────────────────── */
 
 const WebsiteContent: React.FC = () => {
+  const [section, setSection] = useState<Section>('placements');
   const [data, setData] = useState<Data | null>(null);
+  const [secData, setSecData] = useState<WcSections | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('students');
   const [msg, setMsg] = useState<Msg>(null);
   const [devOpen, setDevOpen] = useState(false);
 
+  const ok = useCallback((text: string) => setMsg({ type: 'ok', text }), []);
+  const err = useCallback((e: any, fallback = 'Something went wrong') => setMsg({ type: 'err', text: e?.message || fallback }), []);
   const load = useCallback(async () => {
     try { setData(await websiteContentApi.placements()); }
     catch (e: any) { setMsg({ type: 'err', text: e.message || 'Could not load website content' }); }
     finally { setLoading(false); }
   }, []);
-  useEffect(() => { load(); }, [load]);
+  const loadSections = useCallback(async () => {
+    try { setSecData(await websiteSectionsApi.load()); }
+    catch (e: any) { setMsg({ type: 'err', text: e.message || 'Could not load website content' }); }
+  }, []);
+  useEffect(() => { load(); loadSections(); }, [load, loadSections]);
 
-  const ok = useCallback((text: string) => setMsg({ type: 'ok', text }), []);
-  const err = useCallback((e: any, fallback = 'Something went wrong') => setMsg({ type: 'err', text: e?.message || fallback }), []);
   const reorder = (list: WcList) => async (ids: string[]) => {
     try { await websiteContentApi.reorder(list, ids); await load(); }
     catch (e) { err(e, 'Could not save the order'); await load(); }
@@ -124,16 +76,14 @@ const WebsiteContent: React.FC = () => {
     catch (e) { err(e); }
   };
 
-  const counts = {
-    numbers: data?.stats.length || 0,
-    companies: data?.companies.length || 0,
-    students: data?.students.length || 0,
-  };
+  const counts = { numbers: data?.stats.length || 0, companies: data?.companies.length || 0, students: data?.students.length || 0 };
   const live = {
     numbers: data?.stats.filter((s) => s.published).length || 0,
     companies: data?.companies.filter((c) => c.published).length || 0,
     students: data?.students.filter((s) => s.published).length || 0,
   };
+  const pane = { data: secData!, reload: loadSections, ok, err };
+  const copy = (u: string) => navigator.clipboard?.writeText(u).then(() => ok('Address copied.')).catch(() => undefined);
 
   return (
     <div className="wct-page">
@@ -146,47 +96,68 @@ const WebsiteContent: React.FC = () => {
       </div>
 
       <div className="wct-sections" role="tablist" aria-label="Website sections">
-        <span className="wct-section on" role="tab" aria-selected="true"><i className="fa-solid fa-briefcase" /> Placements</span>
-        <span className="wct-section soon" title="Coming next"><i className="fa-solid fa-trophy" /> Tech Battles <em>next</em></span>
-        <span className="wct-section soon" title="Coming next"><i className="fa-solid fa-book-open" /> Courses <em>soon</em></span>
-        <span className="wct-section soon" title="Coming next"><i className="fa-solid fa-comment-dots" /> Testimonials &amp; trainers <em>soon</em></span>
-      </div>
-
-      {msg && <div className={`wct-alert ${msg.type}`} role="status"><span>{msg.text}</span><button onClick={() => setMsg(null)} aria-label="Close">✕</button></div>}
-
-      <div className="wct-tabs" role="tablist" aria-label="Placements">
-        {([['students', 'Placed students', 'fa-user-graduate'], ['companies', 'Companies', 'fa-building'], ['numbers', 'Placement numbers', 'fa-chart-simple']] as [Tab, string, string][]).map(([k, label, icon]) => (
-          <button key={k} role="tab" aria-selected={tab === k} className={`wct-tab ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}>
-            <i className={`fa-solid ${icon}`} /> <span>{label}</span>
-            {!loading && <em>{live[k]}/{counts[k]}</em>}
+        {SECTIONS.map(([k, label, icon]) => (
+          <button key={k} role="tab" aria-selected={section === k} className={`wct-section ${section === k ? 'on' : ''}`} onClick={() => { setSection(k); setMsg(null); }}>
+            <i className={`fa-solid ${icon}`} /> {label}
           </button>
         ))}
       </div>
 
-      {loading || !data ? <div className="wct-empty">Loading…</div> : (
+      {msg && <div className={`wct-alert ${msg.type}`} role="status"><span>{msg.text}</span><button onClick={() => setMsg(null)} aria-label="Close">✕</button></div>}
+
+      {section === 'placements' && (
         <>
-          {tab === 'numbers' && <Numbers data={data} reorder={reorder('stats')} remove={remove} toggle={toggle} reload={load} ok={ok} err={err} />}
-          {tab === 'companies' && <Companies data={data} reorder={reorder('companies')} remove={remove} toggle={toggle} reload={load} ok={ok} err={err} />}
-          {tab === 'students' && <Students data={data} reorder={reorder('students')} remove={remove} toggle={toggle} reload={load} ok={ok} err={err} />}
+          <div className="wct-tabs" role="tablist" aria-label="Placements">
+            {([['students', 'Placed students', 'fa-user-graduate'], ['companies', 'Companies', 'fa-building'], ['numbers', 'Placement numbers', 'fa-chart-simple']] as [Tab, string, string][]).map(([k, label, icon]) => (
+              <button key={k} role="tab" aria-selected={tab === k} className={`wct-tab ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}>
+                <i className={`fa-solid ${icon}`} /> <span>{label}</span>
+                {!loading && <em>{live[k]}/{counts[k]}</em>}
+              </button>
+            ))}
+          </div>
+          {loading || !data ? <div className="wct-empty">Loading…</div> : (
+            <>
+              {tab === 'numbers' && (
+                <NumbersEditor stats={data.stats} section="placements" reload={load} ok={ok} err={err} sample={['92%', 'Placement rate']}
+                  blurb={<>The counters on your placements section, e.g. <b>92%</b> Placement rate. Type them exactly as they should appear. Drag to change the order.</>}
+                  empty="No numbers yet. Add your placement rate, students placed, highest package — whatever your website shows." />
+              )}
+              {tab === 'companies' && <Companies data={data} reorder={reorder('companies')} remove={remove} toggle={toggle} reload={async () => { await load(); await loadSections(); }} ok={ok} err={err} />}
+              {tab === 'students' && <Students data={data} reorder={reorder('students')} remove={remove} toggle={toggle} reload={load} ok={ok} err={err} />}
+            </>
+          )}
         </>
       )}
 
-      <Modal isOpen={devOpen} onClose={() => setDevOpen(false)} title="For your website developer" size="medium">
-        {data && (
-          <div className="wct-dev">
-            <p>The website reads placements from this address. It returns published items only, in the order set here, and never any phone, email or internal note.</p>
-            <div className="wct-dev-url"><code>{data.apiUrl}</code>
-              <button className="wct-btn ghost sm" onClick={() => { navigator.clipboard?.writeText(data.apiUrl).then(() => ok('Address copied.')).catch(() => undefined); }}><i className="fa-regular fa-copy" /> Copy</button>
+      {section !== 'placements' && (!secData ? <div className="wct-empty">Loading…</div> : (
+        <>
+          {section === 'battle' && <TechBattlePane {...pane} />}
+          {section === 'events' && <EventsPane {...pane} />}
+          {section === 'courses' && <CoursesPane {...pane} />}
+          {section === 'testimonials' && <TestimonialsPane {...pane} />}
+          {section === 'trainers' && <TrainersPane {...pane} />}
+          {section === 'site' && <SitePane {...pane} />}
+        </>
+      ))}
+
+      <Modal isOpen={devOpen} onClose={() => setDevOpen(false)} title="For your website developer" size="large">
+        <div className="wct-dev">
+          <p>The website reads each section from these addresses. They are read-only, return published items only in the order set here, never any phone, email or internal note, and refresh within a minute. Image addresses are full links the website can use as they are.</p>
+          {secData ? (
+            <div className="wct-dev-list">
+              {API_GUIDE.map((g) => (
+                <div key={g.key} className="wct-dev-item">
+                  <div className="wct-dev-item-head"><b>{g.title}</b>
+                    <button className="wct-btn ghost sm" onClick={() => copy(secData.apiUrls[g.key])}><i className="fa-regular fa-copy" /> Copy</button>
+                  </div>
+                  <code className="wct-dev-addr">{secData.apiUrls[g.key]}</code>
+                  <p className="wct-muted">{g.fields}</p>
+                </div>
+              ))}
             </div>
-            <ul>
-              <li><code>stats</code> — the placement numbers (<code>value</code>, <code>label</code>).</li>
-              <li><code>companies</code> — the hiring-partner logo strip (<code>name</code>, <code>type</code>, <code>domain</code>, <code>logoUrl</code>).</li>
-              <li><code>students</code> — the placed-student cards (<code>name</code>, <code>photoUrl</code>, <code>course</code>, <code>role</code>, <code>company</code>, <code>package.text</code>, <code>batch</code>, <code>year</code>, <code>college</code>, <code>quote</code>, <code>tags</code>, <code>featured</code>).</li>
-              <li>Optional: <code>?course=java_full_stack&amp;year=2025&amp;companyType=product&amp;featured=1&amp;sort=package|recent&amp;limit=12</code>. <code>filters</code> lists the courses, years and company types that have cards.</li>
-            </ul>
-            <p className="wct-muted">Build each card from the website's existing card template, so a new student looks exactly like the others. When a company has no uploaded logo, <code>logoUrl</code> is empty and <code>domain</code> is there for the current logo service.</p>
-          </div>
-        )}
+          ) : <div className="wct-empty">Loading…</div>}
+          <p className="wct-muted">Build every card from the website's existing card template, so a new item looks exactly like the others.</p>
+        </div>
       </Modal>
     </div>
   );
@@ -201,71 +172,6 @@ interface PaneProps {
   ok: (t: string) => void;
   err: (e: any, fallback?: string) => void;
 }
-
-/* ── Placement numbers ─────────────────────────────────────────────────────────────────────── */
-
-const Numbers: React.FC<PaneProps> = ({ data, reorder, remove, toggle, reload, ok, err }) => {
-  const { order, move, props } = useReorder<WcStat>(data.stats, reorder);
-  const [form, setForm] = useState<{ id?: string; value: string; label: string; published: boolean; history?: WcHistory[] } | null>(null);
-  const [saving, setSaving] = useState(false);
-  const save = async () => {
-    if (!form) return;
-    if (!form.value.trim() || !form.label.trim()) return err({ message: 'Type both the number and what it means.' });
-    setSaving(true);
-    try {
-      const body = { value: form.value, label: form.label, published: form.published };
-      if (form.id) await websiteContentApi.update('stats', form.id, body); else await websiteContentApi.create('stats', body);
-      setForm(null); await reload(); ok('Saved. The website shows it within about a minute.');
-    } catch (e) { err(e); } finally { setSaving(false); }
-  };
-  return (
-    <section>
-      <div className="wct-bar">
-        <p className="wct-muted">The counters on your placements section, e.g. <b>92%</b> Placement rate. Type them exactly as they should appear. Drag to change the order.</p>
-        <button className="wct-btn primary" onClick={() => setForm({ value: '', label: '', published: true })}><i className="fa-solid fa-plus" /> Add number</button>
-      </div>
-      {order.length === 0 ? (
-        <div className="wct-none">No numbers yet. Add your placement rate, students placed, highest package — whatever your website shows.</div>
-      ) : (
-        <div className="wct-stats">
-          {order.map((s, i) => (
-            <div key={s.id} className={`wct-stat ${s.published ? '' : 'off'}`} {...props(s.id)}>
-              <div className="wct-stat-top"><i className="fa-solid fa-grip-vertical wct-grip" aria-hidden /><StatusPill on={s.published} /></div>
-              <b>{s.value}</b>
-              <span>{s.label}</span>
-              <div className="wct-card-actions">
-                <button className="wct-icon" onClick={() => move(s.id, -1)} disabled={i === 0} aria-label={`Move ${s.label} earlier`}><i className="fa-solid fa-arrow-left" /></button>
-                <button className="wct-icon" onClick={() => move(s.id, 1)} disabled={i === order.length - 1} aria-label={`Move ${s.label} later`}><i className="fa-solid fa-arrow-right" /></button>
-                <button className="wct-icon" onClick={() => toggle('stats', s.id, { published: !s.published }, s.published ? 'Taken off the website.' : 'Published.')} aria-label={s.published ? `Unpublish ${s.label}` : `Publish ${s.label}`} title={s.published ? 'Unpublish' : 'Publish'}>
-                  <i className={`fa-solid ${s.published ? 'fa-eye-slash' : 'fa-eye'}`} />
-                </button>
-                <button className="wct-icon" onClick={() => setForm({ id: s.id, value: s.value, label: s.label, published: s.published, history: s.history })} aria-label={`Edit ${s.label}`}><i className="fa-solid fa-pen" /></button>
-                <button className="wct-icon danger" onClick={() => remove('stats', s.id, `"${s.value} ${s.label}"`)} aria-label={`Remove ${s.label}`}><i className="fa-solid fa-trash" /></button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      <Modal isOpen={!!form} onClose={() => setForm(null)} title={form?.id ? 'Edit number' : 'Add number'} size="small">
-        {form && (
-          <div className="wct-form">
-            <div className="wct-form-two">
-              <label><span>Number</span><input value={form.value} maxLength={20} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="92%" autoFocus /></label>
-              <label><span>What it means</span><input value={form.label} maxLength={60} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Placement rate" /></label>
-            </div>
-            <div className="wct-statpreview"><b>{form.value || '92%'}</b><span>{form.label || 'Placement rate'}</span></div>
-            <label className="wct-check"><input type="checkbox" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} /> Published — show on the website</label>
-            <History items={form.history} />
-            <div className="wct-form-actions">
-              <button className="wct-btn ghost" onClick={() => setForm(null)} disabled={saving}>Cancel</button>
-              <button className="wct-btn primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-            </div>
-          </div>
-        )}
-      </Modal>
-    </section>
-  );
-};
 
 /* ── Companies ─────────────────────────────────────────────────────────────────────────────── */
 

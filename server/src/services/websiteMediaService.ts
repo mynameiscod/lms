@@ -4,6 +4,7 @@
  * Every upload is re-encoded with sharp, so the website always gets a small WebP of one shape:
  *   photo — 480×480 square, cropped around the most interesting part (usually the face)
  *   logo  — fitted inside 400×160, transparent background kept, never enlarged
+ *   thumb — 960×540 (16:9), for video stills and event images
  * One odd photo can never break the row of cards. Stored on Bunny when it is set up, else on disk,
  * and served publicly (they are shown on the open website) by GET /public/:slug/media/:id.webp.
  */
@@ -27,7 +28,9 @@ async function encode(kind: WebsiteMediaKind, input: Buffer) {
     const img = sharp(input, { failOn: 'error', limitInputPixels: 40_000_000 }).rotate();
     const out = kind === 'photo'
       ? img.resize(480, 480, { fit: 'cover', position: sharp.strategy.attention }).webp({ quality: 82 })
-      : img.resize(400, 160, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 90, alphaQuality: 100 });
+      : kind === 'thumb'
+        ? img.resize(960, 540, { fit: 'cover', position: sharp.strategy.attention }).webp({ quality: 80 })
+        : img.resize(400, 160, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 90, alphaQuality: 100 });
     return await out.toBuffer({ resolveWithObject: true });
   } catch {
     throw new WebsiteContentError('That file is not an image we can use. Upload a JPG, PNG, WebP or SVG.');
@@ -36,7 +39,7 @@ async function encode(kind: WebsiteMediaKind, input: Buffer) {
 
 /** Re-encode and store one image. Returns the saved media row. */
 export async function saveImage(tenantId: string, kind: WebsiteMediaKind, input: Buffer, uploadedBy?: string) {
-  if (kind !== 'photo' && kind !== 'logo') throw new WebsiteContentError('Unknown image kind.');
+  if (!['photo', 'logo', 'thumb'].includes(kind)) throw new WebsiteContentError('Unknown image kind.');
   if (!input?.length) throw new WebsiteContentError('Choose an image to upload.');
   if (input.length > MAX_IMAGE_BYTES) throw new WebsiteContentError('The image is larger than 8 MB.');
   const { data, info } = await encode(kind, input);

@@ -3691,7 +3691,7 @@ export const websiteContentApi = {
     wbJson(await fetch(`${API_BASE_URL}/website-content/${list}/${id}`, { method: 'DELETE', headers: getAuthHeaders() })),
   reorder: async (list: WcList, ids: string[]) =>
     wbJson(await fetch(`${API_BASE_URL}/website-content/${list}/reorder`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ ids }) })),
-  upload: async (kind: 'photo' | 'logo', file: File) => {
+  upload: async (kind: 'photo' | 'logo' | 'thumb', file: File) => {
     const fd = new FormData();
     fd.append('kind', kind);
     fd.append('file', file);
@@ -3702,4 +3702,61 @@ export const websiteContentApi = {
     (await wbJson(await fetch(`${API_BASE_URL}/website-content/lms-offers?q=${encodeURIComponent(q)}`, { headers: getAuthHeaders() }))).data as WcOffer[],
   companyByName: async (name: string) =>
     (await wbJson(await fetch(`${API_BASE_URL}/website-content/companies/by-name`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ name }) }))).data as { id: string; name: string },
+};
+
+/* Website Content stages 2–4 (2026-11-27): Tech Battle, events, courses, testimonials, trainers, site settings. */
+export type WcStatSection = 'placements' | 'home' | 'tech_battle';
+export interface WcPrize { place: string; amount: string; items: string[] }
+export interface WcWinner { place: number; name: string; college: string; score: string; photoId: string | null; photoUrl: string | null }
+export interface WcBattle {
+  id: string; title: string; slug: string; status: string; visibility: string; startAt: string; endAt: string; date: string; time: string; ended: boolean;
+  partnerCollege: string; partnerImageId: string | null; partnerImageUrl: string | null; winners: WcWinner[]; winnersPublished: boolean; history: WcHistory[];
+}
+export interface WcBattleSettings {
+  scheduleText: string; eligibility: string; alsoOpenTo: string; durationText: string; modeText: string; topics: string[]; prizes: WcPrize[]; everyone: string[]; history: WcHistory[];
+}
+export interface WcEvent {
+  id: string; type: 'hackathon' | 'workshop' | 'other'; title: string; summary: string; startDate: string; endDate: string; timeText: string; venue: string;
+  mode: 'online' | 'offline' | 'hybrid'; teamSize: string; feeText: string; prizes: string[]; registerUrl: string; pageUrl: string;
+  imageId: string | null; imageUrl: string | null; status: 'upcoming' | 'ongoing' | 'past'; published: boolean; history: WcHistory[];
+}
+export interface WcCourse {
+  id: string; key: string; name: string; active: boolean; published: boolean; title: string; tagline: string; tags: string[]; duration: string; mode: string;
+  seatsText: string; fee: string; oldFee: string; badge: string; pageUrl: string; brochureUrl: string; tools: string[];
+  modules: { title: string; days: string; topics: string[] }[]; projects: { title: string; description: string; tags: string[] }[];
+  timeline: { day: string; title: string; points: string[] }[]; faqs: { q: string; a: string }[];
+  nextBatch: { startDate: string; displayDate: string; daysLeft: number; seatsLeft: number; mode: string } | null; history: WcHistory[];
+}
+export interface WcTestimonial {
+  id: string; name: string; thumbId: string | null; thumbUrl: string | null; videoUrl: string; companyId: string | null; company: { name: string; logoUrl: string | null } | null;
+  packageLpa: number | null; package: { lpa: number; text: string } | null; label: string; courseKey: string; course: { key: string; name: string } | null;
+  quote: string; consent: boolean; published: boolean; history: WcHistory[];
+}
+export interface WcTrainer {
+  id: string; name: string; photoId: string | null; photoUrl: string | null; title: string; company: string; experience: string; skills: string[];
+  linkedin: string; bio: string; published: boolean; history: WcHistory[];
+}
+export type WcSectionList = 'events' | 'testimonials' | 'trainers';
+export interface WcSections {
+  battle: { settings: WcBattleSettings; stats: WcStat[]; currentId: string | null; battles: WcBattle[] };
+  events: WcEvent[]; courses: WcCourse[]; testimonials: WcTestimonial[]; trainers: WcTrainer[];
+  settings: { topBar: { enabled: boolean; text: string; linkText: string; url: string }; history: WcHistory[]; stats: WcStat[] };
+  companies: { id: string; name: string }[];
+  apiUrls: Record<'placements' | 'techBattle' | 'events' | 'courses' | 'testimonials' | 'trainers' | 'site' | 'nextBatch', string>;
+}
+const wcSend = async (method: string, path: string, body?: any) =>
+  wbJson(await fetch(`${API_BASE_URL}/website-content${path}`, { method, headers: getAuthHeaders(), ...(body === undefined ? {} : { body: JSON.stringify(body) }) }));
+export const websiteSectionsApi = {
+  load: async () => (await wbJson(await fetch(`${API_BASE_URL}/website-content/sections`, { headers: getAuthHeaders() }))).data as WcSections,
+  create: async (list: WcSectionList, body: any) => (await wcSend('POST', `/x/${list}`, body)).data as { id: string },
+  update: (list: WcSectionList, id: string, body: any) => wcSend('PUT', `/x/${list}/${id}`, body),
+  remove: (list: WcSectionList, id: string) => wcSend('DELETE', `/x/${list}/${id}`),
+  reorder: (list: WcSectionList | 'courses', ids: string[]) => wcSend('POST', `/x/${list}/reorder`, { ids }),
+  battleSettings: (body: Partial<WcBattleSettings>) => wcSend('PUT', '/tech-battle/settings', body),
+  battleNote: (battleId: string, body: any) => wcSend('PUT', `/tech-battle/battles/${battleId}`, body),
+  battleTop: async (battleId: string, n = 3) =>
+    (await wbJson(await fetch(`${API_BASE_URL}/website-content/tech-battle/battles/${battleId}/leaderboard?n=${n}`, { headers: getAuthHeaders() }))).data as { place: number; name: string; college: string; score: string }[],
+  addCourse: (body: { key: string; name: string }) => wcSend('POST', '/courses', body),
+  saveCourse: (key: string, body: any) => wcSend('PUT', `/courses/${key}`, body),
+  saveSettings: (body: any) => wcSend('PUT', '/settings', body),
 };

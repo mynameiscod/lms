@@ -198,3 +198,142 @@
   .wct-stat b { font-size: 24px; }
   .wct-imgpick { align-items: flex-start; }
 }
+
+/* ── stages 2–4 (2026-11-27) ─────────────────────────────────────────────────────────────────── */
+.wct-section { cursor: pointer; font-family: inherit; }
+.wct-section:not(.on):hover { color: #051D64; border-color: #C7D3E3; }
+.wct-section:not(.on) { color: #475569; }
+.wct-form textarea { padding: 10px 12px; border: 1.5px solid #E2EAF2; border-radius: 10px; font-size: 14px; color: #102A4F; background: #fff; width: 100%; box-sizing: border-box; font-family: inherit; resize: vertical; line-height: 1.45; }
+.wct-form textarea:focus { outline: none; border-color: #359AAD; box-shadow: 0 0 0 3px rgba(53, 154, 173, .15); }
+.wct-panel { background: #fff; border: 1px solid #E2EAF2; border-radius: 14px; padding: 16px; }
+.wct-subhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.wct-subhead b { font-size: 15px; color: #102A4F; }
+.wct-subhead-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.wct-gap { margin-top: 18px !important; margin-bottom: 10px; }
+.wct-tabs.small { margin-bottom: 4px; }
+.wct-tabs.small .wct-tab { padding: 8px 12px; font-size: 13px; }
+
+/* Tech Battle: next battle card */
+.wct-nextcard { background: linear-gradient(150deg, #051D64, #0B2D72); color: #fff; border-radius: 16px; padding: 16px 18px; margin-bottom: 16px; border-top: 3px solid #359AAD; }
+.wct-nextcard.none { background: #FFF7E8; color: #8A5A00; border: 1px solid #FDE7B8; border-top: 3px solid #E3A21A; }
+.wct-nextcard-label { font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; font-weight: 800; color: #7FD3E0; display: flex; gap: 7px; align-items: center; }
+.wct-nextcard.none .wct-nextcard-label { color: #B45309; }
+.wct-nextcard-title { font-size: 20px; font-weight: 850; margin-top: 6px; }
+.wct-nextcard-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px; font-size: 14px; color: #DCEAF7; }
+.wct-nextcard-meta i { color: #7FD3E0; margin-right: 4px; }
+.wct-nextcard p { margin: 10px 0 0 !important; font-size: 13.5px; line-height: 1.5; color: inherit !important; opacity: .92; }
+.wct-nextcard a { color: #7FD3E0; font-weight: 700; }
+.wct-nextcard.none a { color: #051D64; }
+
+.wct-prizes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.wct-prize { border: 1px solid #E2EAF2; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: #FBFCFE; min-width: 0; }
+.wct-prize .wct-card-actions { margin-top: 0; }
+
+.wct-battles { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.wct-battles li { background: #fff; border: 1px solid #E2EAF2; border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.wct-battles li.now { border-color: #9AD3DE; background: #F3FAFB; }
+.wct-battle-main { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 2px; }
+.wct-battle-main b { font-size: 14.5px; color: #102A4F; }
+.wct-battle-main span { font-size: 12.5px; color: #64748B; }
+.wct-battle-winners { color: #92400E !important; font-weight: 600; }
+.wct-battle-winners i { color: #D97706; }
+.wct-battle-flags { display: flex; gap: 4px; flex-wrap: wrap; }
+.wct-winners { display: flex; flex-direction: column; gap: 10px; }
+.wct-winner { display: flex; gap: 12px; align-items: flex-start; border: 1px solid #E2EAF2; border-radius: 12px; padding: 10px; }
+.wct-winner .wct-imgpick { flex-direction: column; align-items: center; width: 110px; flex: none; }
+.wct-winner .wct-imgpick-preview { width: 64px; height: 64px; }
+.wct-winner .wct-imgpick-side { align-items: center; text-align: center; }
+.wct-winner .wct-imgpick-side small { display: none; }
+.wct-winner-fields { flex: 1; min-width: 0; display: grid; grid-template-columns: 80px minmax(0, 1fr) minmax(0, 1fr) 110px; gap: 10px; }
+
+/* Events */
+.wct-events { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.wct-event { background: #fff; border: 1px solid #E2EAF2; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.wct-event.off { background: #FAFBFD; border-style: dashed; }
+.wct-event-img { aspect-ratio: 16 / 7; background: linear-gradient(135deg, #E3F4F7, #EEF4FB); display: grid; place-items: center; overflow: hidden; }
+.wct-event-img img { width: 100%; height: 100%; object-fit: cover; }
+.wct-event-img i { font-size: 34px; color: #9AB7CF; }
+.wct-event-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.wct-event-body b { font-size: 15px; color: #102A4F; margin-top: 4px; }
+.wct-event-body .wct-card-actions { margin-top: auto; padding-top: 8px; }
+.wct-pill.st-upcoming { background: #EEF4FB; color: #0B2D72; }
+.wct-pill.st-ongoing { background: #ECFDF5; color: #047857; }
+.wct-pill.st-past { background: #F1F5F9; color: #64748B; }
+
+/* Courses */
+.wct-courses { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.wct-course { background: #fff; border: 1px solid #E2EAF2; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.wct-course[draggable="true"] { cursor: grab; }
+.wct-course.off { background: #FAFBFD; border-style: dashed; }
+.wct-course-title { font-size: 16px; color: #102A4F; margin-top: 4px; }
+.wct-key { font-size: 11.5px; color: #64748B; background: #F4F8FC; border-radius: 6px; padding: 1px 6px; align-self: flex-start; }
+.wct-course .wct-student-tags { margin: 2px 0 0; }
+.wct-course-facts { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12.5px; color: #475569; }
+.wct-course-facts i { color: #94A3B8; margin-right: 3px; }
+.wct-course-fee { font-size: 13px; color: #94A3B8; }
+.wct-course-fee b { font-size: 18px; color: #051D64; }
+.wct-course-fee em { font-style: normal; font-size: 13px; color: #B45309; font-weight: 600; }
+.wct-course-batch { font-size: 12.5px; font-weight: 700; color: #047857; background: #ECFDF5; border-radius: 8px; padding: 5px 9px; }
+.wct-course-batch.none { color: #8A5A00; background: #FFF7E8; }
+.wct-course-page { font-size: 12px; color: #64748B; }
+.wct-course .wct-card-actions { margin-top: auto; padding-top: 8px; }
+.wct-rowbox { border: 1px solid #E2EAF2; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: #FBFCFE; }
+.wct-rowbox .wct-card-actions { margin-top: 0; }
+
+/* Testimonials */
+.wct-videos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.wct-video { background: #fff; border: 1px solid #E2EAF2; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.wct-video[draggable="true"] { cursor: grab; }
+.wct-video.off { background: #FAFBFD; border-style: dashed; }
+.wct-video-thumb { position: relative; aspect-ratio: 16 / 9; border: none; padding: 0; background: #0B2D72; cursor: pointer; display: grid; place-items: center; overflow: hidden; }
+.wct-video-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.wct-video-thumb span { color: #fff; font-weight: 800; font-size: 22px; }
+.wct-video-thumb i { position: absolute; font-size: 42px; color: rgba(255, 255, 255, .92); text-shadow: 0 2px 12px rgba(0, 0, 0, .35); }
+.wct-video-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.wct-video-body b { font-size: 15px; color: #102A4F; margin-top: 4px; }
+.wct-video-body .wct-card-actions { margin-top: auto; padding-top: 8px; }
+.wct-player { aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; }
+.wct-player iframe { width: 100%; height: 100%; border: 0; }
+
+/* Trainers */
+.wct-trainers { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.wct-trainer { background: #fff; border: 1px solid #E2EAF2; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; min-width: 0; }
+.wct-trainer[draggable="true"] { cursor: grab; }
+.wct-trainer.off { background: #FAFBFD; border-style: dashed; }
+.wct-trainer .wct-student-flags { align-self: flex-start; }
+.wct-trainer-photo { width: 96px; height: 96px; border-radius: 50%; overflow: hidden; background: #E3F4F7; display: grid; place-items: center; margin: 4px 0 6px; box-shadow: 0 0 0 3px #CBE8EE; }
+.wct-trainer-photo img { width: 100%; height: 100%; object-fit: cover; }
+.wct-trainer-photo span { font-weight: 800; font-size: 26px; color: #1E6B78; }
+.wct-trainer b { font-size: 15.5px; color: #102A4F; }
+.wct-trainer .wct-student-tags { justify-content: center; margin: 4px 0 0; }
+.wct-trainer .wct-card-actions { width: 100%; margin-top: auto; padding-top: 10px; }
+
+/* Site settings */
+.wct-barpreview { background: #051D64; color: #fff; border-radius: 10px; padding: 10px 14px; font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-top: 3px solid #359AAD; }
+.wct-barpreview i { color: #7FD3E0; }
+.wct-barpreview u { color: #7FD3E0; font-weight: 700; text-decoration: none; }
+.wct-barpreview.off { background: #F1F5F9; color: #64748B; border-top-color: #CBD5E1; }
+.wct-barpreview.off i, .wct-barpreview.off u { color: #94A3B8; }
+.wct-barpreview em { font-style: normal; margin-left: auto; font-size: 12px; font-weight: 700; }
+
+/* developer guide */
+.wct-dev-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+.wct-dev-item { border: 1px solid #E2EAF2; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.wct-dev-item-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.wct-dev-item-head b { color: #102A4F; font-size: 14px; }
+.wct-dev-addr { display: block; font-size: 12px !important; word-break: break-all; }
+.wct-dev-item .wct-muted { font-size: 12.5px; }
+
+@media (max-width: 900px) {
+  .wct-winner-fields { grid-template-columns: 80px minmax(0, 1fr); }
+  .wct-dev-list { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .wct-events, .wct-courses, .wct-videos, .wct-trainers, .wct-prizes { grid-template-columns: minmax(0, 1fr); }
+  .wct-winner { flex-direction: column; }
+  .wct-winner .wct-imgpick { width: auto; flex-direction: row; }
+  .wct-winner-fields { grid-template-columns: minmax(0, 1fr); width: 100%; }
+  .wct-nextcard-title { font-size: 17px; }
+}
+.wct-imgpick.thumb .wct-imgpick-preview { width: 176px; height: 99px; border-radius: 10px; }
+.wct-imgpick.thumb .wct-imgpick-preview span { font-size: 15px; }

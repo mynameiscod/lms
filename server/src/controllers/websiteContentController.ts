@@ -4,6 +4,7 @@ import Tenant from '../models/Tenant';
 import User from '../models/User';
 import { WebsiteContentError, saveImage, openImage } from '../services/websiteMediaService';
 import * as svc from '../services/websitePlacementService';
+import * as sec from '../services/websiteSectionsService';
 
 /**
  * Website Content screen (2026-11-27). Admin routes live under /website-content (permission
@@ -158,3 +159,125 @@ export const getPublicMedia = async (req: Request, res: Response) => {
     if (!res.headersSent) res.status(404).end();
   }
 };
+
+/* ── Stages 2–4: Tech Battle, Events, Courses, Testimonials, Trainers, Site settings ────────────── */
+
+const base = (req: Request, slug: string) => `${req.protocol}://${req.get('host')}/api/v1/public/${encodeURIComponent(slug)}`;
+
+// GET /website-content/sections — everything for the other tabs in one go
+export const getSections = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const tenantId = req.tenantId!;
+    const slug = await slugOf(tenantId);
+    const m = mediaUrlFor(req, slug);
+    const [battle, events, courses, testimonials, trainers, settings, companies] = await Promise.all([
+      sec.adminBattle(tenantId, m), sec.adminEvents(tenantId, m), sec.adminCourses(tenantId),
+      sec.testimonials(tenantId, m, true), sec.trainers(tenantId, m, true), sec.adminSettings(tenantId),
+      svc.adminPlacements(tenantId, m).then((p) => p.companies.map((c) => ({ id: c.id, name: c.name }))),
+    ]);
+    const b = base(req, slug);
+    res.json({
+      success: true,
+      data: {
+        battle, events, courses, testimonials, trainers, settings, companies,
+        apiUrls: {
+          placements: `${b}/placements`, techBattle: `${b}/tech-battle`, events: `${b}/events`, courses: `${b}/courses`,
+          testimonials: `${b}/testimonials`, trainers: `${b}/trainers`, site: `${b}/site`, nextBatch: `${b}/next-batch`,
+        },
+      },
+    });
+  } catch (err) { fail(res, err, 'Could not load website content'); }
+};
+
+// POST /website-content/x/:list  and  PUT /website-content/x/:list/:id   (events, testimonials, trainers)
+const sectionList = (req: Request) => {
+  const l = String(req.params.list);
+  if (!sec.isSectionList(l)) throw new WebsiteContentError('Unknown list.', 404);
+  return l;
+};
+export const createSection = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const doc: any = await sec.createSectionItem(req.tenantId!, await who(req), sectionList(req), req.body || {});
+    res.status(201).json({ success: true, message: 'Saved', data: { id: String(doc._id) } });
+  } catch (err) { fail(res, err, 'Could not save'); }
+};
+export const updateSection = async (req: AuthenticatedRequest, res: Response) => {
+  try { await sec.updateSectionItem(req.tenantId!, await who(req), sectionList(req), req.params.id, req.body || {}); res.json({ success: true, message: 'Saved' }); }
+  catch (err) { fail(res, err, 'Could not save'); }
+};
+export const removeSection = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const M = sec.sectionModel(sectionList(req));
+    const r = await M.deleteOne({ _id: req.params.id, tenantId: req.tenantId! });
+    if (!r.deletedCount) throw new WebsiteContentError('Already removed.', 404);
+    res.json({ success: true, message: 'Removed' });
+  } catch (err) { fail(res, err, 'Could not remove'); }
+};
+export const reorderSection = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const l = String(req.params.list);
+    if (l === 'courses') await sec.reorderCourses(req.tenantId!, req.body?.ids);
+    else {
+      const M = sec.sectionModel(sectionList(req));
+      const ids = (Array.isArray(req.body?.ids) ? req.body.ids : []).filter((x: any) => /^[a-f0-9]{24}$/i.test(String(x)));
+      if (!ids.length) throw new WebsiteContentError('Nothing to reorder.');
+      await M.bulkWrite(ids.map((id: string, i: number) => ({ updateOne: { filter: { _id: id, tenantId: req.tenantId! }, update: { $set: { order: i } } } })));
+    }
+    res.json({ success: true, message: 'Order saved' });
+  } catch (err) { fail(res, err, 'Could not save the order'); }
+};
+
+// PUT /website-content/tech-battle/settings
+export const putBattleSettings = async (req: AuthenticatedRequest, res: Response) => {
+  try { await sec.saveBattleSettings(req.tenantId!, await who(req), req.body || {}); res.json({ success: true, message: 'Saved' }); }
+  catch (err) { fail(res, err, 'Could not save'); }
+};
+// PUT /website-content/tech-battle/battles/:battleId
+export const putBattleNote = async (req: AuthenticatedRequest, res: Response) => {
+  try { await sec.saveBattleNote(req.tenantId!, await who(req), req.params.battleId, req.body || {}); res.json({ success: true, message: 'Saved' }); }
+  catch (err) { fail(res, err, 'Could not save'); }
+};
+// GET /website-content/tech-battle/battles/:battleId/leaderboard?n=3
+export const getBattleTop = async (req: AuthenticatedRequest, res: Response) => {
+  try { res.json({ success: true, data: await sec.leaderboardTop(req.tenantId!, req.params.battleId, Number(req.query.n) || 3) }); }
+  catch (err) { fail(res, err, 'Could not read the leaderboard'); }
+};
+// POST /website-content/courses  { key, name }
+export const postCourse = async (req: AuthenticatedRequest, res: Response) => {
+  try { await sec.addCourse(req.tenantId!, req.body || {}); res.status(201).json({ success: true, message: 'Course added' }); }
+  catch (err) { fail(res, err, 'Could not add the course'); }
+};
+// PUT /website-content/courses/:key
+export const putCourse = async (req: AuthenticatedRequest, res: Response) => {
+  try { await sec.saveCourseSite(req.tenantId!, await who(req), req.params.key, req.body || {}); res.json({ success: true, message: 'Saved' }); }
+  catch (err) { fail(res, err, 'Could not save the course'); }
+};
+// PUT /website-content/settings
+export const putSettings = async (req: AuthenticatedRequest, res: Response) => {
+  try { await sec.saveSettings(req.tenantId!, await who(req), req.body || {}); res.json({ success: true, message: 'Saved' }); }
+  catch (err) { fail(res, err, 'Could not save'); }
+};
+
+/** One read-only, published-only, 60-second-cached public handler per section. */
+const publicJson = (load: (tenantId: string, m: svc.MediaUrl, req: Request) => Promise<any>, notFoundWhenNull = false) =>
+  async (req: Request, res: Response) => {
+    try {
+      const t = await publicTenant(req);
+      if (!t) return res.status(404).json({ success: false, message: 'Not found', data: null });
+      const data = await load(t.id, mediaUrlFor(req, t.slug), req);
+      if (data === null && notFoundWhenNull) return res.status(404).json({ success: false, message: 'Not found', data: null });
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      res.json({ success: true, message: 'OK', data });
+    } catch (err) {
+      console.error('[public-website]', err);
+      res.status(500).json({ success: false, message: 'Something went wrong', data: null });
+    }
+  };
+
+export const getPublicTechBattle = publicJson((id, m) => sec.publicBattle(id, m));
+export const getPublicEvents = publicJson((id, m, req) => sec.publicEvents(id, m, req.query as any));
+export const getPublicCourses = publicJson((id) => sec.publicCourses(id));
+export const getPublicCourse = publicJson((id, _m, req) => sec.publicCourse(id, String(req.params.key || '')), true);
+export const getPublicTestimonials = publicJson((id, m) => sec.testimonials(id, m, false));
+export const getPublicTrainers = publicJson((id, m) => sec.trainers(id, m, false));
+export const getPublicSite = publicJson((id) => sec.publicSite(id));

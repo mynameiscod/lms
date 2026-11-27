@@ -16,9 +16,56 @@ export interface IWebsiteCourse extends Document {
   name: string;
   active: boolean;
   order: number;
+  /** What the website shows for this course (Website Content > Courses, 2026-11-27). Typed, not calculated. */
+  site?: IWebsiteCourseSite;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface IWebsiteCourseSite {
+  published: boolean;
+  title: string;
+  tagline: string;
+  tags: string[];
+  duration: string;
+  mode: string;
+  seatsText: string;
+  fee: string;
+  oldFee: string;
+  badge: string;
+  pageUrl: string;
+  brochureUrl: string;
+  tools: string[];
+  modules: { title: string; days: string; topics: string[] }[];
+  projects: { title: string; description: string; tags: string[] }[];
+  timeline: { day: string; title: string; points: string[] }[];
+  faqs: { q: string; a: string }[];
+  history: { at: Date; by?: mongoose.Types.ObjectId; byName?: string; change: string }[];
+}
+
+const CourseSiteSchema = new Schema({
+  published: { type: Boolean, default: false },
+  title: { type: String, trim: true, maxlength: 120, default: '' },
+  tagline: { type: String, trim: true, maxlength: 240, default: '' },
+  tags: { type: [String], default: [] },
+  duration: { type: String, trim: true, maxlength: 40, default: '' },
+  mode: { type: String, trim: true, maxlength: 60, default: '' },
+  seatsText: { type: String, trim: true, maxlength: 40, default: '' },
+  fee: { type: String, trim: true, maxlength: 40, default: '' },
+  oldFee: { type: String, trim: true, maxlength: 40, default: '' },
+  badge: { type: String, trim: true, maxlength: 30, default: '' },
+  pageUrl: { type: String, trim: true, maxlength: 300, default: '' },
+  brochureUrl: { type: String, trim: true, maxlength: 500, default: '' },
+  tools: { type: [String], default: [] },
+  modules: { type: [{ title: String, days: String, topics: [String], _id: false }], default: [] },
+  projects: { type: [{ title: String, description: String, tags: [String], _id: false }], default: [] },
+  timeline: { type: [{ day: String, title: String, points: [String], _id: false }], default: [] },
+  faqs: { type: [{ q: String, a: String, _id: false }], default: [] },
+  history: {
+    type: [{ at: { type: Date, default: Date.now }, by: { type: Schema.Types.ObjectId, ref: 'User' }, byName: String, change: String, _id: false }],
+    default: [],
+  },
+}, { _id: false });
 
 const WebsiteCourseSchema = new Schema<IWebsiteCourse>(
   {
@@ -27,6 +74,7 @@ const WebsiteCourseSchema = new Schema<IWebsiteCourse>(
     name: { type: String, required: true, trim: true, maxlength: 120 },
     active: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
+    site: { type: CourseSiteSchema, default: undefined },
   },
   { timestamps: true },
 );

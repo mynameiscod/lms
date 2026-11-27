@@ -3655,3 +3655,51 @@ export const websiteBatchApi = {
   saveCourse: async (body: { id?: string; key?: string; name?: string; active?: boolean }) =>
     (await wbJson(await fetch(`${API_BASE_URL}/website-batches/courses`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) }))).data as WebsiteCourseRow[],
 };
+
+/* Website Content (2026-11-27): placement numbers, companies and placed students for the public website. */
+export interface WcHistory { at: string; byName: string; change: string }
+export interface WcStat { id: string; value: string; label: string; published: boolean; history: WcHistory[]; updatedAt: string }
+export type WcCompanyType = 'product' | 'service' | 'startup' | 'other';
+export interface WcCompany {
+  id: string; name: string; type: WcCompanyType; domain: string; logoId: string | null; logoUrl: string | null;
+  showInStrip: boolean; published: boolean; students: number; history: WcHistory[]; updatedAt: string;
+}
+export interface WcStudent {
+  id: string; name: string; photoId: string | null; photoUrl: string | null; courseKey: string; courseName: string; role: string;
+  companyId: string | null; companyName: string; companyLogoUrl: string | null; packageLpa: number | null; packageText: string;
+  batch: string; year: number | null; college: string; degree: string; quote: string; tags: string[]; placedOn: string;
+  featured: boolean; consent: boolean; published: boolean; userId: string | null; history: WcHistory[]; updatedAt: string;
+}
+export interface WcOffer {
+  candidateId: string; userId: string | null; name: string; companyName: string; role: string; packageLpa: number | null;
+  college: string; degree: string; year: number | null; placedOn: string; status: string; hasCard: boolean;
+}
+export type WcList = 'stats' | 'companies' | 'students';
+export const websiteContentApi = {
+  placements: async () => (await wbJson(await fetch(`${API_BASE_URL}/website-content/placements`, { headers: getAuthHeaders() }))).data as {
+    apiUrl: string;
+    courses: { key: string; name: string; active: boolean }[];
+    tags: { key: string; label: string }[];
+    companyTypes: WcCompanyType[];
+    stats: WcStat[]; companies: WcCompany[]; students: WcStudent[];
+  },
+  create: async (list: WcList, body: any) =>
+    (await wbJson(await fetch(`${API_BASE_URL}/website-content/${list}`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) }))).data as { id: string },
+  update: async (list: WcList, id: string, body: any) =>
+    wbJson(await fetch(`${API_BASE_URL}/website-content/${list}/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) })),
+  remove: async (list: WcList, id: string) =>
+    wbJson(await fetch(`${API_BASE_URL}/website-content/${list}/${id}`, { method: 'DELETE', headers: getAuthHeaders() })),
+  reorder: async (list: WcList, ids: string[]) =>
+    wbJson(await fetch(`${API_BASE_URL}/website-content/${list}/reorder`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ ids }) })),
+  upload: async (kind: 'photo' | 'logo', file: File) => {
+    const fd = new FormData();
+    fd.append('kind', kind);
+    fd.append('file', file);
+    const { 'Content-Type': _ct, ...headers } = getAuthHeaders() as Record<string, string>;
+    return (await wbJson(await fetch(`${API_BASE_URL}/website-content/media`, { method: 'POST', headers, body: fd }))).data as { id: string; url: string };
+  },
+  lmsOffers: async (q = '') =>
+    (await wbJson(await fetch(`${API_BASE_URL}/website-content/lms-offers?q=${encodeURIComponent(q)}`, { headers: getAuthHeaders() }))).data as WcOffer[],
+  companyByName: async (name: string) =>
+    (await wbJson(await fetch(`${API_BASE_URL}/website-content/companies/by-name`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ name }) }))).data as { id: string; name: string },
+};

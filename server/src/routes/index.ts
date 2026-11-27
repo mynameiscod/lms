@@ -30,6 +30,7 @@ import examRoutes from './examRoutes';
 import labTrackRoutes from './labTrackRoutes';
 import weeklyReportRoutes from './weeklyReportRoutes';
 import websiteBatchRoutes from './websiteBatchRoutes';
+import websiteContentRoutes from './websiteContentRoutes';
 import activityRoutes from './activityRoutes';
 import interviewQuestionRoutes from './interviewQuestionRoutes';
 import topicRoutes from './topicRoutes';
@@ -312,6 +313,7 @@ router.use('/exams', examRoutes);
 router.use('/lab-tracks', labTrackRoutes);
 router.use('/weekly-reports', weeklyReportRoutes);
 router.use('/website-batches', websiteBatchRoutes); // next batch date + seats shown on the public website
+router.use('/website-content', websiteContentRoutes); // placements (numbers, companies, students) shown on the public website
 router.use('/activity', activityRoutes);
 router.use('/candidate-proof', candidateProofRoutes);
 router.use('/interview-questions', interviewQuestionRoutes);

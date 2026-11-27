@@ -5,6 +5,7 @@ import path from 'path';
 import { rateLimit } from '../middleware/rateLimit';
 import { sendWebsiteOtp, verifyWebsiteOtp, submitCourseLead } from '../controllers/publicWebsiteController';
 import { getPublicNextBatch } from '../controllers/websiteBatchController';
+import { getPublicPlacements, getPublicMedia } from '../controllers/websiteContentController';
 import { submitPublicLeadForm, getPublicFormConfig, submitWebsiteLead } from '../controllers/publicLeadController';
 import { registerForWeeklyQuizFromWebsite, getQuizByToken, startQuizSession, submitQuizByToken, quizHeartbeat } from '../controllers/publicQuizController';
 
@@ -57,6 +58,9 @@ router.post('/:tenantSlug/otp/send', rateLimit('websiteIp'), rateLimit('websiteO
 router.post('/:tenantSlug/otp/verify', rateLimit('websiteIp'), rateLimit('websiteOtpVerify'), verifyWebsiteOtp);
 // The website's "next batch" date and seats (read-only, no personal data; cached 60 s).
 router.get('/:tenantSlug/next-batch', rateLimit('websiteRead'), getPublicNextBatch);
+// Website Content: placement numbers, companies, placed students, and their images (read-only, published only).
+router.get('/:tenantSlug/placements', rateLimit('websiteRead'), getPublicPlacements);
+router.get('/:tenantSlug/media/:file', getPublicMedia);
 router.post('/:tenantSlug/course-lead', rateLimit('websiteIp'), submitCourseLead);
 
 // Register for the current weekly/featured public quiz (called from external website)

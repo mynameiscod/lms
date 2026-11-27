@@ -51,6 +51,7 @@ router.get('/today', ctrl.getToday);
 router.get('/profile', ctrl.getProfile);
 router.put('/profile', ctrl.updateProfile);
 router.post('/submit', upload.single('recording'), ctrl.submit);
+router.get('/jobs/:id', ctrl.getJob);
 router.get('/history', ctrl.getHistory);
 router.get('/progress', ctrl.getProgress);
 router.get('/achievements', ctrl.getAchievements);

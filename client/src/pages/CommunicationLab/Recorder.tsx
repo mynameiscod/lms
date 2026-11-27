@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { communicationApi } from '../../api/communicationApi';
+import { communicationApi, CommJob } from '../../api/communicationApi';
 
 /**
  * One recorded answer, for the daily challenge and the coach alike.
  *
  * Camera and microphone are both required: the student records a take, watches it back with sound,
- * and records again if it was not good. Two takes at most; they pick the better one and send it.
- * Takes stay in the browser until sent, and once sent the answer is final.
+ * and records again if it was not good. Two takes at most (an LMS daily question gets ONE: record, watch,
+ * send); they pick the better one and send it. A take too short to send can always be redone, since it was
+ * never sent. Takes stay in the browser until sent, and once sent the answer is final.
+ *
+ * With `onSent` (the daily question), sending only uploads: the server replies with a job and the page
+ * follows the scoring. The upload itself shows a real percentage here.
  *
  * The camera and microphone stay on between takes and are switched off only when the window closes
  * or an answer is sent. (Switching them off when a take ended is what broke Re-record before.)
@@ -31,7 +35,11 @@ const Recorder: React.FC<{
   onDone: (a: any) => void;
   onClose: () => void;
   submitter?: (blob: Blob, mode: 'video') => Promise<any>;
-}> = ({ today, onDone, onClose, submitter }) => {
+  maxTakes?: number;
+  onSent?: (job: CommJob) => void;
+}> = ({ today, onDone, onClose, submitter, maxTakes, onSent }) => {
+  const MAX = Math.max(1, maxTakes || MAX_TAKES);
+  const [upload, setUpload] = useState<number | null>(null);
   const ch = today.challenge;
   const minSec: number = ch?.minSeconds || 0;
   const [phase, setPhase] = useState<Phase>('setup');
@@ -117,7 +125,7 @@ const Recorder: React.FC<{
   const toReady = async () => { setSilentNote(false); if (await openDevices()) setPhase('ready'); };
 
   const start = () => {
-    if (!streamRef.current || takes.length >= MAX_TAKES) return;
+    if (!streamRef.current || takes.length >= MAX) return;
     setSilentNote(false); setErr('');
     setPhase('count'); setCount(3);
     let n = 3;
@@ -152,14 +160,27 @@ const Recorder: React.FC<{
 
   const chosen = takes[pick];
   const tooShort = !!chosen && chosen.sec < minSec;
-  const left = MAX_TAKES - takes.length;
+  const left = MAX - takes.length;
+  // A take too short to send was never sent, so it can be redone even when it was the only take.
+  const canRetake = left > 0 || tooShort;
+  const retake = () => {
+    if (left <= 0 && tooShort) { takes.forEach(t => URL.revokeObjectURL(t.url)); setTakes([]); setPick(0); }
+    toReady();
+  };
 
   const submit = async () => {
     if (!chosen || tooShort) return;
     setPhase('submitting'); setErr('');
     stopStream();
-    try { onDone(submitter ? await submitter(chosen.blob, 'video') : await communicationApi.submit(ch._id, today.date, 'video', chosen.blob)); }
-    catch (e: any) { setErr(e?.response?.data?.message || 'Sending failed. Please try again.'); setPhase('review'); }
+    try {
+      if (submitter) onDone(await submitter(chosen.blob, 'video'));
+      else {
+        setUpload(0);
+        const job = await communicationApi.send(ch._id, today.date, chosen.blob, setUpload);
+        if (onSent) onSent(job); else onDone(job);
+      }
+    }
+    catch (e: any) { setUpload(null); setErr(e?.response?.data?.message || 'Sending failed. Check your internet and press Send again: your take is still here.'); setPhase('review'); }
   };
 
   const close = () => { if (phase !== 'submitting') onClose(); };
@@ -179,8 +200,13 @@ const Recorder: React.FC<{
             <ol className="clx-steps">
               <li><i className="bi bi-camera-video" /> Record your answer on camera, with sound.</li>
               <li><i className="bi bi-play-circle" /> Watch it back: your voice, your pace, how you look.</li>
-              <li><i className="bi bi-arrow-repeat" /> Not happy? Record once more. You get {MAX_TAKES} takes.</li>
-              <li><i className="bi bi-send-check" /> Send the better take. Once sent, it is final.</li>
+              {MAX > 1 ? <>
+                <li><i className="bi bi-arrow-repeat" /> Not happy? Record once more. You get {MAX} takes.</li>
+                <li><i className="bi bi-send-check" /> Send the better take. Once sent, it is final.</li>
+              </> : <>
+                <li><i className="bi bi-1-circle" /> <span>You get <b>one take</b>, like a real interview. Take a breath and think before you start.</span></li>
+                <li><i className="bi bi-send-check" /> Send it for AI feedback. Once sent, it is final.</li>
+              </>}
             </ol>
             <button className="clx-btn primary" style={{ width: "100%", marginTop: 16 }} onClick={toReady}><i className="bi bi-camera-video" /> Turn on camera &amp; microphone</button>
           </>
@@ -192,7 +218,7 @@ const Recorder: React.FC<{
                 : <video ref={liveRef} className="clx-live" autoPlay muted playsInline />}
               {phase === 'count' && <div className="clx-count">{count}</div>}
               {phase === 'rec' && <span className="clx-rec-status"><i className="bi bi-record-circle" /> REC {clock(elapsed)}{ch?.maxSeconds ? ` / ${clock(ch.maxSeconds)}` : ''}</span>}
-              {phase === 'ready' && <span className="clx-take-tag">Take {takes.length + 1} of {MAX_TAKES}</span>}
+              {phase === 'ready' && <span className="clx-take-tag">{MAX > 1 ? `Take ${takes.length + 1} of ${MAX}` : 'One take'}</span>}
             </div>
 
             {(phase === 'ready' || phase === 'rec') && (
@@ -206,7 +232,7 @@ const Recorder: React.FC<{
 
             {(phase === 'review' || phase === 'submitting') && (
               <div className="clx-review">
-                <p className="clx-review-hint"><i className="bi bi-headphones" /> Play your take with sound. Is your voice clear, your pace steady, and are you looking at the camera? {left > 0 ? 'If it is not good, record it again.' : 'Pick the better take and send it.'}</p>
+                <p className="clx-review-hint"><i className="bi bi-headphones" /> Play your take with sound. Is your voice clear, your pace steady, and are you looking at the camera? {left > 0 ? 'If it is not good, record it again.' : MAX > 1 ? 'Pick the better take and send it.' : 'When you are ready, send it for AI feedback.'}</p>
                 {takes.length > 1 && (
                   <div className="clx-takes" role="radiogroup" aria-label="Choose the take to send">
                     {takes.map((t, i) => (
@@ -217,7 +243,7 @@ const Recorder: React.FC<{
                     ))}
                   </div>
                 )}
-                {tooShort && <div className="pm-msg err" style={{ margin: '10px 0 0' }}>This take is {chosen.sec}s. Please speak for at least {minSec} seconds{left > 0 ? ': record again' : takes.length > 1 ? ': choose the other take' : ''}.</div>}
+                {tooShort && <div className="pm-msg err" style={{ margin: '10px 0 0' }}>This take is {chosen.sec}s. Please speak for at least {minSec} seconds{canRetake ? ': record again (a take this short is not counted)' : takes.length > 1 ? ': choose the other take' : ''}.</div>}
               </div>
             )}
 
@@ -227,11 +253,16 @@ const Recorder: React.FC<{
               {phase === 'rec' && <button className="clx-btn primary" onClick={() => recRef.current?.stop()}><i className="bi bi-stop-fill" /> Stop</button>}
               {phase === 'review' && (
                 <>
-                  {left > 0 && <button className="clx-btn" onClick={toReady}><i className="bi bi-arrow-counterclockwise" /> Record again ({left} left)</button>}
+                  {canRetake && <button className="clx-btn" onClick={retake}><i className="bi bi-arrow-counterclockwise" /> Record again{left > 0 ? ` (${left} left)` : ''}</button>}
                   <button className="clx-btn primary" onClick={submit} disabled={!chosen || tooShort}><i className="bi bi-stars" /> Send {takes.length > 1 ? `take ${pick + 1}` : 'this take'} for AI feedback</button>
                 </>
               )}
-              {phase === 'submitting' && <span style={{ color: '#2F3F56', fontSize: 'max(13px, var(--fs-floor, 0px))' }}><i className="bi bi-hourglass-split" /> Transcribing and evaluating… this can take a minute.</span>}
+              {phase === 'submitting' && upload == null && <span style={{ color: '#2F3F56', fontSize: 'max(13px, var(--fs-floor, 0px))' }}><i className="bi bi-hourglass-split" /> Transcribing and evaluating… this can take a minute.</span>}
+              {phase === 'submitting' && upload != null && <div className="clx-upload" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(upload * 100)}>
+                <div className="clx-upload-row"><span><i className="bi bi-cloud-arrow-up" /> Sending your answer…</span><b>{Math.round(upload * 100)}%</b></div>
+                <div className="clx-upload-bar"><i style={{ width: `${Math.max(3, Math.round(upload * 100))}%` }} /></div>
+                <small>Please keep this window open until it reaches 100%.</small>
+              </div>}
             </div>
             {phase === 'review' && <p className="clx-final-note">Once sent, this answer is final and cannot be redone.</p>}
           </>

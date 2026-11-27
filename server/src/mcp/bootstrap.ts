@@ -6,6 +6,7 @@ import Refresh from '../models/McpOAuthRefreshToken';
 import Session from '../models/McpOAuthSession';
 import Audit from '../models/McpAuditEvent';
 import { McpRateLimit } from './rateLimit';
+import { assertAttendanceWriteReady } from './attendance';
 import { mcpConfig } from './oauthPolicy';
 
 export const mcpModels = [Code, Access, Grant, Refresh, Session, Audit, McpRateLimit];
@@ -13,7 +14,7 @@ export const mcpModels = [Code, Access, Grant, Refresh, Session, Audit, McpRateL
 /** Startup validation is read-only. Operators explicitly prepare indexes before enabling MCP. */
 export async function assertMcpReady() {
   if (process.env.MCP_ENABLED !== 'true') return;
-  mcpConfig();
+  const config = mcpConfig();
   if (mongoose.connection.readyState !== 1) throw new Error('MCP requires an available MongoDB connection');
   const hello = await mongoose.connection.db.admin().command({ hello: 1 });
   if (!hello.setName && hello.msg !== 'isdbgrid') throw new Error('MCP requires MongoDB transactions (replica set or sharded cluster)');
@@ -30,4 +31,5 @@ export async function assertMcpReady() {
       throw new Error('MCP prototype code TTL index must be migrated with mcp:prepare');
     }
   }
+  if (config.clients.some(client => client.scopes.includes('mcp_attendance_write'))) await assertAttendanceWriteReady();
 }

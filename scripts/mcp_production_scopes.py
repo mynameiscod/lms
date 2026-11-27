@@ -1,7 +1,8 @@
 """Reviewed scope expansion for an already-enabled, individually opted-in gateway.
 
 Uses the existing image and runtime credential. Never rebuilds the LMS/image,
-adds native permissions, edits grants to widen consent, or changes MongoDB roles.
+adds native permissions or edits grants to widen consent. Explicit attendance_write
+activation changes only the exact attendance insert/update database privileges.
 """
 import copy
 import json
@@ -12,7 +13,7 @@ import uuid
 DOMAINS = dict(students='mcp_students_read', batches='mcp_batches_read',
                attendance='mcp_attendance_read', exams='mcp_assessments_read',
                fees='mcp_finance_read', placements='mcp_placements_read',
-               leads='mcp_leads_read', calls='mcp_calls_read', recordings='mcp_recordings_read')
+               leads='mcp_leads_read', calls='mcp_calls_read', recordings='mcp_recordings_read', attendance_write='mcp_attendance_write')
 
 
 class ScopeChange:
@@ -28,12 +29,12 @@ class ScopeChange:
     def source_digest(self):
         return self.h.digest(''.join((self.h.ROOT / path).read_text() for path in [
             'scripts/mcp-production.py', 'scripts/mcp-production-mongo.py', 'scripts/mcp_production_scopes.py',
-            'ops/mcp-production/scopes.cjs']))
+            'ops/mcp-production/scopes.cjs', 'ops/mcp-production/privileges.cjs']))
 
     def reviewed_source(self):
         h = self.h
         files = ['scripts/mcp-production.py', 'scripts/mcp-production-mongo.py',
-                 'scripts/mcp_production_scopes.py', 'ops/mcp-production/scopes.cjs']
+                 'scripts/mcp_production_scopes.py', 'ops/mcp-production/scopes.cjs', 'ops/mcp-production/privileges.cjs']
         h.require(h.run(['git', '-C', h.ROOT, 'ls-files', '--error-unmatch', *files], check=False).returncode == 0 and
                   h.run(['git', '-C', h.ROOT, 'diff', '--quiet', 'HEAD', '--'], check=False).returncode == 0,
                   'Use the committed, reviewed operator source without tracked local edits.')
@@ -55,6 +56,7 @@ class ScopeChange:
                 args += ['--mount', 'type=bind,source=' + str(self.path(name)) + ',target=' + destination + ',readonly']
             args += ['--mount', 'type=bind,source=' + str(h.ROOT / 'ops/mcp-production/scopes.cjs') +
                      ',target=/app/ops/mcp-production/scopes.cjs,readonly']
+            args += ['--mount', 'type=bind,source=' + str(h.ROOT / 'ops/mcp-production/privileges.cjs') + ',target=/app/ops/mcp-production/privileges.cjs,readonly']
             result = h.docker(*args, state['imageId'], 'node', 'ops/mcp-production/scopes.cjs', action,
                               timeout=120, check=False)
             rows = [line[len('SCOPE_JSON='):] for line in result.stdout.splitlines() if line.startswith('SCOPE_JSON=')]
@@ -94,8 +96,8 @@ class ScopeChange:
                   len(runtime['clients']) == 1 and runtime['clients'][0]['id'] == 'codebegun-production-chatgpt' and
                   runtime['clients'][0]['scopes'] == s['scopes'] + ['offline_access'], 'Installed identity/scopes changed.')
         h.require(not (args.all_read_domains and args.domains), 'Choose --domains or --all-read-domains, not both.')
-        names = [name for name in DOMAINS if name != 'recordings'] if args.all_read_domains else [name.strip() for name in (args.domains or '').split(',') if name.strip()]
-        h.require(names and all(name in DOMAINS for name in names), 'Specify --domains students,batches,attendance,exams,fees,placements,leads,calls,recordings or --all-read-domains (recordings require explicit --domains recordings).')
+        names = [name for name in DOMAINS if name not in ('recordings', 'attendance_write')] if args.all_read_domains else [name.strip() for name in (args.domains or '').split(',') if name.strip()]
+        h.require(names and all(name in DOMAINS for name in names), 'Specify --domains students,batches,attendance,exams,fees,placements,leads,calls,recordings or attendance_write or --all-read-domains (recordings require explicit --domains recordings).')
         selected = set(s['scopes']) | {DOMAINS[name] for name in names}
         h.require(set(s['scopes']) <= {'mcp_connect', *DOMAINS.values()} and 'mcp_connect' in s['scopes'], 'Unrecognized installed scopes.')
         target = ['mcp_connect'] + [scope for scope in DOMAINS.values() if scope in selected]
@@ -108,6 +110,11 @@ class ScopeChange:
         h.require(applied.get('email') == email and applied.get('applied') is True and
                   sorted(applied.get('scopes', [])) == sorted(s['scopes']) and all(saved_plan.get(key) == applied.get(key)
                   for key in ['userId', 'tenantId', 'newRoleId', 'nativePermissions', 'scopes']), 'Saved account recovery records do not match this installation.')
+        if 'mcp_attendance_write' in target and 'mcp_attendance_write' not in s['scopes']:
+            h.require(getattr(args, 'authorize_attendance_write', False), 'Attendance writes require explicit --authorize-attendance-write after reviewing the database migration and native LMS writer prerequisites.')
+            active = h.current_lms(s)
+            probe = h.docker('exec', active['id'], 'node', '-e', "const fs=require('fs'); const p=['server/dist/models/Attendance.js','dist/models/Attendance.js'].find(p=>fs.existsSync(p)); process.exit(p && fs.readFileSync(p,'utf8').includes('attendanceDay') ? 0 : 1)", check=False)
+            h.require(probe.returncode == 0, 'Release the compatible Attendance model to the native LMS through its normal reviewed rollout before enabling writes.')
         operation = str(uuid.uuid4())
         request = dict(operationId=operation, email=email, clientId=runtime['clients'][0]['id'],
                        access=applied, oldScopes=s['scopes'], newScopes=target)
@@ -131,7 +138,9 @@ class ScopeChange:
         print(json.dumps(dict(planId=operation, operatorCommit=source_commit, clientId=request['clientId'], email=email, tenant=preview['tenantName'],
                               currentScopes=s['scopes'], proposedScopes=target, toolsAfterConsent=preview['tools'],
                               clientAllowlistAppliesToAllAccounts=True,
-                              nativePermissionsChanged=False, existingTokensExpanded=False), indent=2))
+                              nativePermissionsChanged=False, existingTokensExpanded=False,
+                              attendanceDatabaseActions=(['find', 'insert', 'update', 'listIndexes'] if 'mcp_attendance_write' in target else ['find']),
+                              attendanceDeleteAllowed=False), indent=2))
         print('Preview only. Review the domains, account and tenant. Apply exactly this plan with:')
         print('python3 scripts/mcp-production.py scope-apply --plan-id ' + operation)
 

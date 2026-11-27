@@ -41,7 +41,7 @@ const clientId = 'integration-client';
 const secondClientId = 'second-client';
 const confidentialId = 'confidential-client';
 const clientSecret = 'test-only-confidential-secret-' + 'x'.repeat(32);
-const legacyScopes = Object.keys(SCOPE_LABELS).filter(s => s !== 'mcp_recordings_read');
+const legacyScopes = Object.keys(SCOPE_LABELS).filter(s => s !== 'mcp_recordings_read' && s !== 'mcp_attendance_write');
 const scopes = legacyScopes.join(' ');
 const verifier = 'test-verifier-' + 'a'.repeat(43);
 const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
@@ -387,9 +387,9 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
     expect(expanded.status).toBe(200);
     expect(expanded.body.scope.split(' ')).toEqual(legacyScopes);
     const expandedTools = (await list(expanded.body.access_token)).body.result.tools;
-    expect(expandedTools).toHaveLength(15);
+    expect(expandedTools).toHaveLength(16);
     for (const tool of expandedTools) {
-      const result = await call(expanded.body.access_token, tool.name, tool.inputSchema.properties.limit ? { limit: 1 } : {});
+      const result = await call(expanded.body.access_token, tool.name, tool.name === 'codebegun_validate_attendance' ? { batchId: String(batchA), date: '2026-10-08', records: [{ studentId: String(studentA), status: 'present' }] } : tool.inputSchema.properties.limit ? { limit: 1 } : {});
       expect(result.status).toBe(200);
       expect(result.body.result.isError).not.toBe(true);
       expect(result.body.result.content).toBeDefined();
@@ -402,7 +402,7 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
     expect((await list(renewedLimited.body.access_token)).body.result.tools).toHaveLength(3);
     const renewedExpanded = await refresh(expanded.body.refresh_token);
     expect(renewedExpanded.status).toBe(200);
-    expect((await list(renewedExpanded.body.access_token)).body.result.tools).toHaveLength(15);
+    expect((await list(renewedExpanded.body.access_token)).body.result.tools).toHaveLength(16);
     const denied = await login('admin@example.test', { scope });
     const denial = await request(app).post('/mcp-oauth/consent').set('Cookie', cookie(denied.signed)).type('form')
       .send({ csrf: csrf(denied.signed), decision: 'deny' });
@@ -664,8 +664,8 @@ describe('OAuth resource, data isolation and audit boundary', () => {
   });
   test('all tool domains execute real queries and remain in the authenticated tenant', async () => {
     const token = await tokenFor();
-    for (const candidate of tools.filter(t => t.scope !== 'mcp_recordings_read')) {
-      const r = await call(token.access_token, candidate.name);
+    for (const candidate of tools.filter(t => t.scope !== 'mcp_recordings_read' && t.scope !== 'mcp_attendance_write')) {
+      const r = await call(token.access_token, candidate.name, candidate.name === 'codebegun_validate_attendance' ? { batchId: String(batchA), date: '2026-10-08', records: [{ studentId: String(studentA), status: 'present' }] } : {});
       expect(r.status).toBe(200);
       expect(r.body.error).toBeUndefined();
       const data = payload(r);
@@ -896,4 +896,34 @@ describe('Explicit recording consent and content isolation', () => {
     expect(second.text).toBe('remaining');
     expect(second.nextOffset).toBeNull();
   });
+});
+test('attendance write OAuth requires fresh explicit consent and never expands old tokens or refresh grants', async () => {
+  const oldRegistration = process.env.MCP_OAUTH_CLIENTS!;
+  const old = await tokenFor();
+  try {
+    const clients = JSON.parse(oldRegistration);
+    clients[0].scopes.push('mcp_attendance_write');
+    process.env.MCP_OAUTH_CLIENTS = JSON.stringify(clients);
+    await Role.updateOne({ _id: roleA }, { $addToSet: { permissions: { $each: ['mcp_attendance_write', 'mark_attendance'] } } });
+    const args = { studentId: String(studentA), batchId: String(batchA), date: '2026-10-08', status: 'present', inTime: '09:00', outTime: '17:00' };
+    const denied = await call(old.access_token, 'codebegun_mark_attendance', args);
+    expect(denied.status).toBe(403);
+    expect(denied.headers['www-authenticate']).toContain('mcp_attendance_write');
+    const renewed = await refresh(old.refresh_token);
+    expect(renewed.body.scope).not.toContain('mcp_attendance_write');
+    const discovery = await request(app).get('/.well-known/oauth-protected-resource/mcp');
+    expect(discovery.body.scopes_supported).toContain('mcp_attendance_write');
+    const { signed } = await login('admin@example.test', { scope: scopes + ' mcp_attendance_write' });
+    expect(signed.text).toContain('Create and explicitly update permitted attendance');
+    const consent = await request(app).post('/mcp-oauth/consent').set('Cookie', cookie(signed)).type('form')
+      .send({ csrf: csrf(signed), decision: 'approve' });
+    const token = await exchange(new URL(consent.headers.location).searchParams.get('code')!);
+    expect(token.body.scope).toContain('mcp_attendance_write');
+    await Attendance.collection.updateMany({}, [{ $set: { attendanceDay: { $dateToString: { date: '$date', format: '%Y-%m-%d', timezone: 'Asia/Kolkata' } } } }]);
+    await Attendance.createIndexes();
+    expect(payload(await call(token.body.access_token, 'codebegun_mark_attendance', args)).results[0].outcome).toBe('created');
+    expect(payload(await call(token.body.access_token, 'codebegun_mark_attendance', args)).results[0].outcome).toBe('already_exists');
+    await Role.updateOne({ _id: roleA }, { $pull: { permissions: 'mark_attendance' } });
+    expect((await call(token.body.access_token, 'codebegun_mark_attendance', args)).body.error.message).toBe('permission_denied');
+  } finally { process.env.MCP_OAUTH_CLIENTS = oldRegistration; }
 });

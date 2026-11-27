@@ -4,6 +4,7 @@ export const SCOPE_LABELS: Record<string, string> = {
   mcp_connect: 'Connect to CodeBegun',
   mcp_students_read: 'Read permitted student profiles',
   mcp_batches_read: 'Read permitted batches',
+  mcp_attendance_write: 'Create and explicitly update permitted attendance (no deletion; no notification emails)',
   mcp_attendance_read: 'Read permitted attendance',
   mcp_assessments_read: 'Read permitted exam results',
   mcp_finance_read: 'Read permitted fees and balances',

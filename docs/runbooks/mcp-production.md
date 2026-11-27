@@ -498,3 +498,6 @@ the old live app, and credential-preserving updates of never-enabled preparation
 
 References: [MongoDB collection privileges](https://www.mongodb.com/docs/manual/core/authorization/),
 [Nginx locations](https://nginx.org/en/docs/http/ngx_http_core_module.html#location).
+
+
+Attendance create/update support has a separate migration, native-writer prerequisite, explicit write consent, least-privilege activation and recovery procedure: [MCP attendance write rollout](mcp-attendance-write.md). Read-domain expansion never includes attendance writes.

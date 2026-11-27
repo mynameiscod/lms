@@ -137,6 +137,20 @@ class ScopeTests(unittest.TestCase):
         plan = json.loads((self.directory / 'scope-plan.json').read_text())
         self.assertEqual(set(plan['newState']['scopes']) - set(self.old_state['scopes']), {'mcp_recordings_read'})
 
+    def test_attendance_write_requires_explicit_authorization_and_compatible_native_lms(self):
+        self.plan()
+        self.assertNotIn('mcp_attendance_write', self.plan_data['newState']['scopes'])
+        args = SimpleNamespace(email='owner@example.com', all_read_domains=False, domains='attendance_write')
+        with self.assertRaises(p.m.MigrationError): self.change.plan(args)
+        args.authorize_attendance_write = True
+        with patch.object(p, 'docker', return_value=SimpleNamespace(returncode=1)):
+            with self.assertRaises(p.m.MigrationError): self.change.plan(args)
+        with patch.object(p, 'current_lms', return_value={'id': 'synthetic-native'}), patch.object(p, 'docker', return_value=SimpleNamespace(returncode=0)):
+            with redirect_stdout(io.StringIO()): self.change.plan(args)
+        plan = json.loads((self.directory / 'scope-plan.json').read_text())
+        self.assertEqual(set(plan['newState']['scopes']) - set(self.old_state['scopes']), {'mcp_attendance_write'})
+        self.assertFalse(self.db_expanded)
+
     def test_success_uses_same_image_preserves_native_snapshot_and_old_credentials(self):
         self.plan(); self.apply()
         self.assertTrue(self.db_expanded)

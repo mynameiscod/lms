@@ -6,6 +6,7 @@ const crypto = require('node:crypto');
 const mongoose = require('mongoose');
 const settings = require('./settings.cjs');
 const c = settings.load();
+const { privileges, normalized } = require('./privileges.cjs');
 mongoose.set('autoIndex', false); mongoose.set('autoCreate', false);
 const model = name => require('/app/server/dist/models/' + name).default;
 const { identityFor } = require('/app/server/dist/mcp/identity');
@@ -49,6 +50,23 @@ async function roleSnapshot(r, session) {
   return { user, role, before, after };
 }
 
+async function databasePrivileges(r, apply = false) {
+  const db = mongoose.connection.db;
+  const old = privileges(c.database, r.oldScopes), next = privileges(c.database, r.newScopes);
+  const canonical = p => JSON.stringify(normalized(p));
+  if (action === 'plan') {
+    const auth = (await db.command({ connectionStatus: 1, showPrivileges: true })).authInfo;
+    check(canonical(auth.authenticatedUserPrivileges) === canonical(old), 'runtime_privilege_drift');
+    return;
+  }
+  const user = (await db.command({ usersInfo: c.username })).users[0];
+  check(user && user.customData?.managedBy === c.purpose && user.customData?.installation === c.installation &&
+    JSON.stringify(user.roles) === JSON.stringify([{ role: c.role, db: c.database }]), 'runtime_user_drift');
+  const role = (await db.command({ rolesInfo: c.role, showPrivileges: true })).roles[0];
+  check(role && role.roles.length === 0 && [canonical(old), canonical(next)].includes(canonical(role.privileges)), 'runtime_privilege_drift');
+  if (apply) await db.command({ updateRole: c.role, privileges: action === 'apply' ? next : old, roles: [] });
+}
+
 async function preview(r, session) {
   const row = await roleSnapshot(r, session);
   const identity = await identityFor(row.user._id, row.user.tenantId, session);
@@ -74,6 +92,12 @@ async function main() {
   const topology = await mongoose.connection.db.admin().command({ hello: 1 });
   check(topology.setName === c.replica && JSON.stringify(topology.hosts) === JSON.stringify([c.hostname + ':27017']), 'topology_mismatch');
   stage = 'account_policy';
+  await databasePrivileges(r);
+  if (r.newScopes.includes('mcp_attendance_write') && action !== 'rollback') {
+    // Read-only preview cannot list attendance indexes before privilege activation.
+    check(!await model('Attendance').exists({ attendanceDay: { $exists: false } }), 'attendance_migration_required');
+    if (action === 'apply') await require('/app/server/dist/mcp/attendance').assertAttendanceWriteReady();
+  }
   if (action === 'plan') return output(await preview(r));
   const session = await mongoose.startSession();
   try {
@@ -105,6 +129,9 @@ async function main() {
         reason: action === 'apply' ? 'explicit_scope_expansion' : 'scope_expansion_rollback', outcome: 'allowed' }], { session });
     }, { readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' } });
   } finally { await session.endSession(); }
+  // MongoDB role commands cannot participate in transactions. The host journals
+  // before this call; rollback accepts either exact before/after privilege set.
+  await databasePrivileges(r, true);
   output({ completed: action });
 }
 main().catch(() => { output({ error: stage }); process.exitCode = 1; }).finally(() => mongoose.disconnect());

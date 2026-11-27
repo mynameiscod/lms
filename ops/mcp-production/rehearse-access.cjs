@@ -15,13 +15,20 @@ mongoose.set('autoIndex', false); mongoose.set('autoCreate', false);
 const model = name => require('./server/dist/models/' + name).default;
 const admin = JSON.parse(fs.readFileSync('/run/mcp/admin.json', 'utf8'));
 let child;
+// Portable across Linux and Docker Desktop: do not rely on root bypassing a
+// read-only fixture file's mode. Runtime mounts remain read-only throughout.
+function writeFixture(path, content) {
+  if (fs.existsSync(path)) fs.chmodSync(path, 0o644);
+  fs.writeFileSync(path, content);
+  fs.chmodSync(path, 0o444);
+}
 const operator = (action, request) => {
-  fs.writeFileSync('/verify/request.json', JSON.stringify(request || {}));
+  writeFixture('/verify/request.json', JSON.stringify(request || {}));
   const value = execFileSync(process.execPath, ['ops/mcp-production/operator.cjs', action], { encoding: 'utf8', stdio: 'pipe' });
   return JSON.parse(value.split('\n').find(s => s.startsWith('PRODUCTION_JSON=')).slice(16));
 };
 const scopeOperator = (action, request) => {
-  fs.writeFileSync('/verify/request.json', JSON.stringify(request));
+  writeFixture('/verify/request.json', JSON.stringify(request));
   let value;
   try {
     value = execFileSync(process.execPath, ['ops/mcp-production/scopes.cjs', action], { encoding: 'utf8', stdio: 'pipe' });
@@ -134,7 +141,7 @@ async function main() {
   // Advertise only the registered production scopes. ChatGPT discovers them here.
   c.clients = [c.clients.find(client => client.id === 'codebegun-mcp-smoke')];
   c.clients[0].scopes = scopes.concat('offline_access');
-  fs.writeFileSync('/verify/runtime.json', JSON.stringify(c));
+  writeFixture('/verify/runtime.json', JSON.stringify(c));
   child = spawn(process.execPath, ['ops/mcp-production/serve.cjs'], { stdio: 'ignore' });
   let ready = false;
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -209,13 +216,13 @@ async function main() {
   }
   // Recover an interrupted apply with only the original plan, even if the LMS
   // has subsequently deployed. The operator must verify the exact granted role.
-  const allScopes = ['mcp_connect', ...new Set(require('./server/dist/mcp/tools').tools.filter(t => t.scope !== 'mcp_recordings_read').map(t => t.scope))];
+  const allScopes = ['mcp_connect', ...new Set(require('./server/dist/mcp/tools').tools.filter(t => t.scope !== 'mcp_recordings_read' && t.scope !== 'mcp_attendance_write').map(t => t.scope))];
   const scopeRequest = { operationId: crypto.randomUUID(), email: user.email, clientId: 'codebegun-mcp-smoke',
     access: applied, oldScopes: scopes, newScopes: allScopes };
   const roleBeforeScope = await Role.findById(req.newRoleId).lean();
   const grantsBeforeScope = await model('McpOAuthGrant').find({}).sort({ _id: 1 }).lean();
   const scopePreview = scopeOperator('plan', scopeRequest);
-  assert.equal(scopePreview.tools.length, 15);
+  assert.equal(scopePreview.tools.length, 16);
   assert.deepEqual(await Role.findById(req.newRoleId).lean(), roleBeforeScope, 'Preview changed role');
   assert.deepEqual(await model('McpOAuthGrant').find({}).sort({ _id: 1 }).lean(), grantsBeforeScope, 'Preview changed consent');
   scopeRequest.fingerprint = scopePreview.fingerprint;
@@ -243,7 +250,7 @@ async function main() {
     const stopped = new Promise(resolve => child.once('exit', resolve));
     child.kill('SIGTERM'); await stopped;
     c.clients[0].scopes = nextScopes.concat('offline_access');
-    fs.writeFileSync('/verify/runtime.json', JSON.stringify(c));
+    writeFixture('/verify/runtime.json', JSON.stringify(c));
     child = spawn(process.execPath, ['ops/mcp-production/serve.cjs'], { stdio: 'ignore' });
     for (let attempt = 0; attempt < 100; attempt++) {
       try { if ((await request('/healthz')).status === 200) return; } catch { /* startup */ }
@@ -294,10 +301,10 @@ async function main() {
   }
   assert.equal((await rpc(limitedRefresh.body.access_token, 'tools/list')).body.result.tools.length, 3, 'New consent expanded an old token');
   const expandedList = await rpc(expandedToken.body.access_token, 'tools/list');
-  assert.equal(expandedList.body.result.tools.length, 15);
+  assert.equal(expandedList.body.result.tools.length, 16);
   for (const candidate of expandedList.body.result.tools) {
     const response = await rpc(expandedToken.body.access_token, 'tools/call', { name: candidate.name,
-      arguments: candidate.inputSchema.properties.limit ? { limit: 1 } : {} });
+      arguments: candidate.name === 'codebegun_validate_attendance' ? { batchId: String((await model('Batch').findOne({ tenantId: user.tenantId }))._id), date: '2026-10-08', records: [{ studentId: String(user._id), status: 'present' }] } : candidate.inputSchema.properties.limit ? { limit: 1 } : {} });
     assert.equal(response.status, 200);
     assert.ok(response.body.result?.content, 'Expanded tool failed: ' + candidate.name);
     assert.notEqual(response.body.result.isError, true, 'Expanded tool returned an error: ' + candidate.name);
@@ -310,8 +317,50 @@ async function main() {
   assert.equal((await rpc(expandedToken.body.access_token, 'tools/list')).status, 401);
   await restartWithScopes(scopes);
   assert.equal((await rpc(limitedRefresh.body.access_token, 'tools/list')).body.result.tools.length, 3);
-  console.log('PASS: cached three-tool request: limited approval stays at three, denial issues no code, explicit expanded consent calls all 15 tools, old tokens stay limited, and rollback revokes expanded grants.');
+  console.log('PASS: cached three-tool request: limited approval stays at three, denial issues no code, explicit expanded consent calls all 16 read tools, old tokens stay limited, and rollback revokes expanded grants.');
   console.log('PASS: read-only scope preview, shared/drifted-role and disabled-module refusal, and unchanged native permissions.');
+  // Attendance write activation uses the same recovery operator, a fresh OAuth
+  // grant, and the actual restricted database account. Only synthetic data here.
+  const migrationId = crypto.randomUUID();
+  assert.equal(operator('attendance-check').ready, true);
+  assert.equal(operator('attendance-prepare', { operationId: migrationId, writersPaused: true }).prepared, true);
+  const writeScopes = [...scopes, 'mcp_attendance_read', 'mcp_attendance_write'];
+  const writeRequest = { operationId: crypto.randomUUID(), email: user.email, clientId: 'codebegun-mcp-smoke',
+    access: applied, oldScopes: scopes, newScopes: writeScopes };
+  writeRequest.fingerprint = scopeOperator('plan', writeRequest).fingerprint;
+  assert.equal(scopeOperator('apply', writeRequest).completed, 'apply');
+  await restartWithScopes(writeScopes);
+  assert.equal(operator('verify').runtimePrivileges, 'verified');
+  // Start a new synthetic test phase after the read-login regressions. Keep
+  // production throttling unchanged; reset only this fixture account's bucket.
+  const { tokenDigest } = require('./server/dist/mcp/oauthSecurity');
+  const { McpRateLimit } = require('./server/dist/mcp/rateLimit');
+  await McpRateLimit.deleteOne({ _id: tokenDigest(`login-account:${user.email}:${Math.floor(Date.now() / 900000)}`) });
+  query.set('scope', writeScopes.join(' '));
+  const writeStart = await request('/mcp-oauth/authorize?' + query);
+  const writeLogin = await form('/mcp-oauth/login', { email: user.email,
+    password: fs.readFileSync('/run/secrets/test_password', 'utf8').trim(), csrf: csrf(writeStart) }, { Cookie: cookie(writeStart) });
+  assert.equal(writeLogin.status, 200, 'Synthetic attendance phase login failed');
+  assert.ok(writeLogin.text.includes('Create and explicitly update permitted attendance'));
+  assert.ok(!writeLogin.text.includes('Allow listed read access'));
+  const writeConsent = await form('/mcp-oauth/consent', { csrf: csrf(writeLogin), decision: 'approve' }, { Cookie: cookie(writeLogin) });
+  const writeToken = await form('/mcp-oauth/token', { grant_type: 'authorization_code', client_id: 'codebegun-mcp-smoke',
+    redirect_uri: 'http://127.0.0.1:8765/callback', resource: c.issuer + '/mcp', code_verifier: verifier,
+    code: new URL(writeConsent.headers.location).searchParams.get('code') });
+  assert.equal(writeToken.status, 200);
+  const mark = { studentId: String(student._id), batchId: String(student.batchId), date: '2026-10-08', status: 'present' };
+  const resultData = response => JSON.parse(response.body.result.content[0].text);
+  assert.equal(resultData(await rpc(writeToken.body.access_token, 'tools/call', { name: 'codebegun_mark_attendance', arguments: mark })).results[0].outcome, 'created');
+  const repeated = resultData(await rpc(writeToken.body.access_token, 'tools/call', { name: 'codebegun_mark_attendance', arguments: mark }));
+  assert.equal(repeated.results[0].outcome, 'already_exists');
+  const existing = repeated.results[0].existing[0];
+  assert.equal(resultData(await rpc(writeToken.body.access_token, 'tools/call', { name: 'codebegun_update_attendance',
+    arguments: { recordId: existing.recordId, expectedRevision: existing.revision, status: 'leave' } })).outcome, 'updated');
+  assert.equal(scopeOperator('rollback', writeRequest).completed, 'rollback');
+  await restartWithScopes(scopes);
+  assert.equal(operator('verify').runtimePrivileges, 'verified');
+  assert.equal((await rpc(writeToken.body.access_token, 'tools/list')).status, 401);
+  console.log('PASS: attendance migration, explicit write scope, fresh consent, runtime create/update, exact retries, no deletion privilege and recovery rollback.');
   assert.equal(operator('access-revoke', { ...req, ...plan }).revoked, true);
   assert.ok(!(await User.findById(user._id)).customRoleId);
   assert.equal(await Role.countDocuments(), before);

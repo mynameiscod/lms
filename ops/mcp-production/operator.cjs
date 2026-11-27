@@ -17,13 +17,8 @@ const command = process.argv[2];
 const hash = value => crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const output = value => console.log('PRODUCTION_JSON=' + JSON.stringify(value));
 
-function privileges() {
-  return lmsModels.map(m => ({ resource: { db: c.database, collection: m.collection.name }, actions: ['find'] }))
-    .concat(mcpModels.map(m => ({ resource: { db: c.database, collection: m.collection.name },
-      actions: m.modelName === 'McpAuditEvent' ? ['find', 'insert', 'listIndexes'] : ['find', 'insert', 'update', 'remove', 'listIndexes'] })));
-}
-const normalized = p => p.map(x => ({ resource: x.resource, actions: [...x.actions].sort() }))
-  .sort((a, b) => JSON.stringify(a.resource).localeCompare(JSON.stringify(b.resource)));
+const { privileges: scopedPrivileges, normalized } = require('./privileges.cjs');
+const privileges = () => scopedPrivileges(c.database, c.clients.flatMap(client => client.scopes));
 
 async function prepare(admin) {
   // Keep index migration identical to the supported application preparer.
@@ -56,14 +51,15 @@ async function verify() {
   // These filters cannot match any document, even if a privilege regresses.
   const never = { $expr: { $eq: [1, 0] } };
   for (const m of [...lmsModels, model('McpAuditEvent')]) {
-    await assert.rejects(m.collection.updateOne(never, { $set: { mcpPrivilegeProbe: true } }), e => e.code === 13);
+    if (!(m.modelName === 'Attendance' && c.clients.some(client => client.scopes.includes('mcp_attendance_write')))) await assert.rejects(m.collection.updateOne(never, { $set: { mcpPrivilegeProbe: true } }), e => e.code === 13);
     await assert.rejects(m.collection.deleteOne(never), e => e.code === 13);
   }
+  if (c.clients.some(client => client.scopes.includes('mcp_attendance_write'))) await require('../../server/dist/mcp/attendance').assertAttendanceWriteReady();
   const session = await mongoose.startSession();
   try { await session.withTransaction(async () => { await model('User').findOne({}).select('_id').session(session); },
     { readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' } }); }
   finally { await session.endSession(); }
-  output({ runtimePrivileges: 'verified', lmsWrites: 'denied', auditUpdateDelete: 'denied', transaction: 'passed' });
+  output({ runtimePrivileges: 'verified', lmsWrites: c.clients.some(client => client.scopes.includes('mcp_attendance_write')) ? 'attendance_insert_update_only' : 'denied', auditUpdateDelete: 'denied', transaction: 'passed' });
 }
 
 async function accessSnapshot(request, session) {
@@ -159,7 +155,7 @@ async function access(request) {
 
 async function main() {
   mcpConfig();
-  const admin = command === 'verify' ? undefined : JSON.parse(fs.readFileSync('/run/mcp/admin.json', 'utf8'));
+  const admin = ['verify', 'attendance-check'].includes(command) ? undefined : JSON.parse(fs.readFileSync('/run/mcp/admin.json', 'utf8'));
   await mongoose.connect(settings.uri(c, admin), { serverSelectionTimeoutMS: 10000, maxPoolSize: 3 });
   const db = mongoose.connection.db;
   assert.equal(db.databaseName, c.database);
@@ -170,6 +166,12 @@ async function main() {
   assert.ok(await model('User').exists({}), 'Existing LMS database required');
   if (command === 'prepare') await prepare(admin);
   else if (command === 'verify') await verify();
+  else if (command === 'attendance-check') output(await require('../../server/dist/mcp/attendanceMigration').inspectAttendanceMigration());
+  else if (command === 'attendance-prepare') {
+    const request = JSON.parse(fs.readFileSync('/run/mcp/request.json', 'utf8'));
+    assert.equal(request.writersPaused, true);
+    output(await require('../../server/dist/mcp/attendanceMigration').prepareAttendanceMigration(request.operationId));
+  }
   else await access(JSON.parse(fs.readFileSync('/run/mcp/request.json', 'utf8')));
 }
 main().catch(() => { console.error('Production operator check failed. No secrets or database records were printed.'); process.exitCode = 1; })

@@ -1,6 +1,6 @@
 import { canUseTool, tools, validateArguments } from '../mcp/tools';
 const allScopes = ['mcp_connect', ...tools.map(t => t.scope)];
-const native = ['view_enrolled_students', 'view_courses', 'view_attendance', 'view_exams', 'view_fees', 'view_placement', 'view_leads', 'manage_leads'];
+const native = ['mark_attendance', 'view_enrolled_students', 'view_courses', 'view_attendance', 'view_exams', 'view_fees', 'view_placement', 'view_leads', 'manage_leads'];
 const identity = (overrides: any = {}) => ({ user: { role: 'TENANT_ADMIN' }, tenant: { studentFeatures: {} },
   modules: { courses: true, attendance: true, feeManagement: true, placement: true, leads: true },
   permissions: [...allScopes, ...native], ...overrides } as any);
@@ -31,10 +31,10 @@ describe('MCP tool permission intersection', () => {
     expect(canUseTool(identity({ permissions: [...allScopes, 'view_grades'] }), allScopes, exams)).toBe(false);
     expect(canUseTool(identity({ permissions: [...allScopes, 'view_reports'] }), allScopes, exams)).toBe(true);
   });
-  test('all tools declare read-only bounded schemas', () => {
+  test('only attendance mutation tools declare write access; all schemas are bounded', () => {
     expect(new Set(tools.map(t => t.name)).size).toBe(tools.length);
     for (const candidate of tools) {
-      expect(candidate.annotations.readOnlyHint).toBe(true);
+      expect(candidate.annotations.readOnlyHint).toBe(candidate.scope !== 'mcp_attendance_write');
       expect(candidate.inputSchema.additionalProperties).toBe(false);
       if (candidate.inputSchema.properties.limit) expect(candidate.inputSchema.properties.limit.maximum).toBe(50);
     }

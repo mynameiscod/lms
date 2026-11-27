@@ -203,7 +203,7 @@ def operator(s, command, request=None):
             'type=bind,source=' + str(STATE / 'runtime.json') + ',target=/run/mcp/runtime.json,readonly']
     temporary = []
     try:
-        for name, value in [('admin', admin_credentials() if command != 'verify' else None), ('request', request)]:
+        for name, value in [('admin', admin_credentials() if command not in ('verify', 'attendance-check') else None), ('request', request)]:
             if value is not None:
                 path = STATE / (name + '.json')
                 write(path, value, 0o444)  # The parent directory is root-only 0700.
@@ -216,6 +216,23 @@ def operator(s, command, request=None):
     finally:
         for path in temporary:
             path.unlink(missing_ok=True)
+
+
+def attendance_migration(args):
+    s = state()
+    require(s['phase'] == 'enabled', 'Upgrade the existing MCP gateway first.')
+    current_lms(s)
+    if args.command == 'attendance-check':
+        print(json.dumps(operator(s, 'attendance-check'), indent=2))
+        return
+    require(args.attendance_writers_paused, 'Pause ALL native attendance/leave and MCP writers first, then pass --attendance-writers-paused.')
+    require(not (STATE / 'scope-pending.json').exists() and not (STATE / 'upgrade-pending.json').exists(), 'Recover pending gateway operations first.')
+    journal = STATE / 'attendance-migration.json'
+    request = json.loads(journal.read_text()) if journal.exists() else dict(operationId=str(uuid.uuid4()), writersPaused=True, purpose=MARKER, installation=s['installation'])
+    require(request.get('purpose') == MARKER and request.get('installation') == s['installation'], 'Attendance migration journal belongs to another installation; preserve it for review.')
+    write(journal, request)  # durable recovery record before the backfill/index work
+    print(json.dumps(operator(s, 'attendance-prepare', request), indent=2))
+    print('Keep the migration journal, audit, day keys and unique index on rollback. No historical records were deleted.')
 
 
 def prepare(args):
@@ -728,10 +745,12 @@ def recording_storage(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['plan', 'prepare', 'enable', 'verify', 'disable', 'upgrade', 'upgrade-rollback', 'diagnose-account', 'diagnose-tools', 'access-plan', 'access-apply', 'access-revoke', 'scope-plan', 'scope-apply', 'scope-rollback', 'recording-storage', 'recording-storage-remove'])
+    parser.add_argument('command', choices=['plan', 'prepare', 'enable', 'verify', 'disable', 'upgrade', 'upgrade-rollback', 'diagnose-account', 'diagnose-tools', 'access-plan', 'access-apply', 'access-revoke', 'scope-plan', 'scope-apply', 'scope-rollback', 'recording-storage', 'recording-storage-remove', 'attendance-check', 'attendance-prepare'])
     parser.add_argument('--email', help='Existing LMS login email for diagnose-account, diagnose-tools, access-plan or scope-plan; never a password.')
     parser.add_argument('--all-read-domains', action='store_true', help='prepare or scope-plan: explicitly select all eight MCP read domains, including finance and CRM.')
-    parser.add_argument('--domains', help='scope-plan: comma-separated domains to add: students,batches,attendance,exams,fees,placements,leads,calls,recordings. Recordings are excluded from --all-read-domains.')
+    parser.add_argument('--attendance-writers-paused', action='store_true', help='attendance-prepare: operator attests all attendance and leave writers are paused.')
+    parser.add_argument('--authorize-attendance-write', action='store_true', help='scope-plan: explicitly authorize attendance insert/update privileges; requires --domains attendance_write.')
+    parser.add_argument('--domains', help='scope-plan: comma-separated domains to add: students,batches,attendance,exams,fees,placements,leads,calls,recordings,attendance_write. Recordings and attendance_write are excluded from --all-read-domains.')
     parser.add_argument('--storage-zone', help='recording-storage: existing Bunny Storage zone name.')
     parser.add_argument('--storage-hostname', help='recording-storage: existing regional storage hostname; default storage.bunnycdn.com.')
     parser.add_argument('--plan-id', help='scope-apply: exact ID from the reviewed scope-plan preview (valid for one hour).')
@@ -759,6 +778,7 @@ def dispatch(args):
     if args.command == 'plan':
         print(json.dumps(preflight(), indent=2))
         print('Read-only plan passed. Existing LMS, MongoDB, legacy MCP and test services are retained.')
+    elif args.command in ('attendance-check', 'attendance-prepare'): attendance_migration(args)
     elif args.command == 'prepare': prepare(args)
     elif args.command == 'enable': enable()
     elif args.command == 'verify': verify(state())

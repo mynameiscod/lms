@@ -6,7 +6,8 @@ import { canUseTool, tools } from './tools';
  * domains. The normal approval retains the exact request. Never apply this
  * offer to an existing grant or a refresh request. */
 export function readConsentOffer(identity: McpIdentity, client: McpClient, requested: string[]) {
-  const reads = [...new Set(tools.filter(tool => canUseTool(identity, client.scopes, tool)).map(tool => tool.scope))];
+  if (requested.includes('mcp_attendance_write')) return []; // write requests use their own explicitly listed consent
+  const reads = [...new Set(tools.filter(tool => tool.annotations.readOnlyHint && canUseTool(identity, client.scopes, tool)).map(tool => tool.scope))];
   if (!reads.some(scope => !requested.includes(scope))) return [];
   return ['mcp_connect', ...reads, ...(client.scopes.includes('offline_access') ? ['offline_access'] : [])];
 }

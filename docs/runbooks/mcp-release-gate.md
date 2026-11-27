@@ -47,3 +47,6 @@ The fastest application rollback is `MCP_ENABLED=false` and a restart; all MCP/O
 ## Verification report
 
 See [the implementation report](mcp-implementation-report.md) for the exact tested commit, commands, outcomes and remaining environment/staging gates. No production-readiness claim is made without that evidence.
+
+
+Attendance create/update support has a separate migration, native-writer prerequisite, explicit write consent, least-privilege activation and recovery procedure: [MCP attendance write rollout](mcp-attendance-write.md). Read-domain expansion never includes attendance writes.

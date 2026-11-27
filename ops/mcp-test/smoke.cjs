@@ -137,7 +137,7 @@ async function main() {
     capabilities: {}, clientInfo: { name: 'codebegun-staging-smoke', version: '1.0' } });
   check(initialized.json?.result?.serverInfo?.name === 'codebegun-universal-mcp', 'MCP initialization failed');
   const listed = await rpc(admin.access_token, 'tools/list', { _meta: { progressToken: 'list-tools' } });
-  check(listed.json?.result?.tools?.length === 15, 'Expected all 15 authorized tools');
+  check(listed.json?.result?.tools?.length === 16, 'Expected 16 authorized read tools');
   const withoutMetadata = await rpc(admin.access_token, 'tools/call', { name: 'codebegun_student_count', arguments: {} });
   check(JSON.parse(withoutMetadata.json?.result?.content?.[0]?.text || '{}').count === 2,
     'Tool call without metadata failed');
@@ -145,7 +145,7 @@ async function main() {
     name: 'codebegun_student_count', arguments: {}, _meta: { progressToken: false } });
   check(malformedMetadata.json?.error?.code === -32602 && malformedMetadata.json?.error?.message === 'invalid_params',
     'Malformed MCP metadata was accepted');
-  for (const tool of listed.json.result.tools) await call(admin.access_token, tool.name);
+  for (const tool of listed.json.result.tools) await call(admin.access_token, tool.name, tool.name === 'codebegun_validate_attendance' ? { batchId: settings.fixtureId('batch-a'), date: '2026-10-08', records: [{ studentId: settings.fixtureId('student-a'), status: 'present' }] } : {});
   check((await call(admin.access_token, 'codebegun_student_count')).count === 2, 'Tenant A student count mismatch');
   check((await call(admin.access_token, 'codebegun_students',
     { studentId: settings.fixtureId('student-b') })).items.length === 0, 'Foreign tenant record was exposed');
@@ -168,7 +168,7 @@ async function main() {
   check((await revoke(student.refresh_token)).status === 200, 'Explicit revocation failed');
   check((await rpc(student.access_token, 'tools/list')).status === 401, 'Revoked access token was accepted');
   console.log('PASS: ' + checks + ' ' + (publicMode ? 'public HTTPS' : 'private Docker') +
-    ' checks: discovery, LMS login, consent, PKCE, 15 tools, student/tenant isolation, rotation, replay and revocation.');
+    ' checks: discovery, LMS login, consent, PKCE, 16 read tools, student/tenant isolation, rotation, replay and revocation.');
 }
 main().catch(error => { console.error('Staging smoke failed: ' + error.message); process.exitCode = 1; })
   .finally(async () => { for (const token of tokens) { try { await revoke(token); } catch { process.exitCode = 1; } } });

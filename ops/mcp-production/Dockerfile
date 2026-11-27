@@ -19,6 +19,6 @@ ENV NODE_ENV=production
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/server/node_modules ./server/node_modules
 COPY --from=build /app/server/dist ./server/dist
-COPY ops/mcp-production/settings.cjs ops/mcp-production/serve.cjs ops/mcp-production/operator.cjs ./ops/mcp-production/
+COPY ops/mcp-production/settings.cjs ops/mcp-production/serve.cjs ops/mcp-production/operator.cjs ops/mcp-production/privileges.cjs ./ops/mcp-production/
 USER node
 CMD ["node", "ops/mcp-production/serve.cjs"]

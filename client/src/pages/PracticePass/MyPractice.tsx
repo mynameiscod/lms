@@ -3,7 +3,7 @@ import { practicePassApi, MyPractice as MyPracticeData, TaskCounts } from '../..
 import PracticeTodayCard from '../../components/practice/PracticeTodayCard';
 import '../../components/practice/practice.css';
 
-const TASK_SHORT: Record<string, string> = { communication: 'Comm', coding_problem: 'Code', assignment: 'Assign', thinking_lab: 'Think' };
+const TASK_SHORT: Record<string, string> = { communication: 'Comm', coding_problem: 'Code', assignment: 'Assign', thinking_lab: 'Think', project_task: 'Project' };
 const EXCUSE: Record<string, string> = { weekly_off: 'Weekly off', holiday: 'Holiday', leave: 'Leave', before_start: 'Not started', exempt: 'Exempt' };
 
 export const PracticeCalendar: React.FC<{ days: { date: string; met: boolean; excused?: string | null; done: TaskCounts; required: TaskCounts }[]; today?: string }> = ({ days, today }) => {

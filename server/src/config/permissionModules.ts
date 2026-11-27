@@ -65,6 +65,7 @@ export const PERMISSION_MODULE: Record<string, ModuleKey> = {
   manage_practice_pass: 'practicePass',
   manage_problem_bank: 'problemBank',
   manage_visualizer: 'codeVisualizer',
+  manage_project_studio: 'assignments',
   // Operations
   manage_leave_requests: 'attendance',
   manage_concerns: 'concerns',

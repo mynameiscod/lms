@@ -45,6 +45,7 @@ export interface IStudentFeatures {
   myPractice?: boolean;
   codingPractice?: boolean;
   codeVisualizer?: boolean;
+  myProject?: boolean;
   referEarn?: boolean;
 }
 
@@ -286,6 +287,7 @@ const TenantSchema: Schema = new Schema(
       myPractice: { type: Boolean, default: true },
       codingPractice: { type: Boolean, default: true },
       codeVisualizer: { type: Boolean, default: true },
+      myProject: { type: Boolean, default: true },
       referEarn: { type: Boolean, default: true }
     },
     careerPilotFeatures: {

@@ -329,6 +329,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'manage_practice_pass', label: 'Manage Practice Pass (daily tasks & thresholds)' },
       { key: 'manage_problem_bank', label: 'Manage Problem Bank & Problem Sets' },
       { key: 'manage_visualizer', label: 'Manage Code Visualizer Library & Access' },
+      { key: 'manage_project_studio', label: 'Manage Project Studio (guided projects, reviews & progress)' },
     ]
   },
   learningPlans: {
@@ -398,7 +399,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
 /** Every key added for a feature that used to borrow another's — admins get them all by default. */
 export const FEATURE_PERMISSIONS = [
   'manage_placement_program', 'manage_placement_partners', 'manage_interview_hub', 'manage_whatsapp_templates',
-  'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans',
+  'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_project_studio', 'manage_learning_plans',
   'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests', 'manage_concerns', 'view_activity_logs',
   'chat_whatsapp', 'manage_event_apis', 'view_admin_dashboard', 'manage_placement_desk', 'view_placement_desk',
   'manage_talent_pool', 'view_talent_pool',
@@ -533,7 +534,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // Exams — instructors conduct them, so they enter and correct the marks
     'manage_exams', 'view_exams',
     // The same features instructors already reached through "Create Courses"
-    'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer',
+    'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_project_studio',
     'manage_learning_plans', 'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests',
     'manage_concerns', 'view_activity_logs',
   ],

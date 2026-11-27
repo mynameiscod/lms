@@ -11,7 +11,7 @@ describe('practice rules', () => {
     const r = resolve(null);
     expect(r.enabled).toBe(false);
     expect(r.thresholdPct).toBe(80);
-    expect(r.requirements).toEqual({ communication: 1, coding_problem: 1, assignment: 0, thinking_lab: 1 });
+    expect(r.requirements).toEqual({ communication: 1, coding_problem: 1, assignment: 0, thinking_lab: 1, project_task: 0 });
   });
 
   it('batch overrides the institute, student overrides both', () => {
@@ -21,7 +21,7 @@ describe('practice rules', () => {
     const r = resolve(tenant, batch, student);
     expect(r.enabled).toBe(true);
     expect(r.thresholdPct).toBe(90);
-    expect(r.requirements).toEqual({ communication: 1, coding_problem: 2, assignment: 1, thinking_lab: 0 });
+    expect(r.requirements).toEqual({ communication: 1, coding_problem: 2, assignment: 1, thinking_lab: 0, project_task: 0 });
     expect(r.enforceFrom).toBe('2026-10-05');
   });
 
@@ -33,6 +33,6 @@ describe('practice rules', () => {
 
   it('clamps negative or junk requirement counts to zero', () => {
     const r = resolve(p({ startDate: 'x', requirements: { communication: -2, coding_problem: 'a', assignment: 1, thinking_lab: 1 } }));
-    expect(r.requirements).toEqual({ communication: 0, coding_problem: 0, assignment: 1, thinking_lab: 1 });
+    expect(r.requirements).toEqual({ communication: 0, coding_problem: 0, assignment: 1, thinking_lab: 1, project_task: 0 });
   });
 });

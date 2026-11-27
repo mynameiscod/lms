@@ -13,7 +13,7 @@ import mongoose, { Schema, Document } from 'mongoose';
  * collections only hold the RULES, the computed DAYS and each student's STANDING.
  */
 
-export const PRACTICE_TASKS = ['communication', 'coding_problem', 'assignment', 'thinking_lab'] as const;
+export const PRACTICE_TASKS = ['communication', 'coding_problem', 'assignment', 'thinking_lab', 'project_task'] as const;
 export type PracticeTask = typeof PRACTICE_TASKS[number];
 export type TaskCounts = Partial<Record<PracticeTask, number>>;
 
@@ -43,7 +43,7 @@ export interface IPracticePolicy extends Document {
 }
 
 const CountsSchema = new Schema({
-  communication: Number, coding_problem: Number, assignment: Number, thinking_lab: Number,
+  communication: Number, coding_problem: Number, assignment: Number, thinking_lab: Number, project_task: Number,
 }, { _id: false });
 
 const PracticePolicySchema = new Schema<IPracticePolicy>({

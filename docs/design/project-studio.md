@@ -106,6 +106,20 @@ Changes needed:
 | **P3** | GitHub Actions checks + AI diff review + task board + stand-ups + sprint reviews |
 | **P4** | Skeleton → domain variants + pick caps + own-feature task + placement pick list & optional hold + Career Profile + weekly report + "no commit in 3 days" WhatsApp (via whatsAppAudiences registry) |
 
+## P1 as built (branch feature/project-studio)
+
+- API `/api/v1/project-studio` (server/src/routes/projectStudioRoutes.ts, services/projectStudioService.ts,
+  models/ProjectStudio.ts). Pages: admin `/admin/project-studio` (Projects · Student progress · Review),
+  student `/my-project`. Permission `manage_project_studio`; student switch `myProject` (Student Features / batch Modules).
+- Interview questions are written **on each task** (question + model answer) rather than linked from the
+  Interview Hub library — the library is spread over several older stores; linking can come later.
+  Answers are not sent to the student until they submit the task.
+- Per project, the admin picks **"a mentor approves each task"** (default) or **"done as soon as submitted"**.
+- Anti-copy: commit/PR proof must be inside the student's own repo; two students cannot register the same repo.
+- Admin **Copy** duplicates a project with fresh ids — the quick way to make domain variants before P4.
+- Practice Pass: new task type `project_task` (default 0 → no change until an admin requires it). Each task
+  submitted on a day counts once for that day.
+
 ## Further decisions (2026-11-27)
 
 - **No project switching** once a student has picked. Only an admin can reset/reassign.

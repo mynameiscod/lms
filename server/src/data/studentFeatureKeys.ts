@@ -17,6 +17,8 @@ export const STUDENT_FEATURE_KEYS = [
   'aiCommunicationLab', 'liveClasses', 'collegePortal', 'myApplications', 'alumniDirectory',
   // Menu items that had no switch of their own
   'myTasks', 'applyLeave', 'interviewExperiences', 'questionBooks', 'drives', 'myPractice', 'codingPractice', 'codeVisualizer',
+  // Project Studio
+  'myProject',
   // LMS Refer & Earn
   'referEarn',
 ] as const;

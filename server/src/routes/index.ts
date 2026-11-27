@@ -149,6 +149,7 @@ import leadArchiveRoutes from './leadArchiveRoutes';
 import eventApiRoutes, { publicEventRoutes } from './eventApiRoutes';
 import tenantIntegrationsRoutes from './tenantIntegrationsRoutes';
 import practicePassRoutes from './practicePassRoutes';
+import projectStudioRoutes from './projectStudioRoutes';
 import employeeRoutes from './employeeRoutes';
 import employeePortalRoutes from './employeePortalRoutes';
 import employeeActivityRoutes from './employeeActivityRoutes';
@@ -366,6 +367,7 @@ router.use('/employee-activity', employeeActivityRoutes); // daily activity revi
 router.use('/employee-expenses', employeeExpenseRoutes); // employee claims: approval, payment
 router.use('/company-expenses', companyExpenseRoutes); // the company expense ledger: bills, recurring, salaries, reports
 router.use('/practice-pass', practicePassRoutes); // daily practice attendance + placement hold
+router.use('/project-studio', projectStudioRoutes); // guided end-to-end projects: sprints → days → tasks
 router.use('/interview-hub', interviewHubRoutes); // real interview experiences, global pool + invites
 router.use('/question-books', questionBookRoutes); // staff-written interview question books, read notebook-style
 router.use('/content-library', contentLibraryRoutes); // Problem Bundles: one library of every assessable item (additive)

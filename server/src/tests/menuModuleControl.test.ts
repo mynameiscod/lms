@@ -15,8 +15,14 @@ const sidebar = client('components/layout/Sidebar.tsx');
 const block = (text: string, from: string, to: string) => { const a = text.indexOf(from); return text.slice(a, text.indexOf(to, a)); };
 const quoted = (text: string) => [...text.matchAll(/'(\w+)'/g)].map((m) => m[1]);
 
-/** Menu paths that are not an institute's to switch: the platform administrator's own pages, and the landing page. */
-const ALWAYS_AVAILABLE = ['/dashboard', '/admin/platform-settings', '/super-admin/tenants'];
+/** Core pages use existing role permissions or student-feature switches rather than a tenant module.
+ * Keep this explicit: an added menu path still needs a reviewed access policy. */
+const ALWAYS_AVAILABLE = [
+  '/dashboard', '/admin/platform-settings', '/super-admin/tenants',
+  '/refer-and-earn', '/admin/referrals',
+  '/student-rules', '/agreements', '/admin/lms-demo',
+  '/website-batches', '/website-content',
+];
 
 describe('the module lists agree', () => {
   it('on the server and on the admin page', () => {
@@ -54,6 +60,9 @@ describe('the menu', () => {
   });
 
   it('ties the former free-for-all items to the new switches', () => {
+    expect(mapped('/practice-library')).toBe('codeAssessments');
+    expect(mapped('/student/interviews')).toBe('mockInterviews');
+    expect(mapped('/problem-bundles')).toBe('problemBank');
     expect(mapped('/users')).toBe('userManagement');
     expect(mapped('/roles')).toBe('rolesManagement');
     expect(mapped('/batches')).toBe('batchManagement');

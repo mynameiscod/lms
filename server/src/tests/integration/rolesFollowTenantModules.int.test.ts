@@ -16,7 +16,7 @@ import { ALL_MODULES } from '../../config/tenantModules';
 jest.setTimeout(240_000);
 
 /** Groups that belong to no module on purpose: offered to every institute. */
-const CORE_GROUPS = ['users', 'reports', 'admin', 'operations', 'support', 'sharedPlatform'];
+const CORE_GROUPS = ['users', 'reports', 'admin', 'operations', 'support', 'sharedPlatform', 'mcp'];
 
 const call = async (fn: any, req: any) => {
   const res: any = { statusCode: 200, body: null, status(c: number) { this.statusCode = c; return this; }, json(b: any) { this.body = b; return this; } };

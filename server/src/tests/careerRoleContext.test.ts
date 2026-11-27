@@ -212,7 +212,7 @@ describe('an admin-created role reaches students', () => {
 });
 
 describe('Module 1 regression — the accepted scenario still resolves', () => {
-  it('B.Tech CSE 1st year, Backend Engineer, Java, 60 min/day', async () => {
+  it('a first-year keeps the foundation stage and language preference while deferring target roles', async () => {
     const doc = memberDoc({ degree: 'B.Tech', branch: 'CSE', yearOfStudy: '1st Year' });
     findOneUser.mockReturnValue(userHandle(doc));
 
@@ -224,7 +224,8 @@ describe('Module 1 regression — the accepted scenario still resolves', () => {
 
     expect(invalid).toBeUndefined();
     expect(missing).toBeUndefined();
-    expect(context!.career.primaryRole).toBe('BACKEND_ENGINEER');
+    expect(context!.career.primaryRole).toBe(ROLE_NOT_SURE);
+    expect(doc.passport.primaryRole).toBe(ROLE_NOT_SURE);
     expect(context!.career.preferredProgrammingLanguages).toEqual(['Java']);
     expect(context!.availability.minutesPerDay).toBe(60);
     expect(context!.derived.stage).toBe('foundation');

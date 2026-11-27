@@ -6,7 +6,12 @@ const revive = jest.fn(async (..._args: any[]) => {});
 jest.mock('../models/Lead', () => {
   class FakeLead {
     static exists = async (q: any) => leads.some(l => String(l.tenantId) === String(q.tenantId) && l.metaSubmissionIds?.includes(q.metaSubmissionIds));
-    static findOne = async (q: any) => leads.find(l => String(l.tenantId) === String(q.tenantId) && new RegExp(q.phone.$regex).test(l.phone)) || null;
+    static findOne = (q: any) => {
+      const row = leads.find(l => String(l.tenantId) === String(q.tenantId) && (!q._id || String(l._id) === String(q._id)) && (!q.phone || new RegExp(q.phone.$regex).test(l.phone))) || null;
+      const query: any = Promise.resolve(row);
+      query.select = () => query; query.lean = async () => row;
+      return query;
+    };
     static updateOne = async (q: any, u: any) => { updates.push(u); const l = leads.find(l => l._id === q._id); if (u.$addToSet) { l.metaSubmissionIds ||= []; if (!l.metaSubmissionIds.includes(u.$addToSet.metaSubmissionIds)) l.metaSubmissionIds.push(u.$addToSet.metaSubmissionIds); } return { modifiedCount: 1 }; };
     _id = '65a0000000000000000000bb';
     constructor(data: any) { Object.assign(this, data); }
@@ -15,8 +20,9 @@ jest.mock('../models/Lead', () => {
   return { __esModule: true, default: FakeLead };
 });
 jest.mock('../models/LeadStage', () => ({ __esModule: true, default: { findOne: () => ({ sort: async () => ({ _id: '65a0000000000000000000cc' }) }) } }));
-jest.mock('../models/User', () => ({ __esModule: true, default: { findOne: () => ({ select: () => ({ lean: async () => ({ _id: '65a0000000000000000000dd' }) }) }) } }));
+jest.mock('../models/User', () => ({ __esModule: true, default: { find: () => ({ select: () => ({ limit: () => ({ lean: async () => [] }) }) }), findOne: () => ({ select: () => ({ lean: async () => ({ _id: '65a0000000000000000000dd' }) }) }) } }));
 jest.mock('../models/AICallConfig', () => ({ __esModule: true, default: { findOne: async () => null } }));
+jest.mock('../notifications/notificationService', () => ({ createNotifications: jest.fn(async () => undefined) }));
 jest.mock('../services/leadScoringService', () => ({ scoreAndAssignLead: (...a: any[]) => score(...a) }));
 jest.mock('../services/aiCallQueueService', () => ({ enqueueAICall: (...a: any[]) => enqueue(...a) }));
 jest.mock('../services/leadArchiveService', () => ({ reviveIfArchived: (...a: any[]) => revive(...a) }));

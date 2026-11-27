@@ -1,4 +1,5 @@
 import { validateBlueprint, cleanRequirements } from '../services/roleSkillBlueprintService';
+import { NEW_BLUEPRINTS } from '../data/aiDataSecurityBlueprints';
 import { DEFAULT_ROLE_BLUEPRINTS, SUGGESTED_TAXONOMY_ADDITIONS } from '../data/roleSkillBlueprints';
 import { CAREER_SKILL_TAXONOMY } from '../data/careerSkillTaxonomy';
 import { SYSTEM_CAREER_ROLES } from '../models/CareerRole';
@@ -243,8 +244,9 @@ describe('the shipped default blueprints', () => {
   const groupKeys = new Set(CAREER_SKILL_TAXONOMY.filter(s => s.nodeType === 'GROUP').map(s => s.key));
   const roleKeys = new Set(SYSTEM_CAREER_ROLES.map(r => r.key));
 
-  it('covers every seeded career role', () => {
-    expect(DEFAULT_ROLE_BLUEPRINTS.map(b => b.roleKey).sort()).toEqual([...roleKeys].sort());
+  it('covers every seeded career role across the software and dedicated data/AI catalogs', () => {
+    const covered = new Set([...DEFAULT_ROLE_BLUEPRINTS, ...NEW_BLUEPRINTS].map(b => b.roleKey));
+    expect([...roleKeys].filter(key => !covered.has(key))).toEqual([]);
   });
 
   it('has no blueprint for NOT_SURE — it is not a role', () => {

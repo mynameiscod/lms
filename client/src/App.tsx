@@ -179,7 +179,6 @@ const PassportSkillAssessment = lazy(() => import('./pages/Passport/SkillAssessm
 const PassportRewards = lazy(() => import('./pages/Passport/Rewards'));
 const AptitudeSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.AptitudeSoon })));
 const ReasoningSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.ReasoningSoon })));
-const PassportPractice = lazy(() => import('./pages/Passport/Practice'));
 const PassportPracticeItem = lazy(() => import('./pages/Passport/PracticeItem'));
 const PassportInterview = lazy(() => import('./pages/Passport/Interview'));
 const PassportResumeCenter = lazy(() => import('./pages/Passport/ResumeCenter'));

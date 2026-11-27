@@ -14,9 +14,11 @@ const allOff = Object.fromEntries(ORIGINAL_MODULES.map((k) => [k, false]));
 const newInstitute = Object.fromEntries(ALL_MODULES.map((k) => [k, false]));
 
 describe('effectiveModules', () => {
-  it('keeps everything for an institute with every original module on (CodeBegun)', () => {
+  it('keeps legacy modules enabled while public demo booking requires explicit opt-in', () => {
     const m = effectiveModules({});
-    expect(ALL_MODULES.every((k) => m[k])).toBe(true);
+    expect(ALL_MODULES.filter(k => k !== 'crmDemoBooking').every((k) => m[k])).toBe(true);
+    expect(m.crmDemoBooking).toBe(false);
+    expect(effectiveModules({ crmDemoBooking: true }).crmDemoBooking).toBe(true);
   });
 
   it('gives an institute created with every module off none of them', () => {

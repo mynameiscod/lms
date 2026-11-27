@@ -245,7 +245,7 @@ describe('a coding assignment, auto-graded on a real runner', () => {
     expect(rows[0]).toMatchObject({ performance: 0.9, meetsPassStandard: true });
     expect(await StudentSkillProfile.findOne({ studentId: student._id, skillKey: 'CONDITIONALS_BASICS' }).lean()).toMatchObject({ score: 90, evidenceCount: 1 });
 
-    // Reattempt: new work, new evidence beside the old.
+    // Reattempt: retain both observations; the profile uses the latest answer per item.
     await submissionService.allowReattempt(s._id, a.tenant as any, grader._id);
     passing = (_c, i) => i < 4;
     caseIndex = 0;
@@ -254,7 +254,7 @@ describe('a coding assignment, auto-graded on a real runner', () => {
     await settleAppliedEvidence();
     rows = await evidenceFor(s._id);
     expect(rows.map(r => [r.attemptNumber, r.performance, r.meetsPassStandard]).sort()).toEqual([[1, 0.9, true], [2, 0.8, true]]);
-    expect(await StudentSkillProfile.findOne({ studentId: student._id, skillKey: 'CONDITIONALS_BASICS' }).lean()).toMatchObject({ score: 85, evidenceCount: 2 });
+    expect(await StudentSkillProfile.findOne({ studentId: student._id, skillKey: 'CONDITIONALS_BASICS' }).lean()).toMatchObject({ score: 80, evidenceCount: 1 });
   });
 
   it('a review whose total includes a simulated run is not evidence unless the rubric carries the whole judgement', async () => {
@@ -293,7 +293,7 @@ describe('attempts that fail and pass', () => {
     answers: [1, 2, 3, 4, 5, 6].map(i => ({ itemId: `q${i}`, itemSourceType: 'quiz_question', skillKey: 'CONDITIONALS_BASICS', earnedPoints: 1, maxPoints: 1 })),
   });
 
-  it('a failed attempt and a later pass both count; the pass lifts the cap', async () => {
+  it('a failed attempt remains in history; the latest passing answer sets the score and lifts the cap', async () => {
     await checkpoints();
     const a = await codingAssignment(grader._id);
     const s = await inProgress(a, student);
@@ -304,17 +304,17 @@ describe('attempts that fail and pass', () => {
     expect(rows.map(r => [r.attemptNumber, r.performance, r.meetsPassStandard]).sort()).toEqual([[1, 0.2, false], [2, 0.9, true]]);
     expect((await explainSkill(TENANT, String(student._id), 'CONDITIONALS_BASICS')).basis).toMatchObject({ understandingOnly: false, qualifyingApplied: { rows: 1 } });
     // 6 × 0.5 × 1 + 0.2 + 0.9 over 5 → 82.
-    expect(await StudentSkillProfile.findOne({ studentId: student._id, skillKey: 'CONDITIONALS_BASICS' }).lean()).toMatchObject({ score: 82, evidenceCount: 8 });
+    expect(await StudentSkillProfile.findOne({ studentId: student._id, skillKey: 'CONDITIONALS_BASICS' }).lean()).toMatchObject({ score: 98, evidenceCount: 7 });
   });
 
-  it('a pass and a later failed attempt give the same Skill DNA: the later failure lowers the score, the earlier pass still counts', async () => {
+  it('a later failed answer lowers the score while the earlier passing evidence remains in history', async () => {
     await checkpoints();
     const a = await codingAssignment(grader._id);
     const s = await inProgress(a, student);
     await attempt(a, s, 0.9, true);
     await attempt(a, s, 0.2, false);
     expect((await explainSkill(TENANT, String(student._id), 'CONDITIONALS_BASICS')).basis).toMatchObject({ understandingOnly: false, qualifyingApplied: { rows: 1 } });
-    expect(await StudentSkillProfile.findOne({ studentId: student._id, skillKey: 'CONDITIONALS_BASICS' }).lean()).toMatchObject({ score: 82, evidenceCount: 8 });
+    expect(await StudentSkillProfile.findOne({ studentId: student._id, skillKey: 'CONDITIONALS_BASICS' }).lean()).toMatchObject({ score: 80, evidenceCount: 7 });
   });
 
   it('a regrade across the pass line flips the verdict on the same row', async () => {
@@ -422,7 +422,8 @@ describe('who can produce applied evidence', () => {
     }), own);
     await settleAppliedEvidence();
     expect(own.statusCode).toBe(200);
-    expect(own.body.data.autoGradeTrusted).toBe(false);
+    expect(own.body.data).not.toHaveProperty('autoGradeTrusted');
+    expect((await Submission.findById(s._id).lean()).autoGradeTrusted).toBe(false);
     expect(await StudentSkillEvidence.countDocuments()).toBe(0);
   });
 

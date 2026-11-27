@@ -6,7 +6,7 @@ import passportApi, {
   AnalyticsEnvelope, ConfigHealthView, LaunchReadinessView, HealthFindingView,
 } from '../../api/passportApi';
 import {
-  Cell, figure, countCell, percentCell, unavailableCell, coverageOf, reasonOf,
+  Cell, countCell, percentCell, unavailableCell, coverageOf, reasonOf,
   SEVERITY, AREA_STATUS, LAUNCH_STATUS, RANGES, rangeParams,
 } from './analyticsPresenters';
 

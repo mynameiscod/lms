@@ -67,7 +67,9 @@ describe('CareerPilot features: tenant switches', () => {
     const mapped = (p: string) => entries.filter(([x]) => p === x || p.startsWith(x + '/')).sort((a, b) => b[0].length - a[0].length)[0]?.[1];
     const pages = [...new Set([...sidebar.matchAll(/path: '(\/admin\/passport\/[a-z0-9-]+)'/g)].map((m) => m[1]))];
     expect(pages.length).toBeGreaterThan(20);
-    for (const p of pages) expect([p, CP_FEATURE_KEYS.includes(mapped(p) as string)]).toEqual([p, true]);
+    // Limits belongs to the platform owner, not an institute's CareerPilot module.
+    expect(sidebar).toContain("path: '/admin/passport/limits', roles: ['SUPER_ADMIN']");
+    for (const p of pages.filter(p => p !== '/admin/passport/limits')) expect([p, CP_FEATURE_KEYS.includes(mapped(p) as string)]).toEqual([p, true]);
   });
 });
 

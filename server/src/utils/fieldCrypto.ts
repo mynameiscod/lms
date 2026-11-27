@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { jwtSecret } from '../config/secrets';
 
 /**
  * Encrypts one personal field (PAN, Aadhaar, bank account number) before it is stored, so the
@@ -6,7 +7,8 @@ import crypto from 'crypto';
  * settings use. A value that cannot be decrypted (the key changed) reads as '' rather than as the
  * scrambled text.
  */
-const secret = () => process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'fallback-key-32-chars-minimum!!';
+// Preserve existing configured keys, but never encrypt personal data with a published fallback.
+const secret = () => process.env.ENCRYPTION_KEY || jwtSecret();
 const key = () => crypto.scryptSync(secret(), 'employee-fields', 32);
 
 export function encryptField(plain?: string | null): string {

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { careerTrackApi, CareerTrackCatalogue, CurriculumLearningUnit, DirectionCoverageReport, MegaCurriculumTopicRow, TaskPrices, UnitStudentPreview } from '../../api/passportApi';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import './adminContentBuilder.css';
-import { mediaUrl, mediaPathFor } from '../../utils/mediaUrl';
+import { mediaPathFor } from '../../utils/mediaUrl';
 import VideoScriptPanel from './VideoScriptPanel';
 import AssignmentDrawer from './AssignmentDrawer';
 import StudentDayPreview from './StudentDayPreview';

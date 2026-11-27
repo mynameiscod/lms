@@ -14,6 +14,7 @@ interface IAttendance extends Document {
   studentId: mongoose.Types.ObjectId;
   batchId: mongoose.Types.ObjectId;
   date: Date;
+  attendanceDay?: string;
   inTime?: string;
   outTime?: string;
   status: 'present' | 'absent' | 'leave';
@@ -48,6 +49,7 @@ const AttendanceSchema = new Schema<IAttendance>(
       required: true,
       default: () => new Date()
     },
+    attendanceDay: { type: String },
     inTime: {
       type: String,
       // Format: HH:MM
@@ -80,10 +82,27 @@ const AttendanceSchema = new Schema<IAttendance>(
     checkOut: { at: Date, ip: String, lat: Number, lng: Number, distanceM: Number, deviceId: String },
   },
   {
-    timestamps: true
+    timestamps: true,
+    autoIndex: false
   }
 );
 
+// Explicitly prepared by the attendance migration; never built by LMS startup.
+AttendanceSchema.index({ tenantId: 1, batchId: 1, studentId: 1, attendanceDay: 1 },
+  { name: 'attendance_day_unique', unique: true, partialFilterExpression: { attendanceDay: { $type: 'string' } } });
+AttendanceSchema.pre('validate', function () {
+  if (this.date) this.attendanceDay = new Date(this.date.getTime() + 19800000).toISOString().slice(0, 10);
+});
+// Native leave approvals use an upsert rather than document validation.
+AttendanceSchema.pre('findOneAndUpdate', function () {
+  const update: any = this.getUpdate();
+  const date = update?.$set?.date || update?.$setOnInsert?.date;
+  if (date) {
+    const key = new Date(new Date(date).getTime() + 19800000).toISOString().slice(0, 10);
+    const target = update.$set?.date ? update.$set : update.$setOnInsert;
+    target.attendanceDay = key;
+  }
+});
 // Compound index for tenant isolation and querying
 AttendanceSchema.index({ tenantId: 1, batchId: 1, date: 1 });
 AttendanceSchema.index({ tenantId: 1, studentId: 1, date: 1 });

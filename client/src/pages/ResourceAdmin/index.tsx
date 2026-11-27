@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { resourceApi, Resource, ResourceRequestRow, AuditEvent, fmtSize, VISIBILITY_LABEL } from '../../api/resourceApi';
+import { resourceApi, Resource, ResourceRequestRow, AuditEvent, VISIBILITY_LABEL } from '../../api/resourceApi';
 import { batchApi } from '../../api';
 
 interface Batch { _id: string; name: string; }

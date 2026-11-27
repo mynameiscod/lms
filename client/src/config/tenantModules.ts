@@ -161,6 +161,7 @@ export const MODULE_DEFS: ModuleDef[] = [
  * roles, batches, notifications, profile, settings, platform admin).
  */
 const PATH_MODULE: [string, ModuleKey][] = ([
+  ['/practice-library', 'codeAssessments'], ['/student/interviews', 'mockInterviews'], ['/problem-bundles', 'problemBank'],
   ['/student/fee-details', 'feeManagement'], ['/fees', 'feeManagement'], ['/seat-reservations', 'feeManagement'],
   ['/assessment-admin', 'skillAssessment'], ['/assessment-candidates', 'skillAssessment'],
   ['/attendance', 'attendance'], ['/my-attendance', 'attendance'], ['/attendance-reports', 'attendance'],

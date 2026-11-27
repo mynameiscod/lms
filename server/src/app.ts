@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 import apiRoutes from './routes';
+import mcpEndpoints from './mcp';
 import { jsonExceptImports } from './routes/problemBankRoutes';
 import { ApiResponse } from './types';
 import { processDueMessages } from './services/whatsAppDripService';
@@ -131,6 +132,8 @@ app.use(helmet({
    */
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
+// Isolated OAuth/MCP boundary: never log authorization queries, credentials or token bodies.
+app.use(mcpEndpoints);
 // Every request gets an id (X-Request-Id), first, so the access log, error log and any support
 // ticket raised about the request can be matched up.
 app.use(requestId);

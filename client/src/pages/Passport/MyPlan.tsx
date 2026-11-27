@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import passportApi, { SpineOutcome, SpineDay } from '../../api/passportApi';
 import FoundationJourneyPage from './FoundationJourney';
 import './myPlan.css';
-import { useProgramDays, daysLabel } from './useProgramDays';
+import { useProgramDays } from './useProgramDays';
 import { barWidth } from '../../utils/barWidth';
 
 /**

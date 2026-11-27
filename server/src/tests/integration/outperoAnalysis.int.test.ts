@@ -173,8 +173,8 @@ describe('listening to a call', () => {
     expect(whisper).toHaveBeenCalledTimes(1);
   });
 
-  it('does nothing at all unless an admin has turned it on: no transcript, no AI, no cost', async () => {
-    delete values.OUTPERO_CALL_ANALYSIS;
+  it('does nothing when an admin explicitly turns analysis off: no transcript, no AI, no cost', async () => {
+    values.OUTPERO_CALL_ANALYSIS = 'false';
     speak();
     const c: any = await mkCall();
     expect(await an.processPendingAnalysis()).toBe(0);

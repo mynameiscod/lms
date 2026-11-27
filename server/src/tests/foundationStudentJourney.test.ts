@@ -120,6 +120,12 @@ jest.mock('../controllers/enrollmentPlanController', () => ({
   resolveModuleStatuses: jest.fn(async () => ({})),
   itemDone: jest.fn(() => false),
 }));
+// Pricing is not the subject of this controller fixture; use its real defaults
+// without buffering reads against an unconnected database for each open day.
+jest.mock('../services/xpPricingService', () => {
+  const actual = jest.requireActual('../services/xpPricingService');
+  return { ...actual, loadXpPricing: jest.fn(async () => actual.DEFAULT_PRICING) };
+});
 jest.mock('../services/foundationJourneyXpService', () => ({
   ...jest.requireActual('../services/foundationJourneyXpService'),
   reconcileJourneyDayXp: jest.fn(async () => 0),
@@ -148,6 +154,10 @@ jest.mock('../services/orientationService', () => ({
   orientationBlocksLearning: (...a: any[]) => (mockOrientationBlocks as any)(...a),
   pacingClockFor: jest.fn(async () => null),
 }));
+
+// These are regular paid members. Demo overrides have separate tests and must
+// not issue real database lookups while checking all ninety days here.
+jest.mock('../services/demoService', () => ({ ladderDays: async (_id: string, completed: Set<number>) => completed }));
 
 import * as ctrl from '../controllers/foundationJourneyController';
 

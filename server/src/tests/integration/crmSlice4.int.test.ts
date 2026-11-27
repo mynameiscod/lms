@@ -41,7 +41,7 @@ beforeEach(async () => {
   const lead = (name: string, stageId: any, extra: any = {}) =>
     Lead.create({ tenantId: T, name, phone: String(Math.random()).slice(2, 12), stageId, createdBy: admin._id, courseInterest: ['Java'], ...extra } as any);
   await lead('Overdue', fresh._id, { nextFollowUp: new Date(now - 2 * day), assignedTo: staff._id, lastContactedAt: new Date(now - 3 * day) });
-  await lead('Today', qualified._id, { nextFollowUp: new Date(new Date().setHours(23, 0, 0, 0)), assignedTo: staff._id, lastContactedAt: new Date(now - day) });
+  await lead('Today', qualified._id, { nextFollowUp: new Date(new Date(now + 19_800_000).toISOString().slice(0, 10) + 'T23:59:59.999+05:30'), assignedTo: staff._id, lastContactedAt: new Date(now - day) });
   await lead('Upcoming', qualified._id, { nextFollowUp: new Date(now + 3 * day), assignedTo: other._id });
   await lead('Unowned', fresh._id, {});
   await lead('Closed overdue', lost._id, { nextFollowUp: new Date(now - 5 * day) });

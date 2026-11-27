@@ -7,6 +7,8 @@ import SkillPlan, { SkillPlanState } from './SkillPlan';
 import SectionLock from './SectionLock';
 import FoundationRoadmap from './FoundationRoadmap';
 import './roadmap.css';
+import { useProgramDays, daysLabel } from './useProgramDays';
+import { barWidth } from '../../utils/barWidth';
 
 /**
  * The 90-day journey the ₹499 unlock promises, in two views:
@@ -33,6 +35,7 @@ function weekItems(w: RoadmapWeek, limit = 4) {
 const Roadmap: React.FC = () => {
   const nav = useNavigate();
   const { data: member } = useMember();
+  const days = useProgramDays();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Record<number, boolean>>({});
@@ -174,7 +177,7 @@ const Roadmap: React.FC = () => {
             they have none. */}
         <SkillPlan />
         <div className="pm-head">
-          <h1>Your 90-Day Roadmap</h1>
+          <h1>{days ? `Your ${days}-Day Roadmap` : 'Your Roadmap'}</h1>
           <p>Your roadmap is built from your Career Readiness Assessment — take it first (it's free, about 5 minutes) and your personalised journey appears here.</p>
         </div>
         <div className="pm-card" style={{ textAlign: 'center', padding: '40px 24px' }}>
@@ -213,7 +216,7 @@ const Roadmap: React.FC = () => {
    * ninety days, with a year of access. It is neither a bug nor a shorter entitlement, and the
    * screen is the only place that can say so.
    */
-  const shortOfWindow = rm.totalDays < 90;
+  const shortOfWindow = rm.totalDays < (days || 90);
   const allWeeks = rm.phases.flatMap(p => p.weeks);
   const todayDone = allWeeks.flatMap(w => w.days).find(d => d.isToday)?.done ?? false;
   const inProgress = entitled && !todayDone ? 1 : 0;
@@ -292,7 +295,7 @@ const Roadmap: React.FC = () => {
           <h3>Upcoming Milestones</h3>
           {milestones.map(m => (
             <div className="rq-mile" key={m.key}>
-              <span className="ic" style={{ background: `${m.color}1f`, color: m.color }}>{m.icon}</span>
+              <span className="ic" style={{ background: `${m.color}1f`, color: m.color }}><i className={`bi ${m.icon}`} aria-hidden /></span>
               <div className="tx"><b>{m.label}</b><span>{m.hint}</span></div>
               <span className="pc">{Math.round(m.progress * 100)}%</span>
             </div>
@@ -319,13 +322,13 @@ const Roadmap: React.FC = () => {
           <p>
             {rm.totalDays} day{rm.totalDays === 1 ? '' : 's'} of work, in the order it builds.
             {shortOfWindow && <> That is everything assigned to you so far — your plan can run to
-              90 days, and it grows as more is assigned.</>}
+              {days || 90} days, and it grows as more is assigned.</>}
           </p>
         </div>
 
         <div className="rq-stats five">
           <Stat ic="📅" bg="#eef0ff" label="Total Duration" value={`${rm.totalDays} Days`} sub="Your learning journey" />
-          <Stat ic="📈" bg="#e6f2ff" label="Overall Progress" value={`${pct}%`} sub={<div className="rq-mini"><i style={{ width: `${Math.max(pct, 2)}%` }} /></div>} />
+          <Stat ic="📈" bg="#e6f2ff" label="Overall Progress" value={`${pct}%`} sub={<div className="rq-mini"><i style={{ width: `${barWidth(pct)}%` }} /></div>} />
           <Stat ic="⚡" bg="#fef3c7" label="XP Available" value={rm.totalXp.toLocaleString()} sub={`${rm.earnedXp} earned so far`} />
           <Stat ic="🧱" bg="#fdeaea" label="Phases" value={`${rm.phases.length} Phases`} sub="Foundation → Build → Placement" />
           <Stat ic="🗓️" bg="#efeaff" label="Current Day" value={`Day ${rm.currentDay} / ${rm.totalDays}`} sub="Keep going!" />
@@ -388,7 +391,7 @@ const Roadmap: React.FC = () => {
                     </div>
                     <div className="pr">
                       <span className="pc">{ppct}% Complete</span>
-                      <div className="bar"><i style={{ width: `${Math.max(ppct, 2)}%`, background: tint }} /></div>
+                      <div className="bar"><i style={{ width: `${barWidth(ppct)}%`, background: tint }} /></div>
                     </div>
                     <span className="xp" style={{ color: tint }}>+{xp.toLocaleString()} XP</span>
                     <button className="cr" onClick={() => setPhaseOpen(o => ({ ...o, [p.key]: !isOpen }))}>{isOpen ? '▲' : '▼'}</button>
@@ -493,7 +496,7 @@ const Roadmap: React.FC = () => {
               <span className="rq-strip-day">Day {rm.currentDay} of {rm.totalDays}</span>
               <span className="chip gold">⭐ {rm.earnedXp} XP</span>
             </div>
-            <div className="rq-mini"><i style={{ width: `${Math.max(pct, 2)}%` }} /></div>
+            <div className="rq-mini"><i style={{ width: `${barWidth(pct)}%` }} /></div>
             <div className="rq-strip-phases">
               {rm.phases.map(ph => (
                 <em key={ph.key} className={ph.key === currentPhase.key ? 'on' : ''}>
@@ -536,8 +539,8 @@ const Roadmap: React.FC = () => {
             {shortOfWindow
               ? ' That is everything assigned to you so far.'
               : ''}
-            {' '}Your full first-year curriculum — ninety days, day by day — is under{' '}
-            <button className="rq-inline" onClick={() => nav('/careerpilot/plan')}>My 90 Days</button>.
+            {' '}Your full curriculum — {days ? `${days} days` : 'every day'}, day by day — is under{' '}
+            <button className="rq-inline" onClick={() => nav('/careerpilot/plan')}>{days ? `My ${days} Days` : 'My Plan'}</button>.
           </p>
         </div>
         <div className="rq-title-chips">
@@ -550,7 +553,7 @@ const Roadmap: React.FC = () => {
         <div className="rq-main">
           <div className="rq-stats four">
             <Stat ic="🏆" bg="#efeaff" label="Career Score" value={data?.careerScore ?? '—'} sub={<span className="v">{data?.level || ''}</span>} />
-            <Stat ic="📈" bg="#e6f2ff" label="Journey Progress" value={`${pct}%`} sub={<><div className="rq-mini"><i style={{ width: `${Math.max(pct, 2)}%` }} /></div>{rm.completedDays} of {rm.totalDays} days complete</>} />
+            <Stat ic="📈" bg="#e6f2ff" label="Journey Progress" value={`${pct}%`} sub={<><div className="rq-mini"><i style={{ width: `${barWidth(pct)}%` }} /></div>{rm.completedDays} of {rm.totalDays} days complete</>} />
             <Stat ic="⚡" bg="#fef3c7" label="XP Available" value={rm.totalXp.toLocaleString()} sub={`${rm.earnedXp} earned so far`} />
             <Stat ic="🧱" bg="#fdeaea" label="Phases" value={rm.phases.length} sub="Foundation → Build → Placement" />
           </div>

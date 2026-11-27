@@ -81,7 +81,7 @@ async function prioritiesFor(tenantId: string, stages: string[]): Promise<{
 const ROLE_OF: Record<string, any> = { CONCEPT: 'FOUNDATION_INSTRUCTION', CHECKPOINT: 'VERIFICATION', PRACTICE: 'PRACTICE', DEBUG: 'PRACTICE', PROJECT: 'APPLICATION' };
 
 /** A unit the composer did not choose (bridge, or a MUST topic's proof), in the composer's shape. */
-function asSelected(u: ComposableUnit, profile: StudentProfile, held: boolean, position: number): SelectedUnit {
+export function asSelected(u: ComposableUnit, profile: StudentProfile, held: boolean, position: number): SelectedUnit {
   const skill = (u.skillKeys || [])[0] || null;
   const score = skill ? profile.skills.get(skill)?.score ?? null : null;
   const state: any = held ? 'REVISION' : 'FOUNDATION_REQUIRED';
@@ -93,7 +93,7 @@ function asSelected(u: ComposableUnit, profile: StudentProfile, held: boolean, p
   } as SelectedUnit;
 }
 
-const byTopic = (units: ComposableUnit[]) => {
+export const byTopic = (units: ComposableUnit[]) => {
   const m = new Map<string, ComposableUnit[]>();
   for (const u of units) {
     const k = String(u.topicCode || '');
@@ -101,7 +101,7 @@ const byTopic = (units: ComposableUnit[]) => {
   }
   return m;
 };
-const topicSkills = (units: ComposableUnit[]) => [...new Set(units.flatMap(u => u.skillKeys || []).map(String))];
+export const topicSkills = (units: ComposableUnit[]) => [...new Set(units.flatMap(u => u.skillKeys || []).map(String))];
 
 export async function composeRoadmapV2(
   tenantId: string,

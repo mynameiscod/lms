@@ -22,7 +22,7 @@ export interface WaTemplate {
   metaId?: string;
   rejectedReason?: string;
   qualityScore?: string;
-  header: { format: 'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'; text?: string; imageUrl?: string };
+  header: { format: 'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'; text?: string; imageUrl?: string; documentUrl?: string; fileName?: string };
   body: string;
   bodyExamples: string[];
   footer?: string;
@@ -38,7 +38,7 @@ export interface WaTemplateInput {
   name: string;
   language: string;
   category: WaCategory;
-  header?: { format: 'NONE' | 'TEXT' | 'IMAGE'; text?: string; imageUrl?: string };
+  header?: { format: 'NONE' | 'TEXT' | 'IMAGE' | 'DOCUMENT'; text?: string; imageUrl?: string; documentUrl?: string; fileName?: string };
   body?: string;
   bodyExamples?: string[];
   footer?: string;
@@ -54,9 +54,15 @@ export interface WaPurpose {
 
 export interface WaCompat { ok: boolean; errors: string[]; warnings: string[] }
 
+/** What a broadcast is for. Only 'sales' replies may start the bot or become leads. */
+export type WaBroadcastPurpose = 'sales' | 'hiring' | 'wishes' | 'update';
+export interface WaReplyLead { _id: string; name: string; phone: string; createdAt: string }
+
 export interface WaBroadcast {
-  _id: string; templateName: string; audience: string; total: number; sent: number; failed: number;
+  _id: string; templateName: string; audience: string; purpose?: WaBroadcastPurpose; total: number; sent: number; failed: number;
   status: 'running' | 'done' | 'failed'; failures: { phone: string; error: string }[]; createdAt: string; finishedAt?: string;
+  /** What Meta reported afterwards for the messages of this broadcast. */
+  outcome?: { delivered: number; read: number; failed: number; pending: number };
 }
 
 /** CRM leads to broadcast to. An empty list means "any". */
@@ -65,6 +71,12 @@ export interface WaLeadFilterOptions {
   stages: { _id: string; name: string; count: number }[];
   sources: { source: string; count: number }[];
 }
+/** A module that holds people (hackathons, tech battles, events...). The server decides the list. */
+export interface WaAudienceSource { key: string; label: string; description: string }
+export interface WaAudienceFilter { key: string; label: string; single?: boolean; options: { value: string; label: string; count?: number }[] }
+export interface WaSourceAudience { source: string; pick: Record<string, string[]>; skipAlreadySent: boolean }
+export interface WaSourcePreview { total: number; alreadySent: number; sample: string[] }
+
 export interface WaLeadAudience { total: number; alreadySent: number; years: Record<string, number>; sample: string[] }
 
 /** One template send and what Meta later reported about it. */
@@ -89,15 +101,36 @@ export const waTemplateApi = {
   usage: () => axios.get(`${BASE}/usage`, h()).then(d) as Promise<WaPurpose[]>,
   compatibility: () => axios.get(`${BASE}/usage/compatibility`, h()).then(d) as Promise<Record<string, Record<string, WaCompat>>>,
   assign: (purpose: string, templateId: string | null) => axios.put(`${BASE}/usage/${purpose}`, { templateId }, h()).then(d) as Promise<{ ok: boolean; warnings: string[] }>,
-  sendTest: (id: string, phone: string, values: string[], buttonParam?: string) => axios.post(`${BASE}/${id}/test`, { phone, values, buttonParam }, h()),
-  broadcast: (id: string, body: { phones?: string; batchId?: string; leads?: WaLeadFilter; values: string[]; buttonParam?: string }) =>
+  sendTest: (id: string, phone: string, values: string[], buttonParam?: string, force?: boolean) => axios.post(`${BASE}/${id}/test`, { phone, values, buttonParam, force: force === true }, h()),
+  broadcast: (id: string, body: { phones?: string; batchId?: string; leads?: WaLeadFilter; audience?: WaSourceAudience; values: string[]; buttonParam?: string; purpose?: WaBroadcastPurpose }) =>
     axios.post(`${BASE}/${id}/broadcast`, body, h()).then(d) as Promise<WaBroadcast>,
   broadcasts: () => axios.get(`${BASE}/broadcasts`, h()).then(d) as Promise<WaBroadcast[]>,
+  replyLeads: (id: string) => axios.get(`${BASE}/broadcasts/${id}/reply-leads`, h()).then(d) as Promise<WaReplyLead[]>,
+  setPurpose: (id: string, purpose: WaBroadcastPurpose) => axios.put(`${BASE}/broadcasts/${id}/purpose`, { purpose }, h()).then(d) as Promise<{ purpose: WaBroadcastPurpose; recipients: number; leads: WaReplyLead[] }>,
+  archiveReplyLeads: (id: string) => axios.post(`${BASE}/broadcasts/${id}/archive-reply-leads`, {}, h()).then(d) as Promise<{ archived: number }>,
   batches: () => axios.get(`${BASE}/batches`, h()).then(d) as Promise<{ _id: string; name: string }[]>,
   leadFilters: () => axios.get(`${BASE}/lead-filters`, h()).then(d) as Promise<WaLeadFilterOptions>,
   leadAudience: (id: string, f: WaLeadFilter) => axios.post(`${BASE}/${id}/lead-audience`, f, h()).then(d) as Promise<WaLeadAudience>,
-  messages: (q: { phone?: string; templateId?: string; limit?: number } = {}) =>
+  audienceSources: () => axios.get(`${BASE}/audiences`, h()).then(d) as Promise<WaAudienceSource[]>,
+  audienceFilters: (key: string) => axios.get(`${BASE}/audiences/${key}/filters`, h()).then(d) as Promise<WaAudienceFilter[]>,
+  audiencePreview: (id: string, a: WaSourceAudience) => axios.post(`${BASE}/${id}/audience-preview`, a, h()).then(d) as Promise<WaSourcePreview>,
+  messages: (q: { phone?: string; templateId?: string; limit?: number; status?: '' | 'failed' | 'delivered' | 'read' | 'pending'; source?: string; days?: number; q?: string } = {}) =>
     axios.get(`${BASE}/messages`, { ...h(), params: q }).then(d) as Promise<WaMessage[]>,
+  messagesSummary: (days = 1) => axios.get(`${BASE}/messages/summary`, { ...h(), params: { days } }).then(d) as Promise<WaDeliverySummary>,
+  /** Upload a PDF (brochure) for a Document header; returns the public link Meta fetches. */
+  uploadPdf: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return axios.post(`${BASE}/files`, form, h()).then(d) as Promise<{ url: string; fileName: string; size: number }>;
+  },
 };
+
+/** The last 24 hours of sends: totals and the most common failure reasons. */
+export interface WaDeliverySummary {
+  days: number; total: number; prevTotal: number; delivered: number; read: number; failed: number; pending: number;
+  /** Failed numbers that are not a valid Indian mobile. */
+  badNumbers: number;
+  reasons: { code?: number; count: number; last: string; reason: string; advice: string; templates: string[] }[];
+}
 
 export const errMsg = (e: any, fallback = 'Something went wrong') => e?.response?.data?.message || e?.message || fallback;

@@ -40,6 +40,16 @@ const upload = multer({
 });
 
 // Public, read-only share link — must be before auth middleware
+/** An LMS demo student: each AI resume action (read, score, improve, tailor) comes out of the day's AI allowance. */
+const demoAi = async (req: any, res: any, next: any) => {
+  try {
+    const { takeDemoAi } = await import('../services/lmsDemoService');
+    const use = await takeDemoAi(String(req.user?.id || ''));
+    if (use.demo && !use.ok) return res.status(429).json({ code: 'DEMO_AI_LIMIT', message: `You have used today's ${use.limit} AI questions. More tomorrow.` });
+    next();
+  } catch (e) { next(e); }
+};
+
 router.get('/public/:token', getPublicResume);
 
 // Auth first: tenantResolver takes the tenant from the verified token, so running it
@@ -48,11 +58,11 @@ router.use(authMiddleware);
 router.use(tenantResolver);
 
 router.get('/my', getMyResume);
-router.post('/upload', upload.single('resume'), uploadResume);
+router.post('/upload', demoAi, upload.single('resume'), uploadResume);
 router.put('/sections', saveSections);
-router.post('/score', scoreMyResume);
-router.post('/improve', improveMyResume);
-router.post('/tailor', tailorMyResume);
+router.post('/score', demoAi, scoreMyResume);
+router.post('/improve', demoAi, improveMyResume);
+router.post('/tailor', demoAi, tailorMyResume);
 router.post('/share', shareMyResume);
 router.get('/all', getAllResumes); // admin
 

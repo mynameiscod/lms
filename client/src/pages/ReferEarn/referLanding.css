@@ -1,0 +1,53 @@
+/* /refer/:code — public referral page (ReferLanding.tsx). Outside the app shell, CodeBegun palette. */
+.rfl {
+  --navy: #051D64; --navy2: #0B2D72; --teal: #359AAD; --ink: #102A4F; --text: #33475B; --muted: #5B6B80;
+  --line: #E2EAF2; --line2: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD; --green: #13784F; --red: #C93737; --amber: #9A5A00;
+  min-height: calc(100vh / var(--app-zoom, 1)); background: radial-gradient(1200px 500px at 85% -10%, #E3F3F6, transparent 60%), #F6F9FC; color: var(--ink);
+  padding: 22px 16px 48px;
+}
+@media (min-width: 1025px) { .rfl { zoom: 1.2; min-height: calc(100vh / var(--app-zoom, 1) / 1.2); } }
+.rfl * { box-sizing: border-box; }
+.rfl button, .rfl input, .rfl select { font: inherit; }
+.rfl-wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+.rfl-brand img { height: 40px; width: auto; display: block; }
+
+.rfl-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, 1fr); gap: 28px; align-items: start; }
+.rfl-eyebrow { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font-size: 13px; font-weight: 800; color: var(--teal); }
+.rfl-pitch h1 { margin: 14px 0 10px; font-size: clamp(26px, 3.4vw, 40px); line-height: 1.15; font-weight: 800; color: var(--ink); }
+.rfl-pitch h1 span { color: var(--teal); }
+.rfl-pitch p { margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: var(--text); max-width: 540px; }
+.rfl-pitch ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rfl-pitch li { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #fff; border: 1px solid var(--line); font-size: 14.5px; font-weight: 600; color: var(--text); }
+.rfl-pitch li i { color: var(--teal); font-size: 17px; }
+
+.rfl-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 24px; box-shadow: 0 14px 40px rgba(5, 29, 100, .08); }
+.rfl-center { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 20px 8px; }
+.rfl-center h1, .rfl-center h2 { margin: 6px 0 2px; font-size: 24px; font-weight: 800; color: var(--ink); }
+.rfl-center p { margin: 0; max-width: 460px; font-size: 15.5px; line-height: 1.55; color: var(--text); }
+.rfl-big { font-size: 46px; color: var(--teal); }
+.rfl-big.ok { color: var(--green); }
+.rfl-big.warn { color: var(--amber); }
+.rfl-spin { width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--tint); border-top-color: var(--navy); animation: rfl-spin 1s linear infinite; }
+@keyframes rfl-spin { to { transform: rotate(360deg); } }
+
+.rfl-form { display: flex; flex-direction: column; gap: 13px; }
+.rfl-form h2 { margin: 0 0 4px; font-size: 21px; font-weight: 800; color: var(--ink); }
+.rfl-form label { display: flex; flex-direction: column; gap: 5px; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.rfl-form label em { font-style: normal; font-weight: 500; color: var(--muted); }
+.rfl-form input, .rfl-form select { width: 100%; min-height: 46px; padding: 8px 13px; border-radius: 11px; border: 1px solid var(--line2); background: #fff; color: var(--ink); font-size: 15.5px; }
+.rfl-form input:focus, .rfl-form select:focus { outline: 2px solid rgba(53, 154, 173, .35); border-color: var(--teal); }
+.rfl-form button { min-height: 50px; border: 0; border-radius: 12px; background: var(--navy); color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 4px; }
+.rfl-form button:hover:not(:disabled) { background: var(--navy2); }
+.rfl-form button:disabled { opacity: .6; cursor: not-allowed; }
+.rfl-form small { text-align: center; color: var(--muted); font-size: 12.5px; }
+.rfl-err { padding: 11px 14px; border-radius: 11px; background: #FFF0F0; color: var(--red); font-size: 14px; font-weight: 600; }
+
+@media (max-width: 860px) {
+  .rfl-grid { grid-template-columns: 1fr; gap: 20px; }
+}
+@media (max-width: 480px) {
+  .rfl-pitch ul { grid-template-columns: 1fr; }
+  .rfl-card { padding: 18px; }
+}
+.rfl-form input::placeholder { font-weight: 400; color: #94A3B8; }
+.rfl-form input, .rfl-form select { font-weight: 500; }

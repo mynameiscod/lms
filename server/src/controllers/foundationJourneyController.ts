@@ -24,6 +24,8 @@
  */
 
 import { Request, Response } from 'express';
+import { trackForStudent } from '../services/careerTrackService';
+import { resolveRoadmapV2 } from '../data/roadmapV2Policy';
 import mongoose from 'mongoose';
 import LearningCurriculum from '../models/LearningCurriculum';
 import DayPlan from '../models/DayPlan';
@@ -43,10 +45,16 @@ import { buildFoundationProfile } from '../services/foundationProfileService';
 import { composeFoundationJourney, loadAssets, activitiesFor, packComposedDays, dayTitle } from '../services/foundationJourneyService';
 import { applyFoundationTrigger, directionChoiceFor } from '../services/foundationJourneyTriggerService';
 import { resolveModuleStatuses, itemDone } from './enrollmentPlanController';
-import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
+import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished } from '../services/foundationJourneyXpService';
+import { loadXpPricing } from '../services/xpPricingService';
 import { orientationBlocksLearning, orientationRoadmap, pacingClockFor } from '../services/orientationService';
 import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService';
+/** What the day ladder reads (services/demoService.ts), loaded only when a day is checked. */
+const ladderDays = async (userId: string, completed: Set<number>): Promise<Set<number>> => {
+  try { return await (await import('../services/demoService')).ladderDays(userId, completed); } catch { return completed; }
+};
 import { roadmapV2SettingFor } from '../services/roadmapV2SettingService';
+import { adoptSetupTrack } from '../services/roadmapRebuildService';
 
 /**
  * Which engine plans this student, for the screens that must show exactly one plan.
@@ -102,7 +110,7 @@ async function journeyOf(tenantId: string, studentId: string, stageKey?: string 
     personalizedFor: new mongoose.Types.ObjectId(studentId),
     adaptiveStage: String(stageKey || STAGE_FALLBACK),
     journeyKind: FOUNDATION_JOURNEY_KIND,
-  }).select('_id title createdAt totalDays roadmapVersion phaseDays v2Report rebuilds').lean() as any;
+  }).select('_id title createdAt totalDays roadmapVersion phaseDays v2Report rebuilds trackKey').lean() as any;
 }
 
 /**
@@ -425,10 +433,13 @@ export const getMyJourney = async (req: Request, res: Response) => {
            * The preview IS what membership will build — so for a learner on Roadmap V2 it is
            * composed by V2 (bridge, revision and all) and its days are V2's own.
            */
-          const v2Setting = await roadmapV2SettingFor(tenantId, String(studentId), stageKey || STAGE_FALLBACK);
+          let v2Setting = await roadmapV2SettingFor(tenantId, String(studentId), stageKey || STAGE_FALLBACK);
+          /* A student on a career track previews the track (always planned as V2). */
+          const track = await trackForStudent(tenantId, String(studentId), stageKey || STAGE_FALLBACK);
+          if (track && !v2Setting) v2Setting = { dailyMinutes: resolveRoadmapV2(null).dailyMinutes, revisionDays: resolveRoadmapV2(null).revisionDays };
           const { composition, v2 } = await composeFoundationJourney(tenantId, profile, {
             source: 'PRODUCTION', stageKey: stageKey || STAGE_FALLBACK, programDays,
-            roadmapV2: v2Setting, studentId: String(studentId),
+            roadmapV2: v2Setting, studentId: String(studentId), track,
           });
           if (v2Setting && v2) {
             const allDays = v2.days.map((day, i) => ({ day: i + 1, units: day.map(d => d.unit) }));
@@ -508,6 +519,14 @@ export const getMyJourney = async (req: Request, res: Response) => {
       }
     }
 
+    /*
+     * A Year 3/4 roadmap built before the member's setup track could be read is rebuilt on it now
+     * (not started only): setup's role + language decide the roadmap, nothing else.
+     */
+    if (engine === 'UNIT' && access.level === 'FULL' && await adoptSetupTrack(tenantId, String(studentId), stageKey, curriculum)) {
+      curriculum = await journeyOf(tenantId, studentId, stageKey) || curriculum;
+    }
+
     const [days, enrollment] = await Promise.all([
       DayPlan.find({ curriculumId: curriculum._id })
         .select('dayNumber title primaryUnitCode items phase').sort({ dayNumber: 1 }).lean() as any,
@@ -560,6 +579,8 @@ export const getMyJourney = async (req: Request, res: Response) => {
     const overview = await overviewOf(tenantId, days as any[], stageKey);
     /* Read once for the whole strip: ninety lookups for one answer would be absurd. */
     const stripPacedFrom = await pacingClockFor(tenantId, studentId);
+    /* What the ladder reads: every day for a demo account (services/demoService.ts). */
+    const ladder = await ladderDays(String(studentId), completed);
 
     /**
      * A short summary per day rather than the full activity list.
@@ -591,12 +612,14 @@ export const getMyJourney = async (req: Request, res: Response) => {
       status: completed.has(d.dayNumber) ? 'COMPLETED'
         : d.dayNumber === currentDay ? 'CURRENT'
           : d.dayNumber < currentDay ? 'SKIPPED' : 'UPCOMING',
-      locked: !isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom),
+      locked: !isJourneyDayOpen(d.dayNumber, ladder, stripPacedFrom),
       /* Which gate is shut, so the strip can say "tomorrow" rather than only "locked". */
-      lockedReason: gateHolds(d.dayNumber) && isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? 'FOUNDATION_GATE'
-        : isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? undefined
+      lockedReason: gateHolds(d.dayNumber) && isJourneyDayOpen(d.dayNumber, ladder, stripPacedFrom) ? 'FOUNDATION_GATE'
+        : isJourneyDayOpen(d.dayNumber, ladder, stripPacedFrom) ? undefined
           : !calendarAllowsDay(d.dayNumber, stripPacedFrom) ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
-    })).map(d => (d.lockedReason === 'FOUNDATION_GATE' ? { ...d, locked: true } : d));
+    })).map(d => (d.lockedReason === 'FOUNDATION_GATE' ? { ...d, locked: true } : d))
+      /* A trial's days past its limit say so, whatever else holds them. */
+      .map(d => (access.trialDays && d.day > access.trialDays && d.status !== 'COMPLETED' ? { ...d, locked: true, lockedReason: 'TRIAL_LIMIT' as any } : d));
 
     /* Each phase's size and progress, for the "Revision · Bridge · Year" bands. */
     const phases = isV2
@@ -624,6 +647,8 @@ export const getMyJourney = async (req: Request, res: Response) => {
       startedAt: enrollment?.startDate || null,
       engine,
       access: 'FULL',
+      /** A trial opens days 1..trialDays only; the strip marks the rest TRIAL_LIMIT. */
+      ...(access.trialDays ? { trialDays: access.trialDays } : {}),
       /** Where a day is actually worked through: the learning-plan day player. */
       enrollmentId: enrollment?._id ? String(enrollment._id) : null,
       days: strip,
@@ -665,6 +690,9 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
     // Beyond the preview, a day is refused on the server — not merely hidden on the screen.
     const access = await foundationAccess(tenantId, studentId);
     if (membershipRefusesDay(dayNumber, access)) {
+      if (access.trialDays && dayNumber > access.trialDays) {
+        return res.status(403).json({ reason: 'TRIAL_LIMIT', trialDays: access.trialDays, message: `Your trial includes the first ${access.trialDays} days. Take membership to open day ${dayNumber}.` });
+      }
       return res.status(403).json({ reason: 'MEMBERSHIP_REQUIRED', message: `Take membership to open day ${dayNumber} of your roadmap.` });
     }
 
@@ -721,7 +749,7 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
 
     const doneDays = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
     const pacedFrom = await pacingClockFor(tenantId, String(studentId));
-    if (!isJourneyDayOpen(plan.dayNumber, doneDays, pacedFrom)) {
+    if (!isJourneyDayOpen(plan.dayNumber, await ladderDays(String(studentId), doneDays), pacedFrom)) {
       /**
        * TWO REASONS, TWO MESSAGES.
        *
@@ -768,6 +796,8 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
     // its tasks simply show as not yet done, and the next read settles the XP.
     let moduleStatus: Record<string, { attempted: boolean; status: string; score: number | null }> = {};
     let xpJustPaid = 0;
+    // The admin's prices — the same list the ledger pays from, so the figures shown are the figures paid.
+    const pricing = await loadXpPricing(tenantId);
     try {
       moduleStatus = enrollment ? await resolveModuleStatuses(studentId, items) : {};
       const dayComplete = items.length > 0 && items.every((it: any) => itemDone(it, plan.dayNumber, completedItems, moduleStatus));
@@ -796,9 +826,9 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
         .map((it: any) => ({
           ...activityFor(it),
           done: journeyItemFinished(it, plan.dayNumber, completedItems, moduleStatus),
-          xp: xpForJourneyItem(it),
+          xp: xpForJourneyItem(it, pricing),
         })),
-      dayBonusXp: FOUNDATION_DAY_BONUS_XP,
+      dayBonusXp: pricing.dayBonus,
       /** XP this read settled (work finished elsewhere since the last read) — the page refreshes XP and goal on it. */
       xpJustPaid,
     });
@@ -827,7 +857,7 @@ export const getStudentJourney = async (req: Request, res: Response) => {
 
     // The tenant comes from the admin's verified identity, so another tenant's member is simply not found.
     const member = await User.findOne({ _id: studentId, tenantId })
-      .select('firstName lastName email passport.stage').lean() as any;
+      .select('firstName lastName email passport.stage passport.careerTrack').lean() as any;
     if (!member) return res.status(404).json({ message: 'No such member in this tenant.' });
 
     const { engine, stageKey } = await engineOf(tenantId, studentId);
@@ -841,6 +871,7 @@ export const getStudentJourney = async (req: Request, res: Response) => {
       name: [member.firstName, member.lastName].filter(Boolean).join(' ') || member.email || 'Member',
       email: member.email || null,
       stage: member.passport?.stage || null,
+      careerTrack: member.passport?.careerTrack?.key || null,
     };
 
     if (!curriculum) {

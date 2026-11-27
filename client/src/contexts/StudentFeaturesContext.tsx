@@ -13,6 +13,7 @@ export interface StudentFeatures {
   codingSnippets: boolean;
   classHub: boolean;
   feeDetails: boolean;
+  referEarn: boolean;
   scheduledInterviews: boolean;
   resumeBuilder: boolean;
   learningPlan: boolean;
@@ -37,6 +38,7 @@ export interface StudentFeatures {
   myPractice: boolean;
   codingPractice: boolean;
   codeVisualizer: boolean;
+  myProject: boolean;
 }
 
 const DEFAULT_FEATURES: StudentFeatures = {
@@ -50,6 +52,7 @@ const DEFAULT_FEATURES: StudentFeatures = {
   codingSnippets: true,
   classHub: true,
   feeDetails: true,
+  referEarn: true,
   scheduledInterviews: true,
   resumeBuilder: true,
   learningPlan: true,
@@ -74,6 +77,7 @@ const DEFAULT_FEATURES: StudentFeatures = {
   myPractice: true,
   codingPractice: true,
   codeVisualizer: true,
+  myProject: true,
 };
 
 interface StudentFeaturesContextType {

@@ -1,0 +1,2136 @@
+[
+  {
+    "seedKey": "coding-031",
+    "type": "coding",
+    "subCategory": "Conditions",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Days in a Month",
+    "statement": "A hostel warden needs to know how many days a month has to calculate the mess bill. February has 29 days in a leap year and 28 otherwise. A year is a leap year if it is divisible by 400, or divisible by 4 but not by 100.\n\nInput: two lines: the month number m (1 <= m <= 12) and the year y (1 <= y <= 9999).\nOutput: one integer, the number of days in that month.\n\nExample: for month 2 and year 2024, 2024 is a leap year, so print 29.",
+    "language": "python",
+    "starterCode": "m = int(input())\ny = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "2\n2024",
+        "expectedOutput": "29",
+        "explanation": "2024 is divisible by 4 and not by 100, so February has 29 days."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "2\n2024",
+        "expectedOutput": "29",
+        "hidden": false
+      },
+      {
+        "input": "4\n2023",
+        "expectedOutput": "30",
+        "hidden": false
+      },
+      {
+        "input": "2\n1900",
+        "expectedOutput": "28",
+        "hidden": true
+      },
+      {
+        "input": "2\n2000",
+        "expectedOutput": "29",
+        "hidden": true
+      },
+      {
+        "input": "12\n2025",
+        "expectedOutput": "31",
+        "hidden": true
+      },
+      {
+        "input": "2\n2023",
+        "expectedOutput": "28",
+        "hidden": true
+      },
+      {
+        "input": "1\n1",
+        "expectedOutput": "31",
+        "hidden": true
+      },
+      {
+        "input": "11\n2100",
+        "expectedOutput": "30",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "m = int(input())\ny = int(input())\nif m == 2:\n    if y % 400 == 0 or (y % 4 == 0 and y % 100 != 0):\n        print(29)\n    else:\n        print(28)\nelif m == 4 or m == 6 or m == 9 or m == 11:\n    print(30)\nelse:\n    print(31)\n",
+    "topics": [
+      "conditions"
+    ],
+    "hints": [
+      "April, June, September and November have 30 days; February is the special case.",
+      "For February, test the leap-year rule: y % 400 == 0 or (y % 4 == 0 and y % 100 != 0)."
+    ],
+    "explanation": "Handle February first: it has 29 days in a leap year and 28 otherwise. Months 4, 6, 9 and 11 have 30 days and every other month has 31. Note 1900 is not a leap year but 2000 is.",
+    "estimatedMinutes": 6,
+    "order": 31
+  },
+  {
+    "seedKey": "coding-032",
+    "type": "coding",
+    "subCategory": "Conditions",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Highest of Three Marks",
+    "statement": "Ravi wrote three unit tests and wants to report his best mark.\n\nInput: three lines, each an integer mark (0 <= mark <= 100).\nOutput: the highest of the three marks.\n\nExample: for marks 67, 82 and 74, print 82.",
+    "language": "python",
+    "starterCode": "a = int(input())\nb = int(input())\nc = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "67\n82\n74",
+        "expectedOutput": "82",
+        "explanation": "82 is larger than both 67 and 74."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "67\n82\n74",
+        "expectedOutput": "82",
+        "hidden": false
+      },
+      {
+        "input": "90\n90\n45",
+        "expectedOutput": "90",
+        "hidden": false
+      },
+      {
+        "input": "0\n0\n0",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "100\n99\n98",
+        "expectedOutput": "100",
+        "hidden": true
+      },
+      {
+        "input": "12\n34\n56",
+        "expectedOutput": "56",
+        "hidden": true
+      },
+      {
+        "input": "55\n20\n55",
+        "expectedOutput": "55",
+        "hidden": true
+      },
+      {
+        "input": "1\n2\n1",
+        "expectedOutput": "2",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "a = int(input())\nb = int(input())\nc = int(input())\nbest = a\nif b > best:\n    best = b\nif c > best:\n    best = c\nprint(best)\n",
+    "topics": [
+      "conditions"
+    ],
+    "hints": [
+      "Start by assuming the first mark is the best.",
+      "Compare the second and third marks with the current best and replace it when one is bigger."
+    ],
+    "explanation": "Keep a variable best, starting with the first mark. Compare it with the second and then the third mark, replacing it whenever a larger mark appears. Ties do not matter because the value printed is the same.",
+    "estimatedMinutes": 5,
+    "order": 32
+  },
+  {
+    "seedKey": "coding-033",
+    "type": "coding",
+    "subCategory": "Conditions",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Type of Triangle",
+    "statement": "Given three side lengths, decide what kind of triangle they make. The sides form a triangle only if each side is smaller than the sum of the other two.\n\nInput: three lines, each a positive integer side (1 <= side <= 1000).\nOutput: one word: Invalid if they do not form a triangle, otherwise Equilateral (all sides equal), Isosceles (exactly two equal) or Scalene (all different).\n\nExample: for sides 5, 5 and 8, the sides form a triangle and two are equal, so print Isosceles.",
+    "language": "python",
+    "starterCode": "a = int(input())\nb = int(input())\nc = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "5\n5\n8",
+        "expectedOutput": "Isosceles",
+        "explanation": "5 + 5 > 8, so it is a triangle, and exactly two sides are equal."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5\n5\n8",
+        "expectedOutput": "Isosceles",
+        "hidden": false
+      },
+      {
+        "input": "3\n4\n5",
+        "expectedOutput": "Scalene",
+        "hidden": false
+      },
+      {
+        "input": "7\n7\n7",
+        "expectedOutput": "Equilateral",
+        "hidden": true
+      },
+      {
+        "input": "1\n2\n3",
+        "expectedOutput": "Invalid",
+        "hidden": true
+      },
+      {
+        "input": "10\n1\n1",
+        "expectedOutput": "Invalid",
+        "hidden": true
+      },
+      {
+        "input": "6\n9\n6",
+        "expectedOutput": "Isosceles",
+        "hidden": true
+      },
+      {
+        "input": "2\n3\n4",
+        "expectedOutput": "Scalene",
+        "hidden": true
+      },
+      {
+        "input": "1\n1\n1",
+        "expectedOutput": "Equilateral",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "a = int(input())\nb = int(input())\nc = int(input())\nif a + b <= c or a + c <= b or b + c <= a:\n    print(\"Invalid\")\nelif a == b and b == c:\n    print(\"Equilateral\")\nelif a == b or b == c or a == c:\n    print(\"Isosceles\")\nelse:\n    print(\"Scalene\")\n",
+    "topics": [
+      "conditions"
+    ],
+    "hints": [
+      "Check validity first: if any side is at least the sum of the other two, it is Invalid.",
+      "Then test all-equal before any-two-equal, otherwise an equilateral triangle would be called isosceles."
+    ],
+    "explanation": "First reject impossible sides: if a + b <= c (or either other pairing) the sides lie flat and cannot close. Then check all three equal, then any two equal, and otherwise Scalene. The order of checks matters.",
+    "estimatedMinutes": 6,
+    "order": 33
+  },
+  {
+    "seedKey": "coding-034",
+    "type": "coding",
+    "subCategory": "Loops",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Count the Digits",
+    "statement": "A form accepts a mobile number only if it has the right number of digits. Write a program that counts the digits of a non-negative integer using a loop (do not convert it to a string).\n\nInput: one integer n (0 <= n <= 10^18).\nOutput: the number of digits in n.\n\nExample: for 98765 print 5.",
+    "language": "python",
+    "starterCode": "n = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "98765",
+        "expectedOutput": "5",
+        "explanation": "98765 -> 9876 -> 987 -> 98 -> 9, so there are 5 digits."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "98765",
+        "expectedOutput": "5",
+        "hidden": false
+      },
+      {
+        "input": "0",
+        "expectedOutput": "1",
+        "hidden": false
+      },
+      {
+        "input": "7",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "10",
+        "expectedOutput": "2",
+        "hidden": true
+      },
+      {
+        "input": "9876543210",
+        "expectedOutput": "10",
+        "hidden": true
+      },
+      {
+        "input": "1000000000000000000",
+        "expectedOutput": "19",
+        "hidden": true
+      },
+      {
+        "input": "99",
+        "expectedOutput": "2",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\ncount = 1\nwhile n >= 10:\n    n = n // 10\n    count += 1\nprint(count)\n",
+    "topics": [
+      "loops"
+    ],
+    "hints": [
+      "Dividing by 10 with // removes the last digit.",
+      "Be careful with 0: it has one digit, so start the count at 1 and loop while n >= 10."
+    ],
+    "explanation": "Each n // 10 drops one digit. Starting the count at 1 and repeating while n is at least 10 counts every digit, and it also gives the correct answer 1 for n = 0.",
+    "estimatedMinutes": 5,
+    "order": 34
+  },
+  {
+    "seedKey": "coding-035",
+    "type": "coding",
+    "subCategory": "Loops",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Hollow Square of Stars",
+    "statement": "Print a hollow square of stars of size n: the first and last rows are full of stars, and the middle rows have a star at each end with spaces in between.\n\nInput: one integer n (1 <= n <= 20).\nOutput: n lines forming the hollow square (no trailing spaces; every line is exactly n characters).\n\nExample: for n = 4 print\n****\n*  *\n*  *\n****",
+    "language": "python",
+    "starterCode": "n = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "4",
+        "expectedOutput": "****\n*  *\n*  *\n****",
+        "explanation": "Rows 1 and 4 are full; rows 2 and 3 have a star at each end."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "4",
+        "expectedOutput": "****\n*  *\n*  *\n****",
+        "hidden": false
+      },
+      {
+        "input": "1",
+        "expectedOutput": "*",
+        "hidden": false
+      },
+      {
+        "input": "2",
+        "expectedOutput": "**\n**",
+        "hidden": true
+      },
+      {
+        "input": "3",
+        "expectedOutput": "***\n* *\n***",
+        "hidden": true
+      },
+      {
+        "input": "5",
+        "expectedOutput": "*****\n*   *\n*   *\n*   *\n*****",
+        "hidden": true
+      },
+      {
+        "input": "7",
+        "expectedOutput": "*******\n*     *\n*     *\n*     *\n*     *\n*     *\n*******",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nfor i in range(n):\n    if i == 0 or i == n - 1:\n        print(\"*\" * n)\n    else:\n        print(\"*\" + \" \" * (n - 2) + \"*\")\n",
+    "topics": [
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "The first and last rows are just n stars.",
+      "A middle row is a star, n - 2 spaces, and a star."
+    ],
+    "explanation": "Loop over the n rows. Rows 0 and n - 1 print n stars; every other row prints a star, n - 2 spaces and a star. For n = 1 and n = 2 only full rows are printed, so there is no special case.",
+    "estimatedMinutes": 6,
+    "order": 35
+  },
+  {
+    "seedKey": "coding-036",
+    "type": "coding",
+    "subCategory": "Loops",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Factorial of a Number",
+    "statement": "The number of ways to arrange n students in a line is n! (n factorial) = 1 x 2 x ... x n, and 0! = 1.\n\nInput: one integer n (0 <= n <= 20).\nOutput: n! as an integer.\n\nExample: for n = 5 print 120.",
+    "language": "python",
+    "starterCode": "n = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "5",
+        "expectedOutput": "120",
+        "explanation": "1 x 2 x 3 x 4 x 5 = 120."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5",
+        "expectedOutput": "120",
+        "hidden": false
+      },
+      {
+        "input": "0",
+        "expectedOutput": "1",
+        "hidden": false
+      },
+      {
+        "input": "1",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "3",
+        "expectedOutput": "6",
+        "hidden": true
+      },
+      {
+        "input": "10",
+        "expectedOutput": "3628800",
+        "hidden": true
+      },
+      {
+        "input": "20",
+        "expectedOutput": "2432902008176640000",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nresult = 1\nfor i in range(2, n + 1):\n    result *= i\nprint(result)\n",
+    "topics": [
+      "loops"
+    ],
+    "hints": [
+      "Start with result = 1, not 0.",
+      "Multiply result by every number from 2 to n."
+    ],
+    "explanation": "Start with 1 and multiply in each number from 2 to n. Because the loop does nothing when n is 0 or 1, both give 1, which matches the definition 0! = 1.",
+    "estimatedMinutes": 5,
+    "order": 36
+  },
+  {
+    "seedKey": "coding-037",
+    "type": "coding",
+    "subCategory": "Strings",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Count the Words",
+    "statement": "A teacher wants to know how many words a student wrote in an answer. Words are separated by one or more spaces, and there may be spaces at the start or end.\n\nInput: one line of text (it may be empty or contain only spaces).\nOutput: the number of words.\n\nExample: for the line \"  I love   coding \" print 3.",
+    "language": "python",
+    "starterCode": "line = input()\n# your code here\n",
+    "examples": [
+      {
+        "input": "  I love   coding ",
+        "expectedOutput": "3",
+        "explanation": "The words are I, love and coding; the extra spaces do not count."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "  I love   coding ",
+        "expectedOutput": "3",
+        "hidden": false
+      },
+      {
+        "input": "Hello",
+        "expectedOutput": "1",
+        "hidden": false
+      },
+      {
+        "input": "   x   ",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "     ",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "one two three four five",
+        "expectedOutput": "5",
+        "hidden": true
+      },
+      {
+        "input": "a b",
+        "expectedOutput": "2",
+        "hidden": true
+      },
+      {
+        "input": "Python is fun to learn",
+        "expectedOutput": "5",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "line = input()\ncount = 0\ninside = False\nfor ch in line:\n    if ch != \" \":\n        if not inside:\n            count += 1\n        inside = True\n    else:\n        inside = False\nprint(count)\n",
+    "topics": [
+      "strings",
+      "loops"
+    ],
+    "hints": [
+      "A new word starts whenever a non-space character comes right after a space (or at the start).",
+      "Keep a flag that says whether you are currently inside a word."
+    ],
+    "explanation": "Walk through the characters with a flag inside. Each time a non-space character appears while inside is False, a new word starts, so add one. A space resets the flag. Extra spaces never start a word, so they are ignored. (line.split() gives the same count.)",
+    "estimatedMinutes": 6,
+    "order": 37
+  },
+  {
+    "seedKey": "coding-038",
+    "type": "coding",
+    "subCategory": "Strings",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Swap the Case",
+    "statement": "Turn every uppercase letter into lowercase and every lowercase letter into uppercase. Digits, spaces and symbols stay the same.\n\nInput: one line of text.\nOutput: the text with the case of every letter swapped.\n\nExample: for \"CodeBegun 2026\" print \"cODEbEGUN 2026\".",
+    "language": "python",
+    "starterCode": "s = input()\n# your code here\n",
+    "examples": [
+      {
+        "input": "CodeBegun 2026",
+        "expectedOutput": "cODEbEGUN 2026",
+        "explanation": "C becomes c, o becomes O, and so on; the space and digits stay the same."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "CodeBegun 2026",
+        "expectedOutput": "cODEbEGUN 2026",
+        "hidden": false
+      },
+      {
+        "input": "hello",
+        "expectedOutput": "HELLO",
+        "hidden": false
+      },
+      {
+        "input": "WORLD",
+        "expectedOutput": "world",
+        "hidden": true
+      },
+      {
+        "input": "123!@#",
+        "expectedOutput": "123!@#",
+        "hidden": true
+      },
+      {
+        "input": "a",
+        "expectedOutput": "A",
+        "hidden": true
+      },
+      {
+        "input": "Hyderabad-500081 Telangana",
+        "expectedOutput": "hYDERABAD-500081 tELANGANA",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "s = input()\nresult = \"\"\nfor ch in s:\n    if ch.isupper():\n        result += ch.lower()\n    elif ch.islower():\n        result += ch.upper()\n    else:\n        result += ch\nprint(result)\n",
+    "topics": [
+      "strings",
+      "conditions"
+    ],
+    "hints": [
+      "Check each character with isupper() and islower().",
+      "Build a new string; characters that are not letters are added unchanged."
+    ],
+    "explanation": "Go through the string one character at a time. Uppercase letters are added as lowercase, lowercase as uppercase, and anything else is copied as it is. Python's s.swapcase() does the same job in one call.",
+    "estimatedMinutes": 5,
+    "order": 38
+  },
+  {
+    "seedKey": "coding-039",
+    "type": "coding",
+    "subCategory": "Functions",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Celsius to Fahrenheit",
+    "statement": "Write a function to_fahrenheit(c) that returns F = C x 9 / 5 + 32, and use it to convert a temperature.\n\nInput: one integer temperature in Celsius (-100 <= c <= 100).\nOutput: the temperature in Fahrenheit with exactly one digit after the decimal point.\n\nExample: for 37 print 98.6.",
+    "language": "python",
+    "starterCode": "def to_fahrenheit(c):\n    # your code here\n    pass\n\nc = int(input())\n",
+    "examples": [
+      {
+        "input": "37",
+        "expectedOutput": "98.6",
+        "explanation": "37 x 9 / 5 + 32 = 66.6 + 32 = 98.6."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "37",
+        "expectedOutput": "98.6",
+        "hidden": false
+      },
+      {
+        "input": "0",
+        "expectedOutput": "32.0",
+        "hidden": false
+      },
+      {
+        "input": "100",
+        "expectedOutput": "212.0",
+        "hidden": true
+      },
+      {
+        "input": "-40",
+        "expectedOutput": "-40.0",
+        "hidden": true
+      },
+      {
+        "input": "25",
+        "expectedOutput": "77.0",
+        "hidden": true
+      },
+      {
+        "input": "-17",
+        "expectedOutput": "1.4",
+        "hidden": true
+      },
+      {
+        "input": "1",
+        "expectedOutput": "33.8",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def to_fahrenheit(c):\n    return c * 9 / 5 + 32\n\nc = int(input())\nprint(f\"{to_fahrenheit(c):.1f}\")\n",
+    "topics": [
+      "functions"
+    ],
+    "hints": [
+      "The function should return the value, not print it.",
+      "Format with one decimal place using f\"{value:.1f}\"."
+    ],
+    "explanation": "The function applies C x 9 / 5 + 32 and returns the result. The main part reads the input, calls the function and prints the value formatted to one decimal place. -40 is the same in both scales, which is a good check.",
+    "estimatedMinutes": 5,
+    "order": 39
+  },
+  {
+    "seedKey": "coding-040",
+    "type": "coding",
+    "subCategory": "Loops",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Fizz Buzz Roll Call",
+    "statement": "In a classroom game, students count from 1 to n. A student whose number is a multiple of 3 says Fizz, a multiple of 5 says Buzz, a multiple of both says FizzBuzz, and everyone else says the number.\n\nInput: one integer n (1 <= n <= 100).\nOutput: n lines, what each student says in order.\n\nExample: for n = 5 print\n1\n2\nFizz\n4\nBuzz",
+    "language": "python",
+    "starterCode": "n = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "5",
+        "expectedOutput": "1\n2\nFizz\n4\nBuzz",
+        "explanation": "3 is a multiple of 3 and 5 is a multiple of 5; the rest are printed as numbers."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5",
+        "expectedOutput": "1\n2\nFizz\n4\nBuzz",
+        "hidden": false
+      },
+      {
+        "input": "1",
+        "expectedOutput": "1",
+        "hidden": false
+      },
+      {
+        "input": "15",
+        "expectedOutput": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz",
+        "hidden": true
+      },
+      {
+        "input": "3",
+        "expectedOutput": "1\n2\nFizz",
+        "hidden": true
+      },
+      {
+        "input": "16",
+        "expectedOutput": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz\n16",
+        "hidden": true
+      },
+      {
+        "input": "30",
+        "expectedOutput": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz\n16\n17\nFizz\n19\nBuzz\nFizz\n22\n23\nFizz\nBuzz\n26\nFizz\n28\n29\nFizzBuzz",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nfor i in range(1, n + 1):\n    if i % 15 == 0:\n        print(\"FizzBuzz\")\n    elif i % 3 == 0:\n        print(\"Fizz\")\n    elif i % 5 == 0:\n        print(\"Buzz\")\n    else:\n        print(i)\n",
+    "topics": [
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Use % to test whether a number is a multiple of 3 or 5.",
+      "Check the multiple-of-15 case first, otherwise 15 would print just Fizz."
+    ],
+    "explanation": "Loop from 1 to n. Test divisibility by 15 first, then by 3, then by 5, and otherwise print the number. Putting the combined case first is the key, because 15 is also a multiple of 3.",
+    "estimatedMinutes": 5,
+    "order": 40
+  },
+  {
+    "seedKey": "coding-041",
+    "type": "coding",
+    "subCategory": "Strings",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Mask the Phone Number",
+    "statement": "Before printing a receipt, a shop hides a customer's phone number so that only the last 4 digits show; every earlier character is replaced by X.\n\nInput: one line, a string of digits (1 <= length <= 15).\nOutput: the masked string. If it has 4 or fewer digits, print it unchanged.\n\nExample: for 9876543210 print XXXXXX3210.",
+    "language": "python",
+    "starterCode": "phone = input()\n# your code here\n",
+    "examples": [
+      {
+        "input": "9876543210",
+        "expectedOutput": "XXXXXX3210",
+        "explanation": "The first 6 digits become X and the last 4 (3210) stay."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "9876543210",
+        "expectedOutput": "XXXXXX3210",
+        "hidden": false
+      },
+      {
+        "input": "1234",
+        "expectedOutput": "1234",
+        "hidden": false
+      },
+      {
+        "input": "12345",
+        "expectedOutput": "X2345",
+        "hidden": true
+      },
+      {
+        "input": "7",
+        "expectedOutput": "7",
+        "hidden": true
+      },
+      {
+        "input": "040123456789",
+        "expectedOutput": "XXXXXXXX6789",
+        "hidden": true
+      },
+      {
+        "input": "00000",
+        "expectedOutput": "X0000",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "phone = input()\nif len(phone) <= 4:\n    print(phone)\nelse:\n    print(\"X\" * (len(phone) - 4) + phone[-4:])\n",
+    "topics": [
+      "strings",
+      "conditions"
+    ],
+    "hints": [
+      "phone[-4:] gives the last four characters.",
+      "The number of X characters is len(phone) - 4."
+    ],
+    "explanation": "Keep the last four characters with slicing and put len(phone) - 4 X characters in front of them. Short strings of 4 or fewer digits have nothing to hide, so print them as they are.",
+    "estimatedMinutes": 5,
+    "order": 41
+  },
+  {
+    "seedKey": "coding-042",
+    "type": "coding",
+    "subCategory": "Loops",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Power of Two",
+    "statement": "Memory sizes are powers of two (1, 2, 4, 8, ...). Check whether a number is a power of two by repeatedly dividing by 2.\n\nInput: one integer n (1 <= n <= 10^18).\nOutput: Yes if n is a power of two, otherwise No.\n\nExample: for 64 print Yes (64 = 2^6).",
+    "language": "python",
+    "starterCode": "n = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "64",
+        "expectedOutput": "Yes",
+        "explanation": "64 -> 32 -> 16 -> 8 -> 4 -> 2 -> 1, so it is a power of two."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "64",
+        "expectedOutput": "Yes",
+        "hidden": false
+      },
+      {
+        "input": "12",
+        "expectedOutput": "No",
+        "hidden": false
+      },
+      {
+        "input": "1",
+        "expectedOutput": "Yes",
+        "hidden": true
+      },
+      {
+        "input": "2",
+        "expectedOutput": "Yes",
+        "hidden": true
+      },
+      {
+        "input": "3",
+        "expectedOutput": "No",
+        "hidden": true
+      },
+      {
+        "input": "1024",
+        "expectedOutput": "Yes",
+        "hidden": true
+      },
+      {
+        "input": "1152921504606846976",
+        "expectedOutput": "Yes",
+        "hidden": true
+      },
+      {
+        "input": "1000000000000000000",
+        "expectedOutput": "No",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nwhile n % 2 == 0:\n    n = n // 2\nif n == 1:\n    print(\"Yes\")\nelse:\n    print(\"No\")\n",
+    "topics": [
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Keep dividing by 2 while the number is even.",
+      "If you end at 1 it was a power of two; any other odd number means it was not."
+    ],
+    "explanation": "Divide by 2 as long as the number is even. A power of two shrinks all the way to 1, while any other number stops at an odd value greater than 1. Remember that 1 = 2^0 counts as a power of two.",
+    "estimatedMinutes": 5,
+    "order": 42
+  },
+  {
+    "seedKey": "coding-043",
+    "type": "coding",
+    "subCategory": "Strings",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Count a Letter",
+    "statement": "Count how many times a given character appears in a sentence. Upper and lower case count as different characters.\n\nInput: two lines: the sentence, then a single character.\nOutput: the number of times the character appears.\n\nExample: for the sentence \"banana bread\" and the character a, print 4.",
+    "language": "python",
+    "starterCode": "s = input()\nch = input()\n# your code here\n",
+    "examples": [
+      {
+        "input": "banana bread\na",
+        "expectedOutput": "4",
+        "explanation": "The letter a appears three times in banana and once in bread."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "banana bread\na",
+        "expectedOutput": "4",
+        "hidden": false
+      },
+      {
+        "input": "Hello World\nl",
+        "expectedOutput": "3",
+        "hidden": false
+      },
+      {
+        "input": "Mississippi\nM",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "Mississippi\nm",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "aaaa\na",
+        "expectedOutput": "4",
+        "hidden": true
+      },
+      {
+        "input": "xyz\nq",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "1 + 1 = 2\n1",
+        "expectedOutput": "2",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "s = input()\nch = input()\ncount = 0\nfor c in s:\n    if c == ch:\n        count += 1\nprint(count)\n",
+    "topics": [
+      "strings",
+      "loops"
+    ],
+    "hints": [
+      "Loop over every character of the sentence.",
+      "Compare each character with the given one and add 1 when they match."
+    ],
+    "explanation": "Go through the sentence and increase a counter every time a character equals the given one. The comparison is exact, so 'M' and 'm' are counted separately. s.count(ch) gives the same answer.",
+    "estimatedMinutes": 5,
+    "order": 43
+  },
+  {
+    "seedKey": "coding-044",
+    "type": "coding",
+    "subCategory": "Functions",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Simple Interest",
+    "statement": "Write a function simple_interest(p, r, t) that returns P x R x T / 100, and use it to find the interest on a loan.\n\nInput: three lines: principal p in rupees (1 <= p <= 10^7), rate r percent per year (1 <= r <= 30), and time t in years (1 <= t <= 30), all integers.\nOutput: the interest with exactly two digits after the decimal point.\n\nExample: for p = 5000, r = 7, t = 3 the interest is 5000 x 7 x 3 / 100 = 1050, so print 1050.00.",
+    "language": "python",
+    "starterCode": "def simple_interest(p, r, t):\n    # your code here\n    pass\n\np = int(input())\nr = int(input())\nt = int(input())\n",
+    "examples": [
+      {
+        "input": "5000\n7\n3",
+        "expectedOutput": "1050.00",
+        "explanation": "5000 x 7 x 3 / 100 = 1050."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5000\n7\n3",
+        "expectedOutput": "1050.00",
+        "hidden": false
+      },
+      {
+        "input": "1\n1\n1",
+        "expectedOutput": "0.01",
+        "hidden": false
+      },
+      {
+        "input": "1234\n9\n2",
+        "expectedOutput": "222.12",
+        "hidden": true
+      },
+      {
+        "input": "10000000\n30\n30",
+        "expectedOutput": "90000000.00",
+        "hidden": true
+      },
+      {
+        "input": "999\n13\n7",
+        "expectedOutput": "909.09",
+        "hidden": true
+      },
+      {
+        "input": "250\n4\n5",
+        "expectedOutput": "50.00",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def simple_interest(p, r, t):\n    return p * r * t / 100\n\np = int(input())\nr = int(input())\nt = int(input())\nprint(f\"{simple_interest(p, r, t):.2f}\")\n",
+    "topics": [
+      "functions"
+    ],
+    "hints": [
+      "The function returns p * r * t / 100.",
+      "Print with two decimals using f\"{value:.2f}\"."
+    ],
+    "explanation": "The function multiplies principal, rate and time and divides by 100. The main code reads the three values, calls the function and prints the result with two decimals, so 1050 becomes 1050.00.",
+    "estimatedMinutes": 5,
+    "order": 44
+  },
+  {
+    "seedKey": "coding-045",
+    "type": "coding",
+    "subCategory": "Loops",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Right-Aligned Staircase",
+    "statement": "Print a staircase of stars with n steps that leans to the right. Row i (1 to n) has n - i spaces followed by i stars.\n\nInput: one integer n (1 <= n <= 20).\nOutput: n lines forming the staircase (no trailing spaces).\n\nExample: for n = 4 print\n   *\n  **\n ***\n****",
+    "language": "python",
+    "starterCode": "n = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "4",
+        "expectedOutput": "   *\n  **\n ***\n****",
+        "explanation": "Row 1 has 3 spaces and 1 star, row 4 has 0 spaces and 4 stars."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "4",
+        "expectedOutput": "   *\n  **\n ***\n****",
+        "hidden": false
+      },
+      {
+        "input": "1",
+        "expectedOutput": "*",
+        "hidden": false
+      },
+      {
+        "input": "2",
+        "expectedOutput": " *\n**",
+        "hidden": true
+      },
+      {
+        "input": "3",
+        "expectedOutput": "  *\n **\n***",
+        "hidden": true
+      },
+      {
+        "input": "6",
+        "expectedOutput": "     *\n    **\n   ***\n  ****\n *****\n******",
+        "hidden": true
+      },
+      {
+        "input": "10",
+        "expectedOutput": "         *\n        **\n       ***\n      ****\n     *****\n    ******\n   *******\n  ********\n *********\n**********",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nfor i in range(1, n + 1):\n    print(\" \" * (n - i) + \"*\" * i)\n",
+    "topics": [
+      "loops",
+      "strings"
+    ],
+    "hints": [
+      "Each row is some spaces followed by some stars.",
+      "Row i has n - i spaces and i stars."
+    ],
+    "explanation": "Loop i from 1 to n and print n - i spaces followed by i stars. The spaces push the stars to the right so every row ends in the same column, and the last row has no spaces at all.",
+    "estimatedMinutes": 5,
+    "order": 45
+  },
+  {
+    "seedKey": "coding-046",
+    "type": "coding",
+    "subCategory": "Loops",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Armstrong Number",
+    "statement": "A number is an Armstrong number if the sum of its digits, each raised to the power of the number of digits, equals the number itself. For example 153 has 3 digits and 1^3 + 5^3 + 3^3 = 153.\n\nInput: one integer n (0 <= n <= 10^9).\nOutput: Yes if n is an Armstrong number, otherwise No.\n\nExample: for 9474 (4 digits) 9^4 + 4^4 + 7^4 + 4^4 = 6561 + 256 + 2401 + 256 = 9474, so print Yes.",
+    "language": "python",
+    "starterCode": "n = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "9474",
+        "expectedOutput": "Yes",
+        "explanation": "Each digit raised to the 4th power adds up to 9474 again."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "9474",
+        "expectedOutput": "Yes",
+        "hidden": false
+      },
+      {
+        "input": "100",
+        "expectedOutput": "No",
+        "hidden": false
+      },
+      {
+        "input": "153",
+        "expectedOutput": "Yes",
+        "hidden": true
+      },
+      {
+        "input": "0",
+        "expectedOutput": "Yes",
+        "hidden": true
+      },
+      {
+        "input": "7",
+        "expectedOutput": "Yes",
+        "hidden": true
+      },
+      {
+        "input": "10",
+        "expectedOutput": "No",
+        "hidden": true
+      },
+      {
+        "input": "9475",
+        "expectedOutput": "No",
+        "hidden": true
+      },
+      {
+        "input": "548834",
+        "expectedOutput": "Yes",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nk = len(str(n))\ntotal = 0\nm = n\nwhile m > 0:\n    d = m % 10\n    total += d ** k\n    m = m // 10\nif total == n:\n    print(\"Yes\")\nelse:\n    print(\"No\")\n",
+    "topics": [
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "First find how many digits the number has; that is the power.",
+      "Take digits one by one with % 10 and // 10, add each digit raised to that power, then compare with the original number."
+    ],
+    "explanation": "Count the digits k (here len(str(n))). Then peel off digits with % 10 and // 10, adding digit ** k each time, while keeping the original n for the final comparison. All single-digit numbers, including 0, are Armstrong numbers.",
+    "estimatedMinutes": 9,
+    "order": 46
+  },
+  {
+    "seedKey": "coding-047",
+    "type": "coding",
+    "subCategory": "Conditions",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Electricity Bill Slabs",
+    "statement": "The electricity board charges by slabs:\n- first 100 units: Rs 3 per unit\n- next 100 units (101 to 200): Rs 5 per unit\n- every unit above 200: Rs 8 per unit\nA fixed charge of Rs 50 is added to every bill.\n\nInput: one integer, units used (0 <= units <= 10000).\nOutput: the total bill in rupees.\n\nExample: for 250 units the energy charge is 100 x 3 + 100 x 5 + 50 x 8 = 300 + 500 + 400 = 1200, plus 50, so print 1250.",
+    "language": "python",
+    "starterCode": "units = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "250",
+        "expectedOutput": "1250",
+        "explanation": "300 + 500 + 400 = 1200 for energy, plus the Rs 50 fixed charge."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "250",
+        "expectedOutput": "1250",
+        "hidden": false
+      },
+      {
+        "input": "80",
+        "expectedOutput": "290",
+        "hidden": false
+      },
+      {
+        "input": "0",
+        "expectedOutput": "50",
+        "hidden": true
+      },
+      {
+        "input": "100",
+        "expectedOutput": "350",
+        "hidden": true
+      },
+      {
+        "input": "101",
+        "expectedOutput": "355",
+        "hidden": true
+      },
+      {
+        "input": "200",
+        "expectedOutput": "850",
+        "hidden": true
+      },
+      {
+        "input": "201",
+        "expectedOutput": "858",
+        "hidden": true
+      },
+      {
+        "input": "10000",
+        "expectedOutput": "79250",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "units = int(input())\nif units <= 100:\n    bill = units * 3\nelif units <= 200:\n    bill = 300 + (units - 100) * 5\nelse:\n    bill = 300 + 500 + (units - 200) * 8\nprint(bill + 50)\n",
+    "topics": [
+      "conditions"
+    ],
+    "hints": [
+      "Only the units inside each slab are charged at that slab's rate.",
+      "For more than 200 units: 300 for the first slab, 500 for the second, then (units - 200) x 8. Do not forget the Rs 50."
+    ],
+    "explanation": "Split the units into slabs. Up to 100 units cost units x 3. Between 101 and 200 the first slab is a fixed 300 and the rest cost 5 each. Above 200 the first two slabs are a fixed 800 and the extra units cost 8 each. Finally add the fixed charge of 50. Check the boundaries 100, 101, 200 and 201.",
+    "estimatedMinutes": 9,
+    "order": 47
+  },
+  {
+    "seedKey": "coding-048",
+    "type": "coding",
+    "subCategory": "Functions",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Next Leap Year",
+    "statement": "Write a function is_leap(y) that returns True if y is a leap year (divisible by 400, or divisible by 4 but not by 100). Use it to find the first leap year strictly after a given year.\n\nInput: one integer year y (1 <= y <= 9990).\nOutput: the first leap year greater than y.\n\nExample: for 2024 the next leap year is 2028, so print 2028.",
+    "language": "python",
+    "starterCode": "def is_leap(y):\n    # your code here\n    pass\n\ny = int(input())\n",
+    "examples": [
+      {
+        "input": "2024",
+        "expectedOutput": "2028",
+        "explanation": "2025, 2026 and 2027 are not leap years; 2028 is."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "2024",
+        "expectedOutput": "2028",
+        "hidden": false
+      },
+      {
+        "input": "2025",
+        "expectedOutput": "2028",
+        "hidden": false
+      },
+      {
+        "input": "1896",
+        "expectedOutput": "1904",
+        "hidden": true
+      },
+      {
+        "input": "1999",
+        "expectedOutput": "2000",
+        "hidden": true
+      },
+      {
+        "input": "2096",
+        "expectedOutput": "2104",
+        "hidden": true
+      },
+      {
+        "input": "1",
+        "expectedOutput": "4",
+        "hidden": true
+      },
+      {
+        "input": "2399",
+        "expectedOutput": "2400",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def is_leap(y):\n    return y % 400 == 0 or (y % 4 == 0 and y % 100 != 0)\n\ny = int(input())\nnxt = y + 1\nwhile not is_leap(nxt):\n    nxt += 1\nprint(nxt)\n",
+    "topics": [
+      "functions",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Start checking from y + 1, not y, because the answer must be strictly after y.",
+      "Watch out for century years: after 1896 the next leap year is 1904, because 1900 is not a leap year."
+    ],
+    "explanation": "is_leap applies the rule in one expression. Starting at y + 1, keep adding 1 until is_leap is True. Because of the century rule, after 1896 the loop skips 1900 and reaches 1904, while after 2399 it stops at 2400.",
+    "estimatedMinutes": 8,
+    "order": 48
+  },
+  {
+    "seedKey": "coding-049",
+    "type": "coding",
+    "subCategory": "Loops",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Collatz Steps",
+    "statement": "Start with a number n. If it is even, halve it; if it is odd, make it 3n + 1. Repeat until it becomes 1.\n\nInput: one integer n (1 <= n <= 10^6).\nOutput: the number of steps needed to reach 1 (0 if n is already 1).\n\nExample: for 6 the sequence is 6 -> 3 -> 10 -> 5 -> 16 -> 8 -> 4 -> 2 -> 1, which is 8 steps, so print 8.",
+    "language": "python",
+    "starterCode": "n = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "6",
+        "expectedOutput": "8",
+        "explanation": "There are 8 arrows in the sequence from 6 down to 1."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "6",
+        "expectedOutput": "8",
+        "hidden": false
+      },
+      {
+        "input": "1",
+        "expectedOutput": "0",
+        "hidden": false
+      },
+      {
+        "input": "2",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "7",
+        "expectedOutput": "16",
+        "hidden": true
+      },
+      {
+        "input": "27",
+        "expectedOutput": "111",
+        "hidden": true
+      },
+      {
+        "input": "16",
+        "expectedOutput": "4",
+        "hidden": true
+      },
+      {
+        "input": "97",
+        "expectedOutput": "118",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nsteps = 0\nwhile n != 1:\n    if n % 2 == 0:\n        n = n // 2\n    else:\n        n = 3 * n + 1\n    steps += 1\nprint(steps)\n",
+    "topics": [
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Use a while loop that runs until n is 1.",
+      "Count one step every time you change n; use // so n stays an integer."
+    ],
+    "explanation": "Loop while n is not 1. Each pass applies the even or odd rule and adds one to the step count. Using // keeps n an integer. For n = 1 the loop never runs, so the answer is 0.",
+    "estimatedMinutes": 8,
+    "order": 49
+  },
+  {
+    "seedKey": "coding-050",
+    "type": "coding",
+    "subCategory": "Strings",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Spell the Digits",
+    "statement": "A bank's phone system reads an account number aloud one digit at a time.\n\nInput: one line, a string of digits (1 <= length <= 20). It may start with 0.\nOutput: the English word for each digit (zero, one, two, ..., nine), separated by single spaces.\n\nExample: for 405 print \"four zero five\".",
+    "language": "python",
+    "starterCode": "s = input()\n# your code here\n",
+    "examples": [
+      {
+        "input": "405",
+        "expectedOutput": "four zero five",
+        "explanation": "4 is four, 0 is zero and 5 is five."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "405",
+        "expectedOutput": "four zero five",
+        "hidden": false
+      },
+      {
+        "input": "7",
+        "expectedOutput": "seven",
+        "hidden": false
+      },
+      {
+        "input": "0",
+        "expectedOutput": "zero",
+        "hidden": true
+      },
+      {
+        "input": "1234567890",
+        "expectedOutput": "one two three four five six seven eight nine zero",
+        "hidden": true
+      },
+      {
+        "input": "007",
+        "expectedOutput": "zero zero seven",
+        "hidden": true
+      },
+      {
+        "input": "99",
+        "expectedOutput": "nine nine",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def word(d):\n    if d == \"0\": return \"zero\"\n    if d == \"1\": return \"one\"\n    if d == \"2\": return \"two\"\n    if d == \"3\": return \"three\"\n    if d == \"4\": return \"four\"\n    if d == \"5\": return \"five\"\n    if d == \"6\": return \"six\"\n    if d == \"7\": return \"seven\"\n    if d == \"8\": return \"eight\"\n    return \"nine\"\n\ns = input()\nresult = \"\"\nfor ch in s:\n    if result != \"\":\n        result += \" \"\n    result += word(ch)\nprint(result)\n",
+    "topics": [
+      "strings",
+      "functions",
+      "conditions"
+    ],
+    "hints": [
+      "Write a small function that turns one digit character into its word.",
+      "Add a space before every word except the first, so there is no trailing space."
+    ],
+    "explanation": "A helper function maps each digit character to its word. Build the answer by walking through the string, putting a space before every word after the first. Because the input is treated as text, leading zeros are spoken too.",
+    "estimatedMinutes": 9,
+    "order": 50
+  },
+  {
+    "seedKey": "coding-051",
+    "type": "coding",
+    "subCategory": "Strings",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Password Strength",
+    "statement": "A college portal rates passwords:\n- Strong: length at least 8 AND it has an uppercase letter, a lowercase letter, a digit and a special character (anything that is not a letter or digit).\n- Medium: length at least 6 AND it has at least 3 of those 4 kinds of character.\n- Weak: anything else.\n\nInput: one line, the password (1 to 30 characters, no spaces).\nOutput: Strong, Medium or Weak.\n\nExample: for \"Code@2026\" the length is 9 and it has all four kinds, so print Strong.",
+    "language": "python",
+    "starterCode": "pw = input()\n# your code here\n",
+    "examples": [
+      {
+        "input": "Code@2026",
+        "expectedOutput": "Strong",
+        "explanation": "Length 9 with C, ode, @ and 2026 covers all four kinds."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "Code@2026",
+        "expectedOutput": "Strong",
+        "hidden": false
+      },
+      {
+        "input": "abc123",
+        "expectedOutput": "Weak",
+        "hidden": false
+      },
+      {
+        "input": "Abc12#",
+        "expectedOutput": "Medium",
+        "hidden": true
+      },
+      {
+        "input": "A1@b",
+        "expectedOutput": "Weak",
+        "hidden": true
+      },
+      {
+        "input": "abcdefgh",
+        "expectedOutput": "Weak",
+        "hidden": true
+      },
+      {
+        "input": "Abcdefg1",
+        "expectedOutput": "Medium",
+        "hidden": true
+      },
+      {
+        "input": "PASSWORD123!",
+        "expectedOutput": "Medium",
+        "hidden": true
+      },
+      {
+        "input": "aB3$aB3",
+        "expectedOutput": "Medium",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "pw = input()\nup = low = dig = spe = 0\nfor ch in pw:\n    if ch.isupper():\n        up = 1\n    elif ch.islower():\n        low = 1\n    elif ch.isdigit():\n        dig = 1\n    else:\n        spe = 1\nkinds = up + low + dig + spe\nif len(pw) >= 8 and kinds == 4:\n    print(\"Strong\")\nelif len(pw) >= 6 and kinds >= 3:\n    print(\"Medium\")\nelse:\n    print(\"Weak\")\n",
+    "topics": [
+      "strings",
+      "conditions",
+      "loops"
+    ],
+    "hints": [
+      "Use four flags, one for each kind of character, and set them while looping.",
+      "Add the flags to get how many kinds are present, then test Strong before Medium."
+    ],
+    "explanation": "Loop over the password and set a flag for uppercase, lowercase, digit and special characters. Their sum is the number of kinds present. Check Strong first (length >= 8 and all 4 kinds), then Medium (length >= 6 and at least 3 kinds), and otherwise Weak. 'Abc12#' is Medium because it has all kinds but only 6 characters.",
+    "estimatedMinutes": 10,
+    "order": 51
+  },
+  {
+    "seedKey": "coding-052",
+    "type": "coding",
+    "subCategory": "Functions",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Pocket Calculator",
+    "statement": "Build a menu-driven calculator. Write a function calculate(a, op, b) that returns the result as a string.\nThe operators are + - * / and %. For / print the result with exactly two decimals. For % print the integer remainder. If the operator is / or % and b is 0, the result is Error. Any other operator gives Invalid operator.\n\nInput: three lines: integer a, the operator, integer b (-10^6 <= a, b <= 10^6).\nOutput: the result.\n\nExample: for 7, / and 2 print 3.50.",
+    "language": "python",
+    "starterCode": "def calculate(a, op, b):\n    # your code here\n    pass\n\na = int(input())\nop = input()\nb = int(input())\n",
+    "examples": [
+      {
+        "input": "7\n/\n2",
+        "expectedOutput": "3.50",
+        "explanation": "7 / 2 = 3.5, shown with two decimals as 3.50."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "7\n/\n2",
+        "expectedOutput": "3.50",
+        "hidden": false
+      },
+      {
+        "input": "12\n*\n-3",
+        "expectedOutput": "-36",
+        "hidden": false
+      },
+      {
+        "input": "5\n/\n0",
+        "expectedOutput": "Error",
+        "hidden": true
+      },
+      {
+        "input": "5\n%\n0",
+        "expectedOutput": "Error",
+        "hidden": true
+      },
+      {
+        "input": "17\n%\n5",
+        "expectedOutput": "2",
+        "hidden": true
+      },
+      {
+        "input": "3\n^\n2",
+        "expectedOutput": "Invalid operator",
+        "hidden": true
+      },
+      {
+        "input": "-4\n-\n-9",
+        "expectedOutput": "5",
+        "hidden": true
+      },
+      {
+        "input": "1000000\n+\n1000000",
+        "expectedOutput": "2000000",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def calculate(a, op, b):\n    if op == \"+\":\n        return str(a + b)\n    if op == \"-\":\n        return str(a - b)\n    if op == \"*\":\n        return str(a * b)\n    if op == \"/\" or op == \"%\":\n        if b == 0:\n            return \"Error\"\n        if op == \"/\":\n            return f\"{a / b:.2f}\"\n        return str(a % b)\n    return \"Invalid operator\"\n\na = int(input())\nop = input()\nb = int(input())\nprint(calculate(a, op, b))\n",
+    "topics": [
+      "functions",
+      "conditions"
+    ],
+    "hints": [
+      "Use if/elif on the operator inside the function.",
+      "Check for b == 0 before dividing, and format division with f\"{value:.2f}\"."
+    ],
+    "explanation": "The function checks the operator. +, - and * return the plain result. For / and %, it first guards against b being 0 and returns Error; otherwise / is formatted to two decimals and % returns the remainder. Any other symbol falls through to Invalid operator.",
+    "estimatedMinutes": 10,
+    "order": 52
+  },
+  {
+    "seedKey": "coding-053",
+    "type": "coding",
+    "subCategory": "Loops",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Star Diamond",
+    "statement": "Print a diamond of stars of size n. The top half has n rows: row i (1 to n) has n - i spaces and 2i - 1 stars. The bottom half mirrors it without repeating the middle row.\n\nInput: one integer n (1 <= n <= 15).\nOutput: 2n - 1 lines forming the diamond (no trailing spaces).\n\nExample: for n = 3 print\n  *\n ***\n*****\n ***\n  *",
+    "language": "python",
+    "starterCode": "n = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "3",
+        "expectedOutput": "  *\n ***\n*****\n ***\n  *",
+        "explanation": "Star counts are 1, 3, 5, 3, 1, centred by the leading spaces."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3",
+        "expectedOutput": "  *\n ***\n*****\n ***\n  *",
+        "hidden": false
+      },
+      {
+        "input": "1",
+        "expectedOutput": "*",
+        "hidden": false
+      },
+      {
+        "input": "2",
+        "expectedOutput": " *\n***\n *",
+        "hidden": true
+      },
+      {
+        "input": "4",
+        "expectedOutput": "   *\n  ***\n *****\n*******\n *****\n  ***\n   *",
+        "hidden": true
+      },
+      {
+        "input": "5",
+        "expectedOutput": "    *\n   ***\n  *****\n *******\n*********\n *******\n  *****\n   ***\n    *",
+        "hidden": true
+      },
+      {
+        "input": "7",
+        "expectedOutput": "      *\n     ***\n    *****\n   *******\n  *********\n ***********\n*************\n ***********\n  *********\n   *******\n    *****\n     ***\n      *",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nfor i in range(1, n + 1):\n    print(\" \" * (n - i) + \"*\" * (2 * i - 1))\nfor i in range(n - 1, 0, -1):\n    print(\" \" * (n - i) + \"*\" * (2 * i - 1))\n",
+    "topics": [
+      "loops",
+      "strings"
+    ],
+    "hints": [
+      "Write the top half first: row i has n - i spaces and 2i - 1 stars.",
+      "For the bottom half, run i from n - 1 down to 1 with the same formula."
+    ],
+    "explanation": "The top half grows: row i has n - i leading spaces and 2i - 1 stars, so the widest row has 2n - 1 stars. The bottom half reuses the same formula with i counting down from n - 1 to 1, so the middle row is not printed twice. Only leading spaces are used, so there are no trailing spaces.",
+    "estimatedMinutes": 9,
+    "order": 53
+  },
+  {
+    "seedKey": "coding-054",
+    "type": "coding",
+    "subCategory": "Strings",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Proper Title Case",
+    "statement": "A form stores names in messy capitals with extra spaces. Clean it: every word should start with an uppercase letter followed by lowercase letters, and words should be separated by exactly one space with no spaces at the ends.\n\nInput: one line of text with at least one word (letters and spaces only).\nOutput: the cleaned text.\n\nExample: for \"  sAI   kRISHNA reddy \" print \"Sai Krishna Reddy\".",
+    "language": "python",
+    "starterCode": "s = input()\n# your code here\n",
+    "examples": [
+      {
+        "input": "  sAI   kRISHNA reddy ",
+        "expectedOutput": "Sai Krishna Reddy",
+        "explanation": "Extra spaces are removed and each word gets one capital letter."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "  sAI   kRISHNA reddy ",
+        "expectedOutput": "Sai Krishna Reddy",
+        "hidden": false
+      },
+      {
+        "input": "hello",
+        "expectedOutput": "Hello",
+        "hidden": false
+      },
+      {
+        "input": "A",
+        "expectedOutput": "A",
+        "hidden": true
+      },
+      {
+        "input": "PRIYA SHARMA",
+        "expectedOutput": "Priya Sharma",
+        "hidden": true
+      },
+      {
+        "input": "   lakshmi    narayana   rao   ",
+        "expectedOutput": "Lakshmi Narayana Rao",
+        "hidden": true
+      },
+      {
+        "input": "x y z",
+        "expectedOutput": "X Y Z",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "s = input()\nresult = \"\"\nword = \"\"\nfor ch in s + \" \":\n    if ch == \" \":\n        if word != \"\":\n            if result != \"\":\n                result += \" \"\n            result += word[0].upper() + word[1:].lower()\n            word = \"\"\n    else:\n        word += ch\nprint(result)\n",
+    "topics": [
+      "strings",
+      "loops"
+    ],
+    "hints": [
+      "Collect letters into the current word until you see a space.",
+      "When a word ends, add word[0].upper() + word[1:].lower(), with a single space before it if it is not the first word."
+    ],
+    "explanation": "Walk through the text, building the current word letter by letter. A space ends the word (adding a space at the end of the input makes the last word end too). Each finished word is fixed with word[0].upper() + word[1:].lower() and joined with single spaces, so extra spaces disappear.",
+    "estimatedMinutes": 10,
+    "order": 54
+  },
+  {
+    "seedKey": "coding-055",
+    "type": "coding",
+    "subCategory": "Functions",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "GCD and LCM",
+    "statement": "Two buses leave the depot every a and b minutes. Write a function gcd(a, b) using Euclid's method (repeatedly replace (a, b) with (b, a % b) until b is 0). Then the LCM, which tells when both buses leave together again, is a x b / gcd.\n\nInput: two lines, integers a and b (1 <= a, b <= 10^9).\nOutput: two integers on one line separated by a space: the GCD and the LCM.\n\nExample: for 12 and 18 the GCD is 6 and the LCM is 12 x 18 / 6 = 36, so print \"6 36\".",
+    "language": "python",
+    "starterCode": "def gcd(a, b):\n    # your code here\n    pass\n\na = int(input())\nb = int(input())\n",
+    "examples": [
+      {
+        "input": "12\n18",
+        "expectedOutput": "6 36",
+        "explanation": "6 is the largest number dividing both, and 36 is the smallest number both divide."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "12\n18",
+        "expectedOutput": "6 36",
+        "hidden": false
+      },
+      {
+        "input": "7\n5",
+        "expectedOutput": "1 35",
+        "hidden": false
+      },
+      {
+        "input": "1\n1",
+        "expectedOutput": "1 1",
+        "hidden": true
+      },
+      {
+        "input": "100\n25",
+        "expectedOutput": "25 100",
+        "hidden": true
+      },
+      {
+        "input": "1000000000\n999999999",
+        "expectedOutput": "1 999999999000000000",
+        "hidden": true
+      },
+      {
+        "input": "48\n180",
+        "expectedOutput": "12 720",
+        "hidden": true
+      },
+      {
+        "input": "17\n17",
+        "expectedOutput": "17 17",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def gcd(a, b):\n    while b != 0:\n        a, b = b, a % b\n    return a\n\na = int(input())\nb = int(input())\ng = gcd(a, b)\nprint(g, a * b // g)\n",
+    "topics": [
+      "functions",
+      "loops"
+    ],
+    "hints": [
+      "In Euclid's method, the pair (a, b) becomes (b, a % b) each step.",
+      "Use integer division a * b // g for the LCM so it stays an integer."
+    ],
+    "explanation": "Euclid's method shrinks the pair quickly: (12, 18) -> (18, 12) -> (12, 6) -> (6, 0), so the GCD is 6. Since a x b = GCD x LCM, the LCM is a * b // GCD. Integer division avoids float rounding for large inputs.",
+    "estimatedMinutes": 9,
+    "order": 55
+  },
+  {
+    "seedKey": "coding-056",
+    "type": "coding",
+    "subCategory": "Loops",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Lift Simulation",
+    "statement": "A lift in a 10-storey building serves floors 0 to 10 and starts at floor 0. It receives a series of commands. U k means go up k floors and D k means go down k floors, but the lift never goes above floor 10 or below floor 0 (it stops at the limit).\n\nInput: the first line has n, the number of commands (1 <= n <= 50). Each of the next n lines has a command like U 3 or D 2 (1 <= k <= 20).\nOutput: two integers on one line separated by a space: the final floor, and the total number of floors the lift actually moved.\n\nExample: for the commands U 4, D 1, U 9 the lift goes 0 -> 4 (moves 4), 4 -> 3 (moves 1), then 3 -> 10 because it stops at the top (moves 7). Print \"10 12\".",
+    "language": "python",
+    "starterCode": "n = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "3\nU 4\nD 1\nU 9",
+        "expectedOutput": "10 12",
+        "explanation": "The last command wants floor 12 but stops at 10, so it only moves 7 floors: 4 + 1 + 7 = 12."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3\nU 4\nD 1\nU 9",
+        "expectedOutput": "10 12",
+        "hidden": false
+      },
+      {
+        "input": "1\nD 5",
+        "expectedOutput": "0 0",
+        "hidden": false
+      },
+      {
+        "input": "1\nU 10",
+        "expectedOutput": "10 10",
+        "hidden": true
+      },
+      {
+        "input": "2\nU 20\nD 20",
+        "expectedOutput": "0 20",
+        "hidden": true
+      },
+      {
+        "input": "4\nU 3\nU 3\nD 2\nU 1",
+        "expectedOutput": "5 9",
+        "hidden": true
+      },
+      {
+        "input": "3\nU 5\nU 5\nU 5",
+        "expectedOutput": "10 10",
+        "hidden": true
+      },
+      {
+        "input": "5\nU 2\nD 1\nD 1\nD 1\nU 7",
+        "expectedOutput": "7 11",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nfloor = 0\nmoved = 0\nfor _ in range(n):\n    d, k = input().split()\n    k = int(k)\n    if d == \"U\":\n        target = floor + k\n        if target > 10:\n            target = 10\n    else:\n        target = floor - k\n        if target < 0:\n            target = 0\n    moved += abs(target - floor)\n    floor = target\nprint(floor, moved)\n",
+    "topics": [
+      "loops",
+      "conditions",
+      "strings"
+    ],
+    "hints": [
+      "Work out the target floor, then clamp it to the range 0 to 10.",
+      "Add the actual distance abs(target - floor), not k, to the total."
+    ],
+    "explanation": "For each command compute the target floor and clamp it at 10 or 0. The floors moved is the difference between the clamped target and the current floor, which can be less than k or even 0. Update the floor and keep a running total.",
+    "estimatedMinutes": 10,
+    "order": 56
+  },
+  {
+    "seedKey": "coding-057",
+    "type": "coding",
+    "subCategory": "Loops",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Decimal to Binary",
+    "statement": "Convert a non-negative integer to binary without using bin() or format(). Divide by 2 repeatedly; the remainders read from last to first give the binary digits.\n\nInput: one integer n (0 <= n <= 10^9).\nOutput: n written in binary, with no leading zeros (print 0 for n = 0).\n\nExample: for 13: 13 % 2 = 1, 6 % 2 = 0, 3 % 2 = 1, 1 % 2 = 1; reading backwards gives 1101.",
+    "language": "python",
+    "starterCode": "n = int(input())\n# your code here\n",
+    "examples": [
+      {
+        "input": "13",
+        "expectedOutput": "1101",
+        "explanation": "The remainders 1, 0, 1, 1 read in reverse give 1101."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "13",
+        "expectedOutput": "1101",
+        "hidden": false
+      },
+      {
+        "input": "0",
+        "expectedOutput": "0",
+        "hidden": false
+      },
+      {
+        "input": "1",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "2",
+        "expectedOutput": "10",
+        "hidden": true
+      },
+      {
+        "input": "255",
+        "expectedOutput": "11111111",
+        "hidden": true
+      },
+      {
+        "input": "1024",
+        "expectedOutput": "10000000000",
+        "hidden": true
+      },
+      {
+        "input": "1000000000",
+        "expectedOutput": "111011100110101100101000000000",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nif n == 0:\n    print(\"0\")\nelse:\n    bits = \"\"\n    while n > 0:\n        bits = str(n % 2) + bits\n        n = n // 2\n    print(bits)\n",
+    "topics": [
+      "loops",
+      "strings"
+    ],
+    "hints": [
+      "n % 2 gives the last binary digit and n // 2 removes it.",
+      "Add each new remainder to the FRONT of the string, and handle n = 0 separately."
+    ],
+    "explanation": "Each n % 2 is the next binary digit from the right, and n // 2 moves on. Putting each remainder in front of the string builds the answer in the right order. The loop never runs for 0, so it is handled separately.",
+    "estimatedMinutes": 9,
+    "order": 57
+  },
+  {
+    "seedKey": "coding-058",
+    "type": "coding",
+    "subCategory": "Functions",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Card Number Check (Luhn)",
+    "statement": "Payment sites check card numbers with the Luhn algorithm:\n1. Starting from the rightmost digit and moving left, double every second digit (the 2nd, 4th, 6th, ... from the right).\n2. If doubling gives a number greater than 9, subtract 9 from it.\n3. Add all the digits (changed and unchanged).\n4. The number is valid if the total is divisible by 10.\nThe input may contain spaces between groups of digits; ignore them.\n\nInput: one line with the card number (2 to 19 digits, possibly with spaces).\nOutput: Valid or Invalid.\n\nExample: for 79927398713, the digits from the right are 3,1,7,8,9,3,7,2,9,9,7. Doubling every second one gives 1->2, 8->16->7, 3->6, 2->4, 9->18->9. The total is 3+2+7+7+9+6+7+4+9+9+7 = 70, which is divisible by 10, so print Valid.",
+    "language": "python",
+    "starterCode": "def luhn_valid(number):\n    # your code here\n    pass\n\ncard = input()\n",
+    "examples": [
+      {
+        "input": "79927398713",
+        "expectedOutput": "Valid",
+        "explanation": "The adjusted digits add up to 70, a multiple of 10."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "79927398713",
+        "expectedOutput": "Valid",
+        "hidden": false
+      },
+      {
+        "input": "79927398710",
+        "expectedOutput": "Invalid",
+        "hidden": false
+      },
+      {
+        "input": "4539 1488 0343 6467",
+        "expectedOutput": "Valid",
+        "hidden": true
+      },
+      {
+        "input": "4539 1488 0343 6468",
+        "expectedOutput": "Invalid",
+        "hidden": true
+      },
+      {
+        "input": "00",
+        "expectedOutput": "Valid",
+        "hidden": true
+      },
+      {
+        "input": "18",
+        "expectedOutput": "Valid",
+        "hidden": true
+      },
+      {
+        "input": "59",
+        "expectedOutput": "Valid",
+        "hidden": true
+      },
+      {
+        "input": "1234 5678 9012 3456",
+        "expectedOutput": "Invalid",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def luhn_valid(number):\n    total = 0\n    pos = 0\n    for i in range(len(number) - 1, -1, -1):\n        ch = number[i]\n        if ch == \" \":\n            continue\n        d = int(ch)\n        if pos % 2 == 1:\n            d = d * 2\n            if d > 9:\n                d -= 9\n        total += d\n        pos += 1\n    return total % 10 == 0\n\ncard = input()\nif luhn_valid(card):\n    print(\"Valid\")\nelse:\n    print(\"Invalid\")\n",
+    "topics": [
+      "functions",
+      "strings",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Walk the digits from right to left and keep your own position counter that skips spaces.",
+      "Double the digit when the position (counting from 0 at the right) is odd; if the result is over 9, subtract 9.",
+      "Add everything and check total % 10 == 0."
+    ],
+    "explanation": "Loop over the string from the end, skipping spaces, and track the position of each digit counted from the right. Digits in odd positions (2nd, 4th, ... from the right) are doubled, and 9 is subtracted when the result exceeds 9 (the same as adding its two digits). The number is valid when the total is a multiple of 10. Counting positions separately from string indexes is what makes spaces harmless.",
+    "estimatedMinutes": 15,
+    "order": 58
+  },
+  {
+    "seedKey": "coding-059",
+    "type": "coding",
+    "subCategory": "Strings",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Roman Numerals to Number",
+    "statement": "Convert a Roman numeral to an integer. The symbols are I=1, V=5, X=10, L=50, C=100, D=500, M=1000. Normally values are added from left to right, but when a smaller symbol comes right before a larger one it is subtracted (IV = 4, IX = 9, XL = 40, XC = 90, CD = 400, CM = 900).\n\nInput: one line, a valid Roman numeral in uppercase for a number from 1 to 3999.\nOutput: its integer value.\n\nExample: for MCMXCIV: M = 1000, CM = 900, XC = 90, IV = 4, total 1994, so print 1994.",
+    "language": "python",
+    "starterCode": "def value(ch):\n    # return the value of one Roman symbol\n    pass\n\ns = input()\n",
+    "examples": [
+      {
+        "input": "MCMXCIV",
+        "expectedOutput": "1994",
+        "explanation": "M + CM + XC + IV = 1000 + 900 + 90 + 4."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "MCMXCIV",
+        "expectedOutput": "1994",
+        "hidden": false
+      },
+      {
+        "input": "III",
+        "expectedOutput": "3",
+        "hidden": false
+      },
+      {
+        "input": "I",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "IV",
+        "expectedOutput": "4",
+        "hidden": true
+      },
+      {
+        "input": "LVIII",
+        "expectedOutput": "58",
+        "hidden": true
+      },
+      {
+        "input": "MMMCMXCIX",
+        "expectedOutput": "3999",
+        "hidden": true
+      },
+      {
+        "input": "XLIX",
+        "expectedOutput": "49",
+        "hidden": true
+      },
+      {
+        "input": "CDXLIV",
+        "expectedOutput": "444",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def value(ch):\n    if ch == \"I\": return 1\n    if ch == \"V\": return 5\n    if ch == \"X\": return 10\n    if ch == \"L\": return 50\n    if ch == \"C\": return 100\n    if ch == \"D\": return 500\n    return 1000\n\ns = input()\ntotal = 0\nfor i in range(len(s)):\n    v = value(s[i])\n    if i + 1 < len(s) and v < value(s[i + 1]):\n        total -= v\n    else:\n        total += v\nprint(total)\n",
+    "topics": [
+      "strings",
+      "functions",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Write a helper that gives the value of a single symbol.",
+      "Look one symbol ahead: if the current value is smaller than the next one, it should be subtracted.",
+      "Otherwise add it. The last symbol is always added."
+    ],
+    "explanation": "Scan left to right comparing each symbol with the one after it. If it is smaller than the next symbol it is part of a subtractive pair, so subtract it; otherwise add it. In MCMXCIV this gives 1000 - 100 + 1000 - 10 + 100 - 1 + 5 = 1994. MMMCMXCIX gives the largest value, 3999.",
+    "estimatedMinutes": 14,
+    "order": 59
+  },
+  {
+    "seedKey": "coding-060",
+    "type": "coding",
+    "subCategory": "Functions",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Day of the Week",
+    "statement": "Find the day of the week for any date without using any date library. Hint: 1 January 1 (in the calendar we use today, extended backwards) was a Monday. Count the total days from that date and use % 7. A year is a leap year if it is divisible by 400, or divisible by 4 but not by 100.\n\nInput: three lines: day d, month m, year y (a valid date, 1 <= y <= 9999).\nOutput: the weekday name: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday or Sunday.\n\nExample: for 15, 8, 1947 (Independence Day) print Friday.",
+    "language": "python",
+    "starterCode": "def is_leap(y):\n    # your code here\n    pass\n\nd = int(input())\nm = int(input())\ny = int(input())\n",
+    "examples": [
+      {
+        "input": "15\n8\n1947",
+        "expectedOutput": "Friday",
+        "explanation": "Counting the days from 1 January 1 and taking % 7 gives 4, which is Friday."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "15\n8\n1947",
+        "expectedOutput": "Friday",
+        "hidden": false
+      },
+      {
+        "input": "1\n1\n1",
+        "expectedOutput": "Monday",
+        "hidden": false
+      },
+      {
+        "input": "26\n1\n1950",
+        "expectedOutput": "Thursday",
+        "hidden": true
+      },
+      {
+        "input": "29\n2\n2024",
+        "expectedOutput": "Thursday",
+        "hidden": true
+      },
+      {
+        "input": "1\n3\n1900",
+        "expectedOutput": "Thursday",
+        "hidden": true
+      },
+      {
+        "input": "31\n12\n9999",
+        "expectedOutput": "Friday",
+        "hidden": true
+      },
+      {
+        "input": "11\n11\n2026",
+        "expectedOutput": "Wednesday",
+        "hidden": true
+      },
+      {
+        "input": "1\n1\n2001",
+        "expectedOutput": "Monday",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def is_leap(y):\n    return y % 400 == 0 or (y % 4 == 0 and y % 100 != 0)\n\ndef days_in_month(m, y):\n    if m == 2:\n        if is_leap(y):\n            return 29\n        return 28\n    if m == 4 or m == 6 or m == 9 or m == 11:\n        return 30\n    return 31\n\nd = int(input())\nm = int(input())\ny = int(input())\npy = y - 1\ntotal = py * 365 + py // 4 - py // 100 + py // 400\nfor month in range(1, m):\n    total += days_in_month(month, y)\ntotal += d - 1\nr = total % 7\nif r == 0:\n    print(\"Monday\")\nelif r == 1:\n    print(\"Tuesday\")\nelif r == 2:\n    print(\"Wednesday\")\nelif r == 3:\n    print(\"Thursday\")\nelif r == 4:\n    print(\"Friday\")\nelif r == 5:\n    print(\"Saturday\")\nelse:\n    print(\"Sunday\")\n",
+    "topics": [
+      "functions",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Days in all complete years before y: (y - 1) x 365 plus the number of leap years before y.",
+      "Leap years before y = (y-1)//4 - (y-1)//100 + (y-1)//400. Then add the days of the complete months of year y and d - 1.",
+      "The total % 7 gives 0 for Monday, 1 for Tuesday, and so on."
+    ],
+    "explanation": "Count the days that have passed since 1 January 1. The complete years contribute 365 each plus one per leap year, which is (y-1)//4 - (y-1)//100 + (y-1)//400. Add the days in each full month of the current year (February depends on whether y is a leap year) and then d - 1. Since day 0 was a Monday, total % 7 indexes the weekday from Monday. Check: 26 January 1950 comes out as Thursday.",
+    "estimatedMinutes": 15,
+    "order": 60
+  }
+]

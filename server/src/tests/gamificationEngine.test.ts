@@ -19,6 +19,7 @@ let ledger: any[] = [];
 let badgeDefs: any[] = [];
 let studentBadges: any[] = [];
 let roadmap: any = null;
+let config: any = null;
 
 /** Anything touching capability or money would show up in these. Nothing should. */
 const skillProfileWrite = jest.fn();
@@ -123,6 +124,10 @@ jest.mock('../models/GamificationModels', () => ({
       sort: () => ({ lean: async () => badgeDefs }),
     }),
     insertMany: async (docs: any[]) => { badgeDefs.push(...docs); return docs; },
+    updateMany: async (q: any, update: any) => {
+      for (const b of badgeDefs.filter(d => matches(d, q))) applyUpdate(b, update);
+      return {};
+    },
   },
   StudentBadge: {
     find: (q: any) => ({ select: () => ({ lean: async () => studentBadges.filter(b => matches(b, q)) }) }),
@@ -135,7 +140,14 @@ jest.mock('../models/GamificationModels', () => ({
       return doc;
     },
   },
-  GamificationConfig: { findOne: () => ({ lean: async () => null }) },
+  GamificationConfig: {
+    findOne: () => {
+      const handle: any = { lean: async () => config };
+      handle.select = () => handle;
+      return handle;
+    },
+    updateOne: async (_q: any, update: any) => { config = { ...(config || {}), ...(update.$set || {}) }; return {}; },
+  },
   RewardLedger: { aggregate: async () => [] },
 }));
 
@@ -202,6 +214,7 @@ beforeEach(() => {
   rules = [];
   ledger = [];
   badgeDefs = [];
+  config = null;
   studentBadges = [];
   roadmap = null;
   skillProfileWrite.mockReset();
@@ -362,10 +375,16 @@ describe('streaks', () => {
 // §166 — badges
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Badges of each engine-checked kind, as an admin might define them. */
+const DEFS: Record<string, any> = {
+  FIRST_MISSION: { key: 'FIRST_MISSION', name: 'First step', conditionType: 'EVENT_COUNT', conditionConfig: { threshold: 1, eventKey: 'CAREER_MISSION_COMPLETED' } },
+  XP_1000: { key: 'XP_1000', name: '1,000 XP', conditionType: 'XP_TOTAL', conditionConfig: { threshold: 1000 } },
+  STREAK_7: { key: 'STREAK_7', name: 'One week strong', conditionType: 'STREAK', conditionConfig: { threshold: 7 } },
+};
+
 describe('badges', () => {
   const seed = (key: string) => {
-    const s = BADGE_SEEDS.find(b => b.key === key)!;
-    badgeDefs.push({ ...s, tenantId: TENANT, active: true });
+    badgeDefs.push({ ...DEFS[key], tenantId: TENANT, active: true });
   };
 
   it('awards a first-mission badge on the first mission', async () => {
@@ -405,8 +424,7 @@ describe('badges', () => {
   });
 
   it('ignores a badge an admin disabled', async () => {
-    const s = BADGE_SEEDS.find(b => b.key === 'FIRST_MISSION')!;
-    badgeDefs.push({ ...s, tenantId: TENANT, active: false });
+    badgeDefs.push({ ...DEFS.FIRST_MISSION, tenantId: TENANT, active: false });
 
     const award = await mission();
     expect(award.badges).toHaveLength(0);
@@ -508,6 +526,17 @@ describe('defaults', () => {
     const kept = rules.find(r => r.eventKey === 'CAREER_MISSION_COMPLETED');
     expect(kept.xp).toBe(999);
     expect(kept.enabled).toBe(false);
+  });
+
+  it('switches the first, never-shown badge set off once, and leaves the admin free to switch one back on', async () => {
+    badgeDefs.push({ ...DEFS.FIRST_MISSION, tenantId: TENANT, active: true });
+    await ensureGamificationDefaults(TENANT);
+    expect(badgeDefs.find(b => b.key === 'FIRST_MISSION').active).toBe(false);
+    expect(badgeDefs.filter(b => BADGE_SEEDS.some(s => s.key === b.key)).every(b => b.active)).toBe(true);
+
+    badgeDefs.find(b => b.key === 'FIRST_MISSION').active = true;
+    await ensureGamificationDefaults(TENANT);
+    expect(badgeDefs.find(b => b.key === 'FIRST_MISSION').active).toBe(true);
   });
 
   it('is safe to run repeatedly', async () => {

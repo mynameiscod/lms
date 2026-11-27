@@ -1,0 +1,1550 @@
+[
+  {
+    "seedKey": "logical-161",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Painted cube cut into 27: two faces",
+    "statement": "A wooden cube is painted red on all six faces. It is then cut into 27 identical smaller cubes (3 along each edge).\nHow many of the small cubes have exactly two faces painted red?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "12",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Small cubes with two painted faces lie on the edges of the big cube, but not at the corners.",
+      "A cube has 12 edges.",
+      "Each edge has 3 small cubes; removing the 2 corner cubes leaves 1 per edge.",
+      "12 edges x 1 = 12 small cubes."
+    ],
+    "explanation": "Two-face cubes sit on an edge of the big cube but not at a corner. Each of the 12 edges has 3 - 2 = 1 such cube, so there are 12. Check: 8 corners (3 faces) + 12 (2 faces) + 6 face centres (1 face) + 1 hidden centre (0 faces) = 27.",
+    "hints": [
+      "Think about where on the big cube a small cube would touch two painted faces.",
+      "Those cubes are on the edges, but corners touch three faces.",
+      "How many edges does a cube have, and how many non-corner cubes are on each?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-162",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Big cube of 125: one painted face",
+    "statement": "A cube is painted blue on all its faces and then cut into 125 identical small cubes (5 along each edge).\nHow many small cubes have exactly one face painted?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "54",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Cubes with exactly one painted face lie on a face of the big cube, away from its edges.",
+      "On each face, removing the border leaves a (5 - 2) x (5 - 2) = 3 x 3 = 9 block.",
+      "There are 6 faces, so 6 x 9 = 54."
+    ],
+    "explanation": "Only the inner part of each face has cubes with a single painted face. Each face has a 3 x 3 inner block of 9 cubes, and with 6 faces that is 54.",
+    "hints": [
+      "Look at one face of the big cube on its own.",
+      "Which cubes on that face also touch another face?",
+      "Remove the border row and column on every side: what is left?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-163",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Top face 3, front face 1",
+    "statement": "On a standard die, the numbers on opposite faces always add up to 7.\nA die rests on a table with 3 on the top face and 1 on the face pointing towards you.\nWhat is the sum of the number on the bottom face and the number on the face pointing away from you?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "10",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Bottom is opposite top: 7 - 3 = 4.",
+      "The face pointing away is opposite the front face: 7 - 1 = 6.",
+      "4 + 6 = 10."
+    ],
+    "explanation": "Opposite faces add to 7, so the bottom (opposite 3) shows 4 and the back (opposite 1) shows 6. Their sum is 10.",
+    "hints": [
+      "Which face is opposite the top face?",
+      "Which face is opposite the one facing you?",
+      "Use the rule that opposite faces add up to 7."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-164",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Small cubes from a 6 cm block",
+    "statement": "A solid cube has an edge of 6 cm. It is cut into smaller cubes, each with an edge of 2 cm, with nothing wasted.\nHow many small cubes are made?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "27",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Along each edge, 6 / 2 = 3 small cubes fit.",
+      "The cube has three dimensions, so the count is 3 x 3 x 3.",
+      "3 x 3 x 3 = 27 (check by volume: 216 / 8 = 27)."
+    ],
+    "explanation": "Three small cubes fit along each edge (6 / 2 = 3), so there are 3 x 3 x 3 = 27. Volume check: 6 x 6 x 6 = 216 and 2 x 2 x 2 = 8, and 216 / 8 = 27.",
+    "hints": [
+      "How many 2 cm pieces fit along one 6 cm edge?",
+      "The cube has length, width and height.",
+      "Multiply the number along each edge three times."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-165",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Three corner views of a numbered die",
+    "statement": "A die has the numbers 1 to 6 on its faces, but it is NOT a standard die (opposite faces need not add to 7).\nIt is seen in three positions. Each time, three faces that meet at one corner are visible:\nPosition A: 1, 2 and 3\nPosition B: 1, 3 and 6\nPosition C: 1, 2 and 5\nWhich number is on the face opposite 2?",
+    "answerFormat": "choice",
+    "choices": [
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "answer": "6",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Faces seen together at a corner are adjacent, never opposite.",
+      "1 is seen with 2, 3, 6 and 5, so the face opposite 1 is the only one left: 4.",
+      "2 is seen with 1, 3 and 5, so the face opposite 2 is 4 or 6.",
+      "4 is already opposite 1, so 6 is opposite 2."
+    ],
+    "explanation": "Faces visible together are adjacent. 1 touches 2, 3, 5 and 6, so 4 is opposite 1. 2 touches 1, 3 and 5, leaving 4 or 6 as its opposite, and since 4 is taken by 1, the face opposite 2 is 6. Check: pairs 1-4, 2-6, 3-5 fit all three views.",
+    "hints": [
+      "Two faces seen in the same position cannot be opposite each other.",
+      "First find the face opposite 1: it never appears with 1.",
+      "List the faces that appear with 2, then remove the one already paired with 1."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-166",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Red top and bottom, blue sides",
+    "statement": "A cube has its top and bottom faces painted red and its four side faces painted blue. It is then cut into 27 identical small cubes (3 along each edge).\nHow many small cubes have at least one red face AND at least one blue face?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "16",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A small cube must touch a red face (top or bottom layer) and a side face of the big cube.",
+      "In the top layer of 9 cubes, all except the centre cube touch a side face: 8 cubes.",
+      "The bottom layer gives another 8 the same way.",
+      "8 + 8 = 16."
+    ],
+    "explanation": "A cube with red must be in the top or bottom layer. In each of those 3 x 3 layers, only the centre cube misses every side face, so 8 cubes per layer have both colours, and 2 x 8 = 16. The middle layer has no red at all.",
+    "hints": [
+      "Which layers of small cubes have any red paint?",
+      "In the top layer, which cube does not touch any side of the big cube?",
+      "Count the border cubes of the top and bottom layers."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-167",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Painted only on top and bottom",
+    "statement": "A 4 cm cube is painted green only on its top and bottom faces; the four side faces are left unpainted. It is then cut into 1 cm cubes.\nHow many of the 1 cm cubes have no paint at all?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "32",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The big cube splits into 4 horizontal layers of 4 x 4 = 16 small cubes.",
+      "Only the top layer and the bottom layer have green paint.",
+      "The two middle layers are completely unpainted: 2 x 16 = 32."
+    ],
+    "explanation": "Cutting gives 4 layers of 16 cubes. The paint is only on the top and bottom layers, and the side faces were never painted, so both middle layers are paint-free: 2 x 16 = 32. Check: 64 - 32 painted = 32.",
+    "hints": [
+      "Picture the cube as horizontal layers of small cubes.",
+      "Which layers touch the painted faces?",
+      "The side faces carry no paint, so do the middle layers have any?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-168",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "hard",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Painted brick of 5 by 4 by 3",
+    "statement": "A wooden block measures 5 cm by 4 cm by 3 cm. All six faces are painted, and then it is cut into 1 cm cubes.\nHow many of the 1 cm cubes have exactly one face painted?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "22",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "One-face cubes are the inner part of each face: (length - 2) x (width - 2).",
+      "The 5 x 4 faces give 3 x 2 = 6 each; there are 2 such faces: 12.",
+      "The 5 x 3 faces give 3 x 1 = 3 each, two faces: 6. The 4 x 3 faces give 2 x 1 = 2 each, two faces: 4.",
+      "12 + 6 + 4 = 22."
+    ],
+    "explanation": "Each face contributes its inner block. Two 5 x 4 faces give 6 each, two 5 x 3 faces give 3 each and two 4 x 3 faces give 2 each, for 12 + 6 + 4 = 22. Check: 8 corners + 24 two-face + 22 one-face + 6 unpainted (3 x 2 x 1) = 60 = 5 x 4 x 3.",
+    "hints": [
+      "Treat each pair of opposite faces separately.",
+      "On a face of size a x b, the single-painted cubes form an (a - 2) x (b - 2) block.",
+      "Add up all six faces: two of each size."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-169",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Fewest cuts for 64 cubes",
+    "statement": "A cake shaped like a cube must be cut into 64 identical smaller cubes. Every cut is a straight plane cut, and the pieces are NOT moved or stacked between cuts.\nWhat is the minimum number of cuts needed?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "9",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "64 = 4 x 4 x 4, so there must be 4 pieces along each edge.",
+      "Making 4 pieces along one direction needs 3 cuts.",
+      "Three directions: 3 + 3 + 3 = 9 cuts."
+    ],
+    "explanation": "64 small cubes means 4 along each edge. Three parallel cuts make 4 slices in one direction, and the same is needed in the other two directions, so 9 cuts.",
+    "hints": [
+      "How many small cubes lie along one edge?",
+      "How many cuts make 4 pieces in a line?",
+      "Repeat for all three directions."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-170",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "96 cubes with one painted face",
+    "statement": "A large cube is painted on all faces and then cut into identical small cubes. Exactly 96 of the small cubes have exactly one face painted.\nHow many small cubes are there in total?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "216",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "If there are n small cubes along an edge, one-face cubes number 6 x (n - 2)^2.",
+      "6 x (n - 2)^2 = 96, so (n - 2)^2 = 16 and n - 2 = 4.",
+      "n = 6, so the total is 6 x 6 x 6 = 216."
+    ],
+    "explanation": "Each face has an (n - 2) x (n - 2) block of single-painted cubes, so 6(n - 2)^2 = 96 gives n - 2 = 4 and n = 6. The total is 6^3 = 216. Check: 6 x 4 x 4 = 96.",
+    "hints": [
+      "Let n be the number of small cubes along one edge.",
+      "Write the number of one-face cubes in terms of n.",
+      "Solve 6(n - 2)^2 = 96."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-171",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Unpainted equals one-face painted",
+    "statement": "A large cube is painted on all faces and cut into identical small cubes. The number of small cubes with NO paint is equal to the number with exactly ONE painted face, and both numbers are greater than zero.\nHow many small cubes are there in total?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "512",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "With n cubes per edge, unpainted cubes = (n - 2)^3 and one-face cubes = 6(n - 2)^2.",
+      "Set (n - 2)^3 = 6(n - 2)^2.",
+      "Since both are non-zero, divide by (n - 2)^2: n - 2 = 6, so n = 8.",
+      "Total = 8^3 = 512."
+    ],
+    "explanation": "Unpainted cubes form the (n - 2)^3 core; one-face cubes are 6(n - 2)^2. Equating and dividing by (n - 2)^2 (non-zero) gives n - 2 = 6, so n = 8 and the total is 512. Check: 6^3 = 216 and 6 x 36 = 216.",
+    "hints": [
+      "Use n for the number of small cubes along an edge.",
+      "The unpainted cubes form a smaller cube inside.",
+      "Equate (n - 2)^3 and 6(n - 2)^2 and solve."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-172",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Quarter turn of a die",
+    "statement": "A die (numbers 1 to 6, not necessarily standard) lies on a table with 1 on top, 2 on the face towards you and 3 on the face to your right.\nYou give it a quarter turn about the vertical axis, so that the face that was on your right now faces you. The top still shows 1. Now 3 faces you and 5 is on your right.\nWhich number is on the face opposite 2?",
+    "answerFormat": "choice",
+    "choices": [
+      "4",
+      "5",
+      "6",
+      "3"
+    ],
+    "answer": "5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A quarter turn about the vertical axis cycles the four side faces; the top and bottom stay put.",
+      "When the right face moves to the front, the old back face moves to the right.",
+      "So 5, now on the right, was the back face in the first position.",
+      "In the first position 2 was in front, so the back face (5) is opposite 2."
+    ],
+    "explanation": "Turning the die so that the right face comes to the front moves the back face to the right. Hence 5 was the back face originally, and the back is opposite the front, which showed 2. So 5 is opposite 2.",
+    "hints": [
+      "Only the four side faces move in this turn.",
+      "If right goes to front, where does the back face go?",
+      "The face now on your right used to be opposite the original front."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-173",
+    "type": "logical",
+    "subCategory": "Cubes and dice",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Three faces painted at one corner",
+    "statement": "A 6 x 6 x 6 cube is made of 216 small cubes. Only three faces of the big cube are painted: the top, the front and the right face (these three meet at one corner). The other three faces are left unpainted.\nHow many small cubes have exactly one face painted?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "75",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Cubes touching no painted face form a 5 x 5 x 5 block: 125, so 216 - 125 = 91 have some paint.",
+      "Exactly one corner cube touches all three painted faces: 1 cube with 3 faces painted.",
+      "The three edges where two painted faces meet have 6 cubes each; without the shared corner that is 3 x 5 = 15 cubes with 2 faces painted.",
+      "91 - 1 - 15 = 75."
+    ],
+    "explanation": "91 small cubes carry paint (216 - 125). Of these, 1 corner cube has three painted faces and 15 cubes on the three shared edges have two. The rest, 91 - 16 = 75, have exactly one. Check per face: 36 cubes minus the 11 on its two shared edges = 25, and 3 x 25 = 75.",
+    "hints": [
+      "Only edges where two painted faces meet can give two-face cubes.",
+      "How many cubes touch no painted face at all? They form a smaller cube.",
+      "Subtract the unpainted, two-face and three-face cubes from 216."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "logical-174",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Triple, then take one",
+    "statement": "Find the next number in the series: 2, 6, 5, 15, 14, 42, ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "41",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The steps alternate: x 3, then - 1.",
+      "2 x 3 = 6, 6 - 1 = 5, 5 x 3 = 15, 15 - 1 = 14, 14 x 3 = 42.",
+      "The next step is - 1: 42 - 1 = 41."
+    ],
+    "explanation": "The series alternates between tripling and subtracting 1. After 14 x 3 = 42 comes 42 - 1 = 41.",
+    "hints": [
+      "The series goes up and down, so look for two different steps.",
+      "Compare 2 to 6 and 6 to 5.",
+      "After a tripling comes a subtraction."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-175",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Backwards by two letters",
+    "statement": "Find the next letter in the series: Z, X, V, T, ?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "R",
+    "acceptedAnswers": [
+      "r"
+    ],
+    "keySteps": [
+      "Positions are 26, 24, 22, 20.",
+      "Each step goes back 2 letters.",
+      "20 - 2 = 18, which is R."
+    ],
+    "explanation": "The letters move backwards through the alphabet, skipping one each time: Z(26), X(24), V(22), T(20). The next is position 18, R.",
+    "hints": [
+      "Is the series moving forwards or backwards in the alphabet?",
+      "How many letters are skipped each time?",
+      "Go back two letters from T."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-176",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Cubes of counting numbers",
+    "statement": "Find the next number in the series: 1, 8, 27, 64, ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "125",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "1 = 1 x 1 x 1, 8 = 2 x 2 x 2, 27 = 3 x 3 x 3, 64 = 4 x 4 x 4.",
+      "The terms are the cubes of 1, 2, 3, 4.",
+      "The next term is 5 x 5 x 5 = 125."
+    ],
+    "explanation": "Each term is the cube of its position: 1, 8, 27 and 64 are the cubes of 1 to 4. The next is 5^3 = 125.",
+    "hints": [
+      "The numbers grow quickly - think about powers.",
+      "8 = 2 x 2 x 2.",
+      "What is 5 x 5 x 5?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-177",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Two series woven together",
+    "statement": "Find the next number in the series: 3, 20, 6, 17, 9, 14, 12, ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "11",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Split into odd positions (3, 6, 9, 12) and even positions (20, 17, 14, ?).",
+      "The odd-position terms go up by 3.",
+      "The even-position terms go down by 3.",
+      "The missing term is the next even-position term: 14 - 3 = 11."
+    ],
+    "explanation": "Two series alternate: 3, 6, 9, 12 rising by 3, and 20, 17, 14 falling by 3. The eighth term belongs to the falling series, so it is 14 - 3 = 11.",
+    "hints": [
+      "The terms jump up and down - try taking every other term.",
+      "Look at 3, 6, 9, 12 and 20, 17, 14 separately.",
+      "Which of the two series does the missing term belong to?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-178",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Letters from both ends",
+    "statement": "Find the next pair in the series: AZ, BY, CX, DW, ?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "EV",
+    "acceptedAnswers": [
+      "ev",
+      "E V",
+      "E, V"
+    ],
+    "keySteps": [
+      "The first letters run forwards: A, B, C, D.",
+      "The second letters run backwards: Z, Y, X, W.",
+      "Next: E forwards and V backwards, giving EV."
+    ],
+    "explanation": "The first letter moves forward one step each time (A, B, C, D, E) and the second moves back one step from Z (Z, Y, X, W, V). So the next pair is EV. Check: in every pair the positions add to 27 (5 + 22 = 27).",
+    "hints": [
+      "Look at the first letters and the second letters separately.",
+      "One half moves forwards, the other backwards.",
+      "What comes after D, and what comes before W?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-179",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Products of neighbours",
+    "statement": "Find the next number in the series: 2, 6, 12, 20, 30, ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "42",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Differences are 4, 6, 8, 10, so the next difference is 12.",
+      "30 + 12 = 42.",
+      "Check: the terms are 1x2, 2x3, 3x4, 4x5, 5x6, so the next is 6x7 = 42."
+    ],
+    "explanation": "The gaps grow by 2 each time (4, 6, 8, 10), so the next gap is 12 and the next term is 42. Equivalently each term is n(n + 1), and 6 x 7 = 42.",
+    "hints": [
+      "Write down the differences between terms.",
+      "How are the differences changing?",
+      "Alternatively, try writing each term as a product of two consecutive numbers."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-180",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Growing by half each time",
+    "statement": "Find the next number in the series: 4, 6, 9, 13.5, ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "20.25",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Ratios: 6 / 4 = 1.5, 9 / 6 = 1.5, 13.5 / 9 = 1.5.",
+      "Each term is 1.5 times the previous one.",
+      "13.5 x 1.5 = 20.25."
+    ],
+    "explanation": "The differences (2, 3, 4.5) are not constant, but the ratio is: each term is 1.5 times the previous. So the next term is 13.5 x 1.5 = 20.25.",
+    "hints": [
+      "The differences are 2, 3, 4.5 - do they themselves form a pattern?",
+      "Try dividing each term by the one before it.",
+      "Multiply 13.5 by the same ratio."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-181",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Three forward, one back",
+    "statement": "Find the next letter in the series: B, E, D, G, F, I, ?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "H",
+    "acceptedAnswers": [
+      "h"
+    ],
+    "keySteps": [
+      "Positions: 2, 5, 4, 7, 6, 9.",
+      "The steps alternate: +3, then -1.",
+      "After +3 (6 to 9) comes -1: 9 - 1 = 8, which is H."
+    ],
+    "explanation": "Converting to positions gives 2, 5, 4, 7, 6, 9, with steps +3, -1, +3, -1, +3. The next step is -1, giving position 8, the letter H.",
+    "hints": [
+      "Change each letter into its alphabet position.",
+      "Look at the steps between positions - they alternate.",
+      "What is one letter before I?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-182",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Find the wrong term",
+    "statement": "Exactly one number in this series is wrong. Which one?\n2, 3, 5, 9, 17, 34, 65",
+    "answerFormat": "choice",
+    "choices": [
+      "9",
+      "17",
+      "34",
+      "65"
+    ],
+    "answer": "34",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Test a rule on the start: 2 x 2 - 1 = 3, 3 x 2 - 1 = 5, 5 x 2 - 1 = 9, 9 x 2 - 1 = 17.",
+      "The rule 'double and subtract 1' predicts 17 x 2 - 1 = 33, not 34.",
+      "With 33, the next term 33 x 2 - 1 = 65 matches, confirming the rule.",
+      "So 34 is the wrong term (it should be 33)."
+    ],
+    "explanation": "Each term is double the previous minus 1 (equivalently the differences 1, 2, 4, 8, 16, 32 double). That gives 2, 3, 5, 9, 17, 33, 65, so 34 should be 33. The final 65 fits only if the sixth term is 33, which confirms 34 is the error.",
+    "hints": [
+      "Find a rule that fits the first four or five terms.",
+      "Look at the differences: 1, 2, 4, 8 ...",
+      "Which term breaks the doubling of the differences?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-183",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Double and add one",
+    "statement": "Find the next number in the series: 3, 7, 15, 31, 63, ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "127",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "7 = 3 x 2 + 1, 15 = 7 x 2 + 1, 31 = 15 x 2 + 1, 63 = 31 x 2 + 1.",
+      "Each term is twice the previous plus 1.",
+      "63 x 2 + 1 = 127 (check: every term is one less than a power of 2, and 127 = 128 - 1)."
+    ],
+    "explanation": "Each term doubles the previous one and adds 1. So 63 x 2 + 1 = 127. Check: the terms are 2^2 - 1, 2^3 - 1, ..., 2^6 - 1, and 2^7 - 1 = 127.",
+    "hints": [
+      "Compare each term with double the one before it.",
+      "Each term is close to twice the previous - by how much does it differ?",
+      "Alternatively, add 1 to every term."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-184",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Differences are perfect squares",
+    "statement": "Find the next number in the series: 1, 2, 6, 15, 31, 56, ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "92",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Differences: 1, 4, 9, 16, 25.",
+      "These are the squares 1^2, 2^2, 3^2, 4^2, 5^2.",
+      "The next difference is 6^2 = 36.",
+      "56 + 36 = 92."
+    ],
+    "explanation": "The gaps between consecutive terms are 1, 4, 9, 16, 25, the squares of 1 to 5. The next gap is 36, so the next term is 56 + 36 = 92.",
+    "hints": [
+      "Write out the differences between consecutive terms.",
+      "Do the differences look familiar?",
+      "Add the next square to 56."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-185",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Letters at prime positions",
+    "statement": "Find the next letter in the series: B, C, E, G, K, M, ?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Q",
+    "acceptedAnswers": [
+      "q"
+    ],
+    "keySteps": [
+      "Positions are 2, 3, 5, 7, 11, 13.",
+      "Gaps (1, 2, 2, 4, 2) are irregular, so look at the positions themselves.",
+      "2, 3, 5, 7, 11, 13 are the prime numbers in order.",
+      "The next prime is 17, which is Q."
+    ],
+    "explanation": "The alphabet positions are 2, 3, 5, 7, 11, 13 - consecutive primes. The next prime is 17, and the 17th letter is Q.",
+    "hints": [
+      "Convert each letter to its alphabet position.",
+      "The gaps are not regular; what do the positions have in common?",
+      "They can only be divided by 1 and themselves."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-186",
+    "type": "logical",
+    "subCategory": "Pattern recognition",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Cube minus the number",
+    "statement": "Find the next number in the series: 0, 6, 24, 60, 120, 210, ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "336",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Test powers: 1^3 - 1 = 0, 2^3 - 2 = 6, 3^3 - 3 = 24, 4^3 - 4 = 60.",
+      "5^3 - 5 = 120 and 6^3 - 6 = 210 also fit, so term n = n^3 - n.",
+      "Next: 7^3 - 7 = 343 - 7 = 336.",
+      "Check with differences: 6, 18, 36, 60, 90 have differences 12, 18, 24, 30; the next is 36, so 90 + 36 = 126 and 210 + 126 = 336."
+    ],
+    "explanation": "Each term is n^3 - n: 0, 6, 24, 60, 120, 210 for n = 1 to 6, so the next is 343 - 7 = 336. A second-difference check agrees: the second differences rise by 6 (12, 18, 24, 30, 36), giving a next first difference of 126 and 210 + 126 = 336.",
+    "hints": [
+      "Compare the terms with the cubes 1, 8, 27, 64 ...",
+      "How far is each term below the cube of its position?",
+      "Term n is n^3 minus n."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-187",
+    "type": "logical",
+    "subCategory": "Analogies",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Doctor is to hospital",
+    "statement": "Doctor : Hospital :: Teacher : ?",
+    "answerFormat": "choice",
+    "choices": [
+      "Student",
+      "School",
+      "Chalk",
+      "Book"
+    ],
+    "answer": "School",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The relationship is: person : the place where that person works.",
+      "A doctor works in a hospital.",
+      "A teacher works in a school, so the answer is School (Student and Chalk are linked to teaching but are not places)."
+    ],
+    "explanation": "The pair links a professional to their workplace. A teacher's workplace is a school. Student and Chalk are connected to a teacher but are not workplaces, so they break the relationship.",
+    "hints": [
+      "How is a doctor connected to a hospital?",
+      "Is the hospital a tool, a person or a place?",
+      "Find the place where a teacher works."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-188",
+    "type": "logical",
+    "subCategory": "Analogies",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Number and its square",
+    "statement": "4 : 16 :: 6 : 36 :: 9 : ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "81",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "4 x 4 = 16 and 6 x 6 = 36.",
+      "So each number is paired with its square.",
+      "9 x 9 = 81."
+    ],
+    "explanation": "Both given pairs map a number to its square (16 = 4^2, 36 = 6^2). So 9 maps to 9^2 = 81. The two examples rule out 'multiply by 4', which would give 24 instead of 36.",
+    "hints": [
+      "How do you get 16 from 4 and 36 from 6 with the same rule?",
+      "Multiplying by 4 works for the first pair - does it work for the second?",
+      "Multiply the number by itself."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-189",
+    "type": "logical",
+    "subCategory": "Analogies",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Each letter one ahead",
+    "statement": "ACE : BDF :: GIK : ?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "HJL",
+    "acceptedAnswers": [
+      "hjl"
+    ],
+    "keySteps": [
+      "A to B, C to D and E to F: each letter moves forward by 1.",
+      "Apply the same to G, I, K.",
+      "G to H, I to J, K to L, giving HJL."
+    ],
+    "explanation": "Every letter of ACE is shifted one place forward to make BDF. Shifting G, I, K one place forward gives H, J, L.",
+    "hints": [
+      "Compare the first letters, A and B.",
+      "Is the same shift used for every letter?",
+      "Move each of G, I and K one step forward."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-190",
+    "type": "logical",
+    "subCategory": "Analogies",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Bird is to flock",
+    "statement": "Bird : Flock :: Fish : ?",
+    "answerFormat": "choice",
+    "choices": [
+      "Pond",
+      "Herd",
+      "School",
+      "Fin"
+    ],
+    "answer": "School",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The relationship is: individual animal : its group (collective noun).",
+      "A group of birds is a flock.",
+      "A group of fish is a school.",
+      "Herd is a group word too, but for cattle and other land animals, not fish; Pond is a home, not a group."
+    ],
+    "explanation": "A flock is a group of birds, so we need the word for a group of fish, which is a school. Herd is the tempting option, but it is used for cattle and other land animals, and Pond is where fish live, not their group.",
+    "hints": [
+      "What does 'flock' describe?",
+      "You need the group word for fish.",
+      "It is the same word as the place where children study."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-191",
+    "type": "logical",
+    "subCategory": "Analogies",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Two digits multiplied",
+    "statement": "23 : 6 :: 45 : 20 :: 37 : ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "21",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Test 23 : 6: 2 x 3 = 6 (subtracting 17 also gives 6, so check the second pair).",
+      "45 : 20: 4 x 5 = 20, while 45 - 17 = 28 does not fit.",
+      "So the rule is: multiply the two digits.",
+      "37: 3 x 7 = 21."
+    ],
+    "explanation": "The second number is the product of the digits of the first: 2 x 3 = 6 and 4 x 5 = 20. For 37 that gives 3 x 7 = 21. A rule like 'subtract 17' fits only the first pair, which is why two examples are given.",
+    "hints": [
+      "Look at the digits of 23 separately.",
+      "Combine the two digits in some way to get 6.",
+      "Check your rule on 45 : 20 before using it."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-192",
+    "type": "logical",
+    "subCategory": "Analogies",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "State and capital",
+    "statement": "Odisha : Bhubaneswar :: Karnataka : ?",
+    "answerFormat": "choice",
+    "choices": [
+      "Mysuru",
+      "Mangaluru",
+      "Bengaluru",
+      "Hubballi"
+    ],
+    "answer": "Bengaluru",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The relationship is: state : its capital city.",
+      "Bhubaneswar is the capital of Odisha.",
+      "The capital of Karnataka is Bengaluru; Mysuru, Hubballi and Mangaluru are large cities but not the capital."
+    ],
+    "explanation": "Bhubaneswar is the capital of Odisha, so we need the capital of Karnataka, which is Bengaluru. The other options are major Karnataka cities, but none is the capital.",
+    "hints": [
+      "How is Bhubaneswar related to Odisha?",
+      "All four options are in Karnataka - which one has the special role?",
+      "Where does Karnataka's government sit?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-193",
+    "type": "logical",
+    "subCategory": "Analogies",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Shift by 1, 2 and 3",
+    "statement": "CAT : DCW :: DOG : ?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "EQJ",
+    "acceptedAnswers": [
+      "eqj"
+    ],
+    "keySteps": [
+      "C to D is +1, A to C is +2, T to W is +3.",
+      "So the first, second and third letters move forward by 1, 2 and 3.",
+      "D + 1 = E, O + 2 = Q, G + 3 = J, giving EQJ."
+    ],
+    "explanation": "In CAT to DCW, the three letters move forward by 1, 2 and 3 places respectively. Applying the same to DOG: D becomes E, O becomes Q and G becomes J, so the answer is EQJ.",
+    "hints": [
+      "Compare each letter of CAT with the letter in the same place in DCW.",
+      "Are all the shifts the same size?",
+      "Shift D by 1, O by 2 and G by 3."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-194",
+    "type": "logical",
+    "subCategory": "Analogies",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "One less than the square",
+    "statement": "6 : 35 :: 8 : 63 :: 11 : ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "120",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "6 x 6 = 36 and 36 - 1 = 35.",
+      "8 x 8 = 64 and 64 - 1 = 63, so the rule is n^2 - 1.",
+      "11 x 11 = 121, and 121 - 1 = 120."
+    ],
+    "explanation": "Each second number is one less than the square of the first: 36 - 1 = 35 and 64 - 1 = 63. For 11, that is 121 - 1 = 120. Check another way: n^2 - 1 = (n - 1)(n + 1), and 10 x 12 = 120.",
+    "hints": [
+      "35 and 63 are each close to a familiar number.",
+      "Compare 35 with 6 x 6.",
+      "Square 11 and adjust in the same way."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-195",
+    "type": "logical",
+    "subCategory": "Analogies",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Halves reversed",
+    "statement": "MASTER : SAMRET :: BANGLE : ?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "NABELG",
+    "acceptedAnswers": [
+      "nabelg"
+    ],
+    "keySteps": [
+      "Split MASTER into halves: MAS and TER.",
+      "Each half is written backwards: MAS becomes SAM and TER becomes RET, giving SAMRET.",
+      "Split BANGLE into BAN and GLE.",
+      "Reverse each half: NAB and ELG, giving NABELG."
+    ],
+    "explanation": "MASTER is cut into two three-letter halves, MAS and TER, and each half is reversed to give SAM + RET. Doing the same to BANGLE: BAN becomes NAB and GLE becomes ELG, so the answer is NABELG.",
+    "hints": [
+      "Both words have six letters - try cutting them in half.",
+      "Compare MAS with SAM.",
+      "Reverse BAN and GLE separately, then join them."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-196",
+    "type": "logical",
+    "subCategory": "Analogies",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "What an odometer measures",
+    "statement": "Thermometer : Temperature :: Odometer : ?",
+    "answerFormat": "choice",
+    "choices": [
+      "Speed",
+      "Distance",
+      "Pressure",
+      "Fuel"
+    ],
+    "answer": "Distance",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The relationship is: instrument : the quantity it measures.",
+      "A thermometer measures temperature.",
+      "An odometer measures the distance a vehicle has travelled.",
+      "Speed is the tempting option, but speed is measured by a speedometer, not an odometer."
+    ],
+    "explanation": "The pair is an instrument and what it measures. An odometer records distance travelled (the kilometre reading on a bike or car). Speed is the trap: that is the speedometer's job.",
+    "hints": [
+      "What does a thermometer do?",
+      "Think of the kilometre counter on a scooter's dashboard.",
+      "A speedometer and an odometer are different dials."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-197",
+    "type": "logical",
+    "subCategory": "Analogies",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Squares of the digits",
+    "statement": "123 : 14 :: 234 : 29 :: 345 : ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "50",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Digit sums (6 and 9) and products (6 and 24) do not give 14 and 29.",
+      "Squares of the digits: 1 + 4 + 9 = 14 and 4 + 9 + 16 = 29.",
+      "For 345: 9 + 16 + 25 = 50."
+    ],
+    "explanation": "The second number is the sum of the squares of the digits: 1^2 + 2^2 + 3^2 = 14 and 2^2 + 3^2 + 4^2 = 29. For 345 that is 9 + 16 + 25 = 50.",
+    "hints": [
+      "Work with the three digits of each number separately.",
+      "Adding the digits gives 6 - too small. Try something that grows faster.",
+      "Square each digit and add."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-198",
+    "type": "logical",
+    "subCategory": "Analogies",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Letter positions multiplied",
+    "statement": "CD : 12 :: EF : 30 :: HI : ?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "72",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "C = 3 and D = 4; 3 x 4 = 12 (3 + 4 = 7, so it is not a sum).",
+      "E = 5 and F = 6; 5 x 6 = 30, confirming the rule: multiply the positions.",
+      "H = 8 and I = 9; 8 x 9 = 72."
+    ],
+    "explanation": "Each number is the product of the alphabet positions of the two letters: 3 x 4 = 12 and 5 x 6 = 30. For HI, 8 x 9 = 72.",
+    "hints": [
+      "Replace each letter with its position in the alphabet.",
+      "Adding 3 and 4 gives 7, not 12 - try another operation.",
+      "Multiply the positions of H and I."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-199",
+    "type": "logical",
+    "subCategory": "Odd one out",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Which is not a fruit",
+    "statement": "Find the odd one out: Mango, Banana, Potato, Guava",
+    "answerFormat": "choice",
+    "choices": [
+      "Mango",
+      "Banana",
+      "Potato",
+      "Guava"
+    ],
+    "answer": "Potato",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Mango, Banana and Guava are fruits.",
+      "Potato is a vegetable (a tuber).",
+      "So Potato is the odd one out."
+    ],
+    "explanation": "Three of the words are fruits. Potato is a vegetable, a tuber that grows underground, so it does not belong.",
+    "hints": [
+      "Sort the items into groups.",
+      "Which one would you find in a sabzi rather than a fruit salad?",
+      "Three are fruits."
+    ],
+    "estimatedMinutes": 1
+  },
+  {
+    "seedKey": "logical-200",
+    "type": "logical",
+    "subCategory": "Odd one out",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The number that is not prime",
+    "statement": "Find the odd one out: 17, 23, 29, 33",
+    "answerFormat": "choice",
+    "choices": [
+      "17",
+      "23",
+      "29",
+      "33"
+    ],
+    "answer": "33",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "17, 23 and 29 have no factors other than 1 and themselves, so they are prime.",
+      "33 = 3 x 11, so it is not prime.",
+      "So 33 is the odd one out."
+    ],
+    "explanation": "17, 23 and 29 are prime numbers. 33 can be written as 3 x 11, so it is composite and is the odd one out.",
+    "hints": [
+      "All four are odd, so the rule is something else.",
+      "Try dividing each number by small numbers like 3.",
+      "Which number has a factor other than 1 and itself?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-201",
+    "type": "logical",
+    "subCategory": "Odd one out",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Letter pairs with a gap",
+    "statement": "Find the odd one out: BD, FH, JL, MP",
+    "answerFormat": "choice",
+    "choices": [
+      "BD",
+      "FH",
+      "JL",
+      "MP"
+    ],
+    "answer": "MP",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "In BD, FH and JL the second letter is 2 places after the first (one letter skipped).",
+      "M is 13 and P is 16: a gap of 3.",
+      "So MP is the odd one out."
+    ],
+    "explanation": "BD, FH and JL each skip exactly one letter (B_D, F_H, J_L). MP skips two letters (N and O), so it does not follow the pattern.",
+    "hints": [
+      "Count how many letters lie between the two letters of each pair.",
+      "BD skips C.",
+      "Which pair skips more than one letter?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-202",
+    "type": "logical",
+    "subCategory": "Odd one out",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Not a state capital",
+    "statement": "Find the odd one out: Patna, Lucknow, Bhopal, Indore",
+    "answerFormat": "choice",
+    "choices": [
+      "Patna",
+      "Lucknow",
+      "Bhopal",
+      "Indore"
+    ],
+    "answer": "Indore",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Patna is the capital of Bihar.",
+      "Lucknow is the capital of Uttar Pradesh and Bhopal is the capital of Madhya Pradesh.",
+      "Indore is a large city in Madhya Pradesh but not a state capital, so it is the odd one out."
+    ],
+    "explanation": "Patna, Lucknow and Bhopal are state capitals (Bihar, Uttar Pradesh and Madhya Pradesh). Indore is Madhya Pradesh's biggest city, but the capital is Bhopal, so Indore is the odd one out.",
+    "hints": [
+      "All four are big cities in north and central India.",
+      "Think about where each state's government sits.",
+      "Bhopal and Indore are in the same state - which one is the capital?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-203",
+    "type": "logical",
+    "subCategory": "Odd one out",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Not a multiple of 11",
+    "statement": "Find the odd one out: 143, 187, 221, 253",
+    "answerFormat": "choice",
+    "choices": [
+      "143",
+      "187",
+      "221",
+      "253"
+    ],
+    "answer": "221",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "143 = 11 x 13.",
+      "187 = 11 x 17 and 253 = 11 x 23.",
+      "221 = 13 x 17, which is not divisible by 11.",
+      "So 221 is the odd one out."
+    ],
+    "explanation": "143, 187 and 253 are all multiples of 11 (11 x 13, 11 x 17, 11 x 23). 221 is 13 x 17 and has no factor 11, so it is the odd one out. Quick test for 11: alternating digit sum 2 - 2 + 1 = 1, not 0 or a multiple of 11.",
+    "hints": [
+      "All four are odd and none is prime - look for a common factor.",
+      "Try dividing each by 11.",
+      "For 11, check the alternating sum of the digits."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-204",
+    "type": "logical",
+    "subCategory": "Odd one out",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Not a planet",
+    "statement": "Find the odd one out: Mercury, Venus, Moon, Mars",
+    "answerFormat": "choice",
+    "choices": [
+      "Mercury",
+      "Venus",
+      "Moon",
+      "Mars"
+    ],
+    "answer": "Moon",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Mercury, Venus and Mars are planets that orbit the Sun.",
+      "The Moon is a natural satellite that orbits the Earth.",
+      "So Moon is the odd one out."
+    ],
+    "explanation": "Mercury, Venus and Mars are planets of the solar system. The Moon is Earth's satellite, not a planet, so it is the odd one out.",
+    "hints": [
+      "Think about what each body goes around.",
+      "Three of them orbit the Sun directly.",
+      "Which one orbits the Earth?"
+    ],
+    "estimatedMinutes": 1
+  },
+  {
+    "seedKey": "logical-205",
+    "type": "logical",
+    "subCategory": "Odd one out",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Three-letter groups that break step",
+    "statement": "Find the odd one out: BCF, GHK, LMP, QRV",
+    "answerFormat": "choice",
+    "choices": [
+      "BCF",
+      "GHK",
+      "LMP",
+      "QRV"
+    ],
+    "answer": "QRV",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Write positions: BCF = 2, 3, 6; GHK = 7, 8, 11; LMP = 12, 13, 16.",
+      "In each of these the steps are +1 then +3.",
+      "QRV = 17, 18, 22: steps +1 then +4.",
+      "So QRV is the odd one out."
+    ],
+    "explanation": "BCF, GHK and LMP all follow the steps +1, +3 (for example G to H is +1, H to K is +3). In QRV, R to V is +4, so it breaks the pattern. The group that would fit is QRU.",
+    "hints": [
+      "Convert the letters to alphabet positions.",
+      "Find the steps inside each group.",
+      "Which group has a different second step?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-206",
+    "type": "logical",
+    "subCategory": "Odd one out",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Pairs following n times n minus 1",
+    "statement": "Find the odd pair: 4 : 12, 6 : 30, 8 : 56, 10 : 80",
+    "answerFormat": "choice",
+    "choices": [
+      "4 : 12",
+      "6 : 30",
+      "8 : 56",
+      "10 : 80"
+    ],
+    "answer": "10 : 80",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "4 x 3 = 12, so the rule may be n x (n - 1).",
+      "6 x 5 = 30 and 8 x 7 = 56 also fit.",
+      "10 x 9 = 90, not 80.",
+      "So 10 : 80 is the odd pair."
+    ],
+    "explanation": "In 4 : 12, 6 : 30 and 8 : 56 the second number is n(n - 1). For 10 the rule gives 90, not 80, so 10 : 80 is the odd pair.",
+    "hints": [
+      "Find a rule linking 4 to 12.",
+      "Check the same rule with 6 : 30.",
+      "Multiply each first number by the number one below it."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-207",
+    "type": "logical",
+    "subCategory": "Odd one out",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "The instrument you blow",
+    "statement": "Find the odd one out: Violin, Sitar, Veena, Flute",
+    "answerFormat": "choice",
+    "choices": [
+      "Violin",
+      "Sitar",
+      "Veena",
+      "Flute"
+    ],
+    "answer": "Flute",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Violin, Sitar and Veena make sound from vibrating strings.",
+      "A flute makes sound from air blown into it (a wind instrument).",
+      "So Flute is the odd one out."
+    ],
+    "explanation": "Violin, sitar and veena are string instruments, played by bowing or plucking strings. The flute is a wind instrument with no strings, so it is the odd one out.",
+    "hints": [
+      "Think about how each instrument produces sound.",
+      "Three of them have strings.",
+      "Which one is played with your breath?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-208",
+    "type": "logical",
+    "subCategory": "Odd one out",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Not divisible by 3",
+    "statement": "Find the odd one out: 357, 627, 537, 467",
+    "answerFormat": "choice",
+    "choices": [
+      "357",
+      "627",
+      "537",
+      "467"
+    ],
+    "answer": "467",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "All four are three-digit odd numbers ending in 7, so look at divisibility.",
+      "Digit sums: 3 + 5 + 7 = 15, 6 + 2 + 7 = 15, 5 + 3 + 7 = 15, 4 + 6 + 7 = 17.",
+      "A digit sum of 15 means the number is divisible by 3; 17 is not.",
+      "So 467 is the only one not divisible by 3 (in fact it is prime)."
+    ],
+    "explanation": "357, 627 and 537 all have digit sum 15, so each is divisible by 3 (357 = 3 x 119, 627 = 3 x 209, 537 = 3 x 179). 467 has digit sum 17, so it is not divisible by 3 and is the odd one out.",
+    "hints": [
+      "They all end in 7 and are odd - that is not the rule.",
+      "Add up the digits of each number.",
+      "What does the digit sum tell you about divisibility by 3?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-209",
+    "type": "logical",
+    "subCategory": "Odd one out",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Steps of three letters",
+    "statement": "Find the odd one out: DGJ, KNQ, PSV, UXZ",
+    "answerFormat": "choice",
+    "choices": [
+      "DGJ",
+      "KNQ",
+      "PSV",
+      "UXZ"
+    ],
+    "answer": "UXZ",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "DGJ = 4, 7, 10; KNQ = 11, 14, 17; PSV = 16, 19, 22.",
+      "Each of these moves +3, +3.",
+      "UXZ = 21, 24, 26: the second step is only +2.",
+      "So UXZ is the odd one out."
+    ],
+    "explanation": "In DGJ, KNQ and PSV, each letter is three places after the previous one. UXZ goes U to X (+3) but X to Z (+2), so it breaks the rule.",
+    "hints": [
+      "Find the alphabet positions of each letter.",
+      "Check the gap between the first and second letters, then the second and third.",
+      "Which group has a gap that is not 3?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-210",
+    "type": "logical",
+    "subCategory": "Odd one out",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Cube of a non-prime",
+    "statement": "Find the odd one out: 27, 125, 343, 729",
+    "answerFormat": "choice",
+    "choices": [
+      "27",
+      "125",
+      "343",
+      "729"
+    ],
+    "answer": "729",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "All four are perfect cubes: 27 = 3^3, 125 = 5^3, 343 = 7^3, 729 = 9^3.",
+      "3, 5 and 7 are prime; 9 = 3 x 3 is not.",
+      "So 729 is the only cube of a non-prime number.",
+      "Check: 729 is also the only perfect square (27^2) in the list, which points to the same answer."
+    ],
+    "explanation": "Every number is a cube, so the difference lies in what is being cubed: 3, 5 and 7 are primes, while 9 is not. 729 is the odd one out; it is also the only one that is a perfect square (27 x 27), which agrees.",
+    "hints": [
+      "Each number can be written as some number times itself three times.",
+      "Find the cube root of each.",
+      "Look at the cube roots: what do 3, 5 and 7 share that 9 does not?"
+    ],
+    "estimatedMinutes": 4
+  }
+]

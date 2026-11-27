@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { leadApi, leadStageApi, qualificationApi, followUpApi } from '../../api';
+import { leadApi, leadStageApi, qualificationApi, followUpApi, userApi, meetingApi, leadPipelineApi } from '../../api';
 import SalesCallRecordingCard from '../../components/leads/SalesCallRecordingCard';
 import LeadAiCalls from './LeadAiCalls';
 import { leadArchiveApi, archiveError } from '../../api/leadArchiveApi';
+import ChatPanel from '../../components/WhatsAppChat/ChatPanel';
+import { canChat } from '../../api/whatsAppChatApi';
+import { useAuth } from '../../contexts/AuthContext';
+import StageChangeDialog from '../../components/leads/StageChangeDialog';
+import LeadMeetingsCard from '../../components/leads/LeadMeetingsCard';
+import LeadFeeCard from '../../components/leads/LeadFeeCard';
+import LeadMetaEventsCard from '../../components/leads/LeadMetaEventsCard';
 import './LeadDetailV2.css';
 
 interface Lead {
@@ -13,6 +20,10 @@ interface Lead {
   email: string;
   priority: string;
   stage: string;
+  stageId?: { _id: string; name: string } | string;
+  subStageId?: { _id: string; name: string } | null;
+  reasonId?: { _id: string; name: string } | null;
+  pendingApproval?: { stageName?: string } | null;
   source: string;
   sourceDetails?: { adName?: string; adId?: string; adSetName?: string; campaignName?: string; adHeadline?: string };
   assignedTo?: { _id?: string; name?: string; firstName?: string; lastName?: string } | null;
@@ -24,6 +35,10 @@ interface Lead {
   activities?: Activity[];
   qualificationAnswers?: Record<string, string>;
   customFields?: Record<string, any>;
+  reEnquiryCount?: number;
+  lastReEnquiryAt?: string;
+  reEnquiryUnseen?: boolean;
+  reEnquiries?: { at: string; channel: string; adName?: string; campaignName?: string; note?: string }[];
 }
 
 /**
@@ -37,6 +52,7 @@ export const activityAuthor = (a: { type: string; description: string; createdBy
   if (d.startsWith('🤖')) return 'Outpero AI';
   if (d.startsWith('📞 AI call')) return 'Outpero AI';
   if (d.startsWith('📣 Came from a WhatsApp ad')) return 'WhatsApp ad';
+  if (d.startsWith('⚠️ No call or note')) return 'System alert';
   if (a.type === 'whatsapp' && /^(Lead created from WhatsApp|WhatsApp:|WhatsApp qualification)/.test(d)) return 'WhatsApp (automatic)';
   if (a.type === 'created' && /synced from Meta/i.test(d)) return 'Meta lead form (automatic)';
   if (a.type === 'assignment' && /automatic|round robin/i.test(d)) return 'Auto-assignment';
@@ -60,6 +76,7 @@ interface Stage {
   name: string;
   color: string;
   order: number;
+  requiresReason?: boolean;
 }
 
 interface Question {
@@ -80,6 +97,15 @@ const LeadDetailV2: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'timeline' | 'details' | 'checklist'>('timeline');
+  const { user: currentUser } = useAuth();
+  const chatAllowed = canChat(currentUser as any);
+  const visitedRef = React.useRef<Set<string>>(new Set());
+  const [showChat, setShowChat] = useState(false);
+  const [showAssign, setShowAssign] = useState(false);
+  const [staff, setStaff] = useState<any[]>([]);
+  const [assignTo, setAssignTo] = useState('');
+  const [assigning, setAssigning] = useState(false);
+  const canReassign = !!currentUser && (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'TENANT_ADMIN' || ((currentUser as any).permissions || []).some((p: string) => ['manage_leads', 'edit_leads'].includes(p)));
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   const [noteText, setNoteText] = useState('');
@@ -96,6 +122,14 @@ const LeadDetailV2: React.FC = () => {
   const [convertPassword, setConvertPassword] = useState('Welcome@123');
   const [converting, setConverting] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: string }>({ show: false, message: '', type: 'success' });
+  const [stageDialog, setStageDialog] = useState<{ open: boolean; stageId: string | null }>({ open: false, stageId: null });
+  const [meetingsVersion, setMeetingsVersion] = useState(0);
+  const [callOutcomes, setCallOutcomes] = useState<{ code: string; label: string }[]>([]);
+  useEffect(() => {
+    leadPipelineApi.getPicklist('call_outcome', true)
+      .then((res: any) => setCallOutcomes((res.data || []).map((o: any) => ({ code: o.code, label: o.label }))))
+      .catch(() => setCallOutcomes([]));
+  }, []);
 
   useEffect(() => {
     if (leadId) {
@@ -147,19 +181,55 @@ const LeadDetailV2: React.FC = () => {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
+  // Pressing Call counts once in Team Activity, labelled as a started call (not a connected one). Then the dialler
+  // opens and the person records how it went, which completes that same entry rather than adding another.
   const handleCall = () => {
     if (lead?.phone) {
+      leadApi.logCallClick(leadId!).then((r: any) => { if (r?.data?.logged) fetchData(); }).catch(() => undefined);
       window.location.href = `tel:${lead.phone}`;
-      handleAddActivity('call', `Called ${lead.name}`);
+      setNoteType('call');
+      setNoteText('');
+      setCallOutcome('');
+      setShowNoteModal(true);
     }
   };
 
+  // The real chat opens in a side drawer. Only a message that is actually sent from it is logged (by the server).
   const handleWhatsApp = () => {
-    if (lead?.phone) {
-      const phone = lead.phone.replace(/\D/g, '');
-      window.open(`https://wa.me/${phone}`, '_blank');
-      handleAddActivity('whatsapp', `WhatsApp sent to ${lead.name}`);
+    if (!lead?.phone) return;
+    // Pressing WhatsApp counts once in Team Activity; sending a message from the chat completes that same entry.
+    leadApi.logWhatsAppClick(leadId!).then((r: any) => { if (r?.data?.logged) fetchData(); }).catch(() => undefined);
+    if (chatAllowed) { setShowChat(true); return; }
+    // Without chat permission the only option is the phone's own WhatsApp; nothing is logged for that.
+    window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}`, '_blank');
+  };
+
+  const openReassign = async () => {
+    setAssignTo((lead?.assignedTo as any)?._id || '');
+    setShowAssign(true);
+    if (!staff.length) {
+      try {
+        const res = await userApi.getUsers();
+        setStaff((res.data || []).filter((u: any) => ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(u.role) || u.customRoleId));
+      } catch { showToast('Could not load the team list', 'error'); }
     }
+  };
+
+  const saveReassign = async () => {
+    if (!lead) return;
+    setAssigning(true);
+    try {
+      await leadApi.updateLead(leadId!, { assignedTo: assignTo || null });
+      setShowAssign(false);
+      showToast(assignTo ? 'Lead reassigned' : 'Lead unassigned');
+      fetchData();
+    } catch (e: any) {
+      showToast(e?.message || 'Could not reassign this lead', 'error');
+    } finally { setAssigning(false); }
+  };
+
+  const openInWhatsAppApp = () => {
+    if (lead?.phone) window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}`, '_blank');
   };
 
   const handleAddActivity = async (type: string, description: string) => {
@@ -172,17 +242,10 @@ const LeadDetailV2: React.FC = () => {
     }
   };
 
-  const handleStageChange = async (stageName: string) => {
-    try {
-      const stage = stages.find(s => s.name === stageName);
-      if (stage) {
-        await leadApi.changeStage(leadId!, stage._id);
-      }
-      setLead(prev => prev ? { ...prev, stage: stageName } : null);
-      showToast(`Stage updated to ${stageName}`);
-    } catch (error) {
-      showToast('Failed to update stage', 'error');
-    }
+  // Every stage change goes through the stage → sub-stage → reason dialog.
+  const handleStageChange = (stageName?: string) => {
+    const stage = stageName ? stages.find(s => s.name === stageName) : null;
+    setStageDialog({ open: true, stageId: stage?._id || null });
   };
 
   const handlePriorityChange = async (priority: string) => {
@@ -243,7 +306,14 @@ const LeadDetailV2: React.FC = () => {
     if (!demoDate) return;
     setDemoSaving(true);
     try {
-      await leadApi.updateLead(leadId!, { demoBookedAt: demoDate, demoNotes });
+      // A demo is a Meeting: attendance (attended / no-show / rescheduled) is tracked on it,
+      // and the server sets the lead's demoBookedAt.
+      await meetingApi.create({
+        leadId: leadId!, type: 'online_demo', title: `Demo with ${lead?.name || 'lead'}`,
+        scheduledAt: new Date(demoDate).toISOString(), notes: demoNotes || undefined,
+      });
+      if (demoNotes) await leadApi.updateLead(leadId!, { demoNotes }).catch(() => {});
+      setMeetingsVersion(v => v + 1);
       // Create a FollowUpReminder of type 'demo' so it appears on the calendar
       await followUpApi.create({
         leadId: leadId!,
@@ -256,8 +326,8 @@ const LeadDetailV2: React.FC = () => {
       setLead(prev => prev ? { ...prev, demoBookedAt: demoDate, demoNotes } : null);
       setShowDemoModal(false);
       showToast('Demo booked successfully');
-    } catch (error) {
-      showToast('Failed to book demo', 'error');
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to book demo', 'error');
     } finally {
       setDemoSaving(false);
     }
@@ -473,7 +543,7 @@ const LeadDetailV2: React.FC = () => {
                 <i className="bi bi-telephone"></i>
                 <div>
                   <label>Phone</label>
-                  <a href={`tel:${lead.phone}`}>{lead.phone || '-'}</a>
+                  <a href={`tel:${lead.phone}`} onClick={() => { if (lead.phone) leadApi.logCallClick(leadId!).then((r: any) => { if (r?.data?.logged) fetchData(); }).catch(() => undefined); }}>{lead.phone || '-'}</a>
                 </div>
               </div>
               <div className="ld2-summary-item">
@@ -487,7 +557,12 @@ const LeadDetailV2: React.FC = () => {
                 <i className="bi bi-flag"></i>
                 <div>
                   <label>Stage</label>
-                  <span>{lead.stage}</span>
+                  <span>
+                    {lead.stage}
+                    {lead.subStageId?.name && <span className="ld2-substage"> › {lead.subStageId.name}</span>}
+                    {lead.reasonId?.name && <span className="ld2-substage"> · {lead.reasonId.name}</span>}
+                    {lead.pendingApproval?.stageName && <span className="ld2-pending"> (waiting for approval: {lead.pendingApproval.stageName})</span>}
+                  </span>
                 </div>
               </div>
               <div className="ld2-summary-item">
@@ -516,6 +591,7 @@ const LeadDetailV2: React.FC = () => {
                     {lead.assignedTo
                       ? (lead.assignedTo.name || `${lead.assignedTo.firstName || ''} ${lead.assignedTo.lastName || ''}`.trim() || 'Unassigned')
                       : 'Unassigned'}
+                    {canReassign && <button type="button" className="ld2-reassign-btn" onClick={openReassign}>Reassign</button>}
                   </span>
                 </div>
               </div>
@@ -538,15 +614,43 @@ const LeadDetailV2: React.FC = () => {
             </div>
           </div>
 
+          {/* Repeat enquiry: the person came back. Stays until somebody works the lead. */}
+          {lead.reEnquiryUnseen && (
+            <div className="ld2-reenq-banner">
+              <strong>🔁 Enquired again{lead.reEnquiryCount && lead.reEnquiryCount > 1 ? ` (${lead.reEnquiryCount} times)` : ''}</strong>
+              <span>
+                {lead.lastReEnquiryAt ? new Date(lead.lastReEnquiryAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''}
+                {(() => { const r = lead.reEnquiries?.[lead.reEnquiries.length - 1]; const ad = r ? [r.campaignName, r.adName].filter(Boolean).join(' › ') : ''; return ad ? ` · ${ad}` : ''; })()}
+                . Call or add a note to clear this.
+              </span>
+            </div>
+          )}
+
           {/* Stage Pipeline */}
           <div className="ld2-stage-pipeline">
-            <h3>Lead Stage</h3>
+            <div className="ld2-stage-head">
+              <h3>Lead Stage</h3>
+              <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => handleStageChange()}>Change stage</button>
+            </div>
             <div className="ld2-stages">
-              {stages.slice(0, 6).map((stage, index) => (
+              {(() => {
+                // Only six stages fit. A lead sitting in a stage outside them (e.g. "With Outpero")
+                // must still show where it is, and must not turn the six shown into "done".
+                const currentIdx = stages.findIndex(s => s.name === lead.stage);
+                const hidden = currentIdx >= 6;
+                // Green means "the lead really was in this stage", read from its stage-change history, not guessed from position.
+                const visited = new Set<string>();
+                (lead.activities || []).forEach(a => {
+                  const m = /^Stage changed from "(.*)" to "(.*)"/.exec(a.description || '');
+                  if (m) { visited.add(m[1]); visited.add(m[2]); }
+                });
+                visitedRef.current = visited;
+                return hidden ? [...stages.slice(0, 5), stages[currentIdx]] : stages.slice(0, 6);
+              })().map((stage, index, shown) => (
                 <button
                   key={stage._id}
                   className={`ld2-stage-btn ${lead.stage === stage.name ? 'active' : ''} ${
-                    stages.findIndex(s => s.name === lead.stage) > index ? 'completed' : ''
+                    lead.stage !== stage.name && visitedRef.current.has(stage.name) ? 'completed' : ''
                   }`}
                   onClick={() => handleStageChange(stage.name)}
                   style={{ 
@@ -816,6 +920,9 @@ const LeadDetailV2: React.FC = () => {
           </div>
 
           {/* Sales Call Recordings */}
+          <LeadMeetingsCard leadId={lead._id} version={meetingsVersion} onChanged={(m) => { showToast(m); fetchData(); }} onError={(m) => showToast(m, 'error')} />
+          <LeadFeeCard lead={lead} onSaved={(m) => { showToast(m); fetchData(); }} onError={(m) => showToast(m, 'error')} />
+          <LeadMetaEventsCard leadId={lead._id} version={typeof lead.stageId === 'object' ? lead.stageId?._id : lead.stageId} />
           <SalesCallRecordingCard leadId={lead._id} />
         </div>
       </div>
@@ -835,6 +942,30 @@ const LeadDetailV2: React.FC = () => {
           <span>Add Note</span>
         </button>
       </div>
+
+      {/* WhatsApp chat drawer */}
+      {showChat && lead.phone && (
+        <>
+          <div className="ld2-drawer-backdrop" onClick={() => setShowChat(false)} />
+          <aside className="ld2-drawer" role="dialog" aria-label={`WhatsApp chat with ${lead.name}`}>
+            <div className="ld2-drawer-head">
+              <div>
+                <h3><i className="bi bi-whatsapp"></i> {lead.name}</h3>
+                <small>{lead.phone}</small>
+              </div>
+              <div className="ld2-drawer-tools">
+                <button type="button" className="ld2-drawer-link" onClick={openInWhatsAppApp} title="Opens WhatsApp on your own phone or WhatsApp Web. Not recorded in this chat.">
+                  Open in WhatsApp app
+                </button>
+                <button type="button" className="ld2-drawer-close" onClick={() => { setShowChat(false); fetchData(); }} aria-label="Close"><i className="bi bi-x-lg"></i></button>
+              </div>
+            </div>
+            <div className="ld2-drawer-body">
+              <ChatPanel phone={lead.phone} name={lead.name} />
+            </div>
+          </aside>
+        </>
+      )}
 
       {/* Note Modal */}
       {showNoteModal && (
@@ -879,12 +1010,8 @@ const LeadDetailV2: React.FC = () => {
                     className="ld2-select"
                   >
                     <option value="">Select outcome...</option>
-                    <option value="connected">Connected</option>
-                    <option value="no_answer">No Answer</option>
-                    <option value="busy">Busy</option>
-                    <option value="voicemail">Voicemail</option>
-                    <option value="wrong_number">Wrong Number</option>
-                    <option value="callback_requested">Callback Requested</option>
+                    {/* The institute's call-outcome list (Lead Pipeline → Call outcomes). */}
+                    {callOutcomes.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
                   </select>
                 </div>
               )}
@@ -916,8 +1043,34 @@ const LeadDetailV2: React.FC = () => {
               </div>
             </div>
             <div className="ld2-modal-footer">
-              <button className="ld2-btn-cancel" onClick={() => { setShowNoteModal(false); setRecordingFile(null); setCallOutcome(''); }}>Cancel</button>
+              <button className="ld2-btn-cancel" onClick={() => { setShowNoteModal(false); setRecordingFile(null); setCallOutcome(''); setNoteType('note'); }}>Cancel</button>
               <button className="ld2-btn-primary" onClick={handleSaveNote}>Save Activity</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reassign modal */}
+      {showAssign && (
+        <div className="ld2-modal-overlay" onClick={() => setShowAssign(false)}>
+          <div className="ld2-modal" onClick={e => e.stopPropagation()}>
+            <div className="ld2-modal-header">
+              <h3>Reassign lead</h3>
+              <button onClick={() => setShowAssign(false)}><i className="bi bi-x-lg"></i></button>
+            </div>
+            <div className="ld2-modal-body">
+              <div className="ld2-form-group">
+                <label>Assign {lead.name} to</label>
+                <select className="ld2-select" value={assignTo} onChange={e => setAssignTo(e.target.value)}>
+                  <option value="">Unassigned</option>
+                  {staff.map((u: any) => <option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>)}
+                </select>
+              </div>
+              <small style={{ color: '#64748b' }}>The change is recorded on the timeline with your name.</small>
+            </div>
+            <div className="ld2-modal-footer">
+              <button className="ld2-btn-cancel" onClick={() => setShowAssign(false)}>Cancel</button>
+              <button className="ld2-btn-primary" disabled={assigning} onClick={saveReassign}>{assigning ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>
@@ -1055,6 +1208,16 @@ const LeadDetailV2: React.FC = () => {
           </div>
         </div>
       )}
+
+      <StageChangeDialog
+        open={stageDialog.open}
+        onClose={() => setStageDialog({ open: false, stageId: null })}
+        leadIds={[lead._id]}
+        initialStageId={stageDialog.stageId}
+        currentStageId={typeof lead.stageId === 'object' ? lead.stageId?._id : lead.stageId}
+        currentSubStageId={lead.subStageId?._id || null}
+        onDone={(_outcome, message) => { showToast(message); fetchData(); }}
+      />
     </div>
   );
 };

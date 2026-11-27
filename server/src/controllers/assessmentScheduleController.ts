@@ -6,6 +6,7 @@ import Quiz from '../models/Quiz';
 import Batch from '../models/Batch';
 import { allowedByRoleOrPermission } from '../middleware/roleGuard';
 import { mergePolicy, DEFAULT_POLICY } from '../services/deadlinePolicyService';
+import { notifyAssignedInBackground, AssignedTarget } from '../services/assessmentAssignNotify';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
 const userId = (req: Request): string => (req as any).user?.id || '';
@@ -74,8 +75,16 @@ export const assignToBatches = async (req: Request, res: Response) => {
     // Individual delivery: one row per content (batchId absent), studentIds accumulated.
     // NOTE: filter fields (contentType/contentId/batchId) must NOT also appear in $set —
     // during an upsert-insert MongoDB treats that as a path conflict and errors.
+    // Who is newly reached by this save — only they are emailed. A batch or student that was
+    // already assigned (and active) is not told again when dates or the policy change.
+    const fresh: AssignedTarget[] = [];
+
     if (hasStudents) {
       const p = mergePolicy(DEFAULT_POLICY, policy);
+      const before: any = await AssessmentSchedule.findOne({ contentType, contentId, batchId: null }).select('status studentIds').lean();
+      const already = new Set<string>(before?.status === 'active' ? (before.studentIds || []).map(String) : []);
+      const newStudents = (students as any[]).map(String).filter(id => !already.has(id));
+      if (newStudents.length) fresh.push({ studentIds: newStudents, startAt: req.body.startAt || null, dueAt: req.body.dueAt || null });
       const row = await AssessmentSchedule.findOneAndUpdate(
         { contentType, contentId, batchId: null },
         { $set: {
@@ -94,6 +103,10 @@ export const assignToBatches = async (req: Request, res: Response) => {
     for (const b of (hasBatches ? batches : [])) {
       if (!b.batchId) continue;
       const p = mergePolicy(DEFAULT_POLICY, policy, b);
+      const before: any = await AssessmentSchedule.findOne({ contentType, contentId, batchId: b.batchId }).select('status').lean();
+      if (before?.status !== 'active') {
+        fresh.push({ batchId: String(b.batchId), batchName: b.batchName || nameMap[String(b.batchId)] || undefined, startAt: b.startAt || null, dueAt: b.dueAt || null });
+      }
       const row = await AssessmentSchedule.findOneAndUpdate(
         { contentType, contentId, batchId: b.batchId },
         {
@@ -114,6 +127,8 @@ export const assignToBatches = async (req: Request, res: Response) => {
       results.push(row);
     }
     res.json({ message: `Assigned to ${results.length} batch(es)`, schedules: results });
+    // After the response: emailing a big batch is paced and takes a while.
+    notifyAssignedInBackground(tId, contentType, String(contentId), fresh);
   } catch (err) {
     console.error('[assessment-schedules/assign] failed:', err);
     res.status(500).json({ message: 'Failed to assign', error: String((err as any)?.message || err) });

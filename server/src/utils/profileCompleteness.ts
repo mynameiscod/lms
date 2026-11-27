@@ -1,6 +1,6 @@
 /**
  * Profile completeness for a StudentProfile document (or null).
- * This utility must match the stored StudentProfile pre-save calculation.
+ * The single source of truth: StudentProfile's pre-save hook stores this same value.
  */
 export interface ProfileCheck { section: string; label: string; ok: boolean }
 
@@ -16,6 +16,7 @@ export function profileChecks(profile: any): ProfileCheck[] {
   const a  = profile?.additionalInfo || {};
 
   return [
+    { section: 'Personal Info', label: 'Profile photo',         ok: has(p.profilePhoto) },
     { section: 'Personal Info', label: 'First name',            ok: has(p.firstName) },
     { section: 'Personal Info', label: 'Surname',               ok: has(p.surname) },
     { section: 'Personal Info', label: 'Email',                 ok: has(p.email) },
@@ -39,11 +40,17 @@ export function profileChecks(profile: any): ProfileCheck[] {
   ];
 }
 
+// The profile photo is worth a fixed 5%; the other checks share the remaining 95% equally.
+export const PHOTO_WEIGHT = 5;
+
 export function computeProfileCompleteness(profile: any): number {
   if (!profile) return 0;
   const checks = profileChecks(profile);
-  const filled = checks.filter(c => c.ok).length;
-  return checks.length ? Math.round((filled / checks.length) * 100) : 0;
+  const photo = checks.find(c => c.label === 'Profile photo');
+  const rest = checks.filter(c => c !== photo);
+  const restFilled = rest.filter(c => c.ok).length;
+  const score = (photo?.ok ? PHOTO_WEIGHT : 0) + (rest.length ? (restFilled / rest.length) * (100 - PHOTO_WEIGHT) : 0);
+  return Math.round(score);
 }
 
 // The incomplete items, grouped by section — powers the admin breakdown + the email.

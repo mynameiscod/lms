@@ -95,7 +95,7 @@ const defaultConfig: Config = {
 const LeadScoringSettings: React.FC = () => {
   const [config, setConfig] = useState<Config>(defaultConfig);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [activeTab, setActiveTab] = useState<'scoring' | 'qualification' | 'assignment'>('scoring');
+  const [activeTab, setActiveTab] = useState<'scoring' | 'qualification'>('scoring');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rescoring, setRescoring] = useState(false);
@@ -283,76 +283,6 @@ const LeadScoringSettings: React.FC = () => {
     }));
   };
 
-  // ─── Assignment Rules ───
-  const addAssignmentRule = () => {
-    setConfig(prev => ({
-      ...prev,
-      assignmentRules: [...prev.assignmentRules, { name: '', conditions: [{ field: '', operator: 'equals', value: '' }], assignToMembers: [], currentIndex: 0 }]
-    }));
-  };
-
-  const updateAssignmentRule = (index: number, updates: Partial<AssignmentRule>) => {
-    setConfig(prev => ({
-      ...prev,
-      assignmentRules: prev.assignmentRules.map((r, i) => i === index ? { ...r, ...updates } : r)
-    }));
-  };
-
-  const removeAssignmentRule = (index: number) => {
-    setConfig(prev => ({
-      ...prev,
-      assignmentRules: prev.assignmentRules.filter((_, i) => i !== index)
-    }));
-  };
-
-  const addConditionToRule = (ruleIndex: number) => {
-    setConfig(prev => ({
-      ...prev,
-      assignmentRules: prev.assignmentRules.map((r, i) =>
-        i === ruleIndex
-          ? { ...r, conditions: [...r.conditions, { field: '', operator: 'equals', value: '' }] }
-          : r
-      )
-    }));
-  };
-
-  const updateCondition = (ruleIndex: number, condIndex: number, updates: Partial<AssignmentCondition>) => {
-    setConfig(prev => ({
-      ...prev,
-      assignmentRules: prev.assignmentRules.map((r, i) =>
-        i === ruleIndex
-          ? {
-              ...r,
-              conditions: r.conditions.map((c, j) => j === condIndex ? { ...c, ...updates } : c)
-            }
-          : r
-      )
-    }));
-  };
-
-  const removeCondition = (ruleIndex: number, condIndex: number) => {
-    setConfig(prev => ({
-      ...prev,
-      assignmentRules: prev.assignmentRules.map((r, i) =>
-        i === ruleIndex
-          ? { ...r, conditions: r.conditions.filter((_, j) => j !== condIndex) }
-          : r
-      )
-    }));
-  };
-
-  // ─── Member Toggle ───
-  const toggleMember = (list: string[], memberId: string): string[] => {
-    return list.includes(memberId)
-      ? list.filter(id => id !== memberId)
-      : [...list, memberId];
-  };
-
-  const getMemberName = (id: string): string => {
-    const m = teamMembers.find(t => t._id === id);
-    return m ? `${m.firstName} ${m.lastName}` : id;
-  };
-
   // ─── Render ───
   if (loading) {
     return (
@@ -372,8 +302,8 @@ const LeadScoringSettings: React.FC = () => {
 
       <div className="ls-header">
         <div>
-          <h1>Lead Scoring & Assignment</h1>
-          <p className="ls-subtitle">Configure automatic scoring, qualification, and team assignment rules</p>
+          <h1>Lead Scoring</h1>
+          <p className="ls-subtitle">Configure automatic scoring and qualification</p>
         </div>
         <div className="ls-header-actions">
           <label className="ls-toggle-label">
@@ -403,9 +333,6 @@ const LeadScoringSettings: React.FC = () => {
         </button>
         <button className={`ls-tab ${activeTab === 'qualification' ? 'active' : ''}`} onClick={() => setActiveTab('qualification')}>
           <i className="fa-solid fa-clipboard-check"></i> Qualification
-        </button>
-        <button className={`ls-tab ${activeTab === 'assignment' ? 'active' : ''}`} onClick={() => setActiveTab('assignment')}>
-          <i className="fa-solid fa-user-group"></i> Assignment
         </button>
       </div>
 
@@ -579,215 +506,8 @@ const LeadScoringSettings: React.FC = () => {
         </div>
       )}
 
-      {/* ═══════ ASSIGNMENT TAB ═══════ */}
-      {activeTab === 'assignment' && (
-        <div className="ls-section">
-          <div className="ls-card">
-            <div className="ls-card-header">
-              <h3>Assignment Mode</h3>
-              <p>How should new leads be assigned to team members?</p>
-            </div>
-            <div className="ls-assignment-modes">
-              {(['none', 'round_robin', 'rule_based'] as const).map(mode => (
-                <label key={mode} className={`ls-mode-option ${config.assignmentMode === mode ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="assignmentMode"
-                    value={mode}
-                    checked={config.assignmentMode === mode}
-                    onChange={() => setConfig(prev => ({ ...prev, assignmentMode: mode }))}
-                  />
-                  <div className="ls-mode-info">
-                    <strong>
-                      {mode === 'none' && '⏸️ No Auto-Assignment'}
-                      {mode === 'round_robin' && '🔄 Round Robin'}
-                      {mode === 'rule_based' && '🎯 Rule-Based'}
-                    </strong>
-                    <span>
-                      {mode === 'none' && 'Leads will not be auto-assigned'}
-                      {mode === 'round_robin' && 'Distribute evenly among selected team members'}
-                      {mode === 'rule_based' && 'Assign based on lead properties (with fallback)'}
-                    </span>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Round Robin Members */}
-          {config.assignmentMode === 'round_robin' && (
-            <div className="ls-card">
-              <div className="ls-card-header">
-                <h3>Round Robin Members</h3>
-                <p>Select team members for round-robin assignment</p>
-              </div>
-              <div className="ls-member-grid">
-                {teamMembers.map(m => (
-                  <label key={m._id} className={`ls-member-chip ${config.roundRobinMembers.includes(m._id) ? 'selected' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={config.roundRobinMembers.includes(m._id)}
-                      onChange={() => setConfig(prev => ({
-                        ...prev,
-                        roundRobinMembers: toggleMember(prev.roundRobinMembers, m._id)
-                      }))}
-                    />
-                    <i className="fa-solid fa-user"></i>
-                    <span>{m.firstName} {m.lastName}</span>
-                    <small>{m.email}</small>
-                  </label>
-                ))}
-                {teamMembers.length === 0 && (
-                  <div className="ls-empty">No team members found. Add STAFF or TENANT_ADMIN users first.</div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Rule-Based Assignment */}
-          {config.assignmentMode === 'rule_based' && (
-            <>
-              <div className="ls-card">
-                <div className="ls-card-header">
-                  <h3>Assignment Rules</h3>
-                  <p>Define conditions to route leads to specific team members. First matching rule wins.</p>
-                  <button className="ls-btn ls-btn-small" onClick={addAssignmentRule}>
-                    <i className="fa-solid fa-plus"></i> Add Rule
-                  </button>
-                </div>
-
-                {config.assignmentRules.length === 0 ? (
-                  <div className="ls-empty">No assignment rules. Leads will go to fallback members.</div>
-                ) : (
-                  <div className="ls-assignment-rules">
-                    {config.assignmentRules.map((rule, rIdx) => (
-                      <div key={rIdx} className="ls-assignment-rule-card">
-                        <div className="ls-assignment-rule-header">
-                          <input
-                            type="text"
-                            placeholder="Rule name (e.g. Hot leads to seniors)"
-                            value={rule.name}
-                            onChange={e => updateAssignmentRule(rIdx, { name: e.target.value })}
-                            className="ls-input ls-rule-name-input"
-                          />
-                          <button className="ls-btn-icon ls-btn-danger" onClick={() => removeAssignmentRule(rIdx)} title="Remove rule">
-                            <i className="fa-solid fa-trash"></i>
-                          </button>
-                        </div>
-
-                        <div className="ls-conditions">
-                          <label className="ls-conditions-label">Conditions (all must match):</label>
-                          {rule.conditions.map((cond, cIdx) => (
-                            <div key={cIdx} className="ls-condition-row">
-                              <FieldSelector
-                                value={cond.field}
-                                onChange={val => updateCondition(rIdx, cIdx, { field: val })}
-                                id={`ar-${rIdx}-${cIdx}`}
-                              />
-                              <select
-                                value={cond.operator}
-                                onChange={e => updateCondition(rIdx, cIdx, { operator: e.target.value })}
-                                className="ls-select"
-                              >
-                                {OPERATORS.map(op => (
-                                  <option key={op.value} value={op.value}>{op.label}</option>
-                                ))}
-                              </select>
-                              {!NO_VALUE_OPERATORS.includes(cond.operator) && (
-                                <input
-                                  type="text"
-                                  placeholder="Value"
-                                  value={cond.value}
-                                  onChange={e => updateCondition(rIdx, cIdx, { value: e.target.value })}
-                                  className="ls-input ls-value-input"
-                                />
-                              )}
-                              <button
-                                className="ls-btn-icon ls-btn-danger"
-                                onClick={() => removeCondition(rIdx, cIdx)}
-                                disabled={rule.conditions.length <= 1}
-                                title="Remove condition"
-                              >
-                                <i className="fa-solid fa-xmark"></i>
-                              </button>
-                            </div>
-                          ))}
-                          <button className="ls-btn ls-btn-tiny" onClick={() => addConditionToRule(rIdx)}>
-                            <i className="fa-solid fa-plus"></i> Add Condition
-                          </button>
-                        </div>
-
-                        <div className="ls-rule-members">
-                          <label className="ls-conditions-label">Assign to (round-robin among):</label>
-                          <div className="ls-member-grid compact">
-                            {teamMembers.map(m => (
-                              <label key={m._id} className={`ls-member-chip small ${rule.assignToMembers.includes(m._id) ? 'selected' : ''}`}>
-                                <input
-                                  type="checkbox"
-                                  checked={rule.assignToMembers.includes(m._id)}
-                                  onChange={() => updateAssignmentRule(rIdx, {
-                                    assignToMembers: toggleMember(rule.assignToMembers, m._id)
-                                  })}
-                                />
-                                <span>{m.firstName} {m.lastName}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="ls-card">
-                <div className="ls-card-header">
-                  <h3>Fallback Members</h3>
-                  <p>If no assignment rule matches, leads go to these members (round-robin)</p>
-                </div>
-                <div className="ls-member-grid">
-                  {teamMembers.map(m => (
-                    <label key={m._id} className={`ls-member-chip ${config.fallbackMembers.includes(m._id) ? 'selected' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={config.fallbackMembers.includes(m._id)}
-                        onChange={() => setConfig(prev => ({
-                          ...prev,
-                          fallbackMembers: toggleMember(prev.fallbackMembers, m._id)
-                        }))}
-                      />
-                      <i className="fa-solid fa-user"></i>
-                      <span>{m.firstName} {m.lastName}</span>
-                      <small>{m.email}</small>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Selected Members Summary */}
-          {config.assignmentMode !== 'none' && (
-            <div className="ls-card ls-summary-card">
-              <h4>Current Assignment Summary</h4>
-              {config.assignmentMode === 'round_robin' && (
-                <p>
-                  <strong>{config.roundRobinMembers.length}</strong> members in round-robin pool:
-                  {config.roundRobinMembers.length > 0
-                    ? ` ${config.roundRobinMembers.map(getMemberName).join(', ')}`
-                    : ' None selected'}
-                </p>
-              )}
-              {config.assignmentMode === 'rule_based' && (
-                <>
-                  <p><strong>{config.assignmentRules.length}</strong> assignment rule(s)</p>
-                  <p><strong>{config.fallbackMembers.length}</strong> fallback member(s)</p>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Assignment moved to Lead Assignment (one setting for all sources, 2026-11-09). */}
+      <p className="ls-subtitle" style={{ marginTop: 12 }}>Who gets new leads is set on <a href="/lead-assignment-settings">Lead Assignment</a>.</p>
     </div>
   );
 };

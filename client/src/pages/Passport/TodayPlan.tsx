@@ -4,6 +4,7 @@ import passportApi, {
   DailyPlanResponse, DailyPlanAvailable, DailyPlanUnavailable, DailyMission,
 } from '../../api/passportApi';
 import './todayPlan.css';
+import { useProgramDays, daysLabel } from './useProgramDays';
 
 /**
  * What to do today, drawn from the 90-day roadmap.
@@ -45,6 +46,7 @@ const isExternal = (route: string) => /^https?:\/\//i.test(String(route || ''));
 
 const TodayPlan: React.FC = () => {
   const nav = useNavigate();
+  const days = useProgramDays();
   const start = (m: DailyMission) => {
     const route = m.resource?.route;
     if (!route) return;
@@ -87,7 +89,7 @@ const TodayPlan: React.FC = () => {
 
     return (
       <div className="tdp tdp-empty">
-        <b>{un.reason === 'ROADMAP_COMPLETED' ? 'Your 90 days are complete' : 'Membership needed'}</b>
+        <b>{un.reason === 'ROADMAP_COMPLETED' ? (days ? `Your ${days} days are complete` : 'Your plan is complete') : 'Membership needed'}</b>
         <span>{un.message}</span>
       </div>
     );

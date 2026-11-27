@@ -4,6 +4,7 @@ import SkillEvidence, {
 } from '../models/SkillEvidence';
 import CareerSkill, { ICareerSkill } from '../models/CareerSkill';
 import { DEFAULT_DOMAIN } from './careerDomainService';
+import { NEW_DOMAINS } from '../data/aiDataSecuritySkills';
 import { adapterFor, loadItems, refKey, NormalisedItem, EvidenceDifficulty } from './skillEvidenceSourceRegistry';
 
 /**
@@ -225,7 +226,7 @@ export async function getEvidenceCoverage(tenantId: string, skillKeys?: string[]
         primary: { $sum: { $cond: [{ $eq: ['$contribution', 'PRIMARY'] }, 1, 0] } },
       } },
     ]),
-    CareerSkill.find({ domainKey: DEFAULT_DOMAIN, nodeType: 'SKILL' })
+    CareerSkill.find({ domainKey: { $in: EVIDENCE_DOMAINS }, nodeType: 'SKILL' })
       .select('key name active assessable displayOrder').sort({ displayOrder: 1 }).lean() as any,
   ]);
 
@@ -275,6 +276,17 @@ export interface ValidateInput {
  * uneditable the moment any skill it references was retired — on the screen where somebody
  * would go to fix exactly that.
  */
+/**
+ * The career domains whose skills can carry evidence.
+ *
+ * Evidence used to be limited to the original software-engineering graph. The role catalogue
+ * (aiDataSecuritySkills.ts) later added AI and ML, Data, Security and Cloud skills, and the career
+ * tracks teach them — but every checkpoint question on them was refused here, so a Data Analytics,
+ * Data Science or AI track student's coursework never reached Skill DNA or Role Readiness. Those
+ * domains count now; a skill from any other domain is still refused.
+ */
+export const EVIDENCE_DOMAINS: string[] = [DEFAULT_DOMAIN, ...NEW_DOMAINS.map(d => d.key)];
+
 export function validateEvidenceMapping(input: ValidateInput): EvidenceValidation {
   if (!adapterFor(input.sourceType)) {
     return { ok: false, message: `${input.sourceType} is not a supported content type.` };
@@ -305,7 +317,7 @@ export function validateEvidenceMapping(input: ValidateInput): EvidenceValidatio
     const skill = bySkill.get(skillKey);
     if (!skill) return { ok: false, message: `Skill ${skillKey} does not exist.` };
 
-    if (skill.domainKey !== DEFAULT_DOMAIN) {
+    if (!EVIDENCE_DOMAINS.includes(String(skill.domainKey))) {
       return { ok: false, message: `${skill.name} belongs to a different career domain.` };
     }
 

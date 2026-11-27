@@ -16,7 +16,7 @@ import { SkillConfidence } from '../models/StudentSkillProfile';
  * make the result impossible to reproduce or defend.
  */
 
-export const ROLE_READINESS_VERSION = 'ROLE_READINESS_V1';
+export const ROLE_READINESS_VERSION = 'ROLE_READINESS_V2';   // V2 (2026-10-30): retired skills excluded; provisional below 40% coverage; whole-role figure
 
 /**
  * What each target level means as a score a student can be measured against.
@@ -178,6 +178,13 @@ export const COVERAGE_THRESHOLDS = {
 export const ESSENTIAL_COVERAGE_FOR_HIGH = 0.7;
 
 /**
+ * Below this coverage (% of the role's weight measured with enough confidence) a readiness figure
+ * is an EARLY ESTIMATE: it rests on too little of the role to be the headline. Every screen says so,
+ * and the career score is not written from it. One measured skill at target used to read as 100%.
+ */
+export const READINESS_MIN_COVERAGE = COVERAGE_THRESHOLDS.MEDIUM;
+
+/**
  * How much to trust the readiness figure. Never derived from the figure itself: a
  * confidently-measured 30% is a real and useful finding, and treating low readiness as
  * low confidence would hide exactly the students who most need to know.
@@ -212,4 +219,6 @@ export const STATUS_ORDER: Record<GapStatus, number> = {
 export type ReadinessUnavailable =
   | 'ROLE_NOT_SELECTED'
   | 'ROLE_BLUEPRINT_NOT_READY'
-  | 'NO_EVIDENCE';
+  | 'NO_EVIDENCE'
+  /** Year 1 has no role: role readiness opens from Year 2 (the member endpoint only). */
+  | 'YEAR_1';

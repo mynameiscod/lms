@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { refreshLessonsInBackground } from '../services/roadmapLessonRefreshService';
 import mongoose from 'mongoose';
 import CurriculumLearningUnit, {
   LEARNING_UNIT_TYPES, LEARNING_UNIT_CATEGORIES,
@@ -1042,6 +1043,8 @@ export const attachContent = async (req: Request, res: Response) => {
 
     await LearningContentLibrary.updateOne({ tenantId, _id: contentId }, { $set: { unitCode } });
     res.json({ attached: true, unitCode, contentId });
+    // The days already planned with this unit get the lesson now, not on the next rebuild.
+    refreshLessonsInBackground(tenantId, [unitCode]);
   } catch (e: any) {
     console.error('[learning-units] attach:', e?.message || e);
     res.status(500).json({ message: 'Could not attach this content.' });
@@ -1070,6 +1073,7 @@ export const detachContent = async (req: Request, res: Response) => {
     }
 
     res.json({ detached: true, unitCode, contentId });
+    refreshLessonsInBackground(tenantId, [unitCode]);
   } catch (e: any) {
     console.error('[learning-units] detach:', e?.message || e);
     res.status(500).json({ message: 'Could not detach this content.' });
@@ -1098,7 +1102,8 @@ export const unitStudentPreview = async (req: Request, res: Response) => {
       .select('unitCode title description learningOutcomes unitType status estimatedMinutes').lean() as any;
     if (!unit) return res.status(404).json({ message: 'No such unit.' });
 
-    const assets = (await loadAssets(tenantId, [unitCode])).get(unitCode) || { content: [], quizzes: [], assignments: [] };
+    // Checkpoints not ready yet are shown to the admin too, marked, so they can be finished or removed.
+    const assets = (await loadAssets(tenantId, [unitCode], { includeUnready: true })).get(unitCode) || { content: [], quizzes: [], assignments: [] };
     const items = activitiesFor(unit, assets);
 
     const contentIds = items.filter(i => i.kind === 'content').map(i => i.contentId);
@@ -1106,12 +1111,13 @@ export const unitStudentPreview = async (req: Request, res: Response) => {
     const assignmentIds = items.filter(i => i.kind === 'assignment').map(i => i.sourceId);
     const [rows, quizzes, assignmentRows, unpublished] = await Promise.all([
       contentIds.length ? LearningContentLibrary.find({ tenantId, _id: { $in: contentIds } }).lean() as any : [],
-      quizIds.length ? Quiz.find({ tenantId, _id: { $in: quizIds } }).select('_id isActive').lean() as any : [],
+      quizIds.length ? Quiz.find({ tenantId, _id: { $in: quizIds } }).select('_id isActive totalQuestions questionIds').lean() as any : [],
       assignmentIds.length ? Assignment.find({ _id: { $in: assignmentIds } }).select('_id status').lean() as any : [],
       LearningContentLibrary.find({ tenantId, unitCode, isPublished: { $ne: true } }).select('title type').lean() as any,
     ]);
     const byId = new Map<string, any>((rows as any[]).map(r => [String(r._id), studentContentRow(r)]));
-    const quizLive = new Map<string, boolean>((quizzes as any[]).map(q => [String(q._id), q.isActive !== false]));
+    const quizQuestions = new Map<string, number>((quizzes as any[]).map(q => [String(q._id), Math.max(Number(q.totalQuestions) || 0, (q.questionIds || []).length)]));
+    const quizLive = new Map<string, boolean>((quizzes as any[]).map(q => [String(q._id), q.isActive !== false && (quizQuestions.get(String(q._id)) || 0) > 0]));
     const assignmentStatus = new Map<string, string>((assignmentRows as any[]).map(a => [String(a._id), String(a.status || '')]));
 
     res.json({
@@ -1130,7 +1136,11 @@ export const unitStudentPreview = async (req: Request, res: Response) => {
           ...i,
           isCompleted: false,
           live: i.kind === 'quiz' ? quizLive.get(String(i.sourceId)) !== false : assignmentStatus.get(String(i.sourceId)) === 'published',
+          /** A checkpoint reaches members only with questions; the builder shows how many it has. */
+          ...(i.kind === 'quiz' ? { questionCount: quizQuestions.get(String(i.sourceId)) || 0 } : {}),
           editPath: i.kind === 'quiz' ? `/quiz/${i.sourceId}/questions` : `/admin/assignments/${i.sourceId}/edit`,
+          /** The assignment as a member opens it — the workspace in its read-only preview mode, which writes nothing. */
+          ...(i.kind === 'assignment' ? { previewPath: `/careerpilot/assignments/${i.sourceId}/workspace?preview=1` } : {}),
         })),
       /** Attached to the unit but not on any student's day, because they are not published. */
       notShown: (unpublished as any[]).map(r => ({ _id: String(r._id), title: r.title, type: r.type })),
@@ -1174,9 +1184,9 @@ export const unitAssessments = async (req: Request, res: Response) => {
 /** POST /curriculum-units/:unitCode/quiz/:quizId — bind an existing quiz. */
 export const bindUnitQuiz = async (req: Request, res: Response) => {
   try {
-    res.json(await assessments.bindQuiz(
-      tenantOf(req), clean(req.params.unitCode, 80).toUpperCase(), clean(req.params.quizId, 60),
-    ));
+    const unitCode = clean(req.params.unitCode, 80).toUpperCase();
+    res.json(await assessments.bindQuiz(tenantOf(req), unitCode, clean(req.params.quizId, 60)));
+    refreshLessonsInBackground(tenantOf(req), [unitCode]);
   } catch (e: any) {
     assessmentError(res, e, 'Could not bind this quiz.');
   }
@@ -1185,9 +1195,9 @@ export const bindUnitQuiz = async (req: Request, res: Response) => {
 /** DELETE /curriculum-units/:unitCode/quiz/:quizId */
 export const unbindUnitQuiz = async (req: Request, res: Response) => {
   try {
-    res.json(await assessments.unbindQuiz(
-      tenantOf(req), clean(req.params.unitCode, 80).toUpperCase(), clean(req.params.quizId, 60),
-    ));
+    const unitCode = clean(req.params.unitCode, 80).toUpperCase();
+    res.json(await assessments.unbindQuiz(tenantOf(req), unitCode, clean(req.params.quizId, 60)));
+    refreshLessonsInBackground(tenantOf(req), [unitCode]);
   } catch (e: any) {
     assessmentError(res, e, 'Could not unbind this quiz.');
   }
@@ -1196,10 +1206,9 @@ export const unbindUnitQuiz = async (req: Request, res: Response) => {
 /** POST /curriculum-units/:unitCode/assignment/:assignmentId */
 export const bindUnitAssignment = async (req: Request, res: Response) => {
   try {
-    res.json(await assessments.bindAssignment(
-      tenantOf(req), clean(req.params.unitCode, 80).toUpperCase(),
-      clean(req.params.assignmentId, 60),
-    ));
+    const unitCode = clean(req.params.unitCode, 80).toUpperCase();
+    res.json(await assessments.bindAssignment(tenantOf(req), unitCode, clean(req.params.assignmentId, 60)));
+    refreshLessonsInBackground(tenantOf(req), [unitCode]);
   } catch (e: any) {
     assessmentError(res, e, 'Could not bind this assignment.');
   }
@@ -1208,10 +1217,9 @@ export const bindUnitAssignment = async (req: Request, res: Response) => {
 /** DELETE /curriculum-units/:unitCode/assignment/:assignmentId */
 export const unbindUnitAssignment = async (req: Request, res: Response) => {
   try {
-    res.json(await assessments.unbindAssignment(
-      tenantOf(req), clean(req.params.unitCode, 80).toUpperCase(),
-      clean(req.params.assignmentId, 60),
-    ));
+    const unitCode = clean(req.params.unitCode, 80).toUpperCase();
+    res.json(await assessments.unbindAssignment(tenantOf(req), unitCode, clean(req.params.assignmentId, 60)));
+    refreshLessonsInBackground(tenantOf(req), [unitCode]);
   } catch (e: any) {
     assessmentError(res, e, 'Could not unbind this assignment.');
   }
@@ -1236,7 +1244,10 @@ export const createUnitAssessment = async (req: Request, res: Response) => {
     }
     if (kind === 'ASSIGNMENT') {
       const createdBy = String((req as any).user?.id || (req as any).user?._id || '');
-      return res.json(await assessments.createAssignmentForUnit(tenantId, unitCode, createdBy, title));
+      res.json(await assessments.createAssignmentForUnit(tenantId, unitCode, createdBy, title, clean(req.body?.type, 20).toLowerCase()));
+      // An assignment is on the day as soon as it is bound; the days already planned get it now.
+      refreshLessonsInBackground(tenantId, [unitCode]);
+      return;
     }
     return res.status(400).json({ message: 'kind must be QUIZ or ASSIGNMENT.' });
   } catch (e: any) {

@@ -89,7 +89,7 @@ export async function recoverMetaLeads(tenantId: string) {
           for (const lead of leads) {
             if (lead.created_time && new Date(lead.created_time) < since) continue;
             await renew();
-            const result = await createOrUpdateLeadFromData(lead, form.id, tenantId);
+            const result = await createOrUpdateLeadFromData({ ...lead, page_id: lead.page_id || config.pageId }, form.id, tenantId);
             counts[result]++;
           }
         }

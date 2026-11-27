@@ -1,0 +1,1467 @@
+[
+  {
+    "seedKey": "math-061",
+    "type": "math",
+    "subCategory": "Number puzzles",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Two-digit numbers with digit sum 5",
+    "statement": "Swathi lists every two-digit number whose two digits add up to 5.\nHow many numbers are on her list?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The tens digit cannot be 0, so it can be 1, 2, 3, 4 or 5.",
+      "For each tens digit the units digit is fixed as 5 minus it.",
+      "The numbers are 14, 23, 32, 41 and 50, which is 5 numbers."
+    ],
+    "explanation": "The tens digit t must be from 1 to 5 (it cannot be 0), and the units digit is then 5 − t, which is always between 0 and 4. That gives 14, 23, 32, 41 and 50. Check: each pair of digits adds to 5, and 05 is not a two-digit number, so the count is 5.",
+    "hints": [
+      "Start with the tens digit and ask what the units digit must be.",
+      "The tens digit of a two-digit number cannot be 0.",
+      "Write them out: 14, 23, ... and count."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-062",
+    "type": "math",
+    "subCategory": "Number puzzles",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Digits used to number 50 pages",
+    "statement": "Rahul numbers the pages of his lab record from 1 to 50.\nHow many digits does he write in total?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "91",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Pages 1 to 9 are single-digit: 9 digits.",
+      "Pages 10 to 50 are 41 two-digit numbers: 41 × 2 = 82 digits.",
+      "Total = 9 + 82 = 91."
+    ],
+    "explanation": "Pages 1–9 use one digit each, which is 9 digits. Pages 10–50 are 50 − 10 + 1 = 41 pages with two digits each, which is 82 digits. Total 9 + 82 = 91. Check: 50 pages would be 100 digits if all were two-digit; the 9 single-digit pages save 9, giving 91.",
+    "hints": [
+      "Split the pages into one-digit and two-digit page numbers.",
+      "How many numbers are there from 10 to 50? Remember to count both ends.",
+      "9 one-digit pages and 41 two-digit pages."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-063",
+    "type": "math",
+    "subCategory": "Number puzzles",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Largest three-digit multiple of 7",
+    "statement": "What is the largest three-digit number that is exactly divisible by 7?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "994",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The largest three-digit number is 999.",
+      "Divide 999 by 7: 7 × 142 = 994 with remainder 5.",
+      "Subtract the remainder: 999 − 5 = 994."
+    ],
+    "explanation": "999 ÷ 7 gives quotient 142 and remainder 5, because 7 × 142 = 994. Removing the remainder gives 994. Check: the next multiple, 994 + 7 = 1001, has four digits, so 994 is the largest.",
+    "hints": [
+      "Start from 999, the largest three-digit number.",
+      "Find the remainder when 999 is divided by 7.",
+      "999 = 7 × 142 + 5."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-064",
+    "type": "math",
+    "subCategory": "Ages",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Sum of ages six years later",
+    "statement": "The present ages of Suresh and his father add up to 48 years.\nWhat will the sum of their ages be 6 years from now?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "60",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Each person gets 6 years older.",
+      "Two people together gain 2 × 6 = 12 years.",
+      "48 + 12 = 60."
+    ],
+    "explanation": "In 6 years Suresh gains 6 years and his father also gains 6 years, so the total rises by 12. The sum becomes 48 + 12 = 60. Check with any example: 12 and 36 now become 18 and 42, and 18 + 42 = 60.",
+    "hints": [
+      "You do not need their individual ages.",
+      "How much older does each of the two people become?",
+      "Add 6 for each person to the total."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-065",
+    "type": "math",
+    "subCategory": "Ages",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Brother's age when Meena turns 20",
+    "statement": "Meena is 8 years old and her brother Kartik is 14 years old.\nHow old will Kartik be when Meena is 20?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "26",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The age difference is 14 − 8 = 6 years.",
+      "The difference between two people's ages never changes.",
+      "When Meena is 20, Kartik is 20 + 6 = 26."
+    ],
+    "explanation": "Kartik is 6 years older than Meena and that difference stays the same forever. When Meena is 20, Kartik will be 26. Check: Meena needs 12 more years to reach 20, and 14 + 12 = 26.",
+    "hints": [
+      "Find how much older Kartik is.",
+      "An age gap does not grow or shrink over time.",
+      "Add the gap to 20."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-066",
+    "type": "math",
+    "subCategory": "Ages",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Ages in ratio 4 : 7",
+    "statement": "The ages of Anil and Sunil are in the ratio 4 : 7. Sunil is 9 years older than Anil.\nHow old is Anil?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "12",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let the ages be 4k and 7k.",
+      "The difference is 7k − 4k = 3k = 9, so k = 3.",
+      "Anil = 4 × 3 = 12."
+    ],
+    "explanation": "Write the ages as 4k and 7k. Their difference 3k equals 9 years, so k = 3, making Anil 12 and Sunil 21. Check: 12 : 21 simplifies to 4 : 7 and 21 − 12 = 9.",
+    "hints": [
+      "Write each age as a multiple of the same number k.",
+      "The difference of 3 parts is 9 years.",
+      "One part is 3 years; Anil has 4 parts."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-067",
+    "type": "math",
+    "subCategory": "Arithmetic reasoning",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Trees along a 100 m road",
+    "statement": "The municipality plants a tree every 10 metres along one side of a straight 100 m road, with a tree at both ends.\nHow many trees are planted?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "11",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "100 ÷ 10 = 10 gaps between trees.",
+      "With trees at both ends, the number of trees is one more than the gaps.",
+      "10 + 1 = 11 trees."
+    ],
+    "explanation": "The road is split into 100 ÷ 10 = 10 equal gaps. A row with a tree at each end always has one more tree than gaps, so there are 11 trees. Check with a short road: 20 m has 2 gaps and trees at 0, 10, 20 — that is 3 trees.",
+    "hints": [
+      "Count the gaps first.",
+      "Draw a 20 m road with trees every 10 m and count.",
+      "Trees = gaps + 1 when both ends have a tree."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-068",
+    "type": "math",
+    "subCategory": "Arithmetic reasoning",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Metro card trips",
+    "statement": "Pooja's metro card has a balance of Rs 200. Each trip costs Rs 35.\nHow many complete trips can she take before she must recharge?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Divide 200 by 35.",
+      "35 × 5 = 175, and 35 × 6 = 210 is more than 200.",
+      "She can take 5 full trips, with Rs 25 left over."
+    ],
+    "explanation": "200 ÷ 35 gives quotient 5 and remainder 25, since 35 × 5 = 175. A sixth trip would need Rs 210, more than her balance. Check: 175 + 25 = 200.",
+    "hints": [
+      "How many 35s fit into 200?",
+      "Try 35 × 5 and 35 × 6.",
+      "The leftover Rs 25 is not enough for another trip."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-069",
+    "type": "math",
+    "subCategory": "Arithmetic reasoning",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Splitting the biryani bill",
+    "statement": "Seven friends order biryani. The bill is Rs 1,260 and they add a Rs 140 tip. They split the total equally.\nHow much does each friend pay, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "200",
+    "acceptedAnswers": [
+      "Rs 200"
+    ],
+    "keySteps": [
+      "Total to pay = 1260 + 140 = 1400.",
+      "Divide by the number of friends: 1400 ÷ 7.",
+      "Each pays Rs 200."
+    ],
+    "explanation": "The total including tip is Rs 1,400. Shared equally by 7 friends, that is 1400 ÷ 7 = Rs 200 each. Check: 7 × 200 = 1400.",
+    "hints": [
+      "Add the tip to the bill first.",
+      "Then share the total among 7 people.",
+      "1400 ÷ 7."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-070",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Angle at 4 o'clock",
+    "statement": "What is the smaller angle, in degrees, between the hour hand and the minute hand of a clock at exactly 4:00?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "120",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The 12 hour marks split 360° into 30° each.",
+      "At 4:00 the minute hand is on 12 and the hour hand is on 4.",
+      "They are 4 marks apart: 4 × 30 = 120°."
+    ],
+    "explanation": "Each hour mark is 360 ÷ 12 = 30° apart. At 4:00 the hands point at 12 and 4, which are 4 marks apart, so the angle is 120°. Check: the other way round is 8 marks = 240°, and 120 + 240 = 360, so 120° is the smaller angle.",
+    "hints": [
+      "How many degrees between two neighbouring numbers on a clock?",
+      "Where are the two hands at exactly 4:00?",
+      "4 gaps of 30° each."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-071",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "From 10 February to 10 March",
+    "statement": "In 2027 (not a leap year), Arjun's project starts on 10 February and his review is on 10 March.\nHow many days after the start is the review?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "28",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "2027 is not a leap year, so February has 28 days.",
+      "From 10 Feb to 28 Feb is 18 days.",
+      "From 28 Feb to 10 March is 10 more days: 18 + 10 = 28."
+    ],
+    "explanation": "From 10 February to 28 February is 18 days, and from 28 February to 10 March is 10 more days, total 28. Check: a non-leap February has 28 days, and moving from the 10th of February to the 10th of March crosses exactly February's length.",
+    "hints": [
+      "How many days does February have in a non-leap year?",
+      "Count from 10 Feb to the end of February, then into March.",
+      "18 days to 28 Feb plus 10 days."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-072",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Clock strikes from 1 to 6",
+    "statement": "A wall clock strikes once at 1 o'clock, twice at 2 o'clock, and so on (it strikes only on the hour).\nHow many strikes does it make from 1 pm to 6 pm, counting both 1 pm and 6 pm?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "21",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The strikes are 1, 2, 3, 4, 5 and 6.",
+      "Add them: 1 + 2 + 3 + 4 + 5 + 6.",
+      "Total = 21."
+    ],
+    "explanation": "At 1, 2, 3, 4, 5 and 6 pm the clock strikes 1, 2, 3, 4, 5 and 6 times. Adding gives 21. Check with the formula n(n + 1)/2 = 6 × 7 / 2 = 21.",
+    "hints": [
+      "List how many times it strikes at each hour.",
+      "Only the hours 1 to 6 pm count.",
+      "Add 1 + 2 + ... + 6."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-073",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Overnight train journey",
+    "statement": "The Charminar Express leaves at 10:45 pm and reaches its destination at 6:20 am the next morning.\nHow many minutes long is the journey?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "455",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "From 10:45 pm to midnight is 1 hour 15 minutes.",
+      "From midnight to 6:20 am is 6 hours 20 minutes.",
+      "Total 7 hours 35 minutes = 7 × 60 + 35 = 455 minutes."
+    ],
+    "explanation": "Split the trip at midnight: 1 h 15 min before and 6 h 20 min after, giving 7 h 35 min. In minutes that is 420 + 35 = 455. Check: 10:45 pm plus 7 h is 5:45 am, plus 35 min is 6:20 am.",
+    "hints": [
+      "Break the journey at midnight.",
+      "Add the two parts in hours and minutes.",
+      "Convert 7 h 35 min to minutes."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-074",
+    "type": "math",
+    "subCategory": "Arithmetic reasoning",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Chocolates for wrappers",
+    "statement": "A shop sells chocolates at Rs 1 each and also gives 1 free chocolate for every 3 wrappers returned. Wrappers of free chocolates can be returned too, but the shop does not lend wrappers.\nKiran has Rs 15. What is the largest number of chocolates he can eat?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "22",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Buy 15 chocolates and keep 15 wrappers.",
+      "15 wrappers give 5 chocolates, leaving 5 wrappers.",
+      "5 wrappers give 1 chocolate with 2 left; that makes 3 wrappers, which give 1 more.",
+      "1 wrapper is left over; total = 15 + 5 + 1 + 1 = 22."
+    ],
+    "explanation": "He buys 15 and gets 15 wrappers. Exchanging 15 wrappers gives 5 more chocolates (5 wrappers). Exchanging 3 of those gives 1 chocolate, so he now holds 2 + 1 = 3 wrappers, which give 1 more. He ends with 1 wrapper, which cannot be exchanged. Total 15 + 5 + 1 + 1 = 22.",
+    "hints": [
+      "Keep track of the wrappers after every exchange.",
+      "After the first exchange he has 5 chocolates and so 5 new wrappers.",
+      "Leftover wrappers combine with new ones — do not throw them away."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-075",
+    "type": "math",
+    "subCategory": "Number puzzles",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Counting the digit 7",
+    "statement": "Lakshmi writes all the whole numbers from 1 to 100.\nHow many times does she write the digit 7?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "20",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Count 7 in the units place: 7, 17, 27, ..., 97 gives 10 times.",
+      "Count 7 in the tens place: 70 to 79 gives 10 times.",
+      "77 has a 7 in both places and is counted once in each list, which is correct because it has two 7s.",
+      "Total = 10 + 10 = 20."
+    ],
+    "explanation": "In the units place, 7 appears in 7, 17, ..., 97, which is 10 numbers. In the tens place, 7 appears in 70–79, another 10. The number 77 contains two 7s, so counting it once in each list is right. Total 20. Check: 100 contains no 7.",
+    "hints": [
+      "Count the units place and the tens place separately.",
+      "How many numbers from 70 to 79?",
+      "77 has two 7s — make sure it contributes 2."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-076",
+    "type": "math",
+    "subCategory": "Number puzzles",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Number four times its digit sum",
+    "statement": "A two-digit number is equal to 4 times the sum of its digits. Its units digit is 3 more than its tens digit.\nWhat is the number?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "36",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let the number be 10a + b, so 10a + b = 4(a + b).",
+      "Simplify: 6a = 3b, so b = 2a.",
+      "Use b = a + 3: 2a = a + 3, so a = 3 and b = 6.",
+      "The number is 36."
+    ],
+    "explanation": "With tens digit a and units digit b, 10a + b = 4a + 4b gives 6a = 3b, so b = 2a. Since b = a + 3, we get a = 3 and b = 6, so the number is 36. Check: 3 + 6 = 9 and 4 × 9 = 36, and 6 is 3 more than 3.",
+    "hints": [
+      "Write the number as 10a + b.",
+      "The first condition simplifies to b = 2a.",
+      "Combine b = 2a with b = a + 3."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-077",
+    "type": "math",
+    "subCategory": "Ages",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Grandfather eight times as old",
+    "statement": "Ramaiah is 8 times as old as his grandson. In 6 years, the sum of their ages will be 84.\nHow old is Ramaiah now?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "64",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "In 6 years both gain 6, so the present sum is 84 − 12 = 72.",
+      "Let the grandson be x; Ramaiah is 8x, so 9x = 72.",
+      "x = 8, so Ramaiah = 64."
+    ],
+    "explanation": "The future sum 84 includes 6 extra years for each of the two people, so today's sum is 72. With ages x and 8x, 9x = 72 gives x = 8 and Ramaiah = 64. Check: in 6 years they are 70 and 14, and 70 + 14 = 84.",
+    "hints": [
+      "First find the sum of their present ages.",
+      "Subtract 6 years for each person from 84.",
+      "Grandson x, grandfather 8x, total 9x."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-078",
+    "type": "math",
+    "subCategory": "Ages",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Baby joins the family",
+    "statement": "Three years ago, the average age of a family of 5 members was 17 years. A baby has been born since then, and today the average age of all 6 members is still 17 years.\nHow old is the baby?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Three years ago the 5 members' total age was 5 × 17 = 85.",
+      "Today those 5 have total 85 + 5 × 3 = 100.",
+      "Today's total for 6 members is 6 × 17 = 102.",
+      "Baby's age = 102 − 100 = 2."
+    ],
+    "explanation": "The 5 older members totalled 85 three years ago and have each gained 3 years, so they total 100 now. The 6 members together total 6 × 17 = 102, so the baby is 2 years old. Check: the baby is younger than 3, which fits being born within the last 3 years.",
+    "hints": [
+      "Turn each average into a total.",
+      "Each of the 5 original members is 3 years older now.",
+      "Compare 6 × 17 with the 5 members' total today."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-079",
+    "type": "math",
+    "subCategory": "Arithmetic reasoning",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Negative marking test",
+    "statement": "An entrance test has 50 questions. Each correct answer gets +4 and each wrong answer gets −1. Ananya answered all 50 and scored 130.\nHow many did she get right?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "36",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let c be correct; wrong = 50 − c.",
+      "Score: 4c − (50 − c) = 130.",
+      "5c − 50 = 130, so 5c = 180 and c = 36."
+    ],
+    "explanation": "If c answers are correct, the other 50 − c are wrong, so 4c − (50 − c) = 130. This gives 5c = 180 and c = 36. Check: 36 × 4 = 144, 14 wrong cost 14, and 144 − 14 = 130.",
+    "hints": [
+      "Use one letter for correct answers; wrong answers are the rest.",
+      "Each wrong answer subtracts 1.",
+      "4c − (50 − c) = 130."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-080",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Angle at 3:40",
+    "statement": "What is the smaller angle, in degrees, between the hands of a clock at 3:40?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "130",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The minute hand at 40 minutes is at 40 × 6 = 240°.",
+      "The hour hand moves 0.5° per minute: 3 × 30 + 40 × 0.5 = 110°.",
+      "Difference = 240 − 110 = 130°, which is less than 180°."
+    ],
+    "explanation": "Measured from 12, the minute hand is at 240° and the hour hand is at 90° + 20° = 110°, because it has moved two-thirds of the way from 3 to 4. The difference is 130°. Check with the formula |30H − 5.5M| = |90 − 220| = 130.",
+    "hints": [
+      "The hour hand is not exactly on 3 at 3:40.",
+      "Minute hand: 6° per minute. Hour hand: 0.5° per minute.",
+      "Find both positions measured from 12 and subtract."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-081",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Fast clock shows 6 pm",
+    "statement": "A clock gains 4 minutes every hour. It is set to the correct time at 6:00 am.\nWhen this clock shows 6:00 pm the same day, what is the correct time?",
+    "answerFormat": "choice",
+    "choices": [
+      "5:15 pm",
+      "5:12 pm",
+      "5:00 pm",
+      "6:48 pm"
+    ],
+    "answer": "5:15 pm",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "In 60 real minutes the clock moves 64 minutes.",
+      "From 6 am to 6 pm the clock has moved 12 hours = 720 minutes.",
+      "Real time passed = 720 × 60 / 64 = 675 minutes = 11 h 15 min.",
+      "Correct time = 6:00 am + 11 h 15 min = 5:15 pm."
+    ],
+    "explanation": "The clock runs 64 minutes for every 60 real minutes. It has shown 720 minutes pass, so the real time passed is 720 × 60/64 = 675 minutes, which is 11 hours 15 minutes. The true time is 5:15 pm. Check: in 11.25 real hours the clock gains 11.25 × 4 = 45 minutes, and 5:15 pm + 45 min = 6:00 pm.",
+    "hints": [
+      "The clock shows more time than really passed.",
+      "Compare 64 clock-minutes with 60 real minutes.",
+      "720 clock-minutes × 60/64 real minutes."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-082",
+    "type": "math",
+    "subCategory": "Arithmetic reasoning",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Pens and pencils",
+    "statement": "3 pens and 2 pencils cost Rs 46. 2 pens and 3 pencils cost Rs 39.\nWhat is the cost of one pen, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "12",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Add the two: 5 pens + 5 pencils = 85, so 1 pen + 1 pencil = 17.",
+      "Subtract the second from the first: 1 pen − 1 pencil = 7.",
+      "Add the results: 2 pens = 24, so a pen costs 12."
+    ],
+    "explanation": "Adding the two purchases gives 5 pens and 5 pencils for Rs 85, so one of each costs Rs 17. Subtracting them gives pen − pencil = Rs 7. So a pen is (17 + 7)/2 = Rs 12 and a pencil Rs 5. Check: 36 + 10 = 46 and 24 + 15 = 39.",
+    "hints": [
+      "Try adding the two statements together.",
+      "Then try subtracting one from the other.",
+      "pen + pencil = 17 and pen − pencil = 7."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-083",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "hard",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Right angles from noon to midnight",
+    "statement": "Between 12 noon and 12 midnight, how many times are the hour hand and the minute hand of a clock exactly at a right angle (90°) to each other?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "22",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The minute hand gains 330° on the hour hand every hour, so it laps the hour hand 11 times in 12 hours.",
+      "In each lap, the gap between the hands passes 90° and 270°, giving two right angles.",
+      "That gives 11 × 2 = 22 right angles in 12 hours.",
+      "It is not 2 per hour (24) because the right angles at 3:00 and 9:00 are each shared by two neighbouring hours."
+    ],
+    "explanation": "In 12 hours the minute hand laps the hour hand 11 times (they meet only 11 times, not 12). In every lap the gap between them passes through 90° and 270°, so they form a right angle twice per lap: 11 × 2 = 22. Check: a naive count of 2 per hour gives 24, but the hours 2–3 and 3–4 share the single right angle at 3:00, and 8–9 and 9–10 share 9:00, so 24 − 2 = 22.",
+    "hints": [
+      "Think about how often the minute hand catches up with the hour hand.",
+      "The hands meet 11 times in 12 hours, not 12.",
+      "Each meeting-to-meeting cycle has two right angles."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-084",
+    "type": "math",
+    "subCategory": "Number puzzles",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Unit digit of 3 to the 25",
+    "statement": "What is the unit (last) digit of 3^25 (3 raised to the power 25)?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "3",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Unit digits of powers of 3 repeat: 3, 9, 7, 1.",
+      "The cycle length is 4.",
+      "25 ÷ 4 leaves remainder 1, so the unit digit is the first in the cycle: 3."
+    ],
+    "explanation": "The last digits of 3^1, 3^2, 3^3, 3^4 are 3, 9, 7, 1 and then repeat. Since 25 = 4 × 6 + 1, 3^25 has the same last digit as 3^1, which is 3. Check: 3^5 = 243 also ends in 3, matching the cycle.",
+    "hints": [
+      "Write the last digits of 3, 9, 27, 81, 243.",
+      "The last digits repeat every 4 powers.",
+      "Find 25 mod 4."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-085",
+    "type": "math",
+    "subCategory": "Ages",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Father's age when son is 18",
+    "statement": "Mohan was 26 years old when his son was born. His son is now 9.\nHow old will Mohan be when his son is 18?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "44",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Mohan is always 26 years older than his son.",
+      "When the son is 18, Mohan is 18 + 26.",
+      "Mohan will be 44."
+    ],
+    "explanation": "The age gap between father and son is fixed at 26 years. When the son is 18, Mohan is 18 + 26 = 44. Check: today Mohan is 35; in 9 years he is 44 and the son is 18.",
+    "hints": [
+      "The son's current age is not really needed.",
+      "What is the fixed gap between their ages?",
+      "Add 26 to 18."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-086",
+    "type": "math",
+    "subCategory": "Arithmetic reasoning",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Notebooks and pens",
+    "statement": "The cost of 12 notebooks is the same as the cost of 15 pens. One pen costs Rs 20.\nWhat is the cost of one notebook, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "25",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "15 pens cost 15 × 20 = Rs 300.",
+      "So 12 notebooks cost Rs 300.",
+      "One notebook costs 300 ÷ 12 = Rs 25."
+    ],
+    "explanation": "15 pens cost Rs 300, and that equals the price of 12 notebooks, so a notebook is 300 ÷ 12 = Rs 25. Check: 12 × 25 = 300 = 15 × 20.",
+    "hints": [
+      "Find the cost of 15 pens first.",
+      "That same amount buys 12 notebooks.",
+      "300 ÷ 12."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-087",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Clock seen in a mirror",
+    "statement": "Divya sees a wall clock reflected in a mirror. The reflection appears to show 4:20.\nWhat is the actual time?",
+    "answerFormat": "choice",
+    "choices": [
+      "7:40",
+      "8:40",
+      "7:20",
+      "4:40"
+    ],
+    "answer": "7:40",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A mirror flips the clock left to right.",
+      "For a reflection, actual time = 11:60 − shown time.",
+      "11:60 − 4:20 = 7:40."
+    ],
+    "explanation": "In a mirror, the actual time and the reflected time always add up to 12:00. So the actual time is 12:00 − 4:20 = 7:40. Check: at 7:40 the minute hand is on 8 and the hour hand between 7 and 8; flipped, the minute hand appears on 4 and the hour hand between 4 and 5, which reads 4:20.",
+    "hints": [
+      "The real time and the mirror time add up to 12:00.",
+      "Write 12:00 as 11:60 to subtract easily.",
+      "11:60 − 4:20."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "math-088",
+    "type": "math",
+    "subCategory": "Number puzzles",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Trailing zeros of 50 factorial",
+    "statement": "How many zeros are there at the end of 50! (50 factorial = 1 × 2 × 3 × ... × 50)?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "12",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Each trailing zero comes from a factor 10 = 2 × 5; 5s are scarcer than 2s.",
+      "Multiples of 5 up to 50: 50 ÷ 5 = 10.",
+      "Multiples of 25 give an extra 5: 50 ÷ 25 = 2.",
+      "Total 5s = 10 + 2 = 12, so 12 zeros."
+    ],
+    "explanation": "Trailing zeros are made by pairs of 2 and 5, and there are far more 2s than 5s, so count the 5s. There are 10 multiples of 5 up to 50, and 25 and 50 each contribute one extra 5, giving 12. Check: 125 > 50, so no further terms.",
+    "hints": [
+      "A zero at the end needs a factor of 10.",
+      "Count how many factors of 5 appear in 1 × 2 × ... × 50.",
+      "Do not forget 25 and 50 contain 5 twice."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-089",
+    "type": "math",
+    "subCategory": "Number puzzles",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Remainder of 2 to the 100 by 7",
+    "statement": "What is the remainder when 2^100 is divided by 7?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "2^3 = 8 leaves remainder 1 when divided by 7.",
+      "100 = 3 × 33 + 1, so 2^100 = (2^3)^33 × 2.",
+      "(2^3)^33 leaves remainder 1, so 2^100 leaves remainder 1 × 2 = 2."
+    ],
+    "explanation": "Since 8 leaves remainder 1 by 7, any power of 2^3 also leaves remainder 1. Writing 2^100 = (2^3)^33 × 2 gives remainder 2. Check the cycle: remainders of 2^1, 2^2, 2^3, 2^4 are 2, 4, 1, 2 — period 3, and 100 mod 3 = 1, so it matches 2^1.",
+    "hints": [
+      "Find a small power of 2 that leaves remainder 1 by 7.",
+      "2^3 = 8.",
+      "Split 100 into a multiple of 3 plus a remainder."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-090",
+    "type": "math",
+    "subCategory": "Ages",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Product of two ages",
+    "statement": "Priya is 6 years older than her cousin Rahul. The product of their present ages is 216.\nHow old is Priya?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "18",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let Rahul be x; Priya is x + 6, so x(x + 6) = 216.",
+      "x² + 6x − 216 = 0 factors as (x + 18)(x − 12) = 0.",
+      "Age cannot be negative, so x = 12 and Priya = 18."
+    ],
+    "explanation": "With Rahul x, x(x + 6) = 216, i.e. x² + 6x − 216 = 0 = (x − 12)(x + 18). The positive root is x = 12, so Priya is 18. Check: 12 × 18 = 216 and 18 − 12 = 6.",
+    "hints": [
+      "Use one variable for Rahul's age.",
+      "Form a quadratic and factor it.",
+      "Look for two numbers 6 apart that multiply to 216."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-091",
+    "type": "math",
+    "subCategory": "Ages",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Three ages adding to 27",
+    "statement": "Asha is 2 years older than Bhanu. Bhanu is twice as old as Chetan. The total of their three ages is 27.\nHow old is Bhanu?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "10",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let Chetan be x; Bhanu = 2x and Asha = 2x + 2.",
+      "Total: x + 2x + 2x + 2 = 27, so 5x = 25.",
+      "x = 5, so Bhanu = 10."
+    ],
+    "explanation": "Expressing everyone in terms of Chetan's age x gives x + 2x + (2x + 2) = 27, so 5x = 25 and x = 5. Bhanu is 10 and Asha is 12. Check: 12 + 10 + 5 = 27, 12 is 2 more than 10, and 10 is twice 5.",
+    "hints": [
+      "Pick the youngest person as x.",
+      "Write Bhanu and Asha in terms of x.",
+      "5x + 2 = 27."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-092",
+    "type": "math",
+    "subCategory": "Arithmetic reasoning",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Hostel food stock",
+    "statement": "A hostel has food for 120 students for 30 days. After 10 days, 40 new students join.\nFor how many more days will the remaining food last?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "15",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Total food = 120 × 30 = 3600 student-days.",
+      "After 10 days, 120 × 20 = 2400 student-days remain.",
+      "Now there are 160 students: 2400 ÷ 160 = 15 days."
+    ],
+    "explanation": "Measure food in student-days. After 10 days the food left would have fed 120 students for 20 more days, i.e. 2400 student-days. Shared among 160 students, it lasts 2400 ÷ 160 = 15 days. Check: 160 × 15 = 2400.",
+    "hints": [
+      "Measure the food in 'student-days'.",
+      "How much is left after the first 10 days?",
+      "Divide what is left by the new number of students."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-093",
+    "type": "math",
+    "subCategory": "Arithmetic reasoning",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Coins in a temple box",
+    "statement": "A temple donation box has only Re 1, 50 paise and 25 paise coins, in the ratio 5 : 6 : 8 by number. The total value is Rs 210.\nHow many 50 paise coins are there?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "126",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let the coins be 5k, 6k and 8k.",
+      "Value in rupees: 5k × 1 + 6k × 0.5 + 8k × 0.25 = 5k + 3k + 2k = 10k.",
+      "10k = 210, so k = 21.",
+      "50 paise coins = 6 × 21 = 126."
+    ],
+    "explanation": "With 5k, 6k and 8k coins, the value is 5k + 3k + 2k = 10k rupees. Setting 10k = 210 gives k = 21, so there are 126 coins of 50 paise. Check: 105 + 63 + 42 = 210.",
+    "hints": [
+      "The ratio is of the number of coins, not their value.",
+      "Convert each group's value to rupees.",
+      "Total value is 10k rupees."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-094",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Hands meet between 4 and 5",
+    "statement": "At what time between 4 o'clock and 5 o'clock are the hour and minute hands of a clock exactly together?",
+    "answerFormat": "choice",
+    "choices": [
+      "21 9/11 minutes past 4",
+      "20 minutes past 4",
+      "21 3/11 minutes past 4",
+      "22 2/11 minutes past 4"
+    ],
+    "answer": "21 9/11 minutes past 4",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "At 4:00 the minute hand is 20 minute-spaces (120°) behind the hour hand.",
+      "The minute hand gains 5.5° per minute on the hour hand.",
+      "Time to catch up = 120 ÷ 5.5 = 240/11 = 21 9/11 minutes."
+    ],
+    "explanation": "At 4:00 the hour hand is at 120° and the minute hand at 0°. The minute hand gains 6 − 0.5 = 5.5° every minute, so it closes the 120° gap in 120/5.5 = 240/11 = 21 9/11 minutes. Check: at that time the minute hand is at 6 × 240/11 ≈ 130.9° and the hour hand at 120 + 0.5 × 240/11 ≈ 130.9°.",
+    "hints": [
+      "How far apart are the hands at exactly 4:00?",
+      "How fast does the minute hand gain on the hour hand?",
+      "Divide 120° by 5.5° per minute."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-095",
+    "type": "math",
+    "subCategory": "Ages",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Family average after a child",
+    "statement": "When Vikram and Sita got married, their average age was 23 years. Five years later they have a child who is 1 year old.\nWhat is the average age of the family of three now?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "19",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "At marriage their total age was 2 × 23 = 46.",
+      "Five years later the couple's total is 46 + 10 = 56.",
+      "Add the child: 56 + 1 = 57.",
+      "Average = 57 ÷ 3 = 19."
+    ],
+    "explanation": "The couple's total age at marriage was 46, and after 5 years each is 5 years older, so 56. With the 1-year-old child the family total is 57, and the average is 57 ÷ 3 = 19. Check: 19 × 3 = 57.",
+    "hints": [
+      "Turn the average into a total first.",
+      "Both husband and wife gain 5 years.",
+      "Divide the new total by 3 people."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-096",
+    "type": "math",
+    "subCategory": "Number puzzles",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Digits used for page numbers",
+    "statement": "A printer used a total of 2,993 digits to number all the pages of a book, starting from page 1.\nHow many pages does the book have?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "1025",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Pages 1–9 use 9 digits; pages 10–99 use 90 × 2 = 180 digits (189 so far).",
+      "Pages 100–999 use 900 × 3 = 2700 digits (2889 so far).",
+      "Remaining digits = 2993 − 2889 = 104, at 4 digits per page = 26 pages.",
+      "Last page = 999 + 26 = 1025."
+    ],
+    "explanation": "One-digit pages use 9 digits, two-digit pages 180, and three-digit pages 2700, totalling 2889 up to page 999. The remaining 104 digits are four-digit pages, 104 ÷ 4 = 26 of them, so the last page is 1025. Check: 9 + 180 + 2700 + 26 × 4 = 2993.",
+    "hints": [
+      "Group the pages by how many digits their numbers have.",
+      "Find how many digits are used up to page 999.",
+      "The leftover digits all belong to four-digit page numbers."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-097",
+    "type": "math",
+    "subCategory": "Ages",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Twice as old as he was",
+    "statement": "Arun is twice as old as Bharat was when Arun was as old as Bharat is now. The sum of their present ages is 63.\nHow old is Arun now?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "36",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let Arun = A and Bharat = B. Arun was B years old (A − B) years ago.",
+      "At that time Bharat was B − (A − B) = 2B − A.",
+      "Condition: A = 2(2B − A), so 3A = 4B.",
+      "With A + B = 63: B = 27 and A = 36."
+    ],
+    "explanation": "Arun was Bharat's present age A − B years ago, when Bharat was 2B − A. So A = 2(2B − A), which gives 3A = 4B. Combined with A + B = 63, B = 27 and A = 36. Check: 9 years ago Arun was 27 and Bharat was 18, and 36 = 2 × 18.",
+    "hints": [
+      "Ask how many years ago Arun was Bharat's present age.",
+      "That was (A − B) years ago — find Bharat's age then.",
+      "You should get 3A = 4B."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-098",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Slow clock on the fourth day",
+    "statement": "A clock is set right at 5:00 am on day 1. It loses 16 minutes every 24 hours (losing at a steady rate).\nWhat is the true time when this clock shows 10:00 pm on day 4?",
+    "answerFormat": "choice",
+    "choices": [
+      "11:00 pm",
+      "10:59 pm",
+      "9:00 pm",
+      "11:16 pm"
+    ],
+    "answer": "11:00 pm",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "From 5 am day 1 to 10 pm day 4 the clock shows 3 days + 17 hours = 89 hours.",
+      "In 24 real hours the clock shows 23 h 44 min = 356/15 hours.",
+      "Real hours = 89 × 24 ÷ (356/15) = 90 hours.",
+      "5:00 am day 1 + 90 hours = 11:00 pm day 4."
+    ],
+    "explanation": "The clock shows 89 hours passing. It moves only 356/15 hours for every 24 real hours, so the real time is 89 × 24 × 15/356 = 90 hours. 90 hours after 5 am on day 1 is 11 pm on day 4. Check: in 90 real hours the clock loses 90/24 × 16 = 60 minutes, and 11 pm − 1 hour = 10 pm.",
+    "hints": [
+      "First find how many hours the clock has shown since it was set.",
+      "A slow clock shows less time than really passes.",
+      "Scale 89 clock-hours by 24 / (23 h 44 min)."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-099",
+    "type": "math",
+    "subCategory": "Number puzzles",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Same remainder divisor",
+    "statement": "Find the largest number that divides 1305, 4665 and 6905 leaving the same remainder in each case.",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "1120",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "If they leave the same remainder, the divisor divides every difference.",
+      "Differences: 4665 − 1305 = 3360, 6905 − 4665 = 2240, 6905 − 1305 = 5600.",
+      "HCF(3360, 2240) = 1120, and 5600 = 5 × 1120.",
+      "The largest such number is 1120."
+    ],
+    "explanation": "Numbers that leave equal remainders differ by multiples of the divisor, so the divisor must divide 3360, 2240 and 5600. Their HCF is 1120. Check: 1305 = 1120 + 185, 4665 = 4 × 1120 + 185, 6905 = 6 × 1120 + 185 — all leave 185.",
+    "hints": [
+      "Equal remainders cancel when you subtract.",
+      "Work with the differences of the numbers.",
+      "Find the HCF of 3360, 2240 and 5600."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-100",
+    "type": "math",
+    "subCategory": "Ages",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Two men replaced by two women",
+    "statement": "The average age of 8 men increases by 2 years when two of them, aged 21 and 23, are replaced by two women.\nWhat is the average age of the two women?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "30",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The group's total age rises by 8 × 2 = 16 years.",
+      "The two women together are 16 years more than the men they replaced: 21 + 23 + 16 = 60.",
+      "Average of the women = 60 ÷ 2 = 30."
+    ],
+    "explanation": "An increase of 2 in the average of 8 people means the total grew by 16. The women replaced men totalling 44, so the women total 44 + 16 = 60, an average of 30. Check: replacing 44 with 60 adds 16 to the total, which is 2 per person over 8 people.",
+    "hints": [
+      "Convert the change in average into a change in total.",
+      "Only the two replaced people change the total.",
+      "Women's total = men removed + 16."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-101",
+    "type": "math",
+    "subCategory": "Arithmetic reasoning",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Wrongly entered mark",
+    "statement": "In a class test, a student's mark was wrongly entered as 83 instead of 63. Because of this, the class average went up by half a mark.\nHow many students are in the class?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "40",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The wrong entry adds 83 − 63 = 20 marks to the total.",
+      "This raises the average by 1/2, so 20 ÷ n = 1/2.",
+      "n = 40."
+    ],
+    "explanation": "The total was inflated by 20 marks. Spread over n students, that raised the average by 20/n, which equals 1/2, so n = 40. Check: 20 extra marks over 40 students is 0.5 per student.",
+    "hints": [
+      "How much was the total wrongly increased by?",
+      "Extra marks ÷ number of students = increase in average.",
+      "20 / n = 0.5."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-102",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "When 2027's calendar repeats",
+    "statement": "2027 is not a leap year and starts on a Friday.\nIn which year after 2027 can the 2027 calendar be used again exactly (same weekdays for every date)?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2038",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A normal year moves the next year's start by 1 day; a leap year by 2.",
+      "We need a non-leap year starting on Friday.",
+      "Starts: 2028 Sat (leap), 2029 Mon, 2030 Tue, 2031 Wed, 2032 Thu (leap), 2033 Sat, 2034 Sun, 2035 Mon, 2036 Tue (leap), 2037 Thu, 2038 Fri.",
+      "2038 is not a leap year and starts on Friday, so it is the answer."
+    ],
+    "explanation": "Each ordinary year shifts the starting weekday by 1 and each leap year by 2. We need the total shift to be a multiple of 7 and the target year to be non-leap. Adding odd days from 2027 to 2037 (8 ordinary + 3 leap) gives 8 + 6 = 14, a multiple of 7, and 2038 is non-leap. Check: no earlier year works — for example 2033 starts on Saturday.",
+    "hints": [
+      "Track how many days the weekday of 1 January shifts each year.",
+      "Leap years shift by 2 days.",
+      "You need a non-leap year with total shift 0 mod 7."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-103",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Hands opposite in a day",
+    "statement": "In one full day of 24 hours, how many times are the hour and minute hands of a clock exactly opposite each other (pointing in a straight line in opposite directions)?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "22",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The minute hand gains a full lap on the hour hand 11 times in 12 hours.",
+      "In each lap the hands are opposite exactly once.",
+      "So they are opposite 11 times in 12 hours.",
+      "In 24 hours: 11 × 2 = 22."
+    ],
+    "explanation": "Every time the minute hand gains 360° on the hour hand, the gap passes through 180° once. That happens 11 times in 12 hours, so 22 times in 24 hours. Check: the hours 5–6 and 6–7 share the single opposite position at 6:00, which is why it is not 24.",
+    "hints": [
+      "Opposite means the gap between the hands is 180°.",
+      "How many times does the minute hand lap the hour hand in 12 hours?",
+      "One opposite position per lap."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-104",
+    "type": "math",
+    "subCategory": "Number puzzles",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Remainder 3 and divisible by 9",
+    "statement": "Find the smallest positive number that leaves a remainder of 3 when divided by 5, 6 or 7, and is exactly divisible by 9.",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "423",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "LCM(5, 6, 7) = 210, so the number is 210k + 3.",
+      "210 leaves remainder 3 by 9, so 210k + 3 has the same remainder as 3k + 3.",
+      "Need 3k + 3 divisible by 9, i.e. k + 1 divisible by 3; smallest k = 2.",
+      "Number = 210 × 2 + 3 = 423."
+    ],
+    "explanation": "Numbers with remainder 3 for 5, 6 and 7 are 210k + 3. Trying k = 0, 1, 2 gives 3, 213, 423; 3 and 213 are not divisible by 9 (digit sums 3 and 6) but 423 is (digit sum 9). Check: 423 = 9 × 47, and 423 − 3 = 420 is divisible by 5, 6 and 7.",
+    "hints": [
+      "A common remainder means the number is LCM × k + 3.",
+      "LCM(5, 6, 7) = 210.",
+      "Test 213, 423, ... with the digit-sum rule for 9."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-105",
+    "type": "math",
+    "subCategory": "Number puzzles",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Four-digit number divisible by 72",
+    "statement": "The four-digit number 4x7y (x and y are single digits) is divisible by 72.\nWhat is the number?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4176",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "72 = 8 × 9, so the number must be divisible by both 8 and 9.",
+      "Divisible by 9: 4 + x + 7 + y = 11 + x + y must be 18 or 27, so x + y = 7 or 16.",
+      "Divisible by 8: the last three digits x7y must be divisible by 8, so y is even.",
+      "Check candidates: only x = 1, y = 6 works (176 = 8 × 22, and 1 + 6 = 7).",
+      "The number is 4176."
+    ],
+    "explanation": "For 9, x + y must be 7 or 16. For 8, x7y must be a multiple of 8. Pairs with x + y = 7 and y even: 770, 572, 374, 176 — only 176 is divisible by 8. With x + y = 16 and y even, the only pair is (8, 8), and 878 is not divisible by 8. So the number is 4176. Check: 4176 ÷ 72 = 58.",
+    "hints": [
+      "Split 72 into two coprime factors.",
+      "Use the digit sum for 9 and the last three digits for 8.",
+      "x + y is 7 or 16; test which pair makes x7y divisible by 8."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-106",
+    "type": "math",
+    "subCategory": "Ages",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Reversed-digit ages",
+    "statement": "Venkat's age is his son's age with the two digits reversed (both ages are two-digit numbers). In 7 years, Venkat will be exactly twice as old as his son.\nHow old is Venkat now?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "83",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let the son be 10a + b, so Venkat is 10b + a.",
+      "Condition: 10b + a + 7 = 2(10a + b + 7).",
+      "Simplify: 8b − 19a = 7.",
+      "Only a = 3, b = 8 fits single digits (64 − 57 = 7), so the son is 38 and Venkat is 83."
+    ],
+    "explanation": "Writing the son as 10a + b and Venkat as 10b + a, the condition simplifies to 8b = 19a + 7. For digits, a = 3 gives 8b = 64, b = 8; no other a gives a whole digit b (a = 1 gives 26/8, a = 2 gives 45/8, a ≥ 4 makes b > 9). So the son is 38 and Venkat is 83. Check: in 7 years they are 45 and 90, and 90 = 2 × 45.",
+    "hints": [
+      "Write both ages with digits a and b.",
+      "Form one equation from the condition in 7 years.",
+      "8b − 19a = 7; try a = 1, 2, 3, ..."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-107",
+    "type": "math",
+    "subCategory": "Arithmetic reasoning",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Fewest weights for a balance",
+    "statement": "A shopkeeper uses a two-pan balance and may place weights on both pans (weights can go on the same pan as the goods). He wants to weigh every whole number of kilograms from 1 kg to 40 kg.\nWhat is the smallest number of weights he needs?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "With weights on both pans, each weight can be added, subtracted or unused: 3 choices.",
+      "n weights give at most (3^n − 1)/2 positive amounts; for n = 3 that is 13, fewer than 40.",
+      "For n = 4 that is 40, so 4 is the minimum if a set exists.",
+      "Weights 1, 3, 9 and 27 kg reach every value 1 to 40 (e.g. 2 = 3 − 1, 20 = 27 + 3 − 9 − 1)."
+    ],
+    "explanation": "Each weight can be on the opposite pan, on the goods' pan, or off the balance, so n weights produce at most (3^n − 1)/2 different positive loads. Three weights give at most 13, too few; four give up to 40. The powers of 3 — 1, 3, 9, 27 kg — achieve all of 1 to 40. Check: 40 = 1 + 3 + 9 + 27 and 14 = 27 − 9 − 3 − 1.",
+    "hints": [
+      "Each weight has three possible positions.",
+      "Count how many different loads 3 weights could possibly give.",
+      "Try weights that are powers of 3."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-108",
+    "type": "math",
+    "subCategory": "Arithmetic reasoning",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Sharing Rs 1260 three ways",
+    "statement": "Rs 1,260 is divided among Anitha, Balu and Chandra. Anitha gets 2/3 of what Balu and Chandra get together. Balu gets 1/2 of what Anitha and Chandra get together.\nHow much does Chandra get, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "336",
+    "acceptedAnswers": [
+      "Rs 336"
+    ],
+    "keySteps": [
+      "A = (2/3)(B + C) means A is 2 parts and B + C is 3 parts, so A = 2/5 × 1260 = 504.",
+      "B = (1/2)(A + C) means B is 1 part of 3, so B = 1/3 × 1260 = 420.",
+      "C = 1260 − 504 − 420 = 336."
+    ],
+    "explanation": "If A is 2/3 of the others, then A : (B + C) = 2 : 3, so A gets 2/5 of 1260 = 504. Similarly B : (A + C) = 1 : 2, so B gets 1/3 of 1260 = 420. Chandra gets the rest, 336. Check: B + C = 756 and 2/3 of 756 = 504; A + C = 840 and half of 840 = 420.",
+    "hints": [
+      "Turn 'A gets 2/3 of the other two' into a share of the total.",
+      "A : (B + C) = 2 : 3, so A gets 2/5 of the total.",
+      "Do the same for Balu, then subtract."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-109",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Two clocks drifting apart",
+    "statement": "Two clocks are set to the correct time at 12 noon on Monday. One gains 2 minutes every hour and the other loses 1 minute every hour.\nAfter how many real hours will the two clocks next show exactly the same time?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "240",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Every real hour the gap between the clocks grows by 2 + 1 = 3 minutes.",
+      "Clock faces show the same time again when the gap is 12 hours = 720 minutes.",
+      "720 ÷ 3 = 240 hours."
+    ],
+    "explanation": "The fast clock pulls ahead of the slow clock by 3 minutes per real hour. Their faces read the same again once the difference is a full 12 hours, which is 720 minutes, so after 720/3 = 240 hours (10 days). Check: by then the fast clock has gained 480 min (8 h) and the slow one lost 240 min (4 h); 8 h ahead and 4 h behind differ by 12 h, the same reading on a 12-hour face.",
+    "hints": [
+      "Track the difference between the two clocks, not each clock alone.",
+      "How large must the difference be for the faces to look identical?",
+      "A 12-hour face repeats every 720 minutes."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "math-110",
+    "type": "math",
+    "subCategory": "Clocks and calendars",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Independence Day 1947 weekday",
+    "statement": "On which day of the week did 15 August 1947 fall?\n(Use odd days: 1600 years have 0 odd days, every 100 years after that adds 5, an ordinary year adds 1 and a leap year adds 2.)",
+    "answerFormat": "choice",
+    "choices": [
+      "Friday",
+      "Thursday",
+      "Saturday",
+      "Monday"
+    ],
+    "answer": "Friday",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "1600 years: 0 odd days; years 1601–1900 (300 years): 3 × 5 = 15, i.e. 1 odd day.",
+      "Years 1901–1946 (46 years) have 11 leap years and 35 ordinary: 22 + 35 = 57, i.e. 1 odd day.",
+      "1947 up to 15 August (not a leap year): 31+28+31+30+31+30+31+15 = 227 days, i.e. 3 odd days.",
+      "Total = 0 + 1 + 1 + 3 = 5 odd days, and 5 corresponds to Friday (0 = Sunday)."
+    ],
+    "explanation": "Count odd days through 15 August 1947: the first 1600 years give 0, the next 300 give 15 (1 odd day), 1901–1946 give 57 (1 odd day), and 1 January–15 August 1947 is 227 days (3 odd days). Total 5 odd days, and with 0 = Sunday, 5 = Friday. Check: 26 January 1950 was a Thursday; it is 895 days after 15 August 1947, which is 6 odd days, and Friday + 6 = Thursday.",
+    "hints": [
+      "Split 1946 complete years into 1600 + 300 + 46.",
+      "Count leap years from 1901 to 1946 (1904, 1908, ..., 1944).",
+      "Add the days from 1 January to 15 August 1947 and reduce mod 7."
+    ],
+    "estimatedMinutes": 6
+  }
+]

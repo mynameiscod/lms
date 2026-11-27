@@ -12,6 +12,8 @@ export interface PendingAnswer {
   sourceType: string;
   sourceId: string;
   response: any;
+  /** "I don't know" — sent as its own mark so it survives a reload. */
+  dontKnow?: boolean;
 }
 
 /** Keyed the same way the server matches answers against the frozen paper. */
@@ -89,6 +91,10 @@ export interface AnswerDraft {
   answers: Record<string, any>;
   /** What has still not reached the server. */
   pending: AnswerQueue;
+  /** Questions marked "I don't know". */
+  dontKnow?: string[];
+  /** The question on screen. */
+  at?: number;
   savedAt: number;
 }
 
@@ -112,7 +118,7 @@ export function readDraft(paperId: string): AnswerDraft | null {
     const d = JSON.parse(raw) as AnswerDraft;
     if (!d || typeof d !== 'object') return null;
     if (typeof d.savedAt !== 'number' || Date.now() - d.savedAt > DRAFT_MAX_AGE_MS) return null;
-    return { answers: d.answers || {}, pending: d.pending || {}, savedAt: d.savedAt };
+    return { answers: d.answers || {}, pending: d.pending || {}, dontKnow: Array.isArray(d.dontKnow) ? d.dontKnow : [], at: typeof d.at === 'number' ? d.at : undefined, savedAt: d.savedAt };
   } catch { return null; }
 }
 

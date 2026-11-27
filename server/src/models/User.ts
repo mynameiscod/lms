@@ -10,7 +10,10 @@ export interface IUser extends Document {
   role: string;
   tenantId: mongoose.Types.ObjectId;
   batchId?: mongoose.Types.ObjectId;
+  placementBatchIds?: mongoose.Types.ObjectId[]; // extra placement batches; home batch stays batchId
   batchJoinedDate?: Date;
+  /** Last time this person used the LMS (set at most hourly by authMiddleware) — drives inactivity alerts. */
+  lmsLastActiveAt?: Date;
   customRoleId?: mongoose.Types.ObjectId;
   managerId?: mongoose.Types.ObjectId;
   leadDataScope?: 'ALL' | 'TEAM' | 'OWN';
@@ -52,6 +55,8 @@ export interface IUser extends Document {
     careerDomain?: string;         // CareerDomainKey; SOFTWARE_ENGINEERING is the only live one
     primaryRole?: string;          // CareerRole key, or NOT_SURE — a real answer, not a blank
     secondaryRole?: string;
+    /** Career track for Year 3 and 4 (role + language), once chosen — see careerTrackPolicy. */
+    careerTrack?: { key: string; chosenAt?: Date; chosenBy?: string };
     /**
      * Languages the member wants to WORK IN. Deliberately not
      * StudentProfile.technicalBackground.programmingLanguages, which records what they
@@ -109,6 +114,8 @@ export interface IUser extends Document {
      * by a join nobody remembers to write.
      */
     attribution?: ICareerPilotAttribution;
+    /** Set when `attribution` was reconstructed after signup (from activity or a payment), not captured live. */
+    attributionReconstructed?: string;
     /**
      * Answers to sign-up questions an admin added (PassportConfig.onboardingFields with
      * `custom: true`), by field key. The shipped questions map onto the named fields above;
@@ -117,6 +124,51 @@ export interface IUser extends Document {
     customFields?: Record<string, string>;
   };
   phone?: string;
+  /**
+   * An LMS DEMO STUDENT (services/lmsDemoService.ts). Absent on every real account. Kept off the
+   * Users screen and listed on the LMS Demo screen instead; after `expiresAt` the account can only
+   * see the end-of-demo screen.
+   */
+  lmsDemo?: {
+    at: Date;
+    expiresAt: Date;
+    source: 'self' | 'given';
+    by?: string;
+    byName?: string;
+    leadId?: mongoose.Types.ObjectId;
+    status?: string;
+    endedAt?: Date;
+    endedBy?: string;
+    talkRequestedAt?: Date;
+    moreTimeRequestedAt?: Date;
+    lastSeenAt?: Date;
+    aiDay?: string;
+    aiUsed?: number;
+    mockDay?: string;
+    mockUsed?: number;
+    commDay?: string;
+    commUsed?: number;
+  };
+  // Student enrolment status. Inactive = never really attended; Discontinued = joined, then
+  // stopped coming. Both also set isActive=false (login blocked, left out of reports).
+  // Completed = finished the course; unlike the other two it keeps login (until access ends).
+  studentStatus?: 'active' | 'inactive' | 'discontinued' | 'completed';
+  studentStatusAt?: Date;
+  studentStatusReason?: string;
+  studentStatusNote?: string;
+  studentStatusBy?: mongoose.Types.ObjectId;
+  /** Every status change, newest last (services/studentLifecycleService.ts). */
+  studentStatusHistory?: { status: string; at: Date; reason?: string; note?: string; by?: mongoose.Types.ObjectId; changedAt: Date; source?: string }[];
+  /**
+   * LMS access window. Starts on the day the student FIRST joined a batch (lmsJoinedAt; batchJoinedDate
+   * resets on every batch move, so it cannot be the start) and lasts the institute's access days
+   * (365 by default). accessUntil is set only when an admin extends or changes it.
+   */
+  lmsJoinedAt?: Date;
+  accessUntil?: Date;
+  accessHistory?: { from?: Date; to?: Date; reason: string; by?: mongoose.Types.ObjectId; at: Date }[];
+  /** The access end date the "access ending" WhatsApp was last sent for (once per end date). */
+  accessReminderFor?: Date;
   avatar?: string;
   bio?: string;
   linkedin?: string;
@@ -166,7 +218,7 @@ const UserSchema: Schema = new Schema(
     },
     role: { 
       type: String, 
-      enum: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF', 'STUDENT', 'GUEST'], 
+      enum: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF', 'STUDENT', 'GUEST', 'PLACEMENT_PARTNER'], 
       default: 'STUDENT' 
     },
     tenantId: { 
@@ -179,10 +231,15 @@ const UserSchema: Schema = new Schema(
       ref: 'Batch',
       default: null
     },
+    placementBatchIds: {
+      type: [{ type: mongoose.Types.ObjectId, ref: 'Batch' }],
+      default: undefined
+    },
     batchJoinedDate: {
       type: Date,
       default: null
     },
+    lmsLastActiveAt: { type: Date },
     customRoleId: {
       type: mongoose.Types.ObjectId,
       ref: 'Role',
@@ -244,6 +301,47 @@ const UserSchema: Schema = new Schema(
         /** What was asked for, kept beside expiresAt so a shortened grant is visible. */
         days:      { type: Number },
       },
+      /**
+       * A TRIAL: limited access for a set time (data/trialPolicy.ts). Not a membership — `active`
+       * is never set by it. `items` is a copy of the plan when it was given, so editing the plan
+       * later does not change a trial already running.
+       */
+      trial: {
+        planId:      { type: Schema.Types.ObjectId, ref: 'TrialPlan' },
+        planName:    { type: String },
+        startedAt:   { type: Date },
+        endsAt:      { type: Date },
+        /** Set when an admin ends it early. */
+        endedAt:     { type: Date },
+        /** Set when the member paid while on it — what the trial report counts. */
+        convertedAt: { type: Date },
+        items:       { type: Schema.Types.Mixed },
+        /** The practice problems this trial shows, fixed the first time they open Practice. */
+        practiceIds: [{ type: Schema.Types.ObjectId }],
+        /** True when the plan named its problems: practiceIds is then exactly those, never topped up. */
+        practicePicked: { type: Boolean },
+        by:         { type: Schema.Types.ObjectId, ref: 'User' },
+        byName:      { type: String },
+        reason:      { type: String },
+      },
+      /**
+       * A DEMO ACCOUNT (data/demoPolicy.ts): the super admin's demo plan this account shows, the year
+       * on screen now, and what the account was before — so ending the demo or a Full reset puts
+       * it back exactly. Absent on every ordinary account.
+       */
+      demo: {
+        type: new Schema({
+          planId:   { type: Schema.Types.ObjectId, ref: 'DemoPlan' },
+          planName: { type: String },
+          year:     { type: String },
+          by:       { type: String },
+          byName:   { type: String },
+          at:       { type: Date },
+          note:     { type: String },
+          previous: { type: Schema.Types.Mixed },
+        }, { _id: false }),
+        default: undefined,
+      },
       // Drop-off tracking. Signing up and proving you own the number are different
       // events, and until now only the first left a trace — so someone who never
       // entered their OTP looked identical to someone who verified and then stalled.
@@ -273,6 +371,16 @@ const UserSchema: Schema = new Schema(
       secondaryRole:         { type: String },
       preferredLanguages:    { type: [String], default: undefined },
       preferredTechnologies: { type: [String], default: undefined },
+      // Career track (Year 3 and 4): the role + language roadmap the student picked, or an admin
+      // set. Absent until chosen; see data/careerTrackPolicy.ts.
+      careerTrack: {
+        type: new mongoose.Schema({
+          key:      { type: String },
+          chosenAt: { type: Date },
+          chosenBy: { type: String },   // 'student', or the admin's id
+        }, { _id: false }),
+        default: undefined,
+      },
       minutesPerDay:         { type: Number },
       daysPerWeek:           { type: Number },
       contextCompletedAt:    { type: Date },
@@ -292,12 +400,67 @@ const UserSchema: Schema = new Schema(
       shareSlug:   { type: String, index: true },
       passwordSet: { type: Boolean, default: false },
       attribution: { type: CareerPilotAttributionSchema, default: undefined },
+      attributionReconstructed: { type: String },
       customFields: { type: Schema.Types.Mixed, default: undefined },
     },
     phone: {
       type: String,
       default: null
     },
+    // A real sub-schema, not Mixed: without it Mongoose silently drops a $set on lmsDemo.*.
+    lmsDemo: {
+      type: new Schema({
+        at:        { type: Date, required: true },
+        expiresAt: { type: Date, required: true },
+        source:    { type: String, enum: ['self', 'given'], default: 'self' },
+        by:        { type: String },
+        byName:    { type: String },
+        leadId:    { type: Schema.Types.ObjectId, ref: 'Lead' },
+        status:    { type: String },
+        endedAt:   { type: Date },
+        endedBy:   { type: String },
+        talkRequestedAt:     { type: Date },
+        moreTimeRequestedAt: { type: Date },
+        lastSeenAt: { type: Date },
+        aiDay:     { type: String },
+        aiUsed:    { type: Number, default: 0 },
+        mockDay:   { type: String },
+        mockUsed:  { type: Number, default: 0 },
+        commDay:   { type: String },
+        commUsed:  { type: Number, default: 0 },
+      }, { _id: false }),
+      default: undefined,
+    },
+    studentStatus: { type: String, enum: ['active', 'inactive', 'discontinued', 'completed'] },
+    studentStatusAt: { type: Date },
+    studentStatusReason: { type: String, trim: true },
+    studentStatusNote: { type: String, trim: true, maxlength: 500 },
+    studentStatusBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    studentStatusHistory: {
+      type: [new Schema({
+        status: { type: String, required: true },
+        at: { type: Date, required: true },
+        reason: { type: String, trim: true },
+        note: { type: String, trim: true, maxlength: 500 },
+        by: { type: Schema.Types.ObjectId, ref: 'User' },
+        changedAt: { type: Date, default: Date.now },
+        source: { type: String, trim: true },
+      }, { _id: false })],
+      default: undefined,
+    },
+    lmsJoinedAt: { type: Date },
+    accessUntil: { type: Date },
+    accessHistory: {
+      type: [new Schema({
+        from: { type: Date },
+        to: { type: Date },
+        reason: { type: String, trim: true, maxlength: 300 },
+        by: { type: Schema.Types.ObjectId, ref: 'User' },
+        at: { type: Date, default: Date.now },
+      }, { _id: false })],
+      default: undefined,
+    },
+    accessReminderFor: { type: Date },
     avatar: {
       type: String,
       default: null
@@ -372,5 +535,10 @@ UserSchema.set('toJSON', {
     return ret;
   },
 });
+
+// Placement batch member lists; sparse because almost nobody has one.
+UserSchema.index({ placementBatchIds: 1 }, { sparse: true });
+// LMS demo students: the LMS Demo screen lists them, every other list leaves them out.
+UserSchema.index({ tenantId: 1, 'lmsDemo.at': -1 }, { partialFilterExpression: { 'lmsDemo.at': { $exists: true } } });
 
 export default mongoose.model<IUser>('User', UserSchema);

@@ -1,0 +1,1494 @@
+[
+  {
+    "seedKey": "math-161",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Cycling to Tank Bund",
+    "statement": "Lakshmi cycles at a steady 15 km/h for 2 hours and 20 minutes.\nHow many kilometres does she cover?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "35",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Convert 2 hours 20 minutes to hours: 2 + 20/60 = 7/3 hours.",
+      "Distance = speed × time = 15 × 7/3.",
+      "15 × 7/3 = 35 km."
+    ],
+    "explanation": "2 hours 20 minutes is 7/3 hours. Distance = 15 × 7/3 = 35 km. Check: in 2 hours she rides 30 km and in the extra 20 minutes (one third of an hour) she rides 5 km more, 35 km in all.",
+    "hints": [
+      "Change the time into hours first.",
+      "20 minutes is one third of an hour.",
+      "Multiply 15 by 7/3."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-162",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Walking speed from minutes",
+    "statement": "Sunita walks 1.5 km from her hostel to the college gate in 18 minutes at a steady pace.\nWhat is her walking speed in km/h?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Convert 18 minutes to hours: 18/60 = 0.3 hours.",
+      "Speed = distance ÷ time = 1.5 ÷ 0.3.",
+      "Speed = 5 km/h."
+    ],
+    "explanation": "18 minutes is 0.3 hours, so her speed is 1.5 ÷ 0.3 = 5 km/h. Check: at 5 km/h she walks 5 km in 60 minutes, so 1.5 km takes 1.5/5 × 60 = 18 minutes.",
+    "hints": [
+      "The answer must be in km per hour, so turn minutes into hours.",
+      "18 minutes = 18/60 hours.",
+      "Divide 1.5 by 0.3."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-163",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "More masons, fewer days",
+    "statement": "5 masons can build a compound wall in 12 days. All masons work at the same rate.\nHow many days would 6 masons take to build the same wall?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "10",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Total work = 5 masons × 12 days = 60 mason-days.",
+      "With 6 masons, days = 60 ÷ 6.",
+      "Days = 10."
+    ],
+    "explanation": "The wall needs 5 × 12 = 60 mason-days of work. Six masons share it, so they need 60 ÷ 6 = 10 days. Check: more workers should mean fewer days, and 10 < 12.",
+    "hints": [
+      "Find the total work in mason-days.",
+      "5 × 12 = 60 mason-days.",
+      "Divide 60 by 6."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-164",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Boat down the Krishna",
+    "statement": "A boat moves at 10 km/h in still water. The river current flows at 2 km/h.\nHow many hours does the boat take to travel 36 km downstream?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "3",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Downstream, the current helps: speed = 10 + 2 = 12 km/h.",
+      "Time = distance ÷ speed = 36 ÷ 12.",
+      "Time = 3 hours."
+    ],
+    "explanation": "Going downstream the boat's speed adds to the current: 10 + 2 = 12 km/h. So 36 km takes 36 ÷ 12 = 3 hours. Check: 12 × 3 = 36 km.",
+    "hints": [
+      "Does the current help or slow the boat downstream?",
+      "Downstream speed = boat speed + current speed.",
+      "36 ÷ 12 = ?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-165",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Average speed is not the average",
+    "statement": "Ravi drives for 2 hours at 40 km/h and then for 3 hours at 60 km/h.\nWhat is his average speed for the whole journey, in km/h?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "52",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Distance in the first part = 40 × 2 = 80 km.",
+      "Distance in the second part = 60 × 3 = 180 km.",
+      "Total distance = 260 km and total time = 5 hours.",
+      "Average speed = 260 ÷ 5 = 52 km/h (not the simple average 50)."
+    ],
+    "explanation": "Average speed is total distance divided by total time. He covers 80 km + 180 km = 260 km in 5 hours, so the average is 52 km/h. It is more than 50 because he spent more time at the faster speed.",
+    "hints": [
+      "Average speed = total distance ÷ total time.",
+      "Find the distance of each part separately.",
+      "260 km in 5 hours."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-166",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Late at one speed, early at another",
+    "statement": "If Kiran walks to college at 4 km/h he reaches 10 minutes late. If he walks at 5 km/h he reaches 5 minutes early.\nHow far is the college from his home, in km?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The two travel times differ by 10 + 5 = 15 minutes = 1/4 hour.",
+      "Write d/4 − d/5 = 1/4.",
+      "d/20 = 1/4, so d = 5 km."
+    ],
+    "explanation": "The slow walk takes 15 minutes (1/4 hour) longer than the fast one, so d/4 − d/5 = 1/4, which gives d/20 = 1/4 and d = 5 km. Check: 5 km at 4 km/h takes 75 minutes and at 5 km/h takes 60 minutes, a 15-minute difference.",
+    "hints": [
+      "How much longer is the slower walk than the faster one?",
+      "10 minutes late and 5 minutes early is a gap of 15 minutes.",
+      "Solve d/4 − d/5 = 1/4."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-167",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Three volunteers paint a classroom",
+    "statement": "For a school outreach drive, Anu can paint a classroom alone in 10 hours, Balu in 15 hours and Chitra in 30 hours.\nIf all three work together, how many hours will they take?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Anu does 1/10, Balu 1/15 and Chitra 1/30 of the room per hour.",
+      "Combined rate = 3/30 + 2/30 + 1/30 = 6/30 = 1/5 per hour.",
+      "Time = 1 ÷ (1/5) = 5 hours."
+    ],
+    "explanation": "Add the hourly rates: 1/10 + 1/15 + 1/30 = 6/30 = 1/5 of the room per hour, so together they need 5 hours. Check: in 5 hours Anu paints 1/2, Balu 1/3 and Chitra 1/6 of the room, which adds up to 1.",
+    "hints": [
+      "Turn each person's time into work per hour.",
+      "Use 30 as the common denominator.",
+      "Together they paint 1/5 of the room each hour."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-168",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Two taps on the sump",
+    "statement": "Tap A can fill a sump in 4 hours. Tap B can fill the same sump in 12 hours.\nIf both taps are opened together on an empty sump, how many hours will it take to fill?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "3",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Tap A fills 1/4 and tap B fills 1/12 of the sump per hour.",
+      "Together: 1/4 + 1/12 = 3/12 + 1/12 = 4/12 = 1/3 per hour.",
+      "Time = 3 hours."
+    ],
+    "explanation": "Together the taps fill 1/4 + 1/12 = 1/3 of the sump per hour, so the sump fills in 3 hours. Check: in 3 hours A fills 3/4 and B fills 1/4, which is the whole sump.",
+    "hints": [
+      "Find what part of the sump each tap fills in one hour.",
+      "Add the two fractions.",
+      "1/4 + 1/12 = 1/3."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-169",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The rest of the tank",
+    "statement": "A pipe fills 2/5 of an empty tank in 12 minutes, at a steady rate.\nHow many more minutes will it take to fill the rest of the tank?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "18",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "2/5 of the tank takes 12 minutes, so 1/5 takes 6 minutes.",
+      "The rest of the tank is 3/5.",
+      "3/5 takes 3 × 6 = 18 minutes."
+    ],
+    "explanation": "If 2/5 takes 12 minutes, each fifth takes 6 minutes. The remaining 3/5 therefore takes 18 minutes. Check: the full tank takes 30 minutes, and 30 − 12 = 18.",
+    "hints": [
+      "How long does 1/5 of the tank take?",
+      "1/5 takes 6 minutes.",
+      "How many fifths are still empty?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-170",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Filling the terrace tank in litres",
+    "statement": "A terrace tank holds 1200 litres and already has 300 litres in it. A tap pours in 15 litres every minute.\nHow many minutes will it take to fill the tank completely?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "60",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Water still needed = 1200 − 300 = 900 litres.",
+      "Time = 900 ÷ 15.",
+      "Time = 60 minutes."
+    ],
+    "explanation": "The tank needs 1200 − 300 = 900 more litres. At 15 litres a minute that takes 900 ÷ 15 = 60 minutes. Check: 15 × 60 = 900.",
+    "hints": [
+      "The tank is not empty at the start.",
+      "Find how many litres are missing.",
+      "Divide 900 by 15."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-171",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Finding the slower pipe",
+    "statement": "Two pipes together fill a tank in 6 hours. The first pipe alone fills it in 10 hours.\nHow many hours would the second pipe alone take?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "15",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Together they fill 1/6 of the tank per hour; the first pipe fills 1/10.",
+      "Second pipe's rate = 1/6 − 1/10 = 5/30 − 3/30 = 2/30 = 1/15.",
+      "The second pipe alone takes 15 hours."
+    ],
+    "explanation": "The second pipe supplies the difference between the joint rate and the first pipe's rate: 1/6 − 1/10 = 1/15 of the tank per hour, so it needs 15 hours alone. Check: 1/10 + 1/15 = 3/30 + 2/30 = 1/6.",
+    "hints": [
+      "Write the joint rate and the first pipe's rate as fractions per hour.",
+      "Subtract to get the second pipe's rate.",
+      "1/6 − 1/10 = ?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-172",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Half-full tank with an outlet",
+    "statement": "An overhead tank is half full. The inlet pipe can fill the whole tank in 8 hours and the outlet pipe can empty the whole tank in 12 hours.\nIf both pipes are opened now, how many hours will it take to fill the tank completely?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "12",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Inlet adds 1/8 and outlet removes 1/12 of the tank per hour.",
+      "Net rate = 1/8 − 1/12 = 3/24 − 2/24 = 1/24 per hour.",
+      "Only half the tank is needed: (1/2) ÷ (1/24) = 12 hours."
+    ],
+    "explanation": "The net filling rate is 1/8 − 1/12 = 1/24 of the tank per hour. The tank is already half full, so only 1/2 is needed, which takes 12 hours. Check: in 12 hours the inlet adds 12/8 = 1.5 tanks and the outlet removes 1 tank, a net gain of 1/2.",
+    "hints": [
+      "Find the net rate when both pipes run.",
+      "The net rate is 1/24 per hour.",
+      "Remember only half the tank is empty."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-173",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "One pipe closed early",
+    "statement": "Pipe A can fill a tank in 10 minutes and pipe B in 15 minutes. Both are opened together on an empty tank, and after 3 minutes pipe A is closed.\nHow many more minutes does pipe B take to fill the tank?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "7.5",
+    "acceptedAnswers": [
+      "7 1/2",
+      "15/2"
+    ],
+    "keySteps": [
+      "Together they fill 1/10 + 1/15 = 1/6 of the tank per minute.",
+      "In 3 minutes they fill 3 × 1/6 = 1/2 of the tank.",
+      "B must fill the remaining 1/2 at 1/15 per minute: (1/2) × 15 = 7.5 minutes."
+    ],
+    "explanation": "Working together the pipes fill 1/6 of the tank per minute, so after 3 minutes the tank is half full. Pipe B alone fills 1/15 per minute, so the other half takes 7.5 minutes. Check: 3 × 1/10 + 10.5 × 1/15 = 0.3 + 0.7 = 1.",
+    "hints": [
+      "First find how much is filled in the first 3 minutes.",
+      "Together they fill 1/6 per minute.",
+      "B alone fills half the tank in half of 15 minutes."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-174",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Add the two before",
+    "statement": "Find the next number in the sequence: 1, 1, 2, 3, 5, 8, 13, …",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "21",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notice that each term is the sum of the two terms before it (1 + 1 = 2, 1 + 2 = 3, 2 + 3 = 5).",
+      "Check the rule on later terms: 5 + 8 = 13.",
+      "Next term = 8 + 13 = 21."
+    ],
+    "explanation": "From the third term on, each number is the sum of the two before it. So the next number is 8 + 13 = 21. Check: the rule holds for every term, for example 3 + 5 = 8.",
+    "hints": [
+      "The differences are 0, 1, 1, 2, 3, 5 — do they look familiar?",
+      "Try adding neighbouring terms.",
+      "Add 8 and 13."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-175",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Double, then take away two",
+    "statement": "Find the next number in the sequence: 5, 10, 8, 16, 14, 28, …",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "26",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Look at the steps between terms: ×2, −2, ×2, −2, ×2.",
+      "The pattern alternates between doubling and subtracting 2.",
+      "The next step is −2, so 28 − 2 = 26."
+    ],
+    "explanation": "The steps alternate: 5 ×2 = 10, 10 − 2 = 8, 8 ×2 = 16, 16 − 2 = 14, 14 ×2 = 28. The next step is subtract 2, giving 26.",
+    "hints": [
+      "The sequence goes up and down, so two different operations are used.",
+      "Compare 5→10 and 10→8.",
+      "After doubling comes subtracting 2."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-176",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Bacteria in the lab dish",
+    "statement": "In a biotech lab, a dish has 3 bacteria at 9 am. The number of bacteria doubles every hour.\nHow many bacteria are in the dish at 3 pm the same day?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "192",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "From 9 am to 3 pm is 6 hours, so the number doubles 6 times.",
+      "Doubling 6 times multiplies by 2^6 = 64.",
+      "Number at 3 pm = 3 × 64 = 192."
+    ],
+    "explanation": "There are 6 hourly doublings between 9 am and 3 pm, so the count is 3 × 2^6 = 3 × 64 = 192. Check by listing: 3, 6, 12, 24, 48, 96, 192.",
+    "hints": [
+      "Count the number of hours between 9 am and 3 pm.",
+      "Each hour multiplies the count by 2.",
+      "3 × 2 × 2 × 2 × 2 × 2 × 2 = ?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-177",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "First negative term",
+    "statement": "Consider the sequence 100, 93, 86, 79, …, where each term is 7 less than the one before.\nWhich term (1st, 2nd, 3rd, …) is the first negative number? Give its position as a number.",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "16",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The nth term is 100 − 7(n − 1).",
+      "Set 100 − 7(n − 1) < 0, so n − 1 > 100/7 ≈ 14.3.",
+      "The smallest whole number is n − 1 = 15, so n = 16.",
+      "Check: the 15th term is 100 − 98 = 2 and the 16th is 100 − 105 = −5."
+    ],
+    "explanation": "The nth term is 100 − 7(n − 1). It becomes negative once 7(n − 1) > 100, i.e. n − 1 ≥ 15, so n = 16. Check: term 15 is 2 (still positive) and term 16 is −5.",
+    "hints": [
+      "Write a formula for the nth term.",
+      "Find when 7(n − 1) first goes over 100.",
+      "7 × 15 = 105 is the first multiple of 7 above 100."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-178",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Two-digit multiples of 7",
+    "statement": "What is the sum of all two-digit numbers that are multiples of 7?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "728",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The two-digit multiples of 7 run from 14 to 98.",
+      "Number of terms = (98 − 14) ÷ 7 + 1 = 13.",
+      "Sum = 13 × (14 + 98) ÷ 2 = 13 × 56 = 728."
+    ],
+    "explanation": "The multiples are 14, 21, …, 98, an arithmetic series with 13 terms. Its sum is 13 × (14 + 98) ÷ 2 = 728. Check another way: 7 × (2 + 3 + … + 14) = 7 × 104 = 728.",
+    "hints": [
+      "Find the smallest and largest two-digit multiples of 7.",
+      "They are 14 and 98 — how many terms is that?",
+      "Use n × (first + last) ÷ 2."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-179",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "hard",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Squares from 11 to 20",
+    "statement": "Find the value of 11² + 12² + 13² + … + 20².",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2485",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Use the formula 1² + 2² + … + n² = n(n + 1)(2n + 1)/6.",
+      "Sum up to 20 = 20 × 21 × 41 ÷ 6 = 2870.",
+      "Sum up to 10 = 10 × 11 × 21 ÷ 6 = 385.",
+      "Required sum = 2870 − 385 = 2485."
+    ],
+    "explanation": "Take the sum of the first 20 squares (2870) and remove the first 10 squares (385), leaving 2485. Check by adding directly: 121 + 144 + 169 + 196 + 225 + 256 + 289 + 324 + 361 + 400 = 2485.",
+    "hints": [
+      "Think of it as (1² + … + 20²) minus (1² + … + 10²).",
+      "The sum of the first n squares is n(n + 1)(2n + 1)/6.",
+      "2870 − 385 = ?"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-180",
+    "type": "math",
+    "subCategory": "Data sufficiency",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "DS: Ravi's speed",
+    "statement": "Question: Ravi rides at a constant speed. What is his speed in km/h?\nStatement 1: Ravi rides for 3 hours.\nStatement 2: Ravi covers 120 km in 3 hours.\nWhich of the following is true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+      "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+      "Both statements together are sufficient, but neither statement alone is sufficient.",
+      "The statements are not sufficient even together."
+    ],
+    "answer": "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Speed needs both distance and time.",
+      "Statement 1 gives only the time, so the speed is unknown.",
+      "Statement 2 gives distance and time: 120 ÷ 3 = 40 km/h, so it is sufficient alone."
+    ],
+    "explanation": "Statement 1 tells us only how long he rode, which could fit any speed. Statement 2 gives 120 km in 3 hours, so the speed is 40 km/h. Statement 2 alone answers the question; Statement 1 alone does not.",
+    "hints": [
+      "What two quantities do you need to find speed?",
+      "Does Statement 1 give a distance?",
+      "Statement 2 gives 120 km in 3 hours."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-181",
+    "type": "math",
+    "subCategory": "Data sufficiency",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "DS: Is n even?",
+    "statement": "Question: n is an integer. Is n even?\nStatement 1: n is a multiple of 3.\nStatement 2: n + 3 is odd.\nWhich of the following is true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+      "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+      "Both statements together are sufficient, but neither statement alone is sufficient.",
+      "The statements are not sufficient even together."
+    ],
+    "answer": "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Statement 1: multiples of 3 can be even (6) or odd (9), so it is not sufficient.",
+      "Statement 2: odd − 3 (an odd number) is always even, so n is even.",
+      "Statement 2 alone answers the question with a definite yes."
+    ],
+    "explanation": "Multiples of 3 include both 6 and 9, so Statement 1 cannot decide. If n + 3 is odd, then n = (odd) − 3, and odd minus odd is even, so n must be even. Statement 2 alone is sufficient.",
+    "hints": [
+      "Test Statement 1 with two different multiples of 3.",
+      "What happens when you subtract an odd number from an odd number?",
+      "n = (n + 3) − 3."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-182",
+    "type": "math",
+    "subCategory": "Data sufficiency",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "DS: Tenth term of an AP",
+    "statement": "Question: What is the 10th term of an arithmetic progression?\nStatement 1: The first term is 3.\nStatement 2: The sum of the first 10 terms is 165.\nWhich of the following is true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+      "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+      "Both statements together are sufficient, but neither statement alone is sufficient.",
+      "The statements are not sufficient even together."
+    ],
+    "answer": "Both statements together are sufficient, but neither statement alone is sufficient.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Statement 1 alone: the common difference is unknown, so the 10th term is unknown.",
+      "Statement 2 alone: sum of 10 terms = 10 × (first + tenth) ÷ 2, so first + tenth = 33, but the first term is unknown.",
+      "Together: 3 + tenth = 33, so the 10th term is 30. Both are needed."
+    ],
+    "explanation": "The sum of the first 10 terms is 5 × (first term + 10th term), so Statement 2 gives first + 10th = 33. Without the first term this has many solutions, and Statement 1 alone says nothing about the difference. Together, the 10th term is 33 − 3 = 30.",
+    "hints": [
+      "What does the sum formula tell you about the first and last terms?",
+      "S10 = 10 × (a1 + a10) ÷ 2.",
+      "With a1 = 3, can you now find a10?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-183",
+    "type": "math",
+    "subCategory": "Data sufficiency",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "DS: Train and platform",
+    "statement": "Question: How many seconds does a train take to cross a platform completely?\nStatement 1: The train runs at 54 km/h.\nStatement 2: The train crosses a signal pole in 20 seconds.\nWhich of the following is true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+      "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+      "Both statements together are sufficient, but neither statement alone is sufficient.",
+      "The statements are not sufficient even together."
+    ],
+    "answer": "The statements are not sufficient even together.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "To cross a platform the train covers its own length plus the platform's length.",
+      "Together the statements give the speed (15 m/s) and the train's length (15 × 20 = 300 m).",
+      "The platform's length is never given, so the time cannot be found even with both."
+    ],
+    "explanation": "Crossing a platform means covering train length + platform length. Statements 1 and 2 together give the speed (54 km/h = 15 m/s) and the train's length (300 m), but nothing tells us how long the platform is. So the statements are not sufficient even together.",
+    "hints": [
+      "What distance does a train cover when it crosses a platform?",
+      "Can you find the train's length from both statements?",
+      "Is the platform's length given anywhere?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-184",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "A pipe four times as fast",
+    "statement": "Pipe P fills a tank in 20 hours. Pipe Q fills water four times as fast as pipe P.\nIf both pipes are opened together on an empty tank, how many hours will it take to fill?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Q is four times as fast, so Q alone takes 20 ÷ 4 = 5 hours.",
+      "Combined rate = 1/20 + 1/5 = 1/20 + 4/20 = 5/20 = 1/4 per hour.",
+      "Time = 4 hours."
+    ],
+    "explanation": "Four times as fast means a quarter of the time, so Q alone takes 5 hours. Together they fill 1/20 + 1/5 = 1/4 of the tank per hour, so they need 4 hours. Check: the pair works like 5 copies of pipe P, and 20 ÷ 5 = 4.",
+    "hints": [
+      "If Q is four times as fast, how long does Q take alone?",
+      "Q takes 5 hours.",
+      "Add 1/20 and 1/5."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-185",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "The odd one in the primes",
+    "statement": "One number in this sequence does not fit the pattern: 2, 3, 5, 7, 11, 14, 17.\nWhich number is wrong?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "14",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Recognise the pattern: 2, 3, 5, 7, 11, 17 are consecutive prime numbers.",
+      "14 = 2 × 7 is not prime.",
+      "The prime between 11 and 17 is 13, so 14 is the wrong number."
+    ],
+    "explanation": "The sequence lists the prime numbers in order: 2, 3, 5, 7, 11, 13, 17. The number 14 is not prime (2 × 7) and stands where 13 should be, so 14 is wrong.",
+    "hints": [
+      "The differences are irregular, so think about a property of the numbers.",
+      "What do 2, 3, 5, 7 and 11 have in common?",
+      "Which number in the list can be divided by 2?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-186",
+    "type": "math",
+    "subCategory": "Data sufficiency",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "DS: Pipe B alone",
+    "statement": "Question: How many hours does pipe B alone take to fill a tank?\nStatement 1: Pipe A alone fills the tank in 6 hours.\nStatement 2: Pipes A and B together fill the tank in 4 hours.\nWhich of the following is true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+      "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+      "Both statements together are sufficient, but neither statement alone is sufficient.",
+      "The statements are not sufficient even together."
+    ],
+    "answer": "Both statements together are sufficient, but neither statement alone is sufficient.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Statement 1 says nothing about pipe B.",
+      "Statement 2 gives only the joint rate (1/4 per hour), not B's share.",
+      "Together: B's rate = 1/4 − 1/6 = 1/12, so B takes 12 hours. Both are needed."
+    ],
+    "explanation": "Statement 1 alone gives A's rate but nothing about B. Statement 2 alone gives the combined rate, which cannot be split without A's rate. Together, B fills 1/4 − 1/6 = 1/12 of the tank per hour, so B takes 12 hours.",
+    "hints": [
+      "Does either statement alone mention B's own rate?",
+      "B's rate = joint rate − A's rate.",
+      "1/4 − 1/6 = ?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-187",
+    "type": "math",
+    "subCategory": "Data sufficiency",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "DS: Speed of the stream",
+    "statement": "Question: What is the speed of the river current, in km/h?\nStatement 1: The boat's speed in still water is 10 km/h, and it travels 24 km downstream in 2 hours.\nStatement 2: The boat travels 24 km upstream in 3 hours.\nWhich of the following is true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+      "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+      "Both statements together are sufficient, but neither statement alone is sufficient.",
+      "The statements are not sufficient even together."
+    ],
+    "answer": "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Statement 1: downstream speed = 24 ÷ 2 = 12 km/h, so current = 12 − 10 = 2 km/h. Sufficient.",
+      "Statement 2: upstream speed = 8 km/h = boat speed − current, but the boat speed is unknown.",
+      "So Statement 2 alone cannot give the current; Statement 1 alone can."
+    ],
+    "explanation": "From Statement 1, the downstream speed is 12 km/h and the boat's own speed is 10 km/h, so the current is 2 km/h. Statement 2 gives only the upstream speed (8 km/h), which is boat speed minus current, with two unknowns. Statement 1 alone is sufficient.",
+    "hints": [
+      "Downstream speed = boat speed + current.",
+      "Can you find the downstream speed from Statement 1?",
+      "Statement 2 has two unknowns in one equation."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "math-188",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Stream speed from two trips",
+    "statement": "A boat travels 30 km downstream in 2 hours and returns the same 30 km upstream in 3 hours.\nWhat is the speed of the stream in km/h?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2.5",
+    "acceptedAnswers": [
+      "5/2"
+    ],
+    "keySteps": [
+      "Downstream speed = 30 ÷ 2 = 15 km/h.",
+      "Upstream speed = 30 ÷ 3 = 10 km/h.",
+      "Stream speed = (downstream − upstream) ÷ 2 = (15 − 10) ÷ 2 = 2.5 km/h."
+    ],
+    "explanation": "Downstream speed is 15 km/h and upstream speed is 10 km/h. The boat's speed is their average (12.5 km/h) and the stream's speed is half their difference, 2.5 km/h. Check: 12.5 + 2.5 = 15 and 12.5 − 2.5 = 10.",
+    "hints": [
+      "Find the downstream and upstream speeds first.",
+      "Downstream = boat + stream; upstream = boat − stream.",
+      "Stream = half the difference of the two speeds."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-189",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Police chase on the highway",
+    "statement": "A thief leaves a town at 9 am on a bike at 40 km/h. Police start chasing from the same point at 10 am at 60 km/h along the same road.\nHow many km from the town will the police catch the thief?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "120",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "By 10 am the thief is 40 km ahead.",
+      "The police close the gap at 60 − 40 = 20 km/h.",
+      "Time to catch up = 40 ÷ 20 = 2 hours (at 12 noon).",
+      "Distance from town = 60 × 2 = 120 km."
+    ],
+    "explanation": "At 10 am the thief has a 40 km lead, which the police close at 20 km/h, taking 2 hours. In those 2 hours the police travel 120 km. Check: the thief has ridden 3 hours × 40 km/h = 120 km by 12 noon too.",
+    "hints": [
+      "How far ahead is the thief when the police start?",
+      "Use relative speed: 60 − 40.",
+      "Police ride for 2 hours at 60 km/h."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-190",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "How fast is the leak?",
+    "statement": "A pipe normally fills a tank in 8 hours. Because of a leak at the bottom, it now takes 10 hours to fill.\nIf the tank is full and the pipe is closed, how many hours will the leak take to empty it?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "40",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Pipe rate = 1/8 per hour; net rate with the leak = 1/10 per hour.",
+      "Leak rate = 1/8 − 1/10 = 5/40 − 4/40 = 1/40 per hour.",
+      "The leak empties the full tank in 40 hours."
+    ],
+    "explanation": "The leak is the gap between the pipe's rate and the net rate: 1/8 − 1/10 = 1/40 of the tank per hour. So the leak alone empties a full tank in 40 hours. Check: 1/8 − 1/40 = 4/40 = 1/10, which matches the 10-hour fill.",
+    "hints": [
+      "Write the normal rate and the slowed-down rate as fractions per hour.",
+      "The leak removes the difference.",
+      "1/8 − 1/10 = ?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-191",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Outlet opened after half an hour",
+    "statement": "An empty tank holds 2400 litres. An inlet pipe adds 40 litres per minute. After 30 minutes, an outlet pipe that removes 25 litres per minute is also opened, and the inlet keeps running.\nHow many minutes after the inlet was first opened does the tank become full?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "110",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "In the first 30 minutes the inlet adds 40 × 30 = 1200 litres.",
+      "After that the net rate is 40 − 25 = 15 litres per minute.",
+      "The remaining 1200 litres take 1200 ÷ 15 = 80 minutes.",
+      "Total time = 30 + 80 = 110 minutes."
+    ],
+    "explanation": "The inlet alone puts in 1200 litres in the first 30 minutes. Then the tank gains only 15 litres per minute, so the other 1200 litres take 80 minutes, a total of 110 minutes. Check: inlet adds 40 × 110 = 4400 litres, outlet removes 25 × 80 = 2000 litres, net 2400.",
+    "hints": [
+      "Split the time into before and after the outlet opens.",
+      "How much is in the tank after 30 minutes?",
+      "After that the tank gains 15 litres per minute."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-192",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "AP from the 4th and 10th terms",
+    "statement": "In an arithmetic progression, the 4th term is 17 and the 10th term is 41.\nWhat is the 25th term?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "101",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "From the 4th to the 10th term there are 6 steps: 6d = 41 − 17 = 24, so d = 4.",
+      "First term a = 17 − 3 × 4 = 5.",
+      "25th term = 5 + 24 × 4 = 101."
+    ],
+    "explanation": "The 6 steps from term 4 to term 10 add 24, so the common difference is 4 and the first term is 5. The 25th term is 5 + 24 × 4 = 101. Check: from term 10, 15 more steps give 41 + 60 = 101.",
+    "hints": [
+      "How many common differences separate the 4th and 10th terms?",
+      "6d = 24.",
+      "Go 15 more steps from the 10th term."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-193",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Cube plus square",
+    "statement": "Find the next number in the sequence: 2, 12, 36, 80, 150, …",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "252",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Test the terms against n: 1³ + 1² = 2, 2³ + 2² = 12, 3³ + 3² = 36.",
+      "The rule n³ + n² also gives 4³ + 4² = 80 and 5³ + 5² = 150.",
+      "Next term (n = 6) = 216 + 36 = 252."
+    ],
+    "explanation": "Each term is n³ + n² (equivalently n²(n + 1)): 2, 12, 36, 80, 150. For n = 6 the term is 216 + 36 = 252. Check with differences: 10, 24, 44, 70, 102, whose differences 14, 20, 26, 32 grow by 6.",
+    "hints": [
+      "The terms grow fast, so think of powers.",
+      "Compare each term with n³.",
+      "2 = 1 + 1, 12 = 8 + 4, 36 = 27 + 9."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-194",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Squares, one more and one less",
+    "statement": "Find the next number in the sequence: 2, 3, 10, 15, 26, 35, 50, …",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "63",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Compare with the squares 1, 4, 9, 16, 25, 36, 49.",
+      "Odd positions are n² + 1 (2, 10, 26, 50); even positions are n² − 1 (3, 15, 35).",
+      "The next term is in position 8 (even), so it is 8² − 1 = 63."
+    ],
+    "explanation": "The terms sit next to the square numbers: 1+1, 4−1, 9+1, 16−1, 25+1, 36−1, 49+1. The 8th term follows the even-position rule, 64 − 1 = 63.",
+    "hints": [
+      "Write the square numbers under the sequence.",
+      "Each term is one away from a square.",
+      "Is the next position odd or even?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-195",
+    "type": "math",
+    "subCategory": "Data sufficiency",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "DS: Is x greater than y?",
+    "statement": "Question: x and y are real numbers. Is x > y?\nStatement 1: x² > y².\nStatement 2: x > 0.\nWhich of the following is true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+      "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+      "Both statements together are sufficient, but neither statement alone is sufficient.",
+      "The statements are not sufficient even together."
+    ],
+    "answer": "Both statements together are sufficient, but neither statement alone is sufficient.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Statement 1 alone: x = 3, y = 1 gives yes, but x = −3, y = 1 gives no.",
+      "Statement 2 alone: x = 5, y = 1 gives yes, but x = 1, y = 5 gives no.",
+      "Together: x² > y² means |x| > |y|; with x > 0, x = |x| > |y| ≥ y, so always yes. Both are needed."
+    ],
+    "explanation": "Each statement alone allows both answers (try x = −3, y = 1 for Statement 1 and x = 1, y = 5 for Statement 2). Together, x² > y² gives |x| > |y|, and since x is positive, x = |x| > |y| ≥ y. So both statements together answer yes.",
+    "hints": [
+      "Try a negative x in Statement 1.",
+      "x² > y² is the same as |x| > |y|.",
+      "If x is positive, x equals |x|."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-196",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Capacity from a leak",
+    "statement": "A leak in the bottom of a tank can empty the full tank in 6 hours. An inlet pipe that fills water at 4 litres per minute is opened, and now the full tank empties in 8 hours (with the leak and the inlet both working).\nWhat is the capacity of the tank in litres?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5760",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let the capacity be C litres. The leak removes C/360 litres per minute (6 hours = 360 minutes).",
+      "With the inlet, the tank empties in 480 minutes, so leak rate − 4 = C/480.",
+      "C/360 − C/480 = 4, i.e. C/1440 = 4.",
+      "C = 5760 litres."
+    ],
+    "explanation": "The leak removes C/360 litres a minute. With the inlet adding 4 litres a minute, the net loss is C/480 per minute. So C/360 − C/480 = 4, giving C/1440 = 4 and C = 5760 litres. Check: the leak removes 16 L/min, net loss 12 L/min, and 5760 ÷ 12 = 480 minutes = 8 hours.",
+    "hints": [
+      "Work in litres per minute.",
+      "Leak rate − inlet rate = net emptying rate.",
+      "C/360 − C/480 = 4."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-197",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Telescoping fractions",
+    "statement": "Find the value of 1/(1×2) + 1/(2×3) + 1/(3×4) + … + 1/(99×100). Give the answer as a decimal.",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "0.99",
+    "acceptedAnswers": [
+      "99/100"
+    ],
+    "keySteps": [
+      "Split each term: 1/(n(n + 1)) = 1/n − 1/(n + 1).",
+      "Write the sum as (1 − 1/2) + (1/2 − 1/3) + … + (1/99 − 1/100).",
+      "All middle terms cancel, leaving 1 − 1/100 = 99/100 = 0.99."
+    ],
+    "explanation": "Each term 1/(n(n + 1)) equals 1/n − 1/(n + 1), so the sum telescopes and only 1 − 1/100 survives, giving 99/100 = 0.99. Check on a small case: 1/2 + 1/6 = 2/3 = 1 − 1/3.",
+    "hints": [
+      "Try writing 1/(1×2) and 1/(2×3) as a difference of two fractions.",
+      "1/(n(n + 1)) = 1/n − 1/(n + 1).",
+      "Almost everything cancels — what is left?"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-198",
+    "type": "math",
+    "subCategory": "Data sufficiency",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "DS: Fifth term of a GP",
+    "statement": "Question: A geometric progression has only positive terms. What is its 5th term?\nStatement 1: The 3rd term is 12.\nStatement 2: The product of the 1st and 5th terms is 144.\nWhich of the following is true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+      "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+      "Both statements together are sufficient, but neither statement alone is sufficient.",
+      "The statements are not sufficient even together."
+    ],
+    "answer": "The statements are not sufficient even together.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Statement 1 alone: the 5th term is 12r², and r is unknown.",
+      "In any GP, (1st term) × (5th term) = a × ar⁴ = (ar²)² = (3rd term)².",
+      "So Statement 2 only says the 3rd term is 12 — the same information as Statement 1.",
+      "Together they still leave r unknown (r = 1 gives 12, r = 2 gives 48), so not sufficient."
+    ],
+    "explanation": "The 5th term is 12r², which needs r. Statement 2 looks new but a × ar⁴ = (ar²)², so it just repeats that the 3rd term is 12. With r = 1 the 5th term is 12; with r = 2 it is 48. The statements are not sufficient even together.",
+    "hints": [
+      "Write the 1st, 3rd and 5th terms using a and r.",
+      "Multiply the 1st and 5th terms — what do you get?",
+      "Does Statement 2 give anything Statement 1 did not?"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-199",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Twice the work, fewer hours a day",
+    "statement": "20 workers can complete a job in 30 days, working 8 hours a day.\nHow many workers are needed to complete twice that work in 40 days, working 6 hours a day? (All workers work at the same rate.)",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "40",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Total work in worker-hours for the first job = 20 × 30 × 8 = 4800.",
+      "Twice the work = 9600 worker-hours.",
+      "Hours available per worker = 40 × 6 = 240.",
+      "Workers needed = 9600 ÷ 240 = 40."
+    ],
+    "explanation": "The first job needs 4800 worker-hours, so twice the work needs 9600. Each worker gives 40 × 6 = 240 hours, so 9600 ÷ 240 = 40 workers. Check with M1D1H1/W1 = M2D2H2/W2: 4800/1 = 40 × 40 × 6 / 2 = 4800.",
+    "hints": [
+      "Measure work in worker-hours.",
+      "The first job is 20 × 30 × 8 worker-hours.",
+      "Divide twice that by 40 × 6."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-200",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Trains from both ends",
+    "statement": "Stations A and B are 330 km apart. A train leaves A at 7 am towards B at 60 km/h. Another train leaves B at 8 am towards A at 75 km/h.\nHow many km from A do the two trains meet?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "180",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "By 8 am the first train has covered 60 km, leaving a gap of 330 − 60 = 270 km.",
+      "From 8 am the trains approach each other at 60 + 75 = 135 km/h.",
+      "Time to meet = 270 ÷ 135 = 2 hours (at 10 am).",
+      "Distance from A = 60 × 3 = 180 km."
+    ],
+    "explanation": "In its first hour the train from A covers 60 km. The remaining 270 km closes at 135 km/h in 2 hours, so they meet at 10 am, when the first train has run 3 hours: 180 km from A. Check: the second train has covered 75 × 2 = 150 km, and 180 + 150 = 330.",
+    "hints": [
+      "Handle the first hour separately, when only one train moves.",
+      "Trains moving towards each other: add their speeds.",
+      "The first train runs for 3 hours in total."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-201",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "When to close pipe B",
+    "statement": "Pipes A and B can fill a tank in 12 minutes and 16 minutes respectively. Both are opened together on an empty tank. Pipe B is closed after some time and pipe A keeps running, and the tank is full exactly 9 minutes after the start.\nAfter how many minutes was pipe B closed?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Pipe A runs for all 9 minutes and fills 9/12 = 3/4 of the tank.",
+      "Pipe B must fill the remaining 1/4.",
+      "B fills 1/16 per minute, so it ran for (1/4) × 16 = 4 minutes."
+    ],
+    "explanation": "A works the full 9 minutes and fills 3/4 of the tank, so B supplied the other 1/4. At 1/16 of the tank per minute, that is 4 minutes. Check: 9/12 + 4/16 = 3/4 + 1/4 = 1.",
+    "hints": [
+      "Which pipe runs for the whole 9 minutes?",
+      "How much does A fill in 9 minutes?",
+      "B fills the rest at 1/16 per minute."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-202",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "How many terms make 300?",
+    "statement": "How many terms of the arithmetic progression 3, 7, 11, 15, … must be added to get a sum of exactly 300?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "12",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Here a = 3 and d = 4, so S_n = n/2 × [6 + 4(n − 1)] = n(2n + 1).",
+      "Set n(2n + 1) = 300, i.e. 2n² + n − 300 = 0.",
+      "Solve: n = (−1 + √2401) ÷ 4 = (−1 + 49) ÷ 4 = 12 (the negative root is rejected).",
+      "Check: S_12 = 12 × 25 = 300."
+    ],
+    "explanation": "The sum of n terms is n/2 × (6 + 4(n − 1)) = n(2n + 1). Setting this to 300 gives 2n² + n − 300 = 0, whose positive root is n = 12. Check: the 12th term is 47, and 12 × (3 + 47) ÷ 2 = 300.",
+    "hints": [
+      "Write the sum of n terms using a = 3 and d = 4.",
+      "It simplifies to n(2n + 1).",
+      "Which whole number n gives n(2n + 1) = 300?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-203",
+    "type": "math",
+    "subCategory": "Data sufficiency",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "DS: Average speed of the trip",
+    "statement": "Question: What is Kiran's average speed for his whole journey?\nStatement 1: He covers the first half of the distance at 30 km/h and the second half at 60 km/h.\nStatement 2: The total distance is 120 km.\nWhich of the following is true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+      "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+      "Both statements together are sufficient, but neither statement alone is sufficient.",
+      "The statements are not sufficient even together."
+    ],
+    "answer": "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Statement 1: for equal distances, average speed = 2 × 30 × 60 ÷ (30 + 60) = 40 km/h, whatever the distance. Sufficient.",
+      "Statement 2: knowing the distance alone tells nothing about the time taken. Not sufficient.",
+      "The tempting choice 'both together' is wrong because the distance cancels out in Statement 1."
+    ],
+    "explanation": "If the total distance is 2d, the time is d/30 + d/60 = d/20, so the average speed is 2d ÷ (d/20) = 40 km/h for any d. Statement 1 alone is sufficient; Statement 2 alone gives no information about time.",
+    "hints": [
+      "Do you really need the distance to find the average speed in Statement 1?",
+      "Call each half d and compute the total time.",
+      "The d cancels: average = 2 × 30 × 60 ÷ 90."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "math-204",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Around a square field",
+    "statement": "A cyclist rides once around a square field. She rides the four sides at 10 km/h, 20 km/h, 30 km/h and 60 km/h respectively.\nWhat is her average speed for the complete round, in km/h?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "20",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let each side be s km; the total distance is 4s.",
+      "Total time = s/10 + s/20 + s/30 + s/60 = s(6 + 3 + 2 + 1)/60 = s/5 hours.",
+      "Average speed = 4s ÷ (s/5) = 20 km/h."
+    ],
+    "explanation": "With each side s km, the time is s/10 + s/20 + s/30 + s/60 = 12s/60 = s/5 hours for 4s km, so the average speed is 20 km/h. It is far below the simple average of 30 km/h because she spends the most time on the slowest side. Check with s = 60 km: times 6 + 3 + 2 + 1 = 12 hours for 240 km, 20 km/h.",
+    "hints": [
+      "Average speed = total distance ÷ total time, not the average of the speeds.",
+      "Call each side s and add the four times.",
+      "Choose s = 60 km to make the arithmetic easy."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-205",
+    "type": "math",
+    "subCategory": "Time, speed and work",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Back at the start together",
+    "statement": "Two runners start together from the same point on a 600 m circular track and run continuously in the same direction at 5 m/s and 3 m/s.\nAfter how many seconds will they first be together again at the starting point?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "600",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The faster runner completes a lap every 600 ÷ 5 = 120 seconds.",
+      "The slower runner completes a lap every 600 ÷ 3 = 200 seconds.",
+      "Both are at the start at common multiples of 120 and 200.",
+      "LCM(120, 200) = 600 seconds."
+    ],
+    "explanation": "The faster runner is at the start every 120 s and the slower every 200 s, so both are there together first at LCM(120, 200) = 600 s. Note they meet elsewhere on the track earlier (every 600 ÷ 2 = 300 s), but the question asks for the starting point. Check: in 600 s they run exactly 5 and 3 laps.",
+    "hints": [
+      "How long does each runner take for one lap?",
+      "They are at the start together at a common multiple of the lap times.",
+      "Find the LCM of 120 and 200."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-206",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Three pipes in pairs",
+    "statement": "Pipes A and B together fill a tank in 12 hours, pipes B and C together in 15 hours, and pipes C and A together in 20 hours.\nHow many hours would pipe A alone take to fill the tank?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "30",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Add the three pair rates: 1/12 + 1/15 + 1/20 = 5/60 + 4/60 + 3/60 = 1/5. This counts every pipe twice.",
+      "So A + B + C together = 1/10 of the tank per hour.",
+      "A = (A + B + C) − (B + C) = 1/10 − 1/15 = 1/30.",
+      "Pipe A alone takes 30 hours."
+    ],
+    "explanation": "Adding the pair rates counts each pipe twice: 2(A + B + C) = 1/5, so all three together fill 1/10 per hour. Removing B + C (1/15) leaves A = 1/30, so A alone takes 30 hours. Check: B = 1/10 − 1/20 = 1/20 and A + B = 1/30 + 1/20 = 1/12.",
+    "hints": [
+      "What do you get if you add all three pair rates?",
+      "That sum counts each pipe twice.",
+      "A's rate = all three together − (B + C)."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-207",
+    "type": "math",
+    "subCategory": "Pipes and cisterns",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Faster pipe by five hours",
+    "statement": "Two pipes together fill a tank in 6 hours. One pipe alone takes 5 hours less than the other alone.\nHow many hours does the faster pipe alone take?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "10",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Let the faster pipe take x hours; the slower takes x + 5 hours.",
+      "1/x + 1/(x + 5) = 1/6, so 6(2x + 5) = x(x + 5).",
+      "This gives x² − 7x − 30 = 0, i.e. (x − 10)(x + 3) = 0.",
+      "x = 10 (time cannot be negative)."
+    ],
+    "explanation": "With times x and x + 5, the rates satisfy 1/x + 1/(x + 5) = 1/6, which simplifies to x² − 7x − 30 = 0, so x = 10. The faster pipe takes 10 hours and the slower 15 hours. Check: 1/10 + 1/15 = 3/30 + 2/30 = 1/6.",
+    "hints": [
+      "Call the faster pipe's time x.",
+      "Write 1/x + 1/(x + 5) = 1/6 and clear the fractions.",
+      "Factor x² − 7x − 30."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-208",
+    "type": "math",
+    "subCategory": "Sequences and series",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Bouncing ball distance",
+    "statement": "A ball is dropped from a height of 10 m. Each time it hits the ground it bounces back to 3/5 of the height it fell from, and this goes on until it comes to rest.\nWhat total distance, in metres, does the ball travel?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "40",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The first drop is 10 m.",
+      "The rebound heights form a GP: 6, 3.6, 2.16, … with ratio 3/5; their sum is 6 ÷ (1 − 3/5) = 15 m.",
+      "Each rebound height is travelled twice (up and down): 2 × 15 = 30 m.",
+      "Total = 10 + 30 = 40 m."
+    ],
+    "explanation": "Apart from the first 10 m drop, every rebound height is covered once going up and once coming down. The rebound heights sum to 6/(1 − 0.6) = 15 m, so they contribute 30 m, for a total of 40 m. A common slip is to count only 10/(1 − 0.6) = 25 m.",
+    "hints": [
+      "Separate the first drop from the bounces.",
+      "Each bounce goes up and comes back down the same height.",
+      "Sum of the infinite GP 6 + 3.6 + … = 6 ÷ (1 − 3/5)."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-209",
+    "type": "math",
+    "subCategory": "Data sufficiency",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "DS: Divisible by 12?",
+    "statement": "Question: n is a positive integer. Is n divisible by 12?\nStatement 1: n is divisible by both 2 and 6.\nStatement 2: n is divisible by 3, and n² is divisible by 16.\nWhich of the following is true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+      "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+      "Both statements together are sufficient, but neither statement alone is sufficient.",
+      "The statements are not sufficient even together."
+    ],
+    "answer": "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Statement 1: divisible by 2 and 6 means divisible by LCM(2, 6) = 6; n = 6 gives no, n = 12 gives yes. Not sufficient.",
+      "Statement 2: if n² is divisible by 16, n must be divisible by 4 (if n had only one factor 2, n² would have only 2², i.e. 4).",
+      "Divisible by 3 and by 4 means divisible by 12, so Statement 2 alone gives yes."
+    ],
+    "explanation": "Statement 1 only guarantees a multiple of 6, and 6 itself is not divisible by 12. In Statement 2, 16 | n² forces 4 | n, and together with 3 | n this gives 12 | n. So Statement 2 alone is sufficient. A tempting slip is to multiply 2 × 6 = 12 in Statement 1 instead of taking the LCM.",
+    "hints": [
+      "For Statement 1, test n = 6.",
+      "If n = 2 × (odd), what is the highest power of 2 dividing n²?",
+      "3 | n and 4 | n together mean 12 | n."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "math-210",
+    "type": "math",
+    "subCategory": "Data sufficiency",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "DS: Men and women on the job",
+    "statement": "Question: How many days will 4 men and 6 women take to finish a job together? (All men work at one rate and all women at another.)\nStatement 1: 2 men and 3 women can finish the job in 10 days.\nStatement 2: 3 men and 2 women can finish the job in 8 days.\nWhich of the following is true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+      "Statement 2 alone is sufficient, but Statement 1 alone is not sufficient.",
+      "Both statements together are sufficient, but neither statement alone is sufficient.",
+      "The statements are not sufficient even together."
+    ],
+    "answer": "Statement 1 alone is sufficient, but Statement 2 alone is not sufficient.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notice that 4 men + 6 women is exactly twice the team 2 men + 3 women.",
+      "Statement 1: a team twice as large finishes in half the time, 10 ÷ 2 = 5 days. Sufficient alone.",
+      "Statement 2: one equation in two unknown rates (3m + 2w = 1/8) cannot give 4m + 6w. Not sufficient.",
+      "The tempting choice 'both together' is wrong because Statement 1 already answers it."
+    ],
+    "explanation": "Statement 1 says 2m + 3w = 1/10 of the job per day, so 4m + 6w = 2(2m + 3w) = 1/5 per day: 5 days. Statement 2 gives 3m + 2w = 1/8, which cannot be rescaled into 4m + 6w without knowing m and w separately. Statement 1 alone is sufficient.",
+    "hints": [
+      "Compare the team in the question with the team in Statement 1.",
+      "4 men and 6 women is double 2 men and 3 women.",
+      "Can 3m + 2w be scaled to 4m + 6w?"
+    ],
+    "estimatedMinutes": 6
+  }
+]

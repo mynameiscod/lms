@@ -1,0 +1,132 @@
+import React, { useEffect, useState } from 'react';
+import { communicationApi, CommAttempt } from '../../api/communicationApi';
+import LabHome from './LabHome';
+import SpeakingFeedback from './SpeakingFeedback';
+
+/**
+ * The Communication Coach page: where the student stands and what to do today.
+ * It only shows what the server worked out (/communication/coach); it decides nothing itself.
+ */
+
+export interface CoachStep {
+  index: number; role: string; area: string; areaLabel: string; done: boolean;
+  prompt: { title: string; ask: string; script: string | null; guide: string[]; followUp: string | null; targetSec: number; level: number };
+}
+export interface CoachState {
+  mode: 'baseline' | 'daily'; level: number; levelName: string; steps: CoachStep[]; stepsDone: number; totalSteps: number;
+  practisedToday: number; tooMany: boolean; dailyLimit: number;
+  skills: { key: string; label: string; now: number; start: number; change: number | null }[];
+  weakestSkill: string | null; weakestArea: string;
+  hesitation: { latest: number | null; first: number | null; trend: { date: string; hesitation: number; score: number }[] };
+  totalRecordings: number; baselineAreasDone: number;
+  gate?: { enabled: boolean; startsOn: string; active: boolean };
+  readiness: { score: number; ready: boolean; threshold: number; reasons: string[]; avgOverall: number; avgHesitation: number; practiceDays14: number };
+}
+
+const tone = (v: number, good = 65, ok = 45) => (v >= good ? '#16835d' : v >= ok ? '#b86b00' : '#c93737');
+const hesLabel = (h: number | null) => (h == null ? '—' : h >= 75 ? 'Freezing' : h >= 50 ? 'High hesitation' : h >= 25 ? 'Some hesitation' : 'Calm');
+const hesTone = (h: number | null) => (h == null ? '#94a3b8' : h >= 50 ? '#c93737' : h >= 25 ? '#b86b00' : '#16835d');
+
+/** Yesterday vs today, this week vs last week, this month vs last month. The server does the maths. */
+export const CompareCard: React.FC<{ data: any[] | null }> = ({ data }) => {
+  const [k, setK] = useState('day');
+  if (!data) return <section className="clx-card" style={{ padding: 16 }}>Loading your comparison…</section>;
+  const c = data.find((x) => x.key === k) || data[0];
+  if (!c) return null;
+  const col = (v: string | null) => (v === 'better' ? '#16835d' : v === 'worse' ? '#c93737' : '#64748b');
+  const fmt = (n: number | null) => (n === null ? '—' : n);
+  return <section className="clx-card" style={{ padding: 16 }}>
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+      {data.map((x) => <button key={x.key} className={`clx-btn ${x.key === k ? 'primary' : ''}`} onClick={() => setK(x.key)}>{x.label}</button>)}
+    </div>
+    <p style={{ margin: '0 0 10px', fontWeight: 700, color: '#0f172a' }}>{c.headline}</p>
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
+        <thead><tr style={{ textAlign: 'left', color: '#2F3F56', fontSize: 'max(12px, var(--fs-floor, 0px))' }}><th style={{ padding: '6px 8px' }} /><th style={{ padding: '6px 8px' }}>{c.current.label}<div style={{ fontWeight: 400 }}>{c.current.from === c.current.to ? c.current.from : `${c.current.from} → ${c.current.to}`}</div></th><th style={{ padding: '6px 8px' }}>{c.previous.label}<div style={{ fontWeight: 400 }}>{c.previous.from === c.previous.to ? c.previous.from : `${c.previous.from} → ${c.previous.to}`}</div></th><th style={{ padding: '6px 8px' }}>Change</th></tr></thead>
+        <tbody>
+          {c.rows.map((r: any) => <tr key={r.metric} style={{ borderTop: '1px solid #f1f5f9' }}>
+            <td style={{ padding: '6px 8px' }}>{r.metric}</td><td style={{ padding: '6px 8px', fontWeight: 700 }}>{fmt(r.current)}</td><td style={{ padding: '6px 8px' }}>{fmt(r.previous)}</td>
+            <td style={{ padding: '6px 8px', fontWeight: 700, color: col(r.verdict) }}>{r.delta === null ? '—' : r.delta === 0 ? '=' : `${r.delta > 0 ? '▲' : '▼'} ${Math.abs(r.delta)}`}{r.verdict === 'better' ? ' ✓' : ''}</td>
+          </tr>)}
+        </tbody>
+      </table>
+    </div>
+    <p style={{ margin: '8px 0 0', color: '#2F3F56', fontSize: 'max(12px, var(--fs-floor, 0px))' }}>✓ means better. For hesitation, silences, first word and fillers, lower is better. A week or month "so far" is an average, so it is fair against a full one.</p>
+  </section>;
+};
+
+export const CoachResult: React.FC<{ a: any; next: CoachState | null; onClose: () => void }> = ({ a, next, onClose }) => {
+  const e = a.evaluation || {}; const c = a.coach || {}; const sg = c.signals || {};
+  const nextStep = next?.steps.find(x => !x.done);
+  const n = (v: any, unit = '') => (v == null || v === '' ? '—' : `${typeof v === 'number' ? Math.round(v * 10) / 10 : v}${unit}`);
+  return <SpeakingFeedback
+    title={a.challengeTitle} score={e.overallScore ?? 0} level={e.readinessLevel}
+    message={e.dailyCoachMessage} strengths={e.strengths} improve={e.areasToImprove}
+    nextFocus={e.nextPracticeFocus} tips={c.tips} betterAnswer={e.improvedIntroduction}
+    measuresNote={hesLabel(sg.hesitationIndex ?? null)}
+    measures={[
+      { label: 'Pauses of 1 second or more', value: n(sg.pauseCount) },
+      { label: 'Longest pause', value: n(sg.longestPauseSec, 's') },
+      { label: 'Time before your first word', value: n(sg.timeToFirstWordSec, 's') },
+      { label: 'Times you restarted a sentence', value: n(sg.restarts) },
+      { label: '"Um" and "uh" per 100 words', value: n(sg.fillerPer100Words) },
+      { label: 'Words per minute', value: n(a.wordsPerMinute), hint: 'Between 110 and 150 is comfortable to listen to.' },
+    ]}
+    transcript={a.transcript}
+    footer={<button className="clx-btn primary sfb-cta" onClick={onClose}>{nextStep ? <><i className="bi bi-arrow-right-circle" /> Next: {nextStep.role}</> : <><i className="bi bi-check2-circle" /> Back to my session</>}</button>}
+  />;
+};
+
+const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: (s: CoachStep) => void; history: CommAttempt[]; today: string; onOpenAttempt: (a: CommAttempt) => void; onViewAll: () => void }> = ({ state, loading, onStart, history, today, onOpenAttempt, onViewAll }) => {
+  const [compare, setCompare] = useState<any[] | null>(null);
+  const recordings = state?.totalRecordings;
+  useEffect(() => { communicationApi.coachCompare().then(setCompare).catch(() => setCompare([])); }, [recordings]);
+  const home = <LabHome state={state} loading={loading} history={history} today={today} onStart={onStart} onOpenAttempt={onOpenAttempt} onViewAll={onViewAll} />;
+  if (!state) return home;
+  const r = state.readiness;
+  return <div>
+    {home}
+
+    {!!state.totalRecordings && <div style={{ marginTop: 14 }}><h3 style={{ margin: '0 0 8px' }}>How you are improving</h3><CompareCard data={compare} /></div>}
+
+    <div className="clx-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 14, marginTop: 14 }}>
+      <section className="clx-card" style={{ padding: 16 }}>
+        <h3 style={{ marginTop: 0 }}>Interview readiness</h3>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          <b style={{ fontSize: 38, color: r.ready ? '#16835d' : tone(r.score, r.threshold, r.threshold - 15) }}>{r.score}</b>
+          <span style={{ color: '#2F3F56' }}>/ 100 · needs {r.threshold}</span>
+        </div>
+        <p style={{ margin: '6px 0', fontWeight: 700, color: r.ready ? '#16835d' : '#b86b00' }}>{r.ready ? 'Ready to face a company.' : 'Not ready yet. Here is what is left:'}</p>
+        {!r.ready && <ul style={{ paddingLeft: 18, margin: 0, color: '#475569' }}>{r.reasons.map((x, i) => <li key={i}>{x}</li>)}</ul>}
+        {state.gate?.enabled && !r.ready && <p style={{ margin: '10px 0 0', padding: '8px 10px', background: '#fffbeb', borderRadius: 8, color: '#92400e', fontSize: 'max(13px, var(--fs-floor, 0px))' }}>{state.gate.active ? 'Company interviews and drive applications stay locked until you are ready.' : `From ${new Date(state.gate.startsOn + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, company interviews and drive applications need you to be ready. Start now.`}</p>}
+      </section>
+
+      <section className="clx-card" style={{ padding: 16 }}>
+        <h3 style={{ marginTop: 0 }}>Your steadiness</h3>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          <b style={{ fontSize: 30, color: hesTone(state.hesitation.latest) }}>{hesLabel(state.hesitation.latest)}</b>
+          {state.hesitation.first != null && state.hesitation.latest != null && state.totalRecordings > 1 &&
+            <span style={{ color: '#2F3F56' }}>{state.hesitation.first} → {state.hesitation.latest} (lower is calmer)</span>}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 54, marginTop: 10 }}>
+          {state.hesitation.trend.map((t, i) => <div key={i} title={`${t.date}: ${t.hesitation}`} style={{ flex: 1, minWidth: 6, height: `${Math.max(6, t.hesitation)}%`, background: hesTone(t.hesitation), borderRadius: 3 }} />)}
+        </div>
+        {!state.hesitation.trend.length && <p style={{ color: '#2F3F56', margin: 0 }}>Appears after your first recording.</p>}
+      </section>
+
+      <section className="clx-card" style={{ padding: 16 }}>
+        <h3 style={{ marginTop: 0 }}>Skill map {state.weakestSkill && <small style={{ color: '#b86b00', fontWeight: 600 }}>· focus: {state.weakestSkill}</small>}</h3>
+        {state.skills.map(k => <div key={k.key} style={{ margin: '8px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}>
+            <span>{k.label}</span>
+            <span><b style={{ color: tone(k.now) }}>{k.now || '—'}</b>{k.change != null && k.change !== 0 && <span style={{ marginLeft: 6, color: k.change > 0 ? '#16835d' : '#c93737' }}>{k.change > 0 ? '▲' : '▼'} {Math.abs(k.change)}</span>}</span>
+          </div>
+          <div style={{ height: 7, background: '#e2e8f0', borderRadius: 4 }}><div style={{ width: `${k.now}%`, height: '100%', background: tone(k.now), borderRadius: 4 }} /></div>
+        </div>)}
+        {!state.totalRecordings && <p style={{ color: '#2F3F56', margin: 0 }}>Appears after your first recording.</p>}
+      </section>
+    </div>
+  </div>;
+};
+
+export default CoachTab;

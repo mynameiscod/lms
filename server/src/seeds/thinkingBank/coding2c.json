@@ -1,0 +1,2062 @@
+[
+  {
+    "seedKey": "coding-091",
+    "type": "coding",
+    "subCategory": "Hashing",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "First Letter That Appears Once",
+    "statement": "A hostel warden writes the initials of students who entered the library in one string of lowercase letters. Find the first letter (from the left) that appears exactly once in the whole string.\n\nInput: one line, a string of lowercase letters (1 <= length <= 1000).\nOutput: the first letter that occurs exactly once, or -1 if every letter repeats.\n\nExample: for input swiss, s appears 3 times and w appears once, so print w.",
+    "language": "python",
+    "starterCode": "s = input().strip()\n# your code here\n",
+    "examples": [
+      {
+        "input": "swiss",
+        "expectedOutput": "w",
+        "explanation": "s appears 3 times, w only once, and w comes before i (also once)."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "swiss",
+        "expectedOutput": "w",
+        "hidden": false
+      },
+      {
+        "input": "aabbcc",
+        "expectedOutput": "-1",
+        "hidden": false
+      },
+      {
+        "input": "z",
+        "expectedOutput": "z",
+        "hidden": true
+      },
+      {
+        "input": "abcabd",
+        "expectedOutput": "c",
+        "hidden": true
+      },
+      {
+        "input": "aabbccddeeffg",
+        "expectedOutput": "g",
+        "hidden": true
+      },
+      {
+        "input": "leetcodeleetcodex",
+        "expectedOutput": "x",
+        "hidden": true
+      },
+      {
+        "input": "xxyz",
+        "expectedOutput": "y",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "s = input().strip()\ncount = {}\nfor ch in s:\n    count[ch] = count.get(ch, 0) + 1\nans = '-1'\nfor ch in s:\n    if count[ch] == 1:\n        ans = ch\n        break\nprint(ans)\n",
+    "topics": [
+      "dictionaries",
+      "strings",
+      "loops"
+    ],
+    "hints": [
+      "First count how many times each letter occurs using a dictionary.",
+      "Then walk the string again from the left and stop at the first letter whose count is 1."
+    ],
+    "explanation": "Make one pass to count each letter in a dictionary. Make a second pass over the string in its original order and print the first letter whose count is 1. If none is found, print -1. Two passes keep it O(n).",
+    "estimatedMinutes": 6,
+    "order": 91
+  },
+  {
+    "seedKey": "coding-092",
+    "type": "coding",
+    "subCategory": "Hashing",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Duplicate Roll Numbers",
+    "statement": "While collecting assignment sheets, a teacher noted the roll number on each sheet. Some students submitted more than once. List every roll number that appears more than once.\n\nInput: line 1 has n (1 <= n <= 1000). Line 2 has n roll numbers (1 <= roll <= 100000).\nOutput: the repeated roll numbers in increasing order separated by single spaces, or NONE if there are no repeats.\n\nExample: for rolls 12 5 12 7 5 12, both 5 and 12 repeat, so print 5 12.",
+    "language": "python",
+    "starterCode": "n = int(input())\nrolls = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "6\n12 5 12 7 5 12",
+        "expectedOutput": "5 12",
+        "explanation": "5 appears twice and 12 three times; each is printed once in increasing order."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "6\n12 5 12 7 5 12",
+        "expectedOutput": "5 12",
+        "hidden": false
+      },
+      {
+        "input": "4\n1 2 3 4",
+        "expectedOutput": "NONE",
+        "hidden": false
+      },
+      {
+        "input": "1\n9",
+        "expectedOutput": "NONE",
+        "hidden": true
+      },
+      {
+        "input": "5\n7 7 7 7 7",
+        "expectedOutput": "7",
+        "hidden": true
+      },
+      {
+        "input": "8\n100000 3 100000 2 3 1 2 50",
+        "expectedOutput": "2 3 100000",
+        "hidden": true
+      },
+      {
+        "input": "6\n10 9 8 10 9 1",
+        "expectedOutput": "9 10",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nrolls = list(map(int, input().split()))\ncount = {}\nfor r in rolls:\n    count[r] = count.get(r, 0) + 1\ndup = sorted(r for r in count if count[r] > 1)\nif dup:\n    print(' '.join(map(str, dup)))\nelse:\n    print('NONE')\n",
+    "topics": [
+      "dictionaries",
+      "lists",
+      "sorting"
+    ],
+    "hints": [
+      "Count each roll number in a dictionary.",
+      "Keep the keys whose count is more than 1, then sort them before printing."
+    ],
+    "explanation": "Count how many times each roll number occurs. Collect the roll numbers with count above 1, sort them and print them space-separated; if the list is empty, print NONE. Each repeated roll is printed once even if it appears three times.",
+    "estimatedMinutes": 6,
+    "order": 92
+  },
+  {
+    "seedKey": "coding-093",
+    "type": "coding",
+    "subCategory": "Sorting and searching",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Names by Length",
+    "statement": "For a class photo, the coordinator wants names arranged from the shortest to the longest. Names with the same length should be in alphabetical order.\n\nInput: line 1 has n (1 <= n <= 100). Line 2 has n names (one word each, lowercase letters only).\nOutput: the names in the required order on one line, separated by single spaces.\n\nExample: for ravi anu kiran om asha, the order is om anu asha ravi kiran.",
+    "language": "python",
+    "starterCode": "n = int(input())\nnames = input().split()\n# your code here\n",
+    "examples": [
+      {
+        "input": "5\nravi anu kiran om asha",
+        "expectedOutput": "om anu asha ravi kiran",
+        "explanation": "om has 2 letters; anu has 3; asha and ravi have 4 (asha first alphabetically); kiran has 5."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5\nravi anu kiran om asha",
+        "expectedOutput": "om anu asha ravi kiran",
+        "hidden": false
+      },
+      {
+        "input": "3\nbob amy cat",
+        "expectedOutput": "amy bob cat",
+        "hidden": false
+      },
+      {
+        "input": "1\nsuresh",
+        "expectedOutput": "suresh",
+        "hidden": true
+      },
+      {
+        "input": "4\nzz aa z a",
+        "expectedOutput": "a z aa zz",
+        "hidden": true
+      },
+      {
+        "input": "6\nmeena raju deepa ram tej anil",
+        "expectedOutput": "ram tej anil raju deepa meena",
+        "hidden": true
+      },
+      {
+        "input": "3\nkiran kiran om",
+        "expectedOutput": "om kiran kiran",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nnames = input().split()\nnames.sort(key=lambda w: (len(w), w))\nprint(' '.join(names))\n",
+    "topics": [
+      "sorting",
+      "strings",
+      "lists"
+    ],
+    "hints": [
+      "Python's sort accepts a key function.",
+      "Use a key that is a pair: (length of the name, the name itself)."
+    ],
+    "explanation": "Sort with key (len(name), name). Tuples compare element by element, so the shorter name comes first and equal lengths fall back to alphabetical order. Print the sorted names joined by spaces.",
+    "estimatedMinutes": 5,
+    "order": 93
+  },
+  {
+    "seedKey": "coding-094",
+    "type": "coding",
+    "subCategory": "Recursion",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Digital Root by Recursion",
+    "statement": "The digital root of a number is found by adding its digits, then adding the digits of the result, and so on until a single digit remains. Write a recursive function to find it.\n\nInput: one line with an integer n (0 <= n <= 10^18).\nOutput: one integer, the digital root of n.\n\nExample: for 9875, 9+8+7+5 = 29, 2+9 = 11, 1+1 = 2, so print 2.",
+    "language": "python",
+    "starterCode": "n = int(input())\n\ndef digital_root(n):\n    # your code here\n    pass\n\nprint(digital_root(n))\n",
+    "examples": [
+      {
+        "input": "9875",
+        "expectedOutput": "2",
+        "explanation": "29, then 11, then 2, which is a single digit."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "9875",
+        "expectedOutput": "2",
+        "hidden": false
+      },
+      {
+        "input": "7",
+        "expectedOutput": "7",
+        "hidden": false
+      },
+      {
+        "input": "0",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "999999999999999999",
+        "expectedOutput": "9",
+        "hidden": true
+      },
+      {
+        "input": "1000000000000000000",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "38",
+        "expectedOutput": "2",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def digit_sum(n):\n    if n < 10:\n        return n\n    return n % 10 + digit_sum(n // 10)\n\ndef digital_root(n):\n    if n < 10:\n        return n\n    return digital_root(digit_sum(n))\n\nn = int(input())\nprint(digital_root(n))\n",
+    "topics": [
+      "functions",
+      "loops"
+    ],
+    "hints": [
+      "Base case: a number below 10 is already its own digital root.",
+      "Otherwise compute the digit sum and call the same function on that sum."
+    ],
+    "explanation": "If n is a single digit, return it. Otherwise replace n by the sum of its digits (itself easy to write recursively: last digit plus digit sum of n // 10) and recurse. The number shrinks quickly, so recursion depth stays tiny even for 18-digit inputs.",
+    "estimatedMinutes": 6,
+    "order": 94
+  },
+  {
+    "seedKey": "coding-095",
+    "type": "coding",
+    "subCategory": "Hashing",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Word Count in a Notice",
+    "statement": "Count how often each word appears in a notice board message.\n\nInput: one line of lowercase words separated by single spaces (1 to 500 words).\nOutput: one line per distinct word, in the order each word first appears: the word, a space, and its count.\n\nExample: for the exam is on monday the exam hall is b, print the 2, exam 2, is 2, on 1, monday 1, hall 1, b 1 on separate lines.",
+    "language": "python",
+    "starterCode": "words = input().split()\n# your code here\n",
+    "examples": [
+      {
+        "input": "the exam is on monday the exam hall is b",
+        "expectedOutput": "the 2\nexam 2\nis 2\non 1\nmonday 1\nhall 1\nb 1",
+        "explanation": "the, exam and is appear twice each; the rest once."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "the exam is on monday the exam hall is b",
+        "expectedOutput": "the 2\nexam 2\nis 2\non 1\nmonday 1\nhall 1\nb 1",
+        "hidden": false
+      },
+      {
+        "input": "a a a",
+        "expectedOutput": "a 3",
+        "hidden": false
+      },
+      {
+        "input": "hello",
+        "expectedOutput": "hello 1",
+        "hidden": true
+      },
+      {
+        "input": "x y z y x x",
+        "expectedOutput": "x 3\ny 2\nz 1",
+        "hidden": true
+      },
+      {
+        "input": "one two three four",
+        "expectedOutput": "one 1\ntwo 1\nthree 1\nfour 1",
+        "hidden": true
+      },
+      {
+        "input": "go go stop go stop wait",
+        "expectedOutput": "go 3\nstop 2\nwait 1",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "words = input().split()\ncount = {}\nfor w in words:\n    count[w] = count.get(w, 0) + 1\nfor w in count:\n    print(w, count[w])\n",
+    "topics": [
+      "dictionaries",
+      "strings",
+      "loops"
+    ],
+    "hints": [
+      "Split the line into words and count them in a dictionary.",
+      "Python dictionaries remember insertion order, so looping over the keys gives first-appearance order."
+    ],
+    "explanation": "Split the input into words and count each in a dictionary. Since a dictionary keeps keys in the order they were first inserted, printing its items in order gives each word with its count in first-appearance order.",
+    "estimatedMinutes": 5,
+    "order": 95
+  },
+  {
+    "seedKey": "coding-096",
+    "type": "coding",
+    "subCategory": "Simulation",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Lift Travel Distance",
+    "statement": "A lift starts at floor 0. It serves requests one after another in the given order, moving directly to each requested floor. Find the total number of floors it travels.\n\nInput: line 1 has n (1 <= n <= 1000). Line 2 has n requested floors (0 <= floor <= 100).\nOutput: one integer, the total floors travelled.\n\nExample: requests 5 2 8: 0 to 5 is 5 floors, 5 to 2 is 3, 2 to 8 is 6, total 14.",
+    "language": "python",
+    "starterCode": "n = int(input())\nfloors = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "3\n5 2 8",
+        "expectedOutput": "14",
+        "explanation": "5 + 3 + 6 = 14 floors."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3\n5 2 8",
+        "expectedOutput": "14",
+        "hidden": false
+      },
+      {
+        "input": "1\n0",
+        "expectedOutput": "0",
+        "hidden": false
+      },
+      {
+        "input": "4\n10 10 10 10",
+        "expectedOutput": "10",
+        "hidden": true
+      },
+      {
+        "input": "5\n100 0 100 0 100",
+        "expectedOutput": "500",
+        "hidden": true
+      },
+      {
+        "input": "2\n7 3",
+        "expectedOutput": "11",
+        "hidden": true
+      },
+      {
+        "input": "6\n1 2 3 2 1 0",
+        "expectedOutput": "6",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nfloors = list(map(int, input().split()))\ncur = 0\ntotal = 0\nfor f in floors:\n    total += abs(f - cur)\n    cur = f\nprint(total)\n",
+    "topics": [
+      "loops",
+      "lists"
+    ],
+    "hints": [
+      "Keep track of the current floor, starting at 0.",
+      "For each request add abs(request - current) and then move the current floor."
+    ],
+    "explanation": "Simulate the lift: keep the current floor, add the absolute difference to each request, then update the current floor. Requests for the floor the lift is already on add 0.",
+    "estimatedMinutes": 5,
+    "order": 96
+  },
+  {
+    "seedKey": "coding-097",
+    "type": "coding",
+    "subCategory": "Hashing",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Anagram Groups",
+    "statement": "Two words belong to the same group if one is an anagram of the other (same letters, same counts). Given a list of words, find how many groups there are and the size of the largest group.\n\nInput: line 1 has n (1 <= n <= 1000). Line 2 has n lowercase words.\nOutput: two integers separated by a space: the number of groups and the size of the largest group. Identical words count as separate members of the same group.\n\nExample: for listen silent enlist google elgoog cat, the groups are {listen, silent, enlist}, {google, elgoog}, {cat}, so print 3 3.",
+    "language": "python",
+    "starterCode": "n = int(input())\nwords = input().split()\n# your code here\n",
+    "examples": [
+      {
+        "input": "6\nlisten silent enlist google elgoog cat",
+        "expectedOutput": "3 3",
+        "explanation": "Three groups; the largest has 3 words."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "6\nlisten silent enlist google elgoog cat",
+        "expectedOutput": "3 3",
+        "hidden": false
+      },
+      {
+        "input": "3\nabc def ghi",
+        "expectedOutput": "3 1",
+        "hidden": false
+      },
+      {
+        "input": "1\na",
+        "expectedOutput": "1 1",
+        "hidden": true
+      },
+      {
+        "input": "4\nab ba ab ba",
+        "expectedOutput": "1 4",
+        "hidden": true
+      },
+      {
+        "input": "5\nrat tar art star tars",
+        "expectedOutput": "2 3",
+        "hidden": true
+      },
+      {
+        "input": "6\nevil vile live veil levi ilve",
+        "expectedOutput": "1 6",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nwords = input().split()\ngroups = {}\nfor w in words:\n    key = ''.join(sorted(w))\n    groups[key] = groups.get(key, 0) + 1\nprint(len(groups), max(groups.values()))\n",
+    "topics": [
+      "dictionaries",
+      "strings",
+      "sorting"
+    ],
+    "hints": [
+      "Anagrams become the same string when their letters are sorted.",
+      "Use the sorted letters as a dictionary key and count how many words map to each key."
+    ],
+    "explanation": "Sort the letters of each word to get a signature; anagrams share a signature. Count words per signature in a dictionary. The number of keys is the number of groups and the largest count is the biggest group.",
+    "estimatedMinutes": 8,
+    "order": 97
+  },
+  {
+    "seedKey": "coding-098",
+    "type": "coding",
+    "subCategory": "Sorting and searching",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Merge Lab Bookings",
+    "statement": "The computer lab's booking sheet has time slots that may overlap. Merge all overlapping or touching slots (a slot ending at 10 touches one starting at 10) so the warden sees the busy periods.\n\nInput: line 1 has n (1 <= n <= 1000). The next n lines each have start and end (0 <= start < end <= 1440).\nOutput: the merged slots in increasing order of start, one per line as start end.\n\nExample: slots 1 3, 2 6, 8 10, 10 12 merge into 1 6 and 8 12.",
+    "language": "python",
+    "starterCode": "n = int(input())\nslots = [tuple(map(int, input().split())) for _ in range(n)]\n# your code here\n",
+    "examples": [
+      {
+        "input": "4\n1 3\n2 6\n8 10\n10 12",
+        "expectedOutput": "1 6\n8 12",
+        "explanation": "1 3 and 2 6 overlap into 1 6; 8 10 and 10 12 touch, giving 8 12."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "4\n1 3\n2 6\n8 10\n10 12",
+        "expectedOutput": "1 6\n8 12",
+        "hidden": false
+      },
+      {
+        "input": "2\n5 7\n1 2",
+        "expectedOutput": "1 2\n5 7",
+        "hidden": false
+      },
+      {
+        "input": "1\n0 1440",
+        "expectedOutput": "0 1440",
+        "hidden": true
+      },
+      {
+        "input": "3\n1 10\n2 3\n4 5",
+        "expectedOutput": "1 10",
+        "hidden": true
+      },
+      {
+        "input": "5\n9 12\n1 4\n3 5\n13 14\n12 13",
+        "expectedOutput": "1 5\n9 14",
+        "hidden": true
+      },
+      {
+        "input": "4\n6 8\n1 2\n3 4\n5 6",
+        "expectedOutput": "1 2\n3 4\n5 8",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nslots = sorted(tuple(map(int, input().split())) for _ in range(n))\nmerged = []\nfor s, e in slots:\n    if merged and s <= merged[-1][1]:\n        merged[-1][1] = max(merged[-1][1], e)\n    else:\n        merged.append([s, e])\nfor s, e in merged:\n    print(s, e)\n",
+    "topics": [
+      "sorting",
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "Sort the slots by start time first.",
+      "Walk through them: if a slot starts at or before the end of the last merged slot, extend that slot's end; otherwise start a new one."
+    ],
+    "explanation": "After sorting by start, overlapping slots are adjacent. Keep a list of merged slots; if the next slot starts no later than the last merged end, extend the end with max(), else append it. Using max handles a slot fully inside another.",
+    "estimatedMinutes": 10,
+    "order": 98
+  },
+  {
+    "seedKey": "coding-099",
+    "type": "coding",
+    "subCategory": "Sorting and searching",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Competition Ranking",
+    "statement": "In a coding contest, higher scores rank better. Equal scores share a rank, and the next rank skips accordingly (scores 90 80 80 70 get ranks 1 2 2 4). Print each participant's rank in the original input order.\n\nInput: line 1 has n (1 <= n <= 1000). Line 2 has n scores (0 <= score <= 1000).\nOutput: n ranks on one line separated by single spaces, in input order.\n\nExample: scores 70 90 80 80 give ranks 4 1 2 2.",
+    "language": "python",
+    "starterCode": "n = int(input())\nscores = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "4\n70 90 80 80",
+        "expectedOutput": "4 1 2 2",
+        "explanation": "90 is rank 1, both 80s share rank 2, and 70 is rank 4 because three scores are above it."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "4\n70 90 80 80",
+        "expectedOutput": "4 1 2 2",
+        "hidden": false
+      },
+      {
+        "input": "3\n50 50 50",
+        "expectedOutput": "1 1 1",
+        "hidden": false
+      },
+      {
+        "input": "1\n0",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "5\n10 20 30 40 50",
+        "expectedOutput": "5 4 3 2 1",
+        "hidden": true
+      },
+      {
+        "input": "7\n100 90 90 90 80 100 70",
+        "expectedOutput": "1 3 3 3 6 1 7",
+        "hidden": true
+      },
+      {
+        "input": "6\n5 3 5 1 3 5",
+        "expectedOutput": "1 4 1 6 4 1",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nscores = list(map(int, input().split()))\nordered = sorted(scores, reverse=True)\nrank = {}\nfor i, s in enumerate(ordered):\n    if s not in rank:\n        rank[s] = i + 1\nprint(' '.join(str(rank[s]) for s in scores))\n",
+    "topics": [
+      "sorting",
+      "dictionaries",
+      "lists"
+    ],
+    "hints": [
+      "Sort a copy of the scores from highest to lowest.",
+      "A score's rank is 1 + the position where it first appears in that sorted list; store it in a dictionary."
+    ],
+    "explanation": "Sort scores in descending order. Walking the sorted list, the first time a score appears at index i its rank is i + 1 (that equals 1 + number of strictly higher scores). Store ranks in a dictionary and print the rank of each original score.",
+    "estimatedMinutes": 8,
+    "order": 99
+  },
+  {
+    "seedKey": "coding-100",
+    "type": "coding",
+    "subCategory": "Hashing",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Sort by Frequency",
+    "statement": "Arrange the numbers so that the most frequent value comes first. Values with equal frequency are arranged in increasing order of value. Each value is repeated as many times as it occurs.\n\nInput: line 1 has n (1 <= n <= 1000). Line 2 has n integers (-1000 <= value <= 1000).\nOutput: the rearranged numbers on one line separated by single spaces.\n\nExample: for 4 6 2 6 4 4 3, 4 occurs 3 times, 6 twice, 2 and 3 once, so print 4 4 4 6 6 2 3.",
+    "language": "python",
+    "starterCode": "n = int(input())\nnums = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "7\n4 6 2 6 4 4 3",
+        "expectedOutput": "4 4 4 6 6 2 3",
+        "explanation": "4 (3 times) first, then 6 (twice), then 2 and 3 (once each, smaller first)."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "7\n4 6 2 6 4 4 3",
+        "expectedOutput": "4 4 4 6 6 2 3",
+        "hidden": false
+      },
+      {
+        "input": "3\n1 2 3",
+        "expectedOutput": "1 2 3",
+        "hidden": false
+      },
+      {
+        "input": "1\n-5",
+        "expectedOutput": "-5",
+        "hidden": true
+      },
+      {
+        "input": "6\n-1 -1 2 2 0 0",
+        "expectedOutput": "-1 -1 0 0 2 2",
+        "hidden": true
+      },
+      {
+        "input": "8\n5 5 5 5 1 1 1 1",
+        "expectedOutput": "1 1 1 1 5 5 5 5",
+        "hidden": true
+      },
+      {
+        "input": "9\n7 -3 7 -3 7 10 10 10 0",
+        "expectedOutput": "7 7 7 10 10 10 -3 -3 0",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nnums = list(map(int, input().split()))\ncount = {}\nfor x in nums:\n    count[x] = count.get(x, 0) + 1\nvals = sorted(count, key=lambda v: (-count[v], v))\nout = []\nfor v in vals:\n    out.extend([v] * count[v])\nprint(' '.join(map(str, out)))\n",
+    "topics": [
+      "dictionaries",
+      "sorting",
+      "lists"
+    ],
+    "hints": [
+      "Count each value with a dictionary.",
+      "Sort the distinct values by the key (-count, value), then print each value count times."
+    ],
+    "explanation": "Count occurrences, then sort the distinct values with key (-frequency, value): negative frequency puts larger counts first and the value breaks ties in increasing order. Expand each value by its count to build the output.",
+    "estimatedMinutes": 10,
+    "order": 100
+  },
+  {
+    "seedKey": "coding-101",
+    "type": "coding",
+    "subCategory": "Recursion",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Tower of Hanoi Moves",
+    "statement": "Move n discs from peg A to peg C using peg B, moving one disc at a time and never placing a larger disc on a smaller one. Use the standard recursive method: move n-1 discs from source to spare, move the largest disc to the target, then move the n-1 discs from spare to target.\n\nInput: one integer n (1 <= n <= 6).\nOutput: first line the number of moves. Then one line per move in the form X Y meaning move the top disc from peg X to peg Y.\n\nExample: for n = 2 print 3, then A B, A C, B C on separate lines.",
+    "language": "python",
+    "starterCode": "n = int(input())\n\ndef hanoi(n, src, spare, dst):\n    # your code here\n    pass\n",
+    "examples": [
+      {
+        "input": "2",
+        "expectedOutput": "3\nA B\nA C\nB C",
+        "explanation": "Small disc to B, big disc to C, small disc onto C: 3 moves."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "2",
+        "expectedOutput": "3\nA B\nA C\nB C",
+        "hidden": false
+      },
+      {
+        "input": "1",
+        "expectedOutput": "1\nA C",
+        "hidden": false
+      },
+      {
+        "input": "3",
+        "expectedOutput": "7\nA C\nA B\nC B\nA C\nB A\nB C\nA C",
+        "hidden": true
+      },
+      {
+        "input": "4",
+        "expectedOutput": "15\nA B\nA C\nB C\nA B\nC A\nC B\nA B\nA C\nB C\nB A\nC A\nB C\nA B\nA C\nB C",
+        "hidden": true
+      },
+      {
+        "input": "5",
+        "expectedOutput": "31\nA C\nA B\nC B\nA C\nB A\nB C\nA C\nA B\nC B\nC A\nB A\nC B\nA C\nA B\nC B\nA C\nB A\nB C\nA C\nB A\nC B\nC A\nB A\nB C\nA C\nA B\nC B\nA C\nB A\nB C\nA C",
+        "hidden": true
+      },
+      {
+        "input": "6",
+        "expectedOutput": "63\nA B\nA C\nB C\nA B\nC A\nC B\nA B\nA C\nB C\nB A\nC A\nB C\nA B\nA C\nB C\nA B\nC A\nC B\nA B\nC A\nB C\nB A\nC A\nC B\nA B\nA C\nB C\nA B\nC A\nC B\nA B\nA C\nB C\nB A\nC A\nB C\nA B\nA C\nB C\nB A\nC A\nC B\nA B\nC A\nB C\nB A\nC A\nB C\nA B\nA C\nB C\nA B\nC A\nC B\nA B\nA C\nB C\nB A\nC A\nB C\nA B\nA C\nB C",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def hanoi(n, src, spare, dst, moves):\n    if n == 0:\n        return\n    hanoi(n - 1, src, dst, spare, moves)\n    moves.append(src + ' ' + dst)\n    hanoi(n - 1, spare, src, dst, moves)\n\nn = int(input())\nmoves = []\nhanoi(n, 'A', 'B', 'C', moves)\nprint(len(moves))\nfor m in moves:\n    print(m)\n",
+    "topics": [
+      "functions",
+      "lists"
+    ],
+    "hints": [
+      "Base case: zero discs need no moves.",
+      "To move n discs A to C: move n-1 from A to B (using C), move one disc A to C, move n-1 from B to C (using A)."
+    ],
+    "explanation": "The recursive function moves n-1 discs out of the way to the spare peg, moves the largest disc, then moves the n-1 discs on top of it. Recording each move in a list lets us print the count (always 2^n - 1) before the moves.",
+    "estimatedMinutes": 10,
+    "order": 101
+  },
+  {
+    "seedKey": "coding-102",
+    "type": "coding",
+    "subCategory": "Greedy",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Most Seminars in One Hall",
+    "statement": "The seminar hall can host one seminar at a time. Each seminar has a start and end time; a seminar may start exactly when the previous one ends. Find the maximum number of seminars that can be held.\n\nInput: line 1 has n (1 <= n <= 1000). The next n lines each have start and end (0 <= start < end <= 10000).\nOutput: one integer, the maximum number of seminars.\n\nExample: seminars 1 4, 3 5, 0 6, 5 7, 8 9, 5 9: choose 1 4, 5 7, 8 9, so print 3.",
+    "language": "python",
+    "starterCode": "n = int(input())\nseminars = [tuple(map(int, input().split())) for _ in range(n)]\n# your code here\n",
+    "examples": [
+      {
+        "input": "6\n1 4\n3 5\n0 6\n5 7\n8 9\n5 9",
+        "expectedOutput": "3",
+        "explanation": "Ending earliest first: 1 4, then 5 7, then 8 9."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "6\n1 4\n3 5\n0 6\n5 7\n8 9\n5 9",
+        "expectedOutput": "3",
+        "hidden": false
+      },
+      {
+        "input": "1\n2 3",
+        "expectedOutput": "1",
+        "hidden": false
+      },
+      {
+        "input": "3\n1 10\n2 3\n4 5",
+        "expectedOutput": "2",
+        "hidden": true
+      },
+      {
+        "input": "4\n1 2\n2 3\n3 4\n4 5",
+        "expectedOutput": "4",
+        "hidden": true
+      },
+      {
+        "input": "3\n0 5\n0 5\n0 5",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "5\n6 8\n1 3\n2 5\n3 6\n8 9",
+        "expectedOutput": "4",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\nsem = [tuple(map(int, input().split())) for _ in range(n)]\nsem.sort(key=lambda x: (x[1], x[0]))\ncount = 0\nlast_end = -1\nfor s, e in sem:\n    if s >= last_end:\n        count += 1\n        last_end = e\nprint(count)\n",
+    "topics": [
+      "sorting",
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "Think about which seminar to pick first so that the most time is left for others.",
+      "Sort by end time and greedily pick every seminar that starts at or after the end of the last one picked."
+    ],
+    "explanation": "Always choosing the seminar that finishes earliest leaves the most room for the rest (the classic activity-selection greedy). Sort by end time, then scan and take a seminar whenever its start is not before the last chosen end.",
+    "estimatedMinutes": 10,
+    "order": 102
+  },
+  {
+    "seedKey": "coding-103",
+    "type": "coding",
+    "subCategory": "Simulation",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Elimination Circle",
+    "statement": "n students numbered 1 to n stand in a circle for a game. Starting from student 1, they count 1, 2, ..., k; the student who says k leaves the circle, and counting restarts at 1 from the next student. Print the order in which students leave.\n\nInput: one line with n and k (1 <= n <= 1000, 1 <= k <= 1000).\nOutput: the students in the order they leave, on one line separated by single spaces.\n\nExample: for n = 5, k = 2 the order is 2 4 1 5 3.",
+    "language": "python",
+    "starterCode": "n, k = map(int, input().split())\n# your code here\n",
+    "examples": [
+      {
+        "input": "5 2",
+        "expectedOutput": "2 4 1 5 3",
+        "explanation": "2 leaves, then 4, then 1 (wrapping around), then 5, then 3."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5 2",
+        "expectedOutput": "2 4 1 5 3",
+        "hidden": false
+      },
+      {
+        "input": "1 1",
+        "expectedOutput": "1",
+        "hidden": false
+      },
+      {
+        "input": "7 3",
+        "expectedOutput": "3 6 2 7 5 1 4",
+        "hidden": true
+      },
+      {
+        "input": "4 1",
+        "expectedOutput": "1 2 3 4",
+        "hidden": true
+      },
+      {
+        "input": "3 10",
+        "expectedOutput": "1 3 2",
+        "hidden": true
+      },
+      {
+        "input": "6 6",
+        "expectedOutput": "6 1 3 2 5 4",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n, k = map(int, input().split())\ncircle = list(range(1, n + 1))\nidx = 0\nout = []\nwhile circle:\n    idx = (idx + k - 1) % len(circle)\n    out.append(circle.pop(idx))\nprint(' '.join(map(str, out)))\n",
+    "topics": [
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "Keep the remaining students in a list and an index of where counting starts.",
+      "The student who leaves is at (start + k - 1) % size; after removing them, counting starts at that same index."
+    ],
+    "explanation": "Store the circle as a list. From the current position, the k-th student is at (idx + k - 1) % len(circle). Pop that student and record them; the next student slides into the same index, so counting continues from idx. Repeat until the circle is empty.",
+    "estimatedMinutes": 10,
+    "order": 103
+  },
+  {
+    "seedKey": "coding-104",
+    "type": "coding",
+    "subCategory": "Hashing",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Pattern of Words",
+    "statement": "A pattern like abba matches a sentence like dog cat cat dog if there is a one-to-one mapping between pattern letters and words: each letter always maps to the same word, and two different letters never map to the same word.\n\nInput: line 1 is the pattern (lowercase letters). Line 2 is the sentence (lowercase words separated by single spaces).\nOutput: YES if the sentence follows the pattern, otherwise NO.\n\nExample: abba with dog cat cat dog prints YES; abba with dog dog dog dog prints NO.",
+    "language": "python",
+    "starterCode": "pattern = input().strip()\nwords = input().split()\n# your code here\n",
+    "examples": [
+      {
+        "input": "abba\ndog cat cat dog",
+        "expectedOutput": "YES",
+        "explanation": "a maps to dog and b to cat consistently in both directions."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "abba\ndog cat cat dog",
+        "expectedOutput": "YES",
+        "hidden": false
+      },
+      {
+        "input": "abba\ndog dog dog dog",
+        "expectedOutput": "NO",
+        "hidden": false
+      },
+      {
+        "input": "aaaa\ndog dog dog dog",
+        "expectedOutput": "YES",
+        "hidden": true
+      },
+      {
+        "input": "abc\nred blue red",
+        "expectedOutput": "NO",
+        "hidden": true
+      },
+      {
+        "input": "ab\none",
+        "expectedOutput": "NO",
+        "hidden": true
+      },
+      {
+        "input": "abcab\nx y z x y",
+        "expectedOutput": "YES",
+        "hidden": true
+      },
+      {
+        "input": "a\nhello",
+        "expectedOutput": "YES",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "pattern = input().strip()\nwords = input().split()\nok = len(pattern) == len(words)\nif ok:\n    l2w = {}\n    w2l = {}\n    for ch, w in zip(pattern, words):\n        if l2w.get(ch, w) != w or w2l.get(w, ch) != ch:\n            ok = False\n            break\n        l2w[ch] = w\n        w2l[w] = ch\nprint('YES' if ok else 'NO')\n",
+    "topics": [
+      "dictionaries",
+      "strings",
+      "conditions"
+    ],
+    "hints": [
+      "If the number of letters and words differ, the answer is NO.",
+      "Keep two dictionaries, letter -> word and word -> letter, and check both directions at every position."
+    ],
+    "explanation": "First the lengths must match. Then walk letters and words together, keeping a letter-to-word map and a word-to-letter map. Any conflict in either map means NO. Checking both directions catches the case where two letters would share one word.",
+    "estimatedMinutes": 8,
+    "order": 104
+  },
+  {
+    "seedKey": "coding-105",
+    "type": "coding",
+    "subCategory": "Recursion",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Binary Strings Without 11",
+    "statement": "List every binary string of length n that does not contain two consecutive 1s. Build them recursively: at each position you may always place 0, and you may place 1 only if the previous character is not 1.\n\nInput: one integer n (1 <= n <= 10).\nOutput: first line the count of such strings, then the strings in increasing (lexicographic) order, one per line.\n\nExample: for n = 3 print 5, then 000, 001, 010, 100, 101.",
+    "language": "python",
+    "starterCode": "n = int(input())\n\ndef build(prefix):\n    # your code here\n    pass\n",
+    "examples": [
+      {
+        "input": "3",
+        "expectedOutput": "5\n000\n001\n010\n100\n101",
+        "explanation": "The 8 strings of length 3 minus 011, 110 and 111 leave 5."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3",
+        "expectedOutput": "5\n000\n001\n010\n100\n101",
+        "hidden": false
+      },
+      {
+        "input": "1",
+        "expectedOutput": "2\n0\n1",
+        "hidden": false
+      },
+      {
+        "input": "2",
+        "expectedOutput": "3\n00\n01\n10",
+        "hidden": true
+      },
+      {
+        "input": "4",
+        "expectedOutput": "8\n0000\n0001\n0010\n0100\n0101\n1000\n1001\n1010",
+        "hidden": true
+      },
+      {
+        "input": "5",
+        "expectedOutput": "13\n00000\n00001\n00010\n00100\n00101\n01000\n01001\n01010\n10000\n10001\n10010\n10100\n10101",
+        "hidden": true
+      },
+      {
+        "input": "6",
+        "expectedOutput": "21\n000000\n000001\n000010\n000100\n000101\n001000\n001001\n001010\n010000\n010001\n010010\n010100\n010101\n100000\n100001\n100010\n100100\n100101\n101000\n101001\n101010",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def build(prefix, n, out):\n    if len(prefix) == n:\n        out.append(prefix)\n        return\n    build(prefix + '0', n, out)\n    if not prefix or prefix[-1] != '1':\n        build(prefix + '1', n, out)\n\nn = int(input())\nout = []\nbuild('', n, out)\nprint(len(out))\nfor s in out:\n    print(s)\n",
+    "topics": [
+      "functions",
+      "strings"
+    ],
+    "hints": [
+      "Write a function that takes the string built so far.",
+      "Try 0 first and then 1 (only when the last character is not 1); that order produces lexicographic output automatically."
+    ],
+    "explanation": "Recursively extend a prefix. When it reaches length n, record it. Otherwise always try appending 0, and append 1 only if the prefix is empty or ends in 0. Trying 0 before 1 yields strings in lexicographic order; the count follows the Fibonacci numbers.",
+    "estimatedMinutes": 10,
+    "order": 105
+  },
+  {
+    "seedKey": "coding-106",
+    "type": "coding",
+    "subCategory": "Sorting and searching",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Sort the Exam Dates",
+    "statement": "The exam cell has a list of dates in DD-MM-YYYY format in random order. Print them in chronological order (earliest first). Repeated dates are printed as many times as they appear.\n\nInput: line 1 has n (1 <= n <= 1000). Line 2 has n dates in DD-MM-YYYY format.\nOutput: the dates in chronological order on one line separated by single spaces, in the same DD-MM-YYYY format.\n\nExample: 15-04-2025 02-12-2024 01-04-2025 prints 02-12-2024 01-04-2025 15-04-2025.",
+    "language": "python",
+    "starterCode": "n = int(input())\ndates = input().split()\n# your code here\n",
+    "examples": [
+      {
+        "input": "3\n15-04-2025 02-12-2024 01-04-2025",
+        "expectedOutput": "02-12-2024 01-04-2025 15-04-2025",
+        "explanation": "02-12-2024 is in 2024; the April 2025 dates follow, the 1st before the 15th."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3\n15-04-2025 02-12-2024 01-04-2025",
+        "expectedOutput": "02-12-2024 01-04-2025 15-04-2025",
+        "hidden": false
+      },
+      {
+        "input": "1\n29-02-2024",
+        "expectedOutput": "29-02-2024",
+        "hidden": false
+      },
+      {
+        "input": "2\n01-01-2025 31-12-2024",
+        "expectedOutput": "31-12-2024 01-01-2025",
+        "hidden": true
+      },
+      {
+        "input": "4\n10-10-2020 10-10-2020 09-10-2020 10-09-2020",
+        "expectedOutput": "10-09-2020 09-10-2020 10-10-2020 10-10-2020",
+        "hidden": true
+      },
+      {
+        "input": "5\n05-06-2023 05-06-2022 06-05-2023 01-01-2030 31-12-1999",
+        "expectedOutput": "31-12-1999 05-06-2022 06-05-2023 05-06-2023 01-01-2030",
+        "hidden": true
+      },
+      {
+        "input": "3\n12-03-2024 03-12-2024 21-03-2024",
+        "expectedOutput": "12-03-2024 21-03-2024 03-12-2024",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\ndates = input().split()\n\ndef key(d):\n    dd, mm, yy = d.split('-')\n    return (int(yy), int(mm), int(dd))\n\ndates.sort(key=key)\nprint(' '.join(dates))\n",
+    "topics": [
+      "sorting",
+      "strings",
+      "functions"
+    ],
+    "hints": [
+      "Sorting the strings directly compares the day first, which is wrong.",
+      "Use a key that turns DD-MM-YYYY into the tuple (year, month, day)."
+    ],
+    "explanation": "Write a key function that splits each date on '-' and returns (year, month, day) as integers. Tuples compare year first, then month, then day, which is exactly chronological order. Sort with that key and print the original strings.",
+    "estimatedMinutes": 8,
+    "order": 106
+  },
+  {
+    "seedKey": "coding-107",
+    "type": "coding",
+    "subCategory": "Greedy",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Petrol Pump Circle",
+    "statement": "n petrol pumps stand in a circle. Pump i gives petrol[i] litres and the distance to the next pump needs cost[i] litres. A truck with an empty tank must pick a starting pump and go round the full circle once, never running out of petrol. Find the starting pump.\n\nInput: line 1 has n (1 <= n <= 100000). Line 2 has the n petrol values. Line 3 has the n cost values (all values 0 to 10000).\nOutput: the smallest 0-based index of a pump from which the full circle is possible, or -1 if none works.\n\nExample: petrol 1 2 3 4 5 and cost 3 4 5 1 2: starting at pump 3 works, so print 3.",
+    "language": "python",
+    "starterCode": "n = int(input())\npetrol = list(map(int, input().split()))\ncost = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "5\n1 2 3 4 5\n3 4 5 1 2",
+        "expectedOutput": "3",
+        "explanation": "From pump 3: tank 3, then 6, then 4, then 2, then 0 back at pump 3."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5\n1 2 3 4 5\n3 4 5 1 2",
+        "expectedOutput": "3",
+        "hidden": false
+      },
+      {
+        "input": "3\n2 3 4\n3 4 3",
+        "expectedOutput": "-1",
+        "hidden": false
+      },
+      {
+        "input": "1\n5\n5",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "4\n4 6 7 4\n6 5 3 5",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "3\n0 0 10\n5 5 0",
+        "expectedOutput": "2",
+        "hidden": true
+      },
+      {
+        "input": "4\n1 1 1 1\n1 1 1 1",
+        "expectedOutput": "0",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\npetrol = list(map(int, input().split()))\ncost = list(map(int, input().split()))\nif sum(petrol) < sum(cost):\n    print(-1)\nelse:\n    start = 0\n    tank = 0\n    for i in range(n):\n        tank += petrol[i] - cost[i]\n        if tank < 0:\n            start = i + 1\n            tank = 0\n    print(start)\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "If total petrol is less than total cost, no start can work.",
+      "Scan once with a running tank; whenever it drops below zero, no pump up to here can be the start, so restart from the next pump."
+    ],
+    "explanation": "If the totals fall short, print -1. Otherwise scan once keeping the running tank; when it goes negative at pump i, every start from the current candidate to i fails, so the next candidate is i + 1. When total petrol covers total cost, the last candidate completes the circle, and it is the smallest index that works.",
+    "estimatedMinutes": 12,
+    "order": 107
+  },
+  {
+    "seedKey": "coding-108",
+    "type": "coding",
+    "subCategory": "Simulation",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Spiral Seating Chart",
+    "statement": "An invigilator walks around an exam hall seating grid in a spiral: along the top row left to right, down the right column, along the bottom row right to left, up the left column, and then inward. Print the seat numbers in the order visited.\n\nInput: line 1 has r and c (1 <= r, c <= 20). The next r lines each have c integers.\nOutput: all r*c numbers in spiral order on one line separated by single spaces.\n\nExample: for the grid 1 2 3 / 4 5 6 / 7 8 9 print 1 2 3 6 9 8 7 4 5.",
+    "language": "python",
+    "starterCode": "r, c = map(int, input().split())\ngrid = [list(map(int, input().split())) for _ in range(r)]\n# your code here\n",
+    "examples": [
+      {
+        "input": "3 3\n1 2 3\n4 5 6\n7 8 9",
+        "expectedOutput": "1 2 3 6 9 8 7 4 5",
+        "explanation": "Top row 1 2 3, right column 6 9, bottom row 8 7, left column 4, then the centre 5."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3 3\n1 2 3\n4 5 6\n7 8 9",
+        "expectedOutput": "1 2 3 6 9 8 7 4 5",
+        "hidden": false
+      },
+      {
+        "input": "1 4\n1 2 3 4",
+        "expectedOutput": "1 2 3 4",
+        "hidden": false
+      },
+      {
+        "input": "1 1\n7",
+        "expectedOutput": "7",
+        "hidden": true
+      },
+      {
+        "input": "4 1\n1\n2\n3\n4",
+        "expectedOutput": "1 2 3 4",
+        "hidden": true
+      },
+      {
+        "input": "3 4\n1 2 3 4\n5 6 7 8\n9 10 11 12",
+        "expectedOutput": "1 2 3 4 8 12 11 10 9 5 6 7",
+        "hidden": true
+      },
+      {
+        "input": "4 3\n1 2 3\n4 5 6\n7 8 9\n10 11 12",
+        "expectedOutput": "1 2 3 6 9 12 11 10 7 4 5 8",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "r, c = map(int, input().split())\ng = [list(map(int, input().split())) for _ in range(r)]\ntop, bot, left, right = 0, r - 1, 0, c - 1\nout = []\nwhile top <= bot and left <= right:\n    for j in range(left, right + 1):\n        out.append(g[top][j])\n    top += 1\n    for i in range(top, bot + 1):\n        out.append(g[i][right])\n    right -= 1\n    if top <= bot:\n        for j in range(right, left - 1, -1):\n            out.append(g[bot][j])\n        bot -= 1\n    if left <= right:\n        for i in range(bot, top - 1, -1):\n            out.append(g[i][left])\n        left += 1\nprint(' '.join(map(str, out)))\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Keep four boundaries: top row, bottom row, left column, right column.",
+      "After walking each side, move that boundary inward; check top <= bottom and left <= right before the bottom and left walks so a single row or column is not repeated."
+    ],
+    "explanation": "Maintain top, bottom, left and right limits. Walk the top row and move top down; walk the right column and move right in; if rows remain, walk the bottom row backwards and move bottom up; if columns remain, walk the left column upwards and move left in. The two checks stop single rows or columns being printed twice.",
+    "estimatedMinutes": 12,
+    "order": 108
+  },
+  {
+    "seedKey": "coding-109",
+    "type": "coding",
+    "subCategory": "Hashing",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Zero-Balance Stretches",
+    "statement": "A shop records the daily profit (negative for a loss) for n days. A stretch is a run of one or more consecutive days. Count the stretches whose total profit is exactly zero.\n\nInput: line 1 has n (1 <= n <= 100000). Line 2 has n integers (-1000 <= value <= 1000).\nOutput: one integer, the number of zero-sum stretches.\n\nExample: for 3 -3 2 -2 there are 3 such stretches: [3 -3], [2 -2] and [3 -3 2 -2].",
+    "language": "python",
+    "starterCode": "n = int(input())\nprofit = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "4\n3 -3 2 -2",
+        "expectedOutput": "3",
+        "explanation": "Prefix sums 0,3,0,2,0: the value 0 appears three times, giving 3 pairs."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "4\n3 -3 2 -2",
+        "expectedOutput": "3",
+        "hidden": false
+      },
+      {
+        "input": "3\n1 2 3",
+        "expectedOutput": "0",
+        "hidden": false
+      },
+      {
+        "input": "1\n0",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "4\n0 0 0 0",
+        "expectedOutput": "10",
+        "hidden": true
+      },
+      {
+        "input": "6\n1 -1 1 -1 1 -1",
+        "expectedOutput": "9",
+        "hidden": true
+      },
+      {
+        "input": "7\n4 2 -3 1 6 -6 -1",
+        "expectedOutput": "4",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\na = list(map(int, input().split()))\nseen = {0: 1}\ns = 0\nans = 0\nfor x in a:\n    s += x\n    ans += seen.get(s, 0)\n    seen[s] = seen.get(s, 0) + 1\nprint(ans)\n",
+    "topics": [
+      "dictionaries",
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "A stretch from day i+1 to day j sums to zero exactly when the running total after day i equals the running total after day j.",
+      "Keep a dictionary counting how many times each running total has appeared (start with total 0 seen once)."
+    ],
+    "explanation": "Track the prefix sum. Every earlier position with the same prefix sum marks the start of a zero-sum stretch ending here, so add the count of that prefix sum seen so far, then record the current one. Seeding the dictionary with {0: 1} counts stretches that start on day 1. This is O(n).",
+    "estimatedMinutes": 12,
+    "order": 109
+  },
+  {
+    "seedKey": "coding-110",
+    "type": "coding",
+    "subCategory": "Strings",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Longest Run of Distinct Letters",
+    "statement": "Find the length of the longest substring (contiguous part) of a string in which no character repeats.\n\nInput: one line, a string of lowercase letters (1 <= length <= 100000).\nOutput: one integer, the length of the longest substring with all distinct characters.\n\nExample: for abcabcbb the answer is 3 (abc).",
+    "language": "python",
+    "starterCode": "s = input().strip()\n# your code here\n",
+    "examples": [
+      {
+        "input": "abcabcbb",
+        "expectedOutput": "3",
+        "explanation": "abc has 3 distinct letters; any longer window repeats a letter."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "abcabcbb",
+        "expectedOutput": "3",
+        "hidden": false
+      },
+      {
+        "input": "bbbbb",
+        "expectedOutput": "1",
+        "hidden": false
+      },
+      {
+        "input": "a",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "pwwkew",
+        "expectedOutput": "3",
+        "hidden": true
+      },
+      {
+        "input": "abcdefghijklmnopqrstuvwxyz",
+        "expectedOutput": "26",
+        "hidden": true
+      },
+      {
+        "input": "abba",
+        "expectedOutput": "2",
+        "hidden": true
+      },
+      {
+        "input": "dvdf",
+        "expectedOutput": "3",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "s = input().strip()\nlast = {}\nstart = 0\nbest = 0\nfor i, ch in enumerate(s):\n    if ch in last and last[ch] >= start:\n        start = last[ch] + 1\n    last[ch] = i\n    best = max(best, i - start + 1)\nprint(best)\n",
+    "topics": [
+      "dictionaries",
+      "strings",
+      "loops"
+    ],
+    "hints": [
+      "Use a sliding window [start, i] that never contains a repeated letter.",
+      "Store the last index of every letter; when the current letter was last seen inside the window, move start just past that position."
+    ],
+    "explanation": "Slide a window over the string. A dictionary keeps the last index of each letter. When the current letter last appeared at or after start, move start to one past that index. The window length i - start + 1 is a candidate answer. Each character is processed once, so it is O(n).",
+    "estimatedMinutes": 10,
+    "order": 110
+  },
+  {
+    "seedKey": "coding-111",
+    "type": "coding",
+    "subCategory": "Hashing",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Longest Stretch with Target Sum",
+    "statement": "Given n integers (they can be negative) and a target K, find the length of the longest contiguous subarray whose sum is exactly K.\n\nInput: line 1 has n and K (1 <= n <= 100000, -10^9 <= K <= 10^9). Line 2 has n integers (-10000 <= value <= 10000).\nOutput: one integer, the maximum length, or 0 if no subarray sums to K.\n\nExample: for K = 3 and array 1 -1 5 -2 3, the subarray 1 -1 5 -2 has sum 3 and length 4, so print 4.",
+    "language": "python",
+    "starterCode": "n, k = map(int, input().split())\na = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "5 3\n1 -1 5 -2 3",
+        "expectedOutput": "4",
+        "explanation": "1 - 1 + 5 - 2 = 3 over 4 elements; no longer subarray sums to 3."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5 3\n1 -1 5 -2 3",
+        "expectedOutput": "4",
+        "hidden": false
+      },
+      {
+        "input": "3 10\n1 2 3",
+        "expectedOutput": "0",
+        "hidden": false
+      },
+      {
+        "input": "1 5\n5",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "4 0\n0 0 0 0",
+        "expectedOutput": "4",
+        "hidden": true
+      },
+      {
+        "input": "6 -2\n-1 -1 2 -2 1 -1",
+        "expectedOutput": "6",
+        "hidden": true
+      },
+      {
+        "input": "5 6\n1 2 3 -3 3",
+        "expectedOutput": "5",
+        "hidden": true
+      },
+      {
+        "input": "4 -1\n2 -3 4 -5",
+        "expectedOutput": "2",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n, k = map(int, input().split())\na = list(map(int, input().split()))\nfirst = {0: -1}\ns = 0\nbest = 0\nfor i, x in enumerate(a):\n    s += x\n    if s - k in first:\n        best = max(best, i - first[s - k])\n    if s not in first:\n        first[s] = i\nprint(best)\n",
+    "topics": [
+      "dictionaries",
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "The sum of a[j+1..i] is prefix[i] - prefix[j]; you need prefix[j] = prefix[i] - K.",
+      "To make the subarray as long as possible, remember only the FIRST index at which each prefix sum appears."
+    ],
+    "explanation": "Keep a running prefix sum and a dictionary mapping each prefix sum to the first index where it occurs (with sum 0 at index -1). At index i, if prefix - K was seen at index j, then a[j+1..i] sums to K with length i - j. Storing only the first occurrence maximises the length. A sliding window would fail here because values can be negative.",
+    "estimatedMinutes": 14,
+    "order": 111
+  },
+  {
+    "seedKey": "coding-112",
+    "type": "coding",
+    "subCategory": "Greedy",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Minimum Platforms",
+    "statement": "Arrival and departure times of trains at a station are given in HHMM 24-hour form for one day. A platform freed at a time cannot be used by a train arriving at that same minute (a train arriving at 1000 needs a different platform from one departing at 1000). Find the minimum number of platforms needed.\n\nInput: line 1 has n (1 <= n <= 100000). Line 2 has n arrival times. Line 3 has the n departure times; departure[i] >= arrival[i].\nOutput: one integer, the minimum number of platforms.\n\nExample: arrivals 900 940 950 1100 1500 1800 and departures 910 1200 1120 1130 1900 2000 need 3 platforms.",
+    "language": "python",
+    "starterCode": "n = int(input())\narr = list(map(int, input().split()))\ndep = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "6\n900 940 950 1100 1500 1800\n910 1200 1120 1130 1900 2000",
+        "expectedOutput": "3",
+        "explanation": "Between 1100 and 1120, the trains from 940, 950 and 1100 are all present."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "6\n900 940 950 1100 1500 1800\n910 1200 1120 1130 1900 2000",
+        "expectedOutput": "3",
+        "hidden": false
+      },
+      {
+        "input": "1\n1000\n1030",
+        "expectedOutput": "1",
+        "hidden": false
+      },
+      {
+        "input": "2\n1000 1030\n1030 1100",
+        "expectedOutput": "2",
+        "hidden": true
+      },
+      {
+        "input": "3\n900 900 900\n1000 1000 1000",
+        "expectedOutput": "3",
+        "hidden": true
+      },
+      {
+        "input": "3\n900 1100 1235\n1000 1200 1240",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "5\n1000 1005 1010 1015 1020\n1100 1006 1011 1016 1021",
+        "expectedOutput": "2",
+        "hidden": true
+      },
+      {
+        "input": "4\n0 0 2359 1200\n2359 0 2359 1300",
+        "expectedOutput": "2",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\narr = sorted(map(int, input().split()))\ndep = sorted(map(int, input().split()))\ni = j = 0\ncur = best = 0\nwhile i < n:\n    if arr[i] <= dep[j]:\n        cur += 1\n        best = max(best, cur)\n        i += 1\n    else:\n        cur -= 1\n        j += 1\nprint(best)\n",
+    "topics": [
+      "sorting",
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "Which train is which does not matter; only how many trains are at the station at each moment.",
+      "Sort arrivals and departures separately and merge them like two sorted lists; process an arrival before a departure at the same time."
+    ],
+    "explanation": "Sort both lists. Walk them together: if the next arrival is at or before the next departure, a train arrives (count up, update the maximum); otherwise a train leaves (count down). Using <= processes a same-time arrival first, so it needs a new platform as the rule demands. The maximum count is the answer, in O(n log n).",
+    "estimatedMinutes": 14,
+    "order": 112
+  },
+  {
+    "seedKey": "coding-113",
+    "type": "coding",
+    "subCategory": "Sorting and searching",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Biggest Number from Pieces",
+    "statement": "You are given n non-negative integers. Arrange them side by side to form the largest possible number.\n\nInput: line 1 has n (1 <= n <= 1000). Line 2 has n integers (0 <= value <= 10^9).\nOutput: the largest number as a string without leading zeros (if all values are 0, print 0).\n\nExample: for 3 30 34 5 9 the answer is 9534330.",
+    "language": "python",
+    "starterCode": "n = int(input())\nnums = input().split()\n# your code here\n",
+    "examples": [
+      {
+        "input": "5\n3 30 34 5 9",
+        "expectedOutput": "9534330",
+        "explanation": "9, 5, 34, 3, 30 concatenated give 9534330."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5\n3 30 34 5 9",
+        "expectedOutput": "9534330",
+        "hidden": false
+      },
+      {
+        "input": "2\n10 2",
+        "expectedOutput": "210",
+        "hidden": false
+      },
+      {
+        "input": "1\n0",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "3\n0 0 0",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "4\n121 12 0 1",
+        "expectedOutput": "1212110",
+        "hidden": true
+      },
+      {
+        "input": "5\n824 938 1399 5607 6973",
+        "expectedOutput": "938824697356071399",
+        "hidden": true
+      },
+      {
+        "input": "3\n1000000000 9 99",
+        "expectedOutput": "9991000000000",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "from functools import cmp_to_key\n\nn = int(input())\nnums = input().split()\nnums = [str(int(x)) for x in nums]\n\ndef cmp(a, b):\n    if a + b > b + a:\n        return -1\n    if a + b < b + a:\n        return 1\n    return 0\n\nnums.sort(key=cmp_to_key(cmp))\nres = ''.join(nums).lstrip('0')\nprint(res if res else '0')\n",
+    "topics": [
+      "sorting",
+      "strings",
+      "functions"
+    ],
+    "hints": [
+      "Sorting by numeric value fails: 9 should come before 34 even though it is smaller, and 3 before 30.",
+      "Compare two pieces a and b by checking which of a+b and b+a (as strings) is bigger; use functools.cmp_to_key."
+    ],
+    "explanation": "Treat numbers as strings and sort with a comparator that puts a before b when a+b > b+a. This order is consistent, so the concatenation is maximal. Finally strip leading zeros, and print 0 when the result is empty (all inputs were zero).",
+    "estimatedMinutes": 14,
+    "order": 113
+  },
+  {
+    "seedKey": "coding-114",
+    "type": "coding",
+    "subCategory": "Greedy",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Freelance Jobs Before Deadlines",
+    "statement": "A freelancer has n one-day jobs. Job i must be finished on or before day deadline[i] and pays profit[i]. Only one job can be done per day, starting from day 1. Choose jobs to maximise total profit.\n\nInput: line 1 has n (1 <= n <= 1000). The next n lines each have deadline and profit (1 <= deadline <= 1000, 1 <= profit <= 10000).\nOutput: two integers separated by a space: the number of jobs done and the maximum total profit. (If several selections give the maximum profit, print the count produced by taking jobs in decreasing profit order, each in the latest free day not after its deadline.)\n\nExample: jobs (2,100), (1,19), (2,27), (1,25), (3,15): do the 100, 27 and 15 jobs, so print 3 142.",
+    "language": "python",
+    "starterCode": "n = int(input())\njobs = [tuple(map(int, input().split())) for _ in range(n)]\n# your code here\n",
+    "examples": [
+      {
+        "input": "5\n2 100\n1 19\n2 27\n1 25\n3 15",
+        "expectedOutput": "3 142",
+        "explanation": "100 goes on day 2, 27 on day 1, 19 and 25 find no free day, 15 goes on day 3."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5\n2 100\n1 19\n2 27\n1 25\n3 15",
+        "expectedOutput": "3 142",
+        "hidden": false
+      },
+      {
+        "input": "1\n1 50",
+        "expectedOutput": "1 50",
+        "hidden": false
+      },
+      {
+        "input": "3\n1 10\n1 20\n1 30",
+        "expectedOutput": "1 30",
+        "hidden": true
+      },
+      {
+        "input": "4\n4 20\n1 10\n1 40\n1 30",
+        "expectedOutput": "2 60",
+        "hidden": true
+      },
+      {
+        "input": "4\n2 5\n2 5\n2 5\n2 5",
+        "expectedOutput": "2 10",
+        "hidden": true
+      },
+      {
+        "input": "6\n3 35\n4 30\n4 25\n2 20\n3 15\n1 12",
+        "expectedOutput": "4 110",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\njobs = [tuple(map(int, input().split())) for _ in range(n)]\njobs.sort(key=lambda j: -j[1])\nmaxd = max(d for d, p in jobs)\nfree = [True] * (maxd + 1)\ncount = 0\ntotal = 0\nfor d, p in jobs:\n    for day in range(d, 0, -1):\n        if free[day]:\n            free[day] = False\n            count += 1\n            total += p\n            break\nprint(count, total)\n",
+    "topics": [
+      "sorting",
+      "lists",
+      "loops"
+    ],
+    "hints": [
+      "Consider jobs from the highest profit to the lowest.",
+      "Place each job on the latest free day that is not after its deadline, so earlier days stay open for jobs with tighter deadlines; skip it if no such day exists."
+    ],
+    "explanation": "Sort jobs by profit, highest first. For each job, scan back from its deadline to day 1 and book the first free day; if none is free, skip the job. Using the latest possible day keeps early days available. This greedy is optimal for unit-time jobs with deadlines.",
+    "estimatedMinutes": 14,
+    "order": 114
+  },
+  {
+    "seedKey": "coding-115",
+    "type": "coding",
+    "subCategory": "Recursion",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Safe Queens Count",
+    "statement": "Place n queens on an n x n chessboard so that no two attack each other (no two share a row, column or diagonal). Count the number of different placements using recursion with backtracking.\n\nInput: one integer n (1 <= n <= 9).\nOutput: one integer, the number of valid placements.\n\nExample: for n = 4 there are 2 placements, so print 2.",
+    "language": "python",
+    "starterCode": "n = int(input())\n\ndef place(row):\n    # your code here\n    pass\n",
+    "examples": [
+      {
+        "input": "4",
+        "expectedOutput": "2",
+        "explanation": "The two boards are columns 2 4 1 3 and 3 1 4 2 by row."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "4",
+        "expectedOutput": "2",
+        "hidden": false
+      },
+      {
+        "input": "1",
+        "expectedOutput": "1",
+        "hidden": false
+      },
+      {
+        "input": "2",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "3",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "5",
+        "expectedOutput": "10",
+        "hidden": true
+      },
+      {
+        "input": "6",
+        "expectedOutput": "4",
+        "hidden": true
+      },
+      {
+        "input": "8",
+        "expectedOutput": "92",
+        "hidden": true
+      },
+      {
+        "input": "9",
+        "expectedOutput": "352",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def place(row, n, cols, d1, d2):\n    if row == n:\n        return 1\n    total = 0\n    for c in range(n):\n        if c in cols or (row - c) in d1 or (row + c) in d2:\n            continue\n        cols.add(c)\n        d1.add(row - c)\n        d2.add(row + c)\n        total += place(row + 1, n, cols, d1, d2)\n        cols.remove(c)\n        d1.remove(row - c)\n        d2.remove(row + c)\n    return total\n\nn = int(input())\nprint(place(0, n, set(), set(), set()))\n",
+    "topics": [
+      "functions",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Place exactly one queen per row; recurse row by row.",
+      "Squares on the same diagonal share row - col; on the same anti-diagonal they share row + col. Keep sets of used columns and diagonals and undo them after the recursive call."
+    ],
+    "explanation": "Recurse over rows. In each row try every column that is not in the used-column set, the row-col set or the row+col set; mark it, recurse to the next row, then unmark (backtrack). Reaching row n means one complete placement. Pruning keeps n = 9 well under a second (352 placements).",
+    "estimatedMinutes": 14,
+    "order": 115
+  },
+  {
+    "seedKey": "coding-116",
+    "type": "coding",
+    "subCategory": "Recursion",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Distinct Arrangements of a Code",
+    "statement": "A locker code is a string of letters that may contain repeats. Print every distinct arrangement (permutation) of its letters in lexicographic order, using recursion.\n\nInput: one line, a string of lowercase letters (1 <= length <= 7).\nOutput: first line the number of distinct arrangements, then each arrangement on its own line in lexicographic order.\n\nExample: for aab print 3, then aab, aba, baa.",
+    "language": "python",
+    "starterCode": "s = input().strip()\n# your code here\n",
+    "examples": [
+      {
+        "input": "aab",
+        "expectedOutput": "3\naab\naba\nbaa",
+        "explanation": "Choosing a, a, b gives aab; a, b, a gives aba; b, a, a gives baa."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "aab",
+        "expectedOutput": "3\naab\naba\nbaa",
+        "hidden": false
+      },
+      {
+        "input": "a",
+        "expectedOutput": "1\na",
+        "hidden": false
+      },
+      {
+        "input": "abc",
+        "expectedOutput": "6\nabc\nacb\nbac\nbca\ncab\ncba",
+        "hidden": true
+      },
+      {
+        "input": "aaaa",
+        "expectedOutput": "1\naaaa",
+        "hidden": true
+      },
+      {
+        "input": "abab",
+        "expectedOutput": "6\naabb\nabab\nabba\nbaab\nbaba\nbbaa",
+        "hidden": true
+      },
+      {
+        "input": "baca",
+        "expectedOutput": "12\naabc\naacb\nabac\nabca\nacab\nacba\nbaac\nbaca\nbcaa\ncaab\ncaba\ncbaa",
+        "hidden": true
+      },
+      {
+        "input": "aabbcc",
+        "expectedOutput": "90\naabbcc\naabcbc\naabccb\naacbbc\naacbcb\naaccbb\nababcc\nabacbc\nabaccb\nabbacc\nabbcac\nabbcca\nabcabc\nabcacb\nabcbac\nabcbca\nabccab\nabccba\nacabbc\nacabcb\nacacbb\nacbabc\nacbacb\nacbbac\nacbbca\nacbcab\nacbcba\naccabb\naccbab\naccbba\nbaabcc\nbaacbc\nbaaccb\nbabacc\nbabcac\nbabcca\nbacabc\nbacacb\nbacbac\nbacbca\nbaccab\nbaccba\nbbaacc\nbbacac\nbbacca\nbbcaac\nbbcaca\nbbccaa\nbcaabc\nbcaacb\nbcabac\nbcabca\nbcacab\nbcacba\nbcbaac\nbcbaca\nbcbcaa\nbccaab\nbccaba\nbccbaa\ncaabbc\ncaabcb\ncaacbb\ncababc\ncabacb\ncabbac\ncabbca\ncabcab\ncabcba\ncacabb\ncacbab\ncacbba\ncbaabc\ncbaacb\ncbabac\ncbabca\ncbacab\ncbacba\ncbbaac\ncbbaca\ncbbcaa\ncbcaab\ncbcaba\ncbcbaa\nccaabb\nccabab\nccabba\nccbaab\nccbaba\nccbbaa",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "def build(prefix, count, n, out):\n    if len(prefix) == n:\n        out.append(prefix)\n        return\n    for ch in sorted(count):\n        if count[ch] > 0:\n            count[ch] -= 1\n            build(prefix + ch, count, n, out)\n            count[ch] += 1\n\ns = input().strip()\ncount = {}\nfor ch in s:\n    count[ch] = count.get(ch, 0) + 1\nout = []\nbuild('', count, len(s), out)\nprint(len(out))\nfor p in out:\n    print(p)\n",
+    "topics": [
+      "functions",
+      "dictionaries",
+      "strings"
+    ],
+    "hints": [
+      "Generating all n! orders and removing duplicates works but wastes time; avoid creating duplicates at all.",
+      "Keep a count of each remaining letter; at each position try each DISTINCT letter (in sorted order) that still has a count above zero."
+    ],
+    "explanation": "Store how many of each letter remain. The recursive function extends the prefix by each distinct available letter in alphabetical order, decrements its count, recurses, then restores it. Because the same letter is never tried twice at one position, no duplicates appear, and alphabetical choice order gives lexicographic output.",
+    "estimatedMinutes": 14,
+    "order": 116
+  },
+  {
+    "seedKey": "coding-117",
+    "type": "coding",
+    "subCategory": "Simulation",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Fever Spread in the Hostel",
+    "statement": "A hostel floor is a grid. Each cell is 0 (empty), 1 (healthy student) or 2 (student with fever). Every minute, each feverish student infects healthy students directly up, down, left and right. Find the minutes needed until no healthy student remains.\n\nInput: line 1 has r and c (1 <= r, c <= 100). The next r lines each have c values (0, 1 or 2).\nOutput: the number of minutes until no healthy student remains; print 0 if there are no healthy students at the start, and -1 if some healthy student can never be infected.\n\nExample: for the grid 2 1 1 / 1 1 0 / 0 1 1 the answer is 4.",
+    "language": "python",
+    "starterCode": "r, c = map(int, input().split())\ngrid = [list(map(int, input().split())) for _ in range(r)]\n# your code here\n",
+    "examples": [
+      {
+        "input": "3 3\n2 1 1\n1 1 0\n0 1 1",
+        "expectedOutput": "4",
+        "explanation": "The student in the bottom-right corner is reached in the 4th minute."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "3 3\n2 1 1\n1 1 0\n0 1 1",
+        "expectedOutput": "4",
+        "hidden": false
+      },
+      {
+        "input": "3 3\n2 1 1\n0 1 1\n1 0 1",
+        "expectedOutput": "-1",
+        "hidden": false
+      },
+      {
+        "input": "1 2\n0 2",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "1 1\n1",
+        "expectedOutput": "-1",
+        "hidden": true
+      },
+      {
+        "input": "2 2\n2 2\n2 2",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "3 4\n2 1 1 1\n1 1 1 1\n1 1 1 2",
+        "expectedOutput": "2",
+        "hidden": true
+      },
+      {
+        "input": "1 5\n1 1 2 1 1",
+        "expectedOutput": "2",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "r, c = map(int, input().split())\ng = [list(map(int, input().split())) for _ in range(r)]\nfrontier = []\nhealthy = 0\nfor i in range(r):\n    for j in range(c):\n        if g[i][j] == 2:\n            frontier.append((i, j))\n        elif g[i][j] == 1:\n            healthy += 1\nminutes = 0\nwhile frontier and healthy > 0:\n    nxt = []\n    for i, j in frontier:\n        for di, dj in ((1, 0), (-1, 0), (0, 1), (0, -1)):\n            x, y = i + di, j + dj\n            if 0 <= x < r and 0 <= y < c and g[x][y] == 1:\n                g[x][y] = 2\n                healthy -= 1\n                nxt.append((x, y))\n    frontier = nxt\n    minutes += 1\nprint(minutes if healthy == 0 else -1)\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Start with ALL feverish students at once, not one by one.",
+      "Process the grid in rounds (a breadth-first search): the newly infected students of one minute are the spreaders of the next minute. Stop when nobody healthy is left or no new infection happens."
+    ],
+    "explanation": "Collect all feverish cells as the first frontier and count healthy cells. Each round, infect every healthy neighbour of the frontier, which becomes the next frontier, and add one minute. Stop when no healthy cells remain or the frontier is empty. If healthy cells are left, print -1. Each cell is infected once, so this is O(r*c).",
+    "estimatedMinutes": 14,
+    "order": 117
+  },
+  {
+    "seedKey": "coding-118",
+    "type": "coding",
+    "subCategory": "Strings",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Smallest Window with Every Letter",
+    "statement": "Find the length of the smallest substring that contains every distinct character of the whole string at least once.\n\nInput: one line, a string of lowercase letters (1 <= length <= 100000).\nOutput: one integer, the length of the smallest such substring.\n\nExample: for aabcbcdbca the distinct letters are a, b, c, d and the smallest window containing all of them is dbca, so print 4.",
+    "language": "python",
+    "starterCode": "s = input().strip()\n# your code here\n",
+    "examples": [
+      {
+        "input": "aabcbcdbca",
+        "expectedOutput": "4",
+        "explanation": "dbca (positions 6 to 9) contains a, b, c and d; no 3-letter window can."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "aabcbcdbca",
+        "expectedOutput": "4",
+        "hidden": false
+      },
+      {
+        "input": "aaab",
+        "expectedOutput": "2",
+        "hidden": false
+      },
+      {
+        "input": "a",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "abcd",
+        "expectedOutput": "4",
+        "hidden": true
+      },
+      {
+        "input": "aaaaaaa",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "abacbabcab",
+        "expectedOutput": "3",
+        "hidden": true
+      },
+      {
+        "input": "geeksforgeeks",
+        "expectedOutput": "7",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "s = input().strip()\nneed = len(set(s))\nwin = {}\nhave = 0\nleft = 0\nbest = len(s)\nfor right, ch in enumerate(s):\n    win[ch] = win.get(ch, 0) + 1\n    if win[ch] == 1:\n        have += 1\n    while have == need:\n        best = min(best, right - left + 1)\n        lc = s[left]\n        win[lc] -= 1\n        if win[lc] == 0:\n            have -= 1\n        left += 1\nprint(best)\n",
+    "topics": [
+      "dictionaries",
+      "strings",
+      "loops"
+    ],
+    "hints": [
+      "The number of distinct letters to cover is len(set(s)).",
+      "Grow a window to the right; once it holds every distinct letter, shrink it from the left as far as possible while it still does, recording the length each time."
+    ],
+    "explanation": "Use two pointers with a dictionary of letter counts in the window and a counter of how many distinct letters are present. Extend right; whenever all letters are present, record the window size and move left forward, updating counts, until a letter disappears. Each pointer moves at most n times, so it is O(n).",
+    "estimatedMinutes": 14,
+    "order": 118
+  },
+  {
+    "seedKey": "coding-119",
+    "type": "coding",
+    "subCategory": "Greedy",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Fewest Bus Hops",
+    "statement": "Bus stops are numbered 0 to n-1. From stop i a bus can take you forward up to a[i] stops (to any stop from i+1 to i+a[i]). Starting at stop 0, find the minimum number of buses needed to reach stop n-1.\n\nInput: line 1 has n (1 <= n <= 100000). Line 2 has n integers (0 <= a[i] <= 100000).\nOutput: the minimum number of buses, or -1 if stop n-1 cannot be reached. If n = 1, print 0.\n\nExample: for 2 3 1 1 4, take a bus from stop 0 to stop 1, then from stop 1 to stop 4: print 2.",
+    "language": "python",
+    "starterCode": "n = int(input())\na = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "5\n2 3 1 1 4",
+        "expectedOutput": "2",
+        "explanation": "Stop 0 reaches stops 1-2; stop 1 reaches stop 4 directly, so 2 buses."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "5\n2 3 1 1 4",
+        "expectedOutput": "2",
+        "hidden": false
+      },
+      {
+        "input": "5\n3 2 1 0 4",
+        "expectedOutput": "-1",
+        "hidden": false
+      },
+      {
+        "input": "1\n0",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "2\n1 0",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "6\n1 1 1 1 1 1",
+        "expectedOutput": "5",
+        "hidden": true
+      },
+      {
+        "input": "7\n6 0 0 0 0 0 0",
+        "expectedOutput": "1",
+        "hidden": true
+      },
+      {
+        "input": "8\n2 3 0 1 4 0 0 1",
+        "expectedOutput": "3",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "n = int(input())\na = list(map(int, input().split()))\njumps = 0\ncur_end = 0\nfarthest = 0\nans = 0 if n == 1 else -1\nfor i in range(n - 1):\n    if i > farthest:\n        break\n    farthest = max(farthest, i + a[i])\n    if i == cur_end:\n        jumps += 1\n        cur_end = farthest\n        if cur_end >= n - 1:\n            ans = jumps\n            break\nprint(ans)\n",
+    "topics": [
+      "lists",
+      "loops",
+      "conditions"
+    ],
+    "hints": [
+      "Think in levels: all stops reachable with 1 bus, then all reachable with 2 buses, and so on.",
+      "Track the end of the current level and the farthest stop reachable from it; when you pass the end of the level, you must take one more bus. If you reach a stop beyond the farthest reachable, the answer is -1."
+    ],
+    "explanation": "Scan stops while tracking farthest (the furthest stop reachable so far) and cur_end (the furthest stop reachable with the buses counted). When i reaches cur_end, take another bus and extend cur_end to farthest; stop once it covers n-1. If i ever exceeds farthest, the remaining stops are unreachable and the answer is -1. This greedy is O(n).",
+    "estimatedMinutes": 14,
+    "order": 119
+  },
+  {
+    "seedKey": "coding-120",
+    "type": "coding",
+    "subCategory": "Recursion",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Count Out-of-Order Pairs",
+    "statement": "In a list of marks, an out-of-order pair is a pair of positions i < j with marks[i] > marks[j]. Count such pairs. The list can be long, so checking every pair is too slow; use recursive merge sort and count pairs while merging.\n\nInput: line 1 has n (1 <= n <= 100000). Line 2 has n integers (0 <= value <= 10^9).\nOutput: one integer, the number of out-of-order pairs.\n\nExample: for 8 4 2 1 every pair is out of order, so print 6.",
+    "language": "python",
+    "starterCode": "n = int(input())\na = list(map(int, input().split()))\n# your code here\n",
+    "examples": [
+      {
+        "input": "4\n8 4 2 1",
+        "expectedOutput": "6",
+        "explanation": "4 > 2 > 1 etc.: all 4*3/2 = 6 pairs are out of order."
+      }
+    ],
+    "testCases": [
+      {
+        "input": "4\n8 4 2 1",
+        "expectedOutput": "6",
+        "hidden": false
+      },
+      {
+        "input": "5\n1 2 3 4 5",
+        "expectedOutput": "0",
+        "hidden": false
+      },
+      {
+        "input": "1\n7",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "5\n2 4 1 3 5",
+        "expectedOutput": "3",
+        "hidden": true
+      },
+      {
+        "input": "6\n3 3 3 3 3 3",
+        "expectedOutput": "0",
+        "hidden": true
+      },
+      {
+        "input": "7\n7 1 6 2 5 3 4",
+        "expectedOutput": "12",
+        "hidden": true
+      },
+      {
+        "input": "8\n1000000000 0 999999999 1 5 5 4 6",
+        "expectedOutput": "14",
+        "hidden": true
+      }
+    ],
+    "referenceSolution": "import sys\n\ndef sort_count(a):\n    if len(a) <= 1:\n        return a, 0\n    mid = len(a) // 2\n    left, x = sort_count(a[:mid])\n    right, y = sort_count(a[mid:])\n    merged = []\n    i = j = 0\n    cnt = x + y\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            merged.append(left[i])\n            i += 1\n        else:\n            merged.append(right[j])\n            cnt += len(left) - i\n            j += 1\n    merged.extend(left[i:])\n    merged.extend(right[j:])\n    return merged, cnt\n\ndata = sys.stdin.read().split()\nn = int(data[0])\na = list(map(int, data[1:1 + n]))\nprint(sort_count(a)[1])\n",
+    "topics": [
+      "functions",
+      "sorting",
+      "lists"
+    ],
+    "hints": [
+      "Split the list into halves, count pairs inside each half recursively, then count pairs that cross the halves.",
+      "While merging two sorted halves, when an element from the right half is taken before left[i], it forms a pair with every remaining element left[i:], so add len(left) - i."
+    ],
+    "explanation": "Merge sort returns the sorted list and the pair count. Pairs inside each half come from the recursive calls. During the merge, taking right[j] before left[i] means right[j] is smaller than all of left[i:], adding len(left) - i pairs. Equal values are taken from the left first, so they are not counted. Total time is O(n log n).",
+    "estimatedMinutes": 14,
+    "order": 120
+  }
+]

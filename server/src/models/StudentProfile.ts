@@ -1,3 +1,4 @@
+import { computeProfileCompleteness } from '../utils/profileCompleteness';
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IStudentProfile extends Document {
@@ -18,6 +19,9 @@ export interface IStudentProfile extends Document {
     gender: 'Male' | 'Female' | 'Other' | 'Prefer not to say';
     dateOfBirth: Date;
     profilePhoto?: string; // URL to uploaded photo
+    /** Parent / guardian — used for inactivity alerts when the institute switches them on. */
+    parentName?: string;
+    parentMobile?: string;
   };
   
   // 2. Professional Profiles
@@ -77,6 +81,12 @@ export interface IStudentProfile extends Document {
     howDidYouHearOther?: string;
     careerGoal?: string;
   };
+
+  // Placement preferences — shown to placement offices in the Talent Pool
+  placementPreferences?: {
+    expectedRole?: string;
+    preferredLocations?: string[];
+  };
   
   // 7. OAuth Connections (for GitHub code push & LinkedIn posts)
   oauthConnections?: {
@@ -125,6 +135,8 @@ const StudentProfileSchema: Schema = new Schema(
       surname: { type: String, trim: true },
       email: { type: String, required: true, lowercase: true, trim: true },
       mobileNumber: { type: String, trim: true },
+      parentName: { type: String, trim: true },
+      parentMobile: { type: String, trim: true },
       country: { type: String, trim: true },
       state: { type: String, trim: true },
       city: { type: String, trim: true },
@@ -287,6 +299,12 @@ const StudentProfileSchema: Schema = new Schema(
       howDidYouHearOther: { type: String, trim: true },
       careerGoal: { type: String, trim: true, maxlength: 500 },
     },
+
+    // Placement preferences — shown to placement offices in the Talent Pool
+    placementPreferences: {
+      expectedRole: { type: String, trim: true, maxlength: 120 },
+      preferredLocations: [{ type: String, trim: true, maxlength: 60 }],
+    },
     
     // 7. OAuth Connections (for GitHub code push & LinkedIn posts)
     oauthConnections: {
@@ -328,51 +346,7 @@ const StudentProfileSchema: Schema = new Schema(
 // Pre-save middleware to calculate profile completion
 StudentProfileSchema.pre('save', function(next) {
   const profile = this as IStudentProfile;
-  let completedFields = 0;
-  let totalFields = 0;
-  
-  // Personal Info (9 mandatory fields)
-  const personalFields = ['firstName', 'surname', 'email', 'mobileNumber', 'country', 'state', 'city', 'gender', 'dateOfBirth'];
-  personalFields.forEach(field => {
-    totalFields++;
-    if (profile.personalInfo && (profile.personalInfo as any)[field]) completedFields++;
-  });
-  
-  // Professional Profiles (optional - only count if filled, don't penalize if empty)
-  // We'll give bonus points but not count as mandatory
-  const professionalFields = ['linkedInUrl', 'githubUrl', 'portfolioUrl', 'resumeUrl'];
-  let professionalFilled = 0;
-  professionalFields.forEach(field => {
-    if (profile.professionalProfiles && (profile.professionalProfiles as any)[field]) professionalFilled++;
-  });
-  // Add 1 total field for professional section (1 point if any field is filled)
-  totalFields += 1;
-  if (professionalFilled > 0) completedFields++;
-  
-  // Education (count based on qualification level)
-  totalFields += 3; // highestQualification, currentStatus, and at least 10th details
-  if (profile.education?.highestQualification) completedFields++;
-  if (profile.education?.currentStatus) completedFields++;
-  if (profile.education?.tenthClass?.schoolName) completedFields++;
-  
-  // Technical Background (3 fields - removed previousCourses as mandatory)
-  totalFields += 3;
-  if (profile.technicalBackground?.programmingLanguages?.length > 0) completedFields++;
-  if (profile.technicalBackground?.technologies?.length > 0) completedFields++;
-  if (profile.technicalBackground?.experienceLevel) completedFields++;
-  
-  // Course Interest (3 fields)
-  const courseFields = ['interestedCourse', 'preferredLearningMode', 'preferredBatchTime'];
-  courseFields.forEach(field => {
-    totalFields++;
-    if (profile.courseInterest && (profile.courseInterest as any)[field]) completedFields++;
-  });
-  
-  // Additional Info (optional - give bonus if filled)
-  totalFields += 1;
-  if (profile.additionalInfo?.howDidYouHear || profile.additionalInfo?.careerGoal) completedFields++;
-  
-  profile.profileCompletionPercentage = Math.round((completedFields / totalFields) * 100);
+  profile.profileCompletionPercentage = computeProfileCompleteness(profile);
   profile.isProfileComplete = profile.profileCompletionPercentage >= 80;
   profile.lastUpdated = new Date();
   

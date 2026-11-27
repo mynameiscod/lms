@@ -249,7 +249,7 @@ describe('recomputing profiles', () => {
     expect(set.score).toBe(50);
     expect(set.confidence).toBe('HIGH');
     expect(set.distinctItems).toBe(8);
-    expect(set.aggregationVersion).toBe('SKILL_DNA_V1');
+    expect(set.aggregationVersion).toBe('SKILL_DNA_V2');
   });
 
   it('scopes every query to the tenant and the student', async () => {

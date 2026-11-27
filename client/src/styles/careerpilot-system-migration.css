@@ -1,5 +1,5 @@
 /* CareerPilot migration layer — shared visual language for remaining member/admin surfaces. */
-:root{--cp-navy:#051d64;--cp-navy-2:#061e66;--cp-teal:#359aad;--cp-teal-soft:#eaf7f8;--cp-bg:#f6f9fc;--cp-card:#fff;--cp-border:#e0e7ef;--cp-text:#10213c;--cp-muted:#718097;--cp-radius:16px;--cp-shadow:0 8px 24px rgba(12,39,80,.055)}
+:root{--cp-navy:#051d64;--cp-navy-2:#061e66;--cp-teal:#359aad;--cp-teal-soft:#eaf7f8;--cp-bg:#f6f9fc;--cp-card:#fff;--cp-border:#e0e7ef;--cp-text:#10213c;--cp-muted:#2F3F56;--cp-radius:16px;--cp-shadow:0 8px 24px rgba(12,39,80,.055)}
 
 /* ADMIN — applies only to CareerPilot admin routes via Layout route scope. */
 .careerpilot-admin-surface .main-content{background:var(--cp-bg)!important;color:var(--cp-text);padding:28px 30px!important}
@@ -17,7 +17,7 @@
 .careerpilot-admin-surface .main-content button:not(:disabled):hover{transform:translateY(-1px)}
 .careerpilot-admin-surface .main-content button[style*="#4f46e5"],.careerpilot-admin-surface .main-content button[style*="#6366f1"],.careerpilot-admin-surface .main-content button[style*="rgb(79, 70, 229)"],.careerpilot-admin-surface .main-content button[style*="rgb(99, 102, 241)"]{background:var(--cp-navy)!important;color:#fff!important}
 .careerpilot-admin-surface .main-content table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--cp-border);border-radius:14px;overflow:hidden}
-.careerpilot-admin-surface .main-content th{background:#f2f6fa!important;color:#52637a!important;text-transform:uppercase;font-size:11px!important;letter-spacing:.045em!important;font-weight:850!important}
+.careerpilot-admin-surface .main-content th{background:#f2f6fa!important;color:#52637a!important;text-transform:uppercase;font-size:max(11px, var(--fs-floor, 0px))!important;letter-spacing:.045em!important;font-weight:850!important}
 .careerpilot-admin-surface .main-content th,.careerpilot-admin-surface .main-content td{border-color:#edf1f5!important;padding:12px 14px!important}
 .careerpilot-admin-surface .main-content tr:hover td{background:#f9fcfd}
 .careerpilot-admin-surface .main-content a{color:#287f90}

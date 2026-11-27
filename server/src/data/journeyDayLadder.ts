@@ -41,8 +41,10 @@ export const isJourneyDayOpen = (
   || (completionAllowsDay(dayNumber, completed) && calendarAllowsDay(dayNumber, pacedFrom, now));
 
 /** Membership refuses this day: nothing of the roadmap, or a day past the preview. */
-export const membershipRefusesDay = (dayNumber: number, access: Pick<FoundationAccess, 'level' | 'previewDays'>): boolean =>
-  access.level === 'LOCKED' || (access.level === 'PREVIEW' && dayNumber > access.previewDays);
+export const membershipRefusesDay = (dayNumber: number, access: Pick<FoundationAccess, 'level' | 'previewDays' | 'trialDays'>): boolean =>
+  access.level === 'LOCKED' || (access.level === 'PREVIEW' && dayNumber > access.previewDays)
+  /* A trial opens its first N days only. */
+  || (!!access.trialDays && dayNumber > access.trialDays);
 
 /**
  * Why a day is shut.
@@ -56,7 +58,7 @@ export type JourneyDayRefusal = 'MEMBERSHIP_REQUIRED' | 'DAY_LOCKED' | 'NOT_TODA
 export const journeyDayRefusal = (
   dayNumber: number,
   completed: Set<number>,
-  access: Pick<FoundationAccess, 'level' | 'previewDays'>,
+  access: Pick<FoundationAccess, 'level' | 'previewDays' | 'trialDays'>,
   pacedFrom?: PacedFrom,
   now?: Date,
 ): JourneyDayRefusal | null => {

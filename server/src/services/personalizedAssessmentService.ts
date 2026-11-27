@@ -1216,7 +1216,7 @@ export async function getPersonalizedAssessmentAvailability(
    * phantom attempt above became a nag.
    */
   const started = (open?.answers || []).some(
-    (a: any) => a && a.response !== undefined && a.response !== null && a.response !== '',
+    (a: any) => a && (a.dontKnow || (a.response !== undefined && a.response !== null && a.response !== '')),
   );
   if (open) return { assessmentAvailable: true, discovery, inProgress: started, alreadyCompleted };
 

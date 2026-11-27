@@ -70,6 +70,34 @@ export function assembleSource(problem: JudgeProblem, language: string, code: st
   return [lang?.headerCode, code, lang?.footerCode].filter((p) => p && p.trim()).join('\n');
 }
 
+/**
+ * The code with comments and whitespace removed, so reformatting it or adding a comment is not a "change".
+ * Only used to compare a learner's code with the starter code it began as.
+ */
+export function codeSignature(code: string, language: string): string {
+  const src = String(code || '').replace(/\r\n/g, '\n');
+  const noComments = language === 'python'
+    ? src.replace(/#[^\n]*/g, '')
+    : src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  return noComments.replace(/\s+/g, '');
+}
+
+/**
+ * Is this still the starter code the problem handed out? Some problems (the "optimise this program"
+ * kind) ship a starter that is a complete, CORRECT solution. Their tests accept it, so a learner who
+ * writes nothing would be told "Accepted" and paid XP and coins for a problem they never touched.
+ * Run Tests and Submit refuse unchanged starter code. SQL has no such starter, and a problem with no
+ * starter code has nothing to compare with.
+ */
+export function isStarterUnchanged(problem: JudgeProblem, language: string, code: string): boolean {
+  if (problem.kind === 'sql') return false;
+  const starter = problem.languages.find((l) => l.language === language)?.starterCode;
+  if (!starter || !starter.trim()) return false;
+  return codeSignature(code, language) === codeSignature(starter, language);
+}
+
+export const STARTER_UNCHANGED_MESSAGE = 'You have not changed the starter code yet. Write or edit your solution first, then run it.';
+
 /** For SQL, each test's input is its own dataset script, run after the shared schema and before the query. */
 function sqlProgram(problem: JudgeProblem, testInput: string, code: string): string {
   return [problem.sqlSetup, testInput, code].filter((p) => p && p.trim()).join('\n');

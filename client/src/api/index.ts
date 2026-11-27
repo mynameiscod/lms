@@ -1,5 +1,6 @@
 import { pushClientError } from '../utils/errorStore';
-import { loginPathFor } from '../utils/loginPath';
+import { markPendingCall } from '../utils/pendingCall';
+import { loginRedirectFor } from '../utils/loginPath';
 
 // Use relative URL (no hardcoded domain) - works with any deployment
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api/v1';
@@ -61,7 +62,9 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     localStorage.removeItem('tenantId');
     
     // Redirect to login with appropriate message
-    const message = errorData.code === 'ACCOUNT_DEACTIVATED' 
+    const message = errorData.code === 'ACCESS_ENDED' && errorData.message
+      ? errorData.message
+      : errorData.code === 'ACCOUNT_DEACTIVATED'
       ? 'Your account has been deactivated. Please contact your administrator.'
       : 'Your session has expired. Please log in again.';
     
@@ -69,7 +72,8 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     localStorage.setItem('loginMessage', message);
     
     // Redirect to login - use replace to ensure navigation happens immediately
-    window.location.replace(loginPathFor(window.location.pathname));
+    // Back to the same page after signing in again (CareerPilot pages carry it as ?next=).
+    window.location.replace(loginRedirectFor(window.location.pathname, window.location.search));
     
     // Return a never-resolving promise to prevent further code execution
     return new Promise(() => {});
@@ -630,6 +634,41 @@ export const userApi = {
     return response.json();
   },
 
+  /** One status for several students at once. */
+  setStudentStatusMany: async (body: { userIds: string[]; status: 'active' | 'inactive' | 'discontinued' | 'completed'; date?: string; reason?: string; note?: string }) => {
+    const response = await fetch(`${API_BASE_URL}/users/bulk/student-status`, {
+      method: 'PATCH',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.message || 'Failed to change status');
+    return json;
+  },
+
+  /** Extend / change a student's LMS access end date; until=null goes back to the default window. */
+  setStudentAccess: async (userId: string, body: { until: string | null; reason: string }) => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/access`, {
+      method: 'PATCH',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.message || 'Failed to change access');
+    return json;
+  },
+
+  setStudentStatus: async (userId: string, body: { status: 'active' | 'inactive' | 'discontinued' | 'completed'; date?: string; reason?: string; note?: string }) => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/student-status`, {
+      method: 'PATCH',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.message || 'Failed to change status');
+    return json;
+  },
+
   deactivateUser: async (userId: string) => {
     const response = await fetch(`${API_BASE_URL}/users/${userId}/deactivate`, {
       method: 'PATCH',
@@ -878,7 +917,21 @@ export const roleApi = {
 };
 
 // Batch API
+const batchJson = async (r: Response, fallback: string) => {
+  const json = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(json.message || fallback);
+  return json.data;
+};
 export const batchApi = {
+  /** Closing a batch (Batches → Close batch). */
+  closePreview: async (batchId: string) =>
+    batchJson(await fetch(`${API_BASE_URL}/batches/${batchId}/close-preview`, { headers: getAuthHeaders() }), 'Failed to load the batch'),
+  closeBatch: async (batchId: string, body: { closedOn?: string; notes?: string; discountedCount?: number | null; actions: Record<string, 'complete' | 'move' | 'keep'>; moveTo?: string }) =>
+    batchJson(await fetch(`${API_BASE_URL}/batches/${batchId}/close`, { method: 'POST', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), 'Failed to close the batch'),
+  reopenBatch: async (batchId: string) =>
+    batchJson(await fetch(`${API_BASE_URL}/batches/${batchId}/reopen`, { method: 'POST', headers: getAuthHeaders() }), 'Failed to reopen the batch'),
+  closedBatches: async () =>
+    batchJson(await fetch(`${API_BASE_URL}/batches/closed/list`, { headers: getAuthHeaders() }), 'Failed to load closed batches'),
   getBatches: async () => {
     const response = await fetch(`${API_BASE_URL}/batches`, {
       method: 'GET',
@@ -982,6 +1035,30 @@ export const batchApi = {
     return response.json();
   },
 
+  // Placement batch: settings + members drawn from other batches (home batch unchanged)
+  getPlacement: async (batchId: string) => {
+    const response = await fetch(`${API_BASE_URL}/batches/${batchId}/placement`, { headers: getAuthHeaders() });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.message || 'Failed to load placement settings');
+    return json;
+  },
+  updatePlacement: async (batchId: string, body: { kind: 'regular' | 'placement'; takesOverLabs: string[] }) => {
+    const response = await fetch(`${API_BASE_URL}/batches/${batchId}/placement`, {
+      method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(body),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.message || 'Failed to save placement settings');
+    return json;
+  },
+  changePlacementMembers: async (batchId: string, studentIds: string[], add: boolean) => {
+    const response = await fetch(`${API_BASE_URL}/batches/${batchId}/members`, {
+      method: add ? 'POST' : 'DELETE', headers: getAuthHeaders(), body: JSON.stringify({ studentIds }),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.message || 'Failed to update members');
+    return json;
+  },
+
   // Disabled-feature set for the requesting student's own batch (for menu gating)
   getMyBatchModules: async () => {
     const response = await fetch(`${API_BASE_URL}/batches/my/modules`, {
@@ -1031,6 +1108,99 @@ export const weeklyReportApi = {
     if (!r.ok) throw new Error(data.message || 'Failed to send');
     return data;
   },
+  sendToAll: async (weekStart: string, channels: ('email' | 'whatsapp')[] = ['email']) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/send-all`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ weekStart, channels }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to send');
+    return data;
+  },
+  getSettings: async () => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/settings`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to load settings');
+    return data.data as {
+      autoSend: boolean; channels: ('email' | 'whatsapp')[]; lastAutoWeek: string | null; lastAutoAt: string | null;
+      lastAutoResult: { sent: number; failed: number; skippedEmpty: number; skippedAlreadySent: number } | null;
+      whatsappTemplateReady: boolean;
+    };
+  },
+  updateSettings: async (autoSend: boolean, channels: ('email' | 'whatsapp')[]) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/settings`, {
+      method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ autoSend, channels }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to save');
+    return data;
+  },
+  // ── Custom-range report ──
+  searchStudents: async (q: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/students?q=${encodeURIComponent(q)}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to search');
+    return data.data as { id: string; name: string; email: string; batchName: string }[];
+  },
+  periodStudent: async (studentId: string, from: string, to: string, copy: 'staff' | 'student') => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/student/${studentId}?from=${from}&to=${to}&copy=${copy}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to build the report');
+    return data.data;
+  },
+  periodBatch: async (batchId: string, from: string, to: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/batch?batchId=${batchId}&from=${from}&to=${to}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to build the batch report');
+    return data.data as { label: string; students: any[] };
+  },
+  /** Excel for everyone: start building (scope 'all' or a batch id), poll, then download. */
+  startExport: async (scope: string, from: string, to: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/export`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ scope, from, to }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Could not start the export');
+    return data.data as { id: string; status: string; done: number; total: number };
+  },
+  exportStatus: async (id: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/export/${id}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Could not read the export');
+    return data.data as { id: string; status: 'running' | 'done' | 'failed'; done: number; total: number; fileName: string; error: string; scopeName: string };
+  },
+  downloadExport: async (id: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/export/${id}/file`, { headers: getAuthHeaders() });
+    if (!r.ok) {
+      let msg = 'Download failed';
+      try { msg = (await r.json()).message || msg; } catch { /* not JSON */ }
+      throw new Error(msg);
+    }
+    const blob = await r.blob();
+    const name = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || 'progress-report.xlsx';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return name;
+  },
+  /** Downloads the PDF or Excel file of a student's custom-range report. */
+  downloadPeriod: async (studentId: string, from: string, to: string, copy: 'staff' | 'student', format: 'pdf' | 'xlsx') => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/period/student/${studentId}?from=${from}&to=${to}&copy=${copy}&format=${format}`, { headers: getAuthHeaders() });
+    if (!r.ok) {
+      let msg = 'Download failed';
+      try { msg = (await r.json()).message || msg; } catch { /* not JSON */ }
+      throw new Error(msg);
+    }
+    const blob = await r.blob();
+    const name = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || `report.${format}`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+  /** batchId 'all' = every active batch. */
   estimate: async (batchId: string) => {
     const r = await fetch(`${API_BASE_URL}/weekly-reports/estimate?batchId=${batchId}`, { headers: getAuthHeaders() });
     const data = await r.json();
@@ -1898,10 +2068,45 @@ export const leadStageApi = {
   }
 };
 
+// Pipeline settings: stages → sub-stages → reasons (server: routes/leadPipelineRoutes.ts)
+const pipelineCall = (path: string, method = 'GET', body?: any) =>
+  authenticatedFetch(`${API_BASE_URL}/lead-pipeline${path}`, { method, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
+
+export const leadPipelineApi = {
+  get: () => pipelineCall(''),
+  createStage: (data: any) => pipelineCall('/stages', 'POST', data),
+  updateStage: (id: string, data: any) => pipelineCall(`/stages/${id}`, 'PUT', data),
+  deleteStage: (id: string) => pipelineCall(`/stages/${id}`, 'DELETE'),
+  reorderStages: (ids: string[]) => pipelineCall('/stages/reorder', 'PUT', { ids }),
+  setLandingStage: (id: string) => pipelineCall(`/stages/${id}/landing`, 'PUT', {}),
+  createSubStage: (data: any) => pipelineCall('/sub-stages', 'POST', data),
+  updateSubStage: (id: string, data: any) => pipelineCall(`/sub-stages/${id}`, 'PUT', data),
+  deleteSubStage: (id: string) => pipelineCall(`/sub-stages/${id}`, 'DELETE'),
+  reorderSubStages: (stageId: string, ids: string[]) => pipelineCall(`/stages/${stageId}/sub-stages/reorder`, 'PUT', { ids }),
+  createReason: (data: any) => pipelineCall('/reasons', 'POST', data),
+  updateReason: (id: string, data: any) => pipelineCall(`/reasons/${id}`, 'PUT', data),
+  deleteReason: (id: string) => pipelineCall(`/reasons/${id}`, 'DELETE'),
+  reorderReasons: (subStageId: string, ids: string[]) => pipelineCall(`/sub-stages/${subStageId}/reasons/reorder`, 'PUT', { ids }),
+  addStarter: () => pipelineCall('/starter', 'POST', {}),
+  // Option lists: 'call_outcome' | 'followup_reason'
+  getPicklist: (list: string, activeOnly = false) => pipelineCall(`/picklists/${list}${activeOnly ? '?active=1' : ''}`),
+  createPicklistItem: (list: string, data: any) => pipelineCall(`/picklists/${list}`, 'POST', data),
+  updatePicklistItem: (id: string, data: any) => pipelineCall(`/picklists/items/${id}`, 'PUT', data),
+  deletePicklistItem: (id: string) => pipelineCall(`/picklists/items/${id}`, 'DELETE'),
+  reorderPicklist: (list: string, ids: string[]) => pipelineCall(`/picklists/${list}/reorder`, 'PUT', { ids }),
+};
+
 // Lead API
 export const leadApi = {
-  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string }) => {
+  /** People who can be assigned leads: Super Admin, System Admin and staff with a BDM role. */
+  getCounsellors: async () => authenticatedFetch(`${API_BASE_URL}/leads/counsellors`),
+  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string; adId?: string; reEnquiry?: boolean; milestone?: string; subStageId?: string; followUp?: string; course?: string; campaign?: string; sort?: string; dir?: 'asc' | 'desc'; openOnly?: string }) => {
     const params = new URLSearchParams();
+    for (const k of ['milestone', 'subStageId', 'followUp', 'course', 'campaign', 'sort', 'dir', 'openOnly'] as const) {
+      if (filters?.[k]) params.append(k, String(filters[k]));
+    }
+    if (filters?.adId) params.append('adId', filters.adId);
+    if (filters?.reEnquiry) params.append('reEnquiry', 'true');
     if (filters?.stageId) params.append('stageId', filters.stageId);
     if (filters?.source) params.append('source', filters.source);
     if (filters?.assignedTo) params.append('assignedTo', filters.assignedTo);
@@ -1917,8 +2122,28 @@ export const leadApi = {
   getLeadById: async (leadId: string) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}`);
   },
+  /** Counts per milestone + follow-up/nurture counts, with the same filters as the list. */
+  getMilestoneSummary: async (filters: Record<string, string | undefined>) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
+    return authenticatedFetch(`${API_BASE_URL}/leads/milestone-summary?${params.toString()}`);
+  },
+  /** Follow-up queue: tab = today | overdue | upcoming | unassigned | nurture */
+  getQueue: async (tab: string, page = 1, opts: { limit?: number; stageId?: string; course?: string; assignedTo?: string; search?: string } = {}) => {
+    const params = new URLSearchParams({ tab, page: String(page) });
+    Object.entries(opts).forEach(([k, v]) => { if (v !== undefined && v !== '') params.set(k, String(v)); });
+    return authenticatedFetch(`${API_BASE_URL}/leads/queue?${params.toString()}`);
+  },
+  getSavedViews: async () => authenticatedFetch(`${API_BASE_URL}/lead-views`),
+  saveView: async (name: string, filters: Record<string, string>, shared = false) =>
+    authenticatedFetch(`${API_BASE_URL}/lead-views`, { method: 'POST', body: JSON.stringify({ name, filters, shared }) }),
+  deleteView: async (id: string) => authenticatedFetch(`${API_BASE_URL}/lead-views/${id}`, { method: 'DELETE' }),
   getSources: async () => {
     return authenticatedFetch(`${API_BASE_URL}/leads/sources`);
+  },
+  /** The ads leads came from, for the "which ad" filter. */
+  getAds: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/ads`);
   },
   createLead: async (data: any) => {
     return authenticatedFetch(`${API_BASE_URL}/leads`, {
@@ -1937,11 +2162,38 @@ export const leadApi = {
       method: 'DELETE'
     });
   },
+  /** Full stage change: stage → sub-stage → reason (+ details, note, next follow-up). 202 = waiting for approval. */
+  changeStageFull: async (leadId: string, payload: { stageId: string; subStageId?: string; reasonId?: string; reasonDetail?: string; reason?: string; note?: string; nextFollowUp?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/stage`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  bulkChangeStage: async (payload: { leadIds: string[]; stageId: string; subStageId?: string; reasonId?: string; reasonDetail?: string; reason?: string; note?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/bulk/stage`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  bulkAssign: async (leadIds: string[], assignedTo: string | null) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/bulk/assign`, { method: 'POST', body: JSON.stringify({ leadIds, assignedTo }) });
+  },
   changeStage: async (leadId: string, stageId: string, notInterestedReason?: string) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/stage`, {
       method: 'PATCH',
       body: JSON.stringify({ stageId, notInterestedReason })
     });
+  },
+  /** The WhatsApp button was pressed: counts as one WhatsApp action in Team Activity (a repeat within two minutes is ignored). */
+  logWhatsAppClick: async (leadId: string) => authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/whatsapp-click`, { method: 'POST' }),
+  /** "I am working in the app right now" (sent once a minute while active), with the lead page that is open, if any. */
+  heartbeat: async (leadId?: string) => authenticatedFetch(`${API_BASE_URL}/leads/heartbeat`, { method: 'POST', body: JSON.stringify({ leadId }) }),
+  getTeamOverview: async (params: { from?: string; to?: string }) => {
+    const q = new URLSearchParams();
+    if (params.from) q.append('from', params.from);
+    if (params.to) q.append('to', params.to);
+    return authenticatedFetch(`${API_BASE_URL}/leads/team-activity/overview${q.toString() ? `?${q}` : ''}`);
+  },
+  getTeamPerson: async (userId: string, date: string) => authenticatedFetch(`${API_BASE_URL}/leads/team-activity/person?userId=${encodeURIComponent(userId)}&date=${encodeURIComponent(date)}`),
+  /** The Call button was pressed: counts as one call in Team Activity (a repeat within two minutes is ignored). */
+  logCallClick: async (leadId: string, name?: string) => {
+    // Ask "How did the call go?" when they come back (components/CallOutcomePrompt).
+    markPendingCall(leadId, name);
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/call-click`, { method: 'POST' });
   },
   addActivity: async (leadId: string, data: { type: string; description: string; callOutcome?: string; disposition?: string }, recordingFile?: File) => {
     if (recordingFile) {
@@ -1988,8 +2240,10 @@ export const leadApi = {
   getManagerBoard: async () => {
     return authenticatedFetch(`${API_BASE_URL}/leads/manager-board`);
   },
-  exportLeads: (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; dateFrom?: string; dateTo?: string }) => {
+  exportLeads: (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; dateFrom?: string; dateTo?: string; adId?: string; reEnquiry?: boolean }) => {
     const params = new URLSearchParams();
+    if (filters?.adId) params.append('adId', filters.adId);
+    if (filters?.reEnquiry) params.append('reEnquiry', 'true');
     if (filters?.stageId) params.append('stageId', filters.stageId);
     if (filters?.source) params.append('source', filters.source);
     if (filters?.assignedTo) params.append('assignedTo', filters.assignedTo);
@@ -2839,6 +3093,8 @@ export const followUpApi = {
     return authenticatedFetch(`${API_BASE_URL}/follow-ups/my?page=${page}&limit=${limit}`);
   },
 
+  /** All follow-ups of one lead (newest first). */
+  getLeadFollowUps: async (leadId: string) => authenticatedFetch(`${API_BASE_URL}/follow-ups/lead/${leadId}`),
   getTodayFollowUps: async () => {
     return authenticatedFetch(`${API_BASE_URL}/follow-ups/today`);
   },
@@ -2923,6 +3179,8 @@ export const meetingApi = {
     sendEmail: boolean;
     status: string;
     cancellationReason: string;
+    feedback: string;
+    nextAction: string;
   }>) => {
     return authenticatedFetch(`${API_BASE_URL}/meetings/${id}`, {
       method: 'PUT',
@@ -2939,19 +3197,14 @@ export const meetingApi = {
   },
 };
 
-// Lead Distribution Config API
-export const leadDistributionApi = {
-  get: async () => authenticatedFetch(`${API_BASE_URL}/lead-distribution-config`),
-  update: async (data: {
-    mode?: 'round_robin' | 'weighted' | 'manual';
-    enabled?: boolean;
-    eligibleRoles?: string[];
-    maxLeadsPerDayDefault?: number;
-    weights?: { userId: string; weight: number; maxLeadsPerDay?: number }[];
-  }) => authenticatedFetch(`${API_BASE_URL}/lead-distribution-config`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
+// Lead Assignment — the one setting for how new leads get a counsellor (manual | round robin | rules)
+export const leadAssignmentApi = {
+  get: async () => authenticatedFetch(`${API_BASE_URL}/lead-assignment`),
+  save: async (data: {
+    mode: 'manual' | 'round_robin' | 'rules';
+    members: { userId: string; available: boolean; maxPerDay: number | null }[];
+    rules: { name: string; enabled: boolean; sources: string[]; courses: string[]; members: string[] }[];
+  }) => authenticatedFetch(`${API_BASE_URL}/lead-assignment`, { method: 'PUT', body: JSON.stringify(data) }),
 };
 
 // Seat Reservation API (P5)
@@ -3324,4 +3577,186 @@ export const hmsClassApi = {
     authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/batches/${batchId}`, { method: 'DELETE' }),
   searchPeople: (q: string) =>
     authenticatedFetch(`${API_BASE_URL}/hms-classes/people/search?q=${encodeURIComponent(q)}`),
+};
+
+// Meta CRM conversion events + ad spend sync (server: routes/metaCrmRoutes.ts)
+const metaCrmCall = (path: string, method = 'GET', body?: any) =>
+  authenticatedFetch(`${API_BASE_URL}/meta-crm${path}`, { method, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
+
+export const metaCrmApi = {
+  summary: () => metaCrmCall('/summary'),
+  events: (params: { status?: string; page?: number; limit?: number } = {}) => {
+    const q = new URLSearchParams();
+    if (params.status) q.set('status', params.status);
+    if (params.page) q.set('page', String(params.page));
+    if (params.limit) q.set('limit', String(params.limit));
+    return metaCrmCall(`/events${q.toString() ? `?${q}` : ''}`);
+  },
+  /** One lead's Meta events, oldest first (for the lead page). */
+  leadEvents: (leadId: string) => metaCrmCall(`/lead/${leadId}`),
+  retryFailed: () => metaCrmCall('/retry-failed', 'POST', {}),
+  testSend: (leadId?: string) => metaCrmCall('/test-send', 'POST', leadId ? { leadId } : {}),
+  getSettings: () => metaCrmCall('/settings'),
+  updateSettings: (data: Record<string, any>) => metaCrmCall('/settings', 'PUT', data),
+  syncSpend: (days = 3) => metaCrmCall(`/spend/sync?days=${days}`, 'POST', {}),
+  backfillSpend: (days = 90) => metaCrmCall(`/spend/backfill?days=${days}`, 'POST', {}),
+  spendStatus: () => metaCrmCall('/spend/status'),
+  spendSummary: (from?: string, to?: string) => {
+    const q = new URLSearchParams();
+    if (from) q.set('from', from);
+    if (to) q.set('to', to);
+    return metaCrmCall(`/spend/summary${q.toString() ? `?${q}` : ''}`);
+  },
+};
+
+// Admissions reports (server: routes/leadReportRoutes.ts)
+export const leadReportApi = {
+  /** Lead Dashboard: tiles, funnel, trend, follow-up tasks, tab counts. Omit dates for all time. */
+  dashboard: (from?: string, to?: string, countBy?: 'created' | 'activity') => {
+    const q = new URLSearchParams(); if (from) q.append('from', from); if (to) q.append('to', to); if (countBy) q.append('countBy', countBy);
+    return authenticatedFetch(`${API_BASE_URL}/lead-reports/dashboard?${q.toString()}`);
+  },
+  admissions: (params: { from: string; to: string; assignedTo?: string; source?: string; course?: string }) => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v) q.append(k, v); });
+    return authenticatedFetch(`${API_BASE_URL}/lead-reports/admissions?${q.toString()}`);
+  },
+};
+
+// CRM automation rules (server: routes/leadAutomationRoutes.ts)
+export const leadAutomationApi = {
+  get: () => authenticatedFetch(`${API_BASE_URL}/lead-automation`),
+  save: (rules: Record<string, any>) => authenticatedFetch(`${API_BASE_URL}/lead-automation`, { method: 'PUT', body: JSON.stringify({ rules }) }),
+};
+
+// ── Website Batches: the next batch date + seats shown on the public website ──
+export interface WebsiteCourseRow { id: string; key: string; name: string; active: boolean; order: number }
+export interface WebsiteBatchRow {
+  id: string; courseKey: string; startDate: string; displayDate: string; daysLeft: number; seatsLeft: number; mode: string;
+  showOnWebsite: boolean; state: 'live' | 'queued' | 'full' | 'hidden' | 'started'; updatedAt: string;
+  history: { at: string; byName: string; change: string }[];
+}
+const wbJson = async (r: Response) => {
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.message || 'Something went wrong');
+  return data;
+};
+export const websiteBatchApi = {
+  overview: async () => (await wbJson(await fetch(`${API_BASE_URL}/website-batches`, { headers: getAuthHeaders() }))).data as {
+    today: string;
+    common: { key: string; name: string; live: string | null; batches: WebsiteBatchRow[] };
+    courses: (WebsiteCourseRow & { live: string | null; batches: WebsiteBatchRow[] })[];
+  },
+  create: async (body: { courseKey: string; startDate: string; seatsLeft: number; mode?: string; showOnWebsite?: boolean }) =>
+    wbJson(await fetch(`${API_BASE_URL}/website-batches`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) })),
+  update: async (id: string, body: Partial<{ courseKey: string; startDate: string; seatsLeft: number; mode: string; showOnWebsite: boolean }>) =>
+    wbJson(await fetch(`${API_BASE_URL}/website-batches/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) })),
+  remove: async (id: string) => wbJson(await fetch(`${API_BASE_URL}/website-batches/${id}`, { method: 'DELETE', headers: getAuthHeaders() })),
+  saveCourse: async (body: { id?: string; key?: string; name?: string; active?: boolean }) =>
+    (await wbJson(await fetch(`${API_BASE_URL}/website-batches/courses`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) }))).data as WebsiteCourseRow[],
+};
+
+/* Website Content (2026-11-27): placement numbers, companies and placed students for the public website. */
+export interface WcHistory { at: string; byName: string; change: string }
+export interface WcStat { id: string; value: string; label: string; published: boolean; history: WcHistory[]; updatedAt: string }
+export type WcCompanyType = 'product' | 'service' | 'startup' | 'other';
+export interface WcCompany {
+  id: string; name: string; type: WcCompanyType; domain: string; logoId: string | null; logoUrl: string | null;
+  showInStrip: boolean; published: boolean; students: number; history: WcHistory[]; updatedAt: string;
+}
+export interface WcStudent {
+  id: string; name: string; photoId: string | null; photoUrl: string | null; courseKey: string; courseName: string; role: string;
+  companyId: string | null; companyName: string; companyLogoUrl: string | null; packageLpa: number | null; packageText: string;
+  batch: string; year: number | null; college: string; degree: string; quote: string; tags: string[]; placedOn: string;
+  featured: boolean; consent: boolean; published: boolean; userId: string | null; history: WcHistory[]; updatedAt: string;
+}
+export interface WcOffer {
+  candidateId: string; userId: string | null; name: string; companyName: string; role: string; packageLpa: number | null;
+  college: string; degree: string; year: number | null; placedOn: string; status: string; hasCard: boolean;
+}
+export type WcList = 'stats' | 'companies' | 'students';
+export const websiteContentApi = {
+  placements: async () => (await wbJson(await fetch(`${API_BASE_URL}/website-content/placements`, { headers: getAuthHeaders() }))).data as {
+    apiUrl: string;
+    courses: { key: string; name: string; active: boolean }[];
+    tags: { key: string; label: string }[];
+    companyTypes: WcCompanyType[];
+    stats: WcStat[]; companies: WcCompany[]; students: WcStudent[];
+  },
+  create: async (list: WcList, body: any) =>
+    (await wbJson(await fetch(`${API_BASE_URL}/website-content/${list}`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) }))).data as { id: string },
+  update: async (list: WcList, id: string, body: any) =>
+    wbJson(await fetch(`${API_BASE_URL}/website-content/${list}/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) })),
+  remove: async (list: WcList, id: string) =>
+    wbJson(await fetch(`${API_BASE_URL}/website-content/${list}/${id}`, { method: 'DELETE', headers: getAuthHeaders() })),
+  reorder: async (list: WcList, ids: string[]) =>
+    wbJson(await fetch(`${API_BASE_URL}/website-content/${list}/reorder`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ ids }) })),
+  upload: async (kind: 'photo' | 'logo' | 'thumb', file: File) => {
+    const fd = new FormData();
+    fd.append('kind', kind);
+    fd.append('file', file);
+    const { 'Content-Type': _ct, ...headers } = getAuthHeaders() as Record<string, string>;
+    return (await wbJson(await fetch(`${API_BASE_URL}/website-content/media`, { method: 'POST', headers, body: fd }))).data as { id: string; url: string };
+  },
+  lmsOffers: async (q = '') =>
+    (await wbJson(await fetch(`${API_BASE_URL}/website-content/lms-offers?q=${encodeURIComponent(q)}`, { headers: getAuthHeaders() }))).data as WcOffer[],
+  companyByName: async (name: string) =>
+    (await wbJson(await fetch(`${API_BASE_URL}/website-content/companies/by-name`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ name }) }))).data as { id: string; name: string },
+};
+
+/* Website Content stages 2–4 (2026-11-27): Tech Battle, events, courses, testimonials, trainers, site settings. */
+export type WcStatSection = 'placements' | 'home' | 'tech_battle';
+export interface WcPrize { place: string; amount: string; items: string[] }
+export interface WcWinner { place: number; name: string; college: string; score: string; photoId: string | null; photoUrl: string | null }
+export interface WcBattle {
+  id: string; title: string; slug: string; status: string; visibility: string; startAt: string; endAt: string; date: string; time: string; ended: boolean;
+  partnerCollege: string; partnerImageId: string | null; partnerImageUrl: string | null; winners: WcWinner[]; winnersPublished: boolean; history: WcHistory[];
+}
+export interface WcBattleSettings {
+  scheduleText: string; eligibility: string; alsoOpenTo: string; durationText: string; modeText: string; topics: string[]; prizes: WcPrize[]; everyone: string[]; history: WcHistory[];
+}
+export interface WcEvent {
+  id: string; type: 'hackathon' | 'workshop' | 'other'; title: string; summary: string; startDate: string; endDate: string; timeText: string; venue: string;
+  mode: 'online' | 'offline' | 'hybrid'; teamSize: string; feeText: string; prizes: string[]; registerUrl: string; pageUrl: string;
+  imageId: string | null; imageUrl: string | null; status: 'upcoming' | 'ongoing' | 'past'; published: boolean; history: WcHistory[];
+}
+export interface WcCourse {
+  id: string; key: string; name: string; active: boolean; published: boolean; title: string; tagline: string; tags: string[]; duration: string; mode: string;
+  seatsText: string; fee: string; oldFee: string; badge: string; pageUrl: string; brochureUrl: string; tools: string[];
+  modules: { title: string; days: string; topics: string[] }[]; projects: { title: string; description: string; tags: string[] }[];
+  timeline: { day: string; title: string; points: string[] }[]; faqs: { q: string; a: string }[];
+  nextBatch: { startDate: string; displayDate: string; daysLeft: number; seatsLeft: number; mode: string } | null; history: WcHistory[];
+}
+export interface WcTestimonial {
+  id: string; name: string; thumbId: string | null; thumbUrl: string | null; videoUrl: string; companyId: string | null; company: { name: string; logoUrl: string | null } | null;
+  packageLpa: number | null; package: { lpa: number; text: string } | null; label: string; courseKey: string; course: { key: string; name: string } | null;
+  quote: string; consent: boolean; published: boolean; history: WcHistory[];
+}
+export interface WcTrainer {
+  id: string; name: string; photoId: string | null; photoUrl: string | null; title: string; company: string; experience: string; skills: string[];
+  linkedin: string; bio: string; published: boolean; history: WcHistory[];
+}
+export type WcSectionList = 'events' | 'testimonials' | 'trainers';
+export interface WcSections {
+  battle: { settings: WcBattleSettings; stats: WcStat[]; currentId: string | null; battles: WcBattle[] };
+  events: WcEvent[]; courses: WcCourse[]; testimonials: WcTestimonial[]; trainers: WcTrainer[];
+  settings: { topBar: { enabled: boolean; text: string; linkText: string; url: string }; history: WcHistory[]; stats: WcStat[] };
+  companies: { id: string; name: string }[];
+  apiUrls: Record<'placements' | 'techBattle' | 'events' | 'courses' | 'testimonials' | 'trainers' | 'site' | 'nextBatch', string>;
+}
+const wcSend = async (method: string, path: string, body?: any) =>
+  wbJson(await fetch(`${API_BASE_URL}/website-content${path}`, { method, headers: getAuthHeaders(), ...(body === undefined ? {} : { body: JSON.stringify(body) }) }));
+export const websiteSectionsApi = {
+  load: async () => (await wbJson(await fetch(`${API_BASE_URL}/website-content/sections`, { headers: getAuthHeaders() }))).data as WcSections,
+  create: async (list: WcSectionList, body: any) => (await wcSend('POST', `/x/${list}`, body)).data as { id: string },
+  update: (list: WcSectionList, id: string, body: any) => wcSend('PUT', `/x/${list}/${id}`, body),
+  remove: (list: WcSectionList, id: string) => wcSend('DELETE', `/x/${list}/${id}`),
+  reorder: (list: WcSectionList | 'courses', ids: string[]) => wcSend('POST', `/x/${list}/reorder`, { ids }),
+  battleSettings: (body: Partial<WcBattleSettings>) => wcSend('PUT', '/tech-battle/settings', body),
+  battleNote: (battleId: string, body: any) => wcSend('PUT', `/tech-battle/battles/${battleId}`, body),
+  battleTop: async (battleId: string, n = 3) =>
+    (await wbJson(await fetch(`${API_BASE_URL}/website-content/tech-battle/battles/${battleId}/leaderboard?n=${n}`, { headers: getAuthHeaders() }))).data as { place: number; name: string; college: string; score: string }[],
+  addCourse: (body: { key: string; name: string }) => wcSend('POST', '/courses', body),
+  saveCourse: (key: string, body: any) => wcSend('PUT', `/courses/${key}`, body),
+  saveSettings: (body: any) => wcSend('PUT', '/settings', body),
 };

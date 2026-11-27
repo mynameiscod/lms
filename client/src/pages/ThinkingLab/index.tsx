@@ -2,7 +2,10 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import Editor from '@monaco-editor/react';
 import { thinkingLabApi, TLChallenge, TLStats, TLRunResult, TLSubmitResult, TLBadge, TLLeaderRow, TLVoiceEval, TLProfile, TLAnalytics, TLExplanation, TL_LANGS, DIFF_COLORS, TL_TEMPLATES } from '../../api/thinkingLabApi';
 import { toast } from '../../components/feedback/appFeedback';
+import '../Passport/interviewDashboard.css';
 import './thinkingLab.css';
+import { barWidth } from '../../utils/barWidth';
+import { Solve, SolveApi } from './MemberThinkingLab';
 
 /*
  * One page, two homes. The LMS mounts it inside its Layout with the colours it always had;
@@ -30,7 +33,7 @@ const THEMES: Record<Variant, Theme> = {
   careerpilot: {
     primary: '#051D64', primarySoft: '#EEF3FB', primaryBorder: '#C9D8E5',
     accent: '#1F7A8C', accentSoft: '#EAF6F8', accentBorder: '#B9E3EA', accentInk: '#15596A',
-    run: '#1F7A8C', ink: '#102A4F', sub: '#5B6B7F', faint: '#64748B', border: '#E2EAF2', line: '#E2EAF2', field: '#C9D8E5', surface: '#F4F8FC',
+    run: '#1F7A8C', ink: '#102A4F', sub: '#2F3F56', faint: '#3F4F66', border: '#E2EAF2', line: '#E2EAF2', field: '#C9D8E5', surface: '#F4F8FC',
     success: '#17885D', successSoft: '#EAF8F1', successBorder: '#BFE6D3', warn: '#B86B00', warnSoft: '#FFF7E8', warnBorder: '#F3D9A6', warnInk: '#8A5000',
     danger: '#C93737', dangerSoft: '#FFF0F0', banner: 'linear-gradient(120deg,#051D64,#0B2D72)',
     heat: ['#E2EAF2', '#BFE6EC', '#7FD3E0', '#359AAD', '#051D64'],
@@ -41,11 +44,26 @@ const ThemeCtx = createContext<Theme>(THEMES.lms);
 const useT = () => useContext(ThemeCtx);
 const fz = (t: Theme, n: number) => Math.round(n * t.scale * 10) / 10;
 
+/**
+ * One constraint per line. AI-generated problems answer with a list, and the server used to store it
+ * through String(list), which joins with bare commas: "1 <= N <= 10^5,Array elements range…". Newer
+ * rows keep one per line; this also splits those older rows — only at a comma with no space after it
+ * that starts a new sentence or a new bound ("…10^5,Array", "…N,1 <= K"), so "1, 2" or "1,000" stay whole.
+ */
+const constraintLines = (c: unknown): string[] => {
+  const parts = Array.isArray(c) ? c.map(x => String(x)) : String(c ?? '').split(/\r?\n/);
+  return parts
+    .flatMap(line => line.split(/,(?=[A-Z]|-?\d+(?:\^\d+)?\s*(?:<=?|\u2264))/))
+    .map(x => x.trim())
+    .filter(Boolean);
+};
 const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
 const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
-  const t = THEMES[variant];
+  // One look for both products: the LMS page uses the CareerPilot palette, banner and tabs too (behaviour still follows the variant).
+  const t = THEMES.careerpilot;
   const cp = variant === 'careerpilot';
+  const cpLook = true;
   const [challenge, setChallenge] = useState<TLChallenge | null>(null);
   const [memberPos, setMemberPos] = useState<{ position: number; total: number } | null>(null);
   const [stats, setStats] = useState<TLStats | null>(null);
@@ -64,6 +82,11 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
   const [submitResult, setSubmitResult] = useState<TLSubmitResult | null>(null);
   const [hints, setHints] = useState<string[]>([]);
   const [seconds, setSeconds] = useState(0);
+  /**
+   * Both products open on an overview of today's problem; the problem itself (and its timer) opens only
+   * when the student chooses "Start solving". (The LMS used to open straight on the problem, timer running.)
+   */
+  const [open, setOpen] = useState(false);
 
   const [tab, setTab] = useState<'challenge' | 'progress' | 'leaderboard' | 'analytics'>('challenge');
   const [celebration, setCelebration] = useState<TLSubmitResult | null>(null);
@@ -94,6 +117,9 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
   const minWords = challenge?.minApproachWords ?? 30;
   const done = challenge?.status === 'solved' || challenge?.status === 'submitted';
   const member = cp || !!stats?.member;
+  /** A CareerPilot member earns the day's XP set in XP & Rewards, not the problem's own amount. */
+  const memberXp = stats?.member && stats.dayXp != null;
+  const xpOf = (problemXp: number) => (memberXp ? stats!.dayXp! : problemXp);
 
   const hydrate = useCallback((ch: TLChallenge | null) => {
     if (!ch) { setChallenge(null); return; }
@@ -124,13 +150,14 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
 
   useEffect(() => { load(); }, [load]);
 
-  // Timer runs while an unsolved challenge is open.
+  // The timer runs only while the problem screen itself is open (not on the overview or another tab).
+  const timing = !!challenge && !done && open && tab === 'challenge';
   useEffect(() => {
-    if (challenge && !done) {
+    if (timing) {
       timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
       return () => clearInterval(timerRef.current);
     }
-  }, [challenge, done]);
+  }, [timing]);
 
   // Lazy-load Progress + Leaderboard when their tab opens.
   useEffect(() => { if (tab === 'progress' && !badges) thinkingLabApi.badges().then(setBadges).catch(() => setBadges([])); }, [tab, badges]);
@@ -152,7 +179,12 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
     try {
       const r = await thinkingLabApi.saveApproach(challenge.challengeId, approach);
       setUnlocked(r.unlocked);
-      if (!r.unlocked) setErr(`Explain a little more — ${r.wordCount}/${r.minApproachWords} words. Describe your steps: what you read, what you compute, what you output.`);
+      if (!r.unlocked) {
+        // Long enough but off track: the check's pointer; too short: how many more words.
+        setErr(r.wordCount >= r.minApproachWords
+          ? `Not quite yet — ${r.feedback || 'describe how you would solve this problem: what you read, what you work out, and what you print.'}`
+          : `Explain a little more — ${r.wordCount}/${r.minApproachWords} words. Describe your steps: what you read, what you compute, what you output.`);
+      } else if (r.feedback) toast(r.verdict === 'good' ? `Good plan. ${r.feedback}` : `On the right track. ${r.feedback}`, 'success');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not save your approach.'); }
     finally { setSavingApproach(false); }
   };
@@ -245,7 +277,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
         // A member keeps today's solved problem on screen and is told when the next one comes.
         if (member) toast(r.message || 'Your next problem unlocks tomorrow.', 'info');
         else setEmpty('No more challenges right now — come back tomorrow!');
-      } else { hydrate(r.challenge); setSubmitResult(null); }
+      } else { hydrate(r.challenge); setSubmitResult(null); setOpen(false); }
     }
     catch (e: any) { setErr(e?.response?.data?.message || 'Failed.'); }
     finally { setLoading(false); }
@@ -254,6 +286,22 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
   if (loading) return <div style={{ padding: 40, color: t.sub, fontSize: fz(t, 14) }}>Loading your challenge…</div>;
 
   const p = challenge?.problem;
+  const q = challenge?.kind === 'puzzle' ? challenge.question : undefined;
+  /** What the header and the overview show: the coding problem, or a lab track's puzzle in the same shape. */
+  const shown: any = p || (q ? {
+    title: q.title, statement: q.statement, difficulty: q.difficulty, category: PUZZLE_LABEL[q.type] || q.type, xp: 0,
+    estimatedMinutes: q.estimatedMinutes || undefined, examples: q.examples || [], totalHints: q.hintsTotal,
+  } : null);
+  const started = !!challenge && !done && (seconds > 0 || challenge.attempts > 0 || !!challenge.approach?.trim());
+  /* The problem set's size and how much of it is solved, for the banner's ring and bar. */
+  const setTotal = memberPos?.total || 0;
+  const setPct = setTotal ? Math.min(100, Math.round(((stats?.solvedTotal || 0) / setTotal) * 100)) : 0;
+  /* Where today's problem stands, in the lab's own four steps. */
+  const stepDone = [unlocked || done, (challenge?.attempts || 0) > 0 || done, done, journalSaved];
+  const firstOpen = stepDone.findIndex(x => !x);
+  const stepMarks = ['Think', 'Code', 'Submit', 'Reflect'].map((label, i) => ({
+    key: label, label, state: stepDone[i] ? 'done' : i === firstOpen ? 'current' : '',
+  }));
   const diffColor = p ? (t.diff[p.difficulty] || t.primary) : t.primary;
   const card: React.CSSProperties = { background: '#fff', border: `1px solid ${t.border}`, borderRadius: 16, padding: 20 };
   const btn = (bg: string, fg = '#fff'): React.CSSProperties => ({ background: bg, color: fg, border: 'none', borderRadius: 10, padding: '10px 16px', fontWeight: 700, fontSize: fz(t, 13.5), cursor: 'pointer' });
@@ -267,7 +315,108 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
   return (
     <ThemeCtx.Provider value={t}>
     <div className={`tl-root tl-${variant}`}>
-      {/* Header */}
+      {/* Header — CareerPilot uses the member pages' banner (the Mock Interview one, same classes), the LMS keeps its own. */}
+      {!cp ? (
+        /* LMS: the flat header of the CareerPilot Thinking Lab (MemberThinkingLab) — title, actions, three stats
+           and today's problem on one line. No cards. */
+        <div className="pl plh tl3 tl-flat">
+          <section className="plh-top">
+            <div className="plh-copy">
+              <span className="plh-eyebrow">Thinking Lab</span>
+              <h1>Think First, Then <span>Code</span></h1>
+              <p>One new problem every day. Explain your approach, code it in any language, and get AI feedback on how you think.</p>
+            </div>
+            <div className="plh-bar">
+              <div className="plh-actions">
+                {shown && (
+                  <button type="button" className="plh-btn primary" onClick={() => { setTab('challenge'); setOpen(true); }}>
+                    <i className={`bi ${done ? 'bi-check2-circle' : 'bi-play-fill'}`} aria-hidden /> {done ? 'Review Today’s Solution' : started ? 'Continue Solving' : 'Start Today’s Problem'}
+                  </button>
+                )}
+                <button type="button" className="plh-btn" onClick={() => setTab('progress')}><i className="bi bi-graph-up-arrow" aria-hidden /> My Progress</button>
+              </div>
+              <div className="plh-stats">
+                <div className="plh-stat" title="Days in a row"><i className="bi bi-fire ic tl3-fire" aria-hidden /><span><b>{stats?.streak ?? 0}</b><small>Day streak</small></span></div>
+                <div className="plh-stat"><i className="fa-regular fa-circle-check ic green" aria-hidden /><span><b>{stats?.solvedTotal ?? 0}</b><small>Solved</small></span></div>
+                <div className="plh-stat"><i className="bi bi-lightning-charge-fill ic tl-flat-xp" aria-hidden /><span><b>{stats?.xpTotal ?? 0}</b><small>Lab XP</small></span></div>
+              </div>
+            </div>
+            {shown && (
+              <p className="plh-next">
+                <span>{done ? 'Done for today' : started ? 'Continue' : 'Today’s problem'}</span>
+                <button type="button" onClick={() => { setTab('challenge'); setOpen(true); }}>{shown.title}</button>
+                {shown.difficulty && <em className={`pl-diff ${shown.difficulty}`}>{shown.difficulty.charAt(0).toUpperCase() + shown.difficulty.slice(1)}</em>}
+                {(shown.xp > 0 || shown.estimatedMinutes) && <em className="tl3-xp">{shown.xp > 0 && <><i className="bi bi-lightning-charge-fill" aria-hidden /> {xpOf(shown.xp)} XP</>}{shown.estimatedMinutes ? `${shown.xp > 0 ? ' · ' : ''}~${shown.estimatedMinutes} min` : ''}</em>}
+              </p>
+            )}
+          </section>
+        </div>
+      ) : cpLook ? (
+        <div className="cp-iv-page iv2 tl-hero-wrap">
+          <section className="iv2-hero">
+            <div className="iv2-hero-copy">
+              <span className="iv2-eyebrow">Think first, then code</span>
+              <h1>Thinking <span>Lab</span></h1>
+              <p>One new problem every day. Explain your approach, code it in any language, and get AI feedback on how you think.</p>
+              <div className="iv2-chips">
+                <span><i className="bi bi-lightbulb" /> Think before you code</span>
+                <span><i className="bi bi-code-slash" /> Any language</span>
+                <span><i className="bi bi-stars" /> AI feedback</span>
+              </div>
+              <div className="iv2-actions">
+                {p && (
+                  <button className="iv2-btn light" onClick={() => { setTab('challenge'); setOpen(true); }}>
+                    <i className="bi bi-play-fill" /> {done ? 'Review today’s solution' : started ? 'Continue solving' : 'Start today’s problem'}
+                  </button>
+                )}
+                <button className="iv2-btn ghost" onClick={() => setTab('progress')}><i className="bi bi-graph-up-arrow" /> My progress</button>
+              </div>
+            </div>
+            {/* The member's own lab: problems solved, where today's problem stands, and today's problem itself. */}
+            <div className="iv2-momentum">
+              <span className="iv2-eyebrow">Your lab</span>
+              <div className={`iv2-strip${(stats?.solvedTotal || 0) > 0 ? ' on' : ''}`}>
+                <span className="ic"><i className="bi bi-lightbulb-fill" aria-hidden="true" /></span>
+                <div>
+                  <b>{stats?.solvedTotal ?? 0} problem{stats?.solvedTotal === 1 ? '' : 's'} solved</b>
+                  <span>{(stats?.streak || 0) > 0
+                    ? `${stats!.streak}-day lab streak${stats?.freezes ? ` · ${stats.freezes} freeze${stats.freezes === 1 ? '' : 's'}` : ''} · ${stats!.xpTotal} lab XP`
+                    : `${stats?.xpTotal ?? 0} lab XP · ${stats?.member ? 'submit today’s problem' : 'solve today’s problem'} to start a streak`}</span>
+                  {stats?.member && !!stats.dayXp && <span className="iv2-strip-xp">{stats.paidToday ? `Today’s ${stats.dayXp} XP earned` : `Today’s problem pays ${stats.dayXp} XP`}</span>}
+                  {setTotal > 0 && <i className="iv2-strip-bar" aria-hidden="true"><em style={{ width: `${barWidth(setPct)}%` }} /></i>}
+                </div>
+              </div>
+              {challenge && (
+                <ol className="iv2-steps2">
+                  {stepMarks.map(m => <li key={m.key} className={m.state}><i /><span>{m.label}</span></li>)}
+                </ol>
+              )}
+              {p && (
+                <button type="button" className="iv2-next" onClick={() => { setTab('challenge'); setOpen(true); }}>
+                  <span className="ic"><i className={`bi ${done ? 'bi-check-lg' : 'bi-play-fill'}`} aria-hidden="true" /></span>
+                  <div>
+                    <b>Today’s problem</b>
+                    <span>{p.title}</span>
+                    <em>{p.difficulty ? p.difficulty.charAt(0).toUpperCase() + p.difficulty.slice(1) : ''} · {xpOf(p.xp)} XP{p.estimatedMinutes ? ` · ~${p.estimatedMinutes} min` : ''}</em>
+                  </div>
+                  <i className="bi bi-chevron-right" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+            <div className="iv2-score">
+              <div className="iv2-ring" style={{ ['--iv2-deg' as any]: `${setPct * 3.6}deg` }}>
+                <div><strong>{stats?.solvedTotal ?? 0}</strong>{setTotal > 0 && <span>/{setTotal}</span>}</div>
+              </div>
+              <div className="iv2-score-copy">
+                <small>Problem set</small>
+                <b>{memberPos && memberPos.position > 0 ? `Problem ${memberPos.position} of ${memberPos.total}` : 'Your problems'}</b>
+                <span>{stats?.badgeCount ?? 0} badge{stats?.badgeCount === 1 ? '' : 's'} · best streak {stats?.longestStreak ?? 0}d</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : (
+        <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
           <h1 style={{ margin: 0, fontSize: fz(t, 26), color: t.ink, fontWeight: 800 }}>Thinking Lab</h1>
@@ -298,13 +447,23 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Tabs */}
+      {cpLook ? (
+        <nav className="tl-cp-tabs" role="tablist" aria-label="Thinking Lab">
+          {([['challenge', 'Today’s Challenge'], ['progress', 'My Progress'], ['analytics', 'Analytics'], ['leaderboard', 'Leaderboard']] as [any, string][]).map(([k, l]) => (
+            <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
+          ))}
+        </nav>
+      ) : (
       <div className="tl-tabs" role="tablist" style={{ marginTop: 16, borderBottom: `1px solid ${t.border}` }}>
         {([['challenge', "Today's Challenge"], ['progress', 'My Progress'], ['analytics', 'Analytics'], ['leaderboard', 'Leaderboard']] as [any, string][]).map(([k, l]) => (
           <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} style={{ background: 'none', border: 'none', borderBottom: `2.5px solid ${tab === k ? t.primary : 'transparent'}`, color: tab === k ? t.primary : t.sub, fontWeight: 700, fontSize: fz(t, 14), padding: '10px 14px', cursor: 'pointer' }}>{l}</button>
         ))}
       </div>
+      )}
 
       {tab === 'challenge' && empty && (
         <div style={{ marginTop: 20, background: '#fff', border: `1px dashed ${t.field}`, borderRadius: 16, padding: 40, textAlign: 'center' }}>
@@ -316,8 +475,43 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
         <div style={{ background: t.dangerSoft, color: t.danger, borderRadius: 8, padding: '10px 12px', fontSize: fz(t, 13), marginTop: 16 }}>{err}</div>
       )}
 
-      {tab === 'challenge' && p && challenge && (
+      {tab === 'challenge' && shown && challenge && !open && (
+        <ChallengeOverview
+          problem={shown} puzzle={!!q}
+          xp={xpOf(shown.xp || 0)}
+          challenge={challenge} position={memberPos} seconds={seconds} done={done} minWords={minWords}
+          onOpen={() => setOpen(true)}
+        />
+      )}
+
+      {/* A shared-bank puzzle from the batch's lab track: a final answer and the reasoning, marked step by step. */}
+      {tab === 'challenge' && challenge?.kind === 'puzzle' && challenge.question && open && (
+        <div className="pl pl2x plh tl3 tl-puzzle">
+          <Solve
+            q={challenge.question} practice={false} demo={false} hasNext={false}
+            api={{
+              answer: (id, body) => thinkingLabApi.puzzleAnswer(challenge.challengeId, body).then((r) => ({ question: r.question, reward: r.reward })),
+              hint: () => thinkingLabApi.puzzleHint(challenge.challengeId),
+              run: (() => { throw new Error('Puzzles are not run.'); }) as unknown as SolveApi['run'],
+            }}
+            onBack={() => setOpen(false)}
+            onNext={() => setOpen(false)}
+            onUpdate={(q, r) => {
+              const finished = q.state === 'solved' || q.state === 'finished';
+              setChallenge(c => c ? { ...c, question: q, status: finished ? (q.state === 'solved' ? 'solved' : 'submitted') : c.status, passed: q.state === 'solved', xpEarned: r?.xpNow ?? c.xpEarned } : c);
+              if (finished) { toast(q.state === 'solved' ? `Solved${r?.xpNow ? ` · +${r.xpNow} XP` : ''}` : `Done for today${r?.xpNow ? ` · +${r.xpNow} XP for your reasoning` : ''}`, 'success'); thinkingLabApi.stats().then(setStats).catch(() => {}); }
+            }}
+          />
+        </div>
+      )}
+
+      {tab === 'challenge' && p && challenge && open && challenge.kind !== 'puzzle' && (
         <>
+          {(
+            <button type="button" className="tl-back" onClick={() => setOpen(false)}>
+              <i className="bi bi-arrow-left" aria-hidden /> Back to Thinking Lab{!done && <span> · the timer pauses</span>}
+            </button>
+          )}
           {/* Challenge top bar */}
           <div style={{ ...card, marginTop: 18, padding: '16px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div style={{ minWidth: 0 }}>
@@ -327,7 +521,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
                 )}
                 <span style={{ fontSize: fz(t, 11), fontWeight: 800, color: '#fff', background: diffColor, borderRadius: 999, padding: '3px 10px', textTransform: 'capitalize' }}>{p.difficulty}</span>
                 <span style={{ fontSize: fz(t, 11.5), fontWeight: 700, color: cp ? t.accentInk : t.primary, background: cp ? t.accentSoft : t.primarySoft, borderRadius: 999, padding: '3px 10px' }}>{p.category}</span>
-                <span style={{ fontSize: fz(t, 12), color: t.sub }}>⚡ {p.xp} XP</span>
+                <span style={{ fontSize: fz(t, 12), color: t.sub }}>⚡ {xpOf(p.xp)} XP</span>
                 {p.estimatedMinutes && <span style={{ fontSize: fz(t, 12), color: t.sub }}>· ~{p.estimatedMinutes} min</span>}
               </div>
               <h2 style={{ margin: '8px 0 0', fontSize: fz(t, 19), color: t.ink, fontWeight: 700 }}>{p.title}</h2>
@@ -343,7 +537,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
             {/* Left: problem */}
             <div style={card}>
               <SectionH>Problem</SectionH>
-              <div style={{ fontSize: fz(t, 14.5), color: t.ink, lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{p.statement}</div>
+              <div className="tl-statement" style={{ fontSize: fz(t, 14.5), color: t.ink, lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{p.statement}</div>
               {p.imageUrl && <img src={p.imageUrl} alt="problem" style={{ maxWidth: '100%', borderRadius: 10, marginTop: 12, border: `1px solid ${t.line}` }} />}
               {p.examples?.length > 0 && (
                 <div style={{ marginTop: 14 }}>
@@ -357,7 +551,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
                   ))}
                 </div>
               )}
-              {p.constraints && <div style={{ marginTop: 12 }}><SectionH>Constraints</SectionH><pre style={{ ...pre, color: '#475569' }}>{p.constraints}</pre></div>}
+              {p.constraints && <div style={{ marginTop: 12 }}><SectionH>Constraints</SectionH><ul className="tl-constraints" style={{ ...pre, color: '#475569', listStyle: 'none', padding: 0 }}>{constraintLines(p.constraints).map((c, i) => <li key={i} style={{ margin: '0 0 3px' }}>{c}</li>)}</ul></div>}
               {p.notes && <div style={{ marginTop: 12, fontSize: fz(t, 13), color: t.sub }}>{p.notes}</div>}
             </div>
 
@@ -394,7 +588,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
 
               {/* Voice — Explain to AI (optional, +30 XP) */}
               <div style={{ marginTop: 16, borderTop: `1px dashed ${t.border}`, paddingTop: 14 }}>
-                <div style={{ fontSize: fz(t, 12.5), fontWeight: 800, color: t.accent }}>🎤 Explain your logic out loud <span style={{ color: t.sub, fontWeight: 500 }}>(optional · +30 XP)</span></div>
+                <div style={{ fontSize: fz(t, 12.5), fontWeight: 800, color: t.accent }}>🎤 Explain your logic out loud <span style={{ color: t.sub, fontWeight: 500 }}>({memberXp ? 'optional' : 'optional · +30 XP'})</span></div>
                 <p style={{ fontSize: fz(t, 12), color: t.sub, margin: '2px 0 8px' }}>Speak your approach — the AI coaches your confidence, clarity and communication. Great interview practice.</p>
                 {!voiceEval && (
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -461,7 +655,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
           {/* Thinking Journal — mandatory reflection after solving */}
           {done && (
             <div style={{ ...card, marginTop: 16 }}>
-              <SectionH>📓 Thinking Journal <span style={{ color: t.sub, fontWeight: 500, fontSize: fz(t, 12) }}>(+15 XP · builds your Thinking Profile)</span></SectionH>
+              <SectionH>📓 Thinking Journal <span style={{ color: t.sub, fontWeight: 500, fontSize: fz(t, 12) }}>({memberXp ? 'builds your Thinking Profile' : '+15 XP · builds your Thinking Profile'})</span></SectionH>
               {journalSaved ? (
                 <div style={{ background: t.successSoft, border: `1px solid ${t.successBorder}`, color: t.success, borderRadius: 10, padding: 12, fontSize: fz(t, 13) }}>✓ Journal saved. Your Thinking Profile updates as you reflect on more problems — see the <b>My Progress</b> tab.</div>
               ) : (
@@ -644,6 +838,89 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
       {celebration && <CelebrationModal result={celebration} onClose={() => setCelebration(null)} />}
     </div>
     </ThemeCtx.Provider>
+  );
+};
+
+/**
+ * TODAY'S PROBLEM, BEFORE IT STARTS.
+ *
+ * What the problem is, how big it is, and where the member stands on it — and one button that
+ * opens the problem screen, which is where the timer runs. Nothing here is invented: every figure
+ * is a field of the challenge the server sent.
+ */
+const PUZZLE_LABEL: Record<string, string> = { math: 'Math puzzle', logical: 'Logical thinking', critical: 'Critical thinking', coding: 'Coding' };
+
+const ChallengeOverview: React.FC<{
+  challenge: TLChallenge; position: { position: number; total: number } | null; seconds: number; done: boolean; minWords: number; onOpen: () => void;
+  /** What solving it pays this viewer (0 = not shown). */
+  xp: number;
+  /** The coding problem, or a puzzle in the same shape. */
+  problem: any;
+  puzzle?: boolean;
+}> = ({ challenge, position, seconds, done, minWords, onOpen, xp, problem, puzzle }) => {
+  const t = useT();
+  const p = problem;
+  const started = !done && (seconds > 0 || challenge.attempts > 0 || !!challenge.approach?.trim());
+  const solved = challenge.status === 'solved' || (done && challenge.passed);
+  const statement = String(p.statement || '').replace(/\s+/g, ' ').trim();
+  const preview = statement.length > 260 ? `${statement.slice(0, 257).trimEnd()}…` : statement;
+  const state = solved ? { label: 'Solved', cls: 'ok' } : done ? { label: 'Submitted', cls: 'ok' } : started ? { label: 'In progress', cls: 'go' } : { label: 'Not started', cls: '' };
+  const steps: [string, string, string][] = puzzle ? [
+    ['bi-book', 'Read it', 'Take your time: the timer starts only when you open the question.'],
+    ['bi-pencil', 'Answer and explain', 'Give your final answer and the steps you took to reach it.'],
+    ['bi-check2-circle', 'Get marked', 'Half for the answer, half for your reasoning, checked step by step.'],
+    ['bi-lightbulb', 'See the solution', 'Once you finish, the model answer and its steps are shown.'],
+  ] : [
+    ['bi-lightbulb', 'Think first', `Explain your approach in plain words (at least ${minWords}). The editor unlocks after.`],
+    ['bi-code-slash', 'Code it', 'Any language — read from standard input, print the answer. Run it against the examples.'],
+    ['bi-stars', 'Get AI feedback', 'Submit for a score on thinking, code and communication.'],
+    ['bi-journal-text', 'Reflect', 'A short journal after solving builds your Thinking Profile.'],
+  ];
+  return (
+    <div className="tl-ov">
+      <section className="tl-ov-card">
+        <div className="tl-ov-main">
+          <div className="tl-ov-chips">
+            <span className="tl-ov-eyebrow">{puzzle ? 'Today’s question' : 'Today’s problem'}</span>
+            {position && position.position > 0 && <span className="tl-ov-chip">Problem {position.position} of {position.total}</span>}
+            <span className="tl-ov-chip diff" style={{ background: t.diff[p.difficulty] || t.primary }}>{p.difficulty}</span>
+            {p.category && <span className="tl-ov-chip soft">{p.category}</span>}
+          </div>
+          <h2>{p.title}</h2>
+          {preview && <p className="tl-ov-preview">{preview}</p>}
+          <div className="tl-ov-meta">
+            {xp > 0 && <span><i className="bi bi-lightning-charge-fill" aria-hidden /> {xp} XP</span>}
+            {p.estimatedMinutes ? <span><i className="bi bi-clock" aria-hidden /> ~{p.estimatedMinutes} min</span> : null}
+            {(p.examples?.length || 0) > 0 && <span><i className="bi bi-list-check" aria-hidden /> {p.examples.length} example{p.examples.length === 1 ? '' : 's'}</span>}
+            {(p.totalHints || 0) > 0 && <span><i className="bi bi-life-preserver" aria-hidden /> {p.totalHints} hint{p.totalHints === 1 ? '' : 's'} available</span>}
+          </div>
+        </div>
+        <aside className="tl-ov-side">
+          <span className={`tl-ov-state ${state.cls}`}>{state.label}</span>
+          <div className="tl-ov-time">
+            <b>{fmtTime(seconds)}</b>
+            <small>{done ? 'time spent' : started ? 'spent so far' : 'timer not started'}</small>
+          </div>
+          {(challenge.attempts > 0 || challenge.hintsUsed > 0) && (
+            <div className="tl-ov-sub">{challenge.attempts} attempt{challenge.attempts === 1 ? '' : 's'} · {challenge.hintsUsed} hint{challenge.hintsUsed === 1 ? '' : 's'} used</div>
+          )}
+          {solved && challenge.xpEarned > 0 && <div className="tl-ov-sub ok">+{challenge.xpEarned} XP earned</div>}
+          <button type="button" className="tl-ov-start" onClick={onOpen}>
+            {done ? 'Review your solution' : started ? 'Continue solving' : 'Start solving'} <i className="bi bi-arrow-right" aria-hidden />
+          </button>
+          {!done && <small className="tl-ov-note">The timer starts when you open the problem.</small>}
+        </aside>
+      </section>
+
+      <section className="tl-ov-steps" aria-label="How Thinking Lab works">
+        {steps.map(([icon, title, text], i) => (
+          <div key={title} className="tl-ov-step">
+            <span className="tl-ov-step-ic"><i className={`bi ${icon}`} aria-hidden /></span>
+            <div><b><em>{i + 1}</em> {title}</b><span>{text}</span></div>
+          </div>
+        ))}
+      </section>
+    </div>
   );
 };
 

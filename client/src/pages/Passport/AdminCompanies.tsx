@@ -3,6 +3,9 @@ import passportApi, { CompanyAdmin, AdminQuestion, TaxItem, AdminExperience, Rea
 import AdminCompanyRoster from './AdminCompanyRoster';
 import AdminCompanyPattern from './AdminCompanyPattern';
 import AdminCompanyProfile from './AdminCompanyProfile';
+// Several shared classes (pm-btn, pm-msg and this page's own) live in the member stylesheet; import
+// it here so the page is styled the same on a fresh load as after visiting a member page.
+import './member.css';
 
 /**
  * Admin: companies, their questions, and the moderation queue.
@@ -161,6 +164,13 @@ const AdminCompanies: React.FC = () => {
 
   return (
     <div>
+      <header className="cpx-head">
+        <div>
+          <span className="cpx-eyebrow">CareerPilot</span>
+          <h1>Company Questions</h1>
+          <p>The companies members prepare for: each one's profile, interview pattern and questions, and what members report back from their own interviews.</p>
+        </div>
+      </header>
       <div className="cadm-nav">
         {GROUPS.map(g => (
           <div className="cadm-group" key={g.label}>

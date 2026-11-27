@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import passportApi, { CompanyProfileAdmin, CompanyProfileRow } from '../../api/passportApi';
+// Several shared classes (pm-btn, pm-msg and this page's own) live in the member stylesheet; import
+// it here so the page is styled the same on a fresh load as after visiting a member page.
+import './member.css';
 
 /**
  * What a company expects, in canonical skills — the configuration company readiness is

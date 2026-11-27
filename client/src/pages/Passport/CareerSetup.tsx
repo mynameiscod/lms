@@ -1,9 +1,10 @@
 import React, { CSSProperties, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { AssessmentAvailability, CareerContext, CareerContextOptions } from '../../api/passportApi';
+import { toggleLanguage, languageBlocked, isNotSure } from './languageChoice';
 import { useMember } from './MemberLayout';
 import './careerSetup.css';
-import { copyrightLine } from '../../config/brand';
+import CareerPilotFooter from '../../components/CareerPilotFooter';
 
 type Answers = {
   degree: string; branch: string; currentAcademicYear: string;
@@ -48,6 +49,7 @@ const LANG_META: Record<string, LangMeta> = {
   C: { label: 'C', tone: '#5c6bc0', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/c/c-original.svg' },
   'C++': { label: 'C++', tone: '#00599c', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg' },
   CPP: { label: 'C++', tone: '#00599c', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg' },
+  'C#': { label: 'C# (.NET)', tone: '#68217a', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/csharp/csharp-original.svg' },
   SQL: { label: 'SQL', tone: '#336791', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg' },
   HTML: { label: 'HTML', tone: '#e34f26', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg' },
   CSS: { label: 'CSS', tone: '#1572b6', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg' },
@@ -79,6 +81,9 @@ const educationMissing = (missing: string[]) =>
  * and the default view stays this many rows for ever.
  */
 const ROLE_VISIBLE = 8;
+/** The routine setup starts on for everyone: 1.5 hours a day, 6 days a week. Members can change both. */
+const DEFAULT_MINUTES = 90;
+const DEFAULT_DAYS = 6;
 
 /** Stable per-role tint, so a colour does not jump to a different card while filtering. */
 const roleTone = (key: string): number => {
@@ -115,13 +120,14 @@ const CareerSetup: React.FC = () => {
           currentAcademicYear: r.context.education.currentAcademicYear || '',
           primaryRole: r.context.career.primaryRole || '',
           preferredProgrammingLanguages: r.context.career.preferredProgrammingLanguages || [],
-          minutesPerDay: r.context.availability.minutesPerDay,
-          daysPerWeek: r.context.availability.daysPerWeek,
+          // Nothing chosen yet: start at 1.5 hours a day, 6 days a week. The member can change either.
+          minutesPerDay: r.context.availability.minutesPerDay ?? DEFAULT_MINUTES,
+          daysPerWeek: r.context.availability.daysPerWeek ?? DEFAULT_DAYS,
         });
         /**
          * ARRIVING TO CHANGE SOMETHING IS NOT THE SAME AS ARRIVING FRESH.
          *
-         * Setup jumped straight to the "Your CareerPilot is ready!" summary whenever
+         * Setup jumped straight to the "Setup complete" summary whenever
          * onboarding was complete — and that summary had no way to change anything, despite
          * saying "You can change any of it later". So the roadmap's "Choose my target role"
          * button landed here and showed a page with two buttons, neither of which chose a
@@ -141,6 +147,23 @@ const CareerSetup: React.FC = () => {
     const needsEducation = ctx ? educationMissing(ctx.status.missing) : false;
     return [...(needsEducation || editEducation ? ['education' as StepKey] : []), 'direction', 'technology', 'commitment'];
   }, [ctx, editEducation]);
+
+  /**
+   * YEAR 1 HAS NO ROLE YET. A first-year (the foundation stage) builds what every role needs, so the
+   * role step offers only "Not sure yet" and the language starts on "Not Sure" (they may still pick
+   * one). Roles and role readiness open from Year 2. Re-applied whenever the stage changes, because
+   * the education step can change it in the middle of setup; the server enforces the role as well.
+   */
+  const year1 = ctx?.derived.stage === 'foundation';
+  useEffect(() => {
+    if (!year1 || !opts) return;
+    const notSure = opts.languages.find(isNotSure) || 'Not Sure';
+    setA(s => ({
+      ...s,
+      primaryRole: 'NOT_SURE',
+      preferredProgrammingLanguages: s.preferredProgrammingLanguages.length ? s.preferredProgrammingLanguages : [notSure],
+    }));
+  }, [year1, opts]);
 
   const step = steps[Math.min(stepIx, steps.length - 1)];
   const isLast = stepIx >= steps.length - 1;
@@ -188,12 +211,8 @@ const CareerSetup: React.FC = () => {
     return () => { alive = false; };
   }, [done]);
 
-  const toggleLang = (l: string) => setA(s => ({
-    ...s,
-    preferredProgrammingLanguages: s.preferredProgrammingLanguages.includes(l)
-      ? s.preferredProgrammingLanguages.filter(x => x !== l)
-      : [...s.preferredProgrammingLanguages, l],
-  }));
+  // "Not sure" stands alone; one main language at a time; JavaScript/TypeScript alongside (languageChoice.ts).
+  const toggleLang = (l: string) => setA(s => ({ ...s, preferredProgrammingLanguages: toggleLanguage(s.preferredProgrammingLanguages, l) }));
 
   if (err && !ctx) return <div className="cps cps-state"><div className="cps-err">{err}</div></div>;
   if (!ctx || !opts) return <div className="cps cps-state"><div className="cps-load">Loading your details…</div></div>;
@@ -235,8 +254,8 @@ const CareerSetup: React.FC = () => {
             <div className="cpr-wrap cpr-band-grid">
               <div className="cpr-band-copy">
                 <div className="cpr-badge"><i className="bi bi-check-lg" /></div>
-                <div className="cpr-eyebrow">Profile ready</div>
-                <h1>Your CareerPilot is ready!</h1>
+                <div className="cpr-eyebrow">Setup complete</div>
+                <h1>Now let’s see where you stand</h1>
                 <p>CareerPilot will use these choices to personalise your assessment, roadmap and daily missions. You can change any of it later.</p>
                 <div className="cpr-pills">{pills.map(t => <span key={t}>{t}</span>)}</div>
               </div>
@@ -301,7 +320,7 @@ const CareerSetup: React.FC = () => {
             </div>
           </section>
         </main>
-        <footer className="cps-footer"><div className="cps-footer-brand"><img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" /></div><span>{copyrightLine()}</span><span className="cps-footer-made">Made for ambitious careers in India</span></footer>
+        <CareerPilotFooter wrapClassName="cpr-wrap" />
       </div>
     );
   }
@@ -311,7 +330,6 @@ const CareerSetup: React.FC = () => {
       {header}
       <main className="cps-shell">
         <aside className="cps-pitch">
-          <div className="cps-eyebrow">LET'S PERSONALIZE</div>
           <h1>Let’s personalize<br />your <span>career journey</span></h1>
           <p>A few quick details to understand you better and create your personalized career roadmap.</p>
           <div className="cps-benefits">
@@ -359,10 +377,13 @@ const CareerSetup: React.FC = () => {
 
             {step === 'direction' && (
               <>
-                <div className="cps-question-head"><div className="cps-qicon"><i className="bi bi-compass" /></div><div><h2>What role would you like to work toward?</h2><p>Pick what appeals to you now. You can change it later.</p></div></div>
+                <div className="cps-question-head"><div className="cps-qicon"><i className="bi bi-compass" /></div><div>
+                  <h2>{year1 ? 'Your direction for Year 1' : 'What role would you like to work toward?'}</h2>
+                  <p>{year1 ? 'In your first year you build the foundations every tech role needs. You choose a role from your 2nd year.' : 'Pick what appeals to you now. You can change it later.'}</p>
+                </div></div>
                 {!!knownContext && <p className="cps-known cps-ctxbadge"><i className="bi bi-mortarboard" /> <b>{knownContext}</b>{!steps.includes('education') && <button type="button" className="cps-link" onClick={() => { setEditEducation(true); setStepIx(0); }}>Change academic details</button>}</p>}
                 {opts.roles.filter(r => r.key === 'NOT_SURE').map(r => <button key={r.key} className={`cps-unsure${a.primaryRole === r.key ? ' on' : ''}`} onClick={() => setA(s => ({ ...s, primaryRole: r.key }))}><i className="bi bi-compass" /><span><b>{r.label}</b><em>{r.blurb}</em></span></button>)}
-                {(() => {
+                {!year1 && (() => {
                   const all = opts.roles.filter(r => r.key !== 'NOT_SURE');
                   const q = roleQuery.trim().toLowerCase();
                   const matches = q
@@ -424,19 +445,21 @@ const CareerSetup: React.FC = () => {
                     </>
                   );
                 })()}
-                {opts.roles.length === 1 && <p className="cps-known"><i className="bi bi-info-circle" /> No specific careers are on offer just yet. You can continue and set a direction later.</p>}
+                {!year1 && opts.roles.length === 1 && <p className="cps-known"><i className="bi bi-info-circle" /> No specific careers are on offer just yet. You can continue and set a direction later.</p>}
               </>
             )}
 
             {step === 'technology' && (
               <>
-                <div className="cps-question-head"><div className="cps-qicon"><i className="bi bi-code-slash" /></div><div><h2>Which technologies interest you?</h2><p>Pick as many as you like, or skip for now.</p></div></div>
+                <div className="cps-question-head"><div className="cps-qicon"><i className="bi bi-code-slash" /></div><div><h2>Which language do you want to build your career in?</h2><p>Choose one main language (Java, Python or C#). You can add JavaScript alongside it. Not sure yet? Choose “Not sure”.</p></div></div>
                 <div className="cps-tech-grid">
                   {opts.languages.map(l => {
                     const meta = languageMeta(l);
                     const selected = a.preferredProgrammingLanguages.includes(l);
+                    const blocked = languageBlocked(a.preferredProgrammingLanguages, l);
                     return (
-                      <button key={l} className={`cps-tech${selected ? ' on' : ''}`} style={{ ['--lang' as any]: meta.tone }} onClick={() => toggleLang(l)}>
+                      <button key={l} className={`cps-tech${selected ? ' on' : ''}${blocked ? ' off' : ''}`} style={{ ['--lang' as any]: meta.tone }}
+                        disabled={!!blocked} aria-disabled={!!blocked} title={blocked || undefined} aria-pressed={selected} onClick={() => toggleLang(l)}>
                         <span className="cps-tech-logo">{meta.icon ? <img src={meta.icon} alt="" /> : <i className="bi bi-question-circle" />}</span>
                         <span>{meta.label}</span>{selected && <i className="bi bi-check-circle-fill cps-tech-check" />}
                       </button>
@@ -468,7 +491,7 @@ const CareerSetup: React.FC = () => {
       </main>
 
       <section className="cps-capabilities"><div className="cps-cap-title">With <b>Career<span>Pilot</span></b>, you can</div><div className="cps-cap-grid">{CAPABILITIES.map((item, index) => <div className={`cps-cap tone-${(index % 5) + 1}`} key={item.title}><span><i className={`bi ${item.icon}`} /></span><b>{item.title}</b></div>)}</div></section>
-      <footer className="cps-footer"><div className="cps-footer-brand"><img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" /></div><span>{copyrightLine()}</span><span className="cps-footer-made">Made for ambitious careers in India</span></footer>
+      <CareerPilotFooter wrapClassName="cpr-wrap" />
     </div>
   );
 };

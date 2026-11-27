@@ -178,7 +178,7 @@ describe('reading order', () => {
 
 describe('the policy is versioned and self-contained', () => {
   it('declares one version', () => {
-    expect(ROLE_READINESS_VERSION).toBe('ROLE_READINESS_V1');
+    expect(ROLE_READINESS_VERSION).toBe('ROLE_READINESS_V2');
   });
 
   it('knows nothing about degree, year or stage', () => {

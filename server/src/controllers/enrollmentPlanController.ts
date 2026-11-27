@@ -24,10 +24,17 @@ import { resolveCurriculumPolicy } from '../services/deadlinePolicyService';
 import * as razorpay from '../services/razorpayService';
 import { foundationAccess } from '../services/foundationAccessService';
 import { isJourneyDayOpen, calendarAllowsDay } from '../data/journeyDayLadder';
-import { pacingClockFor } from '../services/orientationService';
+import { pacingClockFor, orientationBlocksLearning } from '../services/orientationService';
+import { opensAt as programmeDayOpensAt, programmeDayOfLearning } from '../data/dailyPacingPolicy';
 import { studentContentRow } from '../services/studentContentView';
-import { reconcileJourneyDayXp, xpForJourneyItem, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
+import { isLmsOnlyLearner, isCareerPilotItem, LMS_ONLY_LEARNER_FIELDS } from '../services/learnerAudience';
+import { reconcileJourneyDayXp, xpForJourneyItem } from '../services/foundationJourneyXpService';
+import { loadXpPricing, XpPricing } from '../services/xpPricingService';
 import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService';
+/** What the day ladder reads (services/demoService.ts), loaded only when a day is checked. */
+const ladderDays = async (userId: string, completed: Set<number>): Promise<Set<number>> => {
+  try { return await (await import('../services/demoService')).ladderDays(userId, completed); } catch { return completed; }
+};
 
 /**
  * A Foundation journey is the member's ninety days. Without membership its days cannot be opened or
@@ -35,6 +42,15 @@ import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService
  */
 const foundationJourneyLocked = async (enrollment: any, tId: string, sId: string): Promise<boolean> =>
   enrollment?.enrolledBy === 'foundation-journey' && (await foundationAccess(String(tId), String(sId))).level !== 'FULL';
+
+/** A trial opens the first N days of the journey; past those, a day refuses with TRIAL_LIMIT. */
+const trialRefusesDay = async (enrollment: any, tId: string, sId: string, dayNumber: number) => {
+  if (enrollment?.enrolledBy !== 'foundation-journey' || !Number.isFinite(dayNumber)) return null;
+  const a = await foundationAccess(String(tId), String(sId));
+  return a.trialDays && dayNumber > a.trialDays
+    ? { reason: 'TRIAL_LIMIT', trialDays: a.trialDays, message: `Your trial includes the first ${a.trialDays} days. Take membership to open day ${dayNumber}.` }
+    : null;
+};
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
 const userId   = (req: Request): string => (req as any).user?.id || '';
@@ -576,6 +592,8 @@ export const markContentComplete = async (req: Request, res: Response) => {
     if (await foundationJourneyLocked(enrollment, tId, sId)) {
       return res.status(403).json({ reason: 'MEMBERSHIP_REQUIRED', message: 'Take membership to work through your roadmap.' });
     }
+    const trialStop = await trialRefusesDay(enrollment, tId, sId, Number(dayNumber));
+    if (trialStop) return res.status(403).json(trialStop);
 
     /**
      * THE SEQUENTIAL LOCK HAS TO BE ENFORCED HERE OR IT IS DECORATION.
@@ -589,13 +607,16 @@ export const markContentComplete = async (req: Request, res: Response) => {
     if ((enrollment as any).enrolledBy === 'foundation-journey') {
       const doneDays = new Set<number>(((enrollment.completedDays || []) as number[]).map(Number));
       /* The same two gates the day endpoint refuses by: completing an item must not be a way past either. */
+      if (!doneDays.has(dayNo) && await orientationBlocksLearning(String(enrollment.tenantId), String(enrollment.studentId))) {
+        return res.status(403).json({ reason: 'ORIENTATION_REQUIRED', message: 'Finish your welcome days first — Day 1 opens after them.' });
+      }
       const pacedFrom = await pacingClockFor(String(enrollment.tenantId), String(enrollment.studentId));
-      if (!isJourneyDayOpen(dayNo, doneDays, pacedFrom)) {
+      if (!isJourneyDayOpen(dayNo, await ladderDays(String(enrollment.studentId), doneDays), pacedFrom)) {
         const early = !calendarAllowsDay(dayNo, pacedFrom);
         return res.status(403).json({
           reason: early ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
           message: early
-            ? `Day ${dayNo} opens tomorrow. One learning day at a time.`
+            ? `Day ${dayNo} is not open yet. One learning day a day: it opens on its own date.`
             : `Finish day ${dayNo - 1} before starting day ${dayNo}.`,
         });
       }
@@ -662,8 +683,14 @@ export const markContentComplete = async (req: Request, res: Response) => {
 // each module's own targeting. Deduped against plan task keys (`kind:sourceId`).
 async function getAdhocTasks(sId: string, tId: string, planKeys: Set<string>): Promise<any[]> {
   const out: any[] = [];
-  const user = await User.findById(sId).select('batchId').lean() as any;
+  const user = await User.findById(sId).select(`batchId ${LMS_ONLY_LEARNER_FIELDS}`).lean() as any;
   const batchId = user?.batchId ? user.batchId.toString() : null;
+  /* A CareerPilot checkpoint or unit project is saved as accessibleTo 'everyone' so members can
+     open it from their day — which this list read as "assigned to every student in the tenant".
+     For a learner who has never been a member, such an item counts only when it was really given
+     to them (by name or by batch). Everyone else sees exactly what they saw before. */
+  const lmsOnly = isLmsOnlyLearner(user);
+  const reachesOnlyViaEveryone = (row: any) => lmsOnly && isCareerPilotItem(row) && row.accessibleTo === 'everyone';
   const oid = (x: string) => (mongoose.Types.ObjectId.isValid(x) ? new mongoose.Types.ObjectId(x) : x);
   const push = (kind: string, id: string, title: string, due: any, launch: string) => {
     if (planKeys.has(`${kind}:${id}`)) return;
@@ -682,7 +709,8 @@ async function getAdhocTasks(sId: string, tId: string, planKeys: Set<string>): P
     // appear in every student's in-app task feed. Only explicit assignment counts.
     const access: any[] = [{ accessibleTo: 'everyone' }, { accessibleTo: 'individual', selectedStudents: sId }];
     if (batchId) access.push({ accessibleTo: 'batch_wise', selectedBatches: batchId });
-    const quizzes = await Quiz.find({ tenantId: tId, isActive: true, isExternalQuiz: { $ne: true }, archivedAt: null, $or: access }).select('title endDate').lean();
+    const quizzes = await Quiz.find({ tenantId: tId, isActive: true, isExternalQuiz: { $ne: true }, archivedAt: null, $or: access }).select('title endDate unitCode audience accessibleTo').lean()
+      .then((rows: any[]) => rows.filter((q) => !reachesOnlyViaEveryone(q)));
     if (quizzes.length) {
       const ids = quizzes.map((q: any) => q._id.toString());
       const done = await QuizAttempt.find({ studentId: sId, quizId: { $in: ids }, status: 'submitted' }).select('quizId').lean();
@@ -695,7 +723,8 @@ async function getAdhocTasks(sId: string, tId: string, planKeys: Set<string>): P
   try {
     const access: any[] = [{ accessibleTo: 'everyone' }, { accessibleTo: 'individual', selectedStudents: sId }];
     if (batchId) access.push({ accessibleTo: 'batch_wise', batch: oid(batchId) });
-    const asgs = await Assignment.find({ tenant: oid(tId), status: 'published', $or: access }).select('title dueDate').lean();
+    const asgs = await Assignment.find({ tenant: oid(tId), status: 'published', $or: access }).select('title dueDate unitCode audience accessibleTo').lean()
+      .then((rows: any[]) => rows.filter((a) => !reachesOnlyViaEveryone(a)));
     if (asgs.length) {
       const ids = asgs.map((a: any) => a._id);
       const subs = await Submission.find({ student: oid(sId), assignment: { $in: ids }, status: { $in: ['submitted', 'graded'] } }).select('assignment').lean();
@@ -844,6 +873,8 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     if (await foundationJourneyLocked(enrollment, tId, sId)) {
       return res.status(403).json({ reason: 'MEMBERSHIP_REQUIRED', message: 'Take membership to open the days of your roadmap.' });
     }
+    const trialStop = await trialRefusesDay(enrollment, tId, sId, dayNumber);
+    if (trialStop) return res.status(403).json(trialStop);
 
     const curriculum = await LearningCurriculum.findById(enrollment.curriculumId).lean();
     if (!curriculum) return res.status(404).json({ message: 'Curriculum not found' });
@@ -867,7 +898,9 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     // DISABLED for all batches — students can open any curriculum day. Only the
     // assessment preview/paywall gate below still applies.
     let isLocked = false;
-    let lockReason: 'sequential' | 'preview' | 'schedule' | 'foundation' | null = null;
+    let lockReason: 'sequential' | 'preview' | 'schedule' | 'foundation' | 'orientation' | 'not_today' | null = null;
+    /** When a 'not_today' day opens (start of that IST day). */
+    let lockOpensAt: Date | null = null;
     /** Roadmap V2's foundation gate, when it is what holds this day. */
     let gate: any = null;
 
@@ -887,10 +920,38 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
      */
     const isFoundationJourney = (enrollment as any).enrolledBy === 'foundation-journey';
     if (isFoundationJourney && dayNumber > 1) {
-      const doneDays = new Set<number>(((enrollment.completedDays || []) as number[]).map(Number));
+      /* A demo account reads every day as reachable (services/demoService.ts). */
+      const doneDays = await ladderDays(String(enrollment.studentId), new Set<number>(((enrollment.completedDays || []) as number[]).map(Number)));
       if (!doneDays.has(dayNumber - 1) && !doneDays.has(dayNumber)) {
         isLocked = true;
         lockReason = 'sequential';
+      }
+    }
+
+    /*
+     * ONE DAY AT A TIME, AND THE WELCOME FIRST.
+     *
+     * The ladder above is only half the rule. A paced member gets one programme day per calendar
+     * day — the welcome days 0.1–0.5 first, then Day 1 — so finishing a day today does not open
+     * the next one until tomorrow; and no learning day opens before the welcome is finished. Item
+     * completion (markContentComplete) and the journey's own day endpoint already refused both;
+     * this page, the one a member actually opens, did not, so any day whose predecessor was done
+     * opened at once by its URL. A day already completed stays open whatever the calendar says.
+     */
+    if (!isLocked && isFoundationJourney) {
+      const doneDays = new Set<number>(((enrollment.completedDays || []) as number[]).map(Number));
+      if (!doneDays.has(dayNumber)) {
+        if (await orientationBlocksLearning(String(tId), String(sId))) {
+          isLocked = true;
+          lockReason = 'orientation';
+        } else {
+          const pacedFrom = await pacingClockFor(String(tId), String(sId));
+          if (!calendarAllowsDay(dayNumber, pacedFrom)) {
+            isLocked = true;
+            lockReason = 'not_today';
+            lockOpensAt = programmeDayOpensAt(programmeDayOfLearning(dayNumber), pacedFrom);
+          }
+        }
       }
     }
 
@@ -961,6 +1022,8 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     let populatedItems: any[] = [];
     let dayJustCompleted = false;
     let xpJustPaid = 0;
+    // The tenant's XP prices — Foundation journey only; other enrollments pay no CareerPilot XP.
+    let journeyPricing: XpPricing | null = null;
 
     /**
      * A LOCKED DAY IS NOT SERVED, AND IS NOT COMPLETED BY BEING LOOKED AT.
@@ -985,7 +1048,8 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       const moduleStatus = await resolveModuleStatuses(sId, dayItems);
 
       // What each task pays in CareerPilot XP — Foundation journey only; other enrollments have no such rule.
-      const journeyXpFor = (it: any) => ((enrollment as any).enrolledBy === 'foundation-journey' ? xpForJourneyItem(it) : undefined);
+      if ((enrollment as any).enrolledBy === 'foundation-journey') journeyPricing = await loadXpPricing(String(tId));
+      const journeyXpFor = (it: any) => (journeyPricing ? xpForJourneyItem(it, journeyPricing) : undefined);
       populatedItems = dayItems.map((item: any) => {
         const kind = item.kind || 'content';
         if (kind === 'content') {
@@ -1052,13 +1116,16 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       curriculum: { title: curriculum.title, totalDays: curriculum.totalDays, topics: curriculum.topics },
       dayNumber,
       dayDate: dayDate.toISOString(),
+      /** The day's own title from Curriculum Builder, for the day header. */
+      dayTitle: (dayPlan as any)?.title || null,
       topic: topic || null,
       items: populatedItems,
       isDayCompleted,
-      dayBonusXp: (enrollment as any).enrolledBy === 'foundation-journey' ? FOUNDATION_DAY_BONUS_XP : undefined,
+      dayBonusXp: journeyPricing ? journeyPricing.dayBonus : undefined,
       xpJustPaid,
       isLocked,
       lockReason,
+      lockOpensAt,
       gate,
       todayPlanDay,
       aiGenStatus: aiGenStatus || null,

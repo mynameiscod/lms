@@ -22,6 +22,8 @@ export interface PersonalInfo {
   gender: 'Male' | 'Female' | 'Other' | 'Prefer not to say';
   dateOfBirth: string;
   profilePhoto?: string;
+  parentName?: string;
+  parentMobile?: string;
 }
 
 export interface ProfessionalProfiles {
@@ -89,6 +91,8 @@ export interface StudentProfileData {
   technicalBackground: Partial<TechnicalBackground>;
   courseInterest: Partial<CourseInterest>;
   additionalInfo: Partial<AdditionalInfo>;
+  /** Shown to placement offices in the Talent Pool. */
+  placementPreferences?: { expectedRole?: string; preferredLocations?: string[] };
   profileCompletionPercentage?: number;
   isProfileComplete?: boolean;
   exists?: boolean;
@@ -291,6 +295,7 @@ export const studentProfileAPI = {
     formData.append('technicalBackground', JSON.stringify(profileData.technicalBackground));
     formData.append('courseInterest', JSON.stringify(profileData.courseInterest));
     formData.append('additionalInfo', JSON.stringify(profileData.additionalInfo));
+    if (profileData.placementPreferences) formData.append('placementPreferences', JSON.stringify(profileData.placementPreferences));
 
     // Add files if present
     if (profilePhoto) {

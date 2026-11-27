@@ -4,6 +4,7 @@ import { runWithTenant } from '../services/requestContext';
 import { tenantForHost } from '../services/tenantDomainService';
 import { getBranding } from '../services/tenantBrandingService';
 import { publicBranding } from '../services/tenantBrandingService';
+import { servePdf } from '../services/whatsAppFileService';
 import authRoutes from './authRoutes';
 import tenantRoutes from './tenantRoutes';
 import courseRoutes from './courseRoutes';
@@ -14,6 +15,8 @@ import userRoutes from './userRoutes';
 import roleRoutes from './roleRoutes';
 import batchRoutes from './batchRoutes';
 import attendanceRoutes from './attendanceRoutes';
+import studentRulesRoutes from './studentRulesRoutes';
+import agreementRoutes from './agreementRoutes';
 import quizRoutes from './quizRoutes';
 import questionRoutes from './questionRoutes';
 import contentRoutes from './contentRoutes';
@@ -26,12 +29,19 @@ import studentReportRoutes from './studentReportRoutes';
 import examRoutes from './examRoutes';
 import labTrackRoutes from './labTrackRoutes';
 import weeklyReportRoutes from './weeklyReportRoutes';
+import websiteBatchRoutes from './websiteBatchRoutes';
+import websiteContentRoutes from './websiteContentRoutes';
 import activityRoutes from './activityRoutes';
 import interviewQuestionRoutes from './interviewQuestionRoutes';
 import topicRoutes from './topicRoutes';
 import subTopicRoutes from './subTopicRoutes';
 import leadRoutes from './leadRoutes';
 import leadStageRoutes from './leadStageRoutes';
+import leadPipelineRoutes from './leadPipelineRoutes';
+import leadSavedViewRoutes from './leadSavedViewRoutes';
+import leadReportRoutes from './leadReportRoutes';
+import leadAutomationRoutes from './leadAutomationRoutes';
+import workflowRoutes from './workflowRoutes';
 import leadFormConfigRoutes from './leadFormConfigRoutes';
 import codeSnippetRoutes from './codeSnippetRoutes';
 import shareRoutes from './shareRoutes';
@@ -52,6 +62,7 @@ import publicHackathonRoutes from './publicHackathonRoutes';
 import publicHackathonExamRoutes from './publicHackathonExamRoutes';
 import hackathonExamRoutes from './hackathonExamRoutes';
 import metaLeadAdsRoutes from './metaLeadAdsRoutes';
+import metaCrmRoutes from './metaCrmRoutes';
 import googleSheetRoutes from './googleSheetRoutes';
 import leadScoringRoutes from './leadScoringRoutes';
 import leadSourceConfigRoutes from './leadSourceConfigRoutes';
@@ -65,7 +76,7 @@ import placementDriveRoutes from '../placement/placementDriveRoutes';
 import alumniRoutes from '../alumni/alumniRoutes';
 import notificationRoutes from '../notifications/notificationRoutes';
 import meetingRoutes from './meetingRoutes';
-import leadDistributionRoutes from './leadDistributionRoutes';
+import leadAssignmentRoutes from './leadAssignmentRoutes';
 import whatsappDripConfigRoutes from './whatsappDripConfigRoutes';
 import salesCallRecordingRoutes from './salesCallRecordingRoutes';
 import googleAdsRoutes from './googleAdsRoutes';
@@ -91,8 +102,12 @@ import visualizerRoutes from './visualizerRoutes';
 import batchOfferingRoutes from './batchOfferingRoutes';
 import assessmentScheduleRoutes from './assessmentScheduleRoutes';
 import passportRoutes from './passportRoutes';
-import { careerPilotActivity } from '../middleware/careerPilotActivity';
+import { careerPilotActivity, careerPilotMemberActivity } from '../middleware/careerPilotActivity';
 import publicPassportRoutes from './publicPassportRoutes';
+import lmsDemoRoutes, { publicLmsDemoRoutes } from './lmsDemoRoutes';
+import referralRoutes, { publicReferralRoutes } from './referralRoutes';
+import salesTeamRoutes from './salesTeamRoutes';
+import demoBookingRoutes, { publicDemoRoutes } from './demoBookingRoutes';
 import conceptLessonRoutes from './conceptLessonRoutes';
 import interactiveLessonRoutes from './interactiveLessonRoutes';
 import adminLogsRoute from './adminLogsRoute';
@@ -103,6 +118,9 @@ import playgroundRoutes from './playgroundRoutes';
 import resumeRoutes from './resumeRoutes';
 import careerProfileRoutes from './careerProfileRoutes';
 import placementPartnerRoutes from './placementPartnerRoutes';
+import placementDeskRoutes from './placementDeskRoutes';
+import talentPoolRoutes from './talentPoolRoutes';
+import talentPortalRoutes from './talentPortalRoutes';
 import feeRoutes from './feeRoutes';
 import publicAssessmentRoutes from './publicAssessmentRoutes';
 import publicCertificateRoutes from './publicCertificateRoutes';
@@ -117,15 +135,22 @@ import systemSettingsRoutes from './systemSettingsRoutes';
 import whatsAppTemplateRoutes from './whatsAppTemplateRoutes';
 import whatsAppChatRoutes from './whatsAppChatRoutes';
 import problemBankRoutes from './problemBankRoutes';
+import questionPoolRoutes from './questionPoolRoutes';
+import poolExamRoutes from './poolExamRoutes';
+import poolExamResultRoutes from './poolExamResultRoutes';
 import codingPracticeRoutes from './codingPracticeRoutes';
 import externalApiRoutes from './externalApiRoutes';
 import codeJudgeRoutes from './codeJudgeRoutes';
 import { moduleGate } from '../middleware/moduleGate';
 import outperoRoutes from './outperoRoutes';
+import callyzerRoutes from './callyzerRoutes';
+import * as callyzer from '../services/callyzerService';
+import { sendFileWithRanges } from '../services/bunnyStorageService';
 import leadArchiveRoutes from './leadArchiveRoutes';
 import eventApiRoutes, { publicEventRoutes } from './eventApiRoutes';
 import tenantIntegrationsRoutes from './tenantIntegrationsRoutes';
 import practicePassRoutes from './practicePassRoutes';
+import projectStudioRoutes from './projectStudioRoutes';
 import employeeRoutes from './employeeRoutes';
 import employeePortalRoutes from './employeePortalRoutes';
 import employeeActivityRoutes from './employeeActivityRoutes';
@@ -133,7 +158,10 @@ import employeeExpenseRoutes from './employeeExpenseRoutes';
 import companyExpenseRoutes from './companyExpenseRoutes';
 import interviewHubRoutes from './interviewHubRoutes';
 import questionBookRoutes from './questionBookRoutes';
+import contentLibraryRoutes from './contentLibraryRoutes';
 import concernRoutes from './concernRoutes';
+import supportRoutes from './supportRoutes';
+import monitorRoutes from './monitorRoutes';
 import paymentRoutes from './paymentRoutes';
 import { webhook as paymentWebhook, paymentReturn } from '../controllers/paymentController';
 import { partnerUnsubscribe } from '../controllers/partnerPublicController';
@@ -151,6 +179,8 @@ router.use(moduleGate);
 // CareerPilot signup (specific, before generic /public). Mounted at BOTH paths:
 // /passport is the legacy path and must keep answering, because member card links
 // already sent to recruiters point at it and cannot be recalled.
+router.use('/public/lms-demo', publicLmsDemoRoutes); // the free LMS demo sign-up (no auth)
+router.use('/public/refer', publicReferralRoutes); // LMS Refer & Earn: the link a student shares (no auth)
 router.use('/public/careerpilot', careerPilotActivity, publicPassportRoutes);
 router.use('/public/passport', careerPilotActivity, publicPassportRoutes);
 // Problem Bank external API — API-key auth (not a user session); for colleges, partners and Interview Pilot.
@@ -170,7 +200,37 @@ router.post('/public/outpero/calls/:token', async (req, res) => {
     res.status(500).json({ success: false, message: 'Could not store the call' });
   }
 });
+// Public: Callyzer's webhook (call logs from counsellors' phones). The token in the path is the
+// institute's secret (Leads → Callyzer calls); an unknown token gets 404 and nothing is stored.
+router.post('/public/callyzer/webhook/:token', async (req, res) => {
+  const tenantId = callyzer.tenantForToken(String(req.params.token || ''));
+  if (!tenantId) return res.status(404).json({ success: false, message: 'Unknown webhook' });
+  try {
+    const r = await runWithTenant(tenantId, () => callyzer.receiveWebhook(tenantId, req.body, req.headers as any));
+    res.json({ success: true, data: r });
+  } catch (e: any) {
+    console.error('[callyzer-webhook] delivery failed', e?.message);
+    res.status(500).json({ success: false, message: 'Could not store the calls' });
+  }
+});
+// Public: a call recording, played from the lead page. The signature in the link is the permission
+// (only the server can make it, and only people who can open the lead are given the link).
+router.get('/public/callyzer/recordings/:id/:sig', async (req, res) => {
+  try {
+    const call: any = await callyzer.callForRecordingLink(String(req.params.id), String(req.params.sig));
+    if (!call) return res.status(404).json({ success: false, message: 'Recording not found' });
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    if (call.recordingKey) return await sendFileWithRanges(req as any, res, call.recordingKey, 'audio/mpeg');
+    if (call.recordingUrl) return res.redirect(302, call.recordingUrl);
+    res.status(404).json({ success: false, message: 'The recording has not arrived yet' });
+  } catch (e: any) {
+    console.error('[callyzer-recording] play failed', e?.message);
+    if (!res.headersSent) res.status(502).json({ success: false, message: 'Could not load the recording' });
+  }
+});
 // Public: which institute owns the domain this page was opened on (custom domains).
+// PDFs for WhatsApp template headers — Meta downloads them from here at every send (public by design).
+router.get('/public/wa-files/:tenantId/:name', servePdf);
 router.get('/public/branding-by-host', async (req, res) => {
   try {
     const id = await tenantForHost(String(req.headers['x-forwarded-host'] || req.headers.host || ''));
@@ -188,6 +248,7 @@ router.get('/public/branding/:idOrSlug', async (req, res) => {
 });
 router.use('/event-apis', eventApiRoutes); // Event APIs: admin-defined registration APIs for the website
 router.use('/lead-archive', leadArchiveRoutes); // Leads → Archive (admins): archive by filter, restore, delete after 3 years
+router.use('/callyzer', callyzerRoutes); // leads → Callyzer (counsellors' own SIM calls + recordings)
 router.use('/outpero', outperoRoutes); // leads → Outpero AI calls (off / manual / auto)
 router.use('/tenant-integrations', tenantIntegrationsRoutes); // institute admin: own Razorpay, UPI, email, Meta pixel
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
@@ -206,6 +267,7 @@ router.post('/public/ses-events', express.json({ type: '*/*', limit: '1mb', veri
 router.use('/public', publicHackathonExamRoutes);
 router.use('/public', publicHackathonRoutes);
 router.use('/public', publicBattleRoutes); // Tech Battle public funnel (specific battle paths, before generic /public)
+router.use('/public/demo', publicDemoRoutes); // CRM: Book a demo — booking page + personal booking links (no auth)
 router.use('/public', publicLeadRoutes);
 router.use('/battles', battleRoutes);
 router.use('/placement-program', placementProgramRoutes);
@@ -213,6 +275,7 @@ router.use('/hackathons', hackathonRoutes);
 router.use('/certificates', certificateRoutes);
 router.use('/ai-usage', aiUsageRoutes);
 router.use('/meta-leads', metaLeadAdsRoutes);
+router.use('/meta-crm', metaCrmRoutes);
 router.post('/payments/webhook', paymentWebhook); // Razorpay webhook (public, signature-verified) — before the authed /payments mount
 router.all('/payments/return', paymentReturn);    // Razorpay redirect-mode return URL (public) — settles + bounces to app
 router.post('/hms/webhook', hmsWebhook); // 100ms webhook (public) — recording ready, peer join/leave
@@ -230,22 +293,28 @@ router.use('/users', userRoutes);
 router.use('/roles', roleRoutes);
 router.use('/batches', batchRoutes);
 router.use('/attendance', attendanceRoutes);
-router.use('/quizzes', quizRoutes);
+router.use('/student-rules', studentRulesRoutes); // office QR attendance, inactivity alerts, profile gate
+router.use('/agreements', agreementRoutes); // terms & agreements students accept (and sign)
+router.use('/quizzes', careerPilotMemberActivity, quizRoutes);
 router.use('/assessment-items', assessmentItemRoutes);
 router.use('/hackathon-exams', hackathonExamRoutes);
 router.use('/assessment-candidates', assessmentCandidatesRoutes);
 router.use('/concerns', concernRoutes);
+router.use('/support', supportRoutes);  // Help & Support (CareerPilot)
+router.use('/monitor', monitorRoutes);  // browser error reports for the support monitor
 router.use('/questions', questionRoutes);
 router.use('/content', contentRoutes);
 router.use('/progress', progressRoutes);
 router.use('/student-profile', studentProfileRoutes);
 router.use('/oauth', oauthRoutes);
-router.use('/assignments', assignmentRoutes);
+router.use('/assignments', careerPilotMemberActivity, assignmentRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/student-reports', studentReportRoutes);
 router.use('/exams', examRoutes);
 router.use('/lab-tracks', labTrackRoutes);
 router.use('/weekly-reports', weeklyReportRoutes);
+router.use('/website-batches', websiteBatchRoutes); // next batch date + seats shown on the public website
+router.use('/website-content', websiteContentRoutes); // placements (numbers, companies, students) shown on the public website
 router.use('/activity', activityRoutes);
 router.use('/candidate-proof', candidateProofRoutes);
 router.use('/interview-questions', interviewQuestionRoutes);
@@ -253,6 +322,11 @@ router.use('/topics', topicRoutes);
 router.use('/sub-topics', subTopicRoutes);
 router.use('/leads', leadRoutes);
 router.use('/lead-stages', leadStageRoutes);
+router.use('/lead-pipeline', leadPipelineRoutes);
+router.use('/lead-views', leadSavedViewRoutes);
+router.use('/lead-reports', leadReportRoutes);
+router.use('/lead-automation', leadAutomationRoutes);
+router.use('/workflows', workflowRoutes); // Workflow Builder: WhatsApp/lead automations
 router.use('/lead-dispositions', leadDispositionRoutes);
 router.use('/lead-form-config', leadFormConfigRoutes);
 router.use('/code-snippets', codeSnippetRoutes);
@@ -281,33 +355,42 @@ router.use('/college/placement', placementDriveRoutes);
 router.use('/college/alumni', alumniRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/meetings', meetingRoutes);
-router.use('/lead-distribution-config', leadDistributionRoutes);
+router.use('/lead-assignment', leadAssignmentRoutes); // the one lead assignment setting
 router.use('/whatsapp-drip-config', whatsappDripConfigRoutes);
 router.use('/whatsapp-templates', whatsAppTemplateRoutes); // author Meta templates in the LMS + assign to system uses
 router.use('/problem-bank', problemBankRoutes); // single store of runnable coding problems
-router.use('/coding-practice', codingPracticeRoutes); // learners solving problem sets from the bank
+router.use('/question-pools', questionPoolRoutes); // reusable shortlists of bank questions that pool exams draw from
+router.use('/pool-exams', poolExamRoutes); // students sitting exams drawn from question pools
+router.use('/pool-exam-results', poolExamResultRoutes); // teachers: results, papers, question statistics, release, export
+router.use('/coding-practice', careerPilotMemberActivity, codingPracticeRoutes); // learners solving problem sets from the bank
 router.use('/employees', employeeRoutes); // employee directory, profiles, pay history, logins, lists
 router.use('/employee-portal', employeePortalRoutes); // an employee's own profile, daily activity, expenses
 router.use('/employee-activity', employeeActivityRoutes); // daily activity review
 router.use('/employee-expenses', employeeExpenseRoutes); // employee claims: approval, payment
 router.use('/company-expenses', companyExpenseRoutes); // the company expense ledger: bills, recurring, salaries, reports
 router.use('/practice-pass', practicePassRoutes); // daily practice attendance + placement hold
+router.use('/project-studio', projectStudioRoutes); // guided end-to-end projects: sprints → days → tasks
 router.use('/interview-hub', interviewHubRoutes); // real interview experiences, global pool + invites
 router.use('/question-books', questionBookRoutes); // staff-written interview question books, read notebook-style
+router.use('/content-library', contentLibraryRoutes); // Problem Bundles: one library of every assessable item (additive)
 router.use('/sales-call-recordings', salesCallRecordingRoutes);
 router.use('/google-leads', googleAdsRoutes);
 router.use('/ai-calls', aiCallRoutes);
 router.use('/public-quizzes', adminPublicQuizRoutes);
 
 // ─── Learning Plan Module ──────────────────────────────────────────────────────
-router.use('/learning-library', learningContentLibraryRoutes);
+router.use('/learning-library', careerPilotMemberActivity, learningContentLibraryRoutes);
 router.use('/live-classes', liveSessionRoutes);
 router.use('/hms-classes', liveClassRoutes); // 100ms-backed hybrid live classes (webinar stage model)
 router.use('/curricula', learningCurriculumRoutes);
 // Adaptive plans. Mounted alongside rather than inside /curricula: the resource is a
 // STUDENT'S plan, not a curriculum, and nesting it would imply curriculum permissions apply.
 router.use('/adaptive', adaptiveCurriculumRoutes);
-router.use('/enrollment-plans', enrollmentPlanRoutes);
+router.use('/enrollment-plans', careerPilotMemberActivity, enrollmentPlanRoutes);
+router.use('/lms-demo', lmsDemoRoutes); // LMS demo students + the LMS Demo admin screen
+router.use('/referrals', referralRoutes); // LMS Refer & Earn: student page + admin Referrals screen
+router.use('/demo-slots', demoBookingRoutes); // CRM: Book a demo — slots, attendees, settings
+router.use('/sales-teams', salesTeamRoutes); // Leads add-on: sales teams, daily member reports, manager review
 router.use('/projects', projectRoutes);
 router.use('/job-applications', jobApplicationRoutes);
 router.use('/ai-mentor', mentorRoutes);
@@ -323,7 +406,7 @@ router.use('/assessment-schedules', assessmentScheduleRoutes);
 // Every CareerPilot request is recorded on its way out — structural rather than per-handler,
 // so an endpoint added next month is in the trail without anybody remembering to add a line.
 router.use('/careerpilot', careerPilotActivity, passportRoutes);
-router.use('/passport', passportRoutes);   // legacy alias — keeps existing clients working
+router.use('/passport', careerPilotActivity, passportRoutes);   // legacy alias — keeps existing clients working; most member calls still use it, so it is recorded too
 router.use('/concept-lessons', conceptLessonRoutes);
 router.use('/interactive-lessons', interactiveLessonRoutes);
 
@@ -331,6 +414,9 @@ router.use('/interactive-lessons', interactiveLessonRoutes);
 router.use('/resume', resumeRoutes);
 router.use('/career-profile', careerProfileRoutes);
 router.use('/placement-partners', placementPartnerRoutes);
+router.use('/talent-pool', talentPoolRoutes); // Talent Pool: share candidates with placement offices (admin)
+router.use('/talent-portal', talentPortalRoutes); // Talent Portal: what a placement office login sees
+router.use('/placement-desk', placementDeskRoutes); // Placement Desk: daily company/drive/outcome register (admin-only + public summary)
 router.use('/fees', feeRoutes);
 
 // ─── Scheduled Interviews ─────────────────────────────────────────────────────

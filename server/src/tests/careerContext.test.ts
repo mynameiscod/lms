@@ -164,8 +164,15 @@ describe('career vocabulary — nothing unknown is ever stored', () => {
     expect(normalizeDomain(null)).toBe(DEFAULT_DOMAIN);
   });
   it('clamps languages to the domain list and de-duplicates', () => {
-    expect(normalizeLanguages(DEFAULT_DOMAIN, ['java', 'Java', 'Klingon', 'Python']))
-      .toEqual(['Java', 'Python']);
+    expect(normalizeLanguages(DEFAULT_DOMAIN, ['java', 'Java', 'Klingon', 'JavaScript']))
+      .toEqual(['Java', 'JavaScript']);
+  });
+
+  it('keeps one main language, and "Not Sure" alone', () => {
+    // The roadmap and career track are built around a single language.
+    expect(normalizeLanguages(DEFAULT_DOMAIN, ['Java', 'Python', 'JavaScript'])).toEqual(['Java', 'JavaScript']);
+    expect(normalizeLanguages(DEFAULT_DOMAIN, ['Python', 'C#'])).toEqual(['Python']);
+    expect(normalizeLanguages(DEFAULT_DOMAIN, ['Java', 'Not Sure'])).toEqual(['Not Sure']);
   });
   it('snaps availability to an offered value and rejects nonsense', () => {
     expect(normalizeMinutes(60)).toBe(60);

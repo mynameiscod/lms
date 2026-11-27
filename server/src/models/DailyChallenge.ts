@@ -19,11 +19,16 @@ export interface IDailyChallenge extends Document {
   date: string;                // 'YYYY-MM-DD' (IST) — the challenge day
   seq: number;                 // 1st, 2nd… challenge that day (Next Challenge)
   problemId: mongoose.Types.ObjectId;
+  contentKind?: 'problem' | 'question';
+  answers?: any[];
+  bestShare?: number;
   difficulty: string;
   status: 'assigned' | 'thinking_done' | 'in_progress' | 'submitted' | 'solved';
   approach?: string;           // thinking notes (the gate)
   approachWordCount: number;
   editorUnlocked: boolean;
+  /** The approach check that opens the editor (logicCheckService). */
+  logicVerdict?: string; logicFeedback?: string; logicChecks?: number;
   code?: string;
   language: string;
   attempts: number;
@@ -55,11 +60,19 @@ const DailyChallengeSchema = new Schema<IDailyChallenge>(
     date:       { type: String, required: true },
     seq:        { type: Number, default: 1 },
     problemId:  { type: Schema.Types.ObjectId, ref: 'ThinkingProblem', required: true },
+    /** 'question' = problemId is a shared-bank ThinkingQuestion (from a lab track); default an LMS ThinkingProblem. */
+    contentKind: { type: String, enum: ['problem', 'question'], default: 'problem' },
+    /** A bank puzzle's attempts: answer, explanation, and how the reasoning was marked. */
+    answers:    { type: Schema.Types.Mixed, default: undefined },
+    bestShare:  { type: Number, default: 0 },
     difficulty: { type: String, default: 'easy' },
     status:     { type: String, enum: ['assigned', 'thinking_done', 'in_progress', 'submitted', 'solved'], default: 'assigned' },
     approach:   { type: String },
     approachWordCount: { type: Number, default: 0 },
     editorUnlocked: { type: Boolean, default: false },
+    logicVerdict: { type: String },
+    logicFeedback: { type: String, maxlength: 500 },
+    logicChecks: { type: Number, default: 0 },
     code:       { type: String },
     language:   { type: String, default: 'javascript' },
     attempts:   { type: Number, default: 0 },

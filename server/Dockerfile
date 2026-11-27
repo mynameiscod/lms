@@ -9,7 +9,7 @@ RUN npm install && npm run build
 # Production runtime
 FROM node:18-alpine
 WORKDIR /app
-RUN apk add --no-cache fontconfig ttf-dejavu
+RUN apk add --no-cache fontconfig ttf-dejavu ffmpeg
 COPY package*.json ./
 COPY .env ./
 # Copy node_modules from builder and prune — no second npm install needed

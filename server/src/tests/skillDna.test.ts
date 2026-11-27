@@ -1,7 +1,7 @@
 import {
   aggregate, confidenceFor, evidenceWeightFor, performanceFor, explain,
   RELATIONSHIP_WEIGHT, DIFFICULTY_WEIGHT, SOURCE_WEIGHT,
-  CONFIDENCE_THRESHOLDS, HIGH_CONFIDENCE_MIN_DISTINCT_ITEMS, SKILL_DNA_VERSION,
+  CONFIDENCE_THRESHOLDS, HIGH_CONFIDENCE_MIN_DISTINCT_ITEMS, SKILL_DNA_VERSION, latestPerItem, MEDIUM_CONFIDENCE_MIN_DISTINCT_ITEMS,
 } from '../data/skillDnaPolicy';
 
 /**
@@ -222,7 +222,7 @@ describe('explainability', () => {
 
 describe('the policy is versioned and centralised', () => {
   it('declares one version', () => {
-    expect(SKILL_DNA_VERSION).toBe('SKILL_DNA_V1');
+    expect(SKILL_DNA_VERSION).toBe('SKILL_DNA_V2');
   });
 
   it('keeps every weight in one place', () => {
@@ -239,5 +239,25 @@ describe('the policy is versioned and centralised', () => {
     for (const forbidden of ['role', 'stage', 'readiness', 'gap', 'blueprint']) {
       expect(exported).not.toContain(forbidden);
     }
+  });
+});
+
+describe('V2: retakes and breadth', () => {
+  it('counts an item once, at its latest answer — a retake replaces the first try', () => {
+    const rows = latestPerItem([
+      { itemKey: 'q1', performance: 0.2, evidenceWeight: 1, observedAt: new Date('2026-10-01') },
+      { itemKey: 'q2', performance: 0.0, evidenceWeight: 1, observedAt: new Date('2026-10-01') },
+      { itemKey: 'q1', performance: 1.0, evidenceWeight: 1, observedAt: new Date('2026-10-20') },
+      { itemKey: 'q2', performance: 1.0, evidenceWeight: 1, observedAt: new Date('2026-10-20') },
+    ]);
+    expect(rows).toHaveLength(2);
+    expect(aggregate(rows).score).toBe(100);   // was 55 when both tries were averaged
+  });
+  it('keeps different items: new questions add evidence', () => {
+    expect(latestPerItem([{ itemKey: 'a' }, { itemKey: 'b' }] as any)).toHaveLength(2);
+  });
+  it('needs two different items for MEDIUM, however much one item weighs', () => {
+    expect(confidenceFor(10, 1)).toBe('LOW');
+    expect(confidenceFor(CONFIDENCE_THRESHOLDS.MEDIUM, MEDIUM_CONFIDENCE_MIN_DISTINCT_ITEMS)).toBe('MEDIUM');
   });
 });

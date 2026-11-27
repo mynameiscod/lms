@@ -7,6 +7,7 @@ import * as quizReportController from '../controllers/quizReportController';
 import { authMiddleware } from '../middleware/auth';
 import { roleGuard } from '../middleware/roleGuard';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
+import { refreshCheckpointDays } from '../middleware/checkpointDayRefresh';
 
 // Ensure recordings directory exists
 const recordingsDir = 'uploads/quiz-recordings';
@@ -59,12 +60,14 @@ router.get('/:quizId', quizController.getQuizById);
 router.put(
   '/:quizId',
   roleGuard(['edit_quiz']),
+  refreshCheckpointDays,
   quizController.updateQuiz
 );
 
 router.delete(
   '/:quizId',
   roleGuard(['delete_quiz']),
+  refreshCheckpointDays,
   quizController.deleteQuiz
 );
 
@@ -80,8 +83,8 @@ router.get('/:quizId/non-attendees', roleGuard(['edit_quiz', 'create_quiz']), qu
 router.post('/:quizId/reassign-non-attendees', roleGuard(['edit_quiz', 'create_quiz']), quizController.reassignNonAttendees);
 
 // Archive / Unarchive
-router.patch('/:quizId/archive', roleGuard(['edit_quiz']), quizController.archiveQuiz);
-router.patch('/:quizId/unarchive', roleGuard(['edit_quiz']), quizController.unarchiveQuiz);
+router.patch('/:quizId/archive', roleGuard(['edit_quiz']), refreshCheckpointDays, quizController.archiveQuiz);
+router.patch('/:quizId/unarchive', roleGuard(['edit_quiz']), refreshCheckpointDays, quizController.unarchiveQuiz);
 
 // Quiz Attempt Routes
 router.post('/:quizId/start', quizController.startQuizAttempt);
@@ -103,6 +106,7 @@ router.post('/:quizId/regrade', roleGuard(['edit_quiz']), quizController.regrade
 router.post(
   '/:quizId/questions',
   roleGuard(['create_question']),
+  refreshCheckpointDays,
   questionController.createQuestion
 );
 
@@ -119,12 +123,14 @@ router.put(
 router.delete(
   '/:quizId/questions/:questionId',
   roleGuard(['delete_question']),
+  refreshCheckpointDays,
   questionController.deleteQuestion
 );
 
 router.post(
   '/:quizId/questions/bulk',
   roleGuard(['create_question']),
+  refreshCheckpointDays,
   questionController.bulkCreateQuestions
 );
 
@@ -139,6 +145,7 @@ router.post(
 router.post(
   '/:quizId/link-questions',
   roleGuard(['edit_quiz']),
+  refreshCheckpointDays,
   quizController.linkQuestionsToQuiz
 );
 
@@ -146,6 +153,7 @@ router.post(
 router.post(
   '/:quizId/add-question/:questionId',
   roleGuard(['edit_quiz']),
+  refreshCheckpointDays,
   quizController.addQuestionToQuiz
 );
 
@@ -153,6 +161,7 @@ router.post(
 router.delete(
   '/:quizId/remove-question/:questionId',
   roleGuard(['edit_quiz']),
+  refreshCheckpointDays,
   quizController.removeQuestionFromQuiz
 );
 
@@ -160,6 +169,7 @@ router.delete(
 router.delete(
   '/:quizId/remove-all-questions',
   roleGuard(['edit_quiz']),
+  refreshCheckpointDays,
   quizController.removeQuestionsFromQuiz
 );
 

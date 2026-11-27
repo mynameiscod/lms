@@ -46,7 +46,8 @@ const emptyPlan = (): InterviewPlanInput => ({
 const inr = (n: number): string =>
   `₹${n >= 1000 ? Math.round(n).toLocaleString('en-IN') : n.toFixed(n < 10 ? 2 : 0)}`;
 
-const AdminInterviewPlans: React.FC = () => {
+/** `platform`: the super admin's plans for every institute (CareerPilot Limits). Without it, an institute's read-only view. */
+const AdminInterviewPlans: React.FC<{ platform?: boolean }> = ({ platform = false }) => {
   const [data, setData] = useState<InterviewPlansResponse | null>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +64,7 @@ const AdminInterviewPlans: React.FC = () => {
 
   const load = async () => {
     try {
-      setData(await passportApi.listInterviewPlans());
+      setData(await passportApi.listInterviewPlans(platform));
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not load interview plans.');
     }
@@ -79,6 +80,7 @@ const AdminInterviewPlans: React.FC = () => {
   }, [students.length]);
 
   const bounds = data?.bounds;
+  const readOnly = !platform || !!data?.readOnly;
   const costPer = data?.cost.perInterviewInr ?? null;
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 5000); };
@@ -100,8 +102,8 @@ const AdminInterviewPlans: React.FC = () => {
     if (!draft.rounds.length) { setErr('Add at least one round.'); return; }
     setSaving(true); setErr('');
     try {
-      if (editingId === 'new') await passportApi.createInterviewPlan(draft);
-      else await passportApi.updateInterviewPlan(editingId, draft);
+      if (editingId === 'new') await passportApi.createInterviewPlan(draft, platform);
+      else await passportApi.updateInterviewPlan(editingId, draft, platform);
       cancel();
       await load();
       // Deliberately does NOT say "new interviews use this". They do not yet — the runtime
@@ -116,7 +118,7 @@ const AdminInterviewPlans: React.FC = () => {
 
   const remove = async (p: InterviewPlan) => {
     if (!window.confirm(`Delete "${p.name}"? Members on it fall through to the next plan that matches.`)) return;
-    try { await passportApi.deleteInterviewPlan(p.id); await load(); flash('Plan deleted.'); }
+    try { await passportApi.deleteInterviewPlan(p.id, platform); await load(); flash('Plan deleted.'); }
     catch (e: any) { setErr(e?.response?.data?.message || 'Could not delete.'); }
   };
 
@@ -135,7 +137,7 @@ const AdminInterviewPlans: React.FC = () => {
     const next = [...ordinary];
     [next[i], next[j]] = [next[j], next[i]];
     try {
-      await passportApi.reorderInterviewPlans(next.map(p => p.id));
+      await passportApi.reorderInterviewPlans(next.map(p => p.id), platform);
       await load();
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not save the order.'); }
   };
@@ -144,7 +146,7 @@ const AdminInterviewPlans: React.FC = () => {
     setPreviewFor(studentId);
     setPreview(null);
     if (!studentId) return;
-    try { setPreview(await passportApi.previewInterviewPlan(studentId)); }
+    try { setPreview(await passportApi.previewInterviewPlan(studentId, platform)); }
     catch (e: any) { setErr(e?.response?.data?.message || 'Could not preview.'); }
   };
 
@@ -313,7 +315,7 @@ const AdminInterviewPlans: React.FC = () => {
   const card = (p: InterviewPlan, i: number, movable: boolean) => (
     <div key={p.id} className={`ivp-card${p.active ? '' : ' off'}${editingId === p.id ? ' editing' : ''}`}>
       <div className="ivp-row">
-        {movable && (
+        {movable && !readOnly && (
           <div className="ivp-move">
             <button type="button" onClick={() => move(i, -1)} disabled={i === 0} title="Move up">▲</button>
             <button type="button" onClick={() => move(i, 1)} disabled={i === ordinary.length - 1} title="Move down">▼</button>
@@ -353,12 +355,14 @@ const AdminInterviewPlans: React.FC = () => {
             )}
           </div>
         </div>
-        <div className="ivp-acts">
-          <button className="ivp-btn sm" onClick={() => (editingId === p.id ? cancel() : startEdit(p))}>
-            {editingId === p.id ? 'Close' : 'Edit'}
-          </button>
-          <button className="ivp-btn sm danger" onClick={() => remove(p)}>Delete</button>
-        </div>
+        {!readOnly && (
+          <div className="ivp-acts">
+            <button className="ivp-btn sm" onClick={() => (editingId === p.id ? cancel() : startEdit(p))}>
+              {editingId === p.id ? 'Close' : 'Edit'}
+            </button>
+            <button className="ivp-btn sm danger" onClick={() => remove(p)}>Delete</button>
+          </div>
+        )}
       </div>
       {editingId === p.id && editor}
     </div>
@@ -372,10 +376,21 @@ const AdminInterviewPlans: React.FC = () => {
           <p>
             Who gets how many interviews, and what each one is made of. Plans are checked top to
             bottom and the first one a member matches wins, so put the most specific first.
+            {platform && ' These plans apply to every institute.'}
           </p>
         </div>
-        <button className="ivp-btn primary" onClick={startNew} disabled={editingId === 'new'}>+ New plan</button>
+        {!readOnly && <button className="ivp-btn primary" onClick={startNew} disabled={editingId === 'new'}>+ New plan</button>}
       </div>
+
+      {readOnly && (
+        <div className="ivp-ro">
+          <i className="bi bi-lock-fill" aria-hidden />
+          <span>
+            Mock interview limits are set by the CodeBegun super admin for every institute.
+            {data.managedByPlatform ? ' These are the plans your members get.' : ' Until they are set, the plans below (or the built-in default) apply.'}
+          </span>
+        </div>
+      )}
 
       <div className="ivp-stats">
         <div className="ivp-stat">
@@ -462,10 +477,10 @@ const AdminInterviewPlans: React.FC = () => {
         )}
       </div>
 
-      <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
-        These plans are configuration only for now — live interviews still run the built-in
-        shape ({data.defaultShape.totals.questions} questions, untimed, unlimited) until the
-        runtime is wired to read them. The member counts, warnings and costs above are real.
+      <p style={{ fontSize: 12.5, color: '#52637A', lineHeight: 1.6, margin: 0 }}>
+        Live interviews follow these plans: each round's questions and minutes, the interviews
+        allowed per 30 days and the gap between them. A member no plan matches gets the built-in
+        default ({data.defaultShape.totals.questions} questions, unlimited).
       </p>
     </div>
   );

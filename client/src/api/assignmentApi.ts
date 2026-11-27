@@ -30,7 +30,25 @@ export enum AssignmentType {
   THEORY = 'theory',
   SQL = 'sql',
   FILE_UPLOAD = 'file_upload',
-  WEB = 'web'
+  WEB = 'web',
+  EXAM = 'exam'
+}
+
+/** One block of a pool exam: how many questions of each level to draw from one Question Pool. */
+export interface PoolExamSection {
+  key: string; title: string; poolId: string;
+  easy: number; medium: number; hard: number; any: number; marksPerQuestion: number;
+}
+
+export interface PoolExamSettings {
+  sections: PoolExamSection[];
+  durationMinutes: number;
+  maxAttempts: number;
+  preferUnseen: boolean;
+  tabSwitch: { enabled: boolean; maxWarnings: number; autoSubmit: boolean };
+  blockCopyPaste: boolean;
+  showResultsImmediately: boolean;
+  resultsReleasedAt?: string | null;
 }
 
 export enum DifficultyLevel {
@@ -149,6 +167,8 @@ export interface Assignment {
   timeLimit?: number;
   memoryLimit?: number;
   mcqQuestions: MCQQuestion[];
+  /** Only on an EXAM: how each student's paper is drawn from Question Pools. */
+  poolExam?: PoolExamSettings;
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
   rubric: RubricItem[];
@@ -244,6 +264,8 @@ export interface Submission {
   feedback?: string;
   rubricScores?: RubricScore[];
   shareToken?: string;
+  /** Files handed in for a FILE_UPLOAD assignment. */
+  uploadedFiles?: { filename: string; originalName: string; mimeType: string; size: number; uploadedAt: string }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -466,6 +488,27 @@ export const submissionApi = {
   // Start new submission
   startSubmission: (assignmentId: string) =>
     api.post<ApiResponse<Submission>>(`/assignments/${assignmentId}/start`),
+
+  // Start another attempt after handing one in (within the assignment's attempt limit)
+  retry: (assignmentId: string) =>
+    api.post<ApiResponse<Submission>>(`/assignments/${assignmentId}/retry`),
+
+  // Files for a FILE_UPLOAD assignment
+  uploadFiles: (submissionId: string, files: File[]) => {
+    const form = new FormData();
+    files.forEach(f => form.append('files', f));
+    return api.post<ApiResponse<Submission>>(`/assignments/submissions/${submissionId}/files`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  removeFile: (submissionId: string, filename: string) =>
+    api.delete<ApiResponse<Submission>>(`/assignments/submissions/${submissionId}/files/${encodeURIComponent(filename)}`),
+  /** Download a handed-in file (the student's own, or any for a grader) and save it. */
+  downloadFile: async (submissionId: string, file: { filename: string; originalName: string }) => {
+    const r = await api.get(`/assignments/submissions/${submissionId}/files/${encodeURIComponent(file.filename)}`, { responseType: 'blob' });
+    const url = URL.createObjectURL(r.data as Blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = file.originalName; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  },
 
   // Get my submission for an assignment
   getMySubmission: (assignmentId: string) =>

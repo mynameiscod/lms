@@ -3,9 +3,10 @@
 // configured on PassportConfig, so tiers are data, not hard-coded.
 
 import { DEFAULT_ENTITLEMENTS } from '../models/PassportConfig';
+import { trialActive, trialAllowsFeature } from '../data/trialPolicy';
 
 interface EntitlementCfg { featureKey: string; label: string; tier: 'free' | 'paid'; }
-interface PassportSub { active?: boolean; expiresAt?: Date | string | null; }
+interface PassportSub { active?: boolean; expiresAt?: Date | string | null; trial?: any }
 
 /** Is the membership currently active (flagged active AND not past expiry)? */
 export function membershipActive(passport?: PassportSub | null, now: Date = new Date()): boolean {
@@ -24,7 +25,16 @@ export function isEntitled(
   const ent = (entitlements || []).find(e => e.featureKey === featureKey);
   const tier = ent?.tier || 'paid';
   if (tier === 'free') return true;
-  return membershipActive(passport, now);
+  // A trial opens only what its plan lists (data/trialPolicy.ts); it is never a membership.
+  return membershipActive(passport, now) || trialAllowsFeature(passport, featureKey, now);
+}
+
+/**
+ * Should this person get the member app at all: a running membership, or a running trial.
+ * NOT the same as "has paid" — a trial member sees the member app with most of it locked.
+ */
+export function hasMemberAccess(passport: PassportSub | null | undefined, now: Date = new Date()): boolean {
+  return membershipActive(passport, now) || trialActive(passport, now);
 }
 
 /** A compact map of every feature → unlocked?, for the client to reflect UI state. */
@@ -41,7 +51,8 @@ export function entitlementMap(
    * its list was absent from the map and therefore locked for everybody — paying members too.
    */
   // `|| []`: a module that does not supply the list (a test double) must not crash every check.
-  for (const d of DEFAULT_ENTITLEMENTS || []) out[d.featureKey] = active;
-  for (const e of entitlements || []) out[e.featureKey] = e.tier === 'free' ? true : active;
+  const paid = (key: string) => active || trialAllowsFeature(passport, key, now);
+  for (const d of DEFAULT_ENTITLEMENTS || []) out[d.featureKey] = paid(d.featureKey);
+  for (const e of entitlements || []) out[e.featureKey] = e.tier === 'free' ? true : paid(e.featureKey);
   return out;
 }

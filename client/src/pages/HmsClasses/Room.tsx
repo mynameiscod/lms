@@ -17,6 +17,10 @@ import {
   selectScreenShareByPeerID,
   selectHMSMessages,
   selectRecordingState,
+  selectDominantSpeaker,
+  selectPeerAudioByID,
+  selectIsPeerAudioEnabled,
+  selectIsPeerVideoEnabled,
   useHMSNotifications,
   HMSNotificationTypes,
 } from '@100mslive/react-sdk';
@@ -27,14 +31,60 @@ const BROADCASTER = 'broadcaster';
 const STAGE = 'viewer-on-stage';
 const VIEWER = 'viewer';
 
+// ── Who is speaking ───────────────────────────────────────────────────────────
+/** Audio level (0–100) above which someone counts as speaking: above breathing and room noise, below normal speech. */
+const SPEAKING_LEVEL = 6;
+
+/** Is this person speaking right now? A muted microphone never counts, whatever the level reads. */
+const useSpeaking = (peerId: string) => {
+  const level = (useHMSStore(selectPeerAudioByID(peerId)) as number) || 0;
+  const audioOn = !!useHMSStore(selectIsPeerAudioEnabled(peerId));
+  return { speaking: audioOn && level >= SPEAKING_LEVEL, level, audioOn };
+};
+
+const SPEAK_CSS = `
+@keyframes hms-pulse { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,.55); } 70% { box-shadow: 0 0 0 10px rgba(74,222,128,0); } 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); } }
+`;
+
+/** A small green dot beside a name in a list while that person is speaking. */
+const SpeakingDot: React.FC<{ peerId: string }> = ({ peerId }) => {
+  const { speaking } = useSpeaking(peerId);
+  return <span title={speaking ? 'Speaking' : ''} style={{ width: 9, height: 9, borderRadius: '50%', flexShrink: 0, background: speaking ? '#4ade80' : 'transparent', animation: speaking ? 'hms-pulse 1.2s infinite' : undefined }} />;
+};
+
+/**
+ * "Priya is speaking", at the top of the room for everyone, the audience too: people watching the
+ * stream see no tiles, and without this nobody can tell who is talking.
+ */
+const SpeakerBanner: React.FC = () => {
+  const dominant: any = useHMSStore(selectDominantSpeaker);
+  const { speaking } = useSpeaking(dominant?.id || '');
+  if (!dominant || !speaking) return <div style={{ height: 26, flexShrink: 0 }} />;
+  return (
+    <div style={{ height: 26, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#bbf7d0' }}>
+      <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#4ade80', animation: 'hms-pulse 1.2s infinite' }} />
+      <b>{dominant.name}{dominant.isLocal ? ' (You)' : ''}</b> is speaking
+    </div>
+  );
+};
+
 // ── A single WebRTC video tile ────────────────────────────────────────────────
 const VideoTile: React.FC<{ peer: any }> = ({ peer }) => {
   const { videoRef } = useVideo({ trackId: peer.videoTrack });
+  const videoOn = !!useHMSStore(selectIsPeerVideoEnabled(peer.id));
+  const { speaking, audioOn } = useSpeaking(peer.id);
+  const initial = String(peer.name || '?').trim().charAt(0).toUpperCase() || '?';
   return (
-    <div style={{ position: 'relative', background: '#111827', borderRadius: 10, overflow: 'hidden', aspectRatio: '16 / 9' }}>
+    <div style={{ position: 'relative', background: '#111827', borderRadius: 10, overflow: 'hidden', aspectRatio: '16 / 9', outline: speaking ? '3px solid #4ade80' : '3px solid transparent', animation: speaking ? 'hms-pulse 1.2s infinite' : undefined, transition: 'outline-color .15s' }}>
       <video ref={videoRef} autoPlay playsInline muted={peer.isLocal}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', transform: peer.isLocal ? 'scaleX(-1)' : undefined }} />
-      <span style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 12, color: '#fff', background: 'rgba(0,0,0,.55)', padding: '2px 8px', borderRadius: 6 }}>
+        style={{ width: '100%', height: '100%', objectFit: 'cover', transform: peer.isLocal ? 'scaleX(-1)' : undefined, visibility: videoOn ? 'visible' : 'hidden' }} />
+      {!videoOn && (
+        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#1f2937', color: '#e5e7eb', display: 'grid', placeItems: 'center', fontSize: 26, fontWeight: 700, boxShadow: speaking ? '0 0 0 4px #4ade80' : 'none' }}>{initial}</div>
+        </div>
+      )}
+      <span style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 12, color: '#fff', background: speaking ? 'rgba(22,163,74,.85)' : 'rgba(0,0,0,.55)', padding: '2px 8px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+        {!audioOn && <span title="Muted">🔇</span>}{speaking && <span>🔊</span>}
         {peer.name}{peer.isLocal ? ' (You)' : ''}{peer.roleName === BROADCASTER ? ' · host' : ''}
       </span>
     </div>
@@ -119,9 +169,9 @@ const ChatPanel: React.FC = () => {
  * A logged-in member joins by class id; a guest from an invitation link joins by their invite
  * token and the name they gave, with no login. Everything after the token is the same room.
  */
-interface RoomProps { guestToken?: string; guestName?: string; exitTo?: string }
+interface RoomProps { guestToken?: string; guestName?: string; exitTo?: string; onLeft?: () => void }
 
-const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
+const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo, onLeft }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -163,6 +213,9 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
   const [recBusy, setRecBusy] = useState(false);
   const [recPaused, setRecPaused] = useState(false);
   const [autoStage, setAutoStage] = useState(false);
+  /** Were we ever in the room? Tells "still joining" apart from "was removed / class ended / connection lost". */
+  const wasConnected = useRef(false);
+  useEffect(() => { if (isConnected) wasConnected.current = true; }, [isConnected]);
 
   // 1) Fetch the join token up front
   useEffect(() => {
@@ -317,13 +370,16 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
   const raiseHand = () =>
     hmsActions.sendBroadcastMessage('✋ ' + displayName + ' raised their hand').catch(() => {});
 
-  const leave = async () => { await hmsActions.leave().catch(() => {}); navigate(backTo); };
+  const leave = async () => {
+    await hmsActions.leave().catch(() => {});
+    if (onLeft) onLeft(); else navigate(backTo);
+  };
 
   const canShareScreen = isBroadcaster; // host + co-hosts (broadcaster role) only
 
   if (err) {
     return (
-      <div style={shell}>
+      <div style={{ ...shell, ...centered }}>
         <div style={{ margin: 'auto', textAlign: 'center' }}>
           <p style={{ fontSize: 16 }}>⚠ {err}</p>
           <button onClick={() => navigate(backTo)} style={btn('#374151')}>{guestToken ? 'Back' : 'Back to classes'}</button>
@@ -335,15 +391,15 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
   // ── Pre-join lobby ─────────────────────────────────────────────────────────
   if (phase === 'lobby') {
     return (
-      <div style={{ ...shell, display: 'grid', placeItems: 'center' }}>
-        <div style={{ width: '100%', maxWidth: 520, background: '#111827', borderRadius: 16, padding: 24, textAlign: 'center' }}>
+      <div style={{ ...shell, ...centered }}>
+        <div style={{ width: '100%', maxWidth: 520, margin: 'auto', background: '#111827', borderRadius: 16, padding: 24, textAlign: 'center' }}>
           <h2 style={{ margin: '0 0 4px', fontSize: 20 }}>{tokenData?.title || 'Live Class'}</h2>
           <p style={{ color: '#9ca3af', fontSize: 13, margin: '0 0 18px' }}>
             {willPublish ? 'You are joining as a host — check your camera & mic.' : 'You are joining as a viewer — you will watch the live stream.'}
           </p>
           {willPublish ? (
             <>
-              <div style={{ position: 'relative', background: '#000', borderRadius: 12, overflow: 'hidden', aspectRatio: '16 / 9', marginBottom: 14 }}>
+              <div style={{ position: 'relative', background: '#000', borderRadius: 12, overflow: 'hidden', aspectRatio: '16 / 9', maxHeight: '38vh', width: '100%', marginBottom: 14 }}>
                 <video ref={previewRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
                 {!camReady && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: '#9ca3af', fontSize: 13 }}>Camera unavailable</div>}
               </div>
@@ -365,7 +421,21 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
   }
 
   if (!isConnected) {
-    return <div style={{ ...shell, display: 'grid', placeItems: 'center', color: '#9ca3af' }}>Joining live class…</div>;
+    // Only "joining" while we really are joining. After that, not being connected means we left, were removed,
+    // the host ended the class, or the connection dropped: say so, and offer a way back in.
+    if (phase === 'joined' && wasConnected.current) {
+      return (
+        <div style={{ ...shell, ...centered }}>
+          <div style={{ margin: 'auto', textAlign: 'center', maxWidth: 420 }}>
+            <p style={{ fontSize: 17, fontWeight: 700, margin: '0 0 6px' }}>You are no longer in the class</p>
+            <p style={{ color: '#9ca3af', fontSize: 14, margin: '0 0 16px' }}>The host may have ended it or removed you, or your connection dropped.</p>
+            <button onClick={() => (onLeft ? onLeft() : window.location.reload())} style={btn('#16a34a')}>Join again</button>
+            <button onClick={() => navigate(backTo)} style={{ ...btn('transparent'), marginLeft: 8, color: '#9ca3af' }}>{guestToken ? 'Close' : 'Back to classes'}</button>
+          </div>
+        </div>
+      );
+    }
+    return <div style={{ ...shell, ...centered, color: '#9ca3af' }}><span style={{ margin: 'auto' }}>Joining live class…</span></div>;
   }
 
   const stagePeers = peers.filter(p => p.roleName === BROADCASTER || p.roleName === STAGE);
@@ -383,6 +453,9 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
         </div>
         <button onClick={leave} style={btn('#dc2626')}>Leave</button>
       </div>
+
+      <style>{SPEAK_CSS}</style>
+      <SpeakerBanner />
 
       {askOn && (
         <div style={{ background: '#0e3a2b', border: '1px solid #1c7a56', color: '#a7f3d0', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13.5, display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
@@ -470,7 +543,7 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>On stage ({stagePeers.length})</div>
               {stagePeers.filter(p => p.roleName === STAGE).map(p => (
                 <div key={p.id} style={rowStyle}>
-                  <span style={{ fontSize: 12.5, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎤 {p.name}</span>
+                  <SpeakingDot peerId={p.id} /><span style={{ fontSize: 12.5, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎤 {p.name}</span>
                   <button onClick={() => setPeerRole(p.id, BROADCASTER)} style={smallBtn('#7c3aed')} title="Make co-host (can present & manage)">Co-host</button>
                   <button onClick={() => setPeerRole(p.id, VIEWER)} style={smallBtn('#374151')}>Send back</button>
                   <button onClick={() => removePerson(p.id, p.name)} style={smallBtn('#dc2626')}>Remove</button>
@@ -478,7 +551,7 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
               ))}
               {stagePeers.filter(p => p.roleName === BROADCASTER && !p.isLocal).map(p => (
                 <div key={p.id} style={rowStyle}>
-                  <span style={{ fontSize: 12.5, flex: 1 }}>⭐ {p.name} (co-host)</span>
+                  <SpeakingDot peerId={p.id} /><span style={{ fontSize: 12.5, flex: 1 }}>⭐ {p.name} (co-host)</span>
                   <button onClick={() => setPeerRole(p.id, STAGE)} style={smallBtn('#374151')}>Un-host</button>
                 </div>
               ))}
@@ -486,7 +559,7 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
               {viewerPeers.length === 0 && <div style={{ color: '#6b7280', fontSize: 12 }}>No students yet.</div>}
               {viewerPeers.map(p => (
                 <div key={p.id} style={rowStyle}>
-                  <span style={{ fontSize: 12.5, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👤 {p.name}</span>
+                  <SpeakingDot peerId={p.id} /><span style={{ fontSize: 12.5, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👤 {p.name}</span>
                   <button onClick={() => setPeerRole(p.id, STAGE)} style={smallBtn('#1a5490')}>On stage</button>
                   <button onClick={() => removePerson(p.id, p.name)} style={smallBtn('#dc2626')}>Remove</button>
                 </div>
@@ -503,14 +576,16 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
 };
 
 const shell: React.CSSProperties = { position: 'fixed', inset: 0, background: '#0b1220', color: '#fff', padding: 16, overflowY: 'auto' };
+/** Centre a card with margin:auto on it. Unlike placeItems:center it never pushes the top of a tall card out of reach. */
+const centered: React.CSSProperties = { display: 'flex', flexDirection: 'column' };
 const btn = (bg: string): React.CSSProperties => ({ padding: '9px 16px', background: bg, color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' });
 const smallBtn = (bg: string): React.CSSProperties => ({ padding: '4px 9px', background: bg, color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' });
 const rowStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, padding: '6px 0', borderBottom: '1px solid #1f2937' };
 
 /** The room for a guest who opened an invitation link. */
-export const GuestRoom: React.FC<{ token: string; name: string; exitTo: string }> = ({ token, name, exitTo }) => (
+export const GuestRoom: React.FC<{ token: string; name: string; exitTo: string; onLeft?: () => void }> = ({ token, name, exitTo, onLeft }) => (
   <HMSRoomProvider>
-    <RoomInner guestToken={token} guestName={name} exitTo={exitTo} />
+    <RoomInner guestToken={token} guestName={name} exitTo={exitTo} onLeft={onLeft} />
   </HMSRoomProvider>
 );
 

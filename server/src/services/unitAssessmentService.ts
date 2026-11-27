@@ -255,8 +255,15 @@ export async function createAssignmentForUnit(
   unitCode: string,
   createdBy: string,
   title?: string,
+  type?: string,
 ) {
   const unit = await requireUnit(tenantId, unitCode);
+  /** Any assignment kind the engine grades; a project when none (or an unknown one) is given. */
+  const kind = (Object.values(AssignmentType) as string[]).includes(String(type)) ? String(type) as AssignmentType : AssignmentType.PROJECT;
+  const prefix: Record<string, string> = {
+    coding: 'Coding Assignment', project: 'Project', theory: 'Written Assignment', mcq: 'MCQ Assignment',
+    sql: 'SQL Assignment', file_upload: 'Assignment', web: 'Web Assignment',
+  };
   const tf = tenantFilter(tenantId);
   if (!tf) throw authorError('This tenant cannot own assignments.', 400);
   if (!mongoose.Types.ObjectId.isValid(createdBy)) {
@@ -265,9 +272,9 @@ export async function createAssignmentForUnit(
 
   const row = await Assignment.create({
     ...tf,
-    title: clean(title) || `Project — ${unit.title}`,
+    title: clean(title) || `${prefix[kind] || 'Assignment'} — ${unit.title}`,
     description: `Submission for ${unit.unitCode}. Created from the curriculum authoring screen.`,
-    type: AssignmentType.PROJECT,
+    type: kind,
     status: AssignmentStatus.DRAFT,
     totalPoints: 100,
     unitCode,

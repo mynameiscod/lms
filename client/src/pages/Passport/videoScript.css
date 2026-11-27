@@ -1,0 +1,127 @@
+/* Content Builder → the day's video shooting script (VideoScriptPanel.tsx). Prefix: vs-.
+   Uses the .acb tokens (--navy, --primary, --teal, --ink, --muted, --line, --soft). */
+
+/* ── The card on the day ── */
+.vs-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; border: 1.5px dashed #B9CDE4; background: #F7FAFE; }
+.vs-card-err { color: #A32B2B; border-color: #F3C9C9; background: #FDEEEE; font-size: 13.5px; gap: 8px; }
+.vs-card-ic { flex: none; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; font-size: 19px; background: #EAF3FD; color: var(--primary); }
+.vs-card-txt { min-width: 0; flex: 1; }
+.vs-card-txt b { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; color: var(--navy); }
+.vs-card-txt small { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; font-size: 13px; color: var(--muted); }
+.vs-admin { padding: 2px 8px; border-radius: 999px; background: #FFF4E0; color: #8A5300; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.vs-card-act { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.vs-status { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 800; background: #EEF2F7; color: #34475F; }
+.vs-status.s-ready { background: #E3F6EC; color: #126B47; }
+.vs-status.s-shot { background: #EAF1FB; color: #1B3C77; }
+
+/* ── The editor ── */
+.vs-drawer { width: min(920px, 100%); }
+.vs-ed-row { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 12px; }
+.vs-short select, .vs-short input { width: 100%; }
+.acb-field select { width: 100%; border: 1.5px solid #D5E0EC; border-radius: 11px; padding: 10px 12px; font: inherit; font-size: 14px; color: var(--ink); background: #fff; }
+.vs-ed-total { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 13px; border-radius: 11px; background: var(--soft); font-size: 13.5px; color: #34475F; }
+.vs-ed-total i { color: var(--teal); }
+.vs-ed-total span { color: var(--muted); font-size: 12.5px; }
+.vs-ed-scene { margin: 0; padding: 12px 14px 14px; border: 1px solid var(--line); border-radius: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.vs-ed-scene legend { display: flex; align-items: center; gap: 10px; width: 100%; padding: 0; font-size: 13px; font-weight: 800; color: var(--navy); text-transform: uppercase; letter-spacing: .06em; }
+.vs-ed-tools { margin-left: auto; display: flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; }
+.vs-ed-tools small { font-size: 12px; font-weight: 700; color: var(--muted); margin-right: 4px; }
+.vs-ed-tools button { width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--line); background: #fff; color: #4A5D78; cursor: pointer; }
+.vs-ed-tools button:disabled { opacity: .4; cursor: default; }
+.vs-ed-tools button.danger:not(:disabled):hover { color: #B42318; border-color: #F3C9C9; background: #FDEEEE; }
+.vs-ed-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 12px; }
+.vs-add-scene { align-self: flex-start; }
+.vs-del { margin-right: auto; color: #B42318; border-color: #F3C9C9; }
+
+/* ── The read view: a sheet of paper the presenter follows ── */
+.vs-reader { position: fixed; inset: 0; z-index: 2600; display: flex; flex-direction: column; background: rgba(5, 29, 100, .45); backdrop-filter: blur(2px); }
+.vs-reader-bar { display: flex; align-items: center; gap: 8px; padding: 12px 18px; background: #fff; border-bottom: 1px solid var(--line); }
+.vs-reader-bar b { display: flex; align-items: center; gap: 8px; color: var(--navy); font-size: 15px; }
+.vs-reader-sp { flex: 1; }
+.vs-reader-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 28px 16px 60px; }
+
+.vs-sheet { max-width: 920px; margin: 0 auto; background: #fff; color: #14233D; border-radius: 14px; box-shadow: 0 20px 60px rgba(5, 29, 100, .25); padding: 34px 40px 40px; }
+.vs-sheet-hd { border-bottom: 2px solid var(--navy); padding-bottom: 18px; margin-bottom: 8px; }
+.vs-sheet-kicker { font-size: 11.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); }
+.vs-sheet h1 { margin: 6px 0 12px; font-size: 26px; line-height: 1.25; font-weight: 800; color: var(--navy); }
+.vs-sheet-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font-size: 13.5px; color: #3A4E6A; }
+.vs-sheet-facts i { color: var(--teal); margin-right: 3px; }
+.vs-objective { margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: #F4F8FC; font-size: 14px; }
+.vs-objective b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #34475F; margin-bottom: 4px; }
+.vs-objective p { margin: 0; }
+.vs-updated { margin-top: 10px; font-size: 12px; color: var(--muted); }
+
+.vs-scenes { list-style: none; margin: 0; padding: 0; }
+.vs-scene { padding: 20px 0; border-bottom: 1px solid var(--line); break-inside: avoid; }
+.vs-scene:last-child { border-bottom: 0; }
+.vs-scene-hd { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.vs-scene-n { flex: none; padding: 3px 10px; border-radius: 999px; background: var(--navy); color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .04em; }
+.vs-scene-hd b { font-size: 17px; color: var(--navy); }
+.vs-scene-t { margin-left: auto; font-size: 12.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.vs-scene-cols { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 18px; }
+.vs-col h4 { margin: 0 0 6px; font-size: 11.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #5B6E8A; }
+.vs-col h4 i { margin-right: 4px; color: var(--teal); }
+.vs-col p { margin: 0 0 8px; }
+.vs-col.visual { padding: 12px 14px; border-radius: 10px; background: #F4F8FC; font-size: 14px; line-height: 1.55; color: #2A3D59; }
+.vs-col.say { padding: 4px 2px; }
+.vs-say { font-size: 17px; line-height: 1.75; color: #0F2140; }
+.vs-say p { margin: 0 0 12px; }
+.vs-empty { color: #A0AEC0; }
+.vs-notes { display: flex; gap: 10px; margin-top: 12px; padding: 10px 13px; border-radius: 10px; background: #FFF8E8; border: 1px solid #F3DFB0; color: #6B4A00; font-size: 13.5px; font-style: italic; }
+.vs-notes i { font-style: normal; margin-top: 2px; }
+.vs-notes p { margin: 0; }
+
+@media (max-width: 760px) {
+  .vs-card { flex-wrap: wrap; }
+  .vs-card-act { width: 100%; }
+  .vs-ed-row, .vs-ed-cols, .vs-scene-cols { grid-template-columns: 1fr; }
+  .vs-sheet { padding: 22px 18px 26px; }
+  .vs-sheet h1 { font-size: 21px; }
+  .vs-say { font-size: 16px; }
+  .vs-reader-bar { flex-wrap: wrap; }
+}
+
+/* Printing the script for the shoot: only the sheet, on white, no overlay chrome. */
+@media print {
+  body * { visibility: hidden !important; }
+  .vs-reader, .vs-reader * { visibility: visible !important; }
+  .vs-reader { position: absolute; inset: 0; background: #fff; backdrop-filter: none; display: block; }
+  .vs-reader-bar { display: none !important; }
+  .vs-reader-scroll { overflow: visible; padding: 0; }
+  .vs-sheet { box-shadow: none; max-width: none; padding: 0; border-radius: 0; }
+  .vs-col.visual, .vs-objective { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* Keep "Save script" clear of the floating feedback button in the bottom-right corner. */
+.vs-drawer > footer { padding-right: 78px; }
+
+/* Paste the whole script (PasteScript in VideoScriptPanel.tsx). */
+.vs-paste-cta { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 13px; border-radius: 11px; border: 1px dashed #9DBBD0; background: #F4F9FD; font-size: 13.5px; color: #34475F; }
+.vs-paste-cta > span { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.vs-paste-cta i { color: var(--teal); }
+.vs-paste { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: #fff; box-shadow: 0 3px 12px rgba(15, 46, 77, .05); }
+.vs-paste-hd b { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--navy, #051D64); }
+.vs-paste-hd small { display: block; margin-top: 3px; font-size: 13px; color: #4A5D75; }
+.vs-paste-box { width: 100%; min-height: 260px; resize: vertical; padding: 12px 14px; border-radius: 11px; border: 1px solid #C9D8E5; font: 14px/1.6 ui-monospace, Consolas, monospace; color: #1F2D44; background: #FBFDFF; box-sizing: border-box; }
+.vs-paste-box:focus { outline: none; border-color: #359AAD; box-shadow: 0 0 0 3px rgba(53, 154, 173, .18); }
+.vs-paste-help { font-size: 13px; color: #34475F; }
+.vs-paste-help summary { cursor: pointer; font-weight: 700; color: #1B3C77; width: fit-content; }
+.vs-paste-help ul { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; line-height: 1.5; }
+.vs-paste-help code { font-size: 12px; background: #EEF3F8; padding: 1px 5px; border-radius: 4px; }
+.vs-paste-out { display: flex; flex-direction: column; gap: 8px; }
+.vs-paste-sum { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding: 9px 12px; border-radius: 10px; background: #EAF8F1; color: #155E43; font-size: 13.5px; }
+.vs-paste-sum.none { background: #FFF4E0; color: #8A5300; }
+.vs-paste-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+.vs-paste-list li { display: flex; flex-direction: column; gap: 3px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--soft); font-size: 13px; color: #34475F; min-width: 0; overflow-wrap: anywhere; }
+.vs-paste-list li b { font-size: 13.5px; color: #102A4F; }
+.vs-paste-list li span { display: flex; gap: 6px; align-items: baseline; }
+.vs-paste-list li span i { color: #287F91; flex: none; }
+.vs-paste-list li span.nt i { color: #9A5A00; }
+.vs-paste-mode { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13.5px; color: #102A4F; }
+.vs-paste-mode label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.vs-paste-act { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 560px) {
+  .vs-paste-cta .acb-btn, .vs-paste-act .acb-btn { flex: 1; justify-content: center; }
+  .vs-paste-box { min-height: 220px; font-size: 13px; }
+}

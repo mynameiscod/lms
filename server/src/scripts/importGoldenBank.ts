@@ -122,24 +122,44 @@ interface BankProfile {
   tag: string;
 }
 
-const BANKS: Record<'foundation' | 'year2' | 'year3', BankProfile> = {
+/*
+ * WHERE THE MASTER CSV IS. From src (ts-node) it is three levels up; compiled in the production image
+ * the script is at /app/dist/scripts and the Dockerfile copies the CSVs to /app/docs/audit — two levels
+ * up — so the old fixed path looked in /docs/audit and refused the import. The first that exists wins.
+ */
+const auditCsv = (file: string): string => {
+  const candidates = [
+    path.join(__dirname, '../../../docs/audit', file),
+    path.join(__dirname, '../../docs/audit', file),
+    path.join(process.cwd(), 'docs/audit', file),
+  ];
+  return candidates.find(c => fs.existsSync(c)) || candidates[0];
+};
+
+const BANKS: Record<'foundation' | 'year2' | 'year3' | 'track', BankProfile> = {
   foundation: {
     label: 'FOUNDATION',
-    master: path.join(__dirname, '../../../docs/audit/foundation-golden-bank-master.csv'),
+    master: auditCsv('foundation-golden-bank-master.csv'),
     createdBy: 'foundation-golden-bank',
     tag: 'foundation',
   },
   year2: {
     label: 'YEAR 2',
-    master: path.join(__dirname, '../../../docs/audit/year2-golden-bank-master.csv'),
+    master: auditCsv('year2-golden-bank-master.csv'),
     createdBy: 'year2-golden-bank',
     tag: 'year2',
   },
   year3: {
     label: 'YEAR 3',
-    master: path.join(__dirname, '../../../docs/audit/year3-golden-bank-master.csv'),
+    master: auditCsv('year3-golden-bank-master.csv'),
     createdBy: 'year3-golden-bank',
     tag: 'year3',
+  },
+  track: {
+    label: 'CAREER TRACK',
+    master: auditCsv('track-golden-bank-master.csv'),
+    createdBy: 'track-golden-bank',
+    tag: 'track',
   },
 };
 
@@ -157,6 +177,29 @@ const PROVENANCE = ['AUTHORED', 'LEGACY_KEEP', 'LEGACY_REWRITE', 'LEGACY_REMAP']
  * than guessed per row so the choice can be argued with.
  */
 const DIMENSION: Record<string, AssessmentDimension> = {
+  // Career-track bank (trackBank): the languages, frameworks and AI skills a track teaches.
+  JAVA_BASICS: 'fundamentals', JAVA_CONTROL_FLOW: 'fundamentals', JAVA_ARRAYS: 'fundamentals', JAVA_METHODS: 'fundamentals',
+  JAVA_OOP: 'core_stack', JAVA_EXCEPTIONS: 'core_stack', JAVA_COLLECTIONS: 'core_stack', JAVA_STREAMS: 'core_stack', JAVA_CONCURRENCY: 'core_stack',
+  JS_FUNCTIONS: 'core_stack', JS_ARRAYS_OBJECTS: 'core_stack', JS_ES6: 'core_stack', BOOTSTRAP: 'core_stack', RESPONSIVE_DESIGN: 'core_stack',
+  REACT_COMPONENTS: 'core_stack', REACT_HOOKS: 'core_stack', REACT_ROUTING: 'core_stack', STATE_MANAGEMENT: 'core_stack',
+  JDBC: 'core_stack', JPA_HIBERNATE: 'core_stack', SPRING_CORE: 'core_stack', SPRING_BOOT: 'core_stack', SPRING_SECURITY: 'core_stack',
+  LLM_APPLICATIONS: 'core_stack', RAG_SYSTEMS: 'core_stack', AI_AGENTS: 'core_stack',
+  PYTHON_FUNCTIONS: 'fundamentals', PYTHON_ADVANCED: 'core_stack', PYTHON_DB: 'core_stack',
+  DJANGO: 'core_stack', DJANGO_REST: 'core_stack', FASTAPI: 'core_stack',
+  CSHARP_BASICS: 'fundamentals', CSHARP_OOP: 'core_stack', CSHARP_EXCEPTIONS: 'core_stack', CSHARP_COLLECTIONS: 'core_stack', CSHARP_LINQ: 'core_stack', CSHARP_ASYNC: 'core_stack',
+  ADO_NET: 'core_stack', EF_CORE: 'core_stack', DOTNET_DI: 'core_stack', ASPNET_CORE: 'core_stack', ASPNET_SECURITY: 'core_stack', SQL_SERVER: 'core_stack',
+  SPREADSHEET_ANALYSIS: 'core_stack', SQL_AGGREGATION: 'core_stack', SQL_WINDOW_FUNCTIONS: 'core_stack', DATA_CLEANING: 'core_stack', DATA_QUALITY: 'core_stack', EXPLORATORY_ANALYSIS: 'core_stack',
+  DATA_VISUALISATION: 'core_stack', STATISTICS_BASICS: 'aptitude', PROBABILITY_BASICS: 'aptitude', HYPOTHESIS_TESTING: 'aptitude', DASHBOARDING: 'core_stack', BUSINESS_METRICS: 'problem_solving',
+  ML_CONCEPTS: 'core_stack', ML_SUPERVISED: 'core_stack', ML_UNSUPERVISED: 'core_stack', ML_EVALUATION: 'core_stack', ML_FEATURE_ENGINEERING: 'core_stack', ML_OVERFITTING: 'core_stack', NEURAL_NETWORKS: 'core_stack',
+  DL_TRAINING: 'core_stack', DL_TRANSFORMERS: 'core_stack', VECTOR_EMBEDDINGS: 'core_stack', MODEL_DEPLOYMENT: 'core_stack', EXPERIMENT_TRACKING: 'core_stack', MODEL_MONITORING: 'core_stack',
+  // Cybersecurity Analyst (batch CY5).
+  AUTHENTICATION_AUTHZ: 'core_stack', CLOUD_NETWORKING: 'core_stack', CLOUD_STORAGE: 'core_stack', CRYPTOGRAPHY_BASICS: 'core_stack', IAM_FUNDAMENTALS: 'core_stack', INCIDENT_RESPONSE: 'core_stack', LINUX_ADMIN: 'core_stack', NETWORK_SECURITY: 'core_stack', OWASP_TOP_TEN: 'core_stack', SIEM_MONITORING: 'core_stack', THREAT_MODELLING: 'core_stack', VULNERABILITY_MANAGEMENT: 'core_stack',
+  CLOUD_COMPUTE: 'core_stack', KUBERNETES: 'core_stack', INFRA_AS_CODE: 'core_stack', CONFIG_MANAGEMENT: 'core_stack', OBSERVABILITY: 'core_stack', SLI_SLO: 'core_stack', RELIABILITY_PATTERNS: 'core_stack', INCIDENT_MANAGEMENT: 'core_stack',
+  ETL_FUNDAMENTALS: 'core_stack', DATA_PIPELINES: 'core_stack', DATA_MODELLING: 'core_stack', DATA_WAREHOUSING: 'core_stack', BATCH_STREAM_PROCESSING: 'core_stack',
+  TEST_DESIGN: 'core_stack', UI_TEST_AUTOMATION: 'core_stack', API_TESTING: 'core_stack', PERFORMANCE_TESTING: 'core_stack',
+  TYPESCRIPT: 'core_stack', REACT_NATIVE: 'core_stack', ANDROID_DEVELOPMENT: 'core_stack', MOBILE_RELEASE: 'core_stack',
+  // The AI tracks (batch AI7).
+  LLM_FUNDAMENTALS: 'core_stack', RAG_FUNDAMENTALS: 'core_stack', VECTOR_DATABASES: 'core_stack', LLM_EVALUATION: 'core_stack', AI_GUARDRAILS: 'core_stack', PROMPT_INJECTION: 'core_stack', AI_RESPONSIBLE: 'core_stack', GENAI_APP_PATTERNS: 'core_stack', LLM_FINE_TUNING: 'core_stack', AGENT_FUNDAMENTALS: 'core_stack', TOOL_CALLING: 'core_stack', AGENT_ORCHESTRATION: 'core_stack', AGENT_MEMORY: 'core_stack', AGENT_EVALUATION: 'core_stack', ML_PIPELINES: 'core_stack', MODEL_VERSIONING: 'core_stack', LLM_SECURITY: 'core_stack', MODEL_RED_TEAMING: 'core_stack',
   APTITUDE_DATA_INTERPRETATION: 'aptitude',
   APTITUDE_REASONING_LOGIC: 'aptitude',
   APTITUDE_REASONING_SERIES: 'aptitude',
@@ -432,20 +475,22 @@ interface Problem { questionId: string; reason: string }
   const apply = process.argv.includes('--apply');
   const keepLegacy = process.argv.includes('--keep-legacy');
   const bank = BANKS[
-    process.argv.includes('--year3') ? 'year3'
+    process.argv.includes('--track') ? 'track'
+      : process.argv.includes('--year3') ? 'year3'
       : process.argv.includes('--year2') ? 'year2'
         : 'foundation'
   ];
   const CREATED_BY = bank.createdBy;
 
   if (!tenantId) {
-    console.error('Usage: importGoldenBank.ts <tenantId> [--apply] [--keep-legacy] [--year2|--year3]');
+    console.error('Usage: importGoldenBank.ts <tenantId> [--apply] [--keep-legacy] [--year2|--year3|--track]');
     process.exit(1);
   }
   if (!fs.existsSync(bank.master)) {
     console.error(`Master bank not found: ${bank.master}`);
     if (bank.label === 'YEAR 2') console.error('Emit it first: npx ts-node src/scripts/emitYear2GoldenBank.ts');
     if (bank.label === 'YEAR 3') console.error('Emit it first: npx ts-node src/scripts/emitYear3GoldenBank.ts');
+    if (bank.label === 'CAREER TRACK') console.error('Emit it first: npx ts-node src/scripts/emitTrackGoldenBank.ts');
     process.exit(1);
   }
 

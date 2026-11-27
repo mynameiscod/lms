@@ -101,11 +101,20 @@ export function isKnownActiveDomain(key: unknown): boolean {
 export function normalizeLanguages(domainKey: string | null | undefined, langs: any): string[] {
   const allowed = domainOf(domainKey).languages;
   const byLower = new Map(allowed.map(l => [l.toLowerCase(), l]));
-  return [...new Set(
+  const list = [...new Set(
     (Array.isArray(langs) ? langs : [])
       .map((l: any) => byLower.get(String(l).trim().toLowerCase()))
       .filter(Boolean) as string[],
-  )].slice(0, 6);
+  )];
+  /*
+   * The setup page's rules, enforced here too: "Not Sure" stands alone, and there is ONE main
+   * language — the roadmap and career track are built around it. JavaScript/TypeScript may sit
+   * beside it. The first main language given wins.
+   */
+  if (list.some(l => l.toLowerCase() === 'not sure')) return [list.find(l => l.toLowerCase() === 'not sure') as string];
+  const MAIN = ['java', 'python', 'c#', 'c', 'c++'];
+  const firstMain = list.find(l => MAIN.includes(l.toLowerCase()));
+  return list.filter(l => !MAIN.includes(l.toLowerCase()) || l === firstMain).slice(0, 6);
 }
 
 /** Snapped to an offered value; anything else is not a commitment we can plan against. */

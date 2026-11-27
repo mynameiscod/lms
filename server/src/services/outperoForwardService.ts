@@ -1,6 +1,6 @@
 import { getPolicy, inCallingWindow, CALL_FROM_HOUR, CALL_TO_HOUR } from './outperoPolicyService';
 import { purposeTemplate, sendByPurpose } from './purposeMessaging';
-import { autoAssignLead } from './leadDistributionService';
+import { assignLead } from './leadAssignmentService';
 import LeadStage from '../models/LeadStage';
 import { recordStageTransition } from '../controllers/leadStageHistoryController';
 import mongoose from 'mongoose';
@@ -237,7 +237,7 @@ export async function assignOverdue(limit = 50): Promise<number> {
     if (!policy.enabled) continue;
     const since = new Date(l.outpero?.sentAt || l.outpero?.nextAttemptAt || l.createdAt).getTime();
     if (Date.now() - since < policy.fallbackHours * 3600_000) continue;
-    const owner = await autoAssignLead(tenantId, String(l._id), true).catch(() => null);
+    const owner = await assignLead(tenantId, String(l._id), { afterCall: true }).catch(() => null);
     if (!owner) continue;
     n++;
     await Lead.updateOne({ _id: l._id }, { $push: { activities: { type: 'note', createdBy: l.createdBy, createdAt: new Date(), description: `🤖 No call result from Outpero within ${policy.fallbackHours} hours — assigned to a team member by round robin.` } } });

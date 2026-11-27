@@ -110,7 +110,11 @@ const LoginPage: React.FC = () => {
       await login(email, password, tenantId || undefined);
       // A login made only for the employee portal lands there; everyone else on the dashboard.
       const asEmployee = await portalApi.exists().catch(() => null);
-      navigate(asEmployee?.isEmployee && asEmployee.portalOnly ? '/employee' : '/dashboard');
+      // ?next= brings the student back where they started, e.g. the attendance check-in after scanning the QR code.
+      const next = searchParams.get('next') || '';
+      // Our own pages only: one leading slash, no "//" or backslash (another site), no spaces.
+      const safeNext = next.startsWith('/') && !next.startsWith('//') && !/[\\\s]/.test(next) ? next : '';
+      navigate(safeNext || (asEmployee?.isEmployee && asEmployee.portalOnly ? '/employee' : '/dashboard'));
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials and try again.');
     } finally {
@@ -212,6 +216,11 @@ const LoginPage: React.FC = () => {
               {!loading && <ArrowIcon />}
             </button>
           </form>
+          {/* Prospective students: the free LMS demo (/demo), no account needed. */}
+          <div className="login-demo-cta">
+            <span>New to CodeBegun?</span>
+            <Link to="/demo">Try a free demo <ArrowIcon /></Link>
+          </div>
         </div>
       </section>
     </div>

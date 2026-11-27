@@ -1,3 +1,4 @@
+import { recordReEnquiry } from '../services/leadReEnquiryService';
 import { waitsForOutpero } from '../services/outperoPolicyService';
 import { recoverMetaLeads, MetaSyncBusy, withMetaImportLock } from '../services/metaRecoveryService';
 import MetaSyncState from '../models/MetaSyncState';
@@ -16,6 +17,7 @@ import { enqueueAICall } from '../services/aiCallQueueService';
 import AICallConfig from '../models/AICallConfig';
 import { AuthenticatedRequest } from '../types';
 import { reviveIfArchived } from '../services/leadArchiveService';
+import { verifyLeadAdsSignature } from '../services/whatsAppWebhookSignature';
 
 // ===================== DEBUG LOGGER =====================
 
@@ -103,6 +105,18 @@ interface MetaLeadData {
   campaign_name?: string;
   form_id?: string;
   form_name?: string;
+  /** The Facebook Page the form belongs to (from the webhook or the recovery config). */
+  page_id?: string;
+}
+
+/** Meta's own ids for the ad hierarchy, kept as strings for joining with ad spend and CRM events. */
+function metaAttribution(leadData: MetaLeadData): Record<string, any> {
+  const out: Record<string, any> = {};
+  if (leadData.campaign_id) out.metaCampaignId = String(leadData.campaign_id);
+  if (leadData.adset_id) out.metaAdSetId = String(leadData.adset_id);
+  if (leadData.page_id) out.metaPageId = String(leadData.page_id);
+  if (leadData.created_time && !Number.isNaN(new Date(leadData.created_time).getTime())) out.metaLeadCreatedAt = new Date(leadData.created_time);
+  return out;
 }
 
 // ===================== HELPER: Fetch Lead Data from Meta Graph API =====================
@@ -227,20 +241,11 @@ export const handleMetaLeadWebhook = async (req: Request, res: Response) => {
   debugLog('WEBHOOK', `Raw Body:`, req.body);
   
   try {
-    // HMAC signature verification using App Secret
-    const appSecret = process.env.META_APP_SECRET;
-    if (appSecret) {
-      const signature = req.headers['x-hub-signature-256'] as string;
-      if (signature) {
-        const rawBody = JSON.stringify(req.body);
-        const expectedSig = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
-        if (signature !== expectedSig) {
-          errorLog('WEBHOOK', `❌ Signature mismatch — possible fake event. Got: ${signature.substring(0, 20)}...`);
-          return res.status(200).send('EVENT_RECEIVED'); // still 200 to avoid Meta retries
-        }
-        debugLog('WEBHOOK', '✅ HMAC signature verified');
-      }
-    }
+    // Signature over the exact raw bytes Meta signed (re-serialised JSON can differ and fail a
+    // genuine event). Mode META_LEAD_WEBHOOK_SIGNATURE: log (default) | enforce | off.
+    const check = verifyLeadAdsSignature((req as any).rawBody, req.headers['x-hub-signature-256'] as string | undefined);
+    if (check.reason) console.warn(`[META-LEADS] webhook signature: ${check.reason}${check.accept ? ' (accepted — mode is not "enforce")' : ' — rejected'}`);
+    if (!check.accept) return res.status(401).send('INVALID_SIGNATURE');
 
     const payload: MetaLeadgenPayload = req.body;
 
@@ -429,7 +434,15 @@ async function fetchAndCreateLead(
     throw fetchError;
   }
 
-  await createOrUpdateLeadFromData({ ...leadData, id: leadData.id || leadgenId }, meta.formId || leadData.form_id || '', tenantId);
+  // Meta leaves the ad fields off the lead when the ad sits in an ad account the page token cannot read,
+  // but the webhook itself still names the ad and campaign, so keep those rather than lose the ad.
+  await createOrUpdateLeadFromData({
+    ...leadData,
+    id: leadData.id || leadgenId,
+    ad_id: leadData.ad_id || meta.adId,
+    campaign_id: leadData.campaign_id || meta.campaignId,
+    page_id: leadData.page_id || meta.pageId,
+  }, meta.formId || leadData.form_id || '', tenantId);
 }
 
 // ===================== GRAPH API HELPER =====================
@@ -612,17 +625,23 @@ async function importMetaSubmission(
       return 'skipped';
     }
     await reviveIfArchived(existing._id, 'new Meta lead form');
-    await Lead.updateOne(
+    const marked = await Lead.updateOne(
       { _id: existing._id, metaSubmissionIds: { $ne: String(leadData.id) } },
       {
         $addToSet: { metaSubmissionIds: String(leadData.id) },
-        $push: { activities: { type: 'note', description: 'New Meta form submission (' + formId + ')', createdBy: existing.createdBy, createdAt: new Date(), metadata: { metaSubmissionId: String(leadData.id) } } },
         $set: {
           'sourceDetails.formId': formId,
           'sourceDetails.campaignName': leadData.campaign_name || existing.get('sourceDetails.campaignName'),
         },
       }
     );
+    // Only the call that actually recorded this submission reports it, so a re-delivery cannot notify twice.
+    if (marked.modifiedCount) {
+      await recordReEnquiry(tenantId, existing._id, {
+        channel: 'meta_form', formId, adId: leadData.ad_id, adName: leadData.ad_name, campaignName: leadData.campaign_name,
+        at: leadData.created_time ? new Date(leadData.created_time) : undefined,
+      });
+    }
     return 'updated';
   }
 
@@ -662,6 +681,7 @@ async function importMetaSubmission(
       campaignName: leadData.campaign_name,
       adSetName: leadData.adset_name,
       adName: leadData.ad_name,
+      ...metaAttribution(leadData),
     },
     utmParams: { source: 'facebook', medium: 'paid', campaign: leadData.campaign_name },
     activities: [{

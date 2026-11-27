@@ -31,7 +31,8 @@ export function registerSocketAuth(io: SocketIOServer) {
       if (token) {
         const decoded = jwt.verify(token, jwtSecret()) as any;
         const u: any = await User.findById(decoded.id).select('role tenantId isActive customRoleId firstName lastName email').lean();
-        if (u && u.isActive !== false) {
+        // A placement office login joins no room at all (lead alerts, follow-ups, live classes ...).
+        if (u && u.isActive !== false && u.role !== 'PLACEMENT_PARTNER') {
           (socket.data as any).user = {
             id: String(u._id), role: u.role, tenantId: String(u.tenantId || ''), customRoleId: u.customRoleId ? String(u.customRoleId) : null,
             name: [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email || 'User',

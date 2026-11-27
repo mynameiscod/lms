@@ -1,8 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import passportApi, { CurriculumLearningUnit, DirectionCoverageReport, MegaCurriculumTopicRow, UnitStudentPreview } from '../../api/passportApi';
+import passportApi, { careerTrackApi, CareerTrackCatalogue, CurriculumLearningUnit, DirectionCoverageReport, MegaCurriculumTopicRow, TaskPrices, UnitStudentPreview } from '../../api/passportApi';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import './adminContentBuilder.css';
+import { mediaUrl, mediaPathFor } from '../../utils/mediaUrl';
+import VideoScriptPanel from './VideoScriptPanel';
+import AssignmentDrawer from './AssignmentDrawer';
+import StudentDayPreview from './StudentDayPreview';
+import PracticeCsvImport from './PracticeCsvImport';
+import { PracticeQuestionInput } from './practiceCsv';
 
 /**
  * Content Builder — one screen for "what does a learner do on this day, and let me change it".
@@ -16,21 +22,53 @@ import './adminContentBuilder.css';
  * composer code the day player runs, so what an admin approves here is what a member gets.
  */
 
-/** The XP table the journey pays, mirrored so a unit can show its worth before anybody takes it. */
-const XP_BY_TYPE: Record<string, number> = {
-  video: 5, notes: 5, worked_example: 5, interactive_lesson: 5, interactive_activity: 5,
-  practice_theory: 10, tech_qa: 10, behavioral_qa: 10, aptitude: 10,
-  practice_coding: 15, quiz: 20, assignment: 30,
+/**
+ * What a task pays, read from the server's price list (XP & Rewards) — the same one the day player pays
+ * from, so the "+N XP" here is what a member is shown and paid. Mirrors xpPricingService.xpForTask.
+ */
+const taskXpKey = (it: any): string | null => {
+  const kind = it.kind || 'content';
+  if (kind === 'content') return it.contentId ? `content:${it.contentId}` : null;
+  return it.sourceId ? `module:${it.sourceId}` : null;
 };
-const DAY_BONUS_XP = 25;
+const typeXp = (it: any, p: TaskPrices): number => {
+  const kind = it.kind || 'content';
+  if (kind === 'mockInterview') return 0;
+  const type = it.contentType || it.type || '';
+  if (type in p.byType) return p.byType[type];
+  if (kind === 'codeSnippet') return p.byType.practice_coding ?? 5;
+  if (kind in p.byType) return p.byType[kind];
+  return 5;
+};
+const taskXp = (it: any, p: TaskPrices | null): number => {
+  if (!p) return 0;
+  if (!p.tasksEnabled || (it.kind || 'content') === 'mockInterview') return 0;
+  const key = taskXpKey(it);
+  if (key && key in p.overrides) return p.overrides[key];
+  return typeXp(it, p);
+};
 
 type DrawerKind = 'video' | 'notes' | 'tech_qa' | 'practice_theory' | null;
+
+/**
+ * CAREER TRACKS, as a tab of this builder.
+ *
+ * A track is not a stage of its own: its packs mix the topics written for the track (stageKey
+ * 'track') with year topics they reuse (Year 3 security, Year 2 DSA...). So the tab gathers every
+ * topic the chosen track's packs name, from whichever stage holds it, in pack order, and says
+ * where a topic is shared - an edit there changes it for every track and year that uses it.
+ */
+const TRACK_TAB = 'track';
+const STAGE_NAME: Record<string, string> = { foundation: 'Year 1', build: 'Year 2', specialize: 'Year 3', placement: 'Year 4', job_seeker: 'Job seeker', track: 'Track' };
+type BuilderRow = MegaCurriculumTopicRow & {
+  pack?: { key: string; title: string; kind: string }; priority?: string; fromStage?: string; alsoIn?: string[];
+};
 
 const KIND_META: Record<Exclude<DrawerKind, null>, { label: string; icon: string; blurb: string }> = {
   video: { label: 'Video', icon: 'bi-play-circle-fill', blurb: 'A YouTube or Vimeo link the learner watches.' },
   notes: { label: 'Notes', icon: 'bi-file-text-fill', blurb: 'Written notes the learner reads.' },
   tech_qa: { label: 'Q&A', icon: 'bi-patch-question-fill', blurb: 'Questions with model answers.' },
-  practice_theory: { label: 'Practice', icon: 'bi-pencil-square', blurb: 'Short questions the learner answers in their own words.' },
+  practice_theory: { label: 'Practice', icon: 'bi-pencil-square', blurb: 'Questions the learner answers - multiple choice, or in their own words.' },
 };
 
 const ICON_FOR: Record<string, string> = {
@@ -48,7 +86,7 @@ const prettyType = (t: string) => (t || '').replace(/_/g, ' ').replace(/\b\w/g, 
 const AdminContentBuilder: React.FC = () => {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
-  const [rows, setRows] = useState<MegaCurriculumTopicRow[]>([]);
+  const [rows, setRows] = useState<BuilderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [openTopics, setOpenTopics] = useState<Record<string, boolean>>({});
@@ -64,6 +102,12 @@ const AdminContentBuilder: React.FC = () => {
    */
   const stage = (params.get('stage') || 'foundation').toLowerCase();
   const [stages, setStages] = useState<{ key: string; label: string; who: string }[]>([]);
+  const isTrack = stage === TRACK_TAB;
+  const [catalogue, setCatalogue] = useState<CareerTrackCatalogue | null>(null);
+  /** Each stage's rows, fetched once per visit: a track reads topics from several of them. */
+  const stageCache = useRef<Record<string, MegaCurriculumTopicRow[]>>({});
+  const catalogueReq = useRef<Promise<CareerTrackCatalogue> | null>(null);
+  const trackKey = params.get('track') || '';
   const [preview, setPreview] = useState<UnitStudentPreview | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
   const [drawer, setDrawer] = useState<DrawerKind>(null);
@@ -71,16 +115,78 @@ const AdminContentBuilder: React.FC = () => {
   const [editItem, setEditItem] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
+  /** Bumped by the "Add script" button; the script panel opens its editor when it changes. */
+  const [scriptSignal, setScriptSignal] = useState(0);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [studentView, setStudentView] = useState(false);
+  /**
+   * Bumped on a change of tab or track. Two tracks often open on the same first day (both start
+   * with Core Python), so the unit code comes back unchanged and its preview - cleared on the
+   * switch - would never be read again.
+   */
+  const [previewNonce, setPreviewNonce] = useState(0);
+  const [prices, setPrices] = useState<TaskPrices | null>(null);
+  /** The task whose XP is being edited, and the figure typed so far. */
+  const [xpEdit, setXpEdit] = useState<{ key: string; value: string } | null>(null);
+  const [xpSaving, setXpSaving] = useState(false);
 
-  const load = useCallback(async () => {
+  useEffect(() => { passportApi.getTaskPrices().then(setPrices).catch(() => { /* chips stay hidden; the builder still works */ }); }, []);
+
+  const stageRows = useCallback(async (key: string) => {
+    if (!stageCache.current[key]) stageCache.current[key] = (await passportApi.megaCurriculum(key)).rows || [];
+    return stageCache.current[key];
+  }, []);
+
+  /**
+   * After a save the stage that holds the saved day is read again (`fresh`: that stage's key,
+   * or true for the one being shown); moving between tracks reuses what was read, so a track
+   * switch is instant.
+   */
+  const load = useCallback(async (fresh: boolean | string = true) => {
     setLoading(true);
+    if (typeof fresh === 'string') delete stageCache.current[fresh];
+    else if (fresh) delete stageCache.current[stage];
     try {
-      const r = await passportApi.megaCurriculum(stage);
-      setRows(r.rows || []);
+      if (!isTrack) {
+        setRows(await stageRows(stage));
+      } else {
+        if (!catalogueReq.current) catalogueReq.current = careerTrackApi.list();
+        const cat = await catalogueReq.current;
+        setCatalogue(c => c || cat);
+        const ordered = [...cat.tracks].sort((a, b) => a.order - b.order);
+        const track = ordered.find(t => t.key === trackKey) || ordered[0];
+        if (!track) { setRows([]); setLoading(false); return; }
+        const all = await Promise.all(['track', 'foundation', 'build', 'specialize', 'placement'].map(async k => [k, await stageRows(k)] as const));
+        const byTopic = new Map<string, { row: MegaCurriculumTopicRow; stage: string }>();
+        for (const [k, rs] of all) for (const r of rs) if (!byTopic.has(r.topicCode)) byTopic.set(r.topicCode, { row: r, stage: k });
+        const packByKey = new Map(cat.packs.map(p => [p.key, p]));
+        const tracksOfTopic = new Map<string, Set<string>>();
+        for (const t of cat.tracks) for (const pk of [...t.specializePacks, ...t.placementPacks]) for (const tp of packByKey.get(pk)?.topics || []) {
+          if (!tracksOfTopic.has(tp.topicCode)) tracksOfTopic.set(tp.topicCode, new Set());
+          tracksOfTopic.get(tp.topicCode)!.add(t.name);
+        }
+        const out: BuilderRow[] = [];
+        const seen = new Set<string>();
+        for (const pk of [...track.specializePacks, ...track.placementPacks]) {
+          const pack = packByKey.get(pk);
+          if (!pack) continue;
+          for (const tp of pack.topics) {
+            if (seen.has(tp.topicCode)) continue;
+            seen.add(tp.topicCode);
+            const hit = byTopic.get(tp.topicCode);
+            const base: MegaCurriculumTopicRow = hit?.row || { moduleCode: '', moduleName: '', moduleOrder: 0, topicCode: tp.topicCode, topicTitle: tp.title || tp.topicCode, topicSkillKeys: [], units: [], published: 0, drafts: 0 };
+            out.push({
+              ...base, pack: { key: pack.key, title: pack.title, kind: pack.kind }, priority: tp.priority, fromStage: hit?.stage,
+              alsoIn: Array.from(tracksOfTopic.get(tp.topicCode) || []).filter(n => n !== track.name),
+            });
+          }
+        }
+        setRows(out);
+      }
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not load the curriculum.'); }
     setLoading(false);
-  }, [stage]);
-  useEffect(() => { load(); }, [load]);
+  }, [stage, isTrack, trackKey, stageRows]);
+  useEffect(() => { load(false); }, [load]);
 
   /* The tabs come from the server's own stage list, as the other two curriculum screens do. */
   useEffect(() => {
@@ -102,9 +208,24 @@ const AdminContentBuilder: React.FC = () => {
     next.set('stage', key);
     next.delete('unit');
     setParams(next, { replace: true });
-    setRows([]); setUnitCode(''); setPreview(null); setOpenTopics({});
+    setRows([]); setUnitCode(''); setPreview(null); setOpenTopics({}); setPreviewNonce(n => n + 1);
     setDrawer(null); setEditUnit(false); setEditItem(null); setErr('');
   };
+  const setTrack = (key: string) => {
+    if (key === trackKey) return;
+    const next = new URLSearchParams(params);
+    next.set('track', key);
+    next.delete('unit');
+    setParams(next, { replace: true });
+    setRows([]); setUnitCode(''); setPreview(null); setOpenTopics({}); setPreviewNonce(n => n + 1);
+    setDrawer(null); setEditUnit(false); setEditItem(null); setErr('');
+  };
+  const tracksSorted = useMemo(() => (catalogue ? [...catalogue.tracks].sort((a, b) => a.order - b.order) : []), [catalogue]);
+  const currentTrack = tracksSorted.find(t => t.key === trackKey) || tracksSorted[0];
+  /** Where this builder is, for links that must bring the admin back to the same day. */
+  const here = (code: string) => `/admin/passport/content-builder?stage=${encodeURIComponent(stage)}${isTrack && currentTrack ? `&track=${encodeURIComponent(currentTrack.key)}` : ''}&unit=${encodeURIComponent(code)}`;
+  /** An editor on another page, told to come back to this day when the author is done. */
+  const withReturn = (path: string, code: string) => `${path}${path.includes('?') ? '&' : '?'}returnTo=${encodeURIComponent(here(code))}`;
 
   const loadPreview = useCallback(async (code: string) => {
     if (!code) { setPreview(null); return; }
@@ -113,7 +234,7 @@ const AdminContentBuilder: React.FC = () => {
     catch (e: any) { setErr(e?.response?.data?.message || 'Could not load this unit.'); setPreview(null); }
     setPreviewBusy(false);
   }, []);
-  useEffect(() => { loadPreview(unitCode); }, [unitCode, loadPreview]);
+  useEffect(() => { loadPreview(unitCode); }, [unitCode, loadPreview, previewNonce]);
 
   /* The first topic opens itself, so the rail is never a wall of closed rows. */
   useEffect(() => {
@@ -178,8 +299,10 @@ const AdminContentBuilder: React.FC = () => {
     }
     setSavingOrder(false);
   };
-  const unitXp = items.reduce((t, it) => t + (XP_BY_TYPE[it.contentType] ?? XP_BY_TYPE[it.kind] ?? 5), 0);
-  const minutes = items.reduce((t, it) => t + (Number(it.estimatedDuration) || 0), 0);
+  // The day's totals are what a member gets: a checkpoint not live yet is not on their day.
+  const memberItems = items.filter(it => it.kind !== 'quiz' || it.live);
+  const unitXp = memberItems.reduce((t, it) => t + taskXp(it, prices), 0);
+  const minutes = memberItems.reduce((t, it) => t + (Number(it.estimatedDuration) || 0), 0);
 
   /* setParams({ unit }) wiped `stage` from the URL, so picking a unit sent the next load to Year 1. */
   const pick = (code: string) => {
@@ -190,6 +313,41 @@ const AdminContentBuilder: React.FC = () => {
     setErr('');
   };
   const say = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2600); };
+
+  /** One task's XP, wherever it appears. Reaches members' open days at once (read when paid, not copied). */
+  const saveTaskXp = async (it: any) => {
+    const key = taskXpKey(it);
+    if (!key || !xpEdit || !prices) return;
+    const xp = Number(xpEdit.value);
+    if (xpEdit.value === '' || !Number.isFinite(xp) || xp < 0 || xp > prices.max) { say(`Enter a whole number from 0 to ${prices.max}.`); return; }
+    const [refKind, refId] = key.split(':') as ['content' | 'module', string];
+    setXpSaving(true);
+    try {
+      const r = await passportApi.setTaskXpOverride(refKind, refId, Math.round(xp), it.contentTitle);
+      setPrices(p => (p ? { ...p, overrides: { ...p.overrides, [key]: r.xp } } : p));
+      setXpEdit(null);
+      say(`Saved: ${r.xp} XP for this task, everywhere it is used.`);
+    } catch (e: any) {
+      say(e?.response?.data?.message || 'Could not save that XP.');
+    }
+    setXpSaving(false);
+  };
+
+  const resetTaskXp = async (it: any) => {
+    const key = taskXpKey(it);
+    if (!key || !prices) return;
+    const [refKind, refId] = key.split(':') as ['content' | 'module', string];
+    setXpSaving(true);
+    try {
+      await passportApi.clearTaskXpOverride(refKind, refId);
+      setPrices(p => { if (!p) return p; const o = { ...p.overrides }; delete o[key]; return { ...p, overrides: o }; });
+      setXpEdit(null);
+      say('Back to the price for its type.');
+    } catch (e: any) {
+      say(e?.response?.data?.message || 'Could not reset that XP.');
+    }
+    setXpSaving(false);
+  };
 
   /** Create the row, bind it to this unit and publish it — the three steps an author always wants together. */
   const addContent = async (body: any, file: File | null = null) => {
@@ -234,7 +392,7 @@ const AdminContentBuilder: React.FC = () => {
       if (!(created as any).isPublished) await learningContentLibraryApi.togglePublish(id);
       setDrawer(null);
       await loadPreview(unit.unitCode);
-      await load();
+      await load(unit?.stageKey || true);
       say('Added to this day.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not add that.'); }
     setSaving(false);
@@ -256,7 +414,7 @@ const AdminContentBuilder: React.FC = () => {
       delete body._id; delete body.status; delete body.coverage;
       await passportApi.saveCurriculumUnit(unit.unitCode, body);
       setEditUnit(false);
-      await load(); await loadPreview(unit.unitCode);
+      await load(unit.stageKey || true); await loadPreview(unit.unitCode);
       say('Day saved.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not save this day.'); }
     setSaving(false);
@@ -287,14 +445,21 @@ const AdminContentBuilder: React.FC = () => {
     setSaving(false);
   };
 
+  /**
+   * Take something off the day. Members' open days follow by themselves (the server refreshes them).
+   * A checkpoint or assignment is unbound, never deleted, so attempts already made are kept.
+   */
   const removeItem = async (it: any) => {
     if (!unit) return;
-    if (it.kind !== 'content') { say('Open the checkpoint to unbind it.'); return; }
-    if (!window.confirm(`Take "${it.contentTitle}" off this day? It stays in the library.`)) return;
+    const isAssessment = it.kind === 'quiz' || it.kind === 'assignment';
+    const what = it.kind === 'quiz' ? 'checkpoint' : it.kind === 'assignment' ? 'assignment' : '';
+    const kept = isAssessment ? `The ${what} itself and any attempts are kept.` : 'It stays in the library.';
+    if (!window.confirm(`Take "${it.contentTitle}" off this day? Members' days update too. ${kept}`)) return;
     setSaving(true);
     try {
-      await passportApi.detachUnitContent(unit.unitCode, String(it.contentId));
-      await loadPreview(unit.unitCode); await load();
+      if (isAssessment) await passportApi.unbindUnitAssessment(unit.unitCode, it.kind === 'quiz' ? 'QUIZ' : 'ASSIGNMENT', String(it.sourceId));
+      else await passportApi.detachUnitContent(unit.unitCode, String(it.contentId));
+      await loadPreview(unit.unitCode); await load(unit.stageKey || true);
       say('Taken off this day.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not remove that.'); }
     setSaving(false);
@@ -307,8 +472,22 @@ const AdminContentBuilder: React.FC = () => {
       const r = await passportApi.createUnitAssessment(unit.unitCode, 'QUIZ');
       await loadPreview(unit.unitCode);
       say('Checkpoint created — add its questions next.');
-      if ((r as any)?.id) nav(`/quiz/${(r as any).id}/questions`);
+      if ((r as any)?.id) nav(withReturn(`/quiz/${(r as any).id}/questions`, unit.unitCode));
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not create a checkpoint.'); }
+    setSaving(false);
+  };
+
+  /** "Add assignment": create a draft of the chosen kind, bound to this day, and open its editor. */
+  const addAssignment = async (type: string, title: string) => {
+    if (!unit) return;
+    setSaving(true); setErr('');
+    try {
+      const r = await passportApi.createUnitAssessment(unit.unitCode, 'ASSIGNMENT', title || undefined, type);
+      await loadPreview(unit.unitCode);
+      setAssignOpen(false);
+      say('Assignment created — write the task next.');
+      if ((r as any)?.id) nav(withReturn(`/admin/assignments/${(r as any).id}/edit`, unit.unitCode));
+    } catch (e: any) { setErr(e?.response?.data?.message || 'Could not create the assignment.'); }
     setSaving(false);
   };
 
@@ -317,7 +496,7 @@ const AdminContentBuilder: React.FC = () => {
     setSaving(true); setErr('');
     try {
       await passportApi.publishCurriculumUnit(unit.unitCode);
-      await load(); say('This day is published.');
+      await load(unit.stageKey || true); say('This day is published.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'This day is not ready to publish yet.'); }
     setSaving(false);
   };
@@ -331,12 +510,12 @@ const AdminContentBuilder: React.FC = () => {
         <h1>Build the learning days</h1>
         <p>Pick a day on the left. What you see on the right is what a member sees, in their order.</p>
       </div>
-      <a className="acb-btn ghost" href={`/admin/passport/mega-curriculum?stage=${encodeURIComponent(stage)}`}><i className="bi bi-sliders" /> Curriculum settings</a>
+      <a className="acb-btn ghost" href={`/admin/passport/mega-curriculum?stage=${encodeURIComponent(isTrack ? (unit?.stageKey || 'track') : stage)}${unit ? `&unit=${encodeURIComponent(unit.unitCode)}` : ''}`}><i className="bi bi-sliders" /> Curriculum settings</a>
     </header>
 
     {/* Which year's days are being built. Foundation alone until Build existed. */}
     <div className="acb-tabs">
-      {(stages.length ? stages : [{ key: 'foundation', label: 'Foundation', who: '' }]).map(t => (
+      {[...(stages.length ? stages : [{ key: 'foundation', label: 'Foundation', who: '' }]), { key: TRACK_TAB, label: 'Career Tracks', who: 'Years 2, 3 & 4 role tracks' }].map(t => (
         <button key={t.key} type="button" className={t.key === stage ? 'on' : ''}
                 onClick={() => setStage(t.key)} disabled={loading}>
           {t.label}
@@ -345,9 +524,22 @@ const AdminContentBuilder: React.FC = () => {
       ))}
     </div>
 
+    {isTrack && <div className="acb-trackbar">
+      <label className="acb-field acb-track-pick"><span>Career track</span>
+        <select value={currentTrack?.key || ''} onChange={e => setTrack(e.target.value)} disabled={loading || !tracksSorted.length}>
+          {tracksSorted.map(t => <option key={t.key} value={t.key}>{t.name}{t.status === 'DRAFT' ? ' (draft)' : ''}</option>)}
+        </select>
+      </label>
+      {currentTrack && <p className="acb-track-note">
+        <span className={`acb-track-st s-${currentTrack.status.toLowerCase()}`}>{currentTrack.status === 'LIVE' ? 'Live' : 'Draft'}</span>
+        {rows.length} topics · {rows.reduce((n, r) => n + r.units.length, 0)} days · {rows.reduce((n, r) => n + r.published, 0)} published.
+        {' '}A topic marked <b>shared</b> is also used by a year or another track - an edit there changes it everywhere.
+      </p>}
+    </div>}
+
     {err && <div className="acb-err"><i className="bi bi-exclamation-circle" /> {err}</div>}
 
-    <CoveragePanel stage={stage} />
+    {!isTrack && <CoveragePanel stage={stage} />}
 
     <div className="acb-body">
       <aside className="acb-rail">
@@ -355,12 +547,21 @@ const AdminContentBuilder: React.FC = () => {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search days" aria-label="Search days" />
         </label>
         <div className="acb-tree">
-          {shown.map(r => {
+          {shown.map((r, i) => {
             const open = !!openTopics[r.topicCode];
-            return <section key={r.topicCode} className={`acb-topic${open ? ' open' : ''}`}>
+            const newPack = isTrack && r.pack && r.pack.key !== shown[i - 1]?.pack?.key;
+            const fromYear = isTrack && !!r.fromStage && r.fromStage !== 'track';
+            const shared = isTrack && (fromYear || (r.alsoIn?.length || 0) > 0);
+            return <React.Fragment key={r.topicCode}>
+              {newPack && <div className="acb-pack-hd"><i className={`bi ${r.pack!.kind === 'PLACEMENT' ? 'bi-briefcase' : 'bi-box-seam'}`} /> <span>{r.pack!.title}</span><em>{r.pack!.kind === 'PLACEMENT' ? 'Year 4' : 'Year 3'}</em></div>}
+              <section className={`acb-topic${open ? ' open' : ''}`}>
               <button type="button" className="acb-topic-hd" onClick={() => setOpenTopics(o => ({ ...o, [r.topicCode]: !open }))}>
                 <i className={`bi ${open ? 'bi-chevron-down' : 'bi-chevron-right'}`} />
-                <span className="acb-topic-t"><b>{r.topicTitle}</b><small>{r.moduleName}</small></span>
+                <span className="acb-topic-t"><b>{r.topicTitle}</b><small>{r.moduleName || r.topicCode}</small>
+                  {shared && <small className="acb-shared" title={[fromYear ? `Written for ${STAGE_NAME[r.fromStage!] || r.fromStage}` : '', r.alsoIn?.length ? `Also in: ${r.alsoIn.join(', ')}` : ''].filter(Boolean).join(' - ')}>
+                    <i className="bi bi-link-45deg" /> shared{fromYear ? ` · ${STAGE_NAME[r.fromStage!] || r.fromStage}` : ''}{r.alsoIn?.length ? ` · ${r.alsoIn.length} other track${r.alsoIn.length === 1 ? '' : 's'}` : ''}
+                  </small>}
+                </span>
                 <em>{r.published}/{r.units.length}</em>
               </button>
               {open && <ol className="acb-units">
@@ -374,7 +575,8 @@ const AdminContentBuilder: React.FC = () => {
                 ))}
                 {!r.units.length && <li className="acb-none">No days in this topic yet.</li>}
               </ol>}
-            </section>;
+            </section>
+            </React.Fragment>;
           })}
           {!shown.length && <p className="acb-none">Nothing matches that search.</p>}
         </div>
@@ -388,9 +590,9 @@ const AdminContentBuilder: React.FC = () => {
               <h2>{unit.title}</h2>
               <div className="acb-meta">
                 <span className={`acb-chip s-${(unit.status || 'DRAFT').toLowerCase()}`}>{unit.status || 'DRAFT'}</span>
-                <span className="acb-chip"><i className="bi bi-list-task" /> {items.length} task{items.length === 1 ? '' : 's'}</span>
+                <span className="acb-chip"><i className="bi bi-list-task" /> {memberItems.length} task{memberItems.length === 1 ? '' : 's'}</span>
                 <span className="acb-chip"><i className="bi bi-clock" /> {minutes} min</span>
-                <span className="acb-chip"><i className="bi bi-lightning-charge-fill" /> {unitXp} XP + {DAY_BONUS_XP} bonus</span>
+                <span className="acb-chip"><i className="bi bi-lightning-charge-fill" /> {unitXp} XP{prices?.dayBonus ? ` + ${prices.dayBonus} bonus` : ''}</span>
               </div>
             </div>
             <div className="acb-unit-actions">
@@ -406,10 +608,20 @@ const AdminContentBuilder: React.FC = () => {
               </button>
             ))}
             <button type="button" className="acb-add-btn" onClick={addCheckpoint} disabled={saving}><i className="bi bi-question-circle-fill" /> Add checkpoint</button>
-            <a className="acb-add-btn" href={`/learning-library/create?unitCode=${encodeURIComponent(unit.unitCode)}&topicCode=${encodeURIComponent(unit.topicCode)}&returnTo=${encodeURIComponent(`/admin/passport/content-builder?stage=${stage}&unit=${unit.unitCode}`)}`}>
+            <button type="button" className="acb-add-btn" onClick={() => setAssignOpen(true)} disabled={saving}><i className="bi bi-clipboard-check-fill" /> Add assignment</button>
+            <button type="button" className="acb-add-btn" onClick={() => setScriptSignal(n => n + 1)} title="Admins only — the shooting script for this day's video">
+              <i className="bi bi-camera-reels-fill" /> Add script
+            </button>
+            <button type="button" className="acb-add-btn preview" onClick={() => setStudentView(true)} disabled={!preview || previewBusy} title="See this day exactly as a member sees it">
+              <i className="bi bi-eye-fill" /> Preview
+            </button>
+            <a className="acb-add-btn" href={`/learning-library/create?unitCode=${encodeURIComponent(unit.unitCode)}&topicCode=${encodeURIComponent(unit.topicCode)}&returnTo=${encodeURIComponent(here(unit.unitCode))}`}>
               <i className="bi bi-upload" /> Upload a file
             </a>
           </div>
+
+          <VideoScriptPanel key={unit.unitCode} unitCode={unit.unitCode} dayTitle={unit.title}
+            openEditorSignal={scriptSignal} onToast={m => { setToast(m); window.setTimeout(() => setToast(''), 2600); }} />
 
           <section className="acb-day">
             <div className="acb-day-hd"><b>The member's day</b><span>Same order the day player uses</span></div>
@@ -417,15 +629,35 @@ const AdminContentBuilder: React.FC = () => {
               ? <div className="acb-blank"><i className="bi bi-journal-plus" /> Nothing on this day yet. Add a video, notes or practice above.</div>
               : <ol className="acb-items">
                 {items.map((it, i) => {
-                  const xp = XP_BY_TYPE[it.contentType] ?? XP_BY_TYPE[it.kind] ?? 5;
+                  const xp = taskXp(it, prices);
+                  const xpKey = taskXpKey(it);
+                  const own = !!(xpKey && prices && xpKey in prices.overrides);
+                  const editingXp = !!xpKey && xpEdit?.key === xpKey;
                   return <li key={`${it.contentId || it.sourceId || i}`}>
                     <span className="acb-i-n">{i + 1}</span>
                     <span className="acb-i-ic"><i className={`bi ${ICON_FOR[it.contentType] || 'bi-dot'}`} /></span>
                     <span className="acb-i-t">
                       <b>{it.contentTitle}</b>
-                      <small>{prettyType(it.contentType)} · {it.estimatedDuration || 0} min{it.isGating ? ' · must be completed' : ''}</small>
+                      <small>{prettyType(it.contentType)} · {it.estimatedDuration || 0} min{it.isGating ? ' · must be completed' : ''}
+                        {it.kind === 'quiz' && <> · {it.questionCount || 0} {it.questionCount === 1 ? 'question' : 'questions'}</>}</small>
+                      {it.kind === 'quiz' && !it.live && <span className="acb-i-warn"><i className="bi bi-eye-slash" />
+                        {it.questionCount ? 'Switched off: members do not see it.' : 'No questions yet: members do not see it until you add one.'}</span>}
                     </span>
-                    <span className="acb-i-xp">+{xp} XP</span>
+                    {editingXp
+                      ? <form className="acb-i-xpedit" onSubmit={e => { e.preventDefault(); saveTaskXp(it); }}>
+                        <input type="number" min={0} max={prices?.max || 1000} step={1} autoFocus aria-label="XP for this task"
+                          value={xpEdit!.value} onChange={e => setXpEdit({ key: xpKey!, value: e.target.value })}
+                          onKeyDown={e => { if (e.key === 'Escape') setXpEdit(null); }} />
+                        <button type="submit" className="acb-i-act ok" disabled={xpSaving} title="Save"><i className="bi bi-check-lg" /></button>
+                        {own && <button type="button" className="acb-i-act" disabled={xpSaving} onClick={() => resetTaskXp(it)}
+                          title={`Back to the ${prettyType(it.contentType)} price (${typeXp(it, prices!)} XP)`}><i className="bi bi-arrow-counterclockwise" /></button>}
+                        <button type="button" className="acb-i-act" onClick={() => setXpEdit(null)} title="Cancel"><i className="bi bi-x" /></button>
+                      </form>
+                      : <button type="button" className={`acb-i-xp${own ? ' own' : ''}`} disabled={!xpKey || !prices}
+                          onClick={() => setXpEdit({ key: xpKey!, value: String(xp) })}
+                          title={own ? 'XP set for this task. Click to change.' : `${prettyType(it.contentType)} price. Click to set this task's XP.`}>
+                          +{xp} XP{own && <i className="bi bi-pin-angle-fill" aria-label="set for this task" />}
+                        </button>}
                     {/* Move within the CONTENT only. A checkpoint sits last and holds the day
                         open until it is done; one a student could meet before the lesson would
                         measure nobody, so quizzes and assignments have no arrows. */}
@@ -438,7 +670,7 @@ const AdminContentBuilder: React.FC = () => {
                       </>
                     )}
                     {it.editPath
-                      ? <a className="acb-i-act" href={it.editPath} title="Open the editor"><i className="bi bi-box-arrow-up-right" /></a>
+                      ? <a className="acb-i-act" href={withReturn(it.editPath, unit.unitCode)} title="Open the editor"><i className="bi bi-box-arrow-up-right" /></a>
                       : <button className="acb-i-act" onClick={() => setEditItem(it)} title="Edit"><i className="bi bi-pencil" /></button>}
                     <button className="acb-i-act danger" onClick={() => removeItem(it)} title="Take off this day"><i className="bi bi-x-lg" /></button>
                   </li>;
@@ -459,8 +691,11 @@ const AdminContentBuilder: React.FC = () => {
 
     {drawer && unit && <ContentDrawer kind={drawer} unitTitle={unit.title} saving={saving}
       onClose={() => setDrawer(null)} onSave={addContent} />}
-    {editUnit && unit && <UnitDrawer unit={unit} saving={saving} stage={stage} onClose={() => setEditUnit(false)} onSave={saveUnit} />}
-    {editItem && <ItemDrawer item={editItem} saving={saving} onClose={() => setEditItem(null)} onSave={saveItem} />}
+    {editUnit && unit && <UnitDrawer unit={unit} saving={saving} stage={unit.stageKey || stage} onClose={() => setEditUnit(false)} onSave={saveUnit} />}
+    {assignOpen && unit && <AssignmentDrawer unitTitle={unit.title} saving={saving} onClose={() => setAssignOpen(false)} onCreate={addAssignment} />}
+    {/* A checkpoint that is not live is not on any member's day, so the member view leaves it out. */}
+    {studentView && preview && <StudentDayPreview preview={{ ...preview, items: preview.items.filter((i: any) => i.kind !== 'quiz' || i.live) }} onClose={() => setStudentView(false)} />}
+    {editItem && unit && <ItemDrawer item={editItem} fullEditorHref={editItem.contentId ? withReturn(`/learning-library/edit/${editItem.contentId}`, unit.unitCode) : ''} saving={saving} onClose={() => setEditItem(null)} onSave={saveItem} />}
     {toast && <div className="acb-toast"><i className="bi bi-check-circle-fill" /> {toast}</div>}
   </div>;
 };
@@ -495,8 +730,7 @@ const NotesField: React.FC<{
     setBusy(true); onError('');
     try {
       const { attachment } = await passportApi.uploadAttachment(file);
-      const base = (process.env.REACT_APP_API_URL || '/api/v1');
-      const src = `${base}/passport/skill-resources/media/${attachment.fileKey}`;
+      const src = mediaPathFor(attachment.fileKey);
       const alt = attachment.fileName.replace(/\.[^.]+$/, '').replace(/[[\]]/g, '');
       const md = `\n\n![${alt}](${src})\n\n`;
       const el = ref.current;
@@ -543,6 +777,8 @@ const ContentDrawer: React.FC<{
   const [url, setUrl] = useState('');
   const [body, setBody] = useState('');
   const [pairs, setPairs] = useState([{ question: '', answer: '' }]);
+  /** Questions read from a CSV (multiple choice and theory), shown above the ones typed in. */
+  const [imported, setImported] = useState<PracticeQuestionInput[]>([]);
   const [problem, setProblem] = useState('');
   /**
    * A video is a LINK or a FILE, never both.
@@ -587,9 +823,10 @@ const ContentDrawer: React.FC<{
       base.qaItems = items;
     }
     if (kind === 'practice_theory') {
-      const qs = pairs.filter(p => p.question.trim())
+      const typed = pairs.filter(p => p.question.trim())
         .map(p => ({ type: 'theory', title: p.question.trim().slice(0, 120), description: p.question.trim(), explanation: p.answer.trim(), marks: 1, gradingMode: 'self' }));
-      if (!qs.length) { setProblem('Add at least one question.'); return; }
+      const qs = [...imported, ...typed];
+      if (!qs.length) { setProblem('Add at least one question, or import them from a CSV.'); return; }
       base.practiceQuestions = qs;
     }
     setProblem('');
@@ -647,6 +884,25 @@ const ContentDrawer: React.FC<{
         {kind === 'notes' && <NotesField
           value={body} onChange={setBody} onError={setProblem}
           placeholder="Write the notes. Markdown and simple HTML both render." />}
+
+        {kind === 'practice_theory' && <>
+          <PracticeCsvImport existingCount={imported.length + pairs.filter(p => p.question.trim()).length}
+            onUse={(qs, mode) => {
+              if (mode === 'replace') { setImported(qs); setPairs([{ question: '', answer: '' }]); }
+              else setImported(prev => [...prev, ...qs]);
+              setProblem('');
+            }} />
+          {imported.length > 0 && <div className="pci-added">
+            <div className="pci-added-hd"><b>{imported.length} imported question{imported.length === 1 ? '' : 's'}</b>
+              <button type="button" className="acb-pair-x" onClick={() => setImported([])}><i className="bi bi-trash" /> Remove all</button></div>
+            <ol>{imported.map((q, i) => <li key={i}>
+              <span className={`pci-type t-${q.type}`}>{q.type === 'mcq' ? 'MCQ' : 'Theory'}</span>
+              <span className="pci-q">{q.title}</span>
+              <button type="button" className="pci-x" aria-label={`Remove imported question ${i + 1}`} onClick={() => setImported(prev => prev.filter((_, j) => j !== i))}><i className="bi bi-x-lg" /></button>
+            </li>)}</ol>
+            <small className="acb-hint">Type more questions below, or leave the boxes empty.</small>
+          </div>}
+        </>}
 
         {usesPairs && <div className="acb-pairs">
           {pairs.map((p, i) => <div className="acb-pair" key={i}>
@@ -806,7 +1062,7 @@ const UnitDrawer: React.FC<{
 };
 
 /** One task on the day: its name, its length, and the link or notes it carries. */
-const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; onSave: (patch: any, file: File | null) => void }> = ({ item, saving, onClose, onSave }) => {
+const ItemDrawer: React.FC<{ item: any; fullEditorHref: string; saving: boolean; onClose: () => void; onSave: (patch: any, file: File | null) => void }> = ({ item, fullEditorHref, saving, onClose, onSave }) => {
   const [row, setRow] = useState<any>(null);
   const [loadErr, setLoadErr] = useState('');
   const [title, setTitle] = useState(item.contentTitle || '');
@@ -818,6 +1074,8 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
      invitation to replace it with a link. */
   const [videoMode, setVideoMode] = useState<'link' | 'upload'>('link');
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  /** The set's questions after a CSV import, saved with the rest of the edit; null = unchanged. */
+  const [practiceQs, setPracticeQs] = useState<any[] | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -848,6 +1106,9 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
   const isVideo = type === 'video';
   const isVideoLink = isVideo && ['youtube', 'vimeo'].includes(String(row?.videoSource || ''));
   const isRichNotes = ['notes', 'worked_example'].includes(type) && String(row?.notesSource || '') !== 'upload';
+  /** Question sets a CSV can feed: theory and multiple choice (coding questions need test cases). */
+  const isPracticeSet = ['practice_theory', 'aptitude'].includes(type);
+  const currentQs: any[] = practiceQs || row?.practiceQuestions || [];
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -865,6 +1126,7 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
       }
     }
     if (isRichNotes) { patch.notesSource = 'richtext'; patch.notesContent = body; }
+    if (isPracticeSet && practiceQs) patch.practiceQuestions = practiceQs;
     setProblem('');
     onSave(patch, isVideo && videoMode === 'upload' ? videoFile : null);
   };
@@ -910,12 +1172,18 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
           )}
         </>}
         {isRichNotes && <NotesField value={body} onChange={setBody} onError={setProblem} />}
+        {isPracticeSet && row && <>
+          <p className="acb-drawer-to"><i className="bi bi-list-check" /> This set has <b>{currentQs.length} question{currentQs.length === 1 ? '' : 's'}</b>
+            {practiceQs && <> - changed by the import; <b>Save</b> to keep it, or <button type="button" className="pci-link" onClick={() => setPracticeQs(null)}>undo</button></>}.</p>
+          <PracticeCsvImport existingCount={currentQs.length}
+            onUse={(qs, mode) => setPracticeQs(mode === 'replace' ? qs : [...currentQs, ...qs])} />
+        </>}
         <label className="acb-field short"><span>Minutes</span>
           <input type="number" min={0} max={180} value={minutes} onChange={e => setMinutes(Number(e.target.value))} />
         </label>
         {row && !isVideoLink && !isRichNotes && <p className="acb-drawer-to">
           <i className="bi bi-box-arrow-up-right" />
-          <a href={`/learning-library/edit/${item.contentId}`}>Open the full editor</a> for this item&rsquo;s questions or file.
+          <a href={fullEditorHref}>Open the full editor</a> to edit {isPracticeSet ? 'one question at a time' : 'this item\u2019s questions or file'}.
         </p>}
         {problem && <div className="acb-err"><i className="bi bi-exclamation-circle" /> {problem}</div>}
       </div>

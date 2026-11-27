@@ -2,6 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import passportApi, { OrientationDay, OrientationItem, OrientationView } from '../../api/passportApi';
 import './orientation.css';
+import { mediaUrl, MEDIA_PATH } from '../../utils/mediaUrl';
+import { SeekControls, useSeekKeys, savedSpeed, savedQuality, pickQuality, switchSource, QualityPref, NO_DOWNLOAD } from '../MyLearningPlan/VideoPlayer';
+import { barWidth } from '../../utils/barWidth';
+import { useUndoZoom } from '../../utils/useUndoZoom';
+import { celebrate } from '../../components/Celebration/celebrate';
 
 /**
  * The welcome, before Day 1.
@@ -30,6 +35,8 @@ export const mins = (n: number) => (n >= 60 ? `${Math.floor(n / 60)}h ${n % 60}m
 const Recorder: React.FC<{
   day: number; item: OrientationItem; onSaved: (v: OrientationView) => void;
 }> = ({ day, item, onSaved }) => {
+  const playRef = useRef<HTMLVideoElement>(null);
+  useUndoZoom(playRef, !!item.done);
   const [state, setState] = useState<'idle' | 'recording' | 'saving'>('idle');
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState('');
@@ -79,7 +86,7 @@ const Recorder: React.FC<{
   return (
     <div className="ori-rec">
       {item.done && state === 'idle' && (
-        <video className="ori-rec-play" controls src={passportApi.orientationRecordingUrl(day, item.key)} />
+        <video ref={playRef} className="ori-rec-play" controls src={passportApi.orientationRecordingUrl(day, item.key)} />
       )}
       <div className="ori-rec-actions">
         {state === 'recording' ? (
@@ -184,10 +191,37 @@ const VideoItem: React.FC<{
   day: number; item: OrientationItem; onSaved: (v: OrientationView) => void;
 }> = ({ day, item, onSaved }) => {
   const ref = useRef<HTMLVideoElement>(null);
+  // The app zoom skews the browser's own timeline (the played part stopped short of the thumb).
+  useUndoZoom(ref, !!item.url);
   const watched = useRef(0);
   const lastTime = useRef(0);
   const saving = useRef(false);
   const [pct, setPct] = useState(item.done ? 100 : 0);
+  const [speed, setSpeed] = useState(savedSpeed);
+  const [time, setTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const skip = useCallback((delta: number) => {
+    const v = ref.current; if (!v) return;
+    v.currentTime = Math.min(Math.max(v.currentTime + delta, 0), isFinite(v.duration) ? v.duration : v.currentTime + delta);
+  }, []);
+  const togglePlay = useCallback(() => { const v = ref.current; if (!v) return; if (v.paused) v.play().catch(() => {}); else v.pause(); }, []);
+  const onKeyDown = useSeekKeys(skip, togglePlay);
+
+  /* Quality versions exist only for files uploaded to CareerPilot (not for outside links). */
+  const baseSrc = mediaUrl(item.url);
+  const ours = String(item.url || '').includes(MEDIA_PATH);
+  const [heights, setHeights] = useState<number[]>([]);
+  const [quality, setQuality] = useState<QualityPref>(savedQuality);
+  useEffect(() => {
+    if (!ours || !baseSrc) return undefined;
+    let live = true;
+    fetch(`${baseSrc}/qualities`).then(r => (r.ok ? r.json() : null)).then(q => { if (live && q) setHeights(q.heights || []); }).catch(() => {});
+    return () => { live = false; };
+  }, [ours, baseSrc]);
+  const playingHeight = ours ? pickQuality(heights, quality) : 0;
+  const src = playingHeight ? `${baseSrc}/q/${playingHeight}` : baseSrc;
+  const mountSrc = useRef(src);
+  useEffect(() => { switchSource(ref.current, src, () => { lastTime.current = ref.current?.currentTime ?? 0; }); }, [src]);
 
   const save = async () => {
     const r = await passportApi.completeOrientationItem(day, item.key).catch(() => null);
@@ -198,6 +232,7 @@ const VideoItem: React.FC<{
   const onTimeUpdate = () => {
     const v = ref.current;
     if (!v || !v.duration || Number.isNaN(v.duration)) return;
+    setTime(v.currentTime);
     const step = v.currentTime - lastTime.current;
     /* A normal tick is a fraction of a second. Anything larger is a seek, and seeks are not watching. */
     if (step > 0 && step < 1.5) watched.current += step;
@@ -220,15 +255,31 @@ const VideoItem: React.FC<{
 
   const needed = Math.round(WATCH_FRACTION_REQUIRED * 100);
   return (
-    <>
+    <div className="ori-video-wrap" onKeyDown={onKeyDown} tabIndex={0}>
       <video
         ref={ref}
         className="ori-video"
         controls
-        src={item.url}
+        {...NO_DOWNLOAD}
+        preload="metadata"
+        playsInline
+        src={mountSrc.current}
         onTimeUpdate={onTimeUpdate}
         onSeeked={resync}
         onPlay={resync}
+        onLoadedMetadata={() => { const v = ref.current; if (v) { setDuration(v.duration); v.playbackRate = speed; } }}
+      />
+      <SeekControls
+        onSkip={skip}
+        currentTime={time}
+        duration={duration}
+        speed={speed}
+        onSpeedChange={s => { setSpeed(s); if (ref.current) ref.current.playbackRate = s; }}
+        videoRef={ref}
+        qualities={heights}
+        quality={quality}
+        onQualityChange={setQuality}
+        note="Tip: the left and right arrow keys skip 10s, K plays and pauses. Skipping ahead does not count as watched."
       />
       {!item.done && (
         <div className="ori-watch" role="status">
@@ -236,7 +287,7 @@ const VideoItem: React.FC<{
           <small>{pct}% watched — this opens at {needed}%</small>
         </div>
       )}
-    </>
+    </div>
   );
 };
 export const ICON: Record<string, string> = {
@@ -287,7 +338,7 @@ export const Item: React.FC<{
       {item.kind === 'video' && <VideoItem day={day} item={item} onSaved={onSaved} />}
       {item.kind === 'image' && (
         item.url
-          ? <img className="ori-image" src={item.url} alt={item.title} />
+          ? <img className="ori-image" src={mediaUrl(item.url)} alt={item.title} />
           : <p className="ori-missing"><i className="bi bi-image" /> This picture has not been added yet.</p>
       )}
       {item.kind === 'notes' && <Notes body={item.body} />}
@@ -368,6 +419,16 @@ export const OrientationDayPanel: React.FC<{
     if (r?.orientation) onChanged(r.orientation);
     /* Refused while something required is unfinished: the server names what, and so does this. */
     if (!r?.ok) { setOutstanding(r?.outstanding || []); return; }
+    const welcomeOver = !!r.orientation?.complete;
+    celebrate({
+      kind: 'day',
+      once: `welcome:${day.dayNumber}`,
+      title: welcomeOver ? 'Welcome complete!' : `Welcome day ${day.day} done!`,
+      message: welcomeOver
+        ? 'You finished every welcome day. Day 1 of your roadmap is next.'
+        : 'Nicely done. Your next welcome day is the next step.',
+      stats: [{ value: day.items.length, label: day.items.length === 1 ? 'Task done' : 'Tasks done' }].filter(x => x.value > 0),
+    });
     onFinished?.({ nextDay: r.orientation?.nextDay ?? null, complete: !!r.orientation?.complete });
   };
 
@@ -480,7 +541,7 @@ const Orientation: React.FC = () => {
               ? `${view.totalDays} short days to set you up. Finish them and your ${''}learning plan opens.`
               : `${view.totalDays} short days we added for new members. Your plan is already open — take these whenever you like.`}
           </p>
-          <div className="ori-bar"><i style={{ width: `${Math.max(3, pct)}%` }} /></div>
+          <div className="ori-bar"><i style={{ width: `${barWidth(pct)}%` }} /></div>
           <small>{view.completedDays} of {view.totalDays} done</small>
         </div>
         {!view.mandatory && (

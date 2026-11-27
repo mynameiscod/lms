@@ -116,6 +116,13 @@ export const JS_PROMPT_PRELUDE =
 /** How many lines the prelude adds. Kept next to it so the two cannot drift apart. */
 const JS_PROMPT_PRELUDE_LINES = 1;
 
+/** How many times to try reaching the runner before telling the student it is busy. */
+export const RUNNER_ATTEMPTS = 3;
+/** Said plainly: nothing ran, and it is not their code. */
+export const RUNNER_BUSY_MESSAGE = 'The code runner is busy right now, so your code did not run. This is not a problem with your code. Please press Run again in a few seconds.';
+/** The error text of a request that never reached Piston (as opposed to one Piston answered). */
+export const isRunnerUnreachable = (e?: string): boolean => /fetch failed|ConnectTimeout|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ETIMEDOUT|socket hang up|UND_ERR|network/i.test(String(e || ''));
+
 class CodeRunnerService {
   private pistonUrl: string | null;
   private useRealExecution: boolean;
@@ -725,7 +732,29 @@ class CodeRunnerService {
     }
   }
 
+  /**
+   * One run, with a few quiet retries when the code runner could not be REACHED.
+   *
+   * "fetch failed" / ConnectTimeoutError means the request never got to Piston (its web server was
+   * too busy to accept the connection, as it can be when a whole class presses Run at once). The code
+   * did not run, so running it again is safe, and it usually works a second later. Without this the
+   * student was shown the words "fetch failed" and zero passing tests, for a program that was fine.
+   * Anything Piston actually ANSWERED (a failing test, a compile error, a 429) is never retried.
+   */
   private async executeOnPiston(input: ExecutionInput): Promise<ExecutionResult> {
+    let last: ExecutionResult | null = null;
+    for (let attempt = 0; attempt < RUNNER_ATTEMPTS; attempt++) {
+      last = await this.executeOnPistonOnce(input);
+      if (!(last.graderUnavailable && isRunnerUnreachable(last.error))) return last;
+      if (attempt < RUNNER_ATTEMPTS - 1) {
+        console.warn(`[PISTON] runner unreachable (attempt ${attempt + 1}/${RUNNER_ATTEMPTS}), retrying: ${last.error}`);
+        await new Promise((r) => setTimeout(r, 600 * (attempt + 1) + Math.floor(Math.random() * 400)));
+      }
+    }
+    return { ...(last as ExecutionResult), error: RUNNER_BUSY_MESSAGE };
+  }
+
+  private async executeOnPistonOnce(input: ExecutionInput): Promise<ExecutionResult> {
     const { code, language, input: stdin, expectedOutput, timeLimit } = input;
     const startedAt = Date.now();
 

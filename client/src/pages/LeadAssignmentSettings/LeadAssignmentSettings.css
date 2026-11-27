@@ -1,0 +1,54 @@
+.las-page { padding: 24px; max-width: 960px; margin: 0 auto; color: #1e293b; }
+.las-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
+.las-head h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+.las-head p { margin: 0; color: #64748b; font-size: 13.5px; max-width: 640px; }
+.las-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+.las-card h2 { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
+.las-muted { color: #64748b; font-size: 13px; }
+.las-empty { padding: 14px; border: 1px dashed #cbd5e1; border-radius: 8px; color: #64748b; font-size: 13px; text-align: center; margin: 8px 0; }
+.las-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.las-btn { border: 1px solid #cbd5e1; background: #fff; color: #1e293b; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.las-btn:hover { background: #f8fafc; }
+.las-btn.las-primary { background: #4338ca; border-color: #4338ca; color: #fff; padding: 8px 22px; }
+.las-btn.las-primary:hover { background: #3730a3; }
+.las-btn:disabled { opacity: .6; cursor: default; }
+.las-link { background: none; border: 0; color: #4338ca; font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; }
+.las-link.danger { color: #dc2626; }
+.las-icon { background: none; border: 1px solid #e2e8f0; border-radius: 6px; width: 24px; height: 24px; font-size: 10px; line-height: 1; color: #475569; cursor: pointer; }
+.las-icon:disabled { opacity: .35; cursor: default; }
+
+.las-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.las-mode { display: flex; flex-direction: column; gap: 4px; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; cursor: pointer; position: relative; }
+.las-mode input { position: absolute; opacity: 0; pointer-events: none; }
+.las-mode.on { border-color: #4338ca; background: #eef2ff; }
+.las-mode:focus-within { outline: 2px solid #a5b4fc; outline-offset: 2px; }
+.las-mode-title { font-weight: 700; font-size: 14px; }
+.las-mode-text { color: #64748b; font-size: 12.5px; line-height: 1.45; }
+
+.las-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.las-table th { text-align: left; font-size: 11.5px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; padding: 8px; border-bottom: 1px solid #e2e8f0; }
+.las-table td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.las-table tr.off td { opacity: .55; }
+.las-order { white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.las-order span { min-width: 16px; text-align: center; font-weight: 700; color: #475569; }
+.las-cap { width: 100px; }
+.las-add { margin-top: 12px; max-width: 320px; }
+
+.las-rule { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-top: 10px; background: #f8fafc; }
+.las-rule.off { opacity: .6; }
+.las-rule-name { max-width: 280px; font-weight: 600; }
+.las-field { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.las-label { font-size: 12px; font-weight: 700; color: #475569; }
+.las-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.las-chip { border: 1px solid #cbd5e1; background: #fff; border-radius: 999px; padding: 4px 12px; font-size: 12.5px; cursor: pointer; color: #334155; }
+.las-chip.on { background: #4338ca; border-color: #4338ca; color: #fff; }
+
+.las-notes ul { margin: 0; padding-left: 18px; color: #475569; font-size: 13px; line-height: 1.8; }
+
+@media (max-width: 720px) {
+  .las-page { padding: 16px; }
+  .las-head { flex-direction: column; }
+  .las-modes { grid-template-columns: 1fr; }
+  .las-table th:nth-child(1), .las-table td:nth-child(1) { display: none; }
+}

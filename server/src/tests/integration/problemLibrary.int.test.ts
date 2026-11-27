@@ -41,8 +41,10 @@ const get = (path: string, who: string) => (request(app) as any).get(path).set('
 const post = (path: string, who: string, body: any = {}) => (request(app) as any).post(path).set('Authorization', `Bearer ${tokens[who]}`).set('X-Tenant-Id', String(T._id)).send(body);
 
 let n = 0;
+/** A library problem: given to CareerPilot unless it says otherwise, since only those are in the library. */
 const problem = async (o: any = {}) => {
   n++;
+  if (!('audiences' in o)) o.audiences = ['careerpilot'];
   const p: any = await CodingProblem.create({
     scope: 'tenant', tenantId: String(T._id), number: n, slug: `p-${n}`, title: `Problem ${n}`, statement: 'Add two numbers.', difficulty: 'easy', status: 'published', marks: 20,
     topics: ['arrays'], tags: [], companies: [], languages: [{ language: 'python', starterCode: 'def solve():\n  pass', headerCode: 'SECRET_HEADER', footerCode: 'SECRET_FOOTER', solutionCode: 'SECRET_SOLUTION' }],
@@ -98,6 +100,21 @@ describe('who can use the library, and what they can see', () => {
     const other = await get(`/coding-practice/library/${(await CodingProblem.findOne({ title: 'Another institute' }))!._id}`, 'member');
     expect(other.status).toBe(404);
     expect((await get('/coding-practice/library/not-an-id', 'member')).status).toBe(404);
+  });
+
+  it('lists only problems given to CareerPilot, whatever their tags', async () => {
+    await problem({ title: 'Given to CareerPilot', tags: ['Arrays'] });
+    await problem({ title: 'Both products', audiences: ['lms', 'careerpilot'] });
+    await problem({ title: 'Tagged DSA but LMS only', tags: ['DSA'], audiences: ['lms'] });
+    await problem({ title: 'Exam question', audiences: [] });
+    // Written before "Available to" existed: no field at all, read as LMS only.
+    const legacy = await problem({ title: 'Older problem' });
+    await CodingProblem.collection.updateOne({ _id: legacy._id }, { $unset: { audiences: 1 } });
+    const r = await get('/coding-practice/library?limit=100', 'member');
+    expect(r.body.data.rows.map((x: any) => x.title).sort()).toEqual(['Both products', 'Given to CareerPilot']);
+    const exam = await CodingProblem.findOne({ title: 'Exam question' });
+    expect((await get(`/coding-practice/library/${exam!._id}`, 'member')).status).toBe(404);
+    expect((await post(`/coding-practice/library/${exam!._id}/run`, 'member', { language: 'python', code: 'x' })).status).toBe(404);
   });
 });
 
@@ -259,7 +276,8 @@ describe('progress', () => {
     judgeMock.mockResolvedValueOnce(verdict('WA')); await post(`/coding-practice/library/${m1._id}/submit`, 'member', { language: 'python', code: 'a' });
     const all = (await get('/coding-practice/library', 'member')).body.data;
     expect(Object.fromEntries(all.rows.map((r: any) => [r.title, r.status]))).toEqual({ E1: 'solved', E2: 'todo', M1: 'attempted', H1: 'todo' });
-    expect(all.progress).toEqual({ solved: 1, total: 4, byDifficulty: { easy: { solved: 1, total: 2 }, medium: { solved: 0, total: 1 }, hard: { solved: 0, total: 1 } } });
+    // One accepted run out of two submitted: 50% accuracy. M1 is tried and not solved: one attempted.
+    expect(all.progress).toEqual({ solved: 1, total: 4, attempted: 1, submissions: 2, accuracy: 50, byDifficulty: { easy: { solved: 1, total: 2 }, medium: { solved: 0, total: 1 }, hard: { solved: 0, total: 1 } } });
     expect(all.next).toMatchObject({ title: 'E2', difficulty: 'easy' });
     const names = async (s: string) => (await get(`/coding-practice/library?status=${s}`, 'member')).body.data.rows.map((r: any) => r.title);
     expect(await names('solved')).toEqual(['E1']);

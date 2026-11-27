@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import PassportInterview from '../models/PassportInterview';
 import { analyseResume } from '../services/resumeIntelligenceService';
 import { planInterviewCoverage, adaptPassportInterview } from '../services/interviewIntelligenceService';
-import { calculateStudentRoleReadiness, RoleReadinessResult } from '../services/roleReadinessService';
+import { shownRoleReadiness, RoleReadinessResult } from '../services/roleReadinessService';
 import {
   PLACEMENT_READINESS_VERSION, INTERVIEW_WEIGHTS, weightedScore,
 } from '../data/placementReadinessPolicy';
@@ -31,8 +31,9 @@ const userIdOf = (req: Request): string =>
 /**
  * The interview half of the picture, from what the member has actually sat.
  *
- * Reads the most recent completed ROLE interview — the only kind whose areas map to
- * canonical skills. A member who has only done pathway mocks has no interview readiness
+ * Reads the most recent completed ROLE interview — readiness is about now, so the latest
+ * sitting counts, where the Coder Score (an achievement) keeps the best. Role interviews are
+ * the only kind whose areas map to canonical skills. A member who has only done pathway mocks has no interview readiness
  * figure, and is told so rather than shown a zero: never measured and measured badly are
  * different states.
  */
@@ -62,7 +63,18 @@ async function latestInterviewReadiness(tenantId: string, studentId: string) {
    * completed would go and practise the wrong thing entirely — the same reason Module 8
    * reports null rather than 0 for an unassessed skill.
    */
-  if (!dimensions.length) {
+  /**
+   * The figure is the interview's overall score — the same number the Coder Score reads — so it
+   * counts how the member explained and reasoned, not only the technical areas. It used to be
+   * the technical areas alone. An overall of 0 with nothing graded under it is "not scored".
+   */
+  const ev = session.evaluation;
+  const overall = typeof ev?.overallScore === 'number' && Number.isFinite(ev.overallScore)
+    && (ev.overallScore > 0 || (ev.areaScores || []).length > 0)
+    ? Math.round(Math.max(0, Math.min(100, ev.overallScore)))
+    : null;
+
+  if (overall === null && !dimensions.length) {
     return {
       available: false,
       reason: 'INTERVIEW_NOT_SCORED',
@@ -76,7 +88,7 @@ async function latestInterviewReadiness(tenantId: string, studentId: string) {
     interviewId: String(session._id),
     role: session.role,
     completedAt: session.completedAt,
-    readiness: weightedScore(
+    readiness: overall ?? weightedScore(
       dimensions.map(d => ({ key: d.dimension, score: d.score })),
       INTERVIEW_WEIGHTS,
     ),
@@ -98,7 +110,7 @@ export const getMyPlacementReadiness = async (req: Request, res: Response) => {
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
     const [skill, resume, interview] = await Promise.all([
-      calculateStudentRoleReadiness(tenantId, studentId),
+      shownRoleReadiness(tenantId, studentId),
       analyseResume(tenantId, studentId),
       latestInterviewReadiness(tenantId, studentId),
     ]);
@@ -117,7 +129,7 @@ export const getMyPlacementReadiness = async (req: Request, res: Response) => {
             coverage: (skill as RoleReadinessResult).coverage,
             confidence: (skill as RoleReadinessResult).confidence,
           }
-        : { available: false, reason: (skill as any).reason },
+        : { available: false, reason: (skill as any).reason, message: (skill as any).message },
       resume,
       interview,
     });
@@ -169,7 +181,7 @@ export const getStudentPlacementReadiness = async (req: Request, res: Response) 
     if (!studentId) return res.status(400).json({ message: 'Student is required.' });
 
     const [skill, resume, interview] = await Promise.all([
-      calculateStudentRoleReadiness(tenantId, studentId),
+      shownRoleReadiness(tenantId, studentId),
       analyseResume(tenantId, studentId),
       latestInterviewReadiness(tenantId, studentId),
     ]);

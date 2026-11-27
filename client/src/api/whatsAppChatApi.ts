@@ -12,7 +12,7 @@ const d = (r: any) => r.data?.data;
 export interface ChatMessage {
   _id: string;
   direction: 'in' | 'out';
-  kind: 'text' | 'template' | 'image' | 'document' | 'audio' | 'video' | 'sticker' | 'location' | 'button' | 'contacts' | 'unsupported';
+  kind: 'text' | 'template' | 'image' | 'document' | 'audio' | 'video' | 'sticker' | 'location' | 'button' | 'contacts' | 'unsupported' | 'note';
   body: string;
   templateName?: string;
   hasMedia: boolean;
@@ -20,7 +20,7 @@ export interface ChatMessage {
   mediaName?: string;
   status: 'received' | 'accepted' | 'sent' | 'delivered' | 'read' | 'failed';
   error?: string;
-  source: 'chat' | 'broadcast' | 'system' | 'bot' | 'test' | 'person';
+  source: 'chat' | 'broadcast' | 'system' | 'bot' | 'test' | 'person' | 'automation';
   createdAt: string;
   sentBy?: string;
 }
@@ -35,12 +35,20 @@ export interface ChatThread {
   contactName?: string;
   lastStaffReply: { at: string; by?: string } | null;
   assignedTo: { _id: string; name: string } | null;
+  /** 'lead' = the owner is the lead's counsellor in CRM (one owner for lead and chat). */
+  ownerFrom?: 'lead' | 'chat' | null;
   links: ThreadLinks & { placementName?: string; leadName?: string; userName?: string };
 }
 
 export interface ThreadLinks { placementId?: string; leadId?: string; userId?: string }
 
-export type InboxFilter = 'all' | 'unread' | 'mine' | 'unassigned' | 'placement' | 'lead' | 'student';
+export type InboxFilter = 'all' | 'needs_reply' | 'automation' | 'unread' | 'mine' | 'unassigned' | 'placement' | 'lead' | 'student';
+export type InboxStatus = 'needs_reply' | 'automation' | 'waiting_lead' | 'idle';
+
+export interface InboxQuery {
+  filter?: InboxFilter; q?: string; page?: number;
+  owner?: string; stageId?: string; source?: string; type?: '' | 'lead' | 'placement' | 'student' | 'not_sales'; window?: '' | 'open' | 'closing' | 'closed';
+}
 
 export interface InboxRow {
   phone: string;
@@ -52,6 +60,37 @@ export interface InboxRow {
   lastInboundAt?: string;
   unreadCount: number;
   assignedTo: { _id: string; name: string } | null;
+  ownerFrom: 'lead' | 'chat' | null;
+  /** Their last message from us was hiring / wishes / an update: replies are not leads. */
+  replyTo: { kind: string; templateName: string } | null;
+  status: InboxStatus;
+  waitingSince?: string;
+  lead: { stage: { name: string; color: string } | null; source: string; priority: string } | null;
+}
+
+export interface InboxOptions {
+  staff: { _id: string; name: string }[];
+  stages: { _id: string; name: string; color: string }[];
+  sources: string[];
+}
+
+export interface ThreadContext {
+  /** Why nothing automatic answers them (a reply to a hiring / wishes message, a student…). */
+  quiet: { kind: string; label: string } | null;
+  owner: { _id: string; name: string; from: 'lead' | 'chat' | null } | null;
+  lead: {
+    _id: string; name: string; email: string; source: string;
+    stage: { name: string; color: string } | null; subStage: string; priority: string; score: number | null;
+    courses: string[]; nextFollowUp: string | null; lastContactedAt: string | null; lastCallOutcome: string; createdAt: string;
+    savedOnLead: { label: string; value: string }[];
+  } | null;
+  placement: { _id: string; name: string } | null;
+  student: { _id: string; name: string } | null;
+  automation: {
+    workflows: { name: string; workflowId: string; status: string; waitingFor: string | null; note: string; at: string }[];
+    bot: { step: string; asked: number; total: number; paused: boolean; live: boolean } | null;
+  };
+  answers: { question: string; answer: string; from: string; at?: string }[];
 }
 
 export interface InboxPage {
@@ -59,7 +98,7 @@ export interface InboxPage {
   total: number;
   page: number;
   limit: number;
-  counts: { all: number; unread: number; mine: number; unassigned: number };
+  counts: { all: number; needs_reply: number; automation: number; unread: number; mine: number; unassigned: number };
 }
 
 export interface QuickReply { _id: string; title: string; body: string }
@@ -91,8 +130,14 @@ export const whatsAppChatApi = {
   templates: () => axios.get(`${BASE}/templates`, h()).then(d) as Promise<ChatTemplate[]>,
   unread: (phones: string[]) =>
     axios.get(`${BASE}/unread`, { ...h(), params: { phones: phones.join(',') } }).then(d) as Promise<Record<string, number>>,
-  inbox: (q: { filter?: InboxFilter; q?: string; page?: number }) =>
-    axios.get(`${BASE}/inbox`, { ...h(), params: q }).then(d) as Promise<InboxPage>,
+  inbox: (q: InboxQuery) => {
+    const params = Object.fromEntries(Object.entries(q).filter(([, v]) => v !== '' && v !== undefined && v !== null));
+    return axios.get(`${BASE}/inbox`, { ...h(), params }).then(d) as Promise<InboxPage>;
+  },
+  inboxOptions: () => axios.get(`${BASE}/inbox/options`, h()).then(d) as Promise<InboxOptions>,
+  context: (phone: string) => axios.get(`${BASE}/threads/${encodeURIComponent(phone)}/context`, h()).then(d) as Promise<ThreadContext>,
+  markHandled: (phone: string) => axios.post(`${BASE}/threads/${encodeURIComponent(phone)}/handled`, {}, h()),
+  makeLead: (phone: string) => axios.post(`${BASE}/threads/${encodeURIComponent(phone)}/make-lead`, {}, h()).then(d) as Promise<{ leadId: string }>,
   staff: () => axios.get(`${BASE}/staff`, h()).then(d) as Promise<{ staff: { _id: string; name: string }[]; canReassign: boolean; me: string }>,
   assign: (phone: string, userId: string | null) => axios.put(`${BASE}/threads/${encodeURIComponent(phone)}/assign`, { userId }, h()).then(d),
   quickReplies: () => axios.get(`${BASE}/quick-replies`, h()).then(d) as Promise<{ replies: QuickReply[]; canEdit: boolean }>,

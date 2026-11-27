@@ -12,10 +12,15 @@ import type { FoundationJourneyDaySummary } from '../../api/passportApi';
 /** What a student sees a day as. AVAILABLE is open but not today; SKIPPED is behind today and not done. */
 export type RoadmapDayState = 'COMPLETED' | 'CURRENT' | 'AVAILABLE' | 'SKIPPED' | 'LOCKED';
 
-export const dayState = (d: Pick<FoundationJourneyDaySummary, 'status' | 'locked'>): RoadmapDayState => {
+/**
+ * `welcomeFirst` is true while the welcome days (0.1–0.5) must be finished before Day 1 opens.
+ * The server still reports the first learning day as CURRENT then, but today is a welcome day:
+ * showing Day 1 as "Today" too gave the plan two todays. Until the welcome is done it is locked.
+ */
+export const dayState = (d: Pick<FoundationJourneyDaySummary, 'status' | 'locked'>, welcomeFirst = false): RoadmapDayState => {
   if (d.status === 'COMPLETED') return 'COMPLETED';
   if (d.locked) return 'LOCKED';
-  if (d.status === 'CURRENT') return 'CURRENT';
+  if (d.status === 'CURRENT') return welcomeFirst ? 'LOCKED' : 'CURRENT';
   if (d.status === 'SKIPPED') return 'SKIPPED';
   return 'AVAILABLE';
 };
@@ -76,7 +81,7 @@ export interface RoadmapGroup {
  * roadmap; the plan's own order IS day number. A day with no topic metadata is its own group — the
  * roadmap then shows individual days rather than inventing a grouping.
  */
-export function groupJourneyDays(days: FoundationJourneyDaySummary[]): RoadmapGroup[] {
+export function groupJourneyDays(days: FoundationJourneyDaySummary[], welcomeFirst = false): RoadmapGroup[] {
   const ordered = [...days].sort((a, b) => a.day - b.day);
   const groups: RoadmapGroup[] = [];
   for (const d of ordered) {
@@ -94,7 +99,7 @@ export function groupJourneyDays(days: FoundationJourneyDaySummary[]): RoadmapGr
     }
   }
   for (const g of groups) {
-    const states = g.days.map(dayState);
+    const states = g.days.map(d => dayState(d, welcomeFirst));
     g.completed = states.filter(s => s === 'COMPLETED').length;
     g.state = g.completed === g.days.length ? 'COMPLETED'
       : states.includes('CURRENT') ? 'CURRENT'

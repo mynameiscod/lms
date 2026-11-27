@@ -45,13 +45,15 @@ export interface IStudentFeatures {
   myPractice?: boolean;
   codingPractice?: boolean;
   codeVisualizer?: boolean;
+  myProject?: boolean;
+  referEarn?: boolean;
 }
 
 /** The CareerPilot student's menu: false = hidden by the admin. */
 export interface ICareerPilotFeatures {
   plan?: boolean; roadmap?: boolean; practice?: boolean; coding?: boolean; playground?: boolean; thinkingLab?: boolean;
   communication?: boolean; interview?: boolean; experiences?: boolean; questionBooks?: boolean; mentor?: boolean;
-  companies?: boolean; news?: boolean; resume?: boolean; progress?: boolean;
+  companies?: boolean; news?: boolean; resume?: boolean; progress?: boolean; industryConnect?: boolean; support?: boolean; aptitude?: boolean; reasoning?: boolean;
 }
 
 // Platform-level module gates set by SUPER_ADMIN (applies to ALL roles in the tenant)
@@ -75,6 +77,25 @@ export interface ITenantModules {
   // Added 2026-10-09. No schema default: until saved, each follows its parent module
   // (config/tenantModules.ts MODULE_PARENT) — read through effectiveModules(), never directly.
   skillAssessment?: boolean;
+  cpMembers?: boolean;
+  cpSetup?: boolean;
+  cpPathways?: boolean;
+  cpCareerMap?: boolean;
+  cpAssessment?: boolean;
+  cpContent?: boolean;
+  cpRoadmap?: boolean;
+  cpPractice?: boolean;
+  cpRewards?: boolean;
+  crmPipeline?: boolean;
+  crmReports?: boolean;
+  crmSalesTeams?: boolean;
+  crmLeadReport?: boolean;
+  crmAutomation?: boolean;
+  crmSources?: boolean;
+  crmCalling?: boolean;
+  crmSalesContent?: boolean;
+  crmArchive?: boolean;
+  crmDemoBooking?: boolean;
   whatsapp?: boolean;
   learningPlans?: boolean;
   certificates?: boolean;
@@ -87,6 +108,19 @@ export interface ITenantModules {
   codeVisualizer?: boolean;
   techBattles?: boolean;
   hackathons?: boolean;
+  // Institute-admin menu (see ADMIN_MODULES): unset reads as ON for institutes that existed before.
+  userManagement?: boolean;
+  rolesManagement?: boolean;
+  batchManagement?: boolean;
+  notifications?: boolean;
+  concerns?: boolean;
+  employees?: boolean;
+  expenses?: boolean;
+  aiSpend?: boolean;
+  apiLogs?: boolean;
+  integrations?: boolean;
+  branding?: boolean;
+  studentFeatures?: boolean;
 }
 
 // College-specific information (only populated when type = 'college')
@@ -252,7 +286,9 @@ const TenantSchema: Schema = new Schema(
       drives: { type: Boolean, default: true },
       myPractice: { type: Boolean, default: true },
       codingPractice: { type: Boolean, default: true },
-      codeVisualizer: { type: Boolean, default: true }
+      codeVisualizer: { type: Boolean, default: true },
+      myProject: { type: Boolean, default: true },
+      referEarn: { type: Boolean, default: true }
     },
     careerPilotFeatures: {
       plan: { type: Boolean, default: true },
@@ -269,7 +305,11 @@ const TenantSchema: Schema = new Schema(
       companies: { type: Boolean, default: true },
       news: { type: Boolean, default: true },
       resume: { type: Boolean, default: true },
-      progress: { type: Boolean, default: true }
+      progress: { type: Boolean, default: true },
+      industryConnect: { type: Boolean, default: true },
+      aptitude: { type: Boolean, default: true },
+      reasoning: { type: Boolean, default: true },
+      support: { type: Boolean, default: true }
     },
     // Platform-level module gates — set by SUPER_ADMIN, apply to ALL roles in the tenant
     modules: {
@@ -291,6 +331,25 @@ const TenantSchema: Schema = new Schema(
       aiCommunicationLab: { type: Boolean, default: true },
       // No default on purpose — see ITenantModules.
       skillAssessment: { type: Boolean },
+      cpMembers: { type: Boolean },
+      cpSetup: { type: Boolean },
+      cpPathways: { type: Boolean },
+      cpCareerMap: { type: Boolean },
+      cpAssessment: { type: Boolean },
+      cpContent: { type: Boolean },
+      cpRoadmap: { type: Boolean },
+      cpPractice: { type: Boolean },
+      cpRewards: { type: Boolean },
+      crmPipeline: { type: Boolean },
+      crmReports: { type: Boolean },
+      crmSalesTeams: { type: Boolean },
+      crmLeadReport: { type: Boolean },
+      crmAutomation: { type: Boolean },
+      crmSources: { type: Boolean },
+      crmCalling: { type: Boolean },
+      crmSalesContent: { type: Boolean },
+      crmArchive: { type: Boolean },
+      crmDemoBooking: { type: Boolean },
       whatsapp: { type: Boolean },
       learningPlans: { type: Boolean },
       certificates: { type: Boolean },
@@ -303,6 +362,18 @@ const TenantSchema: Schema = new Schema(
       codeVisualizer: { type: Boolean },
       techBattles: { type: Boolean },
       hackathons: { type: Boolean },
+      userManagement: { type: Boolean },
+      rolesManagement: { type: Boolean },
+      batchManagement: { type: Boolean },
+      notifications: { type: Boolean },
+      concerns: { type: Boolean },
+      employees: { type: Boolean },
+      expenses: { type: Boolean },
+      aiSpend: { type: Boolean },
+      apiLogs: { type: Boolean },
+      integrations: { type: Boolean },
+      branding: { type: Boolean },
+      studentFeatures: { type: Boolean },
     },
     // College-specific info — all optional, existing tenants unaffected
     collegeInfo: {

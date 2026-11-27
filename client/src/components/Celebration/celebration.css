@@ -1,0 +1,94 @@
+/* Celebrations (CelebrationHost.tsx). Drawn at true size: the host undoes the app's desktop zoom. */
+.cbc-root {
+  --cbc-navy: #051D64;
+  --cbc-teal: #359AAD;
+  --cbc-ink: #0B1B3F;
+  --cbc-sub: #4A5872;
+  --cbc-gold: #F5B83D;
+  position: fixed; inset: 0; z-index: 4000;
+  display: grid; place-items: center; padding: 16px;
+  background: rgba(5, 18, 60, .55);
+  backdrop-filter: blur(2px);
+  animation: cbc-fade .25s ease-out;
+}
+.cbc-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+.cbc-card {
+  /* A grid item's 100% is its track, which grows to fit it: cap against the screen instead. */
+  position: relative; width: min(440px, calc(100vw - 32px));
+  background: #fff; border-radius: 22px; overflow: hidden;
+  box-shadow: 0 24px 70px rgba(5, 18, 60, .38);
+  text-align: center; font-family: inherit;
+  animation: cbc-pop .45s cubic-bezier(.2, 1.3, .4, 1);
+}
+.cbc-head {
+  padding: 30px 28px 24px;
+  background: radial-gradient(120% 90% at 50% 0%, #0B2D8A 0%, var(--cbc-navy) 70%);
+  color: #fff;
+}
+.cbc-medal {
+  display: inline-grid; place-items: center;
+  width: 64px; height: 64px; border-radius: 50%;
+  background: linear-gradient(145deg, #FFD978, var(--cbc-gold));
+  color: var(--cbc-navy); font-size: 30px;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, .12), 0 10px 24px rgba(0, 0, 0, .25);
+  animation: cbc-medal 1s ease-out .15s both;
+}
+.cbc-eyebrow {
+  display: block; margin-top: 14px;
+  font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  color: #7FD3E0;
+}
+.cbc-head h2 { margin: 6px 0 0; font-size: 25px; line-height: 1.25; font-weight: 900; color: #fff; }
+.cbc-head p { margin: 10px auto 0; max-width: 360px; font-size: 14.5px; line-height: 1.55; color: rgba(255, 255, 255, .86); }
+
+.cbc-stats { display: flex; justify-content: center; gap: 10px; padding: 20px 22px 0; flex-wrap: wrap; }
+.cbc-stat {
+  flex: 1 1 0; min-width: 104px;
+  padding: 12px 10px; border-radius: 14px;
+  background: #F1F6FB; border: 1px solid #DCE7F2;
+}
+.cbc-stat b { display: block; font-size: 26px; line-height: 1.1; font-weight: 900; color: var(--cbc-navy); font-variant-numeric: tabular-nums; }
+.cbc-stat small { display: block; margin-top: 4px; font-size: 12px; font-weight: 700; color: var(--cbc-sub); }
+.k-day .cbc-stat:first-child b { color: var(--cbc-teal); }
+
+.cbc-actions { display: flex; justify-content: center; gap: 10px; padding: 20px 22px 24px; flex-wrap: wrap; }
+.cbc-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 22px; border-radius: 12px;
+  font-size: 15px; font-weight: 800; cursor: pointer; border: 1px solid transparent;
+  transition: transform .12s ease, background .12s ease;
+}
+.cbc-btn.primary { background: var(--cbc-navy); color: #fff; }
+.cbc-btn.primary:hover { background: #0B2D8A; transform: translateY(-1px); }
+.cbc-btn.ghost { background: #fff; color: var(--cbc-navy); border-color: #CBD6E4; }
+.cbc-btn.ghost:hover { background: #F1F6FB; }
+.cbc-btn:focus-visible, .cbc-x:focus-visible { outline: 3px solid var(--cbc-teal); outline-offset: 2px; }
+
+.cbc-x {
+  position: absolute; top: 12px; right: 12px;
+  width: 34px; height: 34px; border-radius: 50%; border: 0;
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, .14); color: #fff; font-size: 14px; cursor: pointer;
+}
+.cbc-x:hover { background: rgba(255, 255, 255, .26); }
+
+@media (max-width: 480px) {
+  .cbc-head { padding: 26px 20px 20px; }
+  .cbc-head h2 { font-size: 21px; }
+  .cbc-head p { font-size: 14px; }
+  .cbc-stats { padding: 16px 16px 0; gap: 8px; }
+  .cbc-stat { min-width: 0; padding: 10px 6px; }
+  .cbc-stat b { font-size: 22px; }
+  .cbc-actions { padding: 16px 16px 20px; flex-direction: column; }
+  .cbc-btn { width: 100%; }
+}
+
+@keyframes cbc-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cbc-pop { 0% { transform: scale(.7) translateY(20px); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes cbc-medal { 0% { transform: scale(0) rotate(-40deg); } 60% { transform: scale(1.15) rotate(8deg); } 100% { transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cbc-root, .cbc-card, .cbc-medal { animation: none; }
+  .cbc-btn { transition: none; }
+}

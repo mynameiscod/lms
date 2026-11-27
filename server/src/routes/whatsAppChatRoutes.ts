@@ -1,3 +1,4 @@
+import WhatsAppThread from '../models/WhatsAppThread';
 import express, { Request, Response } from 'express';
 import multer from 'multer';
 import { authMiddleware } from '../middleware/auth';
@@ -5,6 +6,8 @@ import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { roleGuard, permissionsOf } from '../middleware/roleGuard';
 import * as svc from '../services/whatsAppChatService';
 import * as inbox from '../services/whatsAppChatInbox';
+import { threadContext } from '../services/whatsAppChatContext';
+import { normalizeTo } from '../services/assessmentOtpService';
 import * as bunny from '../services/bunnyStorageService';
 
 /**
@@ -48,7 +51,8 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: svc
 // ── Shared inbox ─────────────────────────────────────────────────────────────
 
 router.get('/inbox', wrap(async (req, res) => {
-  const { filter, q, page } = req.query as any;
+  const { filter, q, page, owner, stageId, source, type, window } = req.query as any;
+  const str = (v: any) => (typeof v === 'string' ? v.slice(0, 80) : undefined);
   const user = (req as any).user;
   const p = user?.role === 'SUPER_ADMIN' ? null : await permissionsOf(user);
   const has = (keys: string[]) => !p || keys.some((k) => p.includes(k));
@@ -57,7 +61,37 @@ router.get('/inbox', wrap(async (req, res) => {
     placement: has(['manage_placement_program', 'manage_placement', 'manage_tenant']),
     leads: has(['manage_leads', 'view_leads', 'manage_tenant']),
   };
-  res.json({ success: true, data: await inbox.listInbox(tId(req), uId(req), { filter, q, page: Number(page) || 1, access }) });
+  res.json({ success: true, data: await inbox.listInbox(tId(req), uId(req), {
+    filter: str(filter) as any, q: str(q), page: Number(page) || 1, access,
+    owner: str(owner), stageId: str(stageId), source: str(source),
+    type: ['lead', 'placement', 'student', 'not_sales'].includes(type) ? type : '', window: ['open', 'closing', 'closed'].includes(window) ? window : '',
+  }) });
+}));
+
+router.get('/inbox/options', wrap(async (req, res) => {
+  res.json({ success: true, data: await inbox.inboxOptions(tId(req)) });
+}));
+
+router.get('/threads/:phone/context', wrap(async (req, res) => {
+  res.json({ success: true, data: await threadContext(tId(req), req.params.phone) });
+}));
+
+// A reply to a hiring / wishes message that turns out to be a real enquiry: make the lead by hand.
+router.post('/threads/:phone/make-lead', roleGuard(['manage_leads', 'manage_tenant']), wrap(async (req, res) => {
+  const phone = normalizeTo(String(req.params.phone));
+  if (phone.length < 12) throw new svc.ChatError('Invalid phone number');
+  const t: any = await WhatsAppThread.findOne({ tenantId: tId(req), phone }).select('contactName').lean();
+  const { leadFromWhatsApp } = await import('../controllers/whatsappWebhookController');
+  const lead: any = await leadFromWhatsApp(phone, t?.contactName || 'WhatsApp User', tId(req));
+  if (!lead) throw new svc.ChatError('Could not create the lead', 500);
+  await WhatsAppThread.updateOne({ tenantId: tId(req), phone }, { $unset: { replyContext: 1 } });
+  await inbox.linkThread(tId(req), phone);
+  res.status(201).json({ success: true, data: { leadId: String(lead._id) } });
+}));
+
+router.post('/threads/:phone/handled', wrap(async (req, res) => {
+  await inbox.markHandled(tId(req), normalizeTo(String(req.params.phone)), uId(req));
+  res.json({ success: true });
 }));
 
 router.get('/staff', wrap(async (req, res) => {
@@ -96,6 +130,7 @@ router.post('/threads/:phone/media', (req, res, next) => upload.single('file')(r
   const file = (req as any).file;
   if (!file) throw new svc.ChatError('Choose a file to send');
   await svc.sendMedia(tId(req), uId(req), req.params.phone, file, req.body?.caption);
+  await inbox.logLeadWhatsApp(tId(req), uId(req), req.params.phone, `WhatsApp file sent: ${file.originalname || 'file'}${req.body?.caption ? ` — "${String(req.body.caption).slice(0, 120)}"` : ''}`);
   res.status(201).json({ success: true });
 }));
 
@@ -127,8 +162,10 @@ router.post('/threads/:phone/messages', wrap(async (req, res) => {
   const { text, templateId, values, buttonParam } = req.body || {};
   if (templateId) {
     await svc.sendTemplate(tId(req), uId(req), req.params.phone, String(templateId), Array.isArray(values) ? values.map(String) : [], buttonParam ? String(buttonParam) : undefined);
+    await inbox.logLeadWhatsApp(tId(req), uId(req), req.params.phone, 'WhatsApp template message sent');
   } else {
     await svc.sendText(tId(req), uId(req), req.params.phone, String(text || ''));
+    await inbox.logLeadWhatsApp(tId(req), uId(req), req.params.phone, `WhatsApp message sent: "${String(text || '').slice(0, 160)}"`);
   }
   res.status(201).json({ success: true });
 }));
@@ -139,7 +176,7 @@ router.post('/threads/:phone/read', wrap(async (req, res) => {
 }));
 
 router.put('/threads/:phone/bot', wrap(async (req, res) => {
-  res.json({ success: true, data: await svc.setBotPaused(tId(req), req.params.phone, !!req.body?.paused) });
+  res.json({ success: true, data: await svc.setBotPaused(tId(req), req.params.phone, !!req.body?.paused, uId(req)) });
 }));
 
 export default router;

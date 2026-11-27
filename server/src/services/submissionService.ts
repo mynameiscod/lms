@@ -15,6 +15,7 @@ import { resolveForStudent } from './assessmentDeliveryService';
 import { scheduleAppliedEvidence } from './appliedEvidenceService';
 import { Types } from 'mongoose';
 import crypto from 'crypto';
+import User from '../models/User';
 
 interface StartSubmissionInput {
   tenant: Types.ObjectId;
@@ -43,6 +44,27 @@ interface GradeSubmissionInput {
   manualScore?: number;
   overallFeedback?: string;
   privateFeedback?: string;
+}
+
+/** An LMS demo student (services/lmsDemoService.ts): no late penalty, and the counsellor hears about each submission. */
+async function isLmsDemoStudent(studentId: any): Promise<boolean> {
+  const { lmsDemoScopeFor } = await import('./lmsDemoService');
+  return !!(await lmsDemoScopeFor(studentId));
+}
+
+/**
+ * A demo student's work goes to their counsellor, not a trainer's marking queue: a line on the
+ * lead with what was handed in and the auto score. Best effort, never fails the submission.
+ */
+async function tellCounsellor(studentId: any, assignment: any, submission: any): Promise<void> {
+  try {
+    if (!(await isLmsDemoStudent(studentId))) return;
+    const { noteOnLead } = await import('./lmsDemoService');
+    const user: any = await User.findById(studentId).select('lmsDemo firstName').lean();
+    const pct = typeof submission?.percentage === 'number' && submission.status !== SubmissionStatus.SUBMITTED ? ` · scored ${submission.percentage}%` : '';
+    const theory = submission?.theoryAnswer ? ` · answer: "${String(submission.theoryAnswer).replace(/\s+/g, ' ').slice(0, 220)}"` : '';
+    await noteOnLead(user, `📝 Submitted the demo assignment "${assignment?.title || 'Assignment'}"${pct}${theory}.`, { hot: true });
+  } catch { /* the submission stands */ }
 }
 
 class SubmissionService {
@@ -133,6 +155,45 @@ class SubmissionService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Another attempt, made by the student. The handed-in attempt is kept as it was (its grade, its
+   * place in the day's completion and in Skill DNA); the new one starts empty with the next number.
+   * Refused while an attempt is still open, or once the assignment's attempt limit is reached
+   * (0 = unlimited).
+   */
+  async startNewAttempt(
+    tenant: Types.ObjectId,
+    assignment: Types.ObjectId,
+    student: Types.ObjectId,
+    meta: { ipAddress?: string; userAgent?: string } = {}
+  ): Promise<ISubmission> {
+    const assignmentDoc = await Assignment.findOne({ _id: assignment, tenant }).select('maxAttempts type mcqQuestions').lean() as any;
+    if (!assignmentDoc) throw new Error('Assignment not found');
+    const latest = await Submission.findOne({ assignment, student, tenant }).sort({ attemptNumber: -1 });
+    if (!latest) return this.startSubmission({ tenant, assignment, student, ...meta } as any);
+    if (latest.status === SubmissionStatus.IN_PROGRESS) return latest;
+    const max = Number(assignmentDoc.maxAttempts) || 0;
+    if (max > 0 && latest.attemptNumber >= max) {
+      throw new Error(`You have used all ${max} attempt${max === 1 ? '' : 's'} for this assignment.`);
+    }
+    const next = new Submission({
+      tenant, assignment, student,
+      attemptNumber: (latest.attemptNumber || 1) + 1,
+      status: SubmissionStatus.IN_PROGRESS,
+      startedAt: new Date(),
+      // Start from the code handed in last time, so a fix is an edit and not a rewrite.
+      code: latest.code, language: latest.language,
+      ipAddress: meta.ipAddress, userAgent: meta.userAgent,
+    });
+    if (assignmentDoc.type === AssignmentType.MCQ) {
+      next.mcqAnswers = (assignmentDoc.mcqQuestions || []).map((_: any, index: number) => ({
+        questionIndex: index, selectedOptionIndex: -1, isCorrect: false, pointsEarned: 0,
+      }));
+    }
+    await next.save();
+    return next;
   }
 
   // Get submission for student
@@ -332,7 +393,13 @@ class SubmissionService {
   async submitCoding(
     submissionId: string | Types.ObjectId,
     studentId: Types.ObjectId,
-    tenant: Types.ObjectId
+    tenant: Types.ObjectId,
+    /**
+     * The code in the editor at the moment Submit was pressed. It used to be ignored and the last
+     * AUTOSAVE graded instead (every 30s), so submitting soon after an edit graded older code or
+     * failed with "No code to submit". What arrives here wins; the saved copy is only a fallback.
+     */
+    input: { code?: unknown; language?: unknown } = {}
   ): Promise<ISubmission> {
     const submission = await Submission.findOne({
       _id: submissionId,
@@ -345,8 +412,13 @@ class SubmissionService {
       throw new Error('Submission not found or already submitted');
     }
 
-    if (!submission.code) {
-      throw new Error('No code to submit');
+    const sentCode = typeof input.code === 'string' ? input.code : '';
+    if (sentCode.trim()) {
+      submission.code = sentCode;
+      if (typeof input.language === 'string' && input.language) submission.language = input.language as ProgrammingLanguage;
+    }
+    if (!submission.code || !submission.code.trim()) {
+      throw new Error('Write your code before you submit it.');
     }
 
     const assignment = submission.assignment as unknown as IAssignment;
@@ -408,7 +480,7 @@ class SubmissionService {
     let penalty = 0;
     let status = SubmissionStatus.SUBMITTED;
     
-    if (assignment.dueDate && new Date() > assignment.dueDate) {
+    if (assignment.dueDate && new Date() > assignment.dueDate && !(await isLmsDemoStudent(studentId))) {
       status = SubmissionStatus.LATE;
       if (assignment.lateSubmissionDeadline && new Date() <= assignment.lateSubmissionDeadline) {
         penalty = Math.round(autoScore * (assignment.lateSubmissionPenalty / 100));
@@ -427,6 +499,8 @@ class SubmissionService {
       { _id: submissionId, student: studentId, tenant, status: SubmissionStatus.IN_PROGRESS },
       {
         $set: {
+          code: submission.code,
+          language: submission.language,
           testCaseResults: results,
           autoScore,
           autoGradeTrusted,
@@ -457,6 +531,7 @@ class SubmissionService {
     // The final auto-grade is the evaluation. Only a really-executed one becomes evidence; that is
     // decided from what was stored above, not here.
     scheduleAppliedEvidence({ tenantId: String(tenant), submissionId: String(updated._id), evaluation: 'AUTO_GRADED' });
+    void tellCounsellor(studentId, assignment, updated);
 
     return updated;
   }
@@ -516,7 +591,7 @@ class SubmissionService {
     let penalty = 0;
     let status = SubmissionStatus.GRADED; // MCQ is auto-graded
     
-    if (assignment.dueDate && new Date() > assignment.dueDate) {
+    if (assignment.dueDate && new Date() > assignment.dueDate && !(await isLmsDemoStudent(studentId))) {
       status = SubmissionStatus.LATE;
       penalty = Math.round(autoScore * (assignment.lateSubmissionPenalty / 100));
     }
@@ -539,6 +614,7 @@ class SubmissionService {
 
     await submission.save();
     await assignmentService.updateStats(assignment._id, tenant);
+    void tellCounsellor(studentId, assignment, submission);
 
     return submission;
   }
@@ -563,13 +639,20 @@ class SubmissionService {
 
     const assignment = submission.assignment as unknown as IAssignment;
 
+    // A file-upload assignment is handed in with its files (the note is optional); anything else needs words.
+    if (String(assignment.type) === 'file_upload') {
+      if (!submission.uploadedFiles?.length) throw new Error('Add at least one file before you submit.');
+    } else if (!String(theoryAnswer || '').trim()) {
+      throw new Error('Write your answer before you submit it.');
+    }
+
     // Check late submission
     let status = SubmissionStatus.SUBMITTED;
-    if (assignment.dueDate && new Date() > assignment.dueDate) {
+    if (assignment.dueDate && new Date() > assignment.dueDate && !(await isLmsDemoStudent(studentId))) {
       status = SubmissionStatus.LATE;
     }
 
-    submission.theoryAnswer = theoryAnswer;
+    submission.theoryAnswer = String(theoryAnswer || '');
     submission.status = status;
     submission.submittedAt = new Date();
     submission.timeSpent = submission.startedAt 
@@ -578,6 +661,7 @@ class SubmissionService {
     submission.shareToken = crypto.randomUUID();
 
     await submission.save();
+    void tellCounsellor(studentId, assignment, submission);
     return submission;
   }
 
@@ -648,6 +732,10 @@ class SubmissionService {
     options?: { status?: SubmissionStatus; page?: number; limit?: number }
   ): Promise<{ submissions: ISubmission[]; total: number }> {
     const query: any = { assignment: assignmentId, tenant };
+    // Demo students' work goes to their counsellor, not the trainer's queue.
+    const { lmsDemoUserIds } = await import('./lmsDemoService');
+    const demoIds = await lmsDemoUserIds();
+    if (demoIds.length) query.student = { $nin: demoIds };
     
     if (options?.status) {
       query.status = options.status;
@@ -684,9 +772,12 @@ class SubmissionService {
     assignmentId: string | Types.ObjectId,
     tenant: Types.ObjectId
   ): Promise<any> {
+    const { lmsDemoUserIds } = await import('./lmsDemoService');
+    const demoIds = await lmsDemoUserIds();
     const submissions = await Submission.find({
       assignment: assignmentId,
       tenant,
+      ...(demoIds.length ? { student: { $nin: demoIds } } : {}),
       status: { $in: [SubmissionStatus.SUBMITTED, SubmissionStatus.GRADED, SubmissionStatus.LATE] }
     });
 

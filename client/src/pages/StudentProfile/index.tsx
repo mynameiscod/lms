@@ -17,6 +17,9 @@ import {
 import './StudentProfile.css';
 import ProfileView from './ProfileView';
 import { confirmDialog } from '../../components/feedback/appFeedback';
+import { useProfileGate } from '../../contexts/ProfileGateContext';
+import { AgreementConsentList, PendingAgreementsCard, usePendingAgreements, allAgreed, SignedRecordModal } from '../../components/agreements/AgreementConsent';
+import { acceptAll, agreementsApi, Consent, SignedRecord } from '../../api/agreementsApi';
 
 interface OAuthStatus {
   github: { connected: boolean; username?: string; profileUrl?: string; connectedAt?: string };
@@ -25,6 +28,45 @@ interface OAuthStatus {
 
 const StudentProfilePage: React.FC = () => {
   const { user, updateProfile } = useAuth();
+  const { gate, blocked: gateBlocked, refresh: refreshGate } = useProfileGate();
+  // Student Rules → Profile gate: what is still needed before the rest of the LMS opens.
+  const gateBanner = gateBlocked && gate && gate.profileRule && !gate.profileComplete ? (
+    <div style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+      <div style={{ fontWeight: 700, color: '#9a3412', marginBottom: 4 }}>
+        <i className="fa-solid fa-lock" /> Complete your profile to unlock the LMS ({gate.percent}% done)
+      </div>
+      <div style={{ fontSize: 13.5, color: '#7c2d12' }}>
+        Your institute asks every student to finish their profile before using courses, quizzes and other features. Still needed:
+        <ul style={{ margin: '6px 0 0 18px' }}>
+          {gate.missing.map((m) => <li key={m.section}><b>{m.section}:</b> {m.fields.join(', ')}</li>)}
+        </ul>
+      </div>
+    </div>
+  ) : null;
+  // Terms & agreements (admin page /agreements): accepted on the last step, or from the card on the profile view.
+  const { pending: pendingAgreements, accepted: acceptedAgreements, reload: reloadAgreements } = usePendingAgreements(user?.role === 'STUDENT');
+  const [consents, setConsents] = useState<Record<string, Consent>>({});
+  const [consentTried, setConsentTried] = useState(false);
+  const [record, setRecord] = useState<SignedRecord | null>(null);
+  const agreementsDone = () => { reloadAgreements(); refreshGate(); setConsents({}); setConsentTried(false); };
+  const agreementsBlock = (
+    <>
+      <PendingAgreementsCard pending={pendingAgreements} onDone={agreementsDone} />
+      {acceptedAgreements.length > 0 && (
+        <div style={{ fontSize: 13, color: '#475569', margin: '0 0 14px' }}>
+          <i className="fa-solid fa-file-signature" /> Agreed:{' '}
+          {acceptedAgreements.map((a, i) => (
+            <React.Fragment key={a.id}>
+              {i > 0 && ', '}
+              <button type="button" onClick={async () => { try { setRecord(await agreementsApi.myRecord(a.id)); } catch { /* ignore */ } }}
+                style={{ background: 'none', border: 'none', padding: 0, color: '#2563eb', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>{a.title}</button>
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+      {record && <SignedRecordModal record={record} onClose={() => setRecord(null)} />}
+    </>
+  );
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -122,6 +164,7 @@ const StudentProfilePage: React.FC = () => {
       howDidYouHearOther: '',
       careerGoal: '',
     },
+    placementPreferences: { expectedRole: '', preferredLocations: [] },
     profileCompletionPercentage: 0,
   });
 
@@ -147,6 +190,7 @@ const StudentProfilePage: React.FC = () => {
           technicalBackground: { ...prev.technicalBackground, ...response.data.technicalBackground },
           courseInterest: { ...prev.courseInterest, ...response.data.courseInterest },
           additionalInfo: { ...prev.additionalInfo, ...response.data.additionalInfo },
+          placementPreferences: { ...prev.placementPreferences, ...(response.data.placementPreferences || {}) },
         }));
         if (response.data.personalInfo?.profilePhoto) {
           // Use relative path - proxy will forward to backend in development
@@ -321,6 +365,7 @@ const StudentProfilePage: React.FC = () => {
           setProfilePhoto(null);
         }
         setHasSaved(true);
+        refreshGate();
         if (toView) {
           setSuccess(null);
           setSavedMsg('Your profile has been saved.');
@@ -335,6 +380,30 @@ const StudentProfilePage: React.FC = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  /** Complete Profile: every pending term must be accepted (and signed, where asked) first. */
+  const handleComplete = async () => {
+    if (pendingAgreements.length) {
+      setConsentTried(true);
+      if (!allAgreed(pendingAgreements, consents)) {
+        setError('Please open and accept the Terms & Conditions before submitting.');
+        return;
+      }
+      try {
+        setSaving(true);
+        await acceptAll(pendingAgreements, consents);
+      } catch (e: any) {
+        setSaving(false);
+        setError(e.message);
+        reloadAgreements();
+        return;
+      }
+      setSaving(false);
+    }
+    const ok = await handleSave(true);
+    if (pendingAgreements.length) agreementsDone();
+    return ok;
   };
 
   const handleNext = async () => {
@@ -363,6 +432,7 @@ const StudentProfilePage: React.FC = () => {
         if (!p?.firstName?.trim()) errors['personalInfo.firstName'] = 'First name is required';
         if (!p?.surname?.trim()) errors['personalInfo.surname'] = 'Surname is required';
         if (!p?.mobileNumber?.trim()) errors['personalInfo.mobileNumber'] = 'Mobile number is required';
+        if (gate?.requireParentMobile && !p?.parentMobile?.trim()) errors['personalInfo.parentMobile'] = 'Parent / guardian mobile is required';
         if (!p?.gender) errors['personalInfo.gender'] = 'Gender is required';
         if (!p?.dateOfBirth) errors['personalInfo.dateOfBirth'] = 'Date of birth is required';
         if (!p?.country?.trim()) errors['personalInfo.country'] = 'Country is required';
@@ -459,6 +529,8 @@ const StudentProfilePage: React.FC = () => {
   if (!editing) {
     return (
       <div className="student-profile-page">
+        {gateBanner}
+        {agreementsBlock}
         <ProfileView
           profile={profile}
           photoUrl={profilePhotoPreview || profile.personalInfo?.profilePhoto || null}
@@ -471,6 +543,7 @@ const StudentProfilePage: React.FC = () => {
 
   return (
     <div className="student-profile-page">
+      {gateBanner}
       {hasSaved && (
         <button type="button" className="btn btn-secondary" style={{ marginBottom: 14 }} onClick={openView}>
           ← Back to my profile
@@ -697,6 +770,29 @@ const StudentProfilePage: React.FC = () => {
                   required
                 />
                 {validationErrors['personalInfo.mobileNumber'] && <small className="error-text">{validationErrors['personalInfo.mobileNumber']}</small>}
+              </div>
+            </div>
+
+            {/* Parent / guardian — for attendance and inactivity alerts */}
+            <div className="form-row two-columns">
+              <div className="form-group">
+                <label>Parent / Guardian Name</label>
+                <input
+                  type="text"
+                  value={profile.personalInfo?.parentName || ''}
+                  onChange={e => handleInputChange('personalInfo', 'parentName', e.target.value)}
+                  placeholder="e.g. Ramesh Kumar"
+                />
+              </div>
+              <div className={`form-group ${validationErrors['personalInfo.parentMobile'] ? 'has-error' : ''}`}>
+                <label>Parent / Guardian Mobile {gate?.requireParentMobile && <span className="required">*</span>}</label>
+                <input
+                  type="tel"
+                  value={profile.personalInfo?.parentMobile || ''}
+                  onChange={e => handleInputChange('personalInfo', 'parentMobile', e.target.value)}
+                  placeholder="+91 9876543210"
+                />
+                {validationErrors['personalInfo.parentMobile'] && <small className="error-text">{validationErrors['personalInfo.parentMobile']}</small>}
               </div>
             </div>
 
@@ -1341,6 +1437,26 @@ const StudentProfilePage: React.FC = () => {
                 </div>
               )}
 
+              <div className="form-group">
+                <label>💼 Expected Job Role</label>
+                <input
+                  type="text"
+                  value={profile.placementPreferences?.expectedRole || ''}
+                  onChange={e => handleInputChange('placementPreferences', 'expectedRole', e.target.value)}
+                  placeholder="e.g. Java Developer, Data Analyst"
+                  maxLength={120}
+                />
+              </div>
+              <div className="form-group">
+                <label>📍 Preferred Job Location(s)</label>
+                <input
+                  type="text"
+                  value={(profile.placementPreferences?.preferredLocations || []).join(',')}
+                  onChange={e => handleInputChange('placementPreferences', 'preferredLocations', e.target.value.split(','))}
+                  placeholder="e.g. Hyderabad, Bangalore"
+                />
+              </div>
+
               <div className="form-group full-width">
                 <label>🎯 Career Goal</label>
                 <textarea
@@ -1378,6 +1494,13 @@ const StudentProfilePage: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {currentStep === totalSteps && pendingAgreements.length > 0 && (
+          <div style={{ margin: '18px 0 6px' }}>
+            <h3 style={{ fontSize: 16, margin: '0 0 8px' }}>📜 Terms &amp; Conditions</h3>
+            <AgreementConsentList agreements={pendingAgreements} consents={consents} onChange={setConsents} showErrors={consentTried} />
           </div>
         )}
 
@@ -1419,7 +1542,7 @@ const StudentProfilePage: React.FC = () => {
               <button 
                 type="button" 
                 className="btn btn-success"
-                onClick={() => handleSave(true)}
+                onClick={handleComplete}
                 disabled={saving}
               >
                 {saving ? '⏳ Submitting...' : '✅ Complete Profile'}

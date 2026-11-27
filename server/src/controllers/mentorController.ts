@@ -29,6 +29,8 @@ export const sendMessage = async (req: Request, res: Response) => {
     let chat = await MentorChat.findOne({ tenantId: tId(req), studentId: uId(req) });
     if (!chat) chat = await MentorChat.create({ tenantId: tId(req), studentId: uId(req), messages: [] });
 
+    // An LMS demo student: each reply comes out of the day's AI allowance.
+    { const { takeDemoAi } = await import('../services/lmsDemoService'); const use = await takeDemoAi(String(uId(req))); if (use.demo && !use.ok) return res.status(429).json({ code: 'DEMO_AI_LIMIT', message: `You have used today's ${use.limit} AI questions. More tomorrow.` }); }
     const context = await buildStudentContext(uId(req), tId(req));
     const reply = await mentorReply(context, chat.messages as any, message);
 

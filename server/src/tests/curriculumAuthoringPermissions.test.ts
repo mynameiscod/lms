@@ -33,7 +33,8 @@ const guardOf = (method: string, routePath: string): string | null => {
   const line = ROUTES.split('\n').find(l =>
     l.trim().startsWith(`router.${method}(`) && l.includes(`'${routePath}'`));
   if (!line) return null;
-  if (line.includes('SUPER_ADMIN')) return 'SUPER_ADMIN';
+  // Super admin, or a role a super admin gave manage_skill_catalogue (SUPER_ADMIN_GRANTED).
+  if (line.includes('SKILL_CATALOGUE')) return 'SUPER_ADMIN';
   if (line.includes('MANAGE_CATEGORIES')) return 'MANAGE_CATEGORIES';
   if (line.includes('MANAGE')) return 'MANAGE';
   if (line.includes('MEMBER')) return 'MEMBER';
@@ -82,7 +83,8 @@ describe('what stays SUPER_ADMIN, and why', () => {
   /**
    * The skill catalogue is GLOBAL and has no tenantId by design — if JAVA_OOP meant two things
    * at two colleges neither could be measured. A tenant-scoped permission cannot express
-   * "this edit changes every tenant", so these keep the platform-wide guard.
+   * "this edit changes every tenant", so these keep the platform-wide guard: a super admin, or a
+   * role only a super admin can give manage_skill_catalogue to — never manage_passport.
    */
   it.each([
     ['post',   '/skills'],
@@ -129,5 +131,14 @@ describe('the permission itself is the existing one', () => {
     // STAFF is read-only over CareerPilot by design; authoring is not a support task.
     expect(ROLE_PERMISSIONS.STAFF).not.toContain('manage_passport');
     expect(ROLE_PERMISSIONS.STUDENT).not.toContain('manage_passport');
+  });
+});
+
+describe('the platform-wide guard is a key only a super admin gives', () => {
+  it('SKILL_CATALOGUE is manage_skill_catalogue, which an institute admin cannot hand out', async () => {
+    expect(ROUTES).toContain("const SKILL_CATALOGUE = roleGuard(['manage_skill_catalogue']);");
+    const { SUPER_ADMIN_GRANTED, ROLE_PERMISSIONS } = await import('../middleware/roleGuard');
+    expect(SUPER_ADMIN_GRANTED).toContain('manage_skill_catalogue');
+    for (const role of ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']) expect(ROLE_PERMISSIONS[role]).not.toContain('manage_skill_catalogue');
   });
 });

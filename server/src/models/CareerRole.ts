@@ -149,6 +149,24 @@ export const SYSTEM_CAREER_ROLES: Array<Partial<ICareerRole> & { key: string; na
     studentDescription: 'Cloud · CI/CD · Infrastructure',
     iconKey: 'bi-cloud', aliases: ['DevOps Engineer', 'Cloud Engineer', 'SRE'],
   },
+  /*
+   * The data roles lead to the Data Analytics + AI and Data Science + AI tracks. Their skill
+   * blueprints come from seedAiDataSecurityRoles; until one exists for a tenant the role is not
+   * offered in setup (careerRoleService.getSelectableCareerRoles), so nobody can pick a role
+   * whose assessment cannot be built.
+   */
+  {
+    key: 'DATA_ANALYST', name: 'Data Analyst', displayOrder: 80,
+    description: 'Turn data into decisions with SQL, Excel, Python and dashboards.',
+    studentDescription: 'SQL · Excel · Power BI · Python',
+    iconKey: 'bi-bar-chart', aliases: ['Business Analyst', 'BI Analyst'],
+  },
+  {
+    key: 'DATA_SCIENTIST', name: 'Data Scientist', displayOrder: 90,
+    description: 'Build predictive models and machine-learning systems from data.',
+    studentDescription: 'Python · Statistics · Machine learning',
+    iconKey: 'bi-graph-up-arrow', aliases: ['ML Engineer', 'Machine Learning Engineer'],
+  },
 ];
 
 export default mongoose.model<ICareerRole>('CareerRole', CareerRoleSchema);

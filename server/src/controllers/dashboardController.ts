@@ -55,8 +55,8 @@ class DashboardController {
       // only when their batch matches; legacy quizzes and empty-batchIds snippets are
       // NOT shown to everyone (see the matching fixes in assignmentService /
       // quizController / codeSnippetController).
+      // An assignment open to "everyone" is in the bank, not assigned — it counts for nobody.
       const assignmentAccessOr: any[] = [
-        { accessibleTo: 'everyone' },
         { accessibleTo: 'individual', selectedStudents: userId },
         ...(studentBatchStr ? [
           { accessibleTo: 'batch_wise', selectedBatches: studentBatchStr },

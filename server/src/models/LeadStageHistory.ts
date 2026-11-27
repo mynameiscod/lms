@@ -10,6 +10,14 @@ export interface ILeadStageHistory extends Document {
   enteredBy: mongoose.Types.ObjectId;
   exitedBy?: mongoose.Types.ObjectId;
   tenantId: mongoose.Types.ObjectId;
+  fromStageId?: mongoose.Types.ObjectId;
+  subStageId?: mongoose.Types.ObjectId;
+  subStageName?: string;
+  reasonId?: mongoose.Types.ObjectId;
+  reasonName?: string;
+  reasonDetail?: string;
+  note?: string;
+  source?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,7 +65,18 @@ const LeadStageHistorySchema: Schema = new Schema(
       type: mongoose.Types.ObjectId,
       ref: 'Tenant',
       required: true
-    }
+    },
+    // Detail of how the lead entered this stage (written by leadLifecycleService).
+    fromStageId: { type: mongoose.Types.ObjectId, ref: 'LeadStage' },
+    subStageId: { type: mongoose.Types.ObjectId, ref: 'LeadSubStage' },
+    subStageName: { type: String, trim: true },
+    reasonId: { type: mongoose.Types.ObjectId, ref: 'LeadReason' },
+    reasonName: { type: String, trim: true },
+    reasonDetail: { type: String, trim: true },
+    note: { type: String, trim: true },
+    // Answers to the required qualification questions at the moment the lead was qualified.
+    qualificationEvidence: { type: Schema.Types.Mixed },
+    source: { type: String, enum: ['manual', 'bulk', 'approval', 'outpero', 'automation', 'convert', 'reopen', 'edit'] }
   },
   { timestamps: true }
 );

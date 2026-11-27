@@ -11,6 +11,7 @@ import { slugify, predictQuestions, getTaxonomy, refreshQuestionCount } from './
 import { saveSet } from './problemDeliveryService';
 import { EmailService } from './emailService';
 import { estimateCost, purposeTemplate, sendByPurpose, waCostPerMessage } from './purposeMessaging';
+import { globalPracticeClause } from './contentGrantService';
 
 /**
  * Closing the loop around a placement drive — see models/InterviewHubAutomation.ts.
@@ -258,7 +259,8 @@ export async function codingSuggestions(tenantId: string, driveId: string) {
     ...pack.bankQuestions.filter((q: any) => q.category === 'dsa' || q.round === 'coding').map((q: any) => q.text),
     ...pack.predicted.filter((q: any) => q.category === 'dsa' || q.round === 'coding').map((q: any) => q.text),
   ].slice(0, 20);
-  const visible = { status: 'published', $or: [{ scope: 'global' }, { scope: 'tenant', tenantId }] };
+  const shared = await globalPracticeClause(tenantId);
+  const visible = { status: 'published', $or: [...(shared ? [shared] : []), { scope: 'tenant', tenantId }] };
   const out: any[] = [];
   for (const text of qs) {
     const qw = Array.from(new Set(words(text))).slice(0, 8);

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { interviewHubApi, ExpCard, ROUND_OPTIONS } from '../../api/interviewHubApi';
-import { ExperienceCard, CompanyLogo, CardSkeletons, prettyCompany, useHubBase } from './parts';
+import { ExperienceCard, CardSkeletons, prettyCompany, useHubBase } from './parts';
 import '../ProblemBank/ProblemBank.css';
 import './hub.css';
 
@@ -48,20 +48,20 @@ const Feed: React.FC = () => {
   return (
     <div className="pb-root ih-cb">
       <div className="pb-page ihx-page">
-        <section className="ihx-hero">
+        {/* One white top card: what this is, the one action (share), and the figures. "My posts" is the tab below. */}
+        <section className="ihx-hero ihx-hero2">
           <div className="ihx-hero-copy">
             <span className="ihx-eyebrow"><i className="bi bi-people" aria-hidden="true" /> From candidates who just faced them</span>
-            <h1>Interview Experiences</h1>
+            <h1>Interview <span>Experiences</span></h1>
             <p>What companies actually asked, round by round. Read them before your interview; share yours after it, so the next person walks in ready.</p>
             <div className="ihx-hero-actions">
               <button className="ihx-btn primary" onClick={() => nav(`${base}/share`)}><i className="bi bi-mic" aria-hidden="true" /> Share your interview</button>
-              <button className="ihx-btn ghost-light" onClick={() => setTab('mine')}><i className="bi bi-journal-text" aria-hidden="true" /> My posts{mine?.experiences.length ? ` (${mine.experiences.length})` : ''}</button>
             </div>
           </div>
           <dl className="ihx-hero-stats">
-            <div><dt>Experiences</dt><dd>{data ? stats.reports : '—'}</dd></div>
-            <div><dt>Companies</dt><dd>{data ? stats.companies : '—'}</dd></div>
-            <div><dt>Offers reported</dt><dd>{data ? stats.offers : '—'}</dd></div>
+            <div><span className="ic"><i className="bi bi-chat-quote" aria-hidden="true" /></span><dt>Experiences</dt><dd>{data ? stats.reports : '—'}</dd></div>
+            <div><span className="ic"><i className="bi bi-buildings" aria-hidden="true" /></span><dt>Companies</dt><dd>{data ? stats.companies : '—'}</dd></div>
+            <div><span className="ic good"><i className="bi bi-patch-check" aria-hidden="true" /></span><dt>Offers reported</dt><dd>{data ? stats.offers : '—'}</dd></div>
           </dl>
         </section>
 
@@ -95,18 +95,6 @@ const Feed: React.FC = () => {
               </div>
             )
         ) : <>
-          {!!data?.companies.length && (
-            <div className="ihx-companies" aria-label="Filter by company">
-              <button className={`ihx-co ${!company ? 'on' : ''}`} onClick={() => { setCompany(''); setPage(0); }}>
-                <span className="all"><i className="bi bi-buildings" aria-hidden="true" /></span> All companies <span className="n">{stats.reports}</span>
-              </button>
-              {data.companies.map((c) => (
-                <button key={c.slug} className={`ihx-co ${company === c.slug ? 'on' : ''}`} onClick={() => { setCompany(company === c.slug ? '' : c.slug); setPage(0); }}>
-                  <CompanyLogo name={prettyCompany(c.name)} size={28} /> {prettyCompany(c.name)} <span className="n">{c.count}</span>
-                </button>
-              ))}
-            </div>
-          )}
 
           <div className="ihx-filters">
             <label className="ihx-search">

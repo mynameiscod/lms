@@ -25,6 +25,34 @@ import mongoose, { Schema, Document } from 'mongoose';
  * driver that reads input, calls the candidate's function and prints the result.
  */
 export type ProblemScope = 'global' | 'tenant';
+
+/**
+ * WHO A PROBLEM MAY BE GIVEN TO, AND WHO SEES IT UNASKED.
+ *
+ * `audiences` is the admin's assignment: the products a problem is given to.
+ *   - 'careerpilot': it is in the CareerPilot practice library (when published), and may go into
+ *     CareerPilot problem sets.
+ *   - 'lms': it may go into LMS problem sets and exam pools. The LMS has no open library, so an LMS
+ *     student still meets it only when a teacher assigns it.
+ *   - [] (none): not assigned yet. New problems start here and are given to nobody until an admin
+ *     ticks a product, one by one or in bulk (Problem Bank → select → Available to).
+ *
+ * Rows written before `audiences` existed have NO field and read as LMS only: they keep working in
+ * the LMS sets and exams that already use them, and join the CareerPilot library only when an
+ * admin adds CareerPilot. (`legacyAudiences` is that reading, for updates that start from it.)
+ */
+export const PROBLEM_PRODUCTS = ['lms', 'careerpilot'] as const;
+export type ProblemProduct = typeof PROBLEM_PRODUCTS[number];
+export const LEGACY_AUDIENCES: ProblemProduct[] = ['lms'];
+
+export const availableTo = (product: ProblemProduct) => (product === 'lms'
+  ? { $or: [{ audiences: 'lms' }, { audiences: { $exists: false } }, { audiences: null }] }
+  : { audiences: product });
+export const notAssigned = () => ({ audiences: { $size: 0 } });
+export const audiencesOf = (p: { audiences?: string[] | null }): string[] =>
+  Array.isArray(p.audiences) ? p.audiences : LEGACY_AUDIENCES;
+export const isAvailableTo = (p: { audiences?: string[] | null }, product: ProblemProduct) =>
+  audiencesOf(p).includes(product);
 export type ProblemKind = 'code' | 'sql';
 export type ProblemStatus = 'draft' | 'published' | 'archived';
 export type VerificationStatus = 'unverified' | 'queued' | 'running' | 'verified' | 'failed' | 'stale';
@@ -64,6 +92,8 @@ export interface ICodingProblem extends Document {
   marks: number;
   topics: string[];
   tags: string[];
+  /** See PROBLEM_PRODUCTS. Empty = not assigned; missing (older rows) = LMS only. */
+  audiences?: ProblemProduct[];
   companies: string[];
   languages: IProblemLanguage[];
   sqlSetup: string;
@@ -119,6 +149,7 @@ const CodingProblemSchema = new Schema<ICodingProblem>({
   marks: { type: Number, default: 20, min: 0 },
   topics: { type: [String], default: [] },
   tags: { type: [String], default: [] },
+  audiences: { type: [String], enum: PROBLEM_PRODUCTS as unknown as string[], default: undefined },
   companies: { type: [String], default: [] },
   languages: { type: [LanguageSchema], default: [] },
   sqlSetup: { type: String, default: '' },

@@ -325,7 +325,7 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
                   {c.about || 'No overview published yet.'}
                 </p>
                 {c.hiringTimeline && (
-                  <p style={{ marginTop: 12, fontSize: 13, color: '#0f766e', fontWeight: 700 }}>
+                  <p style={{ marginTop: 12, fontSize: 'max(13px, var(--fs-floor, 0px))', color: '#0f766e', fontWeight: 700 }}>
                     🗓 {c.hiringTimeline}
                   </p>
                 )}
@@ -450,7 +450,7 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
                   setStartingTest(false);
                 }
               }}>{startingTest ? 'Building your paper…' : 'Start Mock Test'}</button>
-              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 10, marginBottom: 0 }}>
+              <p style={{ fontSize: 'max(12px, var(--fs-floor, 0px))', color: '#3F4F66', marginTop: 10, marginBottom: 0 }}>
                 The paper is assembled fresh each time, so no two attempts are identical.
               </p>
             </div>
@@ -473,7 +473,7 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
           {tab === 'salary' && (
             <div className="pm-card">
               {!c.salaryBands.length ? (
-                <p style={{ margin: 0, fontSize: 13.5, color: '#64748b' }}>No salary guidance published yet.</p>
+                <p style={{ margin: 0, fontSize: 13.5, color: '#2F3F56' }}>No salary guidance published yet.</p>
               ) : (
                 <>
                   <div className="pm-msg info" style={{ marginBottom: 12 }}>

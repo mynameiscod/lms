@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import DayPlan from '../models/DayPlan';
 import { XpLedger } from '../models/GamificationModels';
+import { loadXpPricing, xpForTask, DEFAULT_PRICING, XpPricing } from './xpPricingService';
 
 /**
  * XP for the Foundation journey — each finished task, and the day as a whole.
@@ -28,25 +29,20 @@ import { XpLedger } from '../models/GamificationModels';
 export const FOUNDATION_ACTIVITY_EVENT = 'FOUNDATION_ACTIVITY_COMPLETED';
 export const FOUNDATION_DAY_EVENT = 'FOUNDATION_DAY_COMPLETED';
 
-/** By content type, then by kind. Mock interviews pay 0 here: MOCK_INTERVIEW_COMPLETED already pays them. */
-const XP_BY_TYPE: Record<string, number> = {
-  video: 5, notes: 5, worked_example: 5, interactive_lesson: 5, interactive_activity: 5,
-  practice_theory: 10, tech_qa: 10, behavioral_qa: 10, aptitude: 10,
-  practice_coding: 15,
-  quiz: 20,
-  assignment: 30,
-};
-const XP_BY_KIND: Record<string, number> = { quiz: 20, assignment: 30, codeSnippet: 15, mockInterview: 0, content: 5 };
-
+/**
+ * The shipped day bonus. What a day actually pays is the FOUNDATION_DAY_COMPLETED rule's amount, which an
+ * admin sets — read it from loadXpPricing(...).dayBonus. Kept for callers with no tenant to ask.
+ */
 export const FOUNDATION_DAY_BONUS_XP = 25;
 
-export const xpForJourneyItem = (item: { kind?: string; contentType?: string; type?: string }): number => {
-  const kind = item.kind || 'content';
-  if (kind === 'mockInterview') return 0;
-  const type = item.contentType || item.type || '';
-  if (type in XP_BY_TYPE) return XP_BY_TYPE[type];
-  return XP_BY_KIND[kind] ?? 5;
-};
+/**
+ * What a journey task pays. Priced by the tenant's price list (xpPricingService): a price an admin set on
+ * the task itself, else its type's. Without a price list it uses the shipped defaults.
+ */
+export const xpForJourneyItem = (
+  item: { kind?: string; contentType?: string; type?: string; contentId?: any; sourceId?: any },
+  pricing: XpPricing = DEFAULT_PRICING,
+): number => xpForTask(item, pricing);
 
 /** Actually finished — unlike itemDone, an optional task counts only when it was really done. */
 export const journeyItemFinished = (
@@ -78,9 +74,10 @@ export async function reconcileJourneyDayXp(input: JourneyDayXpInput): Promise<n
   const { tenantId, studentId, enrollmentId, dayNumber } = input;
   let paid = 0;
   try {
+    const pricing = await loadXpPricing(tenantId);
     for (const item of input.items || []) {
       if (!journeyItemFinished(item, dayNumber, input.completedItems, input.moduleStatus)) continue;
-      const xp = xpForJourneyItem(item);
+      const xp = xpForJourneyItem(item, pricing);
       if (xp <= 0) continue;
       const taskId = String(item._id || item.contentId || item.sourceId || '');
       if (!taskId) continue;
@@ -108,6 +105,28 @@ export async function reconcileJourneyDayXp(input: JourneyDayXpInput): Promise<n
     console.error('[foundation-journey-xp]', e?.message || e);
   }
   return paid;
+}
+
+/**
+ * How far through their current journey a member is: days completed out of the journey's days.
+ * The coder score's "Missions" part reads this; it used to read the retired mission roadmap, which
+ * a journey member never writes to, so it stayed at 0 for them. Null when there is no journey.
+ */
+export async function journeyCompletion(tenantId: string, studentId: string): Promise<{ completedDays: number; totalDays: number } | null> {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(studentId)) return null;
+    const sid = new mongoose.Types.ObjectId(studentId);
+    const enrollment: any = await CurriculumEnrollment.findOne({ tenantId, studentId: sid, enrolledBy: 'foundation-journey' })
+      .sort({ createdAt: -1 }).select('curriculumId completedDays').lean();
+    if (!enrollment?.curriculumId) return null;
+    const totalDays = await DayPlan.countDocuments({ curriculumId: enrollment.curriculumId });
+    if (!totalDays) return null;
+    const completedDays = new Set((enrollment.completedDays || []).map(Number).filter((d: number) => d >= 1 && d <= totalDays)).size;
+    return { completedDays, totalDays };
+  } catch (e: any) {
+    console.error('[foundation-journey-xp] completion:', e?.message || e);
+    return null;
+  }
 }
 
 export interface JourneyDayGoal { day: number; target: number; earned: number }
@@ -139,7 +158,8 @@ export async function journeyDayGoal(tenantId: string, studentId: string): Promi
 
     const plan: any = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber: day }).select('items').lean();
     if (!plan?.items?.length) return null;
-    const target = plan.items.reduce((t: number, it: any) => t + xpForJourneyItem(it), 0) + FOUNDATION_DAY_BONUS_XP;
+    const pricing = await loadXpPricing(tenantId);
+    const target = plan.items.reduce((t: number, it: any) => t + xpForJourneyItem(it, pricing), 0) + pricing.dayBonus;
 
     const prefix = `${String(enrollment._id)}:${day}`;
     // The day's awards: its bonus ("enrollment:day") and its tasks ("enrollment:day:task").

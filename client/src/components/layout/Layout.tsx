@@ -9,6 +9,8 @@ import './Layout.css';
 import './StudentCoreRemaining.css';
 import './AdminCore.css';
 import './CareerPilotAdmin.css';
+import { useStaffHeartbeat } from '../../hooks/useStaffHeartbeat';
+import { DemoProvider, DemoStrip, DemoContent, isDemoUser } from '../lmsDemo/DemoShell';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,7 +20,7 @@ const STUDENT_CORE_REMAINING_ROUTES = [
   '/student/fee-details', '/student/college', '/student/my-applications', '/student/alumni-directory',
   '/notifications', '/my-interviews', '/student/interviews', '/my-leave', '/playground', '/project-builder',
   '/job-tracker', '/ai-mentor', '/resource-library', '/hms-classes', '/ai-communication-lab', '/thinking-lab',
-  '/logic-gym', '/resume-builder', '/career-profile', '/profile', '/interview-questions',
+  '/logic-gym', '/resume-builder', '/career-profile', '/profile', '/interview-questions', '/refer-and-earn',
 ];
 
 const routeKeyFor = (pathname: string) => {
@@ -38,13 +40,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isModuleEnabled, loading: modulesLoading } = useTenantModules();
   // A page whose module the platform administrator switched off is not shown, even by typed URL.
   const pageModule = moduleForPath(pathname);
-  const pageBlocked = !!pageModule && !modulesLoading && !isModuleEnabled(pageModule);
+  // A demo account's pages are decided by the LMS Demo switches and the server (lmsDemoScope), not the institute's module list.
+  const pageBlocked = !isDemoUser(user) && !!pageModule && !modulesLoading && !isModuleEnabled(pageModule);
   const blockedLabel = MODULE_DEFS.find((d) => d.key === pageModule)?.label;
   const isCareerPilotAdmin = pathname.startsWith('/admin/passport') || pathname.startsWith('/admin/careerpilot');
   const isAdminCore = Boolean(user && user.role !== 'STUDENT' && !isCareerPilotAdmin);
   const studentCoreRouteKey = routeKeyFor(pathname);
-  const isRemainingStudentCore = Boolean(studentCoreRouteKey) && !isAdminCore && !isCareerPilotAdmin;
+  // Not for a demo student: those older per-route overrides cap widths and repaint pages that have their own current design.
+  const isRemainingStudentCore = Boolean(studentCoreRouteKey) && !isAdminCore && !isCareerPilotAdmin && !isDemoUser(user);
   const adminCoreRouteKey = isAdminCore ? surfaceRouteKeyFor(pathname, 'dashboard') : '';
+  // Working time for Team Activity: a note once a minute while a staff member is really using the app.
+  useStaffHeartbeat(isAdminCore, pathname);
   const careerPilotRouteKey = isCareerPilotAdmin ? surfaceRouteKeyFor(pathname, 'careerpilot-admin') : '';
 
   useEffect(() => {
@@ -53,12 +59,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  // An LMS demo student: the normal student layout, with a demo strip on top, the demo's own menu
+  // (Sidebar), and the end-of-demo screen once it is over.
+  const demo = isDemoUser(user);
+
   const handleMenuToggle = () => {
     if (window.innerWidth <= 768) setMobileSidebarOpen(open => !open);
     else setSidebarCollapsed(collapsed => !collapsed);
   };
 
-  return (
+  const page = (
     <div className={`layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isCareerPilotAdmin ? 'careerpilot-admin-layout' : ''} ${isRemainingStudentCore ? 'student-core-remaining-layout' : ''} ${isAdminCore ? 'admin-core-layout' : ''}`}>
       <Navbar onHamburgerClick={handleMenuToggle} />
       <div className="layout-body">
@@ -76,10 +86,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', margin: '14px 0 6px' }}>{blockedLabel || 'This feature'} is not enabled for your institute</h2>
             <p style={{ fontSize: 14, margin: 0 }}>Contact the platform administrator to switch it on.</p>
           </div>
-        ) : children}</main>
+        ) : demo ? <div className="dsh-page"><DemoStrip /><DemoContent>{children}</DemoContent></div> : children}</main>
       </div>
     </div>
   );
+  return demo ? <DemoProvider>{page}</DemoProvider> : page;
 };
 
 export default Layout;

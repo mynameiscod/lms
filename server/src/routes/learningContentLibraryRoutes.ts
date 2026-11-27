@@ -8,6 +8,8 @@ import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { roleGuard } from '../middleware/roleGuard';
 import * as ctrl from '../controllers/learningContentLibraryController';
 import * as bunny from '../controllers/bunnyController';
+import { checkPracticeCode } from '../controllers/practiceCheckController';
+import { rateLimit } from '../middleware/rateLimit';
 import { jwtSecret } from '../config/secrets';
 
 const router = express.Router();
@@ -100,6 +102,7 @@ router.get('/:id/stream', (req, res) => {
     return res.status(401).json({ message: 'Invalid token' });
   }
   if (!claims?.tenantId) return res.status(401).json({ message: 'Invalid token' });
+  if (claims.role === 'PLACEMENT_PARTNER') return res.status(403).json({ message: 'Not available for this account' });
   (req as any).tenantId = String(claims.tenantId);
   return ctrl.streamVideo(req, res);
 });
@@ -107,6 +110,12 @@ router.get('/:id/stream', (req, res) => {
 // ─── All other routes require auth ────────────────────────────────────────────
 router.use(authMiddleware);
 router.use(tenantMiddleware);
+
+router.get('/:id/qualities', ctrl.videoQualities);
+
+// A learner's code against a coding practice question's tests (hidden ones answer pass/fail only).
+// Open to any signed-in member, like the day plan that shows the question.
+router.post('/:id/practice/:qid/check', rateLimit('codingPracticeSubmit'), express.json({ limit: '200kb' }), checkPracticeCode);
 
 // The library is staff authoring: rows carry hidden grader tests and drafts, so students neither read nor write it here.
 // Learners receive content only through their day plans, which strip grading material. Recording an interview answer

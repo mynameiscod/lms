@@ -1,0 +1,1540 @@
+[
+  {
+    "seedKey": "logical-111",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Phones, cameras and lenses",
+    "statement": "Statements:\nSome phones are cameras.\nAll cameras are lenses.\nConclusions:\nI. Some phones are lenses.\nII. Some lenses are cameras.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Both I and II follow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The phones that are cameras lie inside the cameras circle.",
+      "The whole cameras circle lies inside lenses, so those phones are lenses: conclusion I follows.",
+      "Cameras exist and every camera is a lens, so some lenses are cameras: conclusion II follows."
+    ],
+    "explanation": "The phones that are also cameras sit inside the cameras circle, which sits wholly inside lenses, so some phones are lenses and I follows. Every camera is a lens, so the lenses that are cameras make II true as well. Both follow.",
+    "hints": [
+      "Draw cameras completely inside lenses, then let phones overlap cameras.",
+      "Where does the phone-camera overlap sit with respect to lenses?",
+      "'All cameras are lenses' can be reversed into a 'some' statement."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-112",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Kites, toys and weapons",
+    "statement": "Statements:\nAll kites are toys.\nNo toy is a weapon.\nConclusions:\nI. No kite is a weapon.\nII. Some weapons are toys.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Kites lie fully inside toys.",
+      "Toys and weapons do not overlap at all, so nothing inside toys can be a weapon: conclusion I follows.",
+      "'Some weapons are toys' directly contradicts 'No toy is a weapon': conclusion II does not follow."
+    ],
+    "explanation": "Every kite is a toy, and the toys circle is completely separate from weapons, so no kite can be a weapon; I follows. II says some weapons are toys, which is the opposite of the second statement, so it is false. Only I follows.",
+    "hints": [
+      "Draw kites inside toys and keep weapons as a separate circle.",
+      "Can anything inside the toys circle touch weapons?",
+      "Conclusion II clashes directly with one of the statements."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-113",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Rivers, lakes and ponds",
+    "statement": "Statements:\nNo river is a lake.\nSome lakes are ponds.\nConclusions:\nI. Some rivers are ponds.\nII. Some ponds are not rivers.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The ponds that are lakes are inside the lakes circle.",
+      "Lakes and rivers never overlap, so those ponds are not rivers: conclusion II follows.",
+      "Rivers and ponds may or may not overlap outside the lakes; nothing forces it, so conclusion I does not follow."
+    ],
+    "explanation": "Some ponds are lakes, and no lake is a river, so those particular ponds are not rivers and II follows. Rivers could touch the ponds circle in the part away from lakes, but they could also be completely separate, so I is not certain. Only II follows.",
+    "hints": [
+      "Start with the overlap of lakes and ponds.",
+      "Can a pond that is also a lake be a river?",
+      "Draw one diagram where rivers and ponds do not meet at all - does I still hold?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-114",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Students, athletes and singers",
+    "statement": "Statements:\nSome students are athletes.\nSome athletes are singers.\nConclusions:\nI. Some students are singers.\nII. Some singers are athletes.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Two 'some' statements in a chain give no link between students and singers.",
+      "Draw students and singers touching athletes at different places, not touching each other: conclusion I fails.",
+      "'Some athletes are singers' reversed is 'some singers are athletes': conclusion II follows."
+    ],
+    "explanation": "From 'some students are athletes' and 'some athletes are singers' nothing definite connects students with singers, because the two overlaps can be in different parts of the athletes circle; I does not follow. A 'some' statement can always be reversed, so II follows directly from the second statement. Only II follows.",
+    "hints": [
+      "What does a chain of two 'some' statements tell you about the end terms?",
+      "Try drawing the students-athletes overlap far away from the athletes-singers overlap.",
+      "A 'some A are B' statement can be read backwards."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-115",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Mangoes, fruits and sweetness",
+    "statement": "Statements:\nAll mangoes are fruits.\nSome mangoes are sweet.\nConclusions:\nI. All sweet things are fruits.\nII. Some fruits are not sweet.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Neither I nor II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The sweet mangoes are fruits, so some fruits are sweet - but that is all we know about sweet things.",
+      "Sweet things outside the mangoes may lie outside fruits, so conclusion I fails.",
+      "Every fruit could be sweet without breaking any statement, so conclusion II fails."
+    ],
+    "explanation": "The only link is that some mangoes are sweet, which makes some fruits sweet. Sweet things outside the mangoes might not be fruits, so I is not certain. Equally, the sweet region could cover all of fruits, so II is not certain either. Neither follows.",
+    "hints": [
+      "Put mangoes inside fruits and let 'sweet' overlap mangoes.",
+      "Can a sweet thing lie outside the fruits circle?",
+      "Can the sweet circle swallow the whole fruits circle without breaking a statement?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-116",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Pencils, erasers, sharpeners, rulers",
+    "statement": "Statements:\nAll pencils are erasers.\nSome erasers are sharpeners.\nNo sharpener is a ruler.\nConclusions:\nI. Some erasers are not rulers.\nII. No pencil is a ruler.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The erasers that are sharpeners cannot be rulers, since no sharpener is a ruler.",
+      "So some erasers are not rulers: conclusion I follows.",
+      "Pencils need not be sharpeners, so a pencil may be a ruler; 'No pencil is a ruler' is not certain: conclusion II does not follow."
+    ],
+    "explanation": "Some erasers are sharpeners, and sharpeners never overlap rulers, so those erasers are not rulers and I follows. Pencils lie inside erasers but are not tied to sharpeners, so the rulers circle can overlap pencils without breaking any statement; II is not certain. Only I follows.",
+    "hints": [
+      "Which erasers do you know something definite about?",
+      "Is any pencil forced to be a sharpener?",
+      "Draw rulers overlapping pencils but away from sharpeners."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-117",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Boys, players, runners and laziness",
+    "statement": "Statements:\nSome boys are players.\nAll players are runners.\nNo runner is lazy.\nConclusions:\nI. No boy is lazy.\nII. All lazy people are boys.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Neither I nor II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Only the boys who are players are known to be runners and hence not lazy.",
+      "Boys who are not players may still be lazy, so 'No boy is lazy' fails: conclusion I does not follow.",
+      "Lazy people may be completely outside the boys circle, so conclusion II does not follow."
+    ],
+    "explanation": "Some boys are players, all players are runners, and runners are never lazy, so we only know that SOME boys are not lazy. The other boys may be lazy, so I is not certain. Nothing puts lazy people inside boys, so II is not certain either. Neither follows.",
+    "hints": [
+      "Find the boys you can say something definite about.",
+      "What about boys who are not players?",
+      "Could the lazy circle sit completely outside the boys circle?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-118",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Cars, bikes, cycles and trains",
+    "statement": "Statements:\nSome cars are bikes.\nNo bike is a cycle.\nAll cycles are trains.\nConclusions:\nI. Some trains are not bikes.\nII. Some cars are not cycles.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Both I and II follow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Cycles exist, all of them are trains, and none of them is a bike.",
+      "So the trains that are cycles are not bikes: conclusion I follows.",
+      "The cars that are bikes cannot be cycles, so some cars are not cycles: conclusion II follows."
+    ],
+    "explanation": "Every cycle is a train and no cycle is a bike, so the trains that are cycles are not bikes and I follows. The cars that are bikes cannot be cycles because bikes and cycles never overlap, so II follows as well. Both follow.",
+    "hints": [
+      "For I, look at the cycles inside trains.",
+      "For II, look at the cars that are bikes.",
+      "A 'No' statement separates two circles completely."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-119",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Seeds, plants, trees and green",
+    "statement": "Statements:\nAll seeds are plants.\nSome plants are trees.\nAll trees are green.\nConclusions:\nI. Some seeds are green.\nII. Some plants are green.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The plants that are trees lie inside trees, which lie inside green.",
+      "So some plants are green: conclusion II follows.",
+      "Seeds need not overlap trees or green at all, so conclusion I does not follow."
+    ],
+    "explanation": "Some plants are trees and every tree is green, so those plants are green and II follows. Seeds are inside plants but can sit in a part of plants that touches neither trees nor green, so I is not certain. Only II follows.",
+    "hints": [
+      "Follow the chain plants -> trees -> green first.",
+      "Are seeds forced to touch the trees circle?",
+      "Draw seeds in a corner of plants away from trees and green."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-120",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Coins, notes, cheques and drafts",
+    "statement": "Statements:\nAll coins are notes.\nSome notes are cheques.\nNo cheque is a draft.\nConclusions:\nI. Some coins being cheques is a possibility.\nII. All notes being drafts is a possibility.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "A possibility conclusion follows if at least one valid diagram makes it true.",
+      "Coins sit inside notes and cheques overlap notes; nothing stops coins from overlapping cheques: conclusion I follows.",
+      "Some notes are cheques and no cheque is a draft, so those notes are never drafts; 'all notes are drafts' is impossible: conclusion II does not follow."
+    ],
+    "explanation": "Conclusion I only asks whether coins could overlap cheques; drawing the coins circle across the notes-cheques overlap breaks no statement, so it is possible and I follows. For II, the notes that are cheques can never be drafts, so all notes can never be drafts; II is impossible. Only I follows.",
+    "hints": [
+      "For a 'possibility' conclusion you need just one diagram where it is true.",
+      "Try drawing coins so they overlap the cheques circle.",
+      "Can a note that is also a cheque be a draft?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-121",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Keys, locks, doors, windows, walls",
+    "statement": "Statements:\nSome keys are locks.\nAll locks are doors.\nNo door is a window.\nAll windows are walls.\nConclusions:\nI. Some walls are not doors.\nII. Some keys are not windows.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Both I and II follow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Windows exist, all windows are walls, and no window is a door, so the walls that are windows are not doors: conclusion I follows.",
+      "The keys that are locks are doors (all locks are doors).",
+      "Doors never overlap windows, so those keys are not windows: conclusion II follows."
+    ],
+    "explanation": "Every window is a wall and no window is a door, so the walls that are windows are not doors; I follows. Some keys are locks, every lock is a door, and no door is a window, so those keys are not windows; II follows. Both follow.",
+    "hints": [
+      "For I, look at the windows sitting inside walls.",
+      "For II, chase the keys that are locks through the chain.",
+      "Doors and windows are completely separate circles."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-122",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Only a few singers are actors",
+    "statement": "Statements:\nOnly a few singers are actors.\nAll actors are dancers.\nNo dancer is a painter.\nConclusions:\nI. Some singers are not painters.\nII. All singers being dancers is a possibility.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Both I and II follow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "'Only a few singers are actors' means some singers are actors AND some singers are not actors.",
+      "The singers who are actors are dancers, and no dancer is a painter, so they are not painters: conclusion I follows.",
+      "The singers who are not actors can still lie inside the bigger dancers circle (outside actors), so all singers being dancers breaks no statement: conclusion II follows."
+    ],
+    "explanation": "The singers who are actors are also dancers and therefore not painters, so I follows. For II, the dancers circle is larger than actors, so the non-actor singers can sit inside dancers but outside actors; every statement still holds, so the possibility is valid. Both follow.",
+    "hints": [
+      "Translate 'only a few' into two ordinary statements.",
+      "Does the dancers circle have to be the same size as the actors circle?",
+      "Place the non-actor singers inside dancers but outside actors - is any statement broken?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-123",
+    "type": "logical",
+    "subCategory": "Syllogisms",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Pens, inks, papers, files, boxes",
+    "statement": "Statements:\nAll pens are inks.\nNo ink is paper.\nSome papers are files.\nAll files are boxes.\nConclusions:\nI. Some boxes are not pens.\nII. Some papers being pens is a possibility.\nTake the statements to be true even if they seem unusual. Which conclusion(s) definitely follow?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The papers that are files are boxes (all files are boxes).",
+      "Those boxes are papers, papers are never inks, and every pen is an ink, so they are not pens: conclusion I follows.",
+      "Pens lie inside inks and inks never touch papers, so a paper can never be a pen: the possibility in II is impossible."
+    ],
+    "explanation": "Some papers are files and all files are boxes, so some boxes are papers; papers are never inks and pens are always inks, so those boxes are not pens and I follows. Since pens are inside inks and inks are separate from papers, no paper can ever be a pen, so II is not even possible. Only I follows.",
+    "hints": [
+      "Find a group of boxes you know is made of papers.",
+      "Pens are trapped inside which circle?",
+      "Can anything inside inks overlap papers?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-124",
+    "type": "logical",
+    "subCategory": "Venn diagrams",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Cricket and football fans",
+    "statement": "In a class of 50 students, 30 like cricket and 25 like football. Every student likes at least one of the two games. How many students like both cricket and football?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "5",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Students liking at least one game = 50.",
+      "Cricket + football = 30 + 25 = 55 counts the 'both' group twice.",
+      "Both = 55 - 50 = 5."
+    ],
+    "explanation": "The two circles together cover all 50 students. Adding 30 and 25 gives 55, which counts the students in the overlap twice, so the overlap is 55 - 50 = 5. Check: only cricket 25 + only football 20 + both 5 = 50.",
+    "hints": [
+      "Draw two overlapping circles that together hold all 50 students.",
+      "Adding the two circles counts the overlap twice.",
+      "Overlap = 30 + 25 - 50."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-125",
+    "type": "logical",
+    "subCategory": "Venn diagrams",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Telugu and Tamil in a hostel",
+    "statement": "A hostel in Chennai has 120 students. 70 of them speak Telugu, 45 speak Tamil and 20 speak both languages. How many students speak neither Telugu nor Tamil?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "25",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The 20 bilingual students are counted in both 70 and 45, so subtract them once.",
+      "Students speaking at least one = 70 + 45 - 20 = 95.",
+      "Neither = 120 - 95 = 25."
+    ],
+    "explanation": "The number who speak at least one of the languages is 70 + 45 - 20 = 95, because the 20 bilingual students were counted in both groups. The rest, 120 - 95 = 25, speak neither. Check: only Telugu 50 + only Tamil 25 + both 20 + neither 25 = 120.",
+    "hints": [
+      "First find how many speak at least one of the two languages.",
+      "Subtract the 'both' group once so it is not double counted.",
+      "Neither = total - (70 + 45 - 20)."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-126",
+    "type": "logical",
+    "subCategory": "Venn diagrams",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Tea, coffee or neither",
+    "statement": "In a survey of 80 office workers in Pune, 48 drink tea, 15 drink both tea and coffee, and 10 drink neither. How many drink only coffee?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "22",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Workers drinking at least one = 80 - 10 = 70.",
+      "All 48 tea drinkers are inside this 70.",
+      "Only coffee = 70 - 48 = 22."
+    ],
+    "explanation": "Removing the 10 who drink neither leaves 70 who drink tea or coffee. The 48 tea drinkers (including the 15 who also drink coffee) are part of that 70, so the rest, 70 - 48 = 22, drink only coffee. Check: only tea 33 + both 15 + only coffee 22 + neither 10 = 80.",
+    "hints": [
+      "How many people are inside at least one circle?",
+      "The tea circle already includes the 15 who drink both.",
+      "Only coffee = (people in at least one circle) - (tea drinkers)."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-127",
+    "type": "logical",
+    "subCategory": "Venn diagrams",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Three science subjects",
+    "statement": "Out of 100 students, 50 study Maths, 40 study Physics and 30 study Chemistry. 15 study both Maths and Physics, 10 study both Physics and Chemistry, 12 study both Maths and Chemistry, and 5 study all three. How many students study none of the three subjects?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "12",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Add singles: 50 + 40 + 30 = 120.",
+      "Subtract the pairs: 120 - (15 + 10 + 12) = 83.",
+      "Add back all three: 83 + 5 = 88 study at least one.",
+      "None = 100 - 88 = 12."
+    ],
+    "explanation": "By inclusion-exclusion, students in at least one subject = 50 + 40 + 30 - 15 - 10 - 12 + 5 = 88. The remaining 100 - 88 = 12 study none. Check with regions: only M 28, only P 20, only C 13, M&P only 10, P&C only 5, M&C only 7, all three 5 - total 88.",
+    "hints": [
+      "Use three overlapping circles and inclusion-exclusion.",
+      "Subtract each pair once, then add the triple overlap back.",
+      "At least one = 120 - 37 + 5."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-128",
+    "type": "logical",
+    "subCategory": "Venn diagrams",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Exactly one hobby",
+    "statement": "In a hobby club, 35 members like painting, 30 like music and 28 like dance. 12 like painting and music, 10 like music and dance, 9 like painting and dance, and 4 like all three. (Each pair figure includes the 4 who like all three.) How many members like exactly one of the three hobbies?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "43",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Only painting = 35 - 12 - 9 + 4 = 18.",
+      "Only music = 30 - 12 - 10 + 4 = 12.",
+      "Only dance = 28 - 10 - 9 + 4 = 13.",
+      "Exactly one = 18 + 12 + 13 = 43."
+    ],
+    "explanation": "For each hobby, subtract the two pair overlaps and add back the triple group (it was subtracted twice). Only painting = 18, only music = 12, only dance = 13, so exactly one = 43. Check: painting = 18 + 8 + 5 + 4 = 35, using pair-only regions 8, 6 and 5.",
+    "hints": [
+      "Find the 'only' region of each circle separately.",
+      "When you subtract both pair overlaps, the centre is removed twice.",
+      "Only painting = 35 - 12 - 9 + 4."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-129",
+    "type": "logical",
+    "subCategory": "Venn diagrams",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Laptops and smartwatches",
+    "statement": "In a college of 200 students, 150 own a laptop and 120 own a smartwatch. What is the least possible number of students who own both?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "70",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Laptop + smartwatch = 150 + 120 = 270.",
+      "At most 200 students can be inside the two circles together.",
+      "So at least 270 - 200 = 70 must be counted twice, i.e. own both."
+    ],
+    "explanation": "The two circles can cover at most all 200 students. Their sizes add to 270, so at least 270 - 200 = 70 students must be in both. This minimum is reached when everybody owns at least one: 80 laptop only + 50 watch only + 70 both = 200.",
+    "hints": [
+      "The overlap is smallest when the circles spread over as many students as possible.",
+      "The union can never exceed 200.",
+      "Minimum overlap = 150 + 120 - 200."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-130",
+    "type": "logical",
+    "subCategory": "Venn diagrams",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Java only, Python only",
+    "statement": "In a team of 40 employees at a Bengaluru startup, 18 know only Java, 12 know only Python and 4 know neither language. How many employees know both Java and Python?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "6",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Employees who know at least one language = 40 - 4 = 36.",
+      "Those who know exactly one = 18 + 12 = 30.",
+      "Both = 36 - 30 = 6."
+    ],
+    "explanation": "Removing the 4 who know neither leaves 36 inside the two circles. Of these, 18 + 12 = 30 sit in the 'only' parts, so the overlap holds 36 - 30 = 6. Check: 18 + 12 + 6 + 4 = 40.",
+    "hints": [
+      "Note the word 'only' - these numbers exclude the overlap.",
+      "How many are inside at least one circle?",
+      "Both = 36 - 18 - 12."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-131",
+    "type": "logical",
+    "subCategory": "Venn diagrams",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Who can speak English?",
+    "statement": "In a group of 90 students in Mysuru: 20 speak only Hindi, 15 speak only English, 10 speak only Kannada, 8 speak Hindi and English but not Kannada, 6 speak English and Kannada but not Hindi, 5 speak Hindi and Kannada but not English, and 4 speak all three. The rest speak none of these. How many students speak English?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "33",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "The English circle has four regions: only English, English-Hindi only, English-Kannada only and all three.",
+      "Only English = 15, Hindi and English only = 8, English and Kannada only = 6, all three = 4.",
+      "English speakers = 15 + 8 + 6 + 4 = 33."
+    ],
+    "explanation": "Every region given is exclusive, so the English circle is the sum of the four regions inside it: 15 + 8 + 6 + 4 = 33. The Hindi-Kannada-only group (5) and the 'none' group (90 - 68 = 22) lie outside English and must not be added.",
+    "hints": [
+      "Draw the seven regions of three circles and fill in the numbers.",
+      "Which regions lie inside the English circle?",
+      "Do not add regions that are outside English, like 'Hindi and Kannada but not English'."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-132",
+    "type": "logical",
+    "subCategory": "Venn diagrams",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Readers of two newspapers",
+    "statement": "In a town, 60% of the adults read newspaper A, 50% read newspaper B and 20% read both. If 450 adults read neither newspaper, how many adults live in the town?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4500",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Percentage reading at least one = 60 + 50 - 20 = 90%.",
+      "Percentage reading neither = 100 - 90 = 10%.",
+      "10% of the adults = 450, so total = 450 x 10 = 4500."
+    ],
+    "explanation": "By inclusion-exclusion 90% read at least one paper, so 10% read neither. Since that 10% is 450 people, the town has 4500 adults. Check: 10% of 4500 = 450.",
+    "hints": [
+      "Work in percentages first.",
+      "What percentage reads neither newspaper?",
+      "If 10% is 450, what is 100%?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-133",
+    "type": "logical",
+    "subCategory": "Venn diagrams",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Least who like all three",
+    "statement": "In a group of 100 people, 80 like tea, 75 like coffee and 70 like juice. What is the least possible number of people who like all three drinks?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "25",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Count the people who miss each drink: 20 do not like tea, 25 not coffee, 30 not juice.",
+      "At most 20 + 25 + 30 = 75 people miss at least one drink.",
+      "So at least 100 - 75 = 25 people like all three."
+    ],
+    "explanation": "Look at who does NOT like each drink: 20, 25 and 30 people. Even if these groups never overlap, at most 75 people miss a drink, so at least 25 like all three. This is achievable: give the 75 'missers' exactly one disliked drink each and the other 25 like everything.",
+    "hints": [
+      "Think about the people who do NOT like each drink.",
+      "When are the 'dislikers' as many as possible?",
+      "Least for all three = 100 - (20 + 25 + 30)."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-134",
+    "type": "logical",
+    "subCategory": "Venn diagrams",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Exactly two sports",
+    "statement": "In a sports academy of 160 students, 75 play football, 65 play cricket and 60 play hockey. 40 students play exactly two of these sports and 10 play all three. How many students play none of the three sports?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "20",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Each student is counted once per sport played: 75 + 65 + 60 = 200 = (exactly one) + 2 x (exactly two) + 3 x (all three).",
+      "Exactly one = 200 - 2 x 40 - 3 x 10 = 90.",
+      "At least one sport = 90 + 40 + 10 = 140.",
+      "None = 160 - 140 = 20."
+    ],
+    "explanation": "Adding the three sport totals counts a student once for each sport they play, so 200 = E1 + 2(40) + 3(10), giving E1 = 90. Students playing at least one sport = 90 + 40 + 10 = 140, so 160 - 140 = 20 play none. Check: 90 + 80 + 30 = 200.",
+    "hints": [
+      "How many times is a student who plays two sports counted in 75 + 65 + 60?",
+      "Write 200 = E1 + 2 E2 + 3 E3.",
+      "Find E1, then add E1 + E2 + E3 and subtract from 160."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-135",
+    "type": "logical",
+    "subCategory": "Venn diagrams",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Passed both papers",
+    "statement": "In a university exam, 65% of the students passed Maths, 58% passed English and 12% failed in both subjects. If 210 students passed in both subjects, how many students took the exam?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "600",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Percentage that passed at least one subject = 100 - 12 = 88%.",
+      "Passed both = 65 + 58 - 88 = 35%.",
+      "35% of the students = 210, so total = 210 / 0.35 = 600."
+    ],
+    "explanation": "Failing both means passing neither, so 88% passed at least one subject. By inclusion-exclusion, passed both = 65% + 58% - 88% = 35%. Since 35% equals 210 students, the total is 600. Check: 35% of 600 = 210.",
+    "hints": [
+      "'Failed in both' is the 'neither' region.",
+      "Use at-least-one = Maths + English - both.",
+      "If 35% is 210, find 100%."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-136",
+    "type": "logical",
+    "subCategory": "Input-output",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Smallest number to the front",
+    "statement": "A number-arranging machine works one step at a time. In each step, the smallest number not yet arranged moves to the left, placed just after the numbers already arranged (in Step 1 it goes to the extreme left). The other numbers keep their order.\nExample:\nInput: 56 21 74 38 90 12\nStep 1: 12 56 21 74 38 90\nStep 2: 12 21 56 74 38 90\nStep 3: 12 21 38 56 74 90\nFor the input: 42 17 89 33 61 25\nWhich number is 4th from the left in Step 3?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "42",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Step 1: 17 moves to the front: 17 42 89 33 61 25.",
+      "Step 2: 25 moves to second place: 17 25 42 89 33 61.",
+      "Step 3: 33 moves to third place: 17 25 33 42 89 61.",
+      "The 4th number from the left in Step 3 is 42."
+    ],
+    "explanation": "The machine builds the ascending order from the left, one number per step. Step 1 gives 17 42 89 33 61 25, Step 2 gives 17 25 42 89 33 61 and Step 3 gives 17 25 33 42 89 61. Reading Step 3 from the left, the 4th number is 42.",
+    "hints": [
+      "Which number moves in Step 1?",
+      "Moved numbers stay at the front; the rest keep their original order.",
+      "Step 3 is 17 25 33 42 89 61."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-137",
+    "type": "logical",
+    "subCategory": "Input-output",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Dictionary words march right",
+    "statement": "A word machine rearranges words one step at a time. In each step, the word that comes earliest in the dictionary among the words not yet moved goes to the extreme right end. The other words keep their order.\nExample:\nInput: rose lily ant dog kite\nStep 1: rose lily dog kite ant\nStep 2: rose lily kite ant dog\nStep 3: rose lily ant dog kite\nStep 4: rose ant dog kite lily\nStep 5: ant dog kite lily rose\nFor the input: pen ink book desk chalk\nWhich word is second from the left in Step 3?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "ink",
+    "acceptedAnswers": [
+      "Ink",
+      "INK"
+    ],
+    "keySteps": [
+      "Step 1: 'book' (earliest) goes to the right end: pen ink desk chalk book.",
+      "Step 2: 'chalk' goes to the right end: pen ink desk book chalk.",
+      "Step 3: 'desk' goes to the right end: pen ink book chalk desk.",
+      "Second from the left in Step 3 is 'ink'."
+    ],
+    "explanation": "Dictionary order of the words is book, chalk, desk, ink, pen, so they move to the right end in that order. After three steps the line is pen ink book chalk desk, and the second word from the left is 'ink'.",
+    "hints": [
+      "List the words in dictionary order first.",
+      "Each moved word goes to the very end, after the words moved earlier.",
+      "Step 3 is pen ink book chalk desk."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-138",
+    "type": "logical",
+    "subCategory": "Input-output",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Add, reverse, then sort",
+    "statement": "A machine changes a list of two-digit numbers in three steps:\nStep 1: add 5 to every number.\nStep 2: reverse the digits of every number.\nStep 3: arrange the numbers in increasing order.\nExample:\nInput: 21 56 33\nStep 1: 26 61 38\nStep 2: 62 16 83\nStep 3: 16 62 83\nFor the input: 37 14 62 48 23\nWhich number is in the middle (3rd position) in Step 3?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "76",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Step 1 (add 5): 42 19 67 53 28.",
+      "Step 2 (reverse digits): 24 91 76 35 82.",
+      "Step 3 (increasing order): 24 35 76 82 91.",
+      "The middle number is 76."
+    ],
+    "explanation": "Adding 5 gives 42 19 67 53 28; reversing digits gives 24 91 76 35 82; sorting gives 24 35 76 82 91. The 3rd of the five numbers is 76.",
+    "hints": [
+      "Do the steps strictly in order.",
+      "Reverse each number after adding 5, not before.",
+      "Step 2 is 24 91 76 35 82."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-139",
+    "type": "logical",
+    "subCategory": "Input-output",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "One word, one number per step",
+    "statement": "A machine arranges a mix of words and numbers. In each step it takes the word that comes earliest in the dictionary among the words not yet arranged, and the largest number not yet arranged, and places them (word first, then number) just after the items already arranged at the left. The other items keep their order.\nExample:\nInput: sun 47 map 12 ear 68 jar 25\nStep 1: ear 68 sun 47 map 12 jar 25\nStep 2: ear 68 jar 47 sun map 12 25\nStep 3: ear 68 jar 47 map 25 sun 12\nFor the input: train 34 apple 81 night 19 cloud 56\nWhat is Step 2?",
+    "answerFormat": "choice",
+    "choices": [
+      "apple 81 cloud 56 train 34 night 19",
+      "apple 81 cloud 56 night 34 train 19",
+      "apple 19 cloud 34 train 56 night 81",
+      "cloud 56 apple 81 train 34 night 19"
+    ],
+    "answer": "apple 81 cloud 56 train 34 night 19",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Words in dictionary order: apple, cloud, night, train. Numbers from largest: 81, 56, 34, 19.",
+      "Step 1 places 'apple 81' at the left: apple 81 train 34 night 19 cloud 56.",
+      "Step 2 places 'cloud 56' next: apple 81 cloud 56 train 34 night 19.",
+      "The remaining items (train, 34, night, 19) keep their original order."
+    ],
+    "explanation": "Each step fixes one word-number pair at the left: first apple with 81, then cloud with 56. After removing those, the rest stay in their original order, so Step 2 is apple 81 cloud 56 train 34 night 19. The option 'apple 81 cloud 56 night 34 train 19' is Step 3, not Step 2.",
+    "hints": [
+      "Pair the words (dictionary order) with numbers (largest first).",
+      "Only two pairs are fixed after Step 2.",
+      "Unarranged items keep the order they had in the input."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-140",
+    "type": "logical",
+    "subCategory": "Input-output",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Longest word first",
+    "statement": "A word machine arranges words by length, one step at a time. In each step, the longest word not yet arranged moves to the left, just after the words already arranged (in Step 1 it goes to the extreme left). The other words keep their order. No two words have the same length.\nExample:\nInput: cat window pens rabbits is\nStep 1: rabbits cat window pens is\nStep 2: rabbits window cat pens is\nStep 3: rabbits window pens cat is\nFor the input: go market sun planets tree elephant\nIn Step 3, how many words are there between 'planets' and 'sun'?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Word lengths: elephant 8, planets 7, market 6, tree 4, sun 3, go 2.",
+      "Step 1: elephant go market sun planets tree.",
+      "Step 2: elephant planets go market sun tree.",
+      "Step 3: elephant planets market go sun tree.",
+      "'planets' is 2nd and 'sun' is 5th, so 2 words (market and go) lie between them."
+    ],
+    "explanation": "The words move in order of length: elephant, then planets, then market. Step 3 is elephant planets market go sun tree. 'planets' is 2nd and 'sun' is 5th, so 2 words (market and go) lie between them.",
+    "hints": [
+      "Count the letters in each word first.",
+      "After each step, the words not yet arranged keep their order.",
+      "Step 3 is elephant planets market go sun tree."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-141",
+    "type": "logical",
+    "subCategory": "Input-output",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Swapping from the ends",
+    "statement": "A machine rearranges seven words. Step 1 swaps the 1st and 7th words, Step 2 swaps the 2nd and 6th words, and Step 3 swaps the 3rd and 5th words.\nExample:\nInput: one two three four five six seven\nStep 1: seven two three four five six one\nStep 2: seven six three four five two one\nStep 3: seven six five four three two one\nFor the input: red blue green pink black white grey\nWhich word is second from the right in Step 2?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "blue",
+    "acceptedAnswers": [
+      "Blue",
+      "BLUE"
+    ],
+    "keySteps": [
+      "Step 1 swaps red and grey: grey blue green pink black white red.",
+      "Step 2 swaps blue and white: grey white green pink black blue red.",
+      "Second from the right (6th position) in Step 2 is 'blue'."
+    ],
+    "explanation": "Step 1 swaps the end words to give grey blue green pink black white red. Step 2 swaps the 2nd and 6th words to give grey white green pink black blue red. The 6th word, second from the right, is 'blue'.",
+    "hints": [
+      "Number the positions 1 to 7.",
+      "Second from the right is position 6.",
+      "Step 2 swaps positions 2 and 6."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-142",
+    "type": "logical",
+    "subCategory": "Input-output",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Big to the left, small to the right",
+    "statement": "A machine arranges numbers in alternating steps. In odd-numbered steps (1, 3, 5, ...), the largest number not yet arranged moves to the left, just after the numbers already placed at the left. In even-numbered steps (2, 4, ...), the smallest number not yet arranged moves to the right, just before the numbers already placed at the right. Unarranged numbers keep their order.\nExample:\nInput: 54 20 82 36 15 71\nStep 1: 82 54 20 36 15 71\nStep 2: 82 54 20 36 71 15\nStep 3: 82 71 54 20 36 15\nStep 4: 82 71 54 36 20 15\nFor the input: 45 12 78 33 91 27 60\nWhich number is 4th from the left in Step 4?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "33",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Step 1: largest 91 goes to the left: 91 45 12 78 33 27 60.",
+      "Step 2: smallest 12 goes to the right: 91 45 78 33 27 60 12.",
+      "Step 3: next largest 78 goes after 91: 91 78 45 33 27 60 12.",
+      "Step 4: next smallest 27 goes just before 12: 91 78 45 33 60 27 12.",
+      "4th from the left is 33."
+    ],
+    "explanation": "The machine alternates: 91 to the left, 12 to the right, 78 to the left, 27 to the right. Step 4 reads 91 78 45 33 60 27 12, so the 4th number from the left is 33.",
+    "hints": [
+      "Odd steps work on the left end, even steps on the right end.",
+      "Numbers placed on the right build up towards the middle.",
+      "Step 3 is 91 78 45 33 27 60 12."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-143",
+    "type": "logical",
+    "subCategory": "Input-output",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Halve the evens, grow the odds",
+    "statement": "A number machine changes every number in each step using the same rule: an even number is halved, and an odd number has 3 added to it.\nExample:\nInput: 10 5 8\nStep 1: 5 8 4\nStep 2: 8 4 2\nStep 3: 4 2 1\nFor the input: 12 7 20 9 16\nWhat is the sum of the numbers in Step 3?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "27",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Step 1: 6 10 10 12 8.",
+      "Step 2: 3 5 5 6 4.",
+      "Step 3: 6 8 8 3 2.",
+      "Sum = 6 + 8 + 8 + 3 + 2 = 27."
+    ],
+    "explanation": "Apply the rule to every number each step. Step 1 gives 6 10 10 12 8, Step 2 gives 3 5 5 6 4 and Step 3 gives 6 8 8 3 2. Their sum is 27.",
+    "hints": [
+      "Check whether each number is even or odd before changing it.",
+      "Use the new values from the previous step, not the input.",
+      "Step 2 is 3 5 5 6 4."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-144",
+    "type": "logical",
+    "subCategory": "Input-output",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Words from the left, numbers from the right",
+    "statement": "A machine arranges words and numbers together. In each step it does two things: the word that comes earliest in the dictionary among the unarranged words moves to the left, just after the words already placed at the left (in Step 1 it goes to the extreme left); and the smallest unarranged number moves to the right, just before the numbers already placed at the right (in Step 1 it goes to the extreme right). All other items keep their order.\nExample:\nInput: sky 43 ant 71 pot 16 ice 58\nStep 1: ant sky 43 71 pot ice 58 16\nStep 2: ant ice sky 71 pot 58 43 16\nStep 3: ant ice pot sky 71 58 43 16\nFor the input: fox 52 bat 17 owl 88 cow 35 elk 64\nWhich item is 4th from the right in Step 2?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "elk",
+    "acceptedAnswers": [
+      "Elk",
+      "ELK"
+    ],
+    "keySteps": [
+      "Words in dictionary order: bat, cow, elk, fox, owl. Numbers from smallest: 17, 35, 52, 64, 88.",
+      "Step 1 (bat to the left, 17 to the right end): bat fox 52 owl 88 cow 35 elk 64 17.",
+      "Step 2 (cow after bat, 35 just before 17): bat cow fox 52 owl 88 elk 64 35 17.",
+      "Counting from the right in Step 2: 17, 35, 64, then 'elk' is 4th."
+    ],
+    "explanation": "Each step fixes one word on the left and one number on the right, and the numbers build towards the middle so the right end reads in decreasing order. After two steps the line is bat cow fox 52 owl 88 elk 64 35 17. Counting from the right end - 17, 35, 64, elk - the 4th item is 'elk'.",
+    "hints": [
+      "Sort the words and the numbers separately first.",
+      "The first number placed stays at the extreme right; the next goes just before it.",
+      "Step 1 is bat fox 52 owl 88 cow 35 elk 64 17."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "logical-145",
+    "type": "logical",
+    "subCategory": "Input-output",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Working forward from Step 2",
+    "statement": "A machine arranges numbers. In each step, the largest number not yet arranged moves to the right, just before the numbers already arranged at the right (in Step 1 it goes to the extreme right). The other numbers keep their order.\nExample:\nInput: 63 28 95 41 77 16\nStep 1: 63 28 41 77 16 95\nStep 2: 63 28 41 16 77 95\nStep 3: 28 41 16 63 77 95\nStep 4: 28 16 41 63 77 95\nStep 5: 16 28 41 63 77 95\nFor a different input, Step 2 is: 41 19 52 27 34 85 96\nWhat is Step 4 for that input?",
+    "answerFormat": "choice",
+    "choices": [
+      "19 27 34 41 52 85 96",
+      "41 19 27 34 52 85 96",
+      "27 19 34 41 52 85 96",
+      "19 41 27 34 52 85 96"
+    ],
+    "answer": "19 27 34 41 52 85 96",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "After Step 2, the arranged numbers are 85 and 96 at the right; 41 19 52 27 34 are still unarranged.",
+      "Step 3: the largest unarranged number, 52, moves just before 85: 41 19 27 34 52 85 96.",
+      "Step 4: the next largest, 41, moves just before 52: 19 27 34 41 52 85 96.",
+      "The order of the remaining numbers 19 27 34 is unchanged."
+    ],
+    "explanation": "You do not need the original input: Step 2 already shows which numbers are fixed (85 96). Step 3 moves 52 to give 41 19 27 34 52 85 96, and Step 4 moves 41 to give 19 27 34 41 52 85 96. The option 41 19 27 34 52 85 96 is Step 3, a common slip.",
+    "hints": [
+      "Which numbers are already fixed at the right in Step 2?",
+      "Step 3 moves the largest of the rest.",
+      "Step 3 is 41 19 27 34 52 85 96; now do one more step."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-146",
+    "type": "logical",
+    "subCategory": "Input-output",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Gems sorted from both ends",
+    "statement": "A word machine works in alternating steps. In odd-numbered steps (1, 3, 5, ...), the unarranged word that comes earliest in the dictionary moves to the left, just after the words already placed at the left. In even-numbered steps (2, 4, ...), the unarranged word that comes last in the dictionary moves to the right, just before the words already placed at the right. Unarranged words keep their order.\nExample:\nInput: nut fig yam bean oat kiwi\nStep 1: bean nut fig yam oat kiwi\nStep 2: bean nut fig oat kiwi yam\nStep 3: bean fig nut oat kiwi yam\nStep 4: bean fig nut kiwi oat yam\nStep 5: bean fig kiwi nut oat yam\nFor the input: ruby topaz coral mint amber pearl onyx jade\nWhich word is 4th from the right in Step 5?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "pearl",
+    "acceptedAnswers": [
+      "Pearl",
+      "PEARL"
+    ],
+    "keySteps": [
+      "Dictionary order: amber, coral, jade, mint, onyx, pearl, ruby, topaz.",
+      "Step 1 (amber left): amber ruby topaz coral mint pearl onyx jade; Step 2 (topaz right): amber ruby coral mint pearl onyx jade topaz.",
+      "Step 3 (coral left): amber coral ruby mint pearl onyx jade topaz; Step 4 (ruby right): amber coral mint pearl onyx jade ruby topaz.",
+      "Step 5 (jade left): amber coral jade mint pearl onyx ruby topaz.",
+      "4th from the right in Step 5 is 'pearl'."
+    ],
+    "explanation": "Odd steps take words from the front of the dictionary list (amber, coral, jade) and even steps from the back (topaz, ruby). After Step 5 the line is amber coral jade mint pearl onyx ruby topaz. Counting from the right: topaz is 1st, ruby 2nd, onyx 3rd and pearl 4th.",
+    "hints": [
+      "Write the eight words in dictionary order first.",
+      "Words placed on the right build towards the middle.",
+      "Step 4 is amber coral mint pearl onyx jade ruby topaz."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "logical-147",
+    "type": "logical",
+    "subCategory": "Input-output",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Move the largest, shrink the rest",
+    "statement": "A machine arranges numbers. In each step, the largest unarranged number moves to the left, just after the numbers already arranged (in Step 1 it goes to the extreme left); then every number that is still unarranged is decreased by 1. Arranged numbers never change, and unarranged numbers keep their order.\nExample:\nInput: 15 32 24 18\nStep 1: 32 14 23 17\nStep 2: 32 23 13 16\nStep 3: 32 23 16 12\nFor the input: 23 41 17 35 29\nWhat is the sum of all the numbers in Step 3?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "136",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Step 1: 41 moves to the front; the other four drop by 1: 41 22 16 34 28.",
+      "Step 2: the largest unarranged is now 34; it moves next and the other three drop by 1: 41 34 21 15 27.",
+      "Step 3: the largest unarranged is now 27; it moves next and the other two drop by 1: 41 34 27 20 14.",
+      "Sum = 41 + 34 + 27 + 20 + 14 = 136."
+    ],
+    "explanation": "The original 41, 35 and 29 are picked in turn, but 35 has become 34 and 29 has become 27 by the time they move. Step 3 is 41 34 27 20 14, whose sum is 136. Check another way: the input sum 145 drops by 4 + 3 + 2 = 9, giving 136.",
+    "hints": [
+      "Move first, then decrease only the numbers still unarranged.",
+      "A number keeps shrinking until the step in which it is moved.",
+      "Each step reduces the total by the count of unarranged numbers left: 4, then 3, then 2."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "logical-148",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Rahul's rank both ways",
+    "statement": "In his class, Rahul is 14th from the top and 23rd from the bottom in the final exam results. No two students have the same rank. How many students are in the class?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "36",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Students above Rahul = 13; students below Rahul = 22.",
+      "Total = 13 + 22 + 1 (Rahul) = 36.",
+      "Equivalently, total = 14 + 23 - 1."
+    ],
+    "explanation": "Rahul is counted in both positions, so total = 14 + 23 - 1 = 36. Check: with 36 students, 14th from the top is 36 - 14 + 1 = 23rd from the bottom.",
+    "hints": [
+      "How many students are above Rahul, and how many below?",
+      "Rahul himself is counted in both ranks.",
+      "Total = 14 + 23 - 1."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-149",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Who is the shortest?",
+    "statement": "Among four friends - Pavan, Qasim, Ravi and Suraj:\n- Pavan is taller than Qasim.\n- Ravi is shorter than Qasim.\n- Suraj is taller than Pavan.\nWho is the shortest?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Ravi",
+    "acceptedAnswers": [
+      "ravi",
+      "RAVI"
+    ],
+    "keySteps": [
+      "Pavan > Qasim and Qasim > Ravi give Pavan > Qasim > Ravi.",
+      "Suraj > Pavan puts Suraj at the top: Suraj > Pavan > Qasim > Ravi.",
+      "So Ravi is the shortest."
+    ],
+    "explanation": "Joining the clues into one chain gives Suraj > Pavan > Qasim > Ravi. Ravi is below everyone, so he is the shortest.",
+    "hints": [
+      "Write each clue with a '>' sign for 'taller than'.",
+      "Join the clues into a single chain.",
+      "Who ends up at the bottom of the chain?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-150",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Meena from the other end",
+    "statement": "Forty students stand in a straight row for the morning assembly. Meena is 12th from the left end. What is her position from the right end?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "29",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Students to Meena's left = 11.",
+      "Students to her right = 40 - 12 = 28.",
+      "Position from the right = 28 + 1 = 29."
+    ],
+    "explanation": "There are 40 - 12 = 28 students to Meena's right, so she is 29th from the right. Check: 12 + 29 - 1 = 40.",
+    "hints": [
+      "How many students stand to Meena's right?",
+      "Position from right = students to her right + 1.",
+      "Use 40 - 12 + 1."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-151",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Two students swap places",
+    "statement": "In a row of students, Amit is 10th from the left and Bharat is 15th from the right. When they interchange their positions, Amit becomes 18th from the left. How many students are in the row?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "32",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "After the swap, Amit stands where Bharat stood.",
+      "So Bharat's old place is 18th from the left.",
+      "That same place is 15th from the right.",
+      "Total = 18 + 15 - 1 = 32."
+    ],
+    "explanation": "Swapping means Amit takes Bharat's old place, which is therefore 18th from the left and 15th from the right. The row has 18 + 15 - 1 = 32 students. Check: Bharat then moves to 10th from the left, which is 23rd from the right - consistent.",
+    "hints": [
+      "After swapping, whose old place does Amit occupy?",
+      "That one place is known from both ends.",
+      "Total = left position + right position - 1."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-152",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Second highest in the unit test",
+    "statement": "Five friends wrote a unit test and all got different marks.\n- Asha scored more than Bala but less than Chitra.\n- Deepak scored less than Bala.\n- Esha scored more than Chitra.\nWho scored the second highest marks?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "Chitra",
+    "acceptedAnswers": [
+      "chitra",
+      "CHITRA"
+    ],
+    "keySteps": [
+      "From clue 1: Chitra > Asha > Bala.",
+      "From clue 2: Bala > Deepak, so Chitra > Asha > Bala > Deepak.",
+      "From clue 3: Esha > Chitra, giving Esha > Chitra > Asha > Bala > Deepak.",
+      "Second highest is Chitra."
+    ],
+    "explanation": "Building one chain: Esha > Chitra > Asha > Bala > Deepak. Every friend is placed, so the order is fixed and Chitra is second.",
+    "hints": [
+      "Turn 'more than but less than' into a three-person chain.",
+      "Attach Deepak and Esha to the ends of the chain.",
+      "Esha sits above Chitra."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-153",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "hard",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Fewest people in the queue",
+    "statement": "In a queue at a railway ticket counter, Kavi is 9th from the front and Lalit is 16th from the back. There are exactly 5 people between Kavi and Lalit. What is the least possible number of people in the queue?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "18",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Case 1 - Lalit behind Kavi: Lalit is 9 + 6 = 15th from the front, so total = 15 + 16 - 1 = 30.",
+      "Case 2 - Lalit ahead of Kavi: Lalit is 9 - 6 = 3rd from the front, so total = 3 + 16 - 1 = 18.",
+      "Check case 2: positions 4 to 8 lie between them - exactly 5 people.",
+      "The least possible total is 18."
+    ],
+    "explanation": "Lalit can be behind or ahead of Kavi. If behind, he is 15th from the front and the queue has 30 people. If ahead, he is 3rd from the front and the queue has 3 + 16 - 1 = 18 people, with positions 4 to 8 between them. The smaller total is 18.",
+    "hints": [
+      "Lalit could be in front of Kavi or behind him.",
+      "If 5 people are between them, their positions differ by 6.",
+      "Try Lalit at position 3 from the front."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-154",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Eight ranks above Ganesh",
+    "statement": "In a class of 45 students, Ganesh is 20th from the bottom in rank. Suresh is 8 ranks above Ganesh. What is Suresh's rank from the top?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "18",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Ganesh's rank from the top = 45 - 20 + 1 = 26.",
+      "'Above' means a better rank, i.e. a smaller rank number.",
+      "Suresh's rank = 26 - 8 = 18."
+    ],
+    "explanation": "Ganesh is 26th from the top (45 - 20 + 1). Being 8 ranks above means a smaller rank number, so Suresh is 18th from the top. Check: 18th from the top is 28th from the bottom, 8 places above 20th.",
+    "hints": [
+      "Convert Ganesh's rank to 'from the top' first.",
+      "'Above' means a smaller rank number.",
+      "26 - 8 = ?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "logical-155",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Five parcels on a scale",
+    "statement": "Five parcels P, Q, R, S and T at a courier office all have different weights.\n- S is heavier than P.\n- P is heavier than both Q and R.\n- T is lighter than R but heavier than Q.\nWhich parcel is the third heaviest?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "R",
+    "acceptedAnswers": [
+      "r",
+      "Parcel R"
+    ],
+    "keySteps": [
+      "S > P, and P is above both Q and R.",
+      "R > T > Q fixes the order of the three below P.",
+      "Full order: S > P > R > T > Q.",
+      "Third heaviest is R."
+    ],
+    "explanation": "S is heavier than P, and P is heavier than everything else, so S and P take first and second. Among the rest, R > T > Q, so the order is S, P, R, T, Q and R is third heaviest.",
+    "hints": [
+      "Who must be at the top?",
+      "Order the three parcels that are lighter than P.",
+      "Clue 3 gives R > T > Q."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-156",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Ranks among those who passed",
+    "statement": "In a class, Neha ranks 11th from the top and 30th from the bottom among the students who passed an exam. 6 students failed and 3 students were absent. How many students are there in the class?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "49",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Neha's ranks are counted only among those who passed.",
+      "Students who passed = 11 + 30 - 1 = 40.",
+      "Add those who failed and those absent: 40 + 6 + 3 = 49."
+    ],
+    "explanation": "Among the passed students Neha is 11th from the top and 30th from the bottom, so 40 students passed. The class also contains the 6 who failed and the 3 who were absent, giving 49.",
+    "hints": [
+      "Her two ranks describe only one group of students - which one?",
+      "First find how many passed.",
+      "Then add the students outside that group."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-157",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Six heights, one clue at a time",
+    "statement": "Six friends A, B, C, D, E and F have different heights.\n- D is taller than only F.\n- B is taller than D but shorter than E.\n- A is shorter than C.\n- E is shorter than A.\nWho is the fourth tallest?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "B",
+    "acceptedAnswers": [
+      "b"
+    ],
+    "keySteps": [
+      "'D is taller than only F' puts F at 6th (shortest) and D at 5th.",
+      "Clue 2 gives E > B > D.",
+      "Clues 3 and 4 give C > A > E.",
+      "Combined: C > A > E > B > D > F, so B is 4th tallest."
+    ],
+    "explanation": "D being taller than only one person means D is 5th and F is the shortest. The other clues chain into C > A > E > B, all above D. So the order is C, A, E, B, D, F and the fourth tallest is B.",
+    "hints": [
+      "What does 'taller than only F' say about D's position?",
+      "Chain the remaining clues starting from E.",
+      "C > A > E > B > D > F."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "logical-158",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Exactly midway in the row",
+    "statement": "In a row of 50 students, Xavier is 18th from the left and Yamini is 25th from the right. Zoya stands exactly midway between Xavier and Yamini. What is Zoya's position from the right end?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "29",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Yamini from the left = 50 - 25 + 1 = 26.",
+      "Xavier is 18th and Yamini 26th from the left, so the midpoint is (18 + 26) / 2 = 22nd from the left.",
+      "Zoya from the right = 50 - 22 + 1 = 29."
+    ],
+    "explanation": "Convert Yamini's place to 26th from the left. Midway between positions 18 and 26 is position 22 (three people on each side of it). From the right, position 22 is 50 - 22 + 1 = 29th.",
+    "hints": [
+      "Put both positions on the same end first.",
+      "Midway between 18 and 26 is their average.",
+      "Convert 22nd from the left to a position from the right."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-159",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "People behind Anu",
+    "statement": "In a queue at a bank, Anu is 15th from the front. Bhim stands 8 places behind Anu and is 10th from the back of the queue. How many people are standing behind Anu?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "17",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Bhim's position from the front = 15 + 8 = 23.",
+      "Total in queue = 23 + 10 - 1 = 32.",
+      "People behind Anu = 32 - 15 = 17."
+    ],
+    "explanation": "Bhim is 23rd from the front and 10th from the back, so the queue has 32 people. Anu is 15th, so 32 - 15 = 17 people are behind her. Check: Bhim and the 9 behind him are among those 17, plus the 7 between Anu and Bhim: 7 + 1 + 9 = 17.",
+    "hints": [
+      "Find Bhim's position from the front.",
+      "Use Bhim to find the total length of the queue.",
+      "Behind Anu = total - 15."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "logical-160",
+    "type": "logical",
+    "subCategory": "Order and ranking",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Seven scores, who is last?",
+    "statement": "Seven candidates P, Q, R, S, T, U and V took a placement aptitude test and all scored differently.\n- Q scored more than only two candidates.\n- R scored more than Q but less than V.\n- U scored less than P but more than V.\n- Exactly three candidates scored between U and S.\nWho scored the lowest?",
+    "answerFormat": "text",
+    "choices": [],
+    "answer": "T",
+    "acceptedAnswers": [
+      "t"
+    ],
+    "keySteps": [
+      "Q scored more than only two, so Q is 5th from the top with 4 people above.",
+      "Clues 2 and 3 give P > U > V > R > Q - four people above Q, so positions 1 to 4 are P, U, V, R.",
+      "S and T fill positions 6 and 7.",
+      "U is 2nd; three people between U and S puts S 6th, so T is 7th (lowest)."
+    ],
+    "explanation": "Q is 5th. The chain P > U > V > R all lies above Q, so those four take positions 1 to 4 in that order. Only S and T remain for 6th and 7th. U is 2nd, and with exactly three candidates between U and S, S must be 6th. So T scored the lowest. Final order: P, U, V, R, Q, S, T.",
+    "hints": [
+      "'More than only two' fixes Q's rank exactly.",
+      "How many people does the chain P, U, V, R put above Q?",
+      "U is 2nd - count three places after U to find S."
+    ],
+    "estimatedMinutes": 5
+  }
+]

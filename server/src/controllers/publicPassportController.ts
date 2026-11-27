@@ -15,6 +15,8 @@ import PendingPassportSignup from '../models/PendingPassportSignup';
 import { registrationWindowState, validateSignupAnswers } from '../data/onboardingFieldPolicy';
 import { sanitiseAttribution, mergeAttribution } from '../models/careerPilotAttribution';
 import { buildShareCard } from '../services/passportShareCardService';
+import { canUseCareerPilot, WRONG_DOOR_CAREERPILOT, NO_ACCOUNT_CODE } from '../services/accountProduct';
+import { sendRegistrationEmail } from '../services/careerPilotEmailService';
 
 // Public CareerPilot funnel: signup (Name/Mobile/Email + admin-configured onboarding
 // fields) → OTP → account created (STUDENT + passport, not yet active/paid) → auto-login.
@@ -238,7 +240,8 @@ export const signup = async (req: Request, res: Response) => {
       attribution: sanitiseAttribution(b.attribution),
       // Longer than the OTP's ten minutes, so an expired code can be resent against the
       // same pending row instead of sending the member back to a form they have filled in.
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      // Two hours, not thirty minutes: somebody who steps away for a call must still be able to come back to their OTP.
+      expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
     });
 
     const otp = await sendOtp(tenantId, token, mobile);
@@ -251,6 +254,8 @@ export const signup = async (req: Request, res: Response) => {
 
 /** Issue the standard Passport login payload (JWT + user) for a resolved user. */
 function issueLogin(res: Response, user: any) {
+  // The last line of defence: whatever path got here, only an enrolled member leaves with a CareerPilot session.
+  if (!canUseCareerPilot(user)) return res.status(403).json({ success: false, code: NO_ACCOUNT_CODE, message: WRONG_DOOR_CAREERPILOT });
   // Refuse deactivated accounts HERE, so every login path (OTP verify, password,
   // OTP re-login) is covered by one check.
   //
@@ -274,12 +279,12 @@ function issueLogin(res: Response, user: any) {
   }
 
   const secret = jwtSecret();
-  const jwtToken = jwt.sign({ id: user._id, email: user.email, role: user.role, tenantId: user.tenantId }, secret, { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') } as any);
+  const jwtToken = jwt.sign({ id: user._id, email: user.email, role: user.role, tenantId: user.tenantId, product: 'careerpilot' }, secret, { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') } as any);
   return res.json({
     success: true,
     token: jwtToken,
     tenantId: String(user.tenantId),
-    user: { id: String(user._id), email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role },
+    user: { id: String(user._id), email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, product: 'careerpilot' },
     // Where to land. A member who has finished onboarding goes to their dashboard; one who
     // has not is sent to setup rather than a dashboard whose panels have nothing to show.
     // Server-stated so the client never infers it from a partial view of the record.
@@ -371,7 +376,13 @@ export const verify = async (req: Request, res: Response) => {
     const { token, code } = req.body || {};
     const result = await verifyOtp(String(token), String(code));
     if (result !== 'ok') {
-      const msg: any = { invalid: 'Incorrect code', expired: 'Code expired — resend', too_many_attempts: 'Too many attempts — resend', not_found: 'Start over' };
+      // The code's own record is deleted a few minutes after it is sent, so an old code reads as "not found" even
+      // though the sign-up (or the account) is still there and Resend works. Say that, instead of "Start over".
+      if (result === 'not_found' || result === 'expired') {
+        const alive = !!(await PendingPassportSignup.exists({ token })) || (mongoose.isValidObjectId(token) && !!(await User.exists({ _id: token })));
+        if (alive) return res.status(400).json({ success: false, code: 'OTP_EXPIRED', message: 'That code has expired. Tap "Resend code" and we will send you a new one.' });
+      }
+      const msg: any = { invalid: 'Incorrect code', expired: 'Code expired — resend', too_many_attempts: 'Too many attempts — resend', not_found: 'Your sign-up timed out. Please start again.' };
       return res.status(400).json({ success: false, message: msg[result] || 'Verification failed' });
     }
     /**
@@ -386,6 +397,8 @@ export const verify = async (req: Request, res: Response) => {
     if (pending) {
       const user = await materialiseSignup(pending);
       await PendingPassportSignup.deleteOne({ token });
+      // The welcome email, after the account exists and without making the member wait for it.
+      void sendRegistrationEmail(user);
       return issueLogin(res, user);
     }
 
@@ -399,6 +412,8 @@ export const verify = async (req: Request, res: Response) => {
         message: mongoose.isValidObjectId(token) ? 'Account not found' : 'Your signup expired — please start over.',
       });
     }
+    // Never turn an LMS account into a member by signing in: this used to stamp verifiedAt on whoever came through here.
+    if (!canUseCareerPilot(user)) return res.status(403).json({ success: false, code: NO_ACCOUNT_CODE, message: WRONG_DOOR_CAREERPILOT });
     // The moment they proved they own the number. Only stamped once — it marks when
     // they crossed out of "signed up but unverified", not the most recent OTP.
     if (user.passport && !user.passport.verifiedAt) {
@@ -420,16 +435,28 @@ export const loginPassword = async (req: Request, res: Response) => {
     if (!identifier || !password) return res.status(400).json({ success: false, message: 'Enter your email/mobile and password.' });
 
     const id = String(identifier).trim();
+    /*
+     * A MOBILE CAN BELONG TO MORE THAN ONE ACCOUNT.
+     *
+     * Sign-up now refuses a number that is already taken, but accounts made before that share
+     * one. findOne() picked whichever came first, so the right password for the other account
+     * read as "Incorrect password" — the same person logged in fine with their email. Every
+     * CareerPilot account on the number is tried, and the one the password opens is the login.
+     */
     const query: any = id.includes('@')
       ? { tenantId, email: id.toLowerCase() }
       : { tenantId, phone: { $in: phoneVariants(id) } };
-    const user: any = await User.findOne(query);
-    if (!user || !user.passport) return res.status(404).json({ success: false, message: 'No CareerPilot found for that email/mobile.' });
-    if (!user.passport.passwordSet) return res.status(400).json({ success: false, message: 'You haven’t set a password yet — log in with WhatsApp OTP.', code: 'NO_PASSWORD' });
+    // `passport: { $exists: true }` matched EVERY user (the nested defaults create it on all of them), so any
+    // LMS account could sign in here. Only an enrolled CareerPilot member may.
+    const users: any[] = (await User.find(query).limit(5)).filter(canUseCareerPilot);
+    if (!users.length) return res.status(404).json({ success: false, code: NO_ACCOUNT_CODE, message: WRONG_DOOR_CAREERPILOT });
+    const withPassword = users.filter(u => u.passport?.passwordSet);
+    if (!withPassword.length) return res.status(400).json({ success: false, message: 'You haven’t set a password yet — log in with WhatsApp OTP.', code: 'NO_PASSWORD' });
 
-    const ok = await user.comparePassword(String(password));
-    if (!ok) return res.status(401).json({ success: false, message: 'Incorrect password.' });
-    return issueLogin(res, user);
+    for (const user of withPassword) {
+      if (await user.comparePassword(String(password))) return issueLogin(res, user);
+    }
+    return res.status(401).json({ success: false, message: 'Incorrect password.' });
   } catch (e: any) {
     res.status(500).json({ success: false, message: e.message || 'Login failed' });
   }
@@ -444,8 +471,9 @@ export const loginOtpStart = async (req: Request, res: Response) => {
     const phone = normalizePhone(mobile);
     if (!phone) return res.status(400).json({ success: false, message: 'Enter your registered mobile number.' });
 
-    const user: any = await User.findOne({ tenantId, phone: { $in: phoneVariants(mobile) } });
-    if (!user || !user.passport) return res.status(404).json({ success: false, message: 'No CareerPilot found for that mobile number.' });
+    // A mobile can belong to more than one account; the member is the one that was enrolled in CareerPilot.
+    const user: any = (await User.find({ tenantId, phone: { $in: phoneVariants(mobile) } }).limit(5)).find(canUseCareerPilot);
+    if (!user) return res.status(404).json({ success: false, code: NO_ACCOUNT_CODE, message: WRONG_DOOR_CAREERPILOT });
 
     // Canonicalise the stored value on the way past, so a row written before this fix
     // stops needing the variant match on every future login.

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { redact, redactText } from './redact';
 
 const LOG_DIR = process.env.NODE_ENV === 'production' ? '/app/logs' : path.join(__dirname, '../../../logs');
 const ERROR_LOG = path.join(LOG_DIR, 'api-errors.log');
@@ -19,8 +20,10 @@ function rotateIfNeeded(file: string) {
 function write(level: 'INFO' | 'WARN' | 'ERROR', message: string, meta?: Record<string, any>) {
   const ts  = new Date().toISOString();
   const tag = `[${ts}] [${level}]`;
-  const metaStr = meta ? ' ' + JSON.stringify(meta) : '';
-  const line = `${tag} ${message}${metaStr}\n`;
+  // Every line passes through redaction: no secrets, and personal details masked (utils/redact.ts).
+  let metaStr = '';
+  if (meta) { try { metaStr = ' ' + JSON.stringify(redact(meta)); } catch { metaStr = ' [unserialisable meta]'; } }
+  const line = `${tag} ${redactText(message)}${metaStr}\n`;
 
   // Always write to stdout so `docker-compose logs server` picks it up
   process.stdout.write(line);

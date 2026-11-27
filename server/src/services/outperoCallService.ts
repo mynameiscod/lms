@@ -1,6 +1,7 @@
 import { recordStageTransition } from '../controllers/leadStageHistoryController';
+import { stampMilestonesAfterExternalMove } from './leadLifecycleService';
 import { classifyOutcome, getPolicy } from './outperoPolicyService';
-import { autoAssignLead } from './leadDistributionService';
+import { assignLead } from './leadAssignmentService';
 import LeadStage from '../models/LeadStage';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
@@ -241,8 +242,10 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
   if (automate && outcome && !has('feedback_' + outcome)) {
     let state = outcome === 'needs_review' ? 'needs_review' : 'processed';
     if (retryNoAnswer) state = 'retry_scheduled';
-    if (!retryNoAnswer) { // every result gets an owner; only a no-answer that will be called again keeps waiting
-      const assigned = await autoAssignLead(tenantId, String(lead._id), true);
+    // Every result gets an owner, except: a no-answer that will be called again keeps waiting, and
+    // not interested / wrong number / opt-out stay unassigned for an admin (owner decision 2026-11-09).
+    if (!retryNoAnswer && !negative) {
+      const assigned = await assignLead(tenantId, String(lead._id), { afterCall: true, aiOutcome: outcome });
       if (assigned) lead.assignedTo = assigned;
       else if (!lead.assignedTo && !lead.assignment?.assignedTo) state = 'awaiting_assignment';
     }
@@ -263,14 +266,27 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
     if (set.stageId && String(set.stageId) !== String(lead.stageId)) update.$push = { activities: { type: 'status_change', createdBy: lead.createdBy, createdAt: new Date(), description: 'AI call outcome: ' + outcome, metadata: { outperoCallId: call.callId } } };
     const applied = await Lead.updateOne({ ...leadQ, stageId: lead.stageId, activities: { $not: { $elemMatch: { type: 'status_change', createdAt: { $gt: new Date(call.startedAt || lead.outpero?.sentAt || call.createdAt) }, 'metadata.outperoCallId': { $exists: false } } } } }, update);
     if (applied.matchedCount === 0) automate = false;
-    if (automate && target && set.stageId && String(set.stageId) !== String(lead.stageId)) await recordStageTransition(lead._id, lead.stageId, target._id, target.name, lead.createdBy, oid(tenantId));
+    if (automate && target && set.stageId && String(set.stageId) !== String(lead.stageId)) {
+      await recordStageTransition(lead._id, lead.stageId, target._id, target.name, lead.createdBy, oid(tenantId), { source: 'outpero' });
+      await stampMilestonesAfterExternalMove(tenantId, lead._id, target);
+      import('./workflow/engine')
+        .then((m) => m.fire({ tenantId, type: 'stage_changed', leadId: lead._id, data: { stageId: String(target._id), stageName: target.name, fromStageId: lead.stageId ? String(lead.stageId) : null } }))
+        .catch((e) => console.error('[outpero] workflow stage trigger failed', e?.message));
+    }
     if (state !== 'awaiting_assignment') await mark('feedback_' + outcome);
     else did.push('awaiting_assignment');
   }
+  // Workflow Builder: "AI call result" workflows, once per call.
+  if (outcome && !stale && !has('workflow')) {
+    await mark('workflow');
+    import('./workflow/engine')
+      .then((m) => m.fire({ tenantId, type: 'call_result', leadId: lead._id, data: { outcome, callId: call.callId, summary: call.summary } }))
+      .catch((e) => console.error('[outpero] workflow call trigger failed', e?.message));
+  }
   // Whatever the result, a lead that was waiting for Outpero gets its owner now — also when the stage
   // was left alone because a person had already moved it. A no-answer that will be retried keeps waiting.
-  if (policy.enabled && outcome && !retryNoAnswer && !lead.archivedAt && !lead.assignedTo && !lead.assignment?.assignedTo) {
-    const assigned = await autoAssignLead(tenantId, String(lead._id), true);
+  if (policy.enabled && outcome && !retryNoAnswer && !negative && !lead.archivedAt && !lead.assignedTo && !lead.assignment?.assignedTo) {
+    const assigned = await assignLead(tenantId, String(lead._id), { afterCall: true, aiOutcome: outcome });
     if (assigned) { lead.assignedTo = assigned; did.push('assigned'); }
     else if (!did.includes('awaiting_assignment')) did.push('awaiting_assignment');
   }

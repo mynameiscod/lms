@@ -156,6 +156,8 @@ const FollowUpReminderSchema: Schema = new Schema(
       type: Boolean,
       default: false
     },
+    // Set when the automation "overdue follow-up" reminder fired for this task.
+    overdueNotifiedAt: { type: Date },
     reminderSentAt: {
       type: Date
     },

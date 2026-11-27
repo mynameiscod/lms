@@ -1,17 +1,22 @@
+import { homePathFor, productRedirect } from './utils/product';
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { loginPathFor } from './utils/loginPath';
+import { loginRedirectFor } from './utils/loginPath';
 import { TenantProvider } from './contexts/TenantContext';
 import { StudentFeaturesProvider, useStudentFeatures, StudentFeatures } from './contexts/StudentFeaturesContext';
+import { ProfileGateProvider, useProfileGate, profileGateOpenPath } from './contexts/ProfileGateContext';
 import { TenantModulesProvider } from './contexts/TenantModulesContext';
 import { BatchModulesProvider } from './contexts/BatchModulesContext';
 import { SocketProvider, useSocket } from './contexts/SocketContext';
+import LeadAssignedAlert from './components/LeadAssignedAlert';
+import CallOutcomePrompt from './components/CallOutcomePrompt';
 import { Layout } from './components/layout';
 import { Spinner } from './components/common';
 
 import { captureCareerPilotAttribution } from './utils/careerPilotAttribution';
 import AdminLogPanel from './components/AdminLogPanel';
+import CelebrationHost from './components/Celebration/CelebrationHost';
 
 /*
  * ── EVERY PAGE IS ITS OWN CHUNK ─────────────────────────────────────────────────────────
@@ -66,6 +71,7 @@ const PlacementProgramAdmin = lazy(() => import('./pages/PlacementProgramAdmin')
 const MyPlacementInterviews = lazy(() => import('./pages/PlacementProgramAdmin/MyInterviews'));
 const WhatsAppInbox = lazy(() => import('./pages/WhatsAppInbox'));
 const OutperoSettings = lazy(() => import('./pages/OutperoSettings'));
+const CallyzerSettings = lazy(() => import('./pages/CallyzerSettings'));
 const EventApis = lazy(() => import('./pages/EventApis'));
 const LeadArchivePage = lazy(() => import('./pages/LeadArchive'));
 const EventApiEditor = lazy(() => import('./pages/EventApis/EventEditor'));
@@ -90,8 +96,15 @@ const ProblemBank = lazy(() => import('./pages/ProblemBank'));
 const ProblemStudio = lazy(() => import('./pages/ProblemBank/Studio'));
 const ProblemSets = lazy(() => import('./pages/ProblemBank/Sets'));
 const ProblemSetEditor = lazy(() => import('./pages/ProblemBank/SetEditor'));
+const QuestionPools = lazy(() => import('./pages/QuestionPools'));
+const QuestionPoolEditor = lazy(() => import('./pages/QuestionPools/PoolEditor'));
 const ProblemBankApi = lazy(() => import('./pages/ProblemBank/ApiAccess'));
+const ProblemBundles = lazy(() => import('./pages/ProblemBundles'));
 const PracticePassAdmin = lazy(() => import('./pages/PracticePass'));
+const StudentRulesPage = lazy(() => import('./pages/StudentRules'));
+const AgreementsPage = lazy(() => import('./pages/Agreements'));
+const AttendanceQrScreen = lazy(() => import('./pages/AttendanceQr'));
+const AttendanceCheckIn = lazy(() => import('./pages/AttendanceCheckIn'));
 const EmployeeDirectory = lazy(() => import('./pages/Employees/EmployeeDirectory'));
 const EmployeeProfile = lazy(() => import('./pages/Employees/EmployeeProfile'));
 const EmployeeSettings = lazy(() => import('./pages/Employees/EmployeeSettings'));
@@ -99,6 +112,8 @@ const ActivityReview = lazy(() => import('./pages/Employees/ActivityReview'));
 const CompanyExpenses = lazy(() => import('./pages/Expenses/CompanyExpenses'));
 const EmployeePortal = lazy(() => import('./pages/Employees/portal/EmployeePortal'));
 const MyPractice = lazy(() => import('./pages/PracticePass/MyPractice'));
+const ProjectStudioAdmin = lazy(() => import('./pages/ProjectStudio'));
+const MyProject = lazy(() => import('./pages/ProjectStudio/MyProject'));
 const InterviewHubFeed = lazy(() => import('./pages/InterviewHub/Feed'));
 const InterviewHubDetail = lazy(() => import('./pages/InterviewHub/Detail'));
 const InterviewHubCompany = lazy(() => import('./pages/InterviewHub/Company'));
@@ -114,9 +129,24 @@ const LeaveRequests = lazy(() => import('./pages/LeaveRequests'));
 const CodePlayground = lazy(() => import('./pages/CodePlayground'));
 const PassportAdminConfig = lazy(() => import('./pages/Passport/AdminConfig'));
 const PassportAdminStudents = lazy(() => import('./pages/Passport/AdminStudents'));
+const PassportAdminTrialPlans = lazy(() => import('./pages/Passport/AdminTrialPlans'));
+const PassportAdminDemoPlans = lazy(() => import('./pages/Passport/AdminDemoPlans'));
+const PassportAdminPlatformLimits = lazy(() => import('./pages/Passport/AdminPlatformLimits'));
+const PassportAdminJobOpenings = lazy(() => import('./pages/Passport/AdminJobOpenings'));
+const DemoLanding = lazy(() => import('./pages/LmsDemo/DemoLanding'));
+const DemoEnter = lazy(() => import('./pages/LmsDemo/DemoEnter'));
+const AdminLmsDemo = lazy(() => import('./pages/LmsDemo/AdminLmsDemo'));
+const ReferEarn = lazy(() => import('./pages/ReferEarn'));
+const ReferLanding = lazy(() => import('./pages/ReferEarn/ReferLanding'));
+const AdminReferrals = lazy(() => import('./pages/ReferEarn/AdminReferrals'));
+const AdminSalesTeams = lazy(() => import('./pages/SalesTeams/AdminSalesTeams'));
+const SalesMyTeam = lazy(() => import('./pages/SalesTeams/MyTeam'));
+const SalesMemberDay = lazy(() => import('./pages/SalesTeams/MemberDay'));
+const SalesLeadReport = lazy(() => import('./pages/SalesTeams/LeadReport'));
 const PassportAdminStudentRoadmap = lazy(() => import('./pages/Passport/AdminStudentRoadmap'));
 const PassportAdminStageSkills = lazy(() => import('./pages/Passport/AdminStageSkills'));
 const PassportAdminCoins = lazy(() => import('./pages/Passport/AdminCoins'));
+const PassportAdminXpRewards = lazy(() => import('./pages/Passport/AdminXpRewards'));
 const PassportAdminFunnel = lazy(() => import('./pages/Passport/AdminFunnel'));
 const PassportAdminCurriculum = lazy(() => import('./pages/Passport/AdminCurriculum'));
 const PassportAdminPathwayRules = lazy(() => import('./pages/Passport/AdminPathwayRules'));
@@ -129,13 +159,16 @@ const PassportAdminAssessmentShape = lazy(() => import('./pages/Passport/AdminAs
 const PassportAdminQuestionDrafts = lazy(() => import('./pages/Passport/AdminQuestionDrafts'));
 const PassportAdminQuestionBank = lazy(() => import('./pages/Passport/AdminQuestionBank'));
 const PassportAdminRoadmapV2 = lazy(() => import('./pages/Passport/AdminRoadmapV2'));
+const PassportAdminCareerTracks = lazy(() => import('./pages/Passport/AdminCareerTracks'));
 const PassportAdminPathways = lazy(() => import('./pages/Passport/AdminPathways'));
 const PassportAdminMissions = lazy(() => import('./pages/Passport/AdminMissions'));
 const PassportHome = lazy(() => import('./pages/Passport/PassportHome'));
 const PassportMaterialViewer = lazy(() => import('./pages/Passport/MaterialViewer'));
+const PassportAdminMemberProfile = lazy(() => import('./pages/Passport/AdminMemberProfile'));
 const PassportMemberLayout = lazy(() => import('./pages/Passport/MemberLayout'));
 const PassportCareerSetup = lazy(() => import('./pages/Passport/CareerSetup'));
 const PassportAdminActivity = lazy(() => import('./pages/Passport/AdminActivity'));
+const PassportAdminJourney = lazy(() => import('./pages/Passport/AdminJourney'));
 const PassportLearningStudio = lazy(() => import('./pages/Passport/AdminLearningStudio'));
 const PassportLearningUnit = lazy(() => import('./pages/Passport/AdminLearningUnit'));
 const PassportRoadmap = lazy(() => import('./pages/Passport/Roadmap'));
@@ -143,8 +176,10 @@ const PassportSkillDna = lazy(() => import('./pages/Passport/SkillDna'));
 const PassportRoleReadiness = lazy(() => import('./pages/Passport/RoleReadiness'));
 const PassportPlacementReadiness = lazy(() => import('./pages/Passport/PlacementReadiness'));
 const PassportSkillAssessment = lazy(() => import('./pages/Passport/SkillAssessment'));
-const PassportGamification = lazy(() => import('./pages/Passport/Gamification'));
 const PassportRewards = lazy(() => import('./pages/Passport/Rewards'));
+const AptitudeSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.AptitudeSoon })));
+const ReasoningSoon = lazy(() => import('./pages/Passport/ComingSoon').then(m => ({ default: m.ReasoningSoon })));
+const PassportPractice = lazy(() => import('./pages/Passport/Practice'));
 const PassportPracticeItem = lazy(() => import('./pages/Passport/PracticeItem'));
 const PassportInterview = lazy(() => import('./pages/Passport/Interview'));
 const PassportResumeCenter = lazy(() => import('./pages/Passport/ResumeCenter'));
@@ -152,6 +187,14 @@ const PassportCoins = lazy(() => import('./pages/Passport/Coins'));
 const PassportLeaderboard = lazy(() => import('./pages/Passport/Leaderboard'));
 const PassportAchievements = lazy(() => import('./pages/Passport/Achievements'));
 const PassportNews = lazy(() => import('./pages/Passport/News'));
+const PassportIndustryConnect = lazy(() => import('./pages/Passport/IndustryConnect'));
+const MemberSupportHome = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportHome })));
+const MemberSupportNew = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportNew })));
+const MemberSupportTickets = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportTickets })));
+const MemberSupportTicket = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportTicket })));
+const MemberSupportArticle = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportArticle })));
+const MemberSupportBrowse = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportBrowse })));
+const MemberSupportAssistant = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportAssistant })));
 const PassportCompanies = lazy(() => import('./pages/Passport/Companies'));
 const PassportMockTest = lazy(() => import('./pages/Passport/MockTest'));
 const PassportAdminNews = lazy(() => import('./pages/Passport/AdminNews'));
@@ -185,6 +228,8 @@ const CodeVisualizer = lazy(() => import('./pages/CodeVisualizer'));
 const CodeVisualizerWorkspace = lazy(() => import('./pages/CodeVisualizer/Workspace'));
 const CodeVisualizerAdmin = lazy(() => import('./pages/CodeVisualizerAdmin'));
 const ThinkingLabAdmin = lazy(() => import('./pages/ThinkingLabAdmin'));
+const ThinkingBank = lazy(() => import('./pages/ProblemBank/ThinkingBank'));
+const MemberThinkingLab = lazy(() => import('./pages/ThinkingLab/MemberThinkingLab'));
 const InterviewQuestionsPage = lazy(() => import('./pages/InterviewQuestions'));
 const InterviewQuestionBankPage = lazy(() => import('./pages/InterviewQuestionBank'));
 const InterviewTemplateList = lazy(() => import('./pages/InterviewTemplateList'));
@@ -200,6 +245,9 @@ const AdminAssignmentForm = lazy(() => import('./pages/assignments').then(m => (
 const AdminSubmissions = lazy(() => import('./pages/assignments').then(m => ({ default: m.AdminSubmissions })));
 const StudentAssignmentList = lazy(() => import('./pages/assignments').then(m => ({ default: m.StudentAssignmentList })));
 const AssignmentWorkspace = lazy(() => import('./pages/assignments').then(m => ({ default: m.AssignmentWorkspace })));
+const ExamLobby = lazy(() => import('./pages/PoolExam/ExamLobby'));
+const ExamRoom = lazy(() => import('./pages/PoolExam/ExamRoom'));
+const ExamResults = lazy(() => import('./pages/PoolExam/ExamResults'));
 const AssignmentResult = lazy(() => import('./pages/assignments').then(m => ({ default: m.AssignmentResult })));
 const AssignmentReports = lazy(() => import('./pages/AssignmentReports'));
 const StudentFeaturesPage = lazy(() => import('./pages/StudentFeatures'));
@@ -208,8 +256,12 @@ const PublicResumeView = lazy(() => import('./pages/ResumeBuilder/PublicResumeVi
 const CareerProfilePage = lazy(() => import('./pages/CareerProfile'));
 const CareerProfileAdmin = lazy(() => import('./pages/CareerProfile/Admin'));
 const PlacementPartnership = lazy(() => import('./pages/PartnerPipeline'));
+const PlacementDesk = lazy(() => import('./pages/PlacementDesk'));
+const PlacementDeskDrive = lazy(() => import('./pages/PlacementDesk/DriveDetail'));
+const PlacementDeskPublic = lazy(() => import('./pages/PlacementDesk/PublicSummary'));
+const TalentPool = lazy(() => import('./pages/TalentPool'));
+const TalentPortal = lazy(() => import('./pages/TalentPortal'));
 const FeesPage = lazy(() => import('./pages/Fees'));
-const LeadsPage = lazy(() => import('./pages/Leads'));
 const TeamActivity = lazy(() => import('./pages/TeamActivity'));
 const LeadDetailPage = lazy(() => import('./pages/LeadDetail'));
 const LeadStagesPage = lazy(() => import('./pages/LeadStages'));
@@ -222,8 +274,14 @@ const QualificationSettingsPage = lazy(() => import('./pages/QualificationSettin
 const SalesContentLibraryPage = lazy(() => import('./pages/SalesContentLibrary'));
 const LeadAnalyticsPage = lazy(() => import('./pages/LeadAnalytics'));
 const MeetingsPage = lazy(() => import('./pages/Meetings'));
-const LeadDistributionSettingsPage = lazy(() => import('./pages/LeadDistributionSettings'));
+const LeadAssignmentSettingsPage = lazy(() => import('./pages/LeadAssignmentSettings'));
+const WorkflowsPage = lazy(() => import('./pages/Workflows'));
+const WorkflowBuilderPage = lazy(() => import('./pages/Workflows/Builder'));
 const FollowUpCalendarPage = lazy(() => import('./pages/FollowUpCalendar'));
+const FollowUpQueuePage = lazy(() => import('./pages/FollowUpQueue'));
+const AdmissionsDashboardPage = lazy(() => import('./pages/AdmissionsDashboard'));
+const LeadAutomationPage = lazy(() => import('./pages/LeadAutomation'));
+const LeadDashboardPage = lazy(() => import('./pages/LeadDashboard'));
 const SeatReservationsPage = lazy(() => import('./pages/SeatReservations'));
 const LeadAgingPage = lazy(() => import('./pages/LeadAging'));
 const LeadDuplicatesPage = lazy(() => import('./pages/LeadDuplicates'));
@@ -240,6 +298,7 @@ const AiSpend = lazy(() => import('./pages/AiSpend'));
 const GoogleSheetIntegrationPage = lazy(() => import('./pages/GoogleSheetIntegration'));
 const LeadScoringSettingsPage = lazy(() => import('./pages/LeadScoringSettings'));
 const LeadSourcesPage = lazy(() => import('./pages/LeadSources'));
+const MetaSyncPage = lazy(() => import('./pages/MetaSync'));
 const AICallConfigPage = lazy(() => import('./pages/AICallConfig'));
 const AllRegistrations = lazy(() => import('./pages/PublicQuizAdmin/AllRegistrations'));
 const RegistrationDetail = lazy(() => import('./pages/PublicQuizAdmin/RegistrationDetail'));
@@ -259,6 +318,13 @@ const MyLearningPlanPage = lazy(() => import('./pages/MyLearningPlan'));
 const DayViewPage = lazy(() => import('./pages/MyLearningPlan/LearningPlanPro'));
 const MyJourneyPage = lazy(() => import('./pages/MyLearningPlan/Journey'));
 const AdminConcernsPage = lazy(() => import('./pages/AdminConcerns'));
+const AdminSupportDesk = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportDesk })));
+const AdminSupportTicketPage = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportTicketPage })));
+const AdminSupportFaqs = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportFaqs })));
+const AdminSupportDashboard = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportDashboard })));
+const AdminSupportSettings = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportSettings })));
+const AdminSupportErrors = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportErrors })));
+const AdminSupportErrorDetail = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportErrorDetail })));
 const QuizSession = lazy(() => import('./pages/QuizSession'));
 const AssessmentRegister = lazy(() => import('./pages/Assessment/Register'));
 const AssessmentLanding = lazy(() => import('./pages/Assessment/Landing'));
@@ -272,6 +338,11 @@ const InterviewDetailPage = lazy(() => import('./pages/ScheduledInterviews/Inter
 const HmsClassesPage = lazy(() => import('./pages/HmsClasses'));
 const HmsRoomPage = lazy(() => import('./pages/HmsClasses/Room'));
 const LiveGuestJoin = lazy(() => import('./pages/HmsClasses/GuestJoin'));
+const BookDemo = lazy(() => import('./pages/DemoBooking/BookDemo'));
+const MyDemoBooking = lazy(() => import('./pages/DemoBooking/MyDemoBooking'));
+const DemoSlots = lazy(() => import('./pages/DemoBooking/DemoSlots'));
+const WebsiteBatches = lazy(() => import('./pages/WebsiteBatches'));
+const WebsiteContent = lazy(() => import('./pages/WebsiteContent'));
 const CommunicationLab = lazy(() => import('./pages/CommunicationLab'));
 const CommunicationLabAdmin = lazy(() => import('./pages/CommunicationLabAdmin'));
 const MyInterviewsPage = lazy(() => import('./pages/MyInterviews'));
@@ -292,6 +363,9 @@ const SkillMappingPage = lazy(() => import('./pages/SkillMapping/SkillMappingPag
 // Scheduled Interview Module
 
 
+/** Help & Support desk: these open it for any base role; admins and coordinators still get in by role. */
+const SUPPORT_PERMS = ['support_agent', 'support_manager'];
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRoles?: string[];
@@ -309,8 +383,9 @@ const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
     'manage_battles', 'view_battles', 'manage_hackathons', 'view_hackathons', 'manage_passport', 'view_passport_members', 'view_passport_funnel',
     'manage_event_apis', 'view_admin_dashboard', 'archive_leads'],
   'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments', 'manage_snippets', 'grade_snippets', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews',
-    'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans', 'manage_live_classes',
-    'manage_skill_assessment', 'manage_leave_requests', 'manage_thinking_lab', 'manage_resources', 'manage_speaking', 'manage_communication_lab'],
+    'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_project_studio', 'manage_learning_plans', 'manage_live_classes',
+    'manage_skill_assessment', 'manage_leave_requests', 'manage_thinking_lab', 'manage_resources', 'manage_speaking', 'manage_communication_lab', 'view_communication_progress',
+    'manage_passport_members', 'manage_passport_setup', 'manage_passport_pathways', 'manage_passport_career_map', 'manage_passport_assessment', 'manage_passport_content'],
   'ATTENDANCE_ADMIN': ['mark_attendance'],
   'STAFF': ['mark_attendance', 'view_attendance', 'view_reports', 'manage_tenant_users', 'create_courses', 'view_leads', 'create_leads', 'edit_leads', 'assign_leads', 'view_lead_analytics', 'export_leads', 'convert_leads'],
   'STUDENT': ['enroll_courses', 'submit_assignments', 'view_quiz', 'take_interviews', 'view_snippets', 'attempt_interviews'],
@@ -328,7 +403,7 @@ const STUDENT_PAGE_FEATURES: [string, keyof StudentFeatures][] = [
   ['/my-attendance', 'attendance'], ['/playground', 'codePlayground'], ['/project-builder', 'projectBuilder'], ['/job-tracker', 'jobTracker'],
   ['/ai-mentor', 'aiMentor'], ['/resource-library', 'resourceLibrary'], ['/ai-communication-lab', 'aiCommunicationLab'], ['/thinking-lab', 'thinkingLab'],
   ['/resume-builder', 'resumeBuilder'], ['/career-profile', 'careerProfile'], ['/hms-classes', 'liveClasses'], ['/my-learning', 'learningPlan'],
-  ['/speaking-practice', 'speakingPractice'],
+  ['/speaking-practice', 'speakingPractice'], ['/my-project', 'myProject'],
 ];
 const featureForStudentPath = (pathname: string) =>
   STUDENT_PAGE_FEATURES.find(([p]) => pathname === p || pathname.startsWith(`${p}/`))?.[1];
@@ -339,8 +414,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredPermissions,
 }) => {
   const { isAuthenticated, loading, user } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { isFeatureEnabled: studentFeatureOn } = useStudentFeatures();
+  const { blocked: profileBlocked } = useProfileGate();
 
   if (loading) return <Spinner fullScreen />;
 
@@ -348,13 +424,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // Send CareerPilot members to the CareerPilot login, not the LMS one. This covers
     // logging out (logout() only clears state — the redirect happens here when the guard
     // re-runs) and a session expiring mid-visit. `replace` so the back button does not
-    // return to a page they are no longer allowed to see.
-    return <Navigate to={loginPathFor(pathname)} replace />;
+    // return to a page they are no longer allowed to see. A CareerPilot page the visitor was
+    // trying to open goes along as ?next=, so the login says so and returns there afterwards.
+    return <Navigate to={loginRedirectFor(pathname, search)} replace />;
   }
+
+  // Student Rules → Profile gate: the profile page only, until the profile is 100% complete.
+  if (user?.role === 'STUDENT' && profileBlocked && !profileGateOpenPath(pathname)) return <Navigate to="/profile" replace />;
 
   if (user?.role === 'STUDENT') {
     const feature = featureForStudentPath(pathname);
-    if (feature && !studentFeatureOn(feature)) return <Navigate to="/dashboard" replace />;
+    if (feature && !studentFeatureOn(feature)) return <Navigate to={homePathFor(user)} replace />;
   }
 
   // A page that names its own permissions opens for anyone holding one of them — the same keys
@@ -373,7 +453,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return <>{children}</>;
       }
     }
-    return <Navigate to="/dashboard" />;
+    return <Navigate to={homePathFor(user)} />;
   }
 
   return <>{children}</>;
@@ -391,7 +471,7 @@ const FeatureRoute: React.FC<{ feature: keyof StudentFeatures; children: React.R
   const { user } = useAuth();
   
   if (user?.role === 'STUDENT' && !isFeatureEnabled(feature)) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to={homePathFor(user)} />;
   }
   return <>{children}</>;
 };
@@ -494,7 +574,17 @@ const RouteFallback: React.FC = () => (
 );
 
 /** Each route fetches only what it needs, behind this one Suspense boundary. */
+/** "/" goes to the product the person is in: a member to CareerPilot, everyone else to the dashboard. */
+const HomeRedirect: React.FC = () => {
+  const { user } = useAuth();
+  return <Navigate to={homePathFor(user)} replace />;
+};
+
 const AppRoutes: React.FC = () => {
+  const { user: boundaryUser, loading: boundaryLoading } = useAuth();
+  const { pathname: boundaryPath } = useLocation();
+  // The two products stay apart wherever a link, a bookmark or a button would have crossed them.
+  const crossing = boundaryLoading ? null : productRedirect(boundaryUser, boundaryPath);
   /**
    * A second capture, for a tagged URL reached WITHOUT a page load.
    *
@@ -506,6 +596,20 @@ const AppRoutes: React.FC = () => {
    */
   const { search } = useLocation();
   useEffect(() => { captureCareerPilotAttribution(search); }, [search]);
+  /**
+   * CareerPilot pages carry a class on <html> so their stylesheet rules can apply to the whole
+   * product, pop-ups included, and to nothing else: the smallest-text floor (index.css,
+   * --fs-floor) is CareerPilot-only.
+   */
+  useEffect(() => {
+    /* The same floor for the LMS student pages built in the CareerPilot design (Thinking Lab, Communication
+       Lab, practice, books, visualizer, mentor, playground, and the other learner pages): they were sized for it, and
+       read at 7-9 real pixels on a laptop without it. */
+    document.documentElement.classList.toggle('cp-route', /^\/(careerpilot|passport)(\/|$)/.test(boundaryPath)
+      || /^\/(thinking-lab|ai-communication-lab|practice-library|question-books|visualizer|ai-mentor|playground)(\/|$)/.test(boundaryPath));
+  }, [boundaryPath]);
+
+  if (crossing) return <Navigate to={crossing} replace />;
 
   return (
     <Suspense fallback={<RouteFallback />}>
@@ -533,9 +637,18 @@ const AppRoutes: React.FC = () => {
       <Route path="/hackathon-exam/enter/:slug" element={<HackathonExam />} />
       <Route path="/hackathon-exam" element={<HackathonExam />} />
 
+      {/* ── The free LMS demo (no auth): sign up, or open the one-tap link a counsellor sent ── */}
+      <Route path="/demo" element={<DemoLanding />} />
+      <Route path="/demo/enter" element={<DemoEnter />} />
+      {/* LMS Refer & Earn: the link a student shares (no auth) */}
+      <Route path="/refer/:code" element={<ReferLanding />} />
       {/* ── Public Tech Battles (no auth) ── */}
       {/* A live-class invitation link: guests join without an account */}
       <Route path="/live/:token" element={<LiveGuestJoin />} />
+      {/* CRM: Book a demo — the website's booking page and each visitor's booking link (no login) */}
+      <Route path="/book-demo/:slug" element={<BookDemo />} />
+      <Route path="/demo-booking/:token" element={<MyDemoBooking />} />
+      <Route path="/placements/:token" element={<PlacementDeskPublic />} />
       <Route path="/battles" element={<BattleList />} />
       <Route path="/battles/exam/:token" element={<BattleExam />} />
       <Route path="/battles/:slug/leaderboard" element={<BattleLeaderboard />} />
@@ -615,13 +728,13 @@ const AppRoutes: React.FC = () => {
 
       {/* ── CareerPilot (separate product) ── */}
       <Route path="/admin/passport/assessment-coverage" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotCoverage /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_assessment']}><Layout><CareerPilotCoverage /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/concepts" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotConcepts /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><CareerPilotConcepts /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/config" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminConfig /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_setup']}><Layout><PassportAdminConfig /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/careerpilot/staging" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotStaging /></Layout></ProtectedRoute>
@@ -630,42 +743,96 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotPaperDesign /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/students" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_members']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
+      } />
+      {/* The practice library for LMS demo students (the problems chosen on the LMS Demo screen). The server decides what it lists. */}
+      <Route path="/practice-library" element={<ProtectedRoute><Layout><PracticeLibrary base="/practice-library" /></Layout></ProtectedRoute>} />
+      <Route path="/practice-library/:problemId" element={<ProtectedRoute><Layout><LibraryProblemOr base="/practice-library" legacy={<Navigate to="/practice-library" replace />} /></Layout></ProtectedRoute>} />
+      {/* LMS Demo: demo courses, length, AI limit and demo students. A super admin, or a role they gave manage_lms_demo. */}
+      <Route path="/refer-and-earn" element={
+        <ProtectedRoute requiredRoles={['STUDENT']}><FeatureRoute feature="referEarn"><Layout><ReferEarn /></Layout></FeatureRoute></ProtectedRoute>
+      } />
+      {/* Sales Teams (Leads add-on). Who sees what is decided by the server: admin, the team's manager, the member. */}
+      <Route path="/demo-slots" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_demo_slots']}><Layout><DemoSlots /></Layout></ProtectedRoute>
+      } />
+      {/* Website Batches: the next batch date + seats left the public website shows. */}
+      <Route path="/website-batches" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_website_batches']}><Layout><WebsiteBatches /></Layout></ProtectedRoute>
+      } />
+      <Route path="/website-content" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_website_content']}><Layout><WebsiteContent /></Layout></ProtectedRoute>
+      } />
+      <Route path="/sales-teams" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_sales_teams']}><Layout><AdminSalesTeams /></Layout></ProtectedRoute>
+      } />
+      <Route path="/my-team" element={<ProtectedRoute><Layout><SalesMyTeam /></Layout></ProtectedRoute>} />
+      <Route path="/my-team/member/:userId" element={<ProtectedRoute><Layout><SalesMemberDay /></Layout></ProtectedRoute>} />
+      <Route path="/my-day" element={<ProtectedRoute><Layout><SalesMemberDay /></Layout></ProtectedRoute>} />
+      <Route path="/lead-report" element={<ProtectedRoute><Layout><SalesLeadReport /></Layout></ProtectedRoute>} />
+      <Route path="/admin/referrals" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_referrals']}><Layout><AdminReferrals /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/lms-demo" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_lms_demo']}><Layout><AdminLmsDemo /></Layout></ProtectedRoute>
+      } />
+      {/* Opens for whoever holds manage_job_openings — a permission only a super admin can give a role. */}
+      <Route path="/admin/passport/job-openings" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_job_openings']}><Layout><PassportAdminJobOpenings /></Layout></ProtectedRoute>
+      } />
+      {/* CareerPilot Limits: mock interview and Thinking Lab limits for every institute. A super admin, or a role they gave manage_careerpilot_limits. */}
+      <Route path="/admin/passport/limits" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_careerpilot_limits']}><Layout><PassportAdminPlatformLimits /></Layout></ProtectedRoute>
+      } />
+      {/* Demo plans: what a demo account shows, year by year. A super admin, or a role they gave manage_demo_accounts. */}
+      <Route path="/admin/passport/demo-plans" element={
+        <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_demo_accounts']}><Layout><PassportAdminDemoPlans /></Layout></ProtectedRoute>
+      } />
+      {/* Trial plans: a few days of limited access, given to chosen students from Members. */}
+      <Route path="/admin/passport/trial-plans" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']} requiredPermissions={['manage_passport', 'manage_passport_members']}><Layout><PassportAdminTrialPlans /></Layout></ProtectedRoute>
       } />
       {/* Why THIS member got THESE missions. The endpoint existed with no screen calling
           it, so the only way to answer that question was a database query. */}
+      {/* One member's full picture: setup, membership, payments, Skill DNA, readiness, roadmap, activity. */}
+      <Route path="/admin/passport/students/:studentId" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminMemberProfile /></Layout></ProtectedRoute>
+      } />
       <Route path="/admin/passport/students/:studentId/roadmap" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudentRoadmap /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/analytics" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAnalytics /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_members']}><Layout><PassportAdminAnalytics /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/companies" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCompanies /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportAdminCompanies /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/news" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminNews /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_setup']}><Layout><PassportAdminNews /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/passport/xp-rewards" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_setup']}><Layout><PassportAdminXpRewards /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/coins" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCoins /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_setup']}><Layout><PassportAdminCoins /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/funnel" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminFunnel /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_funnel']}><Layout><PassportAdminFunnel /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/curriculum" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCurriculum /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportAdminCurriculum /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/pathways" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminPathways /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_pathways']}><Layout><PassportAdminPathways /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/pathway-rules" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminPathwayRules /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_pathways']}><Layout><PassportAdminPathwayRules /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/career-roles" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCareerRoles /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_career_map']}><Layout><PassportAdminCareerRoles /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/skills" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminSkillGraph /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_career_map']}><Layout><PassportAdminSkillGraph /></Layout></ProtectedRoute>
       } />
       {/* What a student with NO chosen role is measured against. The role blueprint
           answered that for everyone else; a first-year who says "not sure" had no list. */}
@@ -673,7 +840,7 @@ const AppRoutes: React.FC = () => {
           Sits beside Concept Bank rather than replacing it — the bank owns the material,
           this owns the sequence. */}
       <Route path="/admin/passport/learning-studio" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportLearningStudio /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportLearningStudio /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/learning-studio/:skillKey" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportLearningUnit /></Layout></ProtectedRoute>
@@ -682,53 +849,59 @@ const AppRoutes: React.FC = () => {
           Learning Studio in the sidebar and in the workflow, because a unit resolves its bundle
           from published content rather than holding any. */}
       <Route path="/admin/passport/mega-curriculum" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportMegaCurriculum /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportMegaCurriculum /></Layout></ProtectedRoute>
       } />
       {/* What people actually did, in order, including the visits that never became an
           account. Separate from /admin/logs, which answers "what went wrong for this
           student" and needs a student to answer it at all. */}
+      <Route path="/admin/passport/journey" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_funnel']}><Layout><PassportAdminJourney /></Layout></ProtectedRoute>
+      } />
       <Route path="/admin/passport/activity" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminActivity /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_members']}><Layout><PassportAdminActivity /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/stage-skills" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminStageSkills /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_career_map']}><Layout><PassportAdminStageSkills /></Layout></ProtectedRoute>
       } />
       {/* One stage, whole: modules, topics, the skills each teaches, and the questions behind
           them. Joins what the curriculum teaches to what the stage can actually measure. */}
       <Route path="/admin/passport/stage-curriculum" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminStageCurriculum /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_career_map']}><Layout><PassportAdminStageCurriculum /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/role-blueprints" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminRoleBlueprint /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_career_map']}><Layout><PassportAdminRoleBlueprint /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/skill-evidence" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminSkillEvidence /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_career_map']}><Layout><PassportAdminSkillEvidence /></Layout></ProtectedRoute>
       } />
       {/* AI drafts questions; a person approves them. Nothing reaches a student unreviewed. */}
       <Route path="/admin/passport/question-drafts" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminQuestionDrafts /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_assessment']}><Layout><PassportAdminQuestionDrafts /></Layout></ProtectedRoute>
       } />
       {/* The approved bank. Drafting shows only what is still pending, so before this there
           was no screen that could reach a question once it had been approved. */}
       {/* Roadmap V2: who is on it, the daily study time, and each topic's priority. */}
       <Route path="/admin/passport/roadmap-v2" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminRoadmapV2 /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportAdminRoadmapV2 /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/passport/career-tracks" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCareerTracks /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/question-bank" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminQuestionBank /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_assessment']}><Layout><PassportAdminQuestionBank /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/assessment-preview" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAssessmentPreview /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_assessment']}><Layout><PassportAdminAssessmentPreview /></Layout></ProtectedRoute>
       } />
       {/* Paper shape per stage — question count, skills covered, difficulty mix, timer. */}
       <Route path="/admin/passport/assessment-shape" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAssessmentShape /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_assessment']}><Layout><PassportAdminAssessmentShape /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/assessment" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAssessment /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_assessment']}><Layout><PassportAdminAssessment /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/missions" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminMissions /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_pathways']}><Layout><PassportAdminMissions /></Layout></ProtectedRoute>
       } />
       {/* Student Passport surfaces — deliberately NOT the LMS Layout (separate product) */}
       {/* Layout route: MemberShell mounts ONCE here and only <Outlet/> swaps, so the
@@ -758,6 +931,9 @@ const AppRoutes: React.FC = () => {
         {/* A checkpoint's results, shown in the CareerPilot shell so a member finishing a quiz from
             their day is not dropped into the LMS. The same page as /quiz/:quizId/results/:attemptId. */}
         <Route path="/careerpilot/quiz/:quizId/results/:attemptId" element={<QuizResultsPage />} />
+        {/* An assignment's result, in the CareerPilot shell: a member finishing a project from their
+            roadmap day is not dropped into the LMS portal. The same page as /assignments/:id/result. */}
+        <Route path="/careerpilot/assignments/:assignmentId/result" element={<AssignmentResult />} />
         {/* Interview Experiences — the same pages as the LMS, inside the member shell. */}
         <Route path="/careerpilot/question-books" element={<QuestionBooksLibrary />} />
         <Route path="/careerpilot/question-books/cheat-sheet" element={<QuestionBookCheatSheet />} />
@@ -794,9 +970,13 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/playground" element={<CodePlayground />} />
         <Route path="/careerpilot/visualizer" element={<CodeVisualizer />} />
         <Route path="/careerpilot/visualizer/:slug" element={<CodeVisualizerWorkspace />} />
-        <Route path="/careerpilot/progress" element={<PassportGamification />} />
+        {/* My Progress is part of My Dashboard; an old link or bookmark lands there. */}
+        <Route path="/careerpilot/progress" element={<Navigate to="/careerpilot" replace />} />
         {/* Coins buy rewards; XP never does. */}
         <Route path="/careerpilot/rewards" element={<PassportRewards />} />
+        {/* Announced in the rail, not built yet: each says what is coming and where to practise meanwhile. */}
+        <Route path="/careerpilot/aptitude" element={<AptitudeSoon />} />
+        <Route path="/careerpilot/reasoning" element={<ReasoningSoon />} />
         <Route path="/passport/roadmap" element={<LegacyRedirect to="/careerpilot/roadmap" />} />
         {/*
           Built-ins ONLY. Left on the default 'all', this listed the admin-authored bank as
@@ -843,7 +1023,8 @@ const AppRoutes: React.FC = () => {
             analytics and leaderboard — inside the member shell. Practice is a separate list
             (/careerpilot/practice); this is the one-problem-a-day lab, served to members from
             the CareerPilot bank in curriculum order. */}
-        <Route path="/careerpilot/thinking-lab" element={<ThinkingLab variant="careerpilot" />} />
+        {/* Members get the daily set from the shared bank; the LMS keeps its own Thinking Lab at /thinking-lab. */}
+        <Route path="/careerpilot/thinking-lab" element={<MemberThinkingLab />} />
         <Route path="/passport/practice/:id" element={<LegacyRedirect to="/careerpilot/practice/:id" />} />
         <Route path="/careerpilot/interview" element={<PassportInterview />} />
         <Route path="/passport/interview" element={<LegacyRedirect to="/careerpilot/interview" />} />
@@ -856,6 +1037,14 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/leaderboard" element={<PassportLeaderboard />} />
         <Route path="/careerpilot/achievements" element={<PassportAchievements />} />
         <Route path="/careerpilot/news" element={<PassportNews />} />
+        <Route path="/careerpilot/industry-connect" element={<PassportIndustryConnect />} />
+        <Route path="/careerpilot/support" element={<MemberSupportHome />} />
+        <Route path="/careerpilot/support/new" element={<MemberSupportNew />} />
+        <Route path="/careerpilot/support/tickets" element={<MemberSupportTickets />} />
+        <Route path="/careerpilot/support/tickets/:id" element={<MemberSupportTicket />} />
+        <Route path="/careerpilot/support/articles/:id" element={<MemberSupportArticle />} />
+        <Route path="/careerpilot/support/browse" element={<MemberSupportBrowse />} />
+        <Route path="/careerpilot/support/assistant" element={<MemberSupportAssistant />} />
         <Route path="/careerpilot/companies" element={<PassportCompanies />} />
         <Route path="/careerpilot/companies/:slug" element={<PassportCompanies />} />
         <Route path="/careerpilot/mock-test/:id" element={<PassportMockTest />} />
@@ -865,12 +1054,12 @@ const AppRoutes: React.FC = () => {
       </Route>
       {/* The welcome every new member meets before Day 1. Outside the programme's length. */}
       <Route path="/admin/passport/orientation" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminOrientation /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportAdminOrientation /></Layout></ProtectedRoute>
       } />
 
       {/* The day-by-day authoring screen: curriculum on the left, the member's day on the right. */}
       <Route path="/admin/passport/content-builder" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportContentBuilder /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportContentBuilder /></Layout></ProtectedRoute>
       } />
 
       <Route
@@ -971,11 +1160,41 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
+        path="/my-project"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT']}>
+            <Layout>
+              <MyProject />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/project-studio"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <ProjectStudioAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/my-practice"
         element={
           <ProtectedRoute requiredRoles={['STUDENT']}>
             <Layout>
               <MyPractice />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/problem-bundles"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ProblemBundles />
             </Layout>
           </ProtectedRoute>
         }
@@ -1046,6 +1265,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <ProblemBank />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* The shared Thinking Lab question bank: a super admin, or a role they gave manage_thinking_bank. */}
+      <Route
+        path="/problem-bank/thinking"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN']} requiredPermissions={['manage_thinking_bank']}>
+            <Layout>
+              <ThinkingBank />
             </Layout>
           </ProtectedRoute>
         }
@@ -1142,7 +1372,7 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
-              <AIMentor />
+              <AIMentor variant="lms" />
             </Layout>
           </ProtectedRoute>
         }
@@ -1248,7 +1478,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/admin/communication-lab"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']} requiredPermissions={['manage_communication_lab', 'view_communication_progress']}>
             <Layout>
               <CommunicationLabAdmin />
             </Layout>
@@ -1404,6 +1634,41 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/student-rules"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_student_rules', 'manage_tenant_settings', 'manage_tenant']}>
+            <Layout>
+              <StudentRulesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/agreements"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_agreements', 'manage_student_rules', 'manage_tenant_settings', 'manage_tenant']}>
+            <Layout>
+              <AgreementsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Full-screen QR for the classroom TV / trainer laptop — no sidebar */}
+      <Route
+        path="/attendance/qr-screen"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR', 'STAFF']} requiredPermissions={['mark_attendance', 'manage_student_rules']}>
+            <AttendanceQrScreen />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Where the phone camera opens after scanning; handles "not logged in" itself */}
+      <Route path="/attendance/check-in" element={<AttendanceCheckIn />} />
 
       <Route
         path="/my-attendance"
@@ -1567,6 +1832,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <EventApiEditor />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/callyzer"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <CallyzerSettings />
             </Layout>
           </ProtectedRoute>
         }
@@ -1917,6 +2192,19 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      {/* Question pools: reusable shortlists of bank questions that pool exams draw from. */}
+      <Route
+        path="/admin/assignments/:id/exam-results"
+        element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}><Layout><ExamResults /></Layout></ProtectedRoute>}
+      />
+      <Route
+        path="/admin/assignments/pools"
+        element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}><Layout><QuestionPools /></Layout></ProtectedRoute>}
+      />
+      <Route
+        path="/admin/assignments/pools/:id"
+        element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}><Layout><QuestionPoolEditor /></Layout></ProtectedRoute>}
+      />
 
       {/* Assignment Routes - Student */}
       <Route
@@ -1930,6 +2218,22 @@ const AppRoutes: React.FC = () => {
             </FeatureRoute>
           </ProtectedRoute>
         }
+      />
+      {/* The workspace, opened from a CareerPilot roadmap day. Full screen like the LMS one, but not
+          behind the LMS "assignments" student feature (which would send a member to the LMS
+          dashboard), and its exits lead back to the day. */}
+      <Route
+        path="/careerpilot/assignments/:assignmentId/workspace"
+        element={<ProtectedRoute><AssignmentWorkspace /></ProtectedRoute>}
+      />
+      {/* Pool exams: the lobby inside the app, the exam room full screen. */}
+      <Route
+        path="/exams/:assignmentId"
+        element={<ProtectedRoute><FeatureRoute feature="assignments"><Layout><ExamLobby /></Layout></FeatureRoute></ProtectedRoute>}
+      />
+      <Route
+        path="/exams/:assignmentId/attempt/:attemptId"
+        element={<ProtectedRoute><FeatureRoute feature="assignments"><ExamRoom /></FeatureRoute></ProtectedRoute>}
       />
       <Route
         path="/assignments/:assignmentId/workspace"
@@ -1954,7 +2258,7 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route path="/" element={<HomeRedirect />} />
 
       {/* ── Resume Builder (Student) ─── */}
       <Route
@@ -1985,6 +2289,49 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <CareerProfileAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Talent Pool (Admin) — share candidates with placement offices ─── */}
+      <Route
+        path="/talent-pool"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_talent_pool', 'view_talent_pool']}>
+            <Layout>
+              <TalentPool />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* ── Talent Portal — a placement office login's only page (no LMS layout) ─── */}
+      <Route
+        path="/talent-portal"
+        element={
+          <ProtectedRoute requiredRoles={['PLACEMENT_PARTNER']}>
+            <TalentPortal />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Placement Desk (Admin) — daily company / drive / outcome register ─── */}
+      <Route
+        path="/placement-desk"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout>
+              <PlacementDesk />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/placement-desk/drives/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout>
+              <PlacementDeskDrive />
             </Layout>
           </ProtectedRoute>
         }
@@ -2160,7 +2507,7 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
-              <LeadsPage />
+              <LeadDashboardPage />
             </Layout>
           </ProtectedRoute>
         }
@@ -2266,6 +2613,16 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
+        path="/meta-sync"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <MetaSyncPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/lead-scoring-settings"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
@@ -2276,15 +2633,38 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
-        path="/lead-distribution-settings"
+        path="/lead-assignment-settings"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
-              <LeadDistributionSettingsPage />
+              <LeadAssignmentSettingsPage />
             </Layout>
           </ProtectedRoute>
         }
       />
+      {/* Workflow Builder: WhatsApp / lead automations (2026-11-17). */}
+      <Route
+        path="/workflows"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <WorkflowsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workflows/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <WorkflowBuilderPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* Lead Distribution was merged into Lead Assignment (2026-11-09). */}
+      <Route path="/lead-distribution-settings" element={<Navigate to="/lead-assignment-settings" replace />} />
       <Route
         path="/ai-call-config"
         element={
@@ -2351,6 +2731,39 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
               <FollowUpCalendarPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/lead-list" element={<Navigate to="/leads" replace />} />
+      <Route path="/lead-dashboard" element={<Navigate to="/leads" replace />}
+      />
+      <Route
+        path="/lead-automation"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <LeadAutomationPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admissions-dashboard"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <AdmissionsDashboardPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/follow-up-queue"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <FollowUpQueuePage />
             </Layout>
           </ProtectedRoute>
         }
@@ -2651,6 +3064,63 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      {/* Help & Support desk. The server decides who sees which tickets (routes/supportRoutes.ts). */}
+      <Route
+        path="/admin/support"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
+            <Layout><AdminSupportDesk /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/dashboard"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
+            <Layout><AdminSupportDashboard /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/errors"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
+            <Layout><AdminSupportErrors /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/errors/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
+            <Layout><AdminSupportErrorDetail /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/settings"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
+            <Layout><AdminSupportSettings /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/faqs"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
+            <Layout><AdminSupportFaqs /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/tickets/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']} requiredPermissions={SUPPORT_PERMS}>
+            <Layout><AdminSupportTicketPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/my-learning/:enrollmentId/day/:day"
         element={
@@ -2690,11 +3160,16 @@ const App: React.FC = () => {
           <TenantModulesProvider>
             <BatchModulesProvider>
             <SocketProvider>
+              <ProfileGateProvider>
               <BrowserRouter>
                 <HotLeadToast />
+                <LeadAssignedAlert />
+                <CallOutcomePrompt />
                 <AppRoutes />
                 <AdminLogGate />
+                <CelebrationHost />
               </BrowserRouter>
+              </ProfileGateProvider>
             </SocketProvider>
             </BatchModulesProvider>
           </TenantModulesProvider>

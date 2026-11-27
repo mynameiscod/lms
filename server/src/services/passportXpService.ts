@@ -3,6 +3,7 @@
 // doc, so streak + XP stay one number across the whole product.
 
 import PassportProgress, { IPassportProgress } from '../models/PassportProgress';
+import { LEGACY_XP_EVENT_KEYS } from '../data/legacyXpPolicy';
 import { ymd } from './passportMissionService';
 
 export async function getOrCreateProgress(
@@ -31,8 +32,10 @@ export function addXp(
   progress.xp += gain;
   if (gain > 0) {
     if (!progress.xpLog) progress.xpLog = [] as any;
-    progress.xpLog.push({ at: now, amount: gain, source });
+    progress.xpLog.push({ at: now, amount: gain, source: source in LEGACY_XP_EVENT_KEYS ? source : 'other' });
     if (progress.xpLog.length > 400) progress.xpLog = progress.xpLog.slice(-400);
+    // Written to the XP ledger when the doc is saved (PassportProgress post-save).
+    if (progress.$locals) progress.$locals.queuedLegacyXp = (Number(progress.$locals.queuedLegacyXp) || 0) + 1;
   }
   if (!bumpStreak) return;
   const today = ymd(now);
@@ -75,4 +78,15 @@ export function completeMissionOnce(
   progress.completed.push({ day, key, at: now, ...(answer ? { answer } : {}) });
   addXp(progress, xp || DEFAULT_MISSION_XP, true, now, 'mission');
   return true;
+}
+
+/**
+ * The streak as it stands TODAY. The stored count only moves when XP is earned, so a member who
+ * stopped three days ago still had "3" saved — and saw a 3-day streak beside an empty week of
+ * dots. It is live only if their last active day is today or yesterday; otherwise it is 0.
+ */
+export function liveStreak(progress: Pick<IPassportProgress, 'streak' | 'lastCompletedDate'>, now = new Date()): number {
+  const today = ymd(now);
+  const yesterday = ymd(new Date(now.getTime() - 86400000));
+  return progress.lastCompletedDate === today || progress.lastCompletedDate === yesterday ? (progress.streak || 0) : 0;
 }

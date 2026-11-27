@@ -78,6 +78,36 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     help: 'Sent at 7 PM IST to students who have not finished today’s practice tasks. Only sent when a template is assigned here. Keep it UTILITY: a missed-practice reminder is transactional.',
   },
   {
+    key: 'INACTIVITY_STUDENT', label: 'Inactivity — nudge to the student', module: 'Student Rules',
+    settingsKey: 'WHATSAPP_TEMPLATE_INACTIVITY_STUDENT',
+    variables: ['Student first name', 'Days since they last opened the LMS (e.g. 2)', 'Last active date (e.g. 21 Nov 2026)'],
+    help: 'Sent in the morning (Student Rules → Inactivity alerts) to a student who has not opened the LMS for the set number of days. Once per spell of inactivity. Keep it UTILITY.',
+  },
+  {
+    key: 'INACTIVITY_TRAINER', label: 'Inactivity — daily list to the trainer', module: 'Student Rules',
+    settingsKey: 'WHATSAPP_TEMPLATE_INACTIVITY_TRAINER',
+    variables: ['Trainer first name', 'Batch name(s)', 'Number of inactive students', 'Names with days (e.g. "Ravi (3d), Priya (4d)")'],
+    help: 'ONE message per trainer, listing the students of their batches who just crossed the trainer threshold. Keep it UTILITY.',
+  },
+  {
+    key: 'INACTIVITY_PARENT', label: 'Inactivity — alert to the parent', module: 'Student Rules',
+    settingsKey: 'WHATSAPP_TEMPLATE_INACTIVITY_PARENT',
+    variables: ['Parent name (or "Parent")', 'Student name', 'Days since they last opened the LMS', 'Last active date (e.g. 21 Nov 2026)'],
+    help: 'Sent to the parent / guardian mobile on the student’s profile once the parent threshold is crossed. Keep it UTILITY and polite.',
+  },
+  {
+    key: 'ACCESS_ENDING', label: 'LMS access — ending soon (to the student)', module: 'Student Rules',
+    settingsKey: 'WHATSAPP_TEMPLATE_ACCESS_ENDING',
+    variables: ['Student first name', 'Access end date (e.g. 12 Dec 2026)', 'Days left (e.g. 15)'],
+    help: 'Sent once per end date, the set number of days before a student’s LMS access ends (Student Rules → Access). Off until switched on there AND a template is assigned here. Keep it UTILITY.',
+  },
+  {
+    key: 'COMMUNICATION_REMINDER', label: 'Communication Coach — daily reminder', module: 'Communication Lab',
+    settingsKey: 'WHATSAPP_TEMPLATE_COMMUNICATION_REMINDER',
+    variables: ['Student first name', 'Where they are (e.g. "Today: 0 of 3 recordings done")'],
+    help: 'Sent at 6 PM IST (not Sundays) to students who have not done a Communication Coach recording today. Only sent when a template is assigned here, so nothing is spent until you assign one. Keep it UTILITY: a practice reminder is transactional. The in-app reminder is always sent, free.',
+  },
+  {
     key: 'WEEKLY_REPORT', label: 'Weekly learning report', module: 'Reports',
     settingsKey: 'WHATSAPP_TEMPLATE_WEEKLY_REPORT',
     variables: ['Student first name', 'Week (e.g. 22–27 Sep)', 'Practice days (e.g. 4 of 6)', 'Practice attendance (e.g. 72%)', 'Overall score (e.g. 68/100)'],
@@ -136,6 +166,24 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     settingsKey: 'WHATSAPP_TEMPLATE_LIVE_CLASS_REMINDER',
     variables: ['Invitee first name', 'Class title', 'Date and time (IST)', 'Join link'],
     help: 'Sent about 15 minutes before a live class starts, to everyone invited. Same four variables as the invitation. Keep it UTILITY.',
+  },
+  {
+    key: 'DEMO_BOOKED', label: 'Book a demo — booking confirmed', module: 'CRM: Book a demo',
+    settingsKey: 'WHATSAPP_TEMPLATE_DEMO_BOOKED',
+    variables: ['Visitor first name', 'Demo title', 'Date and time (IST)', 'Their booking link'],
+    help: 'Sent when someone books a demo from the website. Keep it UTILITY, e.g. "Hi {{1}}, your free demo {{2}} is booked for {{3}} IST. Join, reschedule or cancel here: {{4}}". The link is personal and works without logging in.',
+  },
+  {
+    key: 'DEMO_REMINDER', label: 'Book a demo — reminder', module: 'CRM: Book a demo',
+    settingsKey: 'WHATSAPP_TEMPLATE_DEMO_REMINDER',
+    variables: ['Visitor first name', 'Demo title', 'Date and time (IST)', 'Their booking link'],
+    help: 'Sent 1 day and 1 hour before the demo. Same four variables as the confirmation. Keep it UTILITY.',
+  },
+  {
+    key: 'DEMO_UPDATE', label: 'Book a demo — moved, cancelled or missed', module: 'CRM: Book a demo',
+    settingsKey: 'WHATSAPP_TEMPLATE_DEMO_UPDATE',
+    variables: ['Visitor first name', 'What happened (e.g. "Your demo Java Full Stack on Thu 27 Nov, 7 pm was cancelled")', 'Link to their booking or to pick another slot'],
+    help: 'Sent when the institute moves or cancels a demo, or the visitor missed it. Keep it UTILITY, e.g. "Hi {{1}}, {{2}}. Pick a time that suits you here: {{3}}".',
   },
   {
     key: 'PLACEMENT_AGREEMENT_SENT', label: 'Placement Program — agreement to sign', module: 'Placement Program',

@@ -586,10 +586,13 @@ class AssignmentController {
       let averageScore = 0;
       
       try {
-        totalSubmissions = await Submission.countDocuments({ tenant: tenantObjectId, status: 'submitted' });
+        const { lmsDemoUserIds } = await import('../services/lmsDemoService');
+        const demoIds = await lmsDemoUserIds();
+        const notDemo = demoIds.length ? { student: { $nin: demoIds } } : {};
+        totalSubmissions = await Submission.countDocuments({ tenant: tenantObjectId, status: 'submitted', ...notDemo });
         
         const scoreAgg = await Submission.aggregate([
-          { $match: { tenant: tenantObjectId, status: 'submitted', 'grading.score': { $exists: true, $ne: null } } },
+          { $match: { tenant: tenantObjectId, status: 'submitted', 'grading.score': { $exists: true, $ne: null }, ...notDemo } },
           { $group: { _id: null, avgScore: { $avg: '$grading.score' } } }
         ]);
         averageScore = scoreAgg[0]?.avgScore || 0;
@@ -752,7 +755,8 @@ class AssignmentController {
       const students = await User.find({ 
         tenantId: tenantObjectId, 
         role: 'STUDENT',
-        isActive: true 
+        isActive: true,
+        'lmsDemo.at': { $exists: false }, // LMS demo students are not in the institute's reports
       }).select('firstName lastName email').lean();
 
       // Get published assignments count
@@ -815,32 +819,37 @@ class AssignmentController {
 
   // ==================== COMPLETION / STATUS REPORTS ====================
 
-  // Resolve the target STUDENT docs for an assignment, honouring its access mode
-  // (everyone / batch_wise / individual / legacy batch) and optionally intersecting
-  // with a specific batch being viewed. Returns [] if the assignment isn't for that batch.
+  // Resolve the target STUDENT docs for an assignment: the students it was actually given to —
+  // its batches (batch_wise or a legacy `batch`), its chosen students, and every active
+  // Assign-to-Batches schedule — optionally narrowed to the batch being viewed. An assignment
+  // given to nobody has no targets: "everyone" no longer means the whole institute, so a
+  // report never counts (and Remind never emails) students it was not assigned to.
   private async resolveTargetStudents(tenantObjectId: any, assignment: any, batchFilter?: string): Promise<any[]> {
     const User = require('../models/User').default;
-    const q: any = { tenantId: tenantObjectId, role: 'STUDENT', isActive: true };
-    const accessibleTo = assignment.accessibleTo || (assignment.batch ? 'batch_wise' : 'everyone');
-    const bf = batchFilter ? String(batchFilter) : '';
+    const AssessmentSchedule = require('../models/AssessmentSchedule').default;
+    const batchIds = new Set<string>();
+    const studentIds = new Set<string>();
+    const accessibleTo = assignment.accessibleTo;
+    if (accessibleTo === 'batch_wise') (assignment.selectedBatches || []).forEach((b: any) => batchIds.add(String(b)));
+    if (accessibleTo === 'individual') (assignment.selectedStudents || []).forEach((s: any) => studentIds.add(String(s)));
+    if (!accessibleTo && assignment.batch) batchIds.add(String(assignment.batch));
+    // Schedules keep tenantId as a string.
+    const schedules = await AssessmentSchedule.find({ tenantId: String(tenantObjectId), contentType: 'assignment', contentId: assignment._id, status: 'active' })
+      .select('batchId studentIds').lean();
+    for (const s of schedules as any[]) {
+      if (s.batchId) batchIds.add(String(s.batchId));
+      (s.studentIds || []).forEach((id: any) => studentIds.add(String(id)));
+    }
 
-    if (accessibleTo === 'batch_wise' && assignment.selectedBatches?.length) {
-      const batches = assignment.selectedBatches.map(String);
-      if (bf) {
-        if (!batches.includes(bf)) return [];
-        q.batchId = new Types.ObjectId(bf);
-      } else {
-        q.batchId = { $in: assignment.selectedBatches };
-      }
-    } else if (accessibleTo === 'individual' && assignment.selectedStudents?.length) {
-      q._id = { $in: assignment.selectedStudents };
-      if (bf) q.batchId = new Types.ObjectId(bf);
-    } else if (assignment.batch) {
-      if (bf && String(assignment.batch) !== bf) return [];
-      q.batchId = assignment.batch;
-    } else {
-      // everyone
-      if (bf) q.batchId = new Types.ObjectId(bf);
+    const valid = (ids: Set<string>) => [...ids].filter((id) => Types.ObjectId.isValid(id)).map((id) => new Types.ObjectId(id));
+    const or: any[] = [];
+    if (batchIds.size) or.push({ batchId: { $in: valid(batchIds) } });
+    if (studentIds.size) or.push({ _id: { $in: valid(studentIds) } });
+    if (!or.length) return [];
+    const q: any = { tenantId: tenantObjectId, role: 'STUDENT', isActive: true, 'lmsDemo.at': { $exists: false }, $or: or };
+    if (batchFilter) {
+      if (!Types.ObjectId.isValid(String(batchFilter))) return [];
+      q.batchId = new Types.ObjectId(String(batchFilter));
     }
     return User.find(q).select('firstName lastName email batchId').lean();
   }
@@ -885,7 +894,7 @@ class AssignmentController {
         const accessibleTo = a.accessibleTo || (a.batch ? 'batch_wise' : 'everyone');
         const students = await this.resolveTargetStudents(tenantObjectId, a, batch);
         // When a batch is selected, hide assignments that aren't targeted to that batch.
-        if (batch && students.length === 0 && accessibleTo !== 'everyone') continue;
+        if (batch && students.length === 0) continue;
         const map = await this.statusByStudent(tenantObjectId, a._id, students.map((s: any) => s._id));
         let completed = 0, inProgress = 0;
         map.forEach((st) => { if (st === 'completed') completed++; else if (st === 'in_progress') inProgress++; });

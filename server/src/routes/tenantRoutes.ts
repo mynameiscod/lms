@@ -17,6 +17,7 @@ import {
   updateTenantModules
 } from '../controllers/tenantController';
 import { authMiddleware } from '../middleware/auth';
+import { superAdminOnly, getContentAccess, savePracticeAccess, listSharedProblems } from '../controllers/contentAccessController';
 import { roleGuard } from '../middleware/roleGuard';
 
 const router = express.Router();
@@ -35,6 +36,12 @@ const ownTenant = (req: any, res: any, next: any) =>
 router.get('/', authMiddleware, roleGuard(['manage_tenants']), listTenants);
 
 router.post('/', authMiddleware, roleGuard(['manage_tenants']), createTenant);
+
+// SUPER_ADMIN only: which of the shared content each institute may use (Tenant Management →
+// Content access). Registered before '/:tenantId' so 'content-access' is never read as an id.
+router.get('/content-access/problems', authMiddleware, superAdminOnly, listSharedProblems);
+router.get('/:tenantId/content-access', authMiddleware, superAdminOnly, getContentAccess);
+router.put('/:tenantId/content-access/practice', authMiddleware, superAdminOnly, savePracticeAccess);
 router.get('/:tenantId', authMiddleware, ownTenant, getTenant);
 router.patch('/:tenantId', authMiddleware, roleGuard(['manage_tenants']), updateTenant);
 router.get('/:tenantId/invite-link', authMiddleware, ownTenant, generateInviteLink);

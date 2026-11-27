@@ -1,6 +1,7 @@
 import { getAnthropic, isAnthropicEnabled } from './aiClients';
 import { aiComplete } from './aiGateway';
 import * as settings from './settingsService';
+import { STUDENT_FEEDBACK_STYLE } from '../data/feedbackStyle';
 
 /**
  * Interview AI brain — the real LLM layer behind the structured Interview Module.
@@ -582,6 +583,9 @@ export async function evaluateTranscript(input: {
     '- Base the better answer on THEIR real background from the transcript. Never invent experience they never claimed.',
     '- Every practice area must be a concrete action ("write out a STAR story for your college project"), not a topic name.',
     '- Score honestly. A vague or empty answer is a low score, however politely it was worded.',
+    '',
+    STUDENT_FEEDBACK_STYLE,
+    '- The better answer is the exception to "you": it is written in first person, as the student would say it.',
     '',
     'Output ONLY raw JSON, no markdown.',
   ].join('\n');

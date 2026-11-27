@@ -10,6 +10,9 @@ import { createPortal } from 'react-dom';
 import { toMobile } from './Join';
 import './careerpilot.css';
 import './careerpilotLogin.css';
+import { startActivityBeacon, trackPage, trackFailure, trackNow } from './activityBeacon';
+import { JOURNEY } from './journeyTrack';
+import { careerPilotPageName, safeNext } from '../../utils/loginPath';
 
 /**
  * Shows the verification step AS THE PAGE while the login form that started it stays mounted.
@@ -59,6 +62,11 @@ const PassportLogin: React.FC<{
 }> = ({ embedded = false, onCreateAccount }) => {
   const [params] = useSearchParams();
   const tenant = params.get('tenant') || hostTenantSlug() || 'codebegun';
+  /**
+   * The member page a signed-out visitor was sent here from (?next=, set by the route guard): the
+   * form says so, and signing in returns there. Only our own member pages are accepted.
+   */
+  const next = safeNext(params.get('next'));
 
   const [mode, setMode] = useState<'password' | 'otp'>('password');
   const [otpStep, setOtpStep] = useState(false);
@@ -76,6 +84,8 @@ const PassportLogin: React.FC<{
   const [landed, setLanded] = useState<{ onboardingCompleted?: boolean } | null>(null);
   const [msg, setMsg] = useState('');
   const [resendIn, setResendIn] = useState(25);
+
+  useEffect(() => { startActivityBeacon(); trackPage(JOURNEY.loginView, '/careerpilot/login'); }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem('loginMessage');
@@ -110,13 +120,15 @@ const PassportLogin: React.FC<{
     if (r.user) {
       localStorage.setItem('user', JSON.stringify({
         _id: r.user.id, tenantId: r.tenantId,
-        email: r.user.email, firstName: r.user.firstName, lastName: r.user.lastName, role: r.user.role,
+        email: r.user.email, firstName: r.user.firstName, lastName: r.user.lastName, role: r.user.role, product: 'careerpilot',
       }));
     }
   };
 
   const goHome = (onboardingCompleted?: boolean) => {
-    window.location.href = onboardingCompleted ? '/careerpilot' : '/careerpilot/setup';
+    trackNow(JOURNEY.loginOk, undefined, 'success');
+    // Back to the page they were trying to open; a member who has not finished setup does that first.
+    window.location.href = onboardingCompleted ? (next || '/careerpilot') : '/careerpilot/setup';
   };
 
   const land = (r: { token: string; tenantId: string; user: any; onboardingCompleted?: boolean }) => {
@@ -146,6 +158,7 @@ const PassportLogin: React.FC<{
     try { land(await passportPublicApi.loginPassword(tenant, identifier, password)); }
     catch (e: any) {
       const m = e?.response?.data;
+      trackFailure(JOURNEY.loginFailed, failureText(e, 'sign-in failed').slice(0, 140), { mode: 'password' });
       setMsg(failureText(e, 'Something went wrong signing you in. Please try again.'));
       if (m?.code === 'NO_PASSWORD') {
         setMode('otp');
@@ -161,7 +174,7 @@ const PassportLogin: React.FC<{
       const r = await passportPublicApi.loginOtp(tenant, mobile);
       setToken(r.token); setDevCode(r.otp?.devCode || ''); setOtpStep(true);
       setMsg(otpSendMessage(r.otp));
-    } catch (e: any) { setMsg(failureText(e, 'Could not send the code. Please try again.')); }
+    } catch (e: any) { trackFailure(JOURNEY.loginFailed, failureText(e, 'could not send the code').slice(0, 140), { mode: 'otp-send' }); setMsg(failureText(e, 'Could not send the code. Please try again.')); }
     setBusy(false);
   };
 
@@ -187,7 +200,7 @@ const PassportLogin: React.FC<{
         land(r);
       }
     }
-    catch (e: any) { setMsg(failureText(e, 'That code could not be verified. Please try again.')); }
+    catch (e: any) { trackFailure(JOURNEY.loginFailed, failureText(e, 'code not verified').slice(0, 140), { mode: 'otp-verify' }); setMsg(failureText(e, 'That code could not be verified. Please try again.')); }
     setBusy(false);
   };
 
@@ -329,7 +342,19 @@ const PassportLogin: React.FC<{
             </button>
           </div>
 
+          {next && !msg && (
+            <div className="cpl-msg info" role="status">
+              <i className="bi bi-lock-fill" aria-hidden="true" />
+              <span>
+                Please sign in to open <b>{careerPilotPageName(next)}</b>. You will go straight there.
+                {onCreateAccount && <> New to CareerPilot? <button type="button" className="cpl-inline-link" onClick={onCreateAccount}>Create a free account</button>.</>}
+              </span>
+            </div>
+          )}
           {msg && <div className={`cpl-msg ${sent ? 'ok' : 'err'}`}>{msg}</div>}
+          {/No CareerPilot account was found/.test(msg) && (
+            <a className="cpl-link" style={{ display: 'inline-block', margin: '6px 0 2px', fontWeight: 700 }} href={`/careerpilot/join${tenant ? `?tenant=${encodeURIComponent(tenant)}` : ''}`}>Create your free account →</a>
+          )}
 
           {mode === 'password' ? (
             <>

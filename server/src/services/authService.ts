@@ -1,13 +1,14 @@
+import { canUseLms, WRONG_DOOR_LMS } from './accountProduct';
 import jwt from 'jsonwebtoken';
+import { ALL_MODULES } from '../config/tenantModules';
 import { assertSeats } from './tenantLimits';
 import { onboardTenant } from './tenantOnboardingService';
 import mongoose from 'mongoose';
 import User, { IUser } from '../models/User';
 import Tenant from '../models/Tenant';
 import Role from '../models/Role';
-import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
+import { ROLE_PERMISSIONS, permissionsOf } from '../middleware/roleGuard';
 import { jwtSecret } from '../config/secrets';
-import { authenticateLmsCredentials } from './lmsCredentials';
 
 export class AuthService {
   async registerOrganizationFull(
@@ -44,7 +45,11 @@ export class AuthService {
       type: options?.type || 'institute',
     };
     if (options?.studentFeatures) tenantData.studentFeatures = options.studentFeatures;
-    if (options?.modules) tenantData.modules = options.modules;
+    // A new institute starts with every module OFF; the platform administrator switches on what it pays for.
+    tenantData.modules = {
+      ...Object.fromEntries(ALL_MODULES.map((k) => [k, false])),
+      ...(options?.modules || {}),
+    };
 
     const tenant = new Tenant(tenantData);
     await tenant.save();
@@ -138,7 +143,38 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<any> {
-    const { user, tenant } = await authenticateLmsCredentials(email, password);
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      throw new Error('Invalid credentials');
+    }
+
+    // Check if user account is active
+    if (!user.isActive) {
+      throw new Error('Your account has been deactivated. Please contact your administrator.');
+    }
+
+    const isValidPassword = await user.comparePassword(password);
+
+    if (!isValidPassword) {
+      throw new Error('Invalid credentials');
+    }
+
+    // CareerPilot members live in CareerPilot only. Letting one in here put the LMS in front of a member.
+    if (!canUseLms(user)) throw new Error(WRONG_DOOR_LMS);
+
+    // A student's LMS access window has ended (365 days from first joining unless an admin extended it).
+    try {
+      const life = await import('./studentLifecycleService');
+      const a = await life.accessEnded(user);
+      if (a.ended && a.until) throw new Error(life.accessEndedMessage(a.until));
+    } catch (e: any) { if (/access ended/i.test(e?.message || '')) throw e; /* lookup failed: let them in */ }
+
+    const tenant = await Tenant.findById(user.tenantId);
+    // A deactivated institute is locked out entirely (the platform administrator is not).
+    if (user.role !== 'SUPER_ADMIN' && tenant && (tenant as any).isActive === false) {
+      throw new Error('Your institute\'s account is not active. Please contact the platform administrator.');
+    }
 
     const secret = jwtSecret();
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
@@ -149,23 +185,21 @@ export class AuthService {
         id: user._id, 
         email: user.email, 
         role: user.role, 
-        tenantId: user.tenantId 
+        tenantId: user.tenantId,
+        product: 'lms'
       },
       secret as string,
       { expiresIn } as any
     );
 
     // Resolve effective permissions
-    let permissions: string[] = [];
+    // The same rule every API check uses (roleGuard.permissionsOf), so the menu never disagrees with the server.
+    const permissions: string[] = await permissionsOf({ role: user.role, customRoleId: user.customRoleId, tenantId: user.tenantId });
+    let customRoleName: string | null = null;
     if (user.customRoleId) {
-      try {
-        const customRole = await Role.findById(user.customRoleId);
-        permissions = customRole ? customRole.permissions : (ROLE_PERMISSIONS[user.role] || []);
-      } catch {
-        permissions = ROLE_PERMISSIONS[user.role] || [];
-      }
-    } else {
-      permissions = ROLE_PERMISSIONS[user.role] || [];
+      const RoleModel = (await import('../models/Role')).default;
+      const r: any = await RoleModel.findById(user.customRoleId).select('name').lean();
+      customRoleName = r?.name || null;
     }
 
     return { 
@@ -178,10 +212,12 @@ export class AuthService {
         role: user.role,
         tenantId: user.tenantId,
         customRoleId: user.customRoleId || null,
+        customRoleName,
         isActive: user.isActive,
         // Student screens (attendance, batch work) key off this. Without it a student who
         // logged in and went straight to My Attendance saw 0 classes until a page reload.
         batchId: (user as any).batchId || null,
+        product: 'lms',
         permissions
       },
       tenant 

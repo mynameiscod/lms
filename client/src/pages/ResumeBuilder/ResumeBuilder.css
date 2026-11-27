@@ -339,3 +339,13 @@
   .resume-print-area * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   @page { size: A4; margin: 0; }
 }
+
+/* Laptops render the app at zoom .75 (index.css); this page was sized for 100%. Zoom it back up. */
+@media (min-width: 1025px) { .rb-page { zoom: 1.2; } }
+
+/* Phones: a section heading keeps its full width; the Add button goes under it. */
+@media (max-width: 560px) {
+  .rb-sec-head { flex-wrap: wrap; }
+  .rb-sec-head .rb-sec-headtext { flex: 1 1 calc(100% - 52px); }
+  .rb-sec-head .rb-sec-right { margin-left: 50px; }
+}

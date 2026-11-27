@@ -1,4 +1,5 @@
 import React from 'react';
+import CareerPilotFooter from '../../components/CareerPilotFooter';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 
 // CodeBegun brand palette
@@ -296,9 +297,7 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      <footer style={{ background: '#070f2e', color: '#8b95c9', textAlign: 'center', padding: '20px', fontSize: 12.5 }}>
-        © {new Date().getFullYear()} CodeBegun · CareerPilot — From Learning to Earning
-      </footer>
+      <CareerPilotFooter variant="visitor" wrapStyle={{ maxWidth: 1160, margin: '0 auto', paddingLeft: 20, paddingRight: 20 }} />
 
       <style>{`
         .cdna-navlink:hover { color: #fff; }

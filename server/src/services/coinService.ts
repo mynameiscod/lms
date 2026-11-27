@@ -99,7 +99,7 @@ async function countInWindow(
   });
 }
 
-async function coinsEarnedThisMonth(tenantId: string, studentId: string): Promise<number> {
+export async function coinsEarnedThisMonth(tenantId: string, studentId: string): Promise<number> {
   const rows = await CoinLedger.aggregate([
     {
       $match: {

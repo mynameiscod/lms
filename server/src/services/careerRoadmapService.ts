@@ -522,7 +522,7 @@ export async function getActiveRoadmap(
     return {
       available: false,
       reason: 'NO_READINESS_DATA',
-      message: 'Your skills and role gaps are ready — generate your 90-day plan whenever you are.',
+      message: 'Your skills and role gaps are ready — generate your plan whenever you are.',
       role: { key: inputs.readiness.role.key, name: inputs.readiness.role.name },
     };
   }
@@ -590,7 +590,7 @@ export async function generateRoadmap(
       outcome: {
         available: false,
         reason: 'NO_READINESS_DATA',
-        message: 'Your skills are up to date. Build your 90-day plan whenever you are ready.',
+        message: 'Your skills are up to date. Build your plan whenever you are ready.',
       },
       created: false,
       refused: 'NO_PLAN_TO_REPLAN',

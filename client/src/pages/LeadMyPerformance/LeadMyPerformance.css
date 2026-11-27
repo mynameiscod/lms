@@ -52,7 +52,7 @@
 .perf-stage-dot { width: 10px; height: 10px; border-radius: 50%; background: #667eea; flex-shrink: 0; }
 .perf-stage-name { font-size: 0.85rem; color: #4a5568; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .perf-stage-bar-wrap { flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
-.perf-stage-bar-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 4px; transition: width 0.6s ease; min-width: 4px; }
+.perf-stage-bar-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 4px; transition: width 0.6s ease; }
 .perf-stage-count { font-weight: 700; color: #2d3748; font-size: 0.9rem; min-width: 24px; text-align: right; }
 
 .perf-recent-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }

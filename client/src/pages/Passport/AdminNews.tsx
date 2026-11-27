@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import passportApi, { AdminNewsItem, NewsDraft } from '../../api/passportApi';
+// Several shared classes (pm-btn, pm-msg and this page's own) live in the member stylesheet; import
+// it here so the page is styled the same on a fresh load as after visiting a member page.
+import './member.css';
 
 /**
  * Admin: post the daily tech news.
@@ -76,6 +79,13 @@ const AdminNews: React.FC = () => {
 
   return (
     <div>
+      <header className="cpx-head">
+        <div>
+          <span className="cpx-eyebrow">CareerPilot</span>
+          <h1>Tech News</h1>
+          <p>The daily news cards members see. Paste a link and the AI writes the card for you to check and publish.</p>
+        </div>
+      </header>
       {/* The failure mode this module actually has. */}
       {stale !== null && stale >= 48 && (
         <div className="pm-msg err" style={{ marginBottom: 14 }}>

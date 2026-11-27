@@ -3,6 +3,7 @@ import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import Lead from '../models/Lead';
+import { validCallOutcomeCodes } from '../services/leadPicklistService';
 import LeadStage from '../models/LeadStage';
 import User from '../models/User';
 import FollowUpReminder from '../models/FollowUpReminder';
@@ -15,13 +16,29 @@ import { initializeLeadStageHistory, recordStageTransition } from './leadStageHi
 import { linkLeadToCampaign } from './adCampaignController';
 import { scoreAndAssignLead } from '../services/leadScoringService';
 import { sendLeadWelcomeWhatsApp } from '../services/whatsAppWelcomeService';
-import { autoAssignLead } from '../services/leadDistributionService';
 import { pushLeadStageChange } from '../services/googleSheetSyncService';
 import { scheduleDripOnStageEntry } from '../services/whatsAppDripService';
+import { changeStage, LifecycleError, StageChangeResult, enrolledStageFor } from '../services/leadLifecycleService';
+import { isMilestone, milestoneFromLegacy } from '../config/leadMilestones';
+import { LEAD_DATE_FIELDS, LEAD_REACHED_FIELDS, dateFieldForMilestone } from '../config/leadDateBasis';
+import { onCallLogged } from '../services/leadAutomationService';
+import { listCounsellors, isCounsellor, COUNSELLOR_RULE_TEXT } from '../services/leadCounsellorService';
+
+/** GET /leads/counsellors — who can be assigned leads (Super Admin, System Admin, BDM roles). */
+export const getLeadCounsellors = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    res.json({ success: true, message: 'ok', data: await listCounsellors(String(req.tenantId)) });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to load counsellors', error: error.message });
+  }
+};
 import leadAIService from '../services/leadAIService';
 import { enqueueAICall } from '../services/aiCallQueueService';
 import AICallConfig from '../models/AICallConfig';
 import { reviveIfArchived } from '../services/leadArchiveService';
+import StaffPresence from '../models/StaffPresence';
+import { teamOverview, teamPerson } from '../services/teamActivityService';
+import { istDay, istMinuteOfDay, istRange } from '../utils/istTime';
 
 // Helper to create audit log entries
 const auditLog = async (
@@ -56,12 +73,62 @@ const emitLeadEvent = (req: AuthenticatedRequest, event: string, data: any) => {
   }
 };
 
+/**
+ * The "which ad" and "enquired again" filters, shared by the list and its counts so both agree.
+ * A lead belongs to an ad if it first came from it OR came back through it (a repeat enquiry).
+ * adId and the flag are plain strings from the query, matched exactly: never interpreted as operators.
+ */
+export const adAndReEnquiryMatch = (q: any): Record<string, any> => {
+  const out: Record<string, any> = {};
+  const adId = typeof q?.adId === 'string' ? q.adId.trim() : '';
+  if (adId.startsWith('form:')) {
+    // Leads whose ad Meta did not tell us (another ad account): grouped by the lead form they filled in.
+    out.$and = [{ 'sourceDetails.formId': adId.slice(5), 'sourceDetails.adId': { $in: [null, ''] } }];
+  } else if (adId) out.$and = [{ $or: [{ 'sourceDetails.adId': adId }, { 'reEnquiries.adId': adId }] }];
+  if (q?.reEnquiry === 'true') out.reEnquiryUnseen = true;
+  return out;
+};
+
+/** Adds extra conditions to a filter WITHOUT replacing an $and the scope filter may already carry. */
+const mergeMatch = (target: Record<string, any>, extra: Record<string, any>) => {
+  const { $and, ...rest } = extra;
+  Object.assign(target, rest);
+  if ($and) target.$and = [...(target.$and || []), ...$and];
+};
+
 // Build common filter from query params, merged with scope filter
 const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<string, any> = {}) => {
-  const { stageId, source, assignedTo, search, dateFrom, dateTo, priority, hasPendingApproval } = query;
+  const { stageId, source, assignedTo, search, dateFrom, dateTo, priority, hasPendingApproval, adId, reEnquiry, subStageId, course, campaign, followUp, reached, dateField } = query;
   // Archived leads are out of the working lists; Leads → Archive shows them.
   const filter: any = { tenantId, ...scopeFilter, archivedAt: null };
   if (stageId) filter.stageId = stageId;
+  // getLeads resolves ?milestone= into these stage ids (needs a lookup, so it is done there).
+  // Only ObjectIds the server put there count — strings arriving in the URL are ignored.
+  const serverIds = (v: any) => Array.isArray(v) && v.every((x: any) => x instanceof mongoose.Types.ObjectId);
+  if (!serverIds(query._milestoneStageIds)) delete query._milestoneStageIds;
+  if (!serverIds(query._closedStageIds)) delete query._closedStageIds;
+  if (!stageId && Array.isArray(query._milestoneStageIds)) filter.stageId = { $in: query._milestoneStageIds };
+  if (subStageId && mongoose.Types.ObjectId.isValid(String(subStageId))) filter.subStageId = subStageId;
+  // "Reached Seat Reserved" = ever got there, so leads that went on to Enrolled are included (the funnel's count).
+  const reachedPath = LEAD_REACHED_FIELDS[String(reached || '')];
+  if (reachedPath) filter[reachedPath] = { $exists: true, $ne: null };
+  const esc = (s: any) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (course) filter.courseInterest = new RegExp(esc(course), 'i');
+  // Inside $and so the search box's own $or cannot overwrite it.
+  if (campaign) mergeMatch(filter, { $and: [{ $or: [{ 'sourceDetails.campaignName': new RegExp(esc(campaign), 'i') }, { 'utmParams.campaign': new RegExp(esc(campaign), 'i') }] }] });
+  // getLeads resolves ?openOnly=1 into these (lost / enrolled stages left out).
+  if (!stageId && !query._milestoneStageIds && Array.isArray(query._closedStageIds)) filter.stageId = { $nin: query._closedStageIds };
+  if (followUp) {
+    const now = new Date();
+    // "Today" is the India calendar day, whatever timezone the server runs in.
+    const ist = new Date(now.getTime() + 330 * 60_000); ist.setUTCHours(0, 0, 0, 0);
+    const dayStart = new Date(ist.getTime() - 330 * 60_000);
+    const dayEnd = new Date(dayStart.getTime() + 86_400_000 - 1);
+    if (followUp === 'overdue') filter.nextFollowUp = { $lt: now };
+    else if (followUp === 'today') filter.nextFollowUp = { $gte: dayStart, $lte: dayEnd };
+    else if (followUp === 'upcoming') filter.nextFollowUp = { $gt: dayEnd };
+    else if (followUp === 'none') filter.nextFollowUp = null;
+  }
   if (source) filter.source = source;
   if (assignedTo) filter.assignedTo = assignedTo;
   if (priority && ['hot', 'warm', 'cold'].includes(priority)) {
@@ -70,6 +137,7 @@ const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<strin
   if (hasPendingApproval === 'true') {
     filter['pendingApproval.stageId'] = { $exists: true };
   }
+  mergeMatch(filter, adAndReEnquiryMatch(query));
   if (search) {
     const searchRegex = new RegExp(String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     filter.$or = [
@@ -80,27 +148,68 @@ const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<strin
     ];
   }
   if (dateFrom || dateTo) {
-    filter.createdAt = {};
-    if (dateFrom) filter.createdAt.$gte = new Date(String(dateFrom));
+    // What the dates mean: when the lead came in (default), or when a step happened ("Seat reserved on").
+    const datePath = LEAD_DATE_FIELDS[String(dateField || '')] || 'createdAt';
+    const range: any = {};
+    // A bare YYYY-MM-DD is an IST calendar day, the same as the Lead Dashboard counts it —
+    // otherwise "Today" in the table would run 05:30 to 05:30 IST and disagree with the cards.
+    const isDay = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
+    if (dateFrom) { const s = String(dateFrom); range.$gte = isDay(s) ? new Date(`${s}T00:00:00.000+05:30`) : new Date(s); }
     if (dateTo) {
-      const endDate = new Date(String(dateTo));
-      endDate.setHours(23, 59, 59, 999);
-      filter.createdAt.$lte = endDate;
+      const s = String(dateTo);
+      let endDate: Date;
+      if (isDay(s)) endDate = new Date(`${s}T23:59:59.999+05:30`);
+      else { endDate = new Date(s); endDate.setHours(23, 59, 59, 999); }
+      range.$lte = endDate;
     }
+    filter[datePath] = range;
   }
   return filter;
 };
 
+/**
+ * dateField=auto ("Happened in these dates"): the dates follow the step being looked at — "Reached
+ * Seat Reserved" or a stage that means Seat Reserved → when the seat was reserved; no step → created.
+ */
+async function resolveAutoDateField(query: any, tenantId: string) {
+  if (query.dateField !== 'auto') return;
+  if (LEAD_REACHED_FIELDS[String(query.reached || '')]) { query.dateField = String(query.reached); return; }
+  if (query.stageId && mongoose.Types.ObjectId.isValid(String(query.stageId))) {
+    const st = await LeadStage.findOne({ _id: query.stageId, tenantId }).select('milestone category isLostStage').lean();
+    query.dateField = st ? dateFieldForMilestone(milestoneFromLegacy(st as any)) : 'created';
+    return;
+  }
+  query.dateField = 'created';
+}
+
 // Get all leads for tenant with filters + data scope
 export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    const { page = '1', limit = '50' } = req.query;
+    const { page = '1', limit = '50', sort, dir, milestone } = req.query as Record<string, string>;
     const scopeFilter = await buildLeadScopeFilter(req);
-    const filter = buildLeadFilter(req.query, req.tenantId!, scopeFilter);
+    const query: any = { ...req.query };
+    if (milestone && isMilestone(milestone)) {
+      // Stages carrying this milestone (or, for stages saved before milestones, the one it is guessed from).
+      const all = await LeadStage.find({ tenantId: req.tenantId }).select('milestone category isLostStage').lean();
+      query._milestoneStageIds = all.filter((s: any) => milestoneFromLegacy(s) === milestone).map((s: any) => s._id);
+    } else if (req.query.openOnly === '1') {
+      const all = await LeadStage.find({ tenantId: req.tenantId }).select('milestone category isLostStage').lean();
+      query._closedStageIds = all.filter((s: any) => ['lost', 'enrolled'].includes(milestoneFromLegacy(s))).map((s: any) => s._id);
+    }
+    await resolveAutoDateField(query, String(req.tenantId));
+    const filter = buildLeadFilter(query, req.tenantId!, scopeFilter);
 
-    const pageNum = parseInt(page as string, 10);
-    const limitNum = parseInt(limit as string, 10);
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit as string, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
+    // Whitelisted sorts only. Missing values sort last for "soonest follow-up".
+    const SORTS: Record<string, string> = {
+      createdAt: 'createdAt', name: 'name', nextFollowUp: 'nextFollowUp', lastContactedAt: 'lastContactedAt',
+      stageEnteredAt: 'stageEnteredAt', priority: 'score',
+    };
+    const sortField = SORTS[sort] || 'createdAt';
+    const sortDir = dir === 'asc' ? 1 : -1;
+    const sortSpec: Record<string, 1 | -1> = { [sortField]: sortDir, _id: sortDir };
 
     const [leads, total] = await Promise.all([
       // The timeline and AI-call logs grow with every action and are not shown in the list —
@@ -108,9 +217,11 @@ export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiRespo
       Lead.find(filter)
         .select('-activities -aiCallLogs')
         .populate('stageId', 'name color order')
+        .populate('subStageId', 'name color')
+        .populate('reasonId', 'name')
         .populate('assignedTo', 'firstName lastName email')
         .populate('createdBy', 'firstName lastName')
-        .sort({ createdAt: -1 })
+        .sort(sortSpec)
         .skip(skip)
         .limit(limitNum)
         .lean(),
@@ -133,7 +244,9 @@ export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiRespo
 export const exportLeads = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const scopeFilter = await buildLeadScopeFilter(req);
-    const filter = buildLeadFilter(req.query, req.tenantId!, scopeFilter);
+    const exportQuery: any = { ...req.query };
+    await resolveAutoDateField(exportQuery, String(req.tenantId));
+    const filter = buildLeadFilter(exportQuery, req.tenantId!, scopeFilter);
 
     const leads = await Lead.find(filter)
       .populate('stageId', 'name')
@@ -348,6 +461,8 @@ export const getLeadById = async (req: AuthenticatedRequest, res: Response<ApiRe
     const scopeFilter = await buildLeadScopeFilter(req);
     const lead = await Lead.findOne({ _id: req.params.leadId, tenantId: req.tenantId, ...scopeFilter })
       .populate('stageId', 'name color order')
+      .populate('subStageId', 'name color')
+      .populate('reasonId', 'name')
       .populate('assignedTo', 'firstName lastName email')
       .populate('createdBy', 'firstName lastName')
       .populate('activities.createdBy', 'firstName lastName');
@@ -458,7 +573,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       );
     }
 
-    // Auto-score and auto-assign lead based on scoring rules
+    // Score the lead (priority + eligibility). Assignment is separate — see the Lead create hook.
     try {
       console.log(`[LEAD-CREATE] ===== SCORING START for lead ${lead._id} =====`);
       // Source and priority are what scoring turns on; the name and phone are the person.
@@ -477,10 +592,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       console.error('[LEAD-CREATE] WhatsApp welcome failed:', err)
     );
 
-    // Auto-distribute lead if tenant has distribution enabled (fire-and-forget)
-    autoAssignLead(req.tenantId!, lead._id.toString()).catch(err =>
-      console.error('[LEAD-CREATE] autoAssignLead failed:', err)
-    );
+    // Assignment: the Lead model's create hook runs the one assignment engine (leadAssignmentService).
 
     // AI Voice Qualification call — enqueue if enabled for this tenant (fire-and-forget)
     AICallConfig.findOne({ tenantId: req.tenantId, enabled: true })
@@ -539,11 +651,25 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
   }
 };
 
+/** The edit form's "interest" fields, as dotted $set keys — only known keys and values get through. */
+function interestSet(i: any): Record<string, any> {
+  if (!i || typeof i !== 'object') return {};
+  const out: Record<string, any> = {};
+  const pick = (k: string, ok: string[]) => { if (ok.includes(i[k])) out[`interests.${k}`] = i[k]; };
+  pick('mode', ['online', 'offline', 'hybrid', 'undecided']);
+  pick('urgency', ['immediate', 'soon', 'exploring']);
+  pick('affordability', ['ready', 'needs_emi', 'budget_concern', 'unknown']);
+  for (const k of ['placement', 'demoInterest', 'campusVisitInterest']) if (typeof i[k] === 'boolean') out[`interests.${k}`] = i[k];
+  if (typeof i.location === 'string') out['interests.location'] = i.location.trim().slice(0, 120);
+  if (Array.isArray(i.technologies)) out['interests.technologies'] = i.technologies.map(String).map((x: string) => x.trim()).filter(Boolean).slice(0, 20);
+  return out;
+}
+
 // Update a lead (scope-enforced)
 export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
-    const { name, email, phone, courseInterest, source, stageId, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason, customFields, priority, demoBookedAt, demoNotes } = req.body;
+    const { name, email, phone, courseInterest, source, stageId, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason, customFields, priority, demoBookedAt, demoNotes, interests, language } = req.body;
 
     const scopeFilter = await buildLeadScopeFilter(req);
 
@@ -557,8 +683,30 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 
     const oldAssignedToId = currentLead.assignedTo ? String((currentLead.assignedTo as any)._id) : null;
     const newAssignedToId = assignedTo !== undefined ? (assignedTo || null) : oldAssignedToId;
+    // A NEW owner must be a counsellor (admins or a BDM role). Keeping the current owner is always fine.
+    if (newAssignedToId && String(newAssignedToId) !== String(oldAssignedToId || '') && !(await isCounsellor(String(req.tenantId), String(newAssignedToId)))) {
+      return res.status(400).json({ success: false, message: COUNSELLOR_RULE_TEXT });
+    }
     const oldStageId = currentLead.stageId ? String(currentLead.stageId) : null;
-    const stageChanged = stageId && stageId !== oldStageId;
+    const stageChanged = stageId && String(stageId) !== oldStageId;
+
+    // A stage change from the edit form goes through the same rules as everywhere else
+    // (tenant check, reason, lost-stage approval, history). Done first so a refused move
+    // leaves the rest of the lead untouched.
+    let stagePending = false;
+    if (stageChanged) {
+      try {
+        const r = await changeStage({
+          tenantId: String(req.tenantId), leadId: String(leadId), stageId: String(stageId),
+          reasonText: notInterestedReason, actor: { id: String(req.user!.id), role: req.user!.role },
+          source: 'edit', scope: scopeFilter,
+        });
+        stagePending = r.status === 'pending_approval';
+      } catch (e: any) {
+        if (e instanceof LifecycleError) return res.status(e.status).json({ success: false, message: e.message });
+        throw e;
+      }
+    }
 
     const lead = await Lead.findOneAndUpdate(
       { _id: leadId, tenantId: req.tenantId, ...scopeFilter },
@@ -568,8 +716,9 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
         ...(phone && { phone }),
         ...(courseInterest && { courseInterest }),
         ...(source && { source }),
-        ...(stageId && { stageId }),
         ...(assignedTo !== undefined && { assignedTo: assignedTo || null }),
+        // keep the assignment record in step, so a reassign is never undone by a stale 'assignment.assignedTo'
+        ...(assignedTo !== undefined && String(assignedTo || '') !== String(oldAssignedToId || '') && { 'assignment.assignedTo': assignedTo || null, 'assignment.assignedBy': req.user!.id, 'assignment.assignedAt': new Date() }),
         ...(nextFollowUp !== undefined && { nextFollowUp: nextFollowUp || null }),
         ...(notes !== undefined && { notes }),
         ...(interestConcerns !== undefined && { interestConcerns }),
@@ -577,7 +726,9 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
         ...(customFields !== undefined && { customFields }),
         ...(priority !== undefined && { priority }),
         ...(demoBookedAt !== undefined && { demoBookedAt: demoBookedAt || null }),
-        ...(demoNotes !== undefined && { demoNotes })
+        ...(demoNotes !== undefined && { demoNotes }),
+        ...(language !== undefined && ['english', 'telugu', 'hindi'].includes(language) && { language }),
+        ...interestSet(interests),
       },
       { new: true, runValidators: true }
     )
@@ -613,140 +764,67 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       });
     }
 
-    // Log stage_change activity when stage was changed via edit form
-    if (stageChanged) {
-      const newStageDoc = await LeadStage.findById(stageId).select('name');
-      const oldStageDoc = oldStageId ? await LeadStage.findById(oldStageId).select('name') : null;
-      const actorUser = await User.findById(req.user!.id).select('firstName lastName');
-      const actorName = actorUser ? `${(actorUser as any).firstName} ${(actorUser as any).lastName}` : 'Someone';
-      await Lead.findByIdAndUpdate(leadId, {
-        $push: {
-          activities: {
-            type: 'status_change', // must match the LeadActivity enum — 'stage_change' is invalid and poisons later lead.save()
-            description: `Stage changed from "${oldStageDoc?.name || 'Unknown'}" to "${newStageDoc?.name || 'Unknown'}" by ${actorName}`,
-            createdBy: req.user!.id,
-            createdAt: new Date(),
-            metadata: { from: oldStageId, to: stageId }
-          }
-        }
-      });
-    }
-
     await auditLog(req, 'UPDATE', `Lead updated: ${lead.name}`, lead._id);
     emitLeadEvent(req, 'lead_updated', lead);
 
-    res.json({ success: true, message: 'Lead updated', data: lead });
+    res.json({
+      success: true,
+      message: stagePending ? 'Lead updated. The stage change is waiting for manager approval.' : 'Lead updated',
+      data: lead,
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to update lead', error: error.message });
   }
 };
 
-// Change lead stage (scope-enforced)
-export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
-  try {
-    const { leadId } = req.params;
-    const { stageId, notInterestedReason, reason } = req.body;
+/** Re-read a lead the way the stage endpoints return it. */
+const populateForStage = (id: any) => Lead.findById(id)
+  .populate('stageId', 'name color order')
+  .populate('subStageId', 'name color')
+  .populate('reasonId', 'name')
+  .populate('assignedTo', 'firstName lastName email')
+  .populate('createdBy', 'firstName lastName');
 
-    if (!stageId) {
-      return res.status(400).json({ success: false, message: 'stageId is required' });
-    }
-
-    // Verify stage exists
-    const newStage = await LeadStage.findOne({ _id: stageId, tenantId: req.tenantId });
-    if (!newStage) {
-      return res.status(404).json({ success: false, message: 'Stage not found' });
-    }
-
-    // Enforce mandatory reason for "Not Interested"
-    if (newStage.name === 'Not Interested' && !notInterestedReason?.trim()) {
-      return res.status(400).json({ success: false, message: 'Reason is required when marking lead as Not Interested' });
-    }
-
-    const scopeFilter = await buildLeadScopeFilter(req);
-    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).populate('stageId', 'name');
-    if (!lead) {
-      return res.status(404).json({ success: false, message: 'Lead not found' });
-    }
-
-    // Manager approval gate: non-admin users moving to a lost stage need approval
-    const userRole = req.user!.role;
-    const isAdminUser = ['TENANT_ADMIN', 'SUPER_ADMIN'].includes(userRole);
-    if ((newStage as any).isLostStage && !isAdminUser) {
-      (lead as any).pendingApproval = {
-        stageId: newStage._id,
-        stageName: newStage.name,
-        requestedBy: req.user!.id,
-        requestedAt: new Date(),
-        reason: reason?.trim() || notInterestedReason?.trim() || '',
-      };
-      await lead.save();
-
-      // Notify managers via socket
-      const io = req.app.get('io');
-      if (io) {
-        io.to(`staff_${req.tenantId}`).emit('stage_approval_requested', {
-          leadId: lead._id,
-          leadName: lead.name,
-          requestedStage: newStage.name,
-          requestedBy: req.user!.id,
-          reason: (lead as any).pendingApproval.reason,
-        });
-      }
-      return res.status(202).json({
-        success: true,
-        message: `Stage change to "${newStage.name}" requires manager approval`,
-        data: { pendingApproval: true },
+/** Send a lifecycle result (or error) the way the client expects. */
+async function respondStageChange(req: AuthenticatedRequest, res: Response, result: StageChangeResult, approvedByManager = false) {
+  const lead = result.lead;
+  if (result.status === 'pending_approval') {
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`staff_${req.tenantId}`).emit('stage_approval_requested', {
+        leadId: lead._id, leadName: lead.name, requestedStage: result.toStageName,
+        requestedBy: req.user!.id, reason: lead.pendingApproval?.reason,
       });
     }
-
-    const oldStageId = (lead.stageId as any)?._id;
-    const oldStageName = (lead.stageId as any)?.name || 'Unknown';
-    lead.stageId = newStage._id;
-    // Clear any pending approval when admin applies the stage change
-    (lead as any).pendingApproval = undefined;
-    
-    if (newStage.name === 'Not Interested') {
-      lead.notInterestedReason = (notInterestedReason || reason || '').trim();
-    }
-
-    lead.activities.push({
-      type: 'status_change',
-      description: `Stage changed from "${oldStageName}" to "${newStage.name}"`,
-      createdBy: req.user!.id as any,
-      createdAt: new Date(),
-      metadata: { from: oldStageName, to: newStage.name }
-    });
-    await lead.save();
-
-    // Record stage transition for time tracking
-    await recordStageTransition(
-      lead._id as mongoose.Types.ObjectId,
-      oldStageId,
-      newStage._id,
-      newStage.name,
-      req.user!.id as unknown as mongoose.Types.ObjectId,
-      req.tenantId as unknown as mongoose.Types.ObjectId
-    );
-
-    const populated = await Lead.findById(lead._id)
-      .populate('stageId', 'name color order')
-      .populate('assignedTo', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName');
-
-    await auditLog(req, 'STAGE_CHANGE', `Lead "${lead.name}" moved from "${oldStageName}" to "${newStage.name}"`, lead._id, { from: oldStageName, to: newStage.name });
+    return res.status(202).json({ success: true, message: `Stage change to "${result.toStageName}" requires manager approval`, data: { pendingApproval: true } });
+  }
+  const populated = await populateForStage(lead._id);
+  if (result.status === 'moved') {
+    await auditLog(req, 'STAGE_CHANGE', `Lead "${lead.name}" moved from "${result.fromStageName}" to "${result.toStageName}"${approvedByManager ? ' (manager approved)' : ''}`, lead._id, { from: result.fromStageName, to: result.toStageName });
     emitLeadEvent(req, 'lead_stage_changed', populated);
+  }
+  return res.json({ success: true, message: result.status === 'unchanged' ? 'Nothing changed' : 'Lead stage updated', data: populated });
+}
 
-    // Push stage change to Google Sheet if tenant has push-back configured
-    pushLeadStageChange(req.tenantId!, { _id: lead._id, name: lead.name, phone: (lead as any).phone, email: (lead as any).email, assignedTo: (lead as any).assignedTo?.toString() }, oldStageName, newStage.name)
-      .catch(err => console.error('[LEAD] pushLeadStageChange failed:', err));
+const stageError = (res: Response, error: any, fallback: string) =>
+  error instanceof LifecycleError
+    ? res.status(error.status).json({ success: false, message: error.message, ...(error.code ? { code: error.code } : {}) } as any)
+    : res.status(500).json({ success: false, message: fallback, error: error.message });
 
-    // P5: Schedule WhatsApp drip messages for new stage
-    scheduleDripOnStageEntry(req.tenantId!, lead._id.toString(), newStage.name)
-      .catch(err => console.error('[LEAD] scheduleDripOnStageEntry failed:', err));
-
-    res.json({ success: true, message: 'Lead stage updated', data: populated });
+// Change lead stage (scope-enforced). Body: stageId, subStageId?, reasonId?, reasonDetail?,
+// note?, nextFollowUp?, and the legacy typed reason as notInterestedReason / reason.
+export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { stageId, subStageId, reasonId, reasonDetail, note, nextFollowUp, notInterestedReason, reason } = req.body;
+    const result = await changeStage({
+      tenantId: String(req.tenantId), leadId: req.params.leadId, stageId, subStageId, reasonId,
+      reasonText: notInterestedReason || reason, reasonDetail, note, nextFollowUp,
+      actor: { id: String(req.user!.id), role: req.user!.role }, source: 'manual',
+      scope: await buildLeadScopeFilter(req),
+    });
+    return respondStageChange(req, res, result);
   } catch (error: any) {
-    res.status(500).json({ success: false, message: 'Failed to change stage', error: error.message });
+    return stageError(res, error, 'Failed to change stage');
   }
 };
 
@@ -777,56 +855,112 @@ export const approveStageChange = async (req: AuthenticatedRequest, res: Respons
       return res.json({ success: true, message: 'Stage change rejected', data: {} });
     }
 
-    // Apply the approved stage change
-    const newStage = await LeadStage.findOne({ _id: pending.stageId, tenantId: req.tenantId });
-    if (!newStage) return res.status(404).json({ success: false, message: 'Target stage no longer exists' });
-
-    const oldStageId = (lead.stageId as any)?._id;
-    const oldStageName = (lead.stageId as any)?.name || 'Unknown';
-    lead.stageId = newStage._id;
-    (lead as any).pendingApproval = undefined;
-
-    lead.activities.push({
-      type: 'status_change',
-      description: `Stage changed from "${oldStageName}" to "${newStage.name}" (approved by manager)`,
-      createdBy: req.user!.id as any,
-      createdAt: new Date(),
-      metadata: { from: oldStageName, to: newStage.name, approvedBy: req.user!.id },
+    // Apply exactly what the counsellor asked for (sub-stage, reason, note, follow-up).
+    const result = await changeStage({
+      tenantId: String(req.tenantId), leadId: String(lead._id), stageId: String(pending.stageId),
+      subStageId: pending.subStageId ? String(pending.subStageId) : undefined,
+      reasonId: pending.reasonId ? String(pending.reasonId) : undefined,
+      reasonText: pending.reasonId ? undefined : pending.reason,
+      reasonDetail: pending.reasonDetail, note: pending.note, nextFollowUp: pending.nextFollowUp,
+      actor: { id: String(req.user!.id), role: req.user!.role }, source: 'approval',
     });
-    await lead.save();
-
-    await recordStageTransition(
-      lead._id as mongoose.Types.ObjectId,
-      oldStageId,
-      newStage._id,
-      newStage.name,
-      req.user!.id as unknown as mongoose.Types.ObjectId,
-      req.tenantId as unknown as mongoose.Types.ObjectId
-    );
-
-    const populated = await Lead.findById(lead._id)
-      .populate('stageId', 'name color order')
-      .populate('assignedTo', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName');
-
-    await auditLog(req, 'STAGE_CHANGE', `Lead "${lead.name}" moved to "${newStage.name}" (manager approved)`, lead._id, { from: oldStageName, to: newStage.name });
-    emitLeadEvent(req, 'lead_stage_changed', populated);
-
-    // Push stage change to Google Sheet if tenant has push-back configured
-    pushLeadStageChange(req.tenantId!, { _id: lead._id, name: lead.name, phone: (lead as any).phone, email: (lead as any).email, assignedTo: (lead as any).assignedTo?.toString() }, oldStageName, newStage.name)
-      .catch(err => console.error('[LEAD] pushLeadStageChange (approved) failed:', err));
-
-    // P5: Schedule WhatsApp drip messages for approved stage
-    scheduleDripOnStageEntry(req.tenantId!, lead._id.toString(), newStage.name)
-      .catch(err => console.error('[LEAD] scheduleDripOnStageEntry (approved) failed:', err));
-
-    res.json({ success: true, message: `Stage change to "${newStage.name}" approved`, data: populated });
+    return respondStageChange(req, res, result, true);
   } catch (error: any) {
-    res.status(500).json({ success: false, message: 'Failed to approve stage change', error: error.message });
+    return stageError(res, error, 'Failed to approve stage change');
   }
 };
 
 // Add activity to a lead
+const OPEN_CALL_WINDOW_MS = 30 * 60 * 1000;
+const CLICK_DEDUPE_MS = 2 * 60 * 1000;
+
+/**
+ * A button press that counts as one action in Team Activity straight away (labelled as started, not as a result).
+ * A second press within two minutes is the same attempt, so a double click cannot inflate the count. Saving the
+ * outcome (call) or sending a message (WhatsApp) completes this entry instead of adding another.
+ */
+const recordClick = (type: 'call' | 'whatsapp', description: string, marker: 'dialed' | 'opened') =>
+  async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+    try {
+      const { leadId } = req.params;
+      const now = new Date();
+      const scopeFilter = await buildLeadScopeFilter(req);
+      const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).select('telecallerMetrics activities');
+      if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+
+      const mine = String(req.user!.id);
+      const recent = (lead.activities || []).some((a: any) =>
+        a.type === type && a.metadata?.[marker] === true && String(a.createdBy) === mine && now.getTime() - new Date(a.createdAt).getTime() < CLICK_DEDUPE_MS);
+      if (recent) return res.json({ success: true, message: 'Already logged', data: { logged: false } });
+
+      const $set: any = { 'telecallerMetrics.lastActionAt': now, reEnquiryUnseen: false };
+      if (!lead.telecallerMetrics?.firstActionAt) $set['telecallerMetrics.firstActionAt'] = now;
+      if (type === 'call' && !lead.telecallerMetrics?.firstCallAt) $set['telecallerMetrics.firstCallAt'] = now;
+      await Lead.updateOne({ _id: leadId, tenantId: req.tenantId }, {
+        $push: { activities: { type, description, createdBy: req.user!.id as any, createdAt: now, metadata: { [marker]: true } } },
+        $set,
+        $inc: { 'telecallerMetrics.totalActions': 1 },
+      });
+      res.json({ success: true, message: 'Logged', data: { logged: true } });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: 'Failed to log the action', error: error.message });
+    }
+  };
+
+/** POST /leads/:leadId/call-click: the Call button was pressed. */
+export const logCallClick = recordClick('call', 'Call started (dialler opened). Outcome not recorded yet.', 'dialed');
+/** POST /leads/:leadId/whatsapp-click: the WhatsApp button was pressed. */
+export const logWhatsAppClick = recordClick('whatsapp', 'WhatsApp opened. No message sent yet.', 'opened');
+
+/**
+ * POST /leads/heartbeat: the app tells us once a minute that this person is really working in it (input in the last
+ * two minutes, tab in front). One distinct minute is counted once, so repeated notes cannot inflate the time.
+ */
+export const staffHeartbeat = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    if (!req.user || (req.user as any).role === 'STUDENT') return res.json({ success: true, message: 'ignored' });
+    const now = new Date();
+    const day = istDay(now); const minute = istMinuteOfDay(now);
+    const leadId = typeof req.body?.leadId === 'string' && /^[a-f0-9]{24}$/.test(req.body.leadId) ? req.body.leadId : '';
+    const inc: any = { activeSeconds: 60 };
+    if (leadId) inc[`leadSeconds.${leadId}`] = 60;
+    try {
+      await StaffPresence.updateOne(
+        { tenantId: new mongoose.Types.ObjectId(String(req.tenantId)), userId: new mongoose.Types.ObjectId(String(req.user.id)), day, slots: { $ne: minute } },
+        { $addToSet: { slots: minute }, $inc: inc, $min: { firstSeenAt: now }, $max: { lastSeenAt: now } },
+        { upsert: true },
+      );
+    } catch (e: any) {
+      // The minute was already counted (the unique day row exists): nothing to add.
+      if (e?.code !== 11000) throw e;
+    }
+    res.json({ success: true, message: 'ok' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'heartbeat failed', error: error.message });
+  }
+};
+
+/** GET /leads/team-activity/overview?from&to: the full per-person report. */
+export const getTeamOverview = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { from, to } = req.query as any;
+    res.json({ success: true, message: 'Team overview fetched', data: await teamOverview(String(req.tenantId), from, to) });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to build the team overview', error: error.message });
+  }
+};
+
+/** GET /leads/team-activity/person?userId&date: one person's day. */
+export const getTeamPerson = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { userId, date } = req.query as any;
+    if (typeof userId !== 'string' || !/^[a-f0-9]{24}$/.test(userId)) return res.status(400).json({ success: false, message: 'userId is required' });
+    res.json({ success: true, message: 'Person day fetched', data: await teamPerson(String(req.tenantId), userId, date) });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to build the person day', error: error.message });
+  }
+};
+
 export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
@@ -841,9 +975,10 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
       return res.status(400).json({ success: false, message: `Invalid activity type. Must be one of: ${validTypes.join(', ')}` });
     }
 
-    const validCallOutcomes = ['not_answered', 'not_connected', 'busy', 'rejected', 'connected'];
-    if (type === 'call' && callOutcome && !validCallOutcomes.includes(callOutcome)) {
-      return res.status(400).json({ success: false, message: `Invalid call outcome. Must be one of: ${validCallOutcomes.join(', ')}` });
+    // Built-in outcomes plus the institute's own call-outcome list.
+    const validCallOutcomes = await validCallOutcomeCodes(String(req.tenantId));
+    if (type === 'call' && callOutcome && !validCallOutcomes.has(callOutcome)) {
+      return res.status(400).json({ success: false, message: `Invalid call outcome. Must be one of: ${[...validCallOutcomes].join(', ')}` });
     }
 
     const activityData: any = {
@@ -867,17 +1002,54 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
     const scopeFilter = await buildLeadScopeFilter(req);
 
     // Check if firstActionAt needs to be set
-    const existing = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).select('telecallerMetrics');
+    const existing = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).select('telecallerMetrics activities');
+
+    // A call the person started with the Call button (one entry already counted in Team Activity) is completed
+    // in place when they record how it went, so one call is never counted twice.
+    if (type === 'call' && existing) {
+      const mine = String(req.user!.id);
+      const since = now.getTime() - OPEN_CALL_WINDOW_MS;
+      let idx = -1;
+      (existing.activities || []).forEach((a: any, i: number) => {
+        // Also a call Callyzer already filled in from the phone with a guessed outcome: the person's answer wins.
+        const open = (a.metadata?.dialed === true && !a.callOutcome) || a.metadata?.callyzerAutoOutcome === true;
+        if (a.type === 'call' && open && String(a.createdBy) === mine && new Date(a.createdAt).getTime() >= since) idx = i;
+      });
+      if (idx >= 0) {
+        const prev: any = (existing.activities as any)[idx];
+        // Keep what Callyzer attached (its ids for the call and recording); the person's description replaces the guess.
+        const meta = { ...(prev.metadata || {}), dialed: false, startedAt: prev.metadata?.startedAt || prev.createdAt, callyzerAutoOutcome: false };
+        const $set: any = { [`activities.${idx}.description`]: description, [`activities.${idx}.metadata`]: meta, 'telecallerMetrics.lastActionAt': now, reEnquiryUnseen: false };
+        if (activityData.callOutcome) $set[`activities.${idx}.callOutcome`] = activityData.callOutcome;
+        if (activityData.callDuration !== undefined) $set[`activities.${idx}.callDuration`] = activityData.callDuration;
+        if (activityData.callStatus) $set[`activities.${idx}.callStatus`] = activityData.callStatus;
+        if (activityData.recordingUrl) $set[`activities.${idx}.recordingUrl`] = activityData.recordingUrl;
+        if (disposition) $set[`activities.${idx}.disposition`] = disposition;
+        $set.lastContactedAt = now;
+        if (activityData.callOutcome) $set.lastCallOutcome = activityData.callOutcome;
+        const done = await Lead.findOneAndUpdate({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }, { $set }, { new: true })
+          .populate('stageId', 'name color order')
+          .populate('assignedTo', 'firstName lastName email')
+          .populate('activities.createdBy', 'firstName lastName');
+        if (done) {
+          if (activityData.callOutcome) onCallLogged(String(req.tenantId), done._id, activityData.callOutcome, (existing.activities as any)[idx]._id).catch(() => {});
+          return res.json({ success: true, message: 'Activity added', data: done });
+        }
+      }
+    }
     const metricsUpdate: any = { 'telecallerMetrics.lastActionAt': now };
     if (!existing?.telecallerMetrics?.firstActionAt) {
       metricsUpdate['telecallerMetrics.firstActionAt'] = now;
     }
+    if (['call', 'whatsapp', 'email'].includes(type)) metricsUpdate.lastContactedAt = now;
+    if (type === 'call' && activityData.callOutcome) metricsUpdate.lastCallOutcome = activityData.callOutcome;
 
     const lead = await Lead.findOneAndUpdate(
       { _id: leadId, tenantId: req.tenantId, ...scopeFilter },
       {
         $push: { activities: activityData },
-        $set: metricsUpdate,
+        // Working the lead after a repeat enquiry clears the "Enquired again" flag.
+        $set: { ...metricsUpdate, ...(['call', 'note', 'whatsapp', 'email'].includes(type) ? { reEnquiryUnseen: false } : {}) },
         $inc: { 'telecallerMetrics.totalActions': 1 },
       },
       { new: true }
@@ -888,6 +1060,11 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
 
     if (!lead) {
       return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+    // Automation: schedule the next try after an unanswered call (if switched on).
+    if (type === 'call' && activityData.callOutcome) {
+      const added: any = lead.activities[lead.activities.length - 1];
+      onCallLogged(String(req.tenantId), lead._id, activityData.callOutcome, added?._id).catch(() => {});
     }
 
     res.json({ success: true, message: 'Activity added', data: lead });
@@ -932,6 +1109,7 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
       { phone: { $regex: search, $options: 'i' } },
       { email: { $regex: search, $options: 'i' } }
     ];
+    mergeMatch(baseMatch, adAndReEnquiryMatch(req.query));
     if (dateFrom || dateTo) {
       baseMatch.createdAt = {};
       if (dateFrom) baseMatch.createdAt.$gte = new Date(dateFrom);
@@ -1254,22 +1432,7 @@ export const convertToStudent = async (req: AuthenticatedRequest, res: Response<
       profileComplete: false
     });
 
-    // Update lead with converted student reference and move to "Converted" stage
-    const convertedStage = await LeadStage.findOne({ tenantId: req.tenantId, name: 'Converted' });
-    
     lead.convertedStudentId = student._id;
-    if (convertedStage) {
-      const oldStage = await LeadStage.findById(lead.stageId);
-      lead.stageId = convertedStage._id;
-      lead.activities.push({
-        type: 'status_change',
-        description: `Stage changed from "${oldStage?.name || 'Unknown'}" to "Converted"`,
-        createdBy: req.user!.id as any,
-        createdAt: new Date(),
-        metadata: { from: oldStage?.name, to: 'Converted' }
-      });
-    }
-
     lead.activities.push({
       type: 'note',
       description: `Converted to student: ${student.firstName} ${student.lastName} (${student.email})`,
@@ -1277,8 +1440,18 @@ export const convertToStudent = async (req: AuthenticatedRequest, res: Response<
       createdAt: new Date(),
       metadata: { studentId: student._id }
     });
-
     await lead.save();
+    // LMS Refer & Earn: a referred lead that becomes a student moves its referral to "joined".
+    import('../services/referralService').then((m) => m.syncForStudent(String(student._id))).catch(() => {});
+
+    // Move to the institute's "enrolled" stage (by milestone; legacy name "Converted" as fallback).
+    const enrolledStage = await enrolledStageFor(String(req.tenantId));
+    if (enrolledStage && String(enrolledStage._id) !== String(lead.stageId)) {
+      await changeStage({
+        tenantId: String(req.tenantId), leadId: String(lead._id), stageId: String(enrolledStage._id),
+        actor: { id: String(req.user!.id), role: req.user!.role }, source: 'convert',
+      }).catch(err => console.error('[LEAD] convert stage move failed:', err?.message));
+    }
 
     const populated = await Lead.findById(lead._id)
       .populate('stageId', 'name color order')
@@ -1454,16 +1627,8 @@ export const getTeamActivity = async (req: AuthenticatedRequest, res: Response<A
     const tenantOid = new mongoose.Types.ObjectId(req.tenantId as string);
     const { date, from, to } = req.query as any;
 
-    let start: Date, end: Date;
-    if (from || to) {
-      start = from ? new Date(from) : new Date(0);
-      end = to ? new Date(to) : new Date();
-      end.setHours(23, 59, 59, 999);
-    } else {
-      const d = date ? new Date(date) : new Date();
-      start = new Date(d); start.setHours(0, 0, 0, 0);
-      end = new Date(d); end.setHours(23, 59, 59, 999);
-    }
+    // Days are Indian days, whatever timezone the server runs in.
+    const { start, end } = (from || to) ? istRange(from, to) : istRange(date, date);
 
     const rows = await Lead.aggregate([
       { $match: { tenantId: tenantOid } },
@@ -1527,16 +1692,8 @@ export const getTeamActivityDetails = async (req: AuthenticatedRequest, res: Res
     const tenantOid = new mongoose.Types.ObjectId(req.tenantId as string);
     const { date, from, to, userId, type } = req.query as any;
 
-    let start: Date, end: Date;
-    if (from || to) {
-      start = from ? new Date(from) : new Date(0);
-      end = to ? new Date(to) : new Date();
-      end.setHours(23, 59, 59, 999);
-    } else {
-      const d = date ? new Date(date) : new Date();
-      start = new Date(d); start.setHours(0, 0, 0, 0);
-      end = new Date(d); end.setHours(23, 59, 59, 999);
-    }
+    // Days are Indian days, whatever timezone the server runs in.
+    const { start, end } = (from || to) ? istRange(from, to) : istRange(date, date);
 
     // Map the clicked metric to the underlying activity type(s).
     // 'total' / 'leadsTouched' => no type filter (all activities).
@@ -1664,6 +1821,203 @@ export const getTeamActivityDetails = async (req: AuthenticatedRequest, res: Res
 
 // GET /leads/sources — distinct source values actually present on leads, so the
 // All-Leads "Source" filter always lists every real source (e.g. google_sheet)
+// ===================== MILESTONE SUMMARY + FOLLOW-UP QUEUE =====================
+
+/** Stage ids of this institute grouped by milestone (stages saved before milestones are guessed). */
+async function stageIdsByMilestone(tenantId: any): Promise<Record<string, mongoose.Types.ObjectId[]>> {
+  const stages = await LeadStage.find({ tenantId }).select('milestone category isLostStage').lean();
+  const out: Record<string, mongoose.Types.ObjectId[]> = {};
+  for (const s of stages as any[]) (out[milestoneFromLegacy(s)] ||= []).push(s._id);
+  return out;
+}
+
+/**
+ * GET /leads/milestone-summary — how many (scoped, unarchived) leads sit in each milestone right
+ * now, plus follow-up and nurture counts. Same filters as the list (except stage), so the strip
+ * above the table always agrees with it.
+ */
+export const getMilestoneSummary = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const { stageId: _s, milestone: _m, followUp: _f, ...rest } = req.query as any;
+    const base = buildLeadFilter(rest, req.tenantId!, scopeFilter);
+    const byMilestone = await stageIdsByMilestone(req.tenantId);
+    const closed = [...(byMilestone.lost || []), ...(byMilestone.enrolled || [])];
+    const now = new Date();
+    const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(now); dayEnd.setHours(23, 59, 59, 999);
+    const open = { ...base, stageId: { $nin: closed } };
+
+    // countDocuments (not aggregate): Mongoose casts the string ids in the filter (tenant,
+    // assignee, scope) for queries, but not inside an aggregation $match.
+    const msKeys = Object.keys(byMilestone);
+    const [msCounts, total, overdue, dueToday, nurtureDue, unassigned, demoAttended] = await Promise.all([
+      Promise.all(msKeys.map(m => Lead.countDocuments({ ...base, stageId: { $in: byMilestone[m] } }))),
+      Lead.countDocuments(base),
+      Lead.countDocuments({ ...open, nextFollowUp: { $lt: now } }),
+      Lead.countDocuments({ ...open, nextFollowUp: { $gte: dayStart, $lte: dayEnd } }),
+      Lead.countDocuments({ ...base, 'nurture.reactivateAt': { $lte: now } }),
+      Lead.countDocuments({ ...open, assignedTo: null }),
+      Lead.countDocuments({ ...base, 'milestones.demoAttendedAt': { $exists: true } }),
+    ]);
+    const milestones: Record<string, number> = {};
+    msKeys.forEach((m, i) => { if (msCounts[i]) milestones[m] = msCounts[i]; });
+    res.json({ success: true, message: 'ok', data: { total, milestones, overdue, dueToday, nurtureDue, unassigned, demoAttended } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to load summary', error: error.message });
+  }
+};
+
+/**
+ * GET /leads/queue?tab=today|overdue|upcoming|unassigned|nurture&page=&limit=&stageId=&course=&assignedTo=&search=
+ * The follow-up queue. Returns one page of the chosen tab plus the count of every tab (same
+ * filters), so the cards and tab badges always agree with the table. "Today" is the India
+ * calendar day. Closed leads (lost / enrolled stages) are left out of every tab except nurture.
+ */
+const QUEUE_TABS = ['today', 'overdue', 'upcoming', 'unassigned', 'nurture'] as const;
+export const getFollowUpQueue = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const tab = (QUEUE_TABS as readonly string[]).includes(String(req.query.tab)) ? String(req.query.tab) : 'today';
+    const page = Math.max(1, parseInt(String(req.query.page || '1'), 10) || 1);
+    const limit = Math.min(100, Math.max(5, parseInt(String(req.query.limit || '25'), 10) || 25));
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const byMilestone = await stageIdsByMilestone(req.tenantId);
+    const closed = [...(byMilestone.lost || []), ...(byMilestone.enrolled || [])];
+    const now = new Date();
+    const ist = new Date(now.getTime() + 330 * 60_000); ist.setUTCHours(0, 0, 0, 0);
+    const dayStart = new Date(ist.getTime() - 330 * 60_000);
+    const dayEnd = new Date(dayStart.getTime() + 86_400_000 - 1);
+    const weekEnd = new Date(dayEnd.getTime() + 7 * 86_400_000);
+
+    const { stageId, course, assignedTo, search } = req.query as any;
+    const q: any = {};
+    if (stageId && mongoose.Types.ObjectId.isValid(String(stageId))) q.stageId = String(stageId);
+    if (course) q.course = String(course);
+    if (assignedTo && assignedTo !== 'unassigned' && mongoose.Types.ObjectId.isValid(String(assignedTo))) q.assignedTo = String(assignedTo);
+    if (search) q.search = String(search).slice(0, 80);
+    const base: any = buildLeadFilter(q, req.tenantId!, scopeFilter);
+    if (assignedTo === 'unassigned') base.assignedTo = null;
+    const open = (extra: any) => { const f: any = { ...base, ...extra }; mergeMatch(f, { $and: [{ stageId: { $nin: closed } }] }); return f; };
+
+    const filters: Record<string, { filter: any; sort: Record<string, 1 | -1> }> = {
+      today: { filter: open({ nextFollowUp: { $gte: dayStart, $lte: dayEnd } }), sort: { nextFollowUp: 1 } },
+      overdue: { filter: open({ nextFollowUp: { $lt: dayStart } }), sort: { nextFollowUp: 1 } },
+      upcoming: { filter: open({ nextFollowUp: { $gt: dayEnd, $lte: weekEnd } }), sort: { nextFollowUp: 1 } },
+      unassigned: { filter: open({ assignedTo: null }), sort: { createdAt: 1 } },
+      nurture: { filter: { ...base, 'nurture.reactivateAt': { $lte: new Date(now.getTime() + 7 * 86_400_000) } }, sort: { 'nurture.reactivateAt': 1 } },
+    };
+    const { filter, sort } = filters[tab];
+    const [leads, countList, courses] = await Promise.all([
+      Lead.find(filter).select('name phone email courseInterest source stageId subStageId reasonId assignedTo nextFollowUp lastContactedAt lastCallOutcome nurture createdAt priority')
+        .populate('stageId', 'name color').populate('subStageId', 'name').populate('assignedTo', 'firstName lastName')
+        .sort({ ...sort, _id: 1 }).skip((page - 1) * limit).limit(limit).lean(),
+      Promise.all(QUEUE_TABS.map(t => Lead.countDocuments(filters[t].filter))),
+      Lead.distinct('courseInterest', { tenantId: req.tenantId, archivedAt: null }),
+    ]);
+    const counts: Record<string, number> = {};
+    QUEUE_TABS.forEach((t, i) => { counts[t] = countList[i]; });
+    const total = counts[tab];
+    res.json({
+      success: true, message: 'ok',
+      data: {
+        leads, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)), counts,
+        options: { courses: (courses as any[]).filter(c => typeof c === 'string' && c.trim()).sort().slice(0, 200) },
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to load the queue', error: error.message });
+  }
+};
+
+// ===================== BULK ACTIONS =====================
+
+const BULK_MAX = 500;
+function bulkIds(body: any): string[] | null {
+  const ids = body?.leadIds;
+  if (!Array.isArray(ids) || !ids.length || ids.length > BULK_MAX) return null;
+  const unique = [...new Set(ids.map(String))];
+  return unique.every(id => mongoose.Types.ObjectId.isValid(id)) ? unique : null;
+}
+
+/**
+ * POST /leads/bulk/stage — move many leads to one stage (optional sub-stage/reason/note).
+ * Each lead goes through the lifecycle service, so the same rules apply as for one lead;
+ * a sub-stage is optional here (moving old leads into a new pipeline by hand).
+ */
+export const bulkChangeStage = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const ids = bulkIds(req.body);
+    if (!ids) return res.status(400).json({ success: false, message: `Pick between 1 and ${BULK_MAX} leads` });
+    const { stageId, subStageId, reasonId, reasonDetail, note, reason } = req.body;
+    const scope = await buildLeadScopeFilter(req);
+    const summary = { moved: 0, pendingApproval: 0, unchanged: 0, failed: 0, errors: [] as { leadId: string; message: string }[] };
+    for (const leadId of ids) {
+      try {
+        const r = await changeStage({
+          tenantId: String(req.tenantId), leadId, stageId, subStageId, reasonId, reasonDetail, note, reasonText: reason,
+          actor: { id: String(req.user!.id), role: req.user!.role }, source: 'bulk', scope,
+        });
+        if (r.status === 'moved') summary.moved++;
+        else if (r.status === 'pending_approval') summary.pendingApproval++;
+        else summary.unchanged++;
+      } catch (e: any) {
+        // A rule that fails for one lead (e.g. stage not found) fails for all — stop early.
+        if (e instanceof LifecycleError && e.status !== 404) {
+          return res.status(e.status).json({ success: false, message: e.message, data: summary } as any);
+        }
+        summary.failed++;
+        if (summary.errors.length < 20) summary.errors.push({ leadId, message: e.message });
+      }
+    }
+    await auditLog(req, 'STAGE_CHANGE', `Bulk stage move of ${ids.length} lead(s): ${summary.moved} moved, ${summary.pendingApproval} waiting for approval`, undefined, { stageId, count: ids.length });
+    emitLeadEvent(req, 'leads_bulk_updated', { count: summary.moved });
+    res.json({ success: true, message: `${summary.moved} lead(s) moved`, data: summary });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Bulk stage move failed', error: error.message });
+  }
+};
+
+/** POST /leads/bulk/assign — assign (or unassign with assignedTo: null) many leads. */
+export const bulkAssignLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const ids = bulkIds(req.body);
+    if (!ids) return res.status(400).json({ success: false, message: `Pick between 1 and ${BULK_MAX} leads` });
+    const assignedTo = req.body.assignedTo || null;
+    let assigneeName = 'Unassigned';
+    if (assignedTo) {
+      if (!mongoose.Types.ObjectId.isValid(String(assignedTo))) return res.status(400).json({ success: false, message: 'Invalid counsellor' });
+      const u: any = await User.findOne({ _id: assignedTo, tenantId: req.tenantId, isActive: { $ne: false } }).select('firstName lastName role');
+      if (!u || u.role === 'STUDENT') return res.status(400).json({ success: false, message: 'Pick an active staff member of this institute' });
+      if (!(await isCounsellor(String(req.tenantId), String(assignedTo)))) return res.status(400).json({ success: false, message: COUNSELLOR_RULE_TEXT });
+      assigneeName = `${u.firstName || ''} ${u.lastName || ''}`.trim();
+    }
+    const actor: any = await User.findById(req.user!.id).select('firstName lastName');
+    const actorName = actor ? `${actor.firstName || ''} ${actor.lastName || ''}`.trim() : 'Someone';
+    const scope = await buildLeadScopeFilter(req);
+    const leads = await Lead.find({ _id: { $in: ids }, tenantId: req.tenantId, ...scope }).select('assignedTo');
+    const now = new Date();
+    let changed = 0;
+    for (const l of leads) {
+      const from = l.assignedTo ? String(l.assignedTo) : null;
+      if (String(from || '') === String(assignedTo || '')) continue;
+      await Lead.updateOne({ _id: l._id, tenantId: req.tenantId }, {
+        $set: { assignedTo, 'assignment.assignedTo': assignedTo, 'assignment.assignedBy': req.user!.id, 'assignment.assignedAt': now },
+        $push: { activities: {
+          type: 'assignment', createdBy: req.user!.id, createdAt: now,
+          description: assignedTo ? `Lead assigned to ${assigneeName} by ${actorName} (bulk)` : `Lead unassigned by ${actorName} (bulk)`,
+          metadata: { from, to: assignedTo, bulk: true },
+        } },
+      });
+      changed++;
+    }
+    await auditLog(req, 'UPDATE', `Bulk assign: ${changed} lead(s) to ${assigneeName}`, undefined, { assignedTo, count: changed });
+    emitLeadEvent(req, 'leads_bulk_updated', { count: changed });
+    res.json({ success: true, message: `${changed} lead(s) assigned to ${assigneeName}`, data: { changed, skipped: ids.length - changed } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Bulk assign failed', error: error.message });
+  }
+};
+
 export const getLeadSources = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const tenantOid = new mongoose.Types.ObjectId(req.tenantId as string);
@@ -1671,6 +2025,41 @@ export const getLeadSources = async (req: AuthenticatedRequest, res: Response<Ap
     res.json({ success: true, message: 'Lead sources fetched', data: (sources || []).filter(Boolean).sort() });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to fetch lead sources', error: error.message });
+  }
+};
+
+/**
+ * GET /leads/ads — the ads leads came from, for the "which ad" filter: id, name, campaign and how many
+ * leads. Counted over the same leads the person is allowed to see, so the numbers match the list.
+ */
+export const getLeadAds = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const base = { tenantId: new mongoose.Types.ObjectId(String(req.tenantId)), ...scopeFilter, archivedAt: null };
+    const [rows, formRows] = await Promise.all([
+      Lead.aggregate([
+        { $match: { ...base, 'sourceDetails.adId': { $nin: [null, ''] } } },
+        { $group: { _id: '$sourceDetails.adId', adName: { $last: '$sourceDetails.adName' }, campaignName: { $last: '$sourceDetails.campaignName' }, adSetName: { $last: '$sourceDetails.adSetName' }, leads: { $sum: 1 }, latest: { $max: '$createdAt' } } },
+        { $sort: { latest: -1 } },
+        { $limit: 300 },
+      ]),
+      // Form leads Meta sent without any ad (usually an ad account the page token cannot read): one row per form.
+      Lead.aggregate([
+        { $match: { ...base, source: 'meta_form', 'sourceDetails.formId': { $nin: [null, ''] }, 'sourceDetails.adId': { $in: [null, ''] } } },
+        { $group: { _id: '$sourceDetails.formId', leads: { $sum: 1 }, latest: { $max: '$createdAt' } } },
+        { $sort: { latest: -1 } },
+        { $limit: 50 },
+      ]),
+    ]);
+    res.json({
+      success: true, message: 'Ads fetched',
+      data: [
+        ...rows.map((r: any) => ({ adId: r._id, adName: r.adName || '', campaignName: r.campaignName || '', adSetName: r.adSetName || '', leads: r.leads })),
+        ...formRows.map((r: any) => ({ adId: `form:${r._id}`, adName: '', campaignName: '', adSetName: '', formId: r._id, leads: r.leads })),
+      ],
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch ads', error: error.message });
   }
 };
 
@@ -1682,25 +2071,27 @@ export const quickUpdateLead = async (req: AuthenticatedRequest, res: Response<A
     const { stageId, nextFollowUp, activityType, activityDescription, callOutcome, notes } = req.body;
 
     const scopeFilter = await buildLeadScopeFilter(req);
-    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter });
-    if (!lead) {
+    const existing = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).select('stageId');
+    if (!existing) {
       return res.status(404).json({ success: false, message: 'Lead not found' });
     }
 
-    // Update stage if provided
-    if (stageId && String(stageId) !== String(lead.stageId)) {
-      const newStage = await LeadStage.findOne({ _id: stageId, tenantId: req.tenantId });
-      if (newStage) {
-        const oldStage = await LeadStage.findById(lead.stageId);
-        lead.stageId = newStage._id;
-        lead.activities.push({
-          type: 'status_change',
-          description: `Stage changed from "${oldStage?.name || 'Unknown'}" to "${newStage.name}"`,
-          createdBy: req.user!.id as any,
-          createdAt: new Date(),
-          metadata: { from: oldStage?.name, to: newStage.name }
+    // Stage goes through the lifecycle rules (reason, approval, history) like everywhere else.
+    if (stageId && String(stageId) !== String(existing.stageId)) {
+      try {
+        await changeStage({
+          tenantId: String(req.tenantId), leadId: String(leadId), stageId: String(stageId),
+          reasonText: req.body.reason, actor: { id: String(req.user!.id), role: req.user!.role },
+          source: 'edit', scope: scopeFilter,
         });
+      } catch (e: any) {
+        if (e instanceof LifecycleError) return res.status(e.status).json({ success: false, message: e.message });
+        throw e;
       }
+    }
+    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter });
+    if (!lead) {
+      return res.status(404).json({ success: false, message: 'Lead not found' });
     }
 
     // Update follow-up
@@ -1722,6 +2113,10 @@ export const quickUpdateLead = async (req: AuthenticatedRequest, res: Response<A
         createdAt: new Date()
       };
       if (activityType === 'call' && callOutcome) {
+        const okOutcomes = await validCallOutcomeCodes(String(req.tenantId));
+        if (!okOutcomes.has(callOutcome)) {
+          return res.status(400).json({ success: false, message: `Invalid call outcome. Must be one of: ${[...okOutcomes].join(', ')}` });
+        }
         activityData.callOutcome = callOutcome;
       }
       lead.activities.push(activityData);

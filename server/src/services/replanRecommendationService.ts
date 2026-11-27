@@ -133,7 +133,7 @@ export async function evaluateRoadmapReplanNeed(
       roadmapBaselineReadiness: roadmap.input?.readiness ?? null,
       readinessDelta: null,
       hasActiveRoadmap: true, roadmapCompleted: true,
-      message: 'This 90-day plan has finished.',
+      message: 'This plan has finished.',
     };
   }
 

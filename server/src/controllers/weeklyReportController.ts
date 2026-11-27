@@ -2,54 +2,15 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../types';
 import { weeklyReportService, resolveWeek } from '../services/weeklyReportService';
 import { getWeeklyReportEmailHtml } from '../services/weeklyReportEmailTemplate';
-import { EmailService } from '../services/emailService';
 import WeeklyReportLog from '../models/WeeklyReportLog';
+import WeeklyReportSetting from '../models/WeeklyReportSetting';
 import Batch from '../models/Batch';
 import User from '../models/User';
-import { estimateCost, purposeTemplate, sendByPurpose, waCostPerMessage } from '../services/purposeMessaging';
-import type { WeeklyReportData } from '../services/weeklyReportService';
-
-type Channel = 'email' | 'whatsapp';
-const channelsOf = (raw: unknown): Channel[] => {
-  const list = Array.isArray(raw) ? raw : ['email'];
-  const out = list.filter((c): c is Channel => c === 'email' || c === 'whatsapp');
-  return out.length ? out : ['email'];
-};
-
-/** WhatsApp carries the headline; the full report is the email. */
-const whatsappBody = (r: WeeklyReportData, weekLabel: string) => [
-  r.student.firstName || 'there',
-  weekLabel,
-  r.practice ? `${r.practice.metDays} of ${r.practice.countedDays}` : 'not tracked',
-  r.practice ? `${r.practice.pct}%` : '-',
-  `${r.overall.score}/100`,
-];
-
-/** Send one student's report on the chosen channels and log each channel separately. */
-async function deliver(tenantId: string, report: WeeklyReportData, channels: Channel[], weekStart: Date, weekLabel: string, sentBy?: string, mailer?: EmailService) {
-  const results: Record<string, { ok: boolean; error?: string }> = {};
-  if (channels.includes('email')) {
-    const ok = await (mailer || new EmailService(tenantId)).sendGenericEmail(report.student.email, SUBJECT, getWeeklyReportEmailHtml(report)).catch(() => false);
-    results.email = { ok: !!ok, error: ok ? undefined : 'Email failed to send' };
-    await WeeklyReportLog.create({
-      tenantId, studentId: report.student.id, batchId: report.student.batchId || undefined, weekStart,
-      email: report.student.email, score: report.overall.score, status: ok ? 'sent' : 'failed', channel: 'email', sentBy,
-    });
-  }
-  if (channels.includes('whatsapp')) {
-    const u: any = await User.findById(report.student.id).select('phone').lean();
-    const r = await sendByPurpose(tenantId, u?.phone || '', 'WEEKLY_REPORT', whatsappBody(report, weekLabel));
-    results.whatsapp = r;
-    await WeeklyReportLog.create({
-      tenantId, studentId: report.student.id, batchId: report.student.batchId || undefined, weekStart,
-      email: report.student.email, phone: u?.phone, score: report.overall.score,
-      status: r.ok ? 'sent' : 'failed', channel: 'whatsapp', error: r.ok ? undefined : r.error, sentBy,
-    });
-  }
-  return results;
-}
-
-const SUBJECT = 'Your Weekly Learning Report — CodeBegun';
+import { estimateCost, purposeTemplate, waCostPerMessage } from '../services/purposeMessaging';
+import { channelsOf, deliver, sendMany, allBatchStudents } from '../services/weeklyReportSender';
+import { getPeriodReport, getBatchPeriodSummaries, searchStudents, parseRange, periodReportXlsx, periodFileName, PeriodRangeError, ReportCopy } from '../services/periodReportService';
+import { periodReportPdf } from '../services/periodReportPdf';
+import { startExport, exportStatus, exportFile } from '../services/reportExportService';
 
 // GET /weekly-reports/summaries?batchId=&weekStart=
 // Per-student score/grade for a batch+week, plus whether/when each was already sent.
@@ -158,27 +119,84 @@ export const sendToBatch = async (req: AuthenticatedRequest, res: Response) => {
     const students = await weeklyReportService.getBatchStudents(tenantId, batchId);
     if (!students.length) return res.status(400).json({ success: false, message: 'No active students in this batch' });
 
-    const { start, label } = resolveWeek(weekStart);
-    const sentBy = req.user?.id;
+    res.json({ success: true, message: `Sending reports to ${students.length} student(s) by ${chosen.join(' + ')}… Students with nothing this week are skipped.`, data: { queued: students.length } });
 
-    res.json({ success: true, message: `Sending reports to ${students.length} student(s) by ${chosen.join(' + ')}…`, data: { queued: students.length } });
-
-    (async () => {
-      const mailer = new EmailService(tenantId);
-      for (const s of students) {
-        try {
-          const report = await weeklyReportService.getReport(s._id.toString(), tenantId, weekStart);
-          if (!report) continue;
-          await deliver(tenantId, report, chosen, start, label, sentBy, mailer);
-          if (chosen.includes('whatsapp')) await new Promise((ok) => setTimeout(ok, 150));
-        } catch (e: any) {
-          console.error('[WEEKLY REPORT] batch send error for', s.email, e?.message);
-        }
-      }
-      console.log(`[WEEKLY REPORT] batch send complete for batch ${batchId} (${students.length} students, ${chosen.join('+')})`);
-    })().catch(e => console.error('[WEEKLY REPORT] batch send crashed:', e?.message));
+    // In the background (the email service self-throttles); each result is logged so the page
+    // shows the sent status on refresh.
+    sendMany(tenantId, students.map((s: any) => String(s._id)), {
+      weekStart, channels: chosen, sentBy: req.user?.id, skipEmpty: true, label: `batch ${batchId}`,
+    }).catch(e => console.error('[WEEKLY REPORT] batch send crashed:', e?.message));
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message || 'Failed to start batch send' });
+  }
+};
+
+// POST /weekly-reports/send-all  { weekStart, channels } → every active student of every active
+// batch. Skips students with nothing this week and those who already got this week's report.
+export const sendToAll = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const tenantId = req.tenantId!;
+    const { weekStart, channels } = req.body as { weekStart?: string; channels?: string[] };
+    const chosen = channelsOf(channels);
+    if (chosen.includes('whatsapp') && !purposeTemplate(tenantId, 'WEEKLY_REPORT')) {
+      return res.status(400).json({ success: false, message: 'No WhatsApp template is assigned for "Weekly learning report" (WhatsApp Templates → Where used). Untick WhatsApp or assign one.' });
+    }
+    const students = await allBatchStudents(tenantId);
+    if (!students.length) return res.status(400).json({ success: false, message: 'No active students in any active batch' });
+
+    res.json({
+      success: true,
+      message: `Sending reports to up to ${students.length} student(s) across all batches by ${chosen.join(' + ')}… Students with nothing this week, and those who already got this week's report, are skipped.`,
+      data: { queued: students.length },
+    });
+    sendMany(tenantId, students.map((s: any) => String(s._id)), {
+      weekStart, channels: chosen, sentBy: req.user?.id, skipEmpty: true, skipAlreadySent: true, label: 'all batches',
+    }).catch(e => console.error('[WEEKLY REPORT] send-all crashed:', e?.message));
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to start sending' });
+  }
+};
+
+// GET /weekly-reports/settings — the institute's automatic Monday send.
+export const getSettings = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const row: any = await WeeklyReportSetting.findOne({ tenantId: req.tenantId! }).lean();
+    res.json({ success: true, data: {
+      autoSend: !!row?.autoSend,
+      channels: row?.channels?.length ? row.channels : ['email'],
+      lastAutoWeek: row?.lastAutoWeek || null,
+      lastAutoAt: row?.lastAutoAt || null,
+      lastAutoResult: row?.lastAutoResult || null,
+      whatsappTemplateReady: !!purposeTemplate(req.tenantId!, 'WEEKLY_REPORT'),
+    } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to load settings' });
+  }
+};
+
+// PUT /weekly-reports/settings  { autoSend, channels }
+export const updateSettings = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const tenantId = req.tenantId!;
+    const { autoSend, channels } = req.body as { autoSend?: boolean; channels?: string[] };
+    const chosen = channelsOf(channels);
+    if (autoSend && chosen.includes('whatsapp') && !purposeTemplate(tenantId, 'WEEKLY_REPORT')) {
+      return res.status(400).json({ success: false, message: 'No WhatsApp template is assigned for "Weekly learning report". Untick WhatsApp or assign one first.' });
+    }
+    const set: any = { autoSend: !!autoSend, channels: chosen, updatedBy: req.user?.id };
+    // Switching on mid-week must not send last week's report straight away when it was already
+    // handled by hand: the first automatic run is next Monday.
+    if (autoSend) {
+      const prev: any = await WeeklyReportSetting.findOne({ tenantId }).select('autoSend').lean();
+      if (!prev?.autoSend) {
+        const { start } = resolveWeek();
+        set.lastAutoWeek = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+      }
+    }
+    await WeeklyReportSetting.updateOne({ tenantId }, { $set: set }, { upsert: true });
+    res.json({ success: true, message: autoSend ? 'Automatic Monday reports are on. The first ones go out next Monday morning.' : 'Automatic Monday reports are off.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to save settings' });
   }
 };
 
@@ -188,7 +206,9 @@ export const estimateBatch = async (req: AuthenticatedRequest, res: Response) =>
     const tenantId = req.tenantId!;
     const { batchId } = req.query as { batchId?: string };
     if (!batchId) return res.status(400).json({ success: false, message: 'batchId is required' });
-    const students = await User.find({ tenantId, role: 'STUDENT', isActive: true, batchId }).select('email phone').lean();
+    const students: any[] = batchId === 'all'
+      ? await allBatchStudents(tenantId)
+      : await User.find({ tenantId, role: 'STUDENT', isActive: true, batchId }).select('email phone').lean();
     const withPhone = students.filter((u: any) => u.phone).length;
     res.json({ success: true, data: {
       students: students.length,
@@ -211,5 +231,93 @@ export const getBatches = async (req: AuthenticatedRequest, res: Response) => {
     res.json({ success: true, data: batches });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message || 'Failed to load batches' });
+  }
+};
+
+// ── Custom-range student report (2026-11-26) ─────────────────────────────
+// GET /weekly-reports/students?q=  → student picker
+export const searchStudentsForReport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    res.json({ success: true, data: await searchStudents(req.tenantId!, String(req.query.q || '')) });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to search students' });
+  }
+};
+
+const copyOf = (v: unknown): ReportCopy => (v === 'student' ? 'student' : 'staff');
+const rangeFail = (res: Response, err: any, fallback: string) =>
+  err instanceof PeriodRangeError
+    ? res.status(400).json({ success: false, message: err.message })
+    : res.status(500).json({ success: false, message: err?.message || fallback });
+
+// GET /weekly-reports/period/student/:studentId?from=&to=&copy=staff|student[&format=pdf|xlsx]
+export const getStudentPeriodReport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { from, to, copy, format } = req.query as Record<string, string | undefined>;
+    if (!/^[a-f0-9]{24}$/i.test(req.params.studentId)) return res.status(404).json({ success: false, message: 'Student not found' });
+    const report = await getPeriodReport(req.tenantId!, req.params.studentId, from || '', to || '', copyOf(copy));
+    if (!report) return res.status(404).json({ success: false, message: 'Student not found' });
+    if (format === 'xlsx') {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${periodFileName(report, 'xlsx')}"`);
+      return res.send(periodReportXlsx(report));
+    }
+    if (format === 'pdf') {
+      const pdf = await periodReportPdf(req.tenantId!, report);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${periodFileName(report, 'pdf')}"`);
+      return res.send(pdf);
+    }
+    res.json({ success: true, data: report });
+  } catch (err: any) {
+    rangeFail(res, err, 'Failed to build the report');
+  }
+};
+
+// GET /weekly-reports/period/batch?batchId=&from=&to=  → "who did what" over the range
+export const getBatchPeriodReport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { batchId, from, to } = req.query as Record<string, string | undefined>;
+    if (!batchId) return res.status(400).json({ success: false, message: 'batchId is required' });
+    const { label } = parseRange(from, to);
+    res.json({ success: true, data: { label, students: await getBatchPeriodSummaries(req.tenantId!, batchId, from || '', to || '') } });
+  } catch (err: any) {
+    rangeFail(res, err, 'Failed to build the batch report');
+  }
+};
+
+// ── Excel for everyone (2026-11-26) ──────────────────────────────────────
+// POST /weekly-reports/period/export  { scope: 'all' | batchId, from, to } → starts building
+export const startPeriodExport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { scope, from, to } = req.body as { scope?: string; from?: string; to?: string };
+    const job: any = await startExport(req.tenantId!, req.user?.id, String(scope || 'all'), String(from || ''), String(to || ''));
+    res.json({ success: true, data: { id: String(job._id), status: job.status, done: job.done, total: job.total } });
+  } catch (err: any) {
+    rangeFail(res, err, 'Could not start the export');
+  }
+};
+
+// GET /weekly-reports/period/export/:id → progress
+export const getPeriodExport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const s = await exportStatus(req.tenantId!, req.params.id);
+    if (!s) return res.status(404).json({ success: false, message: 'Export not found' });
+    res.json({ success: true, data: s });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to read the export' });
+  }
+};
+
+// GET /weekly-reports/period/export/:id/file → the .xlsx
+export const downloadPeriodExport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const f = await exportFile(req.tenantId!, req.params.id);
+    if (!f) return res.status(404).json({ success: false, message: 'The file is not ready or has expired' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${f.fileName}"`);
+    res.send(f.file);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Download failed' });
   }
 };

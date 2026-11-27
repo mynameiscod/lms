@@ -9,7 +9,9 @@ export enum AssignmentType {
   THEORY = 'theory',
   SQL = 'sql',
   FILE_UPLOAD = 'file_upload',
-  WEB = 'web'
+  WEB = 'web',
+  /** A paper drawn per student from Question Pools — see IPoolExam. */
+  EXAM = 'exam'
 }
 
 export enum DifficultyLevel {
@@ -96,6 +98,51 @@ export interface IMCQQuestion {
 }
 
 // Main Assignment Interface
+/**
+ * One block of a pool exam — "3 from the Java Coding Pool: 1 easy, 1 medium, 1 hard, 20 marks each".
+ *
+ * BALANCED BY LEVEL. A section asks for a number of questions at each level, plus optionally some
+ * at any level, so two students never get papers of very different difficulty from the same rule.
+ * Every student gets their own draw; see the exam attempt for how it is frozen.
+ */
+export interface IPoolExamSection {
+  key: string;
+  title: string;
+  poolId: Types.ObjectId;
+  easy: number;
+  medium: number;
+  hard: number;
+  /** Drawn from whatever is left in the pool after the per-level picks. */
+  any: number;
+  marksPerQuestion: number;
+}
+
+export interface IPoolExam {
+  sections: IPoolExamSection[];
+  /** Minutes from Start; 0 = untimed. */
+  durationMinutes: number;
+  /** 0 = unlimited. Each attempt is a fresh draw. */
+  maxAttempts: number;
+  /** When a pool is reused, draw questions this student has not had before, where the pool allows. */
+  preferUnseen: boolean;
+  tabSwitch: { enabled: boolean; maxWarnings: number; autoSubmit: boolean };
+  blockCopyPaste: boolean;
+  /** Off: students see only "submitted" until an admin releases results. */
+  showResultsImmediately: boolean;
+  resultsReleasedAt?: Date | null;
+}
+
+/** The assignment form's settings. 0 means "no limit" for both numbers. */
+export interface IAssignmentSettings {
+  timeLimitMinutes: number;
+  maxAttempts: number;
+  shuffleQuestions: boolean;
+  shuffleOptions: boolean;
+  showCorrectAnswers: boolean;
+  allowLateSubmission: boolean;
+  latePenaltyPercent: number;
+}
+
 export interface IAssignment extends Document {
   _id: Types.ObjectId;
   tenant: Types.ObjectId;
@@ -164,6 +211,9 @@ export interface IAssignment extends Document {
   timeLimit: number; // Overall time limit in minutes
   memoryLimit: number; // in MB
   
+  /** Only for type EXAM: how each student's paper is drawn from Question Pools, and the exam rules. */
+  poolExam?: IPoolExam;
+
   // MCQ Fields
   mcqQuestions: IMCQQuestion[];
   shuffleQuestions: boolean;
@@ -177,6 +227,8 @@ export interface IAssignment extends Document {
   
   // Settings
   maxAttempts: number;
+  /** What the assignment form sets. maxAttempts and the shuffles are mirrored to the fields above, which grading reads. */
+  settings?: IAssignmentSettings;
   comparisonMode?: 'lenient' | 'exact' | 'case_insensitive' | 'numeric'; // how test output is compared
   showTestCaseResults: boolean;
   showExpectedOutput: boolean;
@@ -279,7 +331,9 @@ const AssignmentSchema = new Schema<IAssignment>({
   batch: { type: Schema.Types.ObjectId, ref: 'Batch', index: true },
 
   // Access Control
-  accessibleTo: { type: String, enum: ['everyone', 'batch_wise', 'individual'], default: 'everyone' },
+  // Batch-wise with no batches = nobody yet: an assignment reaches students only once it is assigned.
+  // 'everyone' is kept for external (link) assignments and old rows; it delivers to no LMS student.
+  accessibleTo: { type: String, enum: ['everyone', 'batch_wise', 'individual'], default: 'batch_wise' },
   selectedBatches: [{ type: String }],
   selectedStudents: [{ type: String }],
   isExternalAssignment: { type: Boolean, default: false },
@@ -296,6 +350,36 @@ const AssignmentSchema = new Schema<IAssignment>({
   shuffleQuestions: { type: Boolean, default: false },
   shuffleOptions: { type: Boolean, default: false },
   
+  poolExam: {
+    type: new Schema({
+      sections: {
+        type: [new Schema({
+          key: { type: String, required: true },
+          title: { type: String, default: '' },
+          poolId: { type: Schema.Types.ObjectId, ref: 'QuestionPool', required: true },
+          easy: { type: Number, default: 0, min: 0 },
+          medium: { type: Number, default: 0, min: 0 },
+          hard: { type: Number, default: 0, min: 0 },
+          any: { type: Number, default: 0, min: 0 },
+          marksPerQuestion: { type: Number, default: 1, min: 0 },
+        }, { _id: false })],
+        default: [],
+      },
+      durationMinutes: { type: Number, default: 60, min: 0 },
+      maxAttempts: { type: Number, default: 1, min: 0 },
+      preferUnseen: { type: Boolean, default: true },
+      tabSwitch: {
+        enabled: { type: Boolean, default: true },
+        maxWarnings: { type: Number, default: 3, min: 1 },
+        autoSubmit: { type: Boolean, default: true },
+      },
+      blockCopyPaste: { type: Boolean, default: true },
+      showResultsImmediately: { type: Boolean, default: false },
+      resultsReleasedAt: { type: Date, default: null },
+    }, { _id: false }),
+    default: undefined,
+  },
+
   // Theory/File Upload Fields
   rubric: [RubricItemSchema],
   maxFileSize: { type: Number, default: 10 },
@@ -304,6 +388,18 @@ const AssignmentSchema = new Schema<IAssignment>({
   
   // Settings
   maxAttempts: { type: Number, default: 3 },
+  settings: {
+    type: new Schema({
+      timeLimitMinutes: { type: Number, default: 0, min: 0 },
+      maxAttempts: { type: Number, default: 0, min: 0 },
+      shuffleQuestions: { type: Boolean, default: false },
+      shuffleOptions: { type: Boolean, default: false },
+      showCorrectAnswers: { type: Boolean, default: false },
+      allowLateSubmission: { type: Boolean, default: false },
+      latePenaltyPercent: { type: Number, default: 0, min: 0, max: 100 },
+    }, { _id: false }),
+    default: undefined,
+  },
   comparisonMode: { type: String, enum: ['lenient', 'exact', 'case_insensitive', 'numeric'], default: 'lenient' },
   showTestCaseResults: { type: Boolean, default: true },
   showExpectedOutput: { type: Boolean, default: false },
@@ -343,6 +439,8 @@ AssignmentSchema.index({ tenant: 1, type: 1, difficulty: 1 });
 AssignmentSchema.index({ tenant: 1, isInBank: 1, bankCategory: 1 });
 AssignmentSchema.index({ topics: 1 });
 AssignmentSchema.index({ tags: 1 });
+/** Which exams draw on a pool — asked before a pool may be deleted. */
+AssignmentSchema.index({ 'poolExam.sections.poolId': 1 }, { sparse: true });
 /**
  * "Which assignments belong to this learning unit" — the only query the binding serves.
  *

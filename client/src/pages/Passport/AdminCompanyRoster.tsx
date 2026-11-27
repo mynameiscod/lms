@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import passportApi, { ReadinessRow } from '../../api/passportApi';
+// Several shared classes (pm-btn, pm-msg and this page's own) live in the member stylesheet; import
+// it here so the page is styled the same on a fresh load as after visiting a member page.
+import './member.css';
 
 /**
  * The roster: create sixty companies, draft them, and see exactly what each one still

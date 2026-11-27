@@ -114,7 +114,7 @@
   align-items: center;
   padding: 4px 12px;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: max(0.72rem, var(--fs-floor, 0px));
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -171,7 +171,7 @@
   gap: 6px;
   font-family: inherit;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: max(0.8rem, var(--fs-floor, 0px));
   padding: 4px 10px;
   border-radius: 20px;
   background: #f1f5f9;
@@ -216,7 +216,7 @@
 }
 
 .recruiter-hint {
-  font-size: 0.75rem;
+  font-size: max(0.75rem, var(--fs-floor, 0px));
   color: #94a3b8;
   text-align: center;
   margin: 0;
@@ -320,7 +320,7 @@
 }
 
 .step-label {
-  font-size: 12px;
+  font-size: max(12px, var(--fs-floor, 0px));
   font-weight: 600;
   color: #64748b;
   text-align: center;
@@ -449,7 +449,7 @@
 
 .error-text {
   color: #ef4444;
-  font-size: 12px;
+  font-size: max(12px, var(--fs-floor, 0px));
   margin-top: 4px;
   display: block;
 }
@@ -488,12 +488,12 @@
 }
 
 .field-hint {
-  font-size: 12px;
+  font-size: max(12px, var(--fs-floor, 0px));
   color: #94a3b8;
 }
 
 .char-count {
-  font-size: 12px;
+  font-size: max(12px, var(--fs-floor, 0px));
   color: #94a3b8;
   text-align: right;
 }
@@ -539,7 +539,7 @@
 }
 
 .photo-placeholder small {
-  font-size: 10px;
+  font-size: max(10px, var(--fs-floor, 0px));
 }
 
 .file-upload-btn {
@@ -629,7 +629,7 @@
 }
 
 .status-desc {
-  font-size: 12px;
+  font-size: max(12px, var(--fs-floor, 0px));
   color: #64748b;
 }
 
@@ -666,7 +666,7 @@
 }
 
 .section-hint {
-  font-size: 13px;
+  font-size: max(13px, var(--fs-floor, 0px));
   color: #64748b;
   margin: 0 0 16px 0;
 }
@@ -751,7 +751,7 @@
 }
 
 .exp-desc {
-  font-size: 11px;
+  font-size: max(11px, var(--fs-floor, 0px));
   color: #64748b;
 }
 
@@ -830,7 +830,7 @@
 }
 
 .mode-desc {
-  font-size: 11px;
+  font-size: max(11px, var(--fs-floor, 0px));
   color: #64748b;
 }
 
@@ -878,7 +878,7 @@
 }
 
 .time-range {
-  font-size: 11px;
+  font-size: max(11px, var(--fs-floor, 0px));
   color: #64748b;
 }
 
@@ -911,7 +911,7 @@
 }
 
 .summary-label {
-  font-size: 12px;
+  font-size: max(12px, var(--fs-floor, 0px));
   color: #64748b;
   text-transform: uppercase;
   font-weight: 600;
@@ -1066,7 +1066,7 @@
   }
   
   .step-label {
-    font-size: 11px;
+    font-size: max(11px, var(--fs-floor, 0px));
   }
 }
 
@@ -1109,7 +1109,7 @@
   }
   
   .step-label {
-    font-size: 10px;
+    font-size: max(10px, var(--fs-floor, 0px));
     display: none;
   }
   
@@ -1156,7 +1156,7 @@
   .mode-cards.small .mode-card,
   .time-cards.small .time-card {
     padding: 8px 16px;
-    font-size: 13px;
+    font-size: max(13px, var(--fs-floor, 0px));
   }
   
   .form-navigation {
@@ -1268,7 +1268,7 @@
 
 .oauth-info .connected-text {
   margin: 0 0 4px 0;
-  font-size: 13px;
+  font-size: max(13px, var(--fs-floor, 0px));
   color: #16a34a;
 }
 
@@ -1278,12 +1278,12 @@
 
 .oauth-info .not-connected-text {
   margin: 0;
-  font-size: 13px;
+  font-size: max(13px, var(--fs-floor, 0px));
   color: #64748b;
 }
 
 .oauth-info .profile-link {
-  font-size: 12px;
+  font-size: max(12px, var(--fs-floor, 0px));
   color: #005897;
   text-decoration: none;
 }

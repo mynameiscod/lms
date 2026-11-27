@@ -85,8 +85,13 @@ export async function getAchievementsForStudent(tenantId: string, studentId: str
 
 /** Batch leaderboard ranked by average + streak + consistency (not one lucky attempt). */
 export async function computeLeaderboard(tenantId: string, callerId: string, batchId?: string) {
-  const uFilter: any = { tenantId, role: 'STUDENT', isActive: { $ne: false } };
-  if (batchId && mongoose.isValidObjectId(batchId)) uFilter.batchId = new mongoose.Types.ObjectId(batchId);
+  const uFilter: any = { tenantId, role: 'STUDENT', isActive: { $ne: false }, 'lmsDemo.at': { $exists: false } }; // demo students never rank
+  // A batch's lab cohort: its own students minus those taken over by a placement batch, plus
+  // the members of a placement batch that takes the Communication Lab over.
+  if (batchId && mongoose.isValidObjectId(batchId)) {
+    const { labStudentIds } = await import('./placementBatchService');
+    uFilter._id = { $in: (await labStudentIds(tenantId, batchId, 'communication')).map((id) => new mongoose.Types.ObjectId(id)) };
+  }
   const students = await User.find(uFilter).select('firstName lastName batchId').lean();
   const ids = students.map((s: any) => s._id);
   if (!ids.length) return { rows: [], me: null };
@@ -110,7 +115,8 @@ export async function computeLeaderboard(tenantId: string, callerId: string, bat
     return { studentId: id, name: s.firstName || 'Student', avg, count: a.count, streak: st.currentStreak, days: st.totalCompletedDays, composite };
   }).filter((r) => r.count > 0);
 
-  scored.sort((a, b) => b.composite - a.composite || b.avg - a.avg);
+  // The goal is more practice, so rank by days practised, then current streak, then average score.
+  scored.sort((a, b) => b.days - a.days || b.streak - a.streak || b.avg - a.avg);
   const rows = scored.map((r, i) => ({ rank: i + 1, ...r }));
   const meIdx = rows.findIndex((r) => r.studentId === callerId);
   return { rows: rows.slice(0, 10), me: meIdx >= 0 ? rows[meIdx] : null };

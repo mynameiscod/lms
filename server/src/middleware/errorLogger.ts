@@ -2,16 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 import StudentActivityLog from '../models/StudentActivityLog';
 
-const SENSITIVE = new Set(['password', 'token', 'secret', 'answers', 'answer', 'jwt']);
+import { redact } from '../utils/redact';
 
-function sanitize(obj: any): any {
-  if (!obj || typeof obj !== 'object') return obj;
-  const safe: any = Array.isArray(obj) ? [] : {};
-  for (const key of Object.keys(obj)) {
-    safe[key] = SENSITIVE.has(key.toLowerCase()) ? '[REDACTED]' : obj[key];
-  }
-  return safe;
-}
+/**
+ * What of a request body may be kept. It used to hide six top-level keys only, so a password
+ * one level down, an auth header or an API key went into the log and the activity trail as typed.
+ */
+const sanitize = (obj: any): any => redact(obj);
 
 // Classify a request into a module + (optional) key learning action.
 function classify(method: string, path: string): { module: string; keyAction: string | null } {
@@ -98,6 +95,7 @@ export function apiErrorLogger(req: Request, res: Response, next: NextFunction) 
         response: body,
         ip:       req.ip,
         tenant:   req.headers['x-tenant-id'],
+        requestId: (req as any).requestId,
       });
     } else if (status >= 400) {
       logger.warn(`${method} ${url} → ${status} (${ms}ms)`, {
@@ -105,6 +103,7 @@ export function apiErrorLogger(req: Request, res: Response, next: NextFunction) 
         response: body,
         ip:       req.ip,
         tenant:   req.headers['x-tenant-id'],
+        requestId: (req as any).requestId,
       });
     } else {
       logger.info(`${method} ${url} → ${status} (${ms}ms)`);

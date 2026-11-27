@@ -11,7 +11,10 @@ describe('how the workspace hands an attempt in', () => {
     expect(submissionKindFor('web')).toBe('code');
     expect(submissionKindFor('mcq')).toBe('mcq');
     expect(submissionKindFor('theory')).toBe('written');
-    expect(submissionKindFor('file_upload')).toBe('none');
+  });
+
+  it('hands in a file-upload assignment with its files', () => {
+    expect(submissionKindFor('file_upload')).toBe('files');
   });
 
   it('asks for where the work is and what was built before a project can be submitted', () => {

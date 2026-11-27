@@ -70,6 +70,20 @@ body {
  * 1 with it, because a dozen files divide by it to undo the scaling of vh — leaving it at 0.75
  * would make every one of those calculations wrong in the other direction.
  */
+/*
+ * ── SMALLEST TEXT SIZE ──────────────────────────────────────────────────────────────────
+ * CAREERPILOT ONLY (html.cp-route, set in App.tsx). Every font size under 13.5px in the app's
+ * stylesheets is written max(<size>, var(--fs-floor)); outside CareerPilot the variable is unset,
+ * so every size there is exactly what its stylesheet says.
+ * On a laptop #root renders at zoom .75, so 13.5px is ~10 real pixels: nothing reads smaller.
+ * Tablets and phones are not zoomed, so 11px is the floor there. Set --fs-floor to 0px to get
+ * every original size back. (2026-11-14 UI sweep: labels were drawing at 6-9 real pixels.)
+ */
+@media screen and (min-width: 1025px) { html.cp-route { --fs-floor: 13.5px; } }
+@media screen and (max-width: 1024px) { html.cp-route { --fs-floor: 11px; } }
+/* <small> with no size of its own (the browser's "smaller") obeys the same floor. */
+html.cp-route small { font-size: max(.85em, var(--fs-floor, 0px)); }
+
 @media (max-width: 1024px) {
   #root {
     --app-zoom: 1;

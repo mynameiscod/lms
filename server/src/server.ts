@@ -13,6 +13,9 @@ import cluster from 'cluster';
 import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
 import { assertMcpReady } from './mcp/bootstrap';
+import { attachDbMonitoring, startMonitoring, recordRelease } from './services/supportMonitoring';
+import { startSupportRetentionScheduler } from './services/supportRetention';
+import { registerSupportEmail } from './services/supportEmailChannel';
 import { assertSecretsPresent } from './config/secrets';
 import { initSettings } from './services/settingsService';
 import { initPlatformOwner } from './services/platformOwner';
@@ -24,12 +27,18 @@ import { startSlaCronScheduler } from './jobs/slaCron';
 import { startAICallWorker, stopAICallWorker } from './workers/aiCallWorker';
 import { startArchiveQuizScheduler } from './jobs/archiveQuizCron';
 import { startDueReminderScheduler } from './jobs/dueReminderCron';
+import { startReferralScheduler } from './services/referralService';
+import { startSalesTeamScheduler } from './services/salesTeamService';
+import { registerUserSocket } from './realtime/userSocket';
 import { startAssessmentMissedSweep } from './jobs/assessmentMissedSweepCron';
 import { startRecordingAlertScheduler } from './jobs/recordingAlertCron';
 import { startSpeakingReminderScheduler } from './jobs/speakingReminderCron';
 import { startPracticePassScheduler } from './jobs/practicePassCron';
+import { startWeeklyReportScheduler } from './jobs/weeklyReportCron';
+import { startInactivityScheduler } from './jobs/inactivityCron';
 import { startInterviewHubScheduler } from './jobs/interviewHubCron';
 import { startInterviewReminderScheduler } from './jobs/interviewReminderCron';
+import { startDemoBookingScheduler } from './jobs/demoBookingCron';
 import { startLiveClassReminderScheduler } from './jobs/liveClassReminderCron';
 import { startBattleReminderScheduler } from './jobs/battleReminderCron';
 import { startPlacementReminderScheduler } from './jobs/placementReminderCron';
@@ -42,6 +51,10 @@ import { startPartnerReplyScheduler } from './jobs/partnerReplyCron';
 import { registerWaChatSocket } from './realtime/whatsAppChatRealtime';
 import { registerSocketAuth, socketUser, mayJoinTenant, mayJoinStaff, mayHostLiveClass } from './realtime/socketAuth';
 import { startOutperoForwardScheduler } from './jobs/outperoForwardCron';
+import { startCallyzerScheduler } from './jobs/callyzerCron';
+import { startMetaCrmScheduler } from './jobs/metaCrmCron';
+import { startLeadAutomationScheduler } from './jobs/leadAutomationCron';
+import { startWorkflowScheduler } from './jobs/workflowCron';
 import { startCompanyExpenseScheduler } from './jobs/companyExpenseCron';
 
 const PORT = process.env.PORT || 5000;
@@ -70,6 +83,12 @@ const startServer = async () => {
     await connectDB();
     await assertMcpReady();
     console.log('✅ MongoDB connection successful');
+    // Help & Support monitoring: record this release, watch the database, flush every 15 s.
+    attachDbMonitoring();
+    startMonitoring();
+    void recordRelease();
+    // Support notices by e-mail, only when SUPPORT_EMAIL_NOTIFICATIONS=true.
+    registerSupportEmail();
 
     // Load admin-managed configuration from DB (keys/models set in the UI).
     await initSettings();
@@ -103,6 +122,7 @@ const startServer = async () => {
     app.set('io', io);
     // WhatsApp chat live updates — its own authenticated room (see realtime/whatsAppChatRealtime).
     registerWaChatSocket(io);
+    registerUserSocket(io);
 
     console.log('🔌 Setting up WebSocket handlers...');
 
@@ -340,6 +360,14 @@ const startServer = async () => {
     } else {
 
     startMetaRecoveryScheduler();
+    startLeadAutomationScheduler(io);
+    startWorkflowScheduler();
+    // Leads whose course is only in a raw form answer get it as their course interest (idempotent).
+    setTimeout(() => {
+      import('./utils/leadCourse').then((m) => m.backfillCourseInterest())
+        .then((n) => { if (n) console.log(`📚 Course interest filled from form answers on ${n} leads`); })
+        .catch((e) => console.error('[lead-course] backfill failed', e?.message));
+    }, 60_000);
     // Start Google Sheets sync cron (runs every 5 minutes)
     const GSHEET_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
     setInterval(async () => {
@@ -380,12 +408,20 @@ const startServer = async () => {
     // Start learning-plan due-date reminder scheduler (in-app, daily)
     startDueReminderScheduler();
 
+    // LMS Refer & Earn: fee paid in full → hold → earned (hourly)
+    startReferralScheduler();
+
+    // Sales Teams: lead-assigned alerts (every minute), daily reports at 9 PM IST
+    startSalesTeamScheduler();
+
     // Start stale class-recording alert scheduler (in-app, every 10 min)
     startRecordingAlertScheduler();
 
     // Start speaking-practice reminder scheduler (in-app, daily)
     startSpeakingReminderScheduler();
     startPracticePassScheduler(); // Daily Practice Pass: hourly standings + 7 PM reminders
+    startWeeklyReportScheduler(); // Weekly reports: automatic Monday 8 AM send for institutes that switched it on
+    startInactivityScheduler(); // Student Rules: daily inactivity WhatsApps (student → trainer → parent)
     startInterviewHubScheduler(); // Interview Hub: email a reminder 2 days after an unanswered invite
 
     // Start AI-interview start-reminder scheduler (in-app, 30m lead, every 5 min)
@@ -393,6 +429,9 @@ const startServer = async () => {
 
     // Start live-class "starts soon" reminder scheduler (in-app + email, 20m lead)
     startLiveClassReminderScheduler();
+
+    // CRM: Book a demo — reminders (1 day / 1 hour) and attendance after a room slot ends (every 2 min)
+    startDemoBookingScheduler();
 
     // Start Tech Battle reminder scheduler (email link at 24h / 1h / live, every 2 min)
     startBattleReminderScheduler();
@@ -415,9 +454,15 @@ const startServer = async () => {
 
     // Send leads queued for Outpero (bulk sends, retries)
     startOutperoForwardScheduler();
+    // Pull counsellors' phone calls + recordings from Callyzer
+    startCallyzerScheduler();
+    startMetaCrmScheduler();
 
     // Add each month's recurring company costs (rent, subscriptions)
     startCompanyExpenseScheduler();
+
+    // Help & Support: delete chats and attachments past the retention the organisation set (if any).
+    startSupportRetentionScheduler();
 
     } // ── end background jobs (single process only) ─────────────────────────────
 

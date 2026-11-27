@@ -3,17 +3,22 @@ import Assignment, {
   AssignmentType, 
   AssignmentStatus, 
   DifficultyLevel,
-  ProgrammingLanguage 
+  ProgrammingLanguage,
+  IAssignmentSettings,
 } from '../models/Assignment';
 import Submission, { SubmissionStatus } from '../models/Submission';
+import PoolExamAttempt from '../models/PoolExamAttempt';
 import User from '../models/User';
 import Chapter from '../models/Chapter';
 import { EmailService } from './emailService';
 import { createNotifications } from '../notifications/notificationService';
 import { studentSchedulesMap, policyFromRow } from './assessmentDeliveryService';
+import AssessmentSchedule from '../models/AssessmentSchedule';
+import { notifyAssigned } from './assessmentAssignNotify';
 import { computeStatus, DEFAULT_POLICY } from './deadlinePolicyService';
 import { Types } from 'mongoose';
 import { audienceFilterFor, audienceIncludes, isContentAudience, ContentAudience } from './learnerAudience';
+import { checkPoolExam, examTotalMarks, normalizePoolExam } from './poolExamService';
 
 const emailService = new EmailService();
 
@@ -54,6 +59,7 @@ interface CreateAssignmentInput {
   allowedFileTypes?: string[];
   maxFiles?: number;
   maxAttempts?: number;
+  settings?: Partial<IAssignmentSettings>;
   showTestCaseResults?: boolean;
   showExpectedOutput?: boolean;
   enableHints?: boolean;
@@ -93,11 +99,76 @@ interface PaginationOptions {
   sortOrder?: 'asc' | 'desc';
 }
 
+/**
+ * A pool exam's settings, cleaned, and its total marks worked out from its sections — the form's
+ * Total Points box does not apply to an exam, whose total is whatever its sections add up to.
+ */
+function examFields(input: { type?: AssignmentType; poolExam?: any }) {
+  if (input.type !== AssignmentType.EXAM || input.poolExam === undefined) return {};
+  const poolExam = normalizePoolExam(input.poolExam);
+  return { poolExam, totalPoints: examTotalMarks(poolExam.sections), maxAttempts: poolExam.maxAttempts };
+}
+
+async function examAttemptAsSubmission(assignment: IAssignment, studentId: Types.ObjectId) {
+  const a = await PoolExamAttempt.findOne({ assignment: assignment._id, student: studentId }).sort({ attemptNumber: -1 }).lean() as any;
+  if (!a) return null;
+  const visible = !!(assignment.poolExam?.showResultsImmediately || assignment.poolExam?.resultsReleasedAt);
+  return {
+    status: a.status === 'graded' && !visible ? SubmissionStatus.SUBMITTED : a.status,
+    attemptNumber: a.attemptNumber, submittedAt: a.submittedAt,
+    finalScore: visible ? a.score : undefined, percentage: visible ? a.percentage : undefined,
+  };
+}
+
+/**
+ * An assignment is reusable content: publishing puts it in the bank, and it reaches students only
+ * once it is given to them — a batch, chosen students, or Assign to Batches. "everyone" is never
+ * stored for one; it reads as batch-wise with no batches yet (nobody). An external assignment is
+ * reached through its link and keeps what it was given.
+ */
+function deliveryFields(accessibleTo: string | undefined, isExternal: boolean | undefined) {
+  return accessibleTo === 'everyone' && !isExternal ? { accessibleTo: 'batch_wise' as const } : {};
+}
+
+const nonNegative = (v: unknown, max = Number.MAX_SAFE_INTEGER): number => {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) ? Math.min(max, Math.max(0, n)) : 0;
+};
+
+/**
+ * The form's settings, kept as the form sent them, and mirrored to the fields grading reads:
+ * the attempt limit (0 = unlimited) and the shuffles. A late penalty applies only when late
+ * submission is allowed. Missing settings change nothing, so old assignments keep what they had.
+ */
+function settingsFields(input: { settings?: any }) {
+  const s = input.settings;
+  if (!s || typeof s !== 'object') return {};
+  const settings = {
+    timeLimitMinutes: nonNegative(s.timeLimitMinutes),
+    maxAttempts: nonNegative(s.maxAttempts),
+    shuffleQuestions: !!s.shuffleQuestions,
+    shuffleOptions: !!s.shuffleOptions,
+    showCorrectAnswers: !!s.showCorrectAnswers,
+    allowLateSubmission: !!s.allowLateSubmission,
+    latePenaltyPercent: nonNegative(s.latePenaltyPercent, 100),
+  };
+  return {
+    settings,
+    maxAttempts: settings.maxAttempts,
+    shuffleQuestions: settings.shuffleQuestions,
+    shuffleOptions: settings.shuffleOptions,
+    lateSubmissionPenalty: settings.allowLateSubmission ? settings.latePenaltyPercent : 0,
+  };
+}
+
 class AssignmentService {
   // Create a new assignment
   async create(input: CreateAssignmentInput): Promise<IAssignment> {
     const assignment = new Assignment({
       ...input,
+      ...settingsFields(input),
+      ...examFields(input),
+      ...deliveryFields(input.accessibleTo, (input as any).isExternalAssignment),
       status: AssignmentStatus.DRAFT
     });
     await assignment.save();
@@ -130,7 +201,12 @@ class AssignmentService {
 
     const assignment = await Assignment.findOneAndUpdate(
       { _id: id, tenant },
-      { $set: input },
+      { $set: {
+        ...input,
+        ...settingsFields(input),
+        ...examFields({ ...input, type: input.type || existingAssignment?.type }),
+        ...deliveryFields(input.accessibleTo, (input as any).isExternalAssignment ?? existingAssignment?.isExternalAssignment),
+      } },
       { new: true, runValidators: true }
     );
 
@@ -279,6 +355,12 @@ class AssignmentService {
       if (!assignment.mcqQuestions?.length) validationErrors.push('At least one MCQ question is required');
     }
 
+    // Every student's paper must be fillable from the pools before anyone can press Start.
+    if (assignment.type === AssignmentType.EXAM) {
+      const check = await checkPoolExam({ tenantId: String(tenant), userId: String(userId), role: '' }, assignment.poolExam?.sections || []);
+      validationErrors.push(...check.problems);
+    }
+
     if (validationErrors.length > 0) {
       throw new Error(`Cannot publish: ${validationErrors.join(', ')}`);
     }
@@ -307,8 +389,10 @@ class AssignmentService {
       const accessibleTo = (assignment as any).accessibleTo || 'everyone';
       let students: any[] = [];
 
+      // "everyone" emails nobody: publishing puts an assignment in the bank, not in front of the
+      // whole institute. Students hear about it when it is assigned to their batch or to them.
       if (accessibleTo === 'everyone') {
-        students = await User.find({ tenantId: tenant, role: 'STUDENT', isActive: true }).select('firstName lastName email');
+        students = [];
       } else if (accessibleTo === 'batch_wise' && (assignment as any).selectedBatches?.length) {
         students = await User.find({
           tenantId: tenant,
@@ -330,6 +414,17 @@ class AssignmentService {
 
       console.log(`📧 Sending assignment notifications to ${students.length} students (accessibleTo: ${accessibleTo})`);
       await this.emailStudents(students, assignment);
+
+      // Batches/students it was given through Assign to Batches while still a draft hear now,
+      // with their own batch's dates. Students emailed just above are not emailed twice.
+      const rows = await AssessmentSchedule.find({ contentType: 'assignment', contentId: assignment._id, status: 'active' })
+        .select('batchId batchName studentIds startAt dueAt').lean() as any[];
+      if (rows.length) {
+        await notifyAssigned(String(tenant), 'assignment', String(assignment._id), rows.map(r => r.batchId
+          ? { batchId: String(r.batchId), batchName: r.batchName, startAt: r.startAt, dueAt: r.dueAt }
+          : { studentIds: (r.studentIds || []).map(String), startAt: r.startAt, dueAt: r.dueAt }),
+          students.map((u: any) => String(u._id)));
+      }
     } catch (err) {
       console.error('Error sending assignment notifications:', err);
     }
@@ -348,17 +443,20 @@ class AssignmentService {
     for (let i = 0; i < students.length; i++) {
       const student = students[i];
       try {
-        await emailService.sendAssignmentNotificationEmail(
+        const ok = await emailService.sendAssignmentNotificationEmail(
           student.email,
-          `${student.firstName} ${student.lastName}`,
-          assignment.title,
-          assignment.type,
-          assignment.description,
-          assignment.dueDate || new Date(),
-          assignment.totalPoints,
-          assignment.difficulty
+          `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+          {
+            title: assignment.title,
+            type: assignment.type,
+            description: assignment.description,
+            difficulty: assignment.difficulty,
+            totalPoints: assignment.totalPoints,
+            opensAt: (assignment as any).startDate || null,
+            dueAt: assignment.dueDate || null,
+          }
         );
-        sent++;
+        if (ok) sent++; else failed++;
       } catch (err) {
         failed++;
         console.error(`Failed to send email to ${student.email}:`, err);
@@ -478,6 +576,7 @@ class AssignmentService {
       ...original.toObject(),
       _id: undefined,
       title: `${original.title} (Copy)`,
+      ...deliveryFields(original.accessibleTo, original.isExternalAssignment),
       status: AssignmentStatus.DRAFT,
       createdBy: userId,
       updatedBy: undefined,
@@ -513,13 +612,15 @@ class AssignmentService {
     const batchIdStr = resolvedBatch ? resolvedBatch.toString() : null;
 
     // Access model: a student sees an assignment only if it's explicitly for them —
-    // 'everyone', their batch, or them individually. Legacy records (no accessibleTo)
-    // count ONLY when their `batch` matches this student's batch.
+    // their batch, or them individually. Legacy records (no accessibleTo) count ONLY when
+    // their `batch` matches this student's batch. "everyone" delivers to nobody: publishing
+    // puts an assignment in the bank, it is not an assignment to the whole institute.
+    const { studentBatchIds } = await import('./placementBatchService');
+    const allBatches = batchIdStr ? await studentBatchIds(studentIdStr, batchIdStr) : [];
     const accessOr: any[] = [
-      { accessibleTo: 'everyone' },
       { accessibleTo: 'individual', selectedStudents: studentIdStr },
       ...(batchIdStr ? [
-        { accessibleTo: 'batch_wise', selectedBatches: batchIdStr },
+        { accessibleTo: 'batch_wise', selectedBatches: { $in: allBatches } },
         { accessibleTo: { $exists: false }, batch: resolvedBatch },
       ] : []),
     ];
@@ -531,10 +632,19 @@ class AssignmentService {
     const schedMap = await studentSchedulesMap(tenant.toString(), studentIdStr, batchIdStr, 'assignment');
     const scheduledIds = [...schedMap.keys()];
 
+    // Work the student already started or handed in stays on their list, even if the
+    // assignment was later taken off their batch (or was only ever open to "everyone").
+    const [submittedIds, attemptedIds] = await Promise.all([
+      Submission.distinct('assignment', { tenant, student: studentId }),
+      PoolExamAttempt.distinct('assignment', { student: studentId }),
+    ]);
+    const startedIds = [...submittedIds, ...attemptedIds];
+
     const query: any = {
       tenant,
       $or: [
         ...(scheduledIds.length ? [{ _id: { $in: scheduledIds } }] : []),
+        ...(startedIds.length ? [{ _id: { $in: startedIds }, status: AssignmentStatus.PUBLISHED, unitCode: { $in: [null, ''] } }] : []),
         /* A CareerPilot unit's assignment is delivered through the member's day; its
            accessibleTo defaults to 'everyone', so it must never auto-list for LMS students.
            Only an explicit schedule (above) delivers one. The audience condition does the
@@ -544,18 +654,31 @@ class AssignmentService {
       ],
     };
 
+    // An LMS demo student: exactly the chosen assignments and those on the demo courses' days.
+    const { lmsDemoScopeFor, demoCourseModuleIds } = await import('./lmsDemoService');
+    const demo = await lmsDemoScopeFor(studentIdStr);
+    if (demo) {
+      const allowed = [...new Set([...(demo.on('assignments') ? demo.ids('assignmentIds') : []), ...(await demoCourseModuleIds(demo.cfg, 'assignment'))])];
+      for (const k of Object.keys(query)) delete query[k];
+      Object.assign(query, { tenant, _id: { $in: allowed.map(id => new Types.ObjectId(id)) } });
+    }
+
     const assignments = await Assignment.find(query)
-      .select('title description type difficulty totalPoints dueDate startDate topics')
+      .select('title description type difficulty totalPoints dueDate startDate topics poolExam.showResultsImmediately poolExam.resultsReleasedAt')
       .sort({ dueDate: 1 });
 
     // Get submission status for each assignment
     const assignmentsWithStatus = await Promise.all(
       assignments.map(async (assignment) => {
-        const submission = await Submission.findOne({
-          assignment: assignment._id,
-          student: studentId,
-          tenant
-        }).sort({ attemptNumber: -1 });
+        // A pool exam's attempts live in their own collection; read in the same shape, with the
+        // score withheld until results are released.
+        const submission: any = assignment.type === AssignmentType.EXAM
+          ? await examAttemptAsSubmission(assignment, studentId)
+          : await Submission.findOne({
+            assignment: assignment._id,
+            student: studentId,
+            tenant
+          }).sort({ attemptNumber: -1 });
 
         // Resolve the deadline + status: schedule row for this batch wins, else baked dueDate.
         const row = schedMap.get(String(assignment._id));

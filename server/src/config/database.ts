@@ -55,8 +55,10 @@ export const connectDB = async (): Promise<void> => {
       /* Explicit, so the ceiling is a decision rather than whatever the driver defaults to. */
       maxPoolSize: 50,
       minPoolSize: 5,
-      retryWrites: false
-    });
+      retryWrites: false,
+      // Driver command events, used by the support monitor to spot slow operations.
+      monitorCommands: true,
+    } as any);
 
     console.log(`✅ MongoDB Connected: ${connection.connection.host}`);
   } catch (error: any) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { leadApi, userApi } from '../../api';
+import { leadApi } from '../../api';
 import './LeadAnalytics.css';
 
 // ── Funnel analytics types (from /leads/funnel-analytics) ───────────────────
@@ -74,8 +74,8 @@ const LeadAnalytics: React.FC = () => {
 
   // Load team members for filter dropdown
   useEffect(() => {
-    userApi.getUsers().then((res: any) => {
-      const users = Array.isArray(res) ? res : res?.users ?? [];
+    leadApi.getCounsellors().then((res: any) => {
+      const users = res?.data || [];
       setTeamMembers(users.map((u: any) => ({ _id: u._id, name: u.name || u.firstName || u.email })));
     }).catch(() => {});
   }, []);

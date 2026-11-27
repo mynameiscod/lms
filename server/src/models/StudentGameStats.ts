@@ -19,6 +19,11 @@ export interface IStudentGameStats extends Document {
   currentStreak: number;
   longestStreak: number;
   lastSolvedDate?: string;        // 'YYYY-MM-DD' (IST)
+  /** CareerPilot members: streak freezes held, and the missed days they covered (data/labStreakPolicy.ts). */
+  freezes?: number;
+  frozenDates?: string[];
+  /** CareerPilot members: when this lab XP was moved into the main XP (migrations/labs). */
+  xpMovedAt?: Date;
   byCategory: Record<string, number>;
   badges: IEarnedBadge[];
   createdAt: Date;
@@ -41,6 +46,9 @@ const StudentGameStatsSchema = new Schema<IStudentGameStats>(
     currentStreak: { type: Number, default: 0 },
     longestStreak: { type: Number, default: 0 },
     lastSolvedDate:{ type: String },
+    freezes:       { type: Number, default: 0 },
+    frozenDates:   { type: [String], default: undefined },
+    xpMovedAt:     { type: Date },
     byCategory: { type: Schema.Types.Mixed, default: {} },
     badges:     { type: [{ key: String, earnedAt: Date, _id: false }], default: [] },
   },

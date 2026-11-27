@@ -53,7 +53,7 @@
 
 .workspace-header > div:first-child > div > span {
   color: var(--cb-muted) !important;
-  font-size: 12px !important;
+  font-size: max(12px, var(--fs-floor, 0px)) !important;
 }
 
 .workspace-header > div:last-child {
@@ -67,7 +67,7 @@
   border-radius: 9px !important;
   box-shadow: none !important;
   font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
-  font-size: 12px !important;
+  font-size: max(12px, var(--fs-floor, 0px)) !important;
 }
 
 .workspace-header > div:last-child > span {
@@ -78,7 +78,7 @@
   min-height: 36px;
   padding: 8px 13px !important;
   border-radius: 9px !important;
-  font-size: 12px !important;
+  font-size: max(12px, var(--fs-floor, 0px)) !important;
   font-weight: 700 !important;
   box-shadow: none !important;
 }
@@ -105,7 +105,7 @@
 .workspace-container > .alert {
   margin: 10px 16px 0 !important;
   border-radius: 10px;
-  font-size: 12px;
+  font-size: max(12px, var(--fs-floor, 0px));
 }
 
 .workspace-layout {
@@ -152,7 +152,7 @@
   background: transparent !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  font-size: 12px !important;
+  font-size: max(12px, var(--fs-floor, 0px)) !important;
   font-weight: 700 !important;
 }
 
@@ -187,7 +187,7 @@
   color: #3b4d63 !important;
   border: 1px solid #edf2f6;
   border-radius: 10px !important;
-  font-size: 13px;
+  font-size: max(13px, var(--fs-floor, 0px));
   line-height: 1.65 !important;
 }
 
@@ -202,12 +202,12 @@
   padding: 10px 12px !important;
   background: #f8fafc !important;
   color: #29405e;
-  font-size: 12px;
+  font-size: max(12px, var(--fs-floor, 0px));
 }
 
 .workspace-problem .test-case-content {
   padding: 12px;
-  font-size: 12px;
+  font-size: max(12px, var(--fs-floor, 0px));
 }
 
 .workspace-problem pre,
@@ -250,7 +250,7 @@
   border: 1px solid #dfe7ee !important;
   background: #fff !important;
   color: #526176 !important;
-  font-size: 11px !important;
+  font-size: max(11px, var(--fs-floor, 0px)) !important;
   font-weight: 700 !important;
   white-space: nowrap;
 }
@@ -408,10 +408,10 @@
   .workspace-header h2 { font-size: 16px !important; }
   .workspace-header > div:first-child { gap: 9px !important; }
   .workspace-header > div:last-child { gap: 6px !important; }
-  .workspace-header .btn { min-height: 34px; padding: 7px 9px !important; font-size: 11px !important; }
+  .workspace-header .btn { min-height: 34px; padding: 7px 9px !important; font-size: max(11px, var(--fs-floor, 0px)) !important; }
   .workspace-layout { padding: 8px !important; }
   .workspace-problem .tabs { gap: 12px !important; padding: 0 10px !important; }
-  .workspace-problem .tab { font-size: 11px !important; }
+  .workspace-problem .tab { font-size: max(11px, var(--fs-floor, 0px)) !important; }
   .workspace-problem > div:last-child { padding: 12px !important; }
   .workspace-problem,
   .workspace-editor { border-radius: 12px !important; }

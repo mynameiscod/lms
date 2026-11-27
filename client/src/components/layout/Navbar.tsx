@@ -46,7 +46,7 @@ const Navbar: React.FC<NavbarProps> = ({ onHamburgerClick }) => {
                   )}
                   <span className="user-meta">
                     <span className="user-name">{user.firstName} {user.lastName}</span>
-                    <span className="user-role">{user.role === 'STUDENT' ? 'Student' : user.role === 'ADMIN' ? 'Admin' : user.role === 'INSTRUCTOR' ? 'Instructor' : user.role}</span>
+                    <span className="user-role">{user.customRoleName || (user.role === 'STUDENT' ? 'Student' : user.role === 'ADMIN' ? 'Admin' : user.role === 'INSTRUCTOR' ? 'Instructor' : user.role)}</span>
                   </span>
                   <i className="bi bi-chevron-down user-menu-chevron" aria-hidden="true" />
                 </summary>

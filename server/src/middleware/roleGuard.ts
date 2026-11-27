@@ -8,6 +8,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     label: 'Users & Roles',
     permissions: [
       { key: 'manage_tenant_users', label: 'Manage Users (Create, Edit, Delete, Invite)' },
+      { key: 'change_student_status', label: 'Change Student Status (Active / Inactive / Discontinued)' },
       { key: 'manage_roles', label: 'Manage Roles & Permissions' },
       { key: 'manage_instructors', label: 'Manage Instructors' },
       { key: 'view_enrolled_students', label: 'View Enrolled Students' },
@@ -39,6 +40,8 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     permissions: [
       { key: 'mark_attendance', label: 'Mark Attendance' },
       { key: 'view_attendance', label: 'View Own Attendance' },
+      { key: 'manage_student_rules', label: 'Student Rules (QR attendance, inactivity alerts, profile gate)' },
+      { key: 'manage_agreements', label: 'Terms & Agreements (write, roll out, see signatures)' },
     ]
   },
   quizzes: {
@@ -109,6 +112,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     permissions: [
       { key: 'view_fees', label: 'View Fees, Dues & Receipts' },
       { key: 'manage_billing', label: 'Record Payments, Set Fees & Send Reminders' },
+      { key: 'manage_referrals', label: 'Refer & Earn: reward rules, referrals and paying out withdrawals' },
     ]
   },
   leads: {
@@ -125,6 +129,11 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'manage_lead_stages', label: 'Manage Lead Stages & Form Config' },
       { key: 'convert_leads', label: 'Convert Leads to Students' },
       { key: 'archive_leads', label: 'Archive Leads, Restore, and Delete Leads Archived 3+ Years' },
+      // Teams belong to one institute (each institute sets up its own), so an institute admin gives this.
+      { key: 'manage_sales_teams', label: "Sales Teams: set up teams and managers, and see every team's daily reports" },
+      { key: 'manage_demo_slots', label: 'Book a Demo: set up demo slots, see bookings and mark attendance' },
+      { key: 'manage_website_batches', label: 'Website Batches: set the next batch date and seats left shown on your website' },
+      { key: 'manage_website_content', label: 'Website Content: placement numbers, hiring companies and placed students shown on your website' },
     ]
   },
   marketing: {
@@ -160,6 +169,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     label: 'AI Communication Lab',
     permissions: [
       { key: 'manage_communication_lab', label: 'Manage Communication Challenges & Monitor Students' },
+      { key: 'view_communication_progress', label: 'View Communication Coach Progress (who practised, steadiness, readiness)' },
       { key: 'use_communication_lab', label: 'Practise Communication Challenges' },
     ]
   },
@@ -227,7 +237,15 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
   careerPassport: {
     label: 'CareerPilot',
     permissions: [
-      { key: 'manage_passport', label: 'Manage CareerPilot (Config, Pathways, Missions, Assessment Bank)' },
+      { key: 'manage_passport', label: 'Manage ALL of CareerPilot (every feature below, and anything added later)' },
+      // One feature each, so a role can run the member list without touching the assessment bank. manage_passport still
+      // opens all of them. The platform administrator decides which features an institute has at all.
+      { key: 'manage_passport_members', label: 'CareerPilot: edit members (create, edit, deactivate), activity and analytics' },
+      { key: 'manage_passport_setup', label: 'CareerPilot: setup, coins, rewards and news' },
+      { key: 'manage_passport_pathways', label: 'CareerPilot: pathways, pathway rules and missions' },
+      { key: 'manage_passport_career_map', label: 'CareerPilot: career roles, skill graph, role blueprints, stage curriculum' },
+      { key: 'manage_passport_assessment', label: 'CareerPilot: assessment shape, coverage, question drafting and bank' },
+      { key: 'manage_passport_content', label: 'CareerPilot: learning content, mega curriculum, concepts, company questions' },
       // Separate from manage_passport on purpose: changing a category's weight rewrites how
       // EVERY member's career score is computed, and deleting one can strand content. That
       // is a different level of trust from writing a question, so it can be withheld from
@@ -248,6 +266,24 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     ]
   },
   /*
+   * Each of these acts on something every institute shares, so only a super admin can put them on
+   * a role (SUPER_ADMIN_GRANTED below). They used to be either buried in the CareerPilot list or not
+   * grantable at all (the role NAME was checked), which is why a super admin could not find them.
+   */
+  sharedPlatform: {
+    label: 'Shared Across Every Institute (only a super admin can give these)',
+    permissions: [
+      { key: 'manage_job_openings', label: 'Company Job Openings: post jobs that every CareerPilot member sees' },
+      { key: 'manage_thinking_bank', label: 'Thinking Lab Questions: write and approve the shared question bank' },
+      { key: 'manage_demo_accounts', label: 'Demo Accounts: demo plans, and give, reset or end a demo on a member' },
+      { key: 'manage_careerpilot_limits', label: 'CareerPilot Limits: mock interview and Thinking Lab limits for every institute' },
+      { key: 'manage_skill_catalogue', label: 'Skill Catalogue: add, edit and delete shared skills, and the skills set for each stage' },
+      { key: 'view_member_activity', label: "Member Activity Trail: see everything a member did, on their profile" },
+      { key: 'manage_lms_demo', label: 'LMS Demo: demo courses, length, AI limit, and give, extend or end a student demo' },
+      { key: 'manage_question_books', label: 'Question Books: manage books, and choose which books LMS students and CareerPilot members get' },
+    ]
+  },
+  /*
    * Features below used to borrow another feature's permission (Problem Bank opened with
    * "Create Courses", WhatsApp Templates with "Organization Settings", ...), so a role could
    * not be given one of them alone. Each now has its own key. Routes accept the new key OR
@@ -258,6 +294,20 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     permissions: [
       { key: 'manage_placement_program', label: 'Run the Placement Program (candidates, interviews, agreements, cheques)' },
       { key: 'manage_placement_partners', label: 'Manage Placement Partners (hiring-company outreach)' },
+    ]
+  },
+  placementDesk: {
+    label: 'Placement Desk',
+    permissions: [
+      { key: 'manage_placement_desk', label: 'Placement Desk — enter companies, drives, candidates and outcomes' },
+      { key: 'view_placement_desk', label: 'Placement Desk — view drives and reports (read only)' },
+    ]
+  },
+  talentPool: {
+    label: 'Talent Pool',
+    permissions: [
+      { key: 'manage_talent_pool', label: 'Talent Pool — placement offices, share candidates, change statuses' },
+      { key: 'view_talent_pool', label: 'Talent Pool — see offices and the status tracker (read only)' },
     ]
   },
   interviewHub: {
@@ -280,6 +330,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'manage_practice_pass', label: 'Manage Practice Pass (daily tasks & thresholds)' },
       { key: 'manage_problem_bank', label: 'Manage Problem Bank & Problem Sets' },
       { key: 'manage_visualizer', label: 'Manage Code Visualizer Library & Access' },
+      { key: 'manage_project_studio', label: 'Manage Project Studio (guided projects, reviews & progress)' },
     ]
   },
   learningPlans: {
@@ -351,19 +402,50 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'view_activity_logs', label: 'View API Logs & Student Activity' },
     ]
   },
+  /**
+   * Help & Support (CareerPilot). Deliberately NOT in FEATURE_PERMISSIONS: no role gets these by
+   * default, because an agent reads members' tickets and, in the support HQ tenant, every
+   * college's. A college admin sees their own college's tickets without either (services/supportAccess.ts).
+   */
+  support: {
+    label: 'Help & Support',
+    permissions: [
+      { key: 'support_agent', label: 'Support agent — work tickets: reply, internal notes, assign, change status' },
+      { key: 'support_manager', label: 'Support manager — everything an agent does, plus FAQs, SLA settings and analytics' },
+    ]
+  },
 };
 
 /** Every key added for a feature that used to borrow another's — admins get them all by default. */
 export const FEATURE_PERMISSIONS = [
   'manage_placement_program', 'manage_placement_partners', 'manage_interview_hub', 'manage_whatsapp_templates',
-  'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans',
+  'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_project_studio', 'manage_learning_plans',
   'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests', 'manage_concerns', 'view_activity_logs',
-  'chat_whatsapp', 'manage_event_apis', 'view_admin_dashboard',
+  'chat_whatsapp', 'manage_event_apis', 'view_admin_dashboard', 'manage_placement_desk', 'view_placement_desk',
+  'manage_talent_pool', 'view_talent_pool',
   'view_employees', 'manage_employees', 'view_employee_sensitive', 'review_employee_activity',
   'view_expenses', 'approve_expenses', 'manage_expenses', 'use_employee_portal',
 ];
 
 // Flatten all permission keys
+/**
+ * Permissions only a super admin can put on a role. They act beyond one institute, so an
+ * institute admin who manages roles must not be able to hand them out — or take them away.
+ */
+export const SUPER_ADMIN_GRANTED = [
+  'manage_job_openings', 'manage_thinking_bank', 'manage_demo_accounts', 'manage_skill_catalogue', 'view_member_activity',
+  'manage_careerpilot_limits', 'manage_lms_demo', 'manage_question_books',
+];
+
+/**
+ * The platform administrator's own keys. They are never on a role: holding "Manage All Tenants"
+ * is being a super admin, so that is done by making the person one. Before this an institute
+ * admin could tick them (they were not in SUPER_ADMIN_GRANTED) and the tenant list, tenant
+ * edits and plan limits would open for that role. They are hidden from the Roles screen and
+ * dropped from every non-super-admin's permissions, including roles saved earlier.
+ */
+export const PLATFORM_ONLY = ['manage_tenants', 'manage_all_users', 'manage_system_settings'];
+
 export const ALL_PERMISSIONS = Object.values(PERMISSION_GROUPS)
   .flatMap(group => group.permissions.map(p => p.key));
 
@@ -371,7 +453,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   SUPER_ADMIN: ALL_PERMISSIONS, // Super admin gets everything
   TENANT_ADMIN: [
     // Users & Roles
-    'manage_tenant_users', 'manage_roles', 'manage_instructors', 'view_enrolled_students',
+    'manage_tenant_users', 'manage_roles', 'manage_instructors', 'view_enrolled_students', 'change_student_status',
     // Courses & Content
     'create_courses', 'edit_courses', 'delete_courses', 'view_courses',
     'manage_own_courses', 'create_lessons', 'manage_enrollments', 'enroll_courses',
@@ -397,7 +479,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_billing',
     // Leads (full access)
     'manage_leads', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads',
-    'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads', 'archive_leads',
+    'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads', 'archive_leads', 'manage_sales_teams', 'manage_demo_slots', 'manage_website_batches', 'manage_website_content',
     // Marketing
     'manage_marketing',
     // Coding Snippets
@@ -407,7 +489,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // Speaking Practice
     'manage_speaking', 'use_speaking',
     // AI Communication Lab
-    'manage_communication_lab', 'use_communication_lab',
+    'manage_communication_lab', 'view_communication_progress', 'use_communication_lab',
     // Resource Library
     'manage_resources', 'view_resources',
     // CareerPilot
@@ -419,7 +501,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // AI Spend
     'view_ai_spend',
     // CareerPilot — full control, including granting membership without payment
-    'manage_passport', 'manage_passport_categories', 'view_passport_members', 'view_passport_funnel', 'convert_passport_member', 'reroute_passport_members', 'use_passport',
+    'manage_passport', 'manage_passport_members', 'manage_passport_setup', 'manage_passport_pathways', 'manage_passport_career_map', 'manage_passport_assessment', 'manage_passport_content', 'manage_passport_categories', 'view_passport_members', 'view_passport_funnel', 'convert_passport_member', 'reroute_passport_members', 'use_passport',
     // Tech Battles — full control, including exporting public registrant PII
     'manage_battles', 'view_battles', 'review_battle_registrations',
     // Hackathons — run the event, but exporting registrant PII stays with admins
@@ -430,6 +512,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_exams', 'view_exams',
     // Fees — view as well as record
     'view_fees',
+    // LMS Refer & Earn
+    'manage_referrals',
     // Features that now have a permission of their own
     ...FEATURE_PERMISSIONS,
   ],
@@ -458,7 +542,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // Speaking Practice
     'manage_speaking', 'use_speaking',
     // AI Communication Lab
-    'manage_communication_lab', 'use_communication_lab',
+    'manage_communication_lab', 'view_communication_progress', 'use_communication_lab',
     // Resource Library
     'manage_resources', 'view_resources',
     // Certificates
@@ -470,7 +554,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // Exams — instructors conduct them, so they enter and correct the marks
     'manage_exams', 'view_exams',
     // The same features instructors already reached through "Create Courses"
-    'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer',
+    'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_project_studio',
     'manage_learning_plans', 'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests',
     'manage_concerns', 'view_activity_logs',
   ],
@@ -521,6 +605,9 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'use_passport',
   ],
   GUEST: ['view_public_courses'],
+  // A placement office login. It holds no permission at all: authMiddleware lets it reach only the
+  // Talent Portal (see middleware/placementPartnerScope.ts), whatever any route's own guard says.
+  PLACEMENT_PARTNER: [],
 };
 
 /**
@@ -535,16 +622,38 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
  *
  * Exported so a handler serving two audiences (an author and a student) decides by the same rule.
  */
-export const permissionsOf = async (user: { role: string; customRoleId?: any }): Promise<string[]> => {
+export const permissionsOf = async (user: { role: string; customRoleId?: any; tenantId?: any }): Promise<string[]> => {
+  if (user.role === 'SUPER_ADMIN') return ALL_PERMISSIONS;
+  return (await rolePermissions(user)).filter((p) => !PLATFORM_ONLY.includes(p));
+};
+
+const rolePermissions = async (user: { role: string; customRoleId?: any; tenantId?: any }): Promise<string[]> => {
+  // A super admin can do everything, always — a custom role on their account never narrows that.
+  if (user.role === 'SUPER_ADMIN') return ALL_PERMISSIONS;
+  // A placement office never holds a permission — not from a custom role, not from a Roles-screen edit.
+  if (user.role === 'PLACEMENT_PARTNER') return [];
+  const base = ROLE_PERMISSIONS[user.role] || [];
   if (user.customRoleId) {
     try {
       const customRole = await Role.findById(user.customRoleId);
-      return customRole ? customRole.permissions : (ROLE_PERMISSIONS[user.role] || []);
+      return customRole ? customRole.permissions : base;
     } catch {
-      return ROLE_PERMISSIONS[user.role] || [];
+      return base;
     }
   }
-  return ROLE_PERMISSIONS[user.role] || [];
+  /*
+   * A built-in role (TENANT_ADMIN, INSTRUCTOR, STAFF…) as edited on the Roles screen. Ticking a
+   * permission on the institute's role of that name gives it to everyone with that base role, which
+   * is what an admin expects from the screen. It only ADDS to the built-in defaults: the code relies
+   * on those, and a role record saved with fewer boxes must not quietly take them away.
+   */
+  if (!user.tenantId) return base;
+  try {
+    const named: any = await Role.findOne({ tenantId: user.tenantId, name: user.role }).select('permissions').lean();
+    return named?.permissions?.length ? Array.from(new Set([...base, ...named.permissions])) : base;
+  } catch {
+    return base;
+  }
 };
 
 /**

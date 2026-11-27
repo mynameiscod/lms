@@ -2,6 +2,8 @@ import { Response } from 'express';
 import mongoose from 'mongoose';
 import FollowUpReminder from '../models/FollowUpReminder';
 import Lead from '../models/Lead';
+import { validCallOutcomeCodes } from '../services/leadPicklistService';
+import { closeOpenFollowUps, OPEN_FOLLOW_UP_STATUSES, REPLACED_NOTE, CLOSED_WITH_DONE_NOTE } from '../services/leadFollowUpService';
 import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
 
@@ -39,11 +41,9 @@ export const createFollowUp = async (req: AuthenticatedRequest, res: Response) =
 
     await followUp.save();
 
-    // Update lead's nextFollowUp
-    if (!lead.nextFollowUp || new Date(scheduledAt) < lead.nextFollowUp) {
-      lead.nextFollowUp = new Date(scheduledAt);
-      await lead.save();
-    }
+    // The new follow-up replaces the lead's older open ones: one next step per lead.
+    await closeOpenFollowUps(tenantId, lead._id, followUp._id, REPLACED_NOTE);
+    lead.nextFollowUp = new Date(scheduledAt);
 
     // Add activity to lead
     lead.activities.push({
@@ -194,6 +194,27 @@ export const getOverdueFollowUps = async (req: AuthenticatedRequest, res: Respon
 
 // ===================== COMPLETE FOLLOW-UP =====================
 
+/**
+ * After a follow-up is closed, move the lead's `nextFollowUp` on to its next open follow-up
+ * (or clear it). Only touches the date when it pointed at the closed follow-up or is already
+ * past — a date a counsellor typed by hand for the future is left alone. Without this, every
+ * completed follow-up stayed "overdue" on the lead forever.
+ */
+async function refreshNextFollowUp(lead: any, closed: { _id: any; scheduledAt?: Date }, alsoClosed: Date[] = []) {
+  const current = lead.nextFollowUp ? new Date(lead.nextFollowUp).getTime() : null;
+  if (current === null) return;
+  const closedTimes = [closed.scheduledAt, ...alsoClosed].filter(Boolean).map(d => new Date(d as Date).getTime());
+  const pointsAtClosed = closedTimes.some(t => Math.abs(current - t) < 60_000);
+  if (!pointsAtClosed && current > Date.now()) return;
+  const next = await FollowUpReminder.findOne({
+    tenantId: lead.tenantId,
+    leadId: lead._id,
+    _id: { $ne: closed._id },
+    status: { $in: OPEN_FOLLOW_UP_STATUSES },
+  }).sort({ scheduledAt: 1 }).select('scheduledAt').lean() as any;
+  lead.nextFollowUp = next?.scheduledAt || undefined;
+}
+
 export const completeFollowUp = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { tenantId, userId } = req;
@@ -211,23 +232,39 @@ export const completeFollowUp = async (req: AuthenticatedRequest, res: Response)
     followUp.notes = notes;
     followUp.nextAction = nextAction;
     await followUp.save();
+    // Done means nothing is left to follow up on this lead; a next step is scheduled afresh.
+    const alsoClosed = await closeOpenFollowUps(tenantId, followUp.leadId, followUp._id, CLOSED_WITH_DONE_NOTE);
 
     // Add activity to lead
-    const lead = await Lead.findById(followUp.leadId);
+    const lead = await Lead.findOne({ _id: followUp.leadId, tenantId });
     if (lead) {
-      const activityType = followUp.type === 'call' ? 'call' : 
-                          followUp.type === 'whatsapp' ? 'whatsapp' : 
-                          followUp.type === 'email' ? 'email' : 'note';
+      /*
+       * Marking a follow-up done is not a call (or a WhatsApp, or an email). "Mark this follow-up
+       * done" on the lead page and the calendar send no call details, and logging them as a call
+       * raised the lead's call count and its "last contacted" for a call nobody made. The contact
+       * type is kept only when the call itself comes with it (an outcome, a duration or a recording);
+       * otherwise the completion is a note on the timeline.
+       */
+      const hasCallDetails = !!(callOutcome || callDuration || recordingUrl);
+      const activityType = !hasCallDetails ? 'note'
+        : followUp.type === 'call' ? 'call'
+        : followUp.type === 'whatsapp' ? 'whatsapp'
+        : followUp.type === 'email' ? 'email' : 'note';
 
       lead.activities.push({
         type: activityType,
-        description: `${followUp.type === 'one_on_one' ? '1-on-1 Meeting' : followUp.title} completed. Outcome: ${outcome || 'N/A'}. ${notes ? 'Notes: ' + notes : ''}`,
+        description: `${hasCallDetails ? '' : '✅ Follow-up done: '}${followUp.type === 'one_on_one' ? '1-on-1 Meeting' : followUp.title}${hasCallDetails ? ' completed' : ''}.${outcome && outcome !== 'done' ? ` Outcome: ${outcome}.` : ''}${notes ? ' Notes: ' + notes : ''}`,
         createdBy: new mongoose.Types.ObjectId(userId as string),
         createdAt: new Date(),
-        callOutcome: callOutcome,
+        // An unknown outcome would fail schema validation and lose the whole completion.
+        callOutcome: callOutcome && (await validCallOutcomeCodes(String(tenantId))).has(callOutcome) ? callOutcome : undefined,
         callDuration: callDuration,
         recordingUrl: recordingUrl
       });
+      if (['call', 'whatsapp', 'email'].includes(activityType)) lead.lastContactedAt = new Date();
+      const logged = (lead.activities as any)[lead.activities.length - 1];
+      if (activityType === 'call' && logged?.callOutcome) lead.lastCallOutcome = logged.callOutcome;
+      await refreshNextFollowUp(lead, followUp, alsoClosed);
       await lead.save();
     }
 
@@ -317,6 +354,18 @@ export const deleteFollowUp = async (req: AuthenticatedRequest, res: Response) =
     const followUp = await FollowUpReminder.findOneAndDelete({ _id: id, tenantId });
     if (!followUp) {
       return res.status(404).json({ success: false, message: 'Follow-up not found' });
+    }
+
+    // Mongoose types this as ModifyResult; at runtime it is the document. Handle both.
+    const removed: any = (followUp as any)?.leadId ? followUp : (followUp as any)?.value;
+    if (!removed) return res.json({ success: true, message: 'Follow-up deleted' });
+    const lead = await Lead.findOne({ _id: removed.leadId, tenantId });
+    if (lead) {
+      const before = lead.nextFollowUp?.getTime();
+      await refreshNextFollowUp(lead, removed);
+      if (lead.nextFollowUp?.getTime() !== before) {
+        await Lead.updateOne({ _id: lead._id }, lead.nextFollowUp ? { $set: { nextFollowUp: lead.nextFollowUp } } : { $unset: { nextFollowUp: 1 } });
+      }
     }
 
     res.json({
@@ -470,6 +519,7 @@ export const quickSchedule = async (req: AuthenticatedRequest, res: Response) =>
     });
 
     await followUp.save();
+    await closeOpenFollowUps(tenantId, lead._id, followUp._id, REPLACED_NOTE);
 
     // Update lead
     lead.nextFollowUp = scheduledAt;

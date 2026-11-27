@@ -14,6 +14,9 @@ const quizInTenant = async (req: Request, quizId: string) => {
   return quiz;
 };
 
+/** Who is adding a question, as the Question record requires. */
+const authorOf = (req: Request): string => String((req as any).userId || (req as any).user?.id || (req as any).user?._id || 'admin');
+
 export const createQuestion = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
@@ -23,11 +26,13 @@ export const createQuestion = async (req: Request, res: Response) => {
     if (!type || !question || !marks) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
+    if (!(await quizInTenant(req, quizId))) return res.status(404).json({ message: 'Quiz not found' });
 
     const newQuestion = await questionService.createQuestion(
       quizId,
       { type, question, marks, ...rest } as any,
-      tenantId
+      tenantId,
+      authorOf(req)
     );
 
     res.status(201).json(newQuestion);
@@ -128,7 +133,9 @@ export const bulkCreateQuestions = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Questions must be an array' });
     }
 
-    const created = await questionService.bulkCreateQuestions(quizId, questions, tenantId);
+    if (!(await quizInTenant(req, quizId))) return res.status(404).json({ message: 'Quiz not found' });
+
+    const created = await questionService.bulkCreateQuestions(quizId, questions, tenantId, authorOf(req));
     res.status(201).json(created);
   } catch (error: any) {
     res.status(500).json({ message: error.message });

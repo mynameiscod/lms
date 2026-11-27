@@ -111,6 +111,16 @@ describe('CareerPilot students', () => {
     expect(await hiddenCareerPilotFeatures(tenantId)).toEqual(['coding']);
   });
 
+  it('can switch the coming-soon Aptitude and Reasoning items off and on', async () => {
+    const r = await call('patch', `/tenants/${tenantId}/career-pilot-features`, 'admin', { aptitude: false, reasoning: false });
+    expect(r.status).toBe(200);
+    expect(r.body.data).toMatchObject({ aptitude: false, reasoning: false, thinkingLab: true });
+    expect(await hiddenCareerPilotFeatures(tenantId)).toEqual(expect.arrayContaining(['aptitude', 'reasoning']));
+    await call('patch', `/tenants/${tenantId}/career-pilot-features`, 'admin', { aptitude: true, reasoning: true });
+    const back = await call('get', `/tenants/${tenantId}/career-pilot-features`, 'student');
+    expect(back.body.data).toMatchObject({ aptitude: true, reasoning: true });
+  });
+
   it('cannot be changed by a student, and one institute never sees the other’s switches', async () => {
     expect((await call('patch', `/tenants/${tenantId}/career-pilot-features`, 'student', { coding: true })).status).toBe(403);
     expect(await hiddenCareerPilotFeatures(otherTenantId)).toEqual([]);

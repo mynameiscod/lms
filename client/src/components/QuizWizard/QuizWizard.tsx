@@ -757,7 +757,11 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
 
             {/* Track A: Internal Students */}
             <div
-              onClick={() => setFormData((prev: any) => ({ ...prev, isExternalQuiz: false }))}
+              onClick={() => setFormData((prev: any) => (prev.isExternalQuiz
+                // Back from External: drop the "everyone" it set, or the saved quiz would reach
+                // (and, before 2026-11-26, email) every student. Nobody until it is assigned.
+                ? { ...prev, isExternalQuiz: false, accessibleTo: 'batch_wise', selectedBatches: [], selectedStudents: [] }
+                : prev))}
               style={{
                 border: `2px solid ${!(formData as any).isExternalQuiz ? '#6366f1' : '#e5e7eb'}`,
                 borderRadius: 12,

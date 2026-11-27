@@ -5,6 +5,7 @@ import { Item, ICON, ICON_FILLED, mins } from './Orientation';
 import './journeyDay.css';
 import './journeyDayMember.css';
 import './orientation.css';
+import { barWidth } from '../../utils/barWidth';
 
 /**
  * ONE WELCOME DAY, AS A PAGE OF ITS OWN.
@@ -138,7 +139,7 @@ const WelcomeDay: React.FC = () => {
               </div>
               <div className="jdm-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}
                    aria-label="Day progress">
-                <i style={{ width: `${Math.max(2, pct)}%` }} />
+                <i style={{ width: `${barWidth(pct)}%` }} />
               </div>
             </>
           )}

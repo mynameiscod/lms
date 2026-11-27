@@ -1,4 +1,6 @@
+import { notDemoStudents } from '../services/lmsDemoService';
 import { Request, Response } from 'express';
+import { trialAllowsAnother } from '../services/trialService';
 import mongoose from 'mongoose';
 import fs from 'fs';
 import ThinkingProblem, { audienceFilter, PROBLEM_AUDIENCES } from '../models/ThinkingProblem';
@@ -9,12 +11,55 @@ import ThinkingProfile from '../models/ThinkingProfile';
 import ScheduledChallenge from '../models/ScheduledChallenge';
 import User from '../models/User';
 import { resolveLabDay } from '../services/labTrackService';
+import { judgeLogic, LOGIC_AI_CHECKS } from '../services/logicCheckService';
+import { labBatchFor, labStudentIds } from '../services/placementBatchService';
 import { istToday, ymd } from '../utils/planSchedule';
 import * as lab from '../services/thinkingLabService';
+import ThinkingQuestion from '../models/ThinkingQuestion';
+import { memberQuestion, checkSteps } from '../services/thinkingDailyService';
+import { answerMatches, puzzleShare, ATTEMPTS_PUZZLE, explanationLongEnough, EXPLANATION_MIN_WORDS } from '../data/thinkingDailyPolicy';
 import * as game from '../services/gamificationService';
 import { transcribeFile } from '../services/speakingService';
 import { isCareerPilotMember, careerPilotMemberFilter } from '../services/careerPilotPopulation';
 import { pickMemberProblem, positionInBank } from '../services/thinkingLabMemberDaily';
+import { awardLabDay, labStreakSettingsFor, labDayXp } from '../services/labRewardService';
+import { advanceLabStreak, labStreakToday } from '../data/labStreakPolicy';
+import { XpLedger } from '../models/GamificationModels';
+import PassportProgress from '../models/PassportProgress';
+
+/** Ledger events that count as XP from the Thinking Lab: each day's award, and old lab XP moved in. */
+const LAB_XP_EVENTS = ['THINKING_LAB_DAILY_COMPLETED', 'THINKING_LAB_XP_MOVED'];
+
+/**
+ * A CareerPilot member finished a Thinking Lab question.
+ *
+ * The lab streak moves (one question done is a streak day, with freezes), and the day's XP is paid
+ * through the same engine as daily missions — once a day, `share` of the admin's amount. Nothing
+ * goes to the lab's own XP, coins or badges: those are for LMS students only.
+ */
+async function memberQuestionDone(req: Request, u: any, share: number, ref: string) {
+  const day = today();
+  const settings = await labStreakSettingsFor(tId(req));
+  const gs: any = await StudentGameStats.findOneAndUpdate(
+    { tenantId: tId(req), studentId: uId(req) },
+    { $setOnInsert: { tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' ') } },
+    { new: true, upsert: true },
+  );
+  const st = advanceLabStreak({ current: gs.currentStreak, longest: gs.longestStreak, lastDate: gs.lastSolvedDate, freezes: gs.freezes || 0 }, day, settings);
+  if (st.advanced) {
+    gs.currentStreak = st.current; gs.longestStreak = st.longest; gs.lastSolvedDate = st.lastDate; gs.freezes = st.freezes;
+    if (st.frozenDates.length) gs.frozenDates = [...(gs.frozenDates || []), ...st.frozenDates].slice(-60);
+    await gs.save();
+  }
+  const award = await awardLabDay({ tenantId: tId(req), studentId: uId(req), lab: 'thinking', day, share, ref });
+  return {
+    xpEarned: award.awarded,
+    reward: {
+      fullXp: award.fullXp, alreadyPaid: award.alreadyPaid, dayStreak: award.dayStreak, streakBonus: award.streakBonus || 0,
+      labStreak: { current: st.advanced ? st.current : gs.currentStreak, longest: st.advanced ? st.longest : gs.longestStreak, freezes: st.advanced ? st.freezes : (gs.freezes || 0), earnedFreeze: st.earnedFreeze, frozenDates: st.frozenDates },
+    },
+  };
+}
 
 // Credit bonus XP (voice/journal) to the student's game stats. Returns coins + new badges.
 async function creditBonusXp(req: Request, amount: number) {
@@ -52,6 +97,38 @@ const windowStatus = (sc: any, todayStr: string, nowHM: string): 'upcoming' | 'o
 const windowView = (sc: any, status: string | null) =>
   sc && (sc.startTime || sc.endTime) ? { date: sc.date, startTime: sc.startTime || null, endTime: sc.endTime || null, status } : undefined;
 
+
+// ── Shared-bank questions in LMS lab tracks ──────────────────────────────────
+/*
+ * A lab-track day can name a question from the shared Thinking Lab bank (ThinkingQuestion) instead of an LMS
+ * ThinkingProblem. contentOf() hands every handler the same problem-shaped object either way, so the coding flow
+ * (approach → run → submit) works unchanged for a bank coding question; a bank PUZZLE is answered through
+ * puzzleAnswer() below, marked the way CareerPilot marks it.
+ */
+const BANK_XP: Record<string, number> = { easy: 30, medium: 50, hard: 80 };
+const asProblem = (q: any) => q && ({
+  _id: q._id, __kind: 'question', type: q.type, title: q.title, category: q.subCategory || q.type,
+  difficulty: q.difficulty, language: q.language || 'python', statement: q.statement,
+  examples: q.examples || [], constraints: '', notes: '', starterCode: q.starterCode || '',
+  testCases: q.testCases || [], hints: q.hints || [], referenceSolution: q.referenceSolution,
+  xp: BANK_XP[q.difficulty] || 40, estimatedMinutes: q.estimatedMinutes, imageUrl: q.imageUrl, raw: q,
+});
+async function contentOf(ch: any): Promise<any | null> {
+  if (!ch) return null;
+  if (ch.contentKind === 'question') return asProblem(await ThinkingQuestion.findById(ch.problemId).lean());
+  return ThinkingProblem.findById(ch.problemId).lean();
+}
+async function bumpSolved(p: any) {
+  if (p?.__kind === 'question') await ThinkingQuestion.updateOne({ _id: p._id }, { $inc: { timesSolved: 1 } });
+  else if (p?._id) await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesSolved: 1 } });
+}
+const isPuzzle = (p: any) => p?.__kind === 'question' && p.type !== 'coding';
+/** A bank puzzle's progress in the shape memberQuestion() reads. */
+const puzzleState = (ch: any) => ({
+  finished: ch.status === 'solved' || ch.status === 'submitted', correct: !!ch.passed,
+  attempts: ch.answers || [], bestShare: ch.bestShare || 0, xpEarned: ch.xpEarned || 0, hintsUsed: ch.hintsUsed || 0,
+});
+
 const challengeView = (ch: any, p: any) => ({
   challengeId: String(ch._id),
   date: ch.date, seq: ch.seq, status: ch.status, difficulty: ch.difficulty,
@@ -62,6 +139,9 @@ const challengeView = (ch: any, p: any) => ({
   passed: ch.passed, score: ch.score, xpEarned: ch.xpEarned,
   aiFeedback: (ch.status === 'submitted' || ch.status === 'solved') ? ch.aiFeedback : undefined,
   problem: p ? lab.publicProblem(p, ch.hintsUsed) : null,
+  // A shared-bank puzzle: answered with a final answer + explanation (the CareerPilot screen), not code.
+  kind: isPuzzle(p) ? 'puzzle' : 'code',
+  question: isPuzzle(p) ? memberQuestion(p.raw, puzzleState(ch)) : undefined,
 });
 
 // Adaptive pick: difficulty from recent performance, biased toward weak categories,
@@ -124,10 +204,25 @@ async function scheduledProblem(tenantId: string, batchId: any, dateStr: string)
 const USER_FIELDS = 'firstName lastName batchId passport.product passport.active passport.activatedAt passport.verifiedAt';
 
 /** The CareerPilot bank for a tenant, as the selection rule needs it. */
-async function memberBank(tenantId: string) {
+async function memberBank(tenantId: string, studentId?: string) {
+  /*
+   * A demo account's bank is exactly the questions its demo plan chose for the year shown, in the
+   * plan's order (data/demoPolicy.ts). A year with none chosen falls back to the usual bank.
+   */
+  if (studentId) {
+    const { demoContext } = await import('../services/demoService');
+    const demo = await demoContext(studentId);
+    const ids = (demo?.config?.thinkingIds || []).map(String);
+    if (ids.length) return ids.map((id, i) => ({ id, order: i + 1, createdAt: null }));
+  }
   const rows: any[] = await ThinkingProblem.find({ tenantId, active: true, ...audienceFilter('careerpilot') })
     .select('_id order createdAt').lean();
   return rows.map(r => ({ id: String(r._id), order: r.order, createdAt: r.createdAt }));
+}
+
+/** A problem from the member's bank: the tenant's own, or any active one a demo plan chose. */
+async function bankProblem(tenantId: string, id: string, demo: boolean) {
+  return ThinkingProblem.findOne({ _id: id, ...(demo ? {} : { tenantId }), active: true }).lean();
 }
 
 /** Leaderboard rows for a member compare members only — not the LMS students of the same tenant. */
@@ -137,14 +232,22 @@ async function memberIds(tenantId: string) {
 
 /** The viewer is a CareerPilot member with no batch — the member rules apply to them. */
 const isMemberView = (u: any) => !u?.batchId && isCareerPilotMember(u?.passport);
+const viewerIsMember = async (req: Request) => isMemberView(await User.findById(uId(req)).select(USER_FIELDS).lean());
 
 async function memberToday(req: Request, res: Response, u: any, d: string) {
-  const bank = await memberBank(tId(req));
+  const bank = await memberBank(tId(req), uId(req));
+  const { isDemoUser } = await import('../services/demoService');
+  const demo = await isDemoUser(uId(req));
   let ch: any = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });
   if (!ch) {
+    // A trial counts each new challenge; at its limit no new one is handed out.
+    const trialStop = await trialAllowsAnother(tId(req), uId(req), 'thinkingLab');
+    if (trialStop && !trialStop.ok) {
+      return res.json({ challenge: null, empty: true, reason: 'trial_limit', locked: true, message: trialStop.body.message });
+    }
     const given: any[] = await DailyChallenge.find({ tenantId: tId(req), studentId: uId(req) }).select('problemId').lean();
     const pickId = pickMemberProblem(bank, given.map(g => String(g.problemId)));
-    const p: any = pickId ? await ThinkingProblem.findOne({ _id: pickId, tenantId: tId(req), active: true }).lean() : null;
+    const p: any = pickId ? await bankProblem(tId(req), pickId, demo) : null;
     if (!p) {
       return res.json({ challenge: null, empty: true, reason: 'bank_empty', message: 'Thinking Lab problems are being prepared. Check back soon.' });
     }
@@ -158,18 +261,45 @@ async function memberToday(req: Request, res: Response, u: any, d: string) {
       } },
       { upsert: true, new: false },
     );
-    if (!before) await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesAssigned: 1 } });
+    if (!before && !demo) await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesAssigned: 1 } });
     ch = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });
   }
-  const p = await ThinkingProblem.findById(ch.problemId).lean();
+  const p = await contentOf(ch);
   res.json({ challenge: challengeView(ch, p), member: { position: positionInBank(bank, String(ch.problemId)), total: bank.length } });
 }
 
 // GET /thinking-lab/today — the student's current challenge (creates one if none today).
+/* ── LMS demo students (services/lmsDemoService.ts) ─────────────────────────────────────────────
+ * The questions chosen on the LMS Demo screen (shared-bank ThinkingQuestions), in that order. Each
+ * "next" hands out the first one not given yet, today — a demo is a few days long, so it does not
+ * wait for tomorrow. Nothing a demo student does counts towards question statistics or boards.
+ */
+async function lmsDemoNext(req: Request, u: any, d: string, lastSeq: number): Promise<{ ch: any; p: any; position: number; total: number } | null> {
+  const { lmsDemoScopeFor } = await import('../services/lmsDemoService');
+  const demo = await lmsDemoScopeFor(uId(req));
+  if (!demo) return null;
+  const order = demo.oids('thinkingIds').map(String);
+  const given = new Set((await DailyChallenge.distinct('problemId', { tenantId: tId(req), studentId: uId(req) })).map(String));
+  const pickId = order.find(id => !given.has(id));
+  if (!pickId) return { ch: null, p: null, position: order.length, total: order.length };
+  const q: any = await ThinkingQuestion.findOne({ _id: pickId, status: 'PUBLISHED' }).lean();
+  const p = asProblem(q);
+  if (!p) return { ch: null, p: null, position: order.length, total: order.length };
+  const ch = await DailyChallenge.create({
+    tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '),
+    date: d, seq: lastSeq + 1, problemId: p._id, contentKind: 'question',
+    difficulty: p.difficulty, language: p.language, code: p.starterCode || '', status: 'assigned', startedAt: new Date(),
+  });
+  return { ch, p, position: order.indexOf(pickId) + 1, total: order.length };
+}
+const isLmsDemoUser = async (req: Request) => !!(await (await import('../services/lmsDemoService')).lmsDemoScopeFor(uId(req)));
+
 export const getToday = async (req: Request, res: Response) => {
   try {
     const d = today();
     const u: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
+    // A placement batch that takes over this lab supplies it instead of the home batch.
+    if (u?.batchId) u.batchId = await labBatchFor(tId(req), uId(req), u.batchId, 'thinking');
     // Admin-scheduled batch challenge (may carry a time window) takes priority.
     let sc: any = u?.batchId ? await ScheduledChallenge.findOne({ tenantId: tId(req), batchId: u.batchId, date: d }).lean() : null;
 
@@ -185,7 +315,7 @@ export const getToday = async (req: Request, res: Response) => {
         dayIndex = r.dayIndex;
         sc = {
           tenantId: tId(req), batchId: u.batchId, date: d,
-          problemId: r.contentId,
+          problemId: r.contentId, contentKind: r.item?.contentKind || 'problem',
           startTime: r.assignment?.window?.startTime,
           endTime: r.assignment?.window?.endTime,
           fromTrack: true,
@@ -195,6 +325,18 @@ export const getToday = async (req: Request, res: Response) => {
 
     // A CareerPilot member with no batch schedule: today's problem comes from the member bank.
     if (!sc && isCareerPilotMember(u?.passport)) return memberToday(req, res, u, d);
+
+    // An LMS demo student: the current question if one is open, else the next chosen one.
+    if (await isLmsDemoUser(req)) {
+      const cur: any = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req) }).sort({ createdAt: -1 });
+      if (cur && !['submitted', 'solved'].includes(cur.status)) return res.json({ challenge: challengeView(cur, await contentOf(cur)) });
+      const nx = await lmsDemoNext(req, u, d, cur?.seq || 0);
+      if (!nx?.ch) {
+        if (cur) return res.json({ challenge: challengeView(cur, await contentOf(cur)), member: { position: nx?.total || 0, total: nx?.total || 0 } });
+        return res.json({ challenge: null, empty: true, reason: 'no_assignment', message: 'Thinking Lab questions for the demo are being prepared.' });
+      }
+      return res.json({ challenge: challengeView(nx.ch, nx.p), member: { position: nx.position, total: nx.total } });
+    }
 
     // Still nothing: say WHY, because "not scheduled", "your plan starts Monday" and
     // "today is a rest day" need very different responses from the student.
@@ -227,15 +369,20 @@ export const getToday = async (req: Request, res: Response) => {
       // Schedule-driven only: a student sees a challenge only when an admin has
       // scheduled one for their batch today (via Lab Challenge Windows). No random
       // fallback — a fresh/unscheduled batch sees nothing until the instructor assigns.
-      const p = sc ? await ThinkingProblem.findOne({ _id: sc.problemId, tenantId: tId(req), active: true }) : null;
+      const fromBank = sc?.contentKind === 'question';
+      const p: any = !sc ? null : fromBank
+        ? asProblem(await ThinkingQuestion.findOne({ _id: sc.problemId, status: 'PUBLISHED' }).lean())
+        : await ThinkingProblem.findOne({ _id: sc.problemId, tenantId: tId(req), active: true });
       if (!p) return res.json({ challenge: null, empty: true, message: 'No challenge scheduled yet. Your instructor will assign one for your batch.' });
       ch = await DailyChallenge.create({
         tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId,
-        date: d, seq: 1, problemId: p._id, difficulty: p.difficulty, language: p.language, code: p.starterCode || '',
+        date: d, seq: 1, problemId: p._id, contentKind: fromBank ? 'question' : 'problem',
+        difficulty: p.difficulty, language: p.language, code: p.starterCode || '',
       });
-      await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesAssigned: 1 } });
+      if (fromBank) await ThinkingQuestion.updateOne({ _id: p._id }, { $inc: { timesServed: 1 } });
+      else await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesAssigned: 1 } });
     }
-    const p = await ThinkingProblem.findById(ch.problemId).lean();
+    const p = await contentOf(ch);
     res.json({ challenge: challengeView(ch, p), window: windowView(sc, wStatus) });
   } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to load today\'s challenge' }); }
 };
@@ -246,13 +393,36 @@ export const nextChallenge = async (req: Request, res: Response) => {
     const d = today();
     const last: any = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });
     if (last && !['submitted', 'solved'].includes(last.status)) {
-      const p = await ThinkingProblem.findById(last.problemId).lean();
+      const p = await contentOf(last);
       return res.json({ challenge: challengeView(last, p) }); // still working on current
     }
     // Schedule-driven: one admin-assigned challenge per day. Once it's done there is no
     // random "next" — the student is finished until the next scheduled challenge.
     // A member follows the same one-a-day rhythm; their next problem unlocks tomorrow.
     const u: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
+
+    // An LMS demo student goes straight on to the next chosen question.
+    if (await isLmsDemoUser(req)) {
+      const nx = await lmsDemoNext(req, u, d, last?.seq || 0);
+      if (!nx?.ch) return res.json({ challenge: null, empty: true, message: "You've tried every Thinking Lab question in this demo. Great work!" });
+      return res.json({ challenge: challengeView(nx.ch, nx.p), member: { position: nx.position, total: nx.total } });
+    }
+
+    // A DEMO ACCOUNT goes straight on to the next question of its plan, today.
+    const { isDemoUser } = await import('../services/demoService');
+    if (await isDemoUser(uId(req))) {
+      const bank = await memberBank(tId(req), uId(req));
+      const given: any[] = await DailyChallenge.find({ tenantId: tId(req), studentId: uId(req) }).select('problemId').lean();
+      const pickId = pickMemberProblem(bank, given.map(g => String(g.problemId)));
+      const p: any = pickId ? await bankProblem(tId(req), pickId, true) : null;
+      if (!p) return res.json({ challenge: null, empty: true, message: 'No more Thinking Lab questions in this demo.' });
+      const ch = await DailyChallenge.create({
+        tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '),
+        date: d, seq: (last?.seq || 0) + 1, problemId: p._id, difficulty: p.difficulty, language: p.language, code: p.starterCode || '',
+        status: 'assigned', startedAt: new Date(),
+      });
+      return res.json({ challenge: challengeView(ch, p), member: { position: positionInBank(bank, String(p._id)), total: bank.length } });
+    }
     const message = isMemberView(u)
       ? "That's today's problem done. Your next Thinking Lab problem unlocks tomorrow."
       : "That's today's challenge. Check back when your instructor assigns the next one.";
@@ -268,10 +438,21 @@ export const saveApproach = async (req: Request, res: Response) => {
     const approach = String(req.body?.approach || '');
     const wc = lab.wordCount(approach);
     ch.approach = approach.slice(0, 4000); ch.approachWordCount = wc;
-    const unlocked = wc >= lab.MIN_APPROACH_WORDS;
-    if (unlocked) { ch.editorUnlocked = true; if (ch.status === 'assigned') ch.status = 'thinking_done'; }
+    // Enough words is not enough: the approach must be on the right track (good or partly right) to open
+    // the editor. Once opened it stays open, so editing the approach later never locks the student out.
+    let verdict: string | null = null; let feedback = '';
+    if (wc >= lab.MIN_APPROACH_WORDS && !ch.editorUnlocked) {
+      const p: any = await contentOf(ch);
+      const r = await judgeLogic({
+        tenantId: tId(req), studentId: uId(req), product: 'lms', statement: p?.statement || '', reference: p?.referenceSolution,
+        explanation: p?.raw?.explanation || p?.explanation, logic: approach, aiAllowed: (ch.logicChecks || 0) < LOGIC_AI_CHECKS,
+      });
+      verdict = r.verdict; feedback = r.feedback;
+      ch.logicChecks = (ch.logicChecks || 0) + 1; ch.logicVerdict = r.verdict; ch.logicFeedback = r.feedback;
+      if (r.ok) { ch.editorUnlocked = true; if (ch.status === 'assigned') ch.status = 'thinking_done'; }
+    }
     await ch.save();
-    res.json({ unlocked, wordCount: wc, minApproachWords: lab.MIN_APPROACH_WORDS });
+    res.json({ unlocked: !!ch.editorUnlocked, wordCount: wc, minApproachWords: lab.MIN_APPROACH_WORDS, verdict, feedback });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
 
@@ -280,7 +461,7 @@ export const revealHint = async (req: Request, res: Response) => {
   try {
     const ch: any = await DailyChallenge.findOne({ _id: req.params.id, tenantId: tId(req), studentId: uId(req) });
     if (!ch) return res.status(404).json({ message: 'Challenge not found' });
-    const p: any = await ThinkingProblem.findById(ch.problemId).lean();
+    const p: any = await contentOf(ch);
     const hints: string[] = p?.hints || [];
     if (ch.hintsUsed >= hints.length) return res.status(409).json({ message: 'No more hints for this problem.' });
     const hint = hints[ch.hintsUsed];
@@ -297,7 +478,7 @@ export const run = async (req: Request, res: Response) => {
     if (!ch.editorUnlocked) return res.status(403).json({ message: 'Explain your approach first (min 30 words) to unlock the editor.' });
     const code = String(req.body?.code || '');
     if (!code.trim()) return res.status(400).json({ message: 'Write some code first.' });
-    const p: any = await ThinkingProblem.findById(ch.problemId).lean();
+    const p: any = await contentOf(ch);
     if (!p) return res.status(404).json({ message: 'Problem not found' });
     ch.code = code.slice(0, 20000); ch.language = req.body?.language || ch.language;
     if (ch.status === 'thinking_done') ch.status = 'in_progress';
@@ -325,7 +506,7 @@ export const submit = async (req: Request, res: Response) => {
     if (!ch.editorUnlocked) return res.status(403).json({ message: 'Explain your approach first to unlock the editor.' });
     const code = String(req.body?.code || ch.code || '');
     if (!code.trim()) return res.status(400).json({ message: 'Write some code before submitting.' });
-    const p: any = await ThinkingProblem.findById(ch.problemId).lean();
+    const p: any = await contentOf(ch);
     if (!p) return res.status(404).json({ message: 'Problem not found' });
 
     ch.code = code.slice(0, 20000); ch.language = req.body?.language || ch.language; ch.attempts += 1;
@@ -341,13 +522,26 @@ export const submit = async (req: Request, res: Response) => {
       premium: p.difficulty === 'interview', tenantId: tId(req),
     });
 
+    const viewer: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
+    const member = isMemberView(viewer);
     const xp = lab.computeXp({ problemXp: p.xp, allPassed, attempts: ch.attempts, hintsUsed: ch.hintsUsed, explainedThinking: (ch.approachWordCount || 0) >= lab.MIN_APPROACH_WORDS });
+    const xpBefore = ch.xpEarned || 0;
     ch.aiFeedback = feedback; ch.score = feedback?.overall ?? (allPassed ? 80 : Math.round(passedCount / Math.max(1, results.length) * 60));
     ch.passed = allPassed; ch.xpEarned = xp; ch.status = allPassed ? 'solved' : 'submitted'; ch.submittedAt = new Date();
 
     // Gamification: award XP/coins/badges once, only on a first-time solve of this challenge.
     let newBadges: any[] = []; let coinsEarned = 0;
-    const firstSolve = allPassed && !ch.gameAwarded;
+    let reward: any = null;
+    if (member) {
+      // A submitted question is a streak day. The day's XP is paid on a solve for now; a partly right
+      // answer earns its share once answers are checked step by step.
+      const r = await memberQuestionDone(req, viewer, allPassed ? 1 : 0, String(ch._id));
+      ch.xpEarned = Math.max(xpBefore, r.xpEarned);
+      reward = { ...r.reward, xpNow: r.xpEarned };
+    }
+    const lmsDemo = await isLmsDemoUser(req);
+    // Demo students earn no game stats: they would show on the institute's Thinking Lab board.
+    const firstSolve = !member && !lmsDemo && allPassed && !ch.gameAwarded;
     if (firstSolve) {
       const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
       const gs: any = await StudentGameStats.findOneAndUpdate(
@@ -361,12 +555,13 @@ export const submit = async (req: Request, res: Response) => {
       (ch as any).gameAwarded = true;
     }
     await ch.save();
-    if (allPassed) await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesSolved: 1 } });
+    if (allPassed && !lmsDemo && !(await (await import('../services/demoService')).isDemoUser(uId(req)))) await bumpSolved(p);
 
     res.json({
       allPassed, passedCount, total: results.length,
       results: results.map((r: any) => ({ index: r.index, passed: r.passed, hidden: r.hidden })),
-      feedback, xpEarned: xp, coinsEarned, newBadges, status: ch.status,
+      feedback, xpEarned: member ? (reward?.xpNow || 0) : xp, coinsEarned, newBadges, status: ch.status,
+      ...(reward ? { reward } : {}),
     });
   } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to submit' }); }
 };
@@ -377,6 +572,26 @@ export const stats = async (req: Request, res: Response) => {
     const gs: any = await StudentGameStats.findOne({ tenantId: tId(req), studentId: uId(req) }).lean();
     const solvedToday = await DailyChallenge.countDocuments({ tenantId: tId(req), studentId: uId(req), passed: true, date: today() });
     const u: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
+    if (isMemberView(u)) {
+      const sid = new mongoose.Types.ObjectId(uId(req));
+      const [labXp, settings, dayXp, pp, paidToday] = await Promise.all([
+        XpLedger.aggregate([{ $match: { tenantId: tId(req), studentId: sid, eventKey: { $in: LAB_XP_EVENTS } } }, { $group: { _id: null, n: { $sum: '$amount' } } }]),
+        labStreakSettingsFor(tId(req)),
+        labDayXp(tId(req), 'thinking'),
+        PassportProgress.findOne({ tenantId: tId(req), studentId: uId(req) }).select('xp streak').lean() as any,
+        XpLedger.exists({ tenantId: tId(req), studentId: sid, eventKey: 'THINKING_LAB_DAILY_COMPLETED', sourceId: today() }),
+      ]);
+      const view = labStreakToday({ current: gs?.currentStreak || 0, longest: gs?.longestStreak || 0, lastDate: gs?.lastSolvedDate, freezes: gs?.freezes || 0 }, today());
+      return res.json({
+        member: true,
+        xpTotal: labXp[0]?.n || 0, level: 1, coins: 0,
+        streak: view.current, longestStreak: gs?.longestStreak || 0, streakAtRisk: view.atRisk,
+        freezes: gs?.freezes || 0, freezeEvery: settings.freezeEvery, freezeMax: settings.freezeMax,
+        dayXp, paidToday: !!paidToday, totalXp: pp?.xp || 0, dayStreak: pp?.streak || 0,
+        solvedTotal: await DailyChallenge.countDocuments({ tenantId: tId(req), studentId: uId(req), passed: true }),
+        solvedToday, badgeCount: (gs?.badges || []).length,
+      });
+    }
     res.json({
       member: isMemberView(u),
       xpTotal: gs?.xpTotal || 0, level: gs?.level || 1, coins: gs?.coins || 0,
@@ -406,22 +621,41 @@ export const leaderboard = async (req: Request, res: Response) => {
     const onlyIds = isMemberView(viewer) ? await memberIds(tId(req)) : null;
 
     let rows: any[] = [];
-    if (scope === 'weekly' || scope === 'monthly') {
+    if (onlyIds) {
+      const since = new Date(0);
+      if (scope === 'weekly' || scope === 'monthly') {
+        const d = istToday();
+        if (scope === 'weekly') { const dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow); } else d.setDate(1);
+        since.setTime(d.getTime());
+      }
+      const agg = await XpLedger.aggregate([
+        { $match: { tenantId: tId(req), eventKey: { $in: LAB_XP_EVENTS }, studentId: { $in: onlyIds }, at: { $gte: since } } },
+        { $group: { _id: '$studentId', xp: { $sum: '$amount' }, days: { $sum: { $cond: [{ $eq: ['$eventKey', 'THINKING_LAB_DAILY_COMPLETED'] }, 1, 0] } } } },
+        { $sort: { xp: -1 } }, { $limit: limit },
+      ]);
+      const names = new Map((await User.find({ _id: { $in: agg.map((a: any) => a._id) } }).select('firstName lastName').lean() as any[])
+        .map((x) => [String(x._id), [x.firstName, x.lastName].filter(Boolean).join(' ') || 'Member']));
+      rows = agg.map((r: any) => ({ studentId: String(r._id), name: names.get(String(r._id)) || 'Member', xp: r.xp, solved: r.days }));
+    } else if (scope === 'weekly' || scope === 'monthly') {
       // XP earned in the current period, aggregated from solves.
       const d = istToday();
       if (scope === 'weekly') { const dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow); } // Monday
       else d.setDate(1);
       const since = ymd(d);
       const agg = await DailyChallenge.aggregate([
-        { $match: { tenantId: tId(req), passed: true, date: { $gte: since }, ...(onlyIds ? { studentId: { $in: onlyIds } } : {}) } },
+        { $match: { tenantId: tId(req), passed: true, date: { $gte: since }, ...(onlyIds ? { studentId: { $in: onlyIds } } : await notDemoStudents()) } },
         { $group: { _id: '$studentId', name: { $first: '$studentName' }, xp: { $sum: '$xpEarned' }, solved: { $sum: 1 } } },
         { $sort: { xp: -1 } }, { $limit: limit },
       ]);
       rows = agg.map((r: any) => ({ studentId: String(r._id), name: r.name || 'Student', xp: r.xp, solved: r.solved }));
     } else {
-      const q: any = { tenantId: tId(req) };
+      const q: any = { tenantId: tId(req), ...(await notDemoStudents()) };
       if (onlyIds) q.studentId = { $in: onlyIds };
-      else if (scope === 'batch' && me?.batchId) q.batchId = me.batchId;
+      else if (scope === 'batch' && me?.batchId) {
+        // The student's lab cohort — their placement batch when it takes the lab over.
+        const lb = await labBatchFor(tId(req), uId(req), me.batchId, 'thinking');
+        q.studentId = { $in: (await labStudentIds(tId(req), lb, 'thinking')).map((id) => new mongoose.Types.ObjectId(id)) };
+      }
       const gsRows = await StudentGameStats.find(q).sort({ xpTotal: -1 }).limit(limit)
         .select('studentId studentName xpTotal level solvedTotal currentStreak').lean();
       rows = gsRows.map((r: any) => ({ studentId: String(r.studentId), name: r.studentName || 'Student', xp: r.xpTotal, level: r.level, solved: r.solvedTotal, streak: r.currentStreak }));
@@ -439,17 +673,18 @@ export const voiceExplain = async (req: Request, res: Response) => {
     const ch: any = await DailyChallenge.findOne({ _id: req.params.id, tenantId: tId(req), studentId: uId(req) });
     if (!ch) return res.status(404).json({ message: 'Challenge not found' });
     if (!file) return res.status(400).json({ message: 'No recording uploaded.' });
-    const p: any = await ThinkingProblem.findById(ch.problemId).lean();
+    const p: any = await contentOf(ch);
 
     const { text, durationSec } = await transcribeFile(file.path, tId(req), 'thinking_lab_voice_stt');
     if (!text.trim()) return res.status(422).json({ message: "Couldn't hear a clear explanation — try recording again in a quieter spot." });
+    { const { takeDemoAi } = await import('../services/lmsDemoService'); const use = await takeDemoAi(uId(req)); if (use.demo && !use.ok) return res.status(429).json({ code: 'DEMO_AI_LIMIT', message: `You have used today's ${use.limit} AI questions. More tomorrow.` }); }
     const evalRes = await lab.evaluateVoiceExplanation({ statement: p?.statement || '', transcript: text, durationSec, tenantId: tId(req) });
     const voiceEval = { transcript: text, durationSec, ...evalRes };
     ch.voiceEval = voiceEval;
 
     // Award the voice-explanation bonus once.
     let bonus: any = null;
-    if (!ch.voiceXpAwarded) { bonus = await creditBonusXp(req, 30); ch.voiceXpAwarded = true; }
+    if (!ch.voiceXpAwarded && !(await viewerIsMember(req))) { bonus = await creditBonusXp(req, 30); ch.voiceXpAwarded = true; }
     await ch.save();
     res.json({ voiceEval, xpEarned: ch.voiceXpAwarded && bonus ? 30 : 0, coinsEarned: bonus?.coinsEarned || 0, newBadges: bonus?.newBadges || [] });
   } catch (err: any) {
@@ -472,7 +707,7 @@ export const saveJournal = async (req: Request, res: Response) => {
       answeredAt: new Date(),
     };
     let bonus: any = null;
-    if (!ch.journalXpAwarded) { bonus = await creditBonusXp(req, 15); ch.journalXpAwarded = true; }
+    if (!ch.journalXpAwarded && !(await viewerIsMember(req))) { bonus = await creditBonusXp(req, 15); ch.journalXpAwarded = true; }
     await ch.save();
     res.json({ saved: true, xpEarned: bonus ? 15 : 0, coinsEarned: bonus?.coinsEarned || 0, newBadges: bonus?.newBadges || [] });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
@@ -565,7 +800,8 @@ export const explain = async (req: Request, res: Response) => {
     const ch: any = await DailyChallenge.findOne({ _id: req.params.id, tenantId: tId(req), studentId: uId(req) }).lean();
     if (!ch) return res.status(404).json({ message: 'Challenge not found' });
     if (!ch.code) return res.status(400).json({ message: 'Submit a solution first.' });
-    const p: any = await ThinkingProblem.findById(ch.problemId).lean();
+    const p: any = await contentOf(ch);
+    { const { takeDemoAi } = await import('../services/lmsDemoService'); const use = await takeDemoAi(uId(req)); if (use.demo && !use.ok) return res.status(429).json({ code: 'DEMO_AI_LIMIT', message: `You have used today's ${use.limit} AI questions. More tomorrow.` }); }
     const out = await lab.explainStepByStep({ statement: p?.statement || '', code: ch.code, language: ch.language, expectedTime: p?.expectedTimeComplexity, tenantId: tId(req) });
     res.json({ explanation: out });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
@@ -650,7 +886,7 @@ function sanitizeProblemInput(b: any) {
     difficulty, language: String(b.language || 'javascript'),
     statement: String(b.statement || '').slice(0, 8000),
     examples, testCases,
-    constraints: b.constraints ? String(b.constraints).slice(0, 800) : undefined,
+    constraints: b.constraints ? (Array.isArray(b.constraints) ? b.constraints.map((c: any) => String(c).trim()).filter(Boolean).join('\n') : String(b.constraints)).slice(0, 800) : undefined,
     notes: b.notes ? String(b.notes).slice(0, 800) : undefined,
     starterCode: b.starterCode ? String(b.starterCode).slice(0, 8000) : '',
     hints: (Array.isArray(b.hints) ? b.hints : []).slice(0, 3).map((h: any) => String(h).slice(0, 400)),
@@ -774,4 +1010,97 @@ export const deleteSchedule = async (req: Request, res: Response) => {
     const r = await ScheduledChallenge.deleteOne({ _id: req.params.id, tenantId: tId(req) });
     res.json({ deleted: r.deletedCount || 0 });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// POST /thinking-lab/:id/puzzle-answer { answer, explanation } — a shared-bank puzzle in an LMS lab track.
+// Marked like CareerPilot: half for the right answer, half for the reasoning (each key step covered / partly / missing).
+export const puzzleAnswer = async (req: Request, res: Response) => {
+  try {
+    const ch: any = await DailyChallenge.findOne({ _id: req.params.id, tenantId: tId(req), studentId: uId(req) });
+    if (!ch) return res.status(404).json({ message: 'Challenge not found' });
+    if (ch.batchId) {
+      const sc: any = await ScheduledChallenge.findOne({ tenantId: tId(req), batchId: ch.batchId, date: ch.date }).lean();
+      const w = windowStatus(sc, today(), istNowHM());
+      if (w === 'closed') return res.status(403).json({ message: `This challenge's window closed at ${sc.endTime} (IST). Answers are no longer accepted.` });
+    }
+    const p: any = await contentOf(ch);
+    if (!isPuzzle(p)) return res.status(400).json({ message: 'This challenge is answered with code.' });
+    const q = p.raw;
+    if (ch.status === 'solved' || ch.status === 'submitted') return res.status(409).json({ message: 'You have finished this question.' });
+    const answers: any[] = ch.answers || [];
+    if (answers.length >= ATTEMPTS_PUZZLE) return res.status(409).json({ message: 'No attempts left on this question.' });
+    const explanation = String(req.body?.explanation || '').trim().slice(0, 4000);
+    if (!explanationLongEnough(explanation)) return res.status(400).json({ message: `Explain your thinking in at least ${EXPLANATION_MIN_WORDS} words.` });
+    const given = String(req.body?.answer ?? '').trim().slice(0, 300);
+    if (!given) return res.status(400).json({ message: 'Give your final answer.' });
+
+    const correct = answerMatches(q.answerFormat || 'text', given, q.answer || '', q.acceptedAnswers || []);
+    const check = await checkSteps(tId(req), uId(req), q, given, explanation);
+    const share = puzzleShare(correct, check.steps);
+    answers.push({ answer: given, explanation, correct, steps: check.steps, share, feedback: check.feedback, at: new Date() });
+    ch.answers = answers; ch.markModified('answers');
+    ch.bestShare = Math.max(ch.bestShare || 0, share);
+    ch.attempts = answers.length;
+    if (!ch.startedAt) ch.startedAt = new Date();
+
+    let reward: any = null;
+    const finishing = correct || answers.length >= ATTEMPTS_PUZZLE;
+    if (finishing) {
+      ch.status = correct ? 'solved' : 'submitted'; ch.passed = correct; ch.submittedAt = new Date();
+      ch.score = Math.round((ch.bestShare || 0) * 100);
+      ch.xpEarned = Math.round((ch.bestShare || 0) * (p.xp || 40));
+      // XP, coins, badges and the streak through the same game stats as a coding solve — once per challenge.
+      if (!ch.gameAwarded && ch.xpEarned > 0) {
+        const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
+        const gs: any = await StudentGameStats.findOneAndUpdate(
+          { tenantId: tId(req), studentId: uId(req) },
+          { $setOnInsert: { tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId } },
+          { new: true, upsert: true },
+        );
+        const r = game.applySolve(gs, { xpEarned: ch.xpEarned, category: p.category, difficulty: p.difficulty, hintsUsed: ch.hintsUsed || 0, perfect: correct && answers.length === 1 && !ch.hintsUsed, dateStr: today() });
+        await gs.save();
+        ch.gameAwarded = true;
+        reward = { xpNow: ch.xpEarned, coinsEarned: r.coinsEarned, newBadges: r.newBadges };
+      } else reward = { xpNow: ch.xpEarned };
+      if (correct) await bumpSolved(p);
+    }
+    await ch.save();
+    res.json({ question: memberQuestion(q, puzzleState(ch)), reward, status: ch.status, xpEarned: ch.xpEarned });
+  } catch (err: any) { res.status(500).json({ message: err.message || 'Could not check your answer.' }); }
+};
+
+// POST /thinking-lab/:id/puzzle-hint — the next hint of a shared-bank puzzle.
+export const puzzleHint = async (req: Request, res: Response) => {
+  try {
+    const ch: any = await DailyChallenge.findOne({ _id: req.params.id, tenantId: tId(req), studentId: uId(req) });
+    if (!ch) return res.status(404).json({ message: 'Challenge not found' });
+    const p: any = await contentOf(ch);
+    const hints: string[] = p?.hints || [];
+    if ((ch.hintsUsed || 0) >= hints.length) return res.status(409).json({ message: 'No more hints for this question.' });
+    ch.hintsUsed = (ch.hintsUsed || 0) + 1; await ch.save();
+    res.json({ hints: hints.slice(0, ch.hintsUsed), hintsTotal: hints.length });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+/*
+ * GET /thinking-lab/assigned — does this student have a daily Thinking Lab at all? An LMS student sees the lab only
+ * once their batch has an active, published thinking track (or a hand-scheduled challenge from today on); until then
+ * the menu hides it. CareerPilot members always have their own lab.
+ */
+export const assigned = async (req: Request, res: Response) => {
+  try {
+    const u: any = await User.findById(uId(req)).select(USER_FIELDS + ' role lmsDemo.at').lean();
+    if (!u) return res.json({ assigned: false });
+    if (u.role !== 'STUDENT' || (!u.batchId && isCareerPilotMember(u.passport))) return res.json({ assigned: true });
+    if (u.lmsDemo?.at) return res.json({ assigned: true });
+    if (!u.batchId) return res.json({ assigned: false });
+    // A placement batch that takes the Thinking Lab over supplies it (same rule as getToday).
+    u.batchId = await labBatchFor(tId(req), uId(req), u.batchId, 'thinking');
+    const { LabTrackAssignment, LabTrack } = await import('../models/LabTrack');
+    const a: any = await LabTrackAssignment.findOne({ tenantId: tId(req), batchId: u.batchId, lab: 'thinking', status: 'active' }).select('trackId').lean();
+    const track: any = a ? await LabTrack.findById(a.trackId).select('status').lean() : null;
+    if (track?.status === 'published') return res.json({ assigned: true });
+    const sc = await ScheduledChallenge.exists({ tenantId: tId(req), batchId: u.batchId, date: { $gte: today() } });
+    res.json({ assigned: !!sc });
+  } catch { res.json({ assigned: true }); }
 };

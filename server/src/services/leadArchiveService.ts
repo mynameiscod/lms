@@ -215,6 +215,26 @@ export async function startArchive(tenantId: string, userId: string, raw: any) {
   return run.toObject();
 }
 
+/**
+ * Archive a known list of leads in one run (e.g. people who only replied to a hiring message).
+ * Protected leads are not skipped here — the caller chose them one by one. Restorable by run.
+ */
+export async function archiveLeadIds(tenantId: string, userId: string, leadIds: unknown, reason: string) {
+  const list = ids(leadIds);
+  if (!list.length) return { archived: 0 };
+  if (list.length > 5000) throw new ArchiveError('Archive at most 5,000 leads at a time.');
+  const who: any = await User.findById(userId).select('firstName lastName').lean();
+  const run = await LeadArchiveRun.create({
+    tenantId: oid(tenantId), kind: 'archive', filters: { leads: list.length }, reason: reason.slice(0, 300), matched: list.length, skippedProtected: 0,
+    startedBy: oid(userId), startedByName: [who?.firstName, who?.lastName].filter(Boolean).join(' '),
+  });
+  const r = await Lead.updateMany({ tenantId: oid(tenantId), _id: { $in: list }, archivedAt: null }, {
+    $set: { archivedAt: new Date(), archivedBy: oid(userId), archiveRunId: run._id, archiveReason: reason.slice(0, 300) },
+  });
+  await finish(run._id, { status: 'done', processed: r.modifiedCount });
+  return { archived: r.modifiedCount, runId: String(run._id) };
+}
+
 /** Bring leads back — chosen ones, or everything one archive run took. */
 export async function restore(tenantId: string, userId: string, input: { leadIds?: unknown; runId?: unknown }) {
   const q: any = { tenantId: oid(tenantId), archivedAt: { $ne: null } };

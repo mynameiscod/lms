@@ -12,8 +12,10 @@ jest.mock('../models/WhatsAppThread', () => ({
   default: {
     findOne: jest.fn(() => ({ select: () => ({ lean: async () => threads }), populate: () => ({ lean: async () => threads }) })),
     updateOne: jest.fn(async () => ({})),
+    findOneAndUpdate: jest.fn(() => ({ select: () => ({ lean: async () => ({ botPaused: true }) }) })),
   },
 }));
+jest.mock('../services/workflow/engine', () => ({ stopForTakeover: jest.fn(async () => []) }));
 const waPost = jest.fn(async () => ({ ok: true, messageId: 'wamid.X' }));
 jest.mock('../services/assessmentOtpService', () => ({
   getWhatsAppCredentialCandidates: jest.fn(async () => [{ phoneNumberId: '1', accessToken: 't' }]),

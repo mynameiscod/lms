@@ -26,6 +26,11 @@ export interface IWhatsAppThread extends Document {
   botPaused: boolean;
   lastStaffReplyAt?: Date;
   lastStaffReplyBy?: mongoose.Types.ObjectId;
+  /** Last message we sent (any source). */
+  lastOutboundAt?: Date;
+  /** Someone marked the conversation as dealt with (e.g. they called instead of replying). */
+  handledAt?: Date;
+  handledBy?: mongoose.Types.ObjectId;
   assignedTo?: mongoose.Types.ObjectId | null;
   assignedAt?: Date;
   links?: IWhatsAppThreadLinks;
@@ -33,6 +38,10 @@ export interface IWhatsAppThread extends Document {
   linkedAt?: Date;
   /** Last time staff were notified about a reply here — keeps a burst of messages to one bell. */
   lastNotifiedAt?: Date;
+  /** Our last broadcast to them was not sales (hiring, wishes, update): replies stay with people until `until`. */
+  replyContext?: { kind: string; templateName?: string; broadcastId?: mongoose.Types.ObjectId; until?: Date } | null;
+  /** The person sent STOP: workflows never message them (START undoes it). */
+  automationOptOutAt?: Date | null;
 }
 
 const WhatsAppThreadSchema = new Schema<IWhatsAppThread>({
@@ -46,6 +55,9 @@ const WhatsAppThreadSchema = new Schema<IWhatsAppThread>({
   botPaused: { type: Boolean, default: false },
   lastStaffReplyAt: Date,
   lastStaffReplyBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  lastOutboundAt: Date,
+  handledAt: Date,
+  handledBy: { type: Schema.Types.ObjectId, ref: 'User' },
   assignedTo: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   assignedAt: Date,
   links: {
@@ -58,6 +70,8 @@ const WhatsAppThreadSchema = new Schema<IWhatsAppThread>({
   },
   linkedAt: Date,
   lastNotifiedAt: Date,
+  automationOptOutAt: { type: Date, default: null },
+  replyContext: { kind: String, templateName: String, broadcastId: { type: Schema.Types.ObjectId, ref: 'WhatsAppBroadcast' }, until: Date },
 }, { timestamps: true });
 
 WhatsAppThreadSchema.index({ tenantId: 1, phone: 1 }, { unique: true });

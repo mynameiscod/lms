@@ -137,12 +137,81 @@ const NewTrack: React.FC<{ lab: Lab; onCreated: () => void }> = ({ lab, onCreate
   );
 };
 
+const TYPE_LABEL: Record<string, string> = { math: 'Math', logical: 'Logical', critical: 'Critical thinking', coding: 'Coding' };
+const YEARS: [string, string][] = [['foundation', 'Year 1'], ['build', 'Year 2'], ['specialize', 'Year 3'], ['placement', 'Year 4']];
+
+/*
+ * "Fill the track for me": the year, the mix of question types and an easy-to-hard ramp; the server fills every day
+ * from the shared bank without repeating a question. The admin can still change any day afterwards.
+ */
+const FillDialog: React.FC<{ trackId: string; totalDays: number; filled: number; onClose: () => void; onDone: () => void }> = ({ trackId, totalDays, filled, onClose, onDone }) => {
+  const [year, setYear] = useState('foundation');
+  const [mix, setMix] = useState<Record<string, number>>({ math: 1, logical: 1, critical: 1, coding: 0 });
+  const [ramp, setRamp] = useState(true);
+  const [onlyEmpty, setOnlyEmpty] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [result, setResult] = useState<Awaited<ReturnType<typeof api.autofill>> | null>(null);
+  const y1 = year === 'foundation';
+  const effective = { ...mix, coding: y1 ? 0 : mix.coding };
+  const sum = Object.values(effective).reduce((a, b) => a + b, 0);
+  const days = onlyEmpty ? totalDays - filled : totalDays;
+  const run = async () => {
+    setBusy(true); setErr('');
+    try { setResult(await api.autofill(trackId, { year, mix: effective, ramp, onlyEmpty })); }
+    catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  };
+  return (
+    <div className="lt-modal-back" onClick={onClose} role="presentation">
+      <div className="lt-modal lt-fill" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Fill the track for me">
+        <div className="lt-modal-head"><h4>Fill the track for me</h4><button onClick={onClose} aria-label="Close">×</button></div>
+        {result ? (
+          <div className="lt-fill-done">
+            <p><b>{result.filled}</b> day{result.filled === 1 ? '' : 's'} filled — {result.filledDays} of {result.totalDays} now have a question.</p>
+            {result.byType && <p className="lt-fill-break">{Object.entries(result.byType).map(([k, v]) => `${TYPE_LABEL[k] || k} ${v}`).join(' · ')}{result.byLevel ? ` — ${['easy', 'medium', 'hard'].filter(l => result.byLevel![l]).map(l => `${result.byLevel![l]} ${l}`).join(', ')}` : ''}</p>}
+            {result.message && <div className="lt-note">{result.message}</div>}
+            <p className="lt-fill-hint">Check the days, change any you like, then publish the track.</p>
+            <button className="lt-btn primary full" onClick={onDone}>See the track</button>
+          </div>
+        ) : (
+          <>
+            <label className="lt-fill-row"><span>Year this track is for</span>
+              <select value={year} onChange={e => setYear(e.target.value)}>{YEARS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+            </label>
+            <div className="lt-fill-mix">
+              <span>Mix of questions <small>how many of each in every {sum || '…'} days</small></span>
+              {Object.entries(TYPE_LABEL).map(([k, label]) => (
+                <label key={k} className={k === 'coding' && y1 ? 'off' : ''}>
+                  <em className={`lt-type t-${k}`}>{label}</em>
+                  <input type="number" min={0} max={10} value={k === 'coding' && y1 ? 0 : mix[k]} disabled={k === 'coding' && y1}
+                         onChange={e => setMix(m => ({ ...m, [k]: Math.max(0, Math.min(10, Number(e.target.value) || 0)) }))} aria-label={`${label} share`} />
+                </label>
+              ))}
+              {y1 && <small className="lt-fill-hint">No coding in Year 1.</small>}
+            </div>
+            <label className="lt-check"><input type="checkbox" checked={ramp} onChange={e => setRamp(e.target.checked)} /> Start easy and get harder through the track</label>
+            <label className="lt-check"><input type="checkbox" checked={onlyEmpty} onChange={e => setOnlyEmpty(e.target.checked)} /> Keep the days I have already filled</label>
+            {err && <div className="lt-err">{err}</div>}
+            <button className="lt-btn primary full" disabled={busy || !sum || days <= 0} onClick={run}>
+              {busy ? 'Filling…' : days <= 0 ? 'Every day already has a question' : `Fill ${days} day${days === 1 ? '' : 's'}`}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 /* ── Builder: weeks down, days across ────────────────────────────────────── */
 
 const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, onBack }) => {
   const [data, setData] = useState<{ track: Track; items: TrackItem[] } | null>(null);
   const [bank, setBank] = useState<any[]>([]);
   const [q, setQ] = useState('');
+  // Thinking tracks pick from the shared Thinking Lab bank (default) or the institute's own LMS problems.
+  const [filters, setFilters] = useState<api.LibraryFilters>({ source: 'bank' });
+  const [filling, setFilling] = useState(false);
   const [picking, setPicking] = useState<number | null>(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -151,8 +220,8 @@ const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, o
   useEffect(() => { load(); }, [trackId]);
   useEffect(() => {
     if (!data) return;
-    api.library(data.track.lab, q).then(setBank).catch(() => setBank([]));
-  }, [data?.track.lab, q]);
+    api.library(data.track.lab, q, data.track.lab === 'thinking' ? filters : {}).then(setBank).catch(() => setBank([]));
+  }, [data?.track.lab, q, filters]);
 
   const byDay = useMemo(() => {
     const m = new Map<number, TrackItem>();
@@ -166,9 +235,11 @@ const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, o
   const weeks = Math.ceil(track.totalDays / per);
   const filled = data.items.length;
 
-  const assign = async (dayIndex: number, contentId: string | null) => {
+  const usedIds = new Set(data.items.map(i => String(i.contentId)));
+  const thinking = track.lab === 'thinking';
+  const assign = async (dayIndex: number, contentId: string | null, contentKind?: 'question' | 'problem') => {
     setBusy(true); setErr('');
-    try { await api.setItems(trackId, [{ dayIndex, contentId }]); await load(); setPicking(null); }
+    try { await api.setItems(trackId, [{ dayIndex, contentId, ...(contentKind ? { contentKind } : {}) }]); await load(); setPicking(null); }
     catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   };
 
@@ -190,6 +261,7 @@ const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, o
         </div>
         <div className="lt-head-actions">
           <span className={`lt-status ${track.status}`}>{track.status}</span>
+          {thinking && <button className="lt-btn" onClick={() => setFilling(true)} disabled={busy}>Fill the track for me</button>}
           <button className="lt-btn primary" onClick={publish} disabled={busy}>
             {track.status === 'published' ? 'Unpublish' : 'Publish'}
           </button>
@@ -221,7 +293,7 @@ const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, o
                     onClick={() => setPicking(day)}
                     title={item?.content?.title || 'Empty — click to assign'}
                   >
-                    <span className="lt-day-n">Day {day}</span>
+                    <span className="lt-day-n">Day {day}{item?.content?.type && thinking && <em className={`lt-type t-${item.content.type}`}>{TYPE_LABEL[item.content.type] || item.content.type}</em>}</span>
                     <span className="lt-day-t">
                       {item?.missing ? '⚠ content deleted' : (item?.content?.title || 'Empty')}
                     </span>
@@ -242,17 +314,36 @@ const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, o
               <button onClick={() => setPicking(null)} aria-label="Close">×</button>
             </div>
             <input className="lt-search" value={q} onChange={e => setQ(e.target.value)}
-                   placeholder="Search the library…" autoFocus />
+                   placeholder={thinking && filters.source !== 'lms' ? 'Search the question bank…' : 'Search the library…'} autoFocus />
+            {thinking && (
+              <div className="lt-filters">
+                <div className="lt-seg" role="tablist" aria-label="Where to pick from">
+                  <button role="tab" aria-selected={filters.source !== 'lms'} className={filters.source !== 'lms' ? 'on' : ''} onClick={() => setFilters({ source: 'bank' })}>Question bank</button>
+                  <button role="tab" aria-selected={filters.source === 'lms'} className={filters.source === 'lms' ? 'on' : ''} onClick={() => setFilters({ source: 'lms' })}>LMS problems</button>
+                </div>
+                {filters.source !== 'lms' && <>
+                  <select value={filters.type || ''} onChange={e => setFilters(f => ({ ...f, type: e.target.value }))} aria-label="Type">
+                    <option value="">All types</option>{Object.entries(TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                  <select value={filters.difficulty || ''} onChange={e => setFilters(f => ({ ...f, difficulty: e.target.value }))} aria-label="Difficulty">
+                    <option value="">Any level</option><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
+                  </select>
+                  <select value={filters.year || ''} onChange={e => setFilters(f => ({ ...f, year: e.target.value }))} aria-label="Year">
+                    <option value="">Any year</option>{YEARS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </>}
+              </div>
+            )}
             <div className="lt-bank">
               {bank.length === 0 ? (
                 <p className="lt-bank-empty">
                   Nothing in the library yet. Add problems to {LABS.find(l => l.key === track.lab)?.label} first.
                 </p>
               ) : bank.map(b => (
-                <button key={b._id} className="lt-bank-row" disabled={busy}
-                        onClick={() => assign(picking, b._id)}>
-                  <span>{b.title}</span>
-                  <small>{b.category || b.challengeType || ''}{b.difficulty ? ` · ${b.difficulty}` : ''}</small>
+                <button key={b._id} className={`lt-bank-row${usedIds.has(String(b._id)) ? ' used' : ''}`} disabled={busy}
+                        onClick={() => assign(picking, b._id, thinking ? (b.kind === 'question' ? 'question' : 'problem') : undefined)}>
+                  <span>{thinking && b.type && <em className={`lt-type t-${b.type}`}>{TYPE_LABEL[b.type] || b.type}</em>}{b.title}</span>
+                  <small>{b.category || b.challengeType || ''}{b.difficulty ? ` · ${b.difficulty}` : ''}{usedIds.has(String(b._id)) ? ' · already in this track' : ''}</small>
                 </button>
               ))}
             </div>
@@ -264,6 +355,7 @@ const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, o
           </div>
         </div>
       )}
+      {filling && <FillDialog trackId={trackId} totalDays={track.totalDays} filled={filled} onClose={() => setFilling(false)} onDone={() => { setFilling(false); load(); }} />}
     </div>
   );
 };

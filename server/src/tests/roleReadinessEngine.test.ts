@@ -327,3 +327,32 @@ describe('a retired skill still in a published blueprint', () => {
     expect(r.skills[0].skillName).toBe('Old Skill');
   });
 });
+
+describe('V2: early estimates, the whole role, retired skills', () => {
+  const four = [REQ('A'), REQ('B'), REQ('C'), REQ('D')];   // equal weights, PROFICIENT (75)
+  it('marks a figure resting on under 40% of the role as an early estimate, with the whole-role figure beside it', async () => {
+    getRoleSkillBlueprintMock.mockResolvedValue(BLUEPRINT(four));
+    findProfile.mockReturnValue(chain([PROFILE('A', 75)]));          // one skill of four, at target
+    const r: any = await calculateStudentRoleReadiness('t1', 'stu1');
+    expect(r.readiness).toBe(100);
+    expect(r.coverage).toBe(25);
+    expect(r.provisional).toBe(true);
+    expect(r.wholeRoleReadiness).toBe(25);
+  });
+  it('is not provisional once enough is measured, and the two figures meet when all is measured', async () => {
+    getRoleSkillBlueprintMock.mockResolvedValue(BLUEPRINT(four));
+    findProfile.mockReturnValue(chain(['A', 'B', 'C', 'D'].map(k => PROFILE(k, 75))));
+    const r: any = await calculateStudentRoleReadiness('t1', 'stu1');
+    expect(r.provisional).toBe(false);
+    expect(r.wholeRoleReadiness).toBe(r.readiness);
+  });
+  it('lists a retired skill but does not count it', async () => {
+    getRoleSkillBlueprintMock.mockResolvedValue(BLUEPRINT([REQ('LIVE'), REQ('OLD')]));
+    findSkill.mockReturnValue(chain([{ key: 'LIVE', name: 'Live', active: true }, { key: 'OLD', name: 'Old', active: false }]));
+    findProfile.mockReturnValue(chain([PROFILE('LIVE', 75), PROFILE('OLD', 0)]));
+    const r: any = await calculateStudentRoleReadiness('t1', 'stu1');
+    expect(r.skills.map((s: any) => s.skillKey).sort()).toEqual(['LIVE', 'OLD']);
+    expect(r.readiness).toBe(100);
+    expect(r.coverage).toBe(100);
+  });
+});

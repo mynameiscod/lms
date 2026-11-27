@@ -44,6 +44,8 @@ export const CAREERPILOT_PRODUCT = 'career_passport';
  * None of them can be true for a student who has only ever used the LMS.
  */
 export const careerPilotMemberFilter = (): Record<string, any> => ({
+  /* A demo account is never counted: not in analytics, funnels, boards or reports (data/demoPolicy.ts). */
+  'passport.demo.planId': { $exists: false },
   $or: [
     { 'passport.product': { $exists: true, $nin: [null, ''] } },
     { 'passport.active': true },

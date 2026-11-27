@@ -60,11 +60,13 @@ export async function foundationAssignmentAccess(
   const completed = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
   /* An assignment is reached THROUGH a journey day, so it is opened by the same two gates. */
   const pacedFrom = await pacingClockFor(String(tenantId), String(studentId));
+  const { ladderDays } = await import('./demoService');
+  const ladder = await ladderDays(String(studentId), completed);
 
   // Bound to more than one day would be an authoring fault; the assignment is open if any of its days is.
   let refused: { day: number; reason: JourneyDayRefusal } | null = null;
   for (const day of days) {
-    const reason = journeyDayRefusal(day, completed, access, pacedFrom);
+    const reason = journeyDayRefusal(day, ladder, access, pacedFrom);
     if (!reason) return { bound: true, allowed: true, day };
     if (!refused) refused = { day, reason };
   }
@@ -78,5 +80,8 @@ export const refusalBody = (access: Extract<FoundationAssignmentAccess, { allowe
   day: access.day,
   message: access.reason === 'MEMBERSHIP_REQUIRED'
     ? `Take membership to open day ${access.day} of your roadmap.`
-    : `This assignment opens on day ${access.day} of your journey. Finish day ${access.day - 1} first.`,
+    : (access.reason as string) === 'NOT_TODAY_YET'
+      // Not work left to do: the day simply has not come yet (one day per calendar day).
+      ? `This assignment is on day ${access.day} of your roadmap, which opens tomorrow.`
+      : `This assignment opens on day ${access.day} of your journey. Finish day ${access.day - 1} first.`,
 });

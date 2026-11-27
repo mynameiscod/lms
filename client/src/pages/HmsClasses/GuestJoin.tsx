@@ -19,6 +19,7 @@ const GuestJoin: React.FC = () => {
   const [err, setErr] = useState('');
   const [name, setName] = useState('');
   const [joined, setJoined] = useState(false);
+  const [left, setLeft] = useState(false);
 
   useEffect(() => {
     let stop = false;
@@ -36,14 +37,17 @@ const GuestJoin: React.FC = () => {
     return () => { stop = true; clearInterval(t); };
   }, [token, joined]);
 
-  if (joined && info) return <GuestRoom token={token} name={name.trim() || 'Guest'} exitTo={`/live/${token}`} />;
+  // Leaving (or being removed) comes back HERE, to this page, and not to a room that is no longer connected.
+  if (joined && info) return <GuestRoom token={token} name={name.trim() || 'Guest'} exitTo={`/live/${token}`} onLeft={() => { setJoined(false); setLeft(true); }} />;
 
   const live = info?.status === 'live';
   const ended = info?.status === 'ended';
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0b1220', color: '#fff', display: 'grid', placeItems: 'center', padding: 16 }}>
-      <div style={{ width: '100%', maxWidth: 480, background: '#111827', borderRadius: 16, padding: 24 }}>
+    // Fixed and scrollable, the card centred with margin:auto: the page can never show only half of itself, however short the window.
+    <div style={{ position: 'fixed', inset: 0, overflowY: 'auto', background: '#0b1220', color: '#fff', display: 'flex', flexDirection: 'column', padding: 16 }}>
+      <div style={{ width: '100%', maxWidth: 480, margin: 'auto', background: '#111827', borderRadius: 16, padding: 24 }}>
+        {left && !ended && <p style={{ margin: '0 0 14px', padding: '10px 12px', background: '#1f2937', borderRadius: 8, fontSize: 14 }}>You left the class. You can join again below.</p>}
         {err ? (
           <p style={{ margin: 0, fontSize: 15 }}>⚠ {err}</p>
         ) : !info ? (
@@ -64,7 +68,7 @@ const GuestJoin: React.FC = () => {
                 <label htmlFor="guest-name" style={{ display: 'block', fontSize: 13, fontWeight: 600, margin: '18px 0 6px' }}>Your name</label>
                 <input id="guest-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Shown to the host and others in the class"
                   style={{ width: '100%', boxSizing: 'border-box', background: '#0b1220', border: '1px solid #334155', borderRadius: 8, color: '#fff', padding: '10px 12px', fontSize: 14 }} />
-                <button onClick={() => setJoined(true)} disabled={!live || !name.trim()}
+                <button onClick={() => { setLeft(false); setJoined(true); }} disabled={!live || !name.trim()}
                   style={{ width: '100%', marginTop: 14, padding: '12px 0', fontSize: 15, fontWeight: 700, border: 'none', borderRadius: 8, cursor: live && name.trim() ? 'pointer' : 'not-allowed', background: live ? '#16a34a' : '#374151', color: '#fff' }}>
                   {live ? 'Join the class' : 'Waiting for the host to start…'}
                 </button>

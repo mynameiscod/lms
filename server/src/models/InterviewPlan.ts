@@ -100,6 +100,12 @@ export interface IInterviewPlan extends Document {
  * sitting is asked, answered, and then given no coaching at all. A round that exceeded it
  * would quietly sell a member feedback they never receive.
  */
+/**
+ * The tenantId under which the super admin's plans are stored. Those plans apply to EVERY institute
+ * (CareerPilot Limits); an institute's own plans are used only while the super admin has written none.
+ */
+export const PLATFORM_PLAN_TENANT = '__platform__';
+
 export const PLAN_BOUNDS = {
   questionsPerRound: { min: 1, max: 12 },
   minutesPerRound:   { min: 1, max: 60 },

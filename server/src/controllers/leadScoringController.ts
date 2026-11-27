@@ -1,3 +1,4 @@
+import { listCounsellors } from '../services/leadCounsellorService';
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../types';
 import LeadScoringConfig from '../models/LeadScoringConfig';
@@ -81,12 +82,8 @@ export const updateConfig = async (req: AuthenticatedRequest, res: Response): Pr
 // GET /lead-scoring/team-members
 export const getTeamMembers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const users = await User.find({
-      tenantId: req.tenantId,
-      isActive: true,
-      role: { $in: ['TENANT_ADMIN', 'STAFF'] }
-    }).select('firstName lastName email role');
-
+    // Same rule as every lead screen: admins + staff with a BDM role.
+    const users = await listCounsellors(String(req.tenantId));
     res.json({ success: true, data: users });
   } catch (err: any) {
     console.error('[LEAD-SCORING] Error fetching team members:', err.message);

@@ -209,3 +209,15 @@
   .sidebar.mobile-open .nav-section-label { display: block !important; }
   .sidebar.mobile-open .submenu { display: block; }
 }
+
+/* Profile gate (Student Rules): menu locked until the profile is 100% */
+.sidebar-link.sidebar-link-locked { opacity: .5; filter: grayscale(1); }
+.sidebar-link.sidebar-link-locked:hover { opacity: .7; }
+.sidebar-lock { margin-left: auto; padding-left: 8px; font-size: 11px; color: #94a3b8; flex-shrink: 0; }
+.sidebar-gate-note { display: flex; gap: 10px; align-items: flex-start; margin: 6px 12px 12px; padding: 10px 12px; border-radius: 10px; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; font-size: 12.5px; line-height: 1.4; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+.sidebar-gate-note:hover { background: #ffedd5; color: #9a3412; }
+.sidebar-gate-icon { flex-shrink: 0; margin-top: 2px; }
+.sidebar-gate-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sidebar-gate-cta { font-weight: 700; color: #c2410c; }
+.sidebar.closed .sidebar-gate-text { display: none; }
+.sidebar.closed .sidebar-gate-note { justify-content: center; margin: 6px 8px 10px; padding: 8px; }

@@ -29,6 +29,7 @@ export class UserService {
       profileComplete: false,
       batchId: batchId || undefined,
       batchJoinedDate: batchId ? new Date() : undefined,
+      lmsJoinedAt: batchId ? new Date() : undefined, // start of the LMS access window
       customRoleId: customRoleId || undefined
     });
 
@@ -42,8 +43,9 @@ export class UserService {
   }
 
   async getUsersByTenant(tenantId: string): Promise<IUser[]> {
-    // Return all users (including inactive) for admin management
-    return await User.find({ tenantId });
+    // Return all users (including inactive) for admin management. LMS demo students are listed on
+    // the LMS Demo screen instead, so they never turn up in user pickers or the Users screen.
+    return await User.find({ tenantId, 'lmsDemo.at': { $exists: false } });
   }
 
   async getUserById(userId: string): Promise<IUser | null> {
@@ -90,7 +92,8 @@ export class UserService {
   async activateUser(userId: string): Promise<IUser | null> {
     return await User.findByIdAndUpdate(
       userId,
-      { isActive: true },
+      // A student switched back on is Active again, whatever status they had.
+      { $set: { isActive: true }, $unset: { studentStatusReason: 1, studentStatusNote: 1, studentStatus: 1 } },
       { new: true }
     );
   }

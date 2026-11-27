@@ -10,11 +10,14 @@ import {
   ExamRecord, ExamSummary,
 } from '../../api/examApi';
 import { Spinner } from '../../components/common';
+import { useAuth } from '../../hooks';
+import { userCan } from '../../utils/permissions';
+import StudentPlacementHistory from '../PlacementDesk/StudentPlacementHistory';
 import './StudentProfileDetail.css';
 import '../StudentReports/StudentReports.css';
 
 type DetailTab = 'overview' | 'profile' | 'attendance' | 'quizzes' | 'assignments' | 'snippets'
-  | 'thinking' | 'communication' | 'interviews' | 'fees' | 'exams';
+  | 'thinking' | 'communication' | 'interviews' | 'fees' | 'exams' | 'placement';
 
 const ACTIVITY_TABS: DetailTab[] = ['attendance', 'quizzes', 'assignments', 'snippets', 'thinking', 'communication'];
 const REPORT_TABS: DetailTab[] = ['overview', 'interviews', 'fees'];
@@ -30,6 +33,7 @@ const TAB_LABELS: Record<DetailTab, string> = {
   interviews: 'Interviews',
   fees: 'Fees',
   exams: 'Exams',
+  placement: 'Placement History',
 };
 
 /**
@@ -108,6 +112,9 @@ const fmtDur = (secs: number | undefined) => {
 
 const StudentProfileDetail: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
+  // Placement Desk outcomes are for the placement team only.
+  const { user: me } = useAuth();
+  const canSeePlacement = userCan(me as any, ['manage_placement_desk', 'view_placement_desk'], ['TENANT_ADMIN']);
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
@@ -342,7 +349,7 @@ const StudentProfileDetail: React.FC = () => {
 
       {/* Tabs */}
       <div className="spd-tabs">
-        {(['overview', 'attendance', 'quizzes', 'assignments', 'snippets', 'thinking', 'communication', 'interviews', 'exams', 'fees'] as DetailTab[]).map(t => (
+        {(['overview', 'attendance', 'quizzes', 'assignments', 'snippets', 'thinking', 'communication', 'interviews', 'exams', 'fees', ...(canSeePlacement ? ['placement'] : [])] as DetailTab[]).map(t => (
           <button
             key={t}
             className={`spd-tab ${activeTab === t ? 'active' : ''}`}
@@ -869,6 +876,8 @@ const StudentProfileDetail: React.FC = () => {
         )}
 
         {/* ── Fees Tab ── */}
+        {activeTab === 'placement' && canSeePlacement && userId && <StudentPlacementHistory studentId={userId} />}
+
         {activeTab === 'fees' && (
           loadingReport ? <div className="spd-tab-loading"><Spinner /></div> :
           !report ? <p className="spd-empty">No fee data found.</p> :

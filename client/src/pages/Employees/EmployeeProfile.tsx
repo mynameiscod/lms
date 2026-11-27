@@ -414,6 +414,28 @@ const ChangeModal: React.FC<{ emp: Employee; cfg: EmployeeConfig; managers: Pick
   );
 };
 
+const ROLE_LOOK: Record<string, { label: string; tone: string }> = {
+  joining: { label: 'joined', tone: 'green' }, promotion: { label: 'promotion', tone: 'violet' }, transfer: { label: 'transfer', tone: 'blue' },
+  role_change: { label: 'role change', tone: 'blue' }, correction: { label: 'correction', tone: 'grey' },
+  status_change: { label: 'status', tone: 'amber' }, exit: { label: 'exited', tone: 'red' }, rejoin: { label: 'back', tone: 'green' },
+};
+
+/** Newest first. Older records may lack the exit entry or have the joining entry on the wrong date, so fill those in from the job details. */
+const roleTimeline = (emp: Employee) => {
+  const list = (emp.roleHistory || []).map((h) => ({ ...h }));
+  const join = list.find((h) => h.type === 'joining');
+  if (join) {
+    if (emp.joiningDate) join.effectiveFrom = emp.joiningDate;
+    if (!join.designation && !join.department && !join.grade) Object.assign(join, { designation: emp.designation, department: emp.department, grade: emp.grade });
+  } else if (emp.joiningDate) {
+    list.push({ effectiveFrom: emp.joiningDate, type: 'joining', designation: emp.designation, department: emp.department, grade: emp.grade, note: 'Joined' });
+  }
+  if (emp.status === 'exited' && !list.some((h) => h.type === 'exit')) {
+    list.push({ effectiveFrom: emp.exitDate || new Date().toISOString(), type: 'exit', note: ['Exited', emp.exitReason].filter(Boolean).join(' — ') });
+  }
+  return list.sort((a, b) => +new Date(b.effectiveFrom) - +new Date(a.effectiveFrom));
+};
+
 const JobTab: React.FC<TabProps> = (props) => {
   const { emp, d, set, cfg, canManage, managers, reload, say } = props;
   const navigate = useNavigate();
@@ -435,7 +457,7 @@ const JobTab: React.FC<TabProps> = (props) => {
     if (!window.confirm(`Delete ${emp.name}? This cannot be undone.`)) return;
     try { await employeesApi.remove(emp._id); navigate('/employees'); } catch (e) { say('err', empErr(e)); }
   };
-  const history = [...(emp.roleHistory || [])].sort((a, b) => +new Date(b.effectiveFrom) - +new Date(a.effectiveFrom));
+  const history = roleTimeline(emp);
   return (
     <>
       <div className="emp-card">
@@ -462,8 +484,8 @@ const JobTab: React.FC<TabProps> = (props) => {
           <ul className="emp-timeline">
             {history.map((h, i) => (
               <li key={i}>
-                <b>{fmtDate(h.effectiveFrom)}</b> <span className="emp-badge violet">{h.type.replace('_', ' ')}</span>
-                <div>{[h.designation, h.department, h.grade && `grade ${h.grade}`].filter(Boolean).join(' · ') || '—'}</div>
+                <b>{fmtDate(h.effectiveFrom)}</b> <span className={`emp-badge ${ROLE_LOOK[h.type]?.tone || 'violet'}`}>{ROLE_LOOK[h.type]?.label || h.type.replace('_', ' ')}</span>
+                {!['exit', 'status_change', 'rejoin'].includes(h.type) && <div>{[h.designation, h.department, h.grade && `grade ${h.grade}`].filter(Boolean).join(' · ') || '—'}</div>}
                 {h.note && <div className="emp-muted">{h.note}</div>}
               </li>
             ))}

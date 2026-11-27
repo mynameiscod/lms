@@ -16,6 +16,7 @@ const TASKS: { key: keyof TaskCounts; label: string }[] = [
   { key: 'coding_problem', label: 'Coding problem' },
   { key: 'assignment', label: 'Assignment' },
   { key: 'thinking_lab', label: 'Thinking Lab' },
+  { key: 'project_task', label: 'Project task (Project Studio)' },
 ];
 
 const statusOf = (r: StandingRow) => r.exempt ? 'exempt' : r.onHold ? 'hold' : r.pct < r.thresholdPct ? 'risk' : 'ok';

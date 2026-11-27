@@ -14,6 +14,8 @@ export interface ShelfBook {
   id: string; slug: string; title: string; kind: 'topic' | 'company'; subject: string; description: string;
   color: string; emblem: string; questionCount: number; chapters: number; global: boolean;
   knew: number; revise: number; favorites: number; started: boolean;
+  /** When the member last read it; null if never. */
+  readAt?: string | null;
 }
 export interface BookQ { id: string; chapterId: string; question: string; answer: string; difficulty: Difficulty; askedAt: string; tip: string }
 export interface ReadBook {
@@ -25,9 +27,20 @@ export interface ReadBook {
 export interface AdminBook {
   id: string; _id: string; scope: 'global' | 'tenant'; title: string; slug: string; kind: 'topic' | 'company'; subject: string;
   description: string; color: string; emblem: string; audience: 'all' | 'lms' | 'careerpilot'; status: 'draft' | 'published';
+  /** CareerPilot targeting: years (stage keys) and career track keys. Empty = everyone. */
+  stages?: string[]; tracks?: string[];
   chapters: { _id: string; title: string; order: number }[]; questionCount: number; order: number; canEdit?: boolean;
 }
 export interface AdminQ extends BookQ { order: number }
+
+/** Who reads a book: LMS students, CareerPilot members, and for members which years / tracks (empty = all). */
+export interface BookAccess { lms: boolean; careerpilot: boolean; stages: string[]; tracks: string[] }
+export interface AccessRow {
+  id: string; title: string; subject: string; kind: 'topic' | 'company'; color: string; emblem: string;
+  scope: 'global' | 'tenant'; status: 'draft' | 'published'; questionCount: number;
+  defaults: BookAccess; access: BookAccess; changed: boolean; changedBy: string | null; changedAt: string | null;
+}
+export interface AccessList { targets: { stages: { key: string; label: string }[]; tracks: { key: string; name: string }[] }; books: AccessRow[] }
 
 export const questionBookApi = {
   shelf: () => axios.get(`${BASE}/shelf`, h()).then(d) as Promise<ShelfBook[]>,
@@ -38,6 +51,7 @@ export const questionBookApi = {
 
   admin: {
     books: () => axios.get(`${BASE}/admin/books`, h()).then(d) as Promise<AdminBook[]>,
+    targets: () => axios.get(`${BASE}/admin/targets`, h()).then(d) as Promise<{ stages: { key: string; label: string }[]; tracks: { key: string; name: string }[] }>,
     create: (body: any) => axios.post(`${BASE}/admin/books`, body, h()).then(d) as Promise<AdminBook>,
     get: (id: string) => axios.get(`${BASE}/admin/books/${id}`, h()).then(d) as Promise<{ book: AdminBook; questions: AdminQ[] }>,
     update: (id: string, body: any) => axios.put(`${BASE}/admin/books/${id}`, body, h()).then(d) as Promise<AdminBook>,
@@ -47,5 +61,9 @@ export const questionBookApi = {
     deleteQ: (id: string, qid: string) => axios.delete(`${BASE}/admin/books/${id}/questions/${qid}`, h()).then(d),
     reorder: (id: string, chapterId: string, ids: string[]) => axios.post(`${BASE}/admin/books/${id}/reorder`, { chapterId, ids }, h()).then(d),
     bulk: (id: string, chapterId: string, text: string, dryRun: boolean) => axios.post(`${BASE}/admin/books/${id}/bulk`, { chapterId, text, dryRun }, h()).then(d) as Promise<{ parsed?: { question: string; answer: string }[]; added?: number }>,
+    // Who gets which book (per institute): manage_question_books
+    access: () => axios.get(`${BASE}/admin/access`, h()).then(d) as Promise<AccessList>,
+    saveAccess: (bookIds: string[], body: Partial<BookAccess>) => axios.put(`${BASE}/admin/access`, { bookIds, ...body }, h()).then(d) as Promise<AccessList>,
+    resetAccess: (bookIds: string[]) => axios.post(`${BASE}/admin/access/reset`, { bookIds }, h()).then(d) as Promise<AccessList>,
   },
 };

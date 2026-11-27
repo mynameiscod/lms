@@ -159,10 +159,11 @@ export const handleGoogleLeadWebhook = async (req: Request, res: Response) => {
       courseInterest: courses,
       source: 'google_ads',
       stageId: (firstStage as any)._id,
+      // Keys must match Lead.utmParams (source/medium/campaign); utmSource etc. were silently dropped.
       utmParams: {
-        utmCampaign: body.campaign_id,
-        utmSource: 'google',
-        utmMedium: 'cpc',
+        campaign: body.campaign_id ? String(body.campaign_id) : undefined,
+        source: 'google',
+        medium: 'cpc',
       },
       customFields,
       activities: [

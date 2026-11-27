@@ -18,6 +18,7 @@ describe('profileCompleteness utilities', () => {
         city: 'Bengaluru',
         gender: 'Male',
         dateOfBirth: '1995-01-01',
+        profilePhoto: 'https://example.com/me.jpg',
       },
       professionalProfiles: {
         resumeUrl: 'https://example.com/resume.pdf',
@@ -90,5 +91,20 @@ describe('profileCompleteness utilities', () => {
     const completeness = computeProfileCompleteness(partialProfile);
     expect(completeness).toBeGreaterThan(0);
     expect(computeProfileMissing(partialProfile).some((item) => item.section === 'Technical')).toBe(true);
+  });
+
+  it('holds back 5% when only the profile photo is missing', () => {
+    const p: any = {
+      personalInfo: { firstName: 'A', surname: 'B', email: 'a@b.c', mobileNumber: '1', country: 'IN', state: 'TS', city: 'X', gender: 'M', dateOfBirth: '2000-01-01' },
+      professionalProfiles: { githubUrl: 'g' },
+      education: { highestQualification: 'B', currentStatus: 'S', tenthClass: { schoolName: 'S' } },
+      technicalBackground: { programmingLanguages: ['J'], technologies: ['S'], experienceLevel: 'B' },
+      courseInterest: { interestedCourse: 'J', preferredLearningMode: 'O', preferredBatchTime: 'E' },
+      additionalInfo: { careerGoal: 'g' },
+    };
+    expect(computeProfileCompleteness(p)).toBe(95);
+    expect(computeProfileMissing(p)).toEqual([{ section: 'Personal Info', fields: ['Profile photo'] }]);
+    p.personalInfo.profilePhoto = 'https://x/y.jpg';
+    expect(computeProfileCompleteness(p)).toBe(100);
   });
 });

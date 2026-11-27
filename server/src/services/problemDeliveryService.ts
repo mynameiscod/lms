@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
+import { trialActive } from '../data/trialPolicy';
 import ProblemSet, { IProblemSet, SET_AUDIENCE_TYPES } from '../models/ProblemSet';
 import ProblemSubmission from '../models/ProblemSubmission';
-import CodingProblem, { CodingProblemTestCase } from '../models/CodingProblem';
+import CodingProblem, { CodingProblemTestCase, ProblemProduct, isAvailableTo } from '../models/CodingProblem';
 import User from '../models/User';
 import Batch from '../models/Batch';
-import { judge, runCustom } from './problemJudgeService';
+import { judge, runCustom, isStarterUnchanged, STARTER_UNCHANGED_MESSAGE } from './problemJudgeService';
 import { PbError, visibilityFilter } from './problemBankService';
 import StudentGameStats from '../models/StudentGameStats';
 import * as game from './gamificationService';
@@ -29,18 +30,26 @@ export interface Learner {
   batchId: string;
   isLms: boolean;
   isCareerPilot: boolean;
+  /** On a trial, not a membership: the library (trial-limited) yes, sets sent to all members no. */
+  isTrialOnly?: boolean;
   isStaff: boolean;
+  /** An LMS demo student: the practice library limited to the chosen problems, and no sets. */
+  isLmsDemo?: boolean;
 }
 
 export async function loadLearner(userId: string, tenantId: string): Promise<Learner> {
-  const u: any = await User.findById(userId).select(LEARNER_AUDIENCE_FIELDS).lean();
+  const u: any = await User.findById(userId).select(`${LEARNER_AUDIENCE_FIELDS} passport.trial lmsDemo.at`).lean();
   if (!u) throw new PbError('Account not found', 401);
   // One definition shared with the Code Visualizer and content audience gating (learnerAudience.ts).
   const aud = learnerAudienceOf(u);
   return {
     userId: String(userId), tenantId, role: u.role, batchId: u.batchId ? String(u.batchId) : '',
-    isLms: aud.lms,
-    isCareerPilot: aud.careerpilot,
+    // A demo student is not sent the institute's "all LMS students" sets; the demo's own problems come through the library.
+    isLms: aud.lms && !u.lmsDemo?.at,
+    isLmsDemo: !!u.lmsDemo?.at,
+    // A running trial counts too; problemLibraryService then limits it to the trial's own problems.
+    isCareerPilot: aud.careerpilot || trialActive(u.passport),
+    isTrialOnly: !aud.careerpilot && trialActive(u.passport),
     isStaff: STAFF.has(u.role),
   };
 }
@@ -51,14 +60,14 @@ export function inAudience(set: Pick<IProblemSet, 'audience'>, l: Learner): bool
     (a.type === 'user' && a.id === l.userId)
     || (a.type === 'batch' && !!l.batchId && a.id === l.batchId)
     || (a.type === 'all_lms' && l.isLms)
-    || (a.type === 'all_careerpilot' && l.isCareerPilot));
+    || (a.type === 'all_careerpilot' && l.isCareerPilot && !l.isTrialOnly));
 }
 
 function learnerFilter(l: Learner): any {
   const or: any[] = [{ audience: { $elemMatch: { type: 'user', id: l.userId } } }];
   if (l.batchId) or.push({ audience: { $elemMatch: { type: 'batch', id: l.batchId } } });
   if (l.isLms) or.push({ 'audience.type': 'all_lms' });
-  if (l.isCareerPilot) or.push({ 'audience.type': 'all_careerpilot' });
+  if (l.isCareerPilot && !l.isTrialOnly) or.push({ 'audience.type': 'all_careerpilot' });
   return {
     tenantId: l.tenantId,
     status: { $in: ['published', 'closed'] },
@@ -199,6 +208,8 @@ export async function runSamples(p: any, marks: number, body: { language: string
   const lang = assertLanguage(p, body.language);
   const jp: any = judgeView(p.toObject(), marks);
   if (body.mode === 'custom') return { custom: await runCustom(jp, lang, body.code, String(body.stdin || '')) };
+  // "Run tests" on the untouched starter is how an optimise-this-program problem used to show Accepted with nothing written.
+  if (isStarterUnchanged(jp, lang, body.code)) throw new PbError(STARTER_UNCHANGED_MESSAGE);
   const samples = await CodingProblemTestCase.find({ problemId: p._id, isSample: true }).sort({ order: 1 }).lean();
   if (!samples.length) throw new PbError('This problem has no sample tests to run.');
   const r = await judge(jp, lang, body.code, samples.map((t) => ({ ...t, isSample: true })), { revealHidden: false });
@@ -220,6 +231,8 @@ export async function gradeAndRecord(
 ) {
   const lang = assertLanguage(p, body.language);
   if (String(body.code || '').length > 100_000) throw new PbError('Code is limited to 100 KB.');
+  // Not an attempt, and never a solve: the learner has written nothing.
+  if (isStarterUnchanged(judgeView(p.toObject(), marks) as any, lang, body.code)) throw new PbError(STARTER_UNCHANGED_MESSAGE);
   const tests = await CodingProblemTestCase.find({ problemId: p._id }).sort({ order: 1 }).lean();
   const r = await judge(judgeView(p.toObject(), marks) as any, lang, body.code, tests.map((t) => ({ ...t })), { revealHidden: false });
 
@@ -239,8 +252,12 @@ export async function gradeAndRecord(
   });
   let reward: { xp: number } | null = null;
   if (!l.isStaff) {
-    await CodingProblem.updateOne({ _id: p._id }, { $inc: { 'stats.attempts': 1, ...(firstAccept ? { 'stats.accepted': 1 } : {}) } });
-    if (firstAccept) reward = await rewardFirstSolve(l, p);
+    const { isDemoUser } = await import('./demoService');
+    // Demo accounts (CareerPilot or LMS) leave problem statistics and game stats alone.
+    if (!l.isLmsDemo && !(await isDemoUser(String(l.userId)))) {
+      await CodingProblem.updateOne({ _id: p._id }, { $inc: { 'stats.attempts': 1, ...(firstAccept ? { 'stats.accepted': 1 } : {}) } });
+    }
+    if (firstAccept && !l.isLmsDemo) reward = await rewardFirstSolve(l, p);
   }
   return { result: r, recorded: true, submissionId: sub._id, late, firstAccept, reward };
 }
@@ -327,7 +344,7 @@ async function resolveAudience(tenantId: string, raw: SetInput['audience']) {
 async function validateItems(tenantId: string, role: string, userId: string, items: SetInput['items']) {
   const ids = Array.from(new Set((items || []).map((i) => String(i.problemId)).filter((id) => mongoose.isValidObjectId(id))));
   const found = await CodingProblem.find({
-    _id: { $in: ids }, ...visibilityFilter({ tenantId, role, userId }), status: 'published',
+    _id: { $in: ids }, ...(await visibilityFilter({ tenantId, role, userId })), status: 'published',
   }).select('_id').lean();
   const ok = new Set(found.map((f: any) => String(f._id)));
   const missing = ids.filter((id) => !ok.has(id));
@@ -337,11 +354,32 @@ async function validateItems(tenantId: string, role: string, userId: string, ite
     .map((i) => ({ problemId: new mongoose.Types.ObjectId(String(i.problemId)), ...(Number.isFinite(Number(i.marks)) && i.marks !== null && (i.marks as any) !== '' ? { marks: Math.max(0, Number(i.marks)) } : {}) }));
 }
 
+/**
+ * A set given to all CareerPilot members may only hold problems available to CareerPilot; one given
+ * to LMS students (all of them, or a batch) only problems available to the LMS. A set for named people
+ * is checked against neither — a person can be in either product.
+ */
+async function assertProblemsFitAudience(ids: mongoose.Types.ObjectId[], audience: { type: string }[]) {
+  const need: ProblemProduct[] = [];
+  if (audience.some((x) => x.type === 'all_careerpilot')) need.push('careerpilot');
+  if (audience.some((x) => x.type === 'all_lms' || x.type === 'batch')) need.push('lms');
+  if (!need.length || !ids.length) return;
+  const rows = await CodingProblem.find({ _id: { $in: ids } }).select('title audiences').lean() as any[];
+  for (const product of need) {
+    const off = rows.filter((p) => !isAvailableTo(p, product));
+    if (off.length) {
+      const names = off.slice(0, 3).map((p) => `"${p.title}"`).join(', ') + (off.length > 3 ? ` and ${off.length - 3} more` : '');
+      throw new PbError(`${names} ${off.length === 1 ? 'is' : 'are'} not available to ${product === 'lms' ? 'the LMS' : 'CareerPilot'}. Change "Available to" on the problem, or remove it from this set.`);
+    }
+  }
+}
+
 export async function saveSet(a: { tenantId: string; userId: string; role: string }, id: string | null, input: SetInput) {
   const title = String(input.title || '').trim();
   if (!title) throw new PbError('Give the set a title.');
   const items = await validateItems(a.tenantId, a.role, a.userId, input.items);
   const audience = await resolveAudience(a.tenantId, input.audience);
+  await assertProblemsFitAudience(items.map((i) => i.problemId), audience);
   const opensAt = input.opensAt ? new Date(input.opensAt) : undefined;
   const dueAt = input.dueAt ? new Date(input.dueAt) : undefined;
   if (opensAt && dueAt && dueAt <= opensAt) throw new PbError('The due date must be after the opening date.');

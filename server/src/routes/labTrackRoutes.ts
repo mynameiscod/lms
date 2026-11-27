@@ -4,7 +4,7 @@ import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
 import {
   listTracks, createTrack, updateTrack, deleteTrack, getTrack,
-  libraryFor, setTrackItems,
+  libraryFor, setTrackItems, autofillTrack,
   listAssignments, upsertAssignment, deleteAssignment, previewToday,
   myGate, studentGate, setBypass, labProgress, xpLeaderboard,
 } from '../controllers/labTrackController';
@@ -38,6 +38,7 @@ router.get('/:id', authMiddleware, tenantResolver, VIEW, getTrack);
 router.put('/:id', authMiddleware, tenantResolver, MANAGE, updateTrack);
 router.delete('/:id', authMiddleware, tenantResolver, MANAGE, deleteTrack);
 router.put('/:id/items', authMiddleware, tenantResolver, MANAGE, setTrackItems);
+router.post('/:id/autofill', authMiddleware, tenantResolver, MANAGE, autofillTrack);
 
 // Batch assignments + config
 router.get('/assignments/list', authMiddleware, tenantResolver, VIEW, listAssignments);

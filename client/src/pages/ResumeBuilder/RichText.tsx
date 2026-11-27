@@ -35,7 +35,7 @@ export function sanitizeHtml(html: string): string {
 // True when the HTML has no visible content (used to show placeholders / skip render).
 export const isRichEmpty = (html?: string) => !html || !html.replace(/<[^>]*>/g, '').replace(/&nbsp;|\s/g, '').trim();
 
-const TB_BTN: React.CSSProperties = { border: '1px solid #d7dbe6', background: '#fff', borderRadius: 6, minWidth: 30, height: 28, cursor: 'pointer', fontSize: 13, lineHeight: 1, color: '#334155' };
+const TB_BTN: React.CSSProperties = { border: '1px solid #d7dbe6', background: '#fff', borderRadius: 6, minWidth: 30, height: 28, cursor: 'pointer', fontSize: 'max(13px, var(--fs-floor, 0px))', lineHeight: 1, color: '#334155' };
 
 export const RichTextEditor: React.FC<{ value: string; onChange: (html: string) => void; placeholder?: string; rows?: number }> = ({ value, onChange, placeholder, rows = 3 }) => {
   const ref = useRef<HTMLDivElement>(null);

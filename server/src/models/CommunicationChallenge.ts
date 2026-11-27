@@ -5,6 +5,7 @@ export type ChallengeType =
   | 'self_introduction'
   | 'hr_questions'
   | 'technical_explanation'
+  | 'project_explanation'
   | 'group_discussion'
   | 'presentation';
 
@@ -49,6 +50,7 @@ export interface ICommunicationChallenge extends Document {
    * item on the same day.
    */
   audience: IMemberAudience;
+  isCoach?: boolean;          // a Communication Coach holder: inactive, never in the daily rotation
   isSeed?: boolean;           // marks the built-in seeded set (so re-seeding is idempotent)
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -82,7 +84,7 @@ const CommunicationChallengeSchema = new Schema<ICommunicationChallenge>(
     description: { type: String, trim: true },
     challengeType: {
       type: String,
-      enum: ['self_introduction', 'hr_questions', 'technical_explanation', 'group_discussion', 'presentation'],
+      enum: ['self_introduction', 'hr_questions', 'technical_explanation', 'project_explanation', 'group_discussion', 'presentation'],
       default: 'self_introduction',
       index: true,
     },
@@ -99,6 +101,7 @@ const CommunicationChallengeSchema = new Schema<ICommunicationChallenge>(
     batchIds: { type: [Schema.Types.ObjectId], ref: 'Batch', default: [] },
     audiences: { type: [String], enum: CHALLENGE_AUDIENCES, default: ['lms'] },
     audience: MemberAudienceSchema,
+    isCoach: { type: Boolean, default: false },
     isSeed: { type: Boolean, default: false },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },

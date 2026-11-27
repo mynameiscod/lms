@@ -8,9 +8,13 @@ import './member.css';
 import SetPasswordDialog from './SetPasswordDialog';
 import ShareCardDialog from './ShareCardDialog';
 import { useUnlock } from './useUnlock';
+import TrialBanner from './TrialBanner';
+import DemoBar from './DemoBar';
 import { startActivityBeacon, trackPage } from './activityBeacon';
 import visualizerApi from '../../api/visualizerApi';
+import supportApi from '../../api/supportApi';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
+import { barWidth } from '../../utils/barWidth';
 
 const ICONS: Record<string, string> = {
   home: 'house-door-fill',
@@ -37,6 +41,12 @@ const ICONS: Record<string, string> = {
   code: 'code-slash',
   db: 'database',
   brain: 'lightbulb',
+  handshake: 'people-fill',
+  support: 'life-preserver',
+  /* One icon per sidebar item: these three used to repeat Practice's, Mock Interview's and Resume's. */
+  codeSets: 'collection',
+  experiences: 'chat-quote',
+  books: 'journal-bookmark',
 };
 
 export const Icon: React.FC<{ name: string }> = ({ name }) => (
@@ -55,15 +65,16 @@ interface Props {
  * readable label, never the event itself, which is the right way round for a log.
  */
 const SCREEN_NAMES: Record<string, string> = {
-  '/careerpilot': 'Mission Control',
+  '/careerpilot': 'My Dashboard',
   '/careerpilot/setup': 'Setup — academic details',
   '/careerpilot/skill-assessment': 'Skill assessment',
   '/careerpilot/roadmap': 'My roadmap',
   '/careerpilot/skills': 'Skill DNA',
   '/careerpilot/readiness': 'Role readiness',
   '/careerpilot/placement': 'Placement readiness',
-  '/careerpilot/progress': 'My progress',
-  '/careerpilot/rewards': 'Rewards',
+  '/careerpilot/rewards': 'Reward Store',
+  '/careerpilot/aptitude': 'Aptitude (coming soon)',
+  '/careerpilot/reasoning': 'Reasoning (coming soon)',
   '/careerpilot/interview': 'Mock interview',
   '/careerpilot/communication': 'Communication Lab',
   '/careerpilot/resume': 'Resume',
@@ -77,21 +88,23 @@ const SCREEN_NAMES: Record<string, string> = {
  *
  * A checkpoint's results belong to My 90 Days, which is where the checkpoint was opened and where
  * it returns to. Topics, courses and materials are roadmap work. A mock test is only opened from a company
- * profile. Coins, rewards, badges and the leaderboard are the My Progress story under four
- * other names. Without this table each of those screens leaves the rail blank, which is the
+ * profile. Coins, badges and the leaderboard are the My Progress story under other names
+ * (rewards has its own Reward Store item, so it lights that one). Without this table each of those screens leaves the rail blank, which is the
  * one moment navigation exists to answer: where am I?
  */
 const NAV_ALIASES: Array<[string, string]> = [
   ['/careerpilot/journey', '/careerpilot/plan'],
-  ['/careerpilot/topic', '/careerpilot/roadmap'],
-  ['/careerpilot/learn', '/careerpilot/roadmap'],
-  ['/careerpilot/material', '/careerpilot/roadmap'],
+  // My Roadmap is part of My N Days now (its "View roadmap" button): roadmap pages light that up.
+  ['/careerpilot/roadmap', '/careerpilot/plan'],
+  ['/careerpilot/topic', '/careerpilot/plan'],
+  ['/careerpilot/learn', '/careerpilot/plan'],
+  ['/careerpilot/material', '/careerpilot/plan'],
   ['/careerpilot/quiz', '/careerpilot/plan'],
   ['/careerpilot/mock-test', '/careerpilot/companies'],
-  ['/careerpilot/rewards', '/careerpilot/progress'],
-  ['/careerpilot/coins', '/careerpilot/progress'],
-  ['/careerpilot/achievements', '/careerpilot/progress'],
-  ['/careerpilot/leaderboard', '/careerpilot/progress'],
+  // My Progress is part of My Dashboard now: its detail pages light up the dashboard in the rail.
+  ['/careerpilot/coins', '/careerpilot'],
+  ['/careerpilot/achievements', '/careerpilot'],
+  ['/careerpilot/leaderboard', '/careerpilot'],
 ];
 
 /**
@@ -116,6 +129,23 @@ const sectionFor = (pathname: string): string => {
   return alias ? alias[1] : p;
 };
 
+/**
+ * "Good Morning" / "Good Afternoon" / "Good Evening" from the member's own clock, re-read every
+ * minute so a page left open across noon or evening changes with it.
+ */
+const greetingFor = (h: number) =>
+  h >= 5 && h < 12 ? { text: 'Good Morning', emoji: '👋' }
+    : h >= 12 && h < 17 ? { text: 'Good Afternoon', emoji: '☀️' }
+    : { text: 'Good Evening', emoji: '🌙' };
+const useGreeting = () => {
+  const [hour, setHour] = useState(() => new Date().getHours());
+  useEffect(() => {
+    const t = window.setInterval(() => setHour(new Date().getHours()), 60000);
+    return () => clearInterval(t);
+  }, []);
+  return greetingFor(hour);
+};
+
 const MemberShell: React.FC<Props> = ({ children, data }) => {
   const nav = useNavigate();
   const loc = useLocation();
@@ -128,6 +158,18 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
     visualizerApi.access().then(a => alive && setVzAllowed(!!a.allowed)).catch(() => alive && setVzAllowed(false));
     return () => { alive = false; };
   }, []);
+  /*
+   * Support replies the member has not opened. The member app has no notification bell, so the
+   * Help & Support item carries the count instead. Re-read on every page change, which is also
+   * when a ticket is opened and the count falls.
+   */
+  const [supportUnread, setSupportUnread] = useState(0);
+  const { pathname: shellPath } = useLocation();
+  useEffect(() => {
+    let alive = true;
+    supportApi.unread().then(n => alive && setSupportUnread(n)).catch(() => undefined);
+    return () => { alive = false; };
+  }, [shellPath]);
   useEffect(() => {
     if ((user as any)?.profilePicture) return;
     let alive = true;
@@ -211,6 +253,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const path = loc.pathname;
   const navSection = sectionFor(path);
   const firstName = d?.firstName || user?.firstName || 'there';
+  const greeting = useGreeting();
   const initial = (firstName[0] || 'C').toUpperCase();
   /*
    * The member's photo, wherever an avatar is drawn. It is uploaded on My profile, which puts
@@ -223,7 +266,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const st = d?.stats;
   const lv = d?.level;
   const goal = d?.dailyGoal;
-  const myRank = d?.leaderboard?.find(r => r.me)?.rank;
+  // The global rank — every CareerPilot member, by XP.
+  const myRank = d?.globalRank?.rank ?? d?.leaderboard?.find(r => r.me)?.rank;
 
   /**
    * Which parts of the product this member cannot open yet.
@@ -256,7 +300,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
    * and it also makes the product look smaller than it is. It still navigates, because the
    * destination now explains itself rather than dead-ending.
    */
-  const navBtn = (label: string, icon: string, to: string, section?: MemberSection, feature?: CareerPilotFeatureKey) => {
+  const navBtn = (label: string, icon: string, to: string, section?: MemberSection, feature?: CareerPilotFeatureKey, badge = 0, tag = '') => {
     // Switched off by the institute's admin (Student Features, CareerPilot tab): not shown at all.
     if (feature && hiddenSet.has(feature)) return null;
     const locked = !!section && lockedSet.has(section);
@@ -276,6 +320,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
       >
         <span className="ic"><Icon name={icon} /></span>
         <span className="lbl">{label}</span>
+        {badge > 0 && <span className="gd-nav-badge" aria-label={`${badge} new`}>{badge > 9 ? '9+' : badge}</span>}
+        {tag && <span className="gd-nav-tag">{tag}</span>}
         {locked && <span className="lk" aria-label="Membership"><i className="bi bi-lock-fill" /></span>}
       </button>
     );
@@ -285,7 +331,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const userMenu = (
     <div className="gd-user-menu">
       <div className="hd"><span className="av" aria-hidden>{avatar}</span><div><b>{d?.name || firstName}</b>{lv && <span>Level {lv.level} · {lv.title}</span>}</div></div>
-      {st && <div className="stats"><div><b>{st.xp.toLocaleString()}</b><span>XP</span></div><div><b>{st.streak}</b><span>Streak</span></div><div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div></div>}
+      {st && <div className="stats"><div><b>{st.xp.toLocaleString()}</b><span>XP</span></div><div><b>{st.streak}</b><span>Streak</span></div><div title={d?.globalRank ? `#${d.globalRank.rank} of ${d.globalRank.participants.toLocaleString()} CareerPilot students` : undefined}><b>{myRank ? `#${myRank}` : '—'}</b><span>Global rank</span></div></div>}
       <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}><i className="bi bi-person" aria-hidden /> My profile</button>
       <button onClick={() => { setUserOpen(false); nav('/careerpilot/readiness'); }}><i className="bi bi-bar-chart" aria-hidden /> My result</button>
       <button onClick={share} disabled={!d?.shareSlug}><i className="bi bi-share" aria-hidden /> Share my CareerPilot card</button>
@@ -346,7 +392,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         </button>
 
         <nav className="gd-nav">
-          {navBtn('Home', 'home', '/careerpilot')}
+          {/* Home and My Progress are one page now: My Dashboard. */}
+          {navBtn('My Dashboard', 'home', '/careerpilot')}
           {/*
             Named from the learner's own plan, not from a constant: "My 90 Days" was shown to
             everybody, which is wrong for every second-year, whose plan is 110, and was already
@@ -357,30 +404,39 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
             default programme length, so the fallback is what it always was.
           */}
           {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap', 'plan')}
-          {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap', 'roadmap')}
+          {/* The rail, in the order asked for (2026-10-30). */}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice', 'practice')}
-          {navBtn('Coding Sets', 'code', '/careerpilot/coding', 'coding', 'coding')}
-          {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
-          {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
-          {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'practice', 'thinkingLab')}
+          {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'thinkingLab', 'thinkingLab')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication', 'communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview', 'interview')}
-          {navBtn('Interview Experiences', 'interview', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
-          {navBtn('Question Books', 'resume', '/careerpilot/question-books', 'questionBooks', 'questionBooks')}
-          {navBtn('AI Mentor', 'robot', '/careerpilot/mentor', 'mentor', 'mentor')}
-          {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies', 'companies')}
-          {/* Sits with Opportunities because it answers the same question — what is happening in
-              the industry I am applying to. It was reachable only from the user menu, which is
-              where people look for their account, not for a daily read. */}
-          {navBtn('Tech News', 'news', '/careerpilot/news', 'news', 'news')}
+          {navBtn('Question Books', 'books', '/careerpilot/question-books', 'questionBooks', 'questionBooks')}
+          {navBtn('Job Board', 'building', '/careerpilot/companies', 'companies', 'companies')}
           {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume', 'resume')}
-          {navBtn('My Progress', 'trophy', '/careerpilot/progress', 'progress', 'progress')}
+          {navBtn('Interview Experiences', 'experiences', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
+          {/* Assigned per member: shown only once it has been. */}
+          {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
+          {/* Membership-only like the rest of the product; the institute can also hide it (Student Features, CareerPilot tab). */}
+          {navBtn('Industry Connect', 'handshake', '/careerpilot/industry-connect', 'industryConnect', 'industryConnect')}
+          {/* Announced, not built yet: each opens a "Coming soon" page (ComingSoon.tsx). */}
+          {navBtn('Aptitude', 'calculator', '/careerpilot/aptitude', undefined, 'aptitude', 0, 'Soon')}
+          {navBtn('Reasoning', 'puzzle', '/careerpilot/reasoning', undefined, 'reasoning', 0, 'Soon')}
+          {navBtn('AI Mentor', 'robot', '/careerpilot/mentor', 'mentor', 'mentor')}
+          {navBtn('Tech News', 'news', '/careerpilot/news', 'news', 'news')}
+          {navBtn('Code Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
+          {/* Reward Store goes with the progress switch (coins buy rewards), so it locks and hides with it. */}
+          {navBtn('Reward Store', 'gift', '/careerpilot/rewards', 'progress', 'progress')}
+          {/* Never locked behind membership: anyone signed in must be able to ask for help, including about paying. */}
+          {navBtn('Help & Support', 'support', '/careerpilot/support', undefined, 'support', supportUnread)}
         </nav>
 
         {lockedSet.size > 0 && (
           <div className="gd-unlock">
-            <div className="gd-unlock-hd"><i className="bi bi-lock-fill" /> {lockedSet.size} {lockedSet.size === 1 ? 'feature is' : 'features are'} locked</div>
-            <p>Membership opens your full roadmap, daily practice, mock interviews and everything else marked with a lock.</p>
+            <div className="gd-unlock-hd"><i className={`bi ${d?.trial ? 'bi-hourglass-split' : 'bi-lock-fill'}`} /> {d?.trial
+              ? `Trial · ${d.trial.daysLeft} ${d.trial.daysLeft === 1 ? 'day' : 'days'} left`
+              : `${lockedSet.size} ${lockedSet.size === 1 ? 'feature is' : 'features are'} locked`}</div>
+            <p>{d?.trial
+              ? 'Your trial opens part of CareerPilot. Membership opens everything marked with a lock, with no limits.'
+              : 'Membership opens your full roadmap, daily practice, mock interviews and everything else marked with a lock.'}</p>
             <button className="gd-unlock-cta" onClick={() => unlock()} disabled={unlockBusy}>{unlockLabel}</button>
             {unlockMsg && <span className="gd-unlock-msg">{unlockMsg}</span>}
           </div>
@@ -413,7 +469,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         <div className="gd-topbar">
           <div className="gd-topbar-l">
             {/* Only over the working dashboard: the locked one (PassportHome's other branch) greets in its own hero. */}
-            {path === '/careerpilot' && d?.active && d?.hasAssessment && <div className="gd-hello"><h1>Hey {firstName}!</h1><p>Let’s code, solve problems and level up your skills.</p></div>}
+            {path === '/careerpilot' && d?.active && d?.hasAssessment && <div className="gd-hello"><h1>{greeting.text}{firstName !== 'there' ? ', ' : ''}<span style={{ whiteSpace: 'nowrap' }}>{firstName !== 'there' ? firstName : ''}! <span aria-hidden>{greeting.emoji}</span></span></h1><p>Stay consistent, keep learning, and move closer to your dream career.</p></div>}
           </div>
           <div className="gd-topbar-r">
             {/*
@@ -431,7 +487,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                   <span className="gd-stat-tx"><b>{st.streak}</b><small>Day streak</small></span>
                   <span className="gd-tip" aria-hidden>Days in a row you have learned. Miss a day and it starts again.</span>
                 </Link>
-                {!!d?.coins?.balance && (
+                {d?.coins && typeof d.coins.balance === 'number' && (
                   <Link to="/careerpilot/coins" className="gd-stat s-coins"
                         aria-label={`${d.coins.balance.toLocaleString('en-IN')} coins. Open your coins`}>
                     <span className="gd-stat-ic" aria-hidden><i className="bi bi-coin" /></span>
@@ -446,12 +502,12 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                     <b><span className="gd-stat-long">Level </span><span className="gd-stat-short">Lv </span>{lv.level}</b>
                     <small>{lv.title}</small>
                     <span className="gd-stat-bar" aria-hidden>
-                      <i style={{ width: `${Math.max(4, Math.min(100, lv.progressPct))}%` }} />
+                      <i style={{ width: `${barWidth(lv.progressPct)}%` }} />
                     </span>
                   </span>
                   <span className="gd-tip" aria-hidden>Your level rises with XP. {lv.progressPct}% of the way to level {lv.nextLevel}.</span>
                 </Link>
-                <Link to="/careerpilot/progress" className="gd-stat s-xp"
+                <Link to="/careerpilot" className="gd-stat s-xp"
                       aria-label={`${lv.xp.toLocaleString()} XP, ${lv.xpToNextLevel.toLocaleString()} to level ${lv.nextLevel}. See your progress`}>
                   <span className="gd-stat-ic" aria-hidden><i className="bi bi-lightning-charge-fill" /></span>
                   <span className="gd-stat-tx"><b>{lv.xp.toLocaleString()}<em> XP</em></b><small>{lv.xpToNextLevel.toLocaleString()} to level {lv.nextLevel}</small></span>
@@ -477,6 +533,12 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         </div>}
         {shareOpen && d && <ShareCardDialog data={d} onClose={() => setShareOpen(false)} />}
         {pwdOpen && <SetPasswordDialog onClose={() => setPwdOpen(false)} onDone={() => { setPwdOpen(false); setPwdDone(true); }} />}
+
+        {/* A demo account: the year switch and the resets (super admin gives demo access). */}
+        <DemoBar />
+
+        {/* A member on a trial always sees what is left of it. */}
+        {d?.trial && <TrialBanner trial={d.trial} />}
 
         {children}
       </main>

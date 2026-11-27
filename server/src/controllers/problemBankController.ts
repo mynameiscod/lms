@@ -61,6 +61,11 @@ export const bulkStatus = wrap(async (req, res) => {
   res.json({ success: true, data: await svc.bulkSetStatus(actor(req), req.body?.ids, req.body?.status) });
 });
 
+/** "Available to" for the ticked problems, or for every problem the list's filters match. */
+export const bulkAudience = wrap(async (req, res) => {
+  res.json({ success: true, data: await svc.bulkSetAudience(actor(req), req.body) });
+});
+
 export const remove = wrap(async (req, res) => {
   res.json({ success: true, data: await svc.deleteProblem(actor(req), req.params.id) });
 });
@@ -104,9 +109,9 @@ export const importPreview = wrap(async (req, res) => {
 });
 
 export const importCommit = wrap(async (req, res) => {
-  const { items, scope, verify } = req.body || {};
+  const { items, scope, verify, audiences } = req.body || {};
   if (!Array.isArray(items) || !items.length) throw new svc.PbError('Nothing to import.');
-  res.json({ success: true, data: await importer.commitImport(actor(req), items, { scope, verify }) });
+  res.json({ success: true, data: await importer.commitImport(actor(req), items, { scope, verify, audiences }) });
 });
 
 export const importTemplate = wrap(async (req, res) => {

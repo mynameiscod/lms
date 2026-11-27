@@ -1,0 +1,63 @@
+/* Problem Bank → Thinking Lab (ThinkingBank.tsx, root .tb). Builds on ProblemBank.css. */
+
+/* One stat card per question type; a card is also the type filter. */
+.tb .tb-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tb .tb-stat { text-align: left; font: inherit; color: inherit; cursor: pointer; border: 1px solid var(--pb-line); transition: border-color .15s ease, box-shadow .15s ease; }
+.tb .tb-stat:hover { border-color: var(--pb-accent-line); }
+.tb .tb-stat.on { border-color: var(--pb-accent); box-shadow: 0 0 0 3px var(--pb-accent-soft); }
+.tb .tb-stat .l i { width: 16px; color: var(--pb-accent); margin-right: 4px; }
+
+.tb-table td { white-space: nowrap; }
+.tb-table td.pb-title-cell { white-space: normal; min-width: 260px; }
+.tb-table .pb-title-cell .sub { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.tb-type { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--pb-body); }
+.tb-type i { width: 14px; color: var(--pb-accent); }
+.tb-years { font-size: 12.5px; }
+.tb-when { font-size: 11.5px; color: var(--pb-faint); margin-top: 2px; }
+.tb-incomplete { background: var(--pb-warn-soft) !important; color: var(--pb-warn) !important; }
+
+/* Editor */
+.tb-row3 { grid-template-columns: 2fr 1.4fr 1fr; }
+.tb-lines { margin-top: 2px; }
+.tb-line { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.tb-line .pb-input { flex: 1; min-width: 0; }
+.tb-line input[type="radio"] { flex: none; width: 16px; height: 16px; accent-color: var(--pb-ok); }
+.tb-n { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--pb-accent-soft); color: var(--pb-accent-ink); font-size: 12px; font-weight: 800; }
+.tb-test { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: start; }
+.tb-test-side { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.tb-hidden { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--pb-muted); white-space: nowrap; }
+.tb-problems { margin: 6px 0 0; padding-left: 18px; }
+.tb-types { flex-wrap: wrap; }
+.tb-types button i { margin-right: 4px; }
+.tb-ai-note { font-size: 12.5px; }
+
+@media (max-width: 1100px) {
+  .tb .tb-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .tb .tb-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tb-row3 { grid-template-columns: 1fr; }
+  .tb-test { grid-template-columns: 1fr; }
+  .tb-test-side { flex-direction: row; justify-content: space-between; }
+  .tb-ai-note { display: none; }
+  .tb .pb-filters .pb-seg { width: 100%; }
+  .tb .pb-filters .pb-seg button { flex: 1; }
+}
+
+/* Phones: header stacked, tabs wrapped, and each question as a card instead of a wide table row. */
+@media (max-width: 720px) {
+  .tb .pb-head { flex-direction: column; align-items: stretch; gap: 12px; }
+  .tb .pb-head > .pb-row { justify-content: flex-start; }
+  .tb .pb-tabs { flex-wrap: wrap; overflow: visible; }
+  .tb .pb-table-wrap { overflow: visible; }
+  .tb-table thead { display: none; }
+  .tb-table, .tb-table tbody { display: block; width: 100% !important; min-width: 0 !important; }
+  .tb-table td, .tb-table td.pb-title-cell { white-space: normal; min-width: 0; }
+  .tb-table tr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 12px 14px; border-bottom: 1px solid var(--pb-line); }
+  .tb-table tr:last-child { border-bottom: 0; }
+  .tb-table td { display: block; padding: 0 !important; border: 0 !important; }
+  .tb-table td.pb-title-cell { flex: 1 1 calc(100% - 48px); min-width: 0; order: 0; }
+  .tb-table td:last-child { order: 1; margin-left: auto; }
+  .tb-table td:not(.pb-title-cell):not(:last-child) { order: 2; font-size: 12.5px; }
+  .tb-table .tb-when { display: inline; margin-left: 6px; }
+}

@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import LostReasonConfig, { ILostReason, DEFAULT_LOST_REASONS, LOST_REASON_CATEGORIES } from '../models/LostReasonConfig';
 import Lead from '../models/Lead';
+import LeadStage from '../models/LeadStage';
+import { changeStage } from '../services/leadLifecycleService';
 import { AuthRequest } from '../types/express';
 
 /**
@@ -262,10 +264,11 @@ export const markLeadAsLost = async (req: AuthRequest, res: Response) => {
   try {
     const { leadId } = req.params;
     const { reasonId, reason, detail, reEngagementDate } = req.body;
-    const userId = req.user?._id;
-    const tenantId = req.user?.tenantId;
+    // The JWT payload carries `id`, not `_id`; without this the activity had no author and failed to save.
+    const userId = req.user?.id || req.user?._id;
+    const tenantId = (req as any).tenantId || req.user?.tenantId;
 
-    const lead = await Lead.findById(leadId);
+    const lead = await Lead.findOne({ _id: leadId, tenantId });
     if (!lead) {
       return res.status(404).json({ message: 'Lead not found' });
     }
@@ -437,11 +440,17 @@ export const reEngageLead = async (req: AuthRequest, res: Response) => {
   try {
     const { leadId } = req.params;
     const { newStage, note } = req.body;
-    const userId = req.user?._id;
+    const userId = req.user?.id || req.user?._id;
+    const tenantId = (req as any).tenantId || req.user?.tenantId;
 
-    const lead = await Lead.findById(leadId);
+    const lead = await Lead.findOne({ _id: leadId, tenantId });
     if (!lead) {
       return res.status(404).json({ message: 'Lead not found' });
+    }
+    if (newStage) {
+      // Only a stage of this institute may be set.
+      const stageOk = await LeadStage.exists({ _id: newStage, tenantId });
+      if (!stageOk) return res.status(400).json({ message: 'Stage not found' });
     }
 
     // Store previous lost info before clearing
@@ -458,11 +467,6 @@ export const reEngageLead = async (req: AuthRequest, res: Response) => {
     lead.lostAt = undefined;
     lead.reEngagementDate = undefined;
 
-    // Update stage if provided
-    if (newStage) {
-      lead.stageId = newStage;
-    }
-
     // Add activity
     lead.activities.push({
       type: 'status_change',
@@ -477,9 +481,17 @@ export const reEngageLead = async (req: AuthRequest, res: Response) => {
 
     await lead.save();
 
+    // The stage move itself goes through the lifecycle service (history, milestones, side effects).
+    if (newStage && String(newStage) !== String(lead.stageId)) {
+      await changeStage({
+        tenantId: String(tenantId), leadId: String(lead._id), stageId: String(newStage),
+        actor: { id: String(userId), role: req.user?.role || '' }, source: 'reopen',
+      });
+    }
+
     res.json({
       message: 'Lead re-engaged successfully',
-      lead
+      lead: await Lead.findById(lead._id)
     });
   } catch (error) {
     console.error('Error re-engaging lead:', error);

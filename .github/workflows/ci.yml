@@ -33,7 +33,7 @@ env:
   NODE_VERSION: '18'
 
 jobs:
-  # ── shared ────────────────────────────────────────────────────────────────
+  # ── shared ────────────────────────────────────────────────────────────
   # Phase 1 of the Code Visualizer intends to put the normalized execution-event
   # contract in shared/, so we need CI to prove the package compiles. NOTE: as of
   # this commit nothing imports @lms-saas/shared — see docs/ci.md.
@@ -58,7 +58,7 @@ jobs:
       - name: Shared - Build
         run: npm run build --workspace=shared
 
-  # ── server ────────────────────────────────────────────────────────────────
+  # ── server ────────────────────────────────────────────────────────────
   server:
     name: Server
     runs-on: ubuntu-latest
@@ -366,11 +366,10 @@ jobs:
       # to connect to anything.
       - name: Repository Safety - Compose validation
         run: |
-          # Compose reads env_file even during validation. CI uses placeholders
-          # below and an empty local file; no deployment configuration is needed.
-          test -f server/.env || touch server/.env
-          docker compose config --quiet
-          echo "docker-compose.yml is valid"
+          set -euo pipefail
+          mkdir -p server
+          : > server/.env
+          docker compose config --quiet && echo "docker-compose.yml is valid"
         env:
           MONGO_ROOT_USERNAME: ci-placeholder
           MONGO_ROOT_PASSWORD: ci-placeholder

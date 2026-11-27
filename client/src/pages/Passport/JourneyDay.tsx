@@ -27,7 +27,7 @@
  * full-screen paper. That is correct for an exam: a navigation rail beside a timed checkpoint
  * is an invitation to wander off mid-question. It returns here when it is done.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import passportApi, { FoundationJourney as Journey } from '../../api/passportApi';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
@@ -36,8 +36,12 @@ import InteractiveActivityViewer from '../MyLearningPlan/InteractiveActivityView
 import SectionLock from './SectionLock';
 import { useMember } from './MemberLayout';
 import { withReturn } from '../../utils/careerpilotReturn';
+import { celebrate } from '../../components/Celebration/celebrate';
 import './journeyDay.css';
 import './journeyDayMember.css';
+import { useProgramDays } from './useProgramDays';
+import NotesBook, { opensAsBook } from './NotesBook';
+import { keepTaskInView, showLessonIfStacked, showLessonTop, useDayPanes } from './useDayPanes';
 
 /** Content types, in words a first-year recognises. Mirrors the roadmap screen. */
 export const TYPE_LABEL: Record<string, string> = {
@@ -75,6 +79,13 @@ export const mins = (n: number) =>
 /** The label an item carries, whichever shape the day plan used. */
 export const titleOf = (item: any): string =>
   item?.content?.title || item?.contentTitle || item?.title || 'Untitled';
+
+/** The task list already shows the kind under each title, so " — video (placeholder)" style endings are dropped there. */
+const railTitle = (item: any): string => {
+  const t = titleOf(item);
+  const short = t.replace(/\s+[—–-]\s+(video|notes|practice|quiz|worked example|assignment|lesson|reading|exercise)s?(\s*\([^)]*\))?\s*$/i, '').trim();
+  return short || t;
+};
 
 export const typeOf = (item: any): string =>
   item?.contentType || item?.content?.type || item?.kind || 'notes';
@@ -115,9 +126,9 @@ export const ItemBody: React.FC<{ item: any; onLaunch: (path: string) => void }>
   }
 
   switch (c.type) {
-    case 'video': return <VideoPlayer content={c} onWatchEnough={() => { /* completion is explicit here */ }} />;
+    case 'video': return <div className="jd-video"><VideoPlayer content={c} onWatchEnough={() => { /* completion is explicit here */ }} /></div>;
     case 'notes':
-    case 'worked_example': return <NotesViewer content={c} />;
+    case 'worked_example': return opensAsBook(c) ? <NotesBook text={c.notesContent} /> : <NotesViewer content={c} />;
     case 'tech_qa':
     case 'behavioral_qa': return <QAViewer content={c} />;
     case 'practice_coding':
@@ -134,6 +145,10 @@ export const ItemBody: React.FC<{ item: any; onLaunch: (path: string) => void }>
 
 const JourneyDay: React.FC = () => {
   const { day: dayParam } = useParams();
+  const programDays = useProgramDays();
+  // Read by load() without making it a dependency: the days arriving must not reload the day.
+  const programDaysRef = useRef(programDays);
+  programDaysRef.current = programDays;
   const nav = useNavigate();
   const dayNumber = Math.max(1, parseInt(String(dayParam || '1'), 10) || 1);
 
@@ -151,6 +166,8 @@ const JourneyDay: React.FC = () => {
    * the membership panel here would ask somebody to buy something they already own.
    */
   const [dayLock, setDayLock] = useState<string>('');
+  /** The lock is the welcome: the way on is the welcome days, not the day before. */
+  const [lockToWelcome, setLockToWelcome] = useState(false);
   /** Roadmap V2's foundation gate, when it holds this day: the bridge checks still to pass. */
   const [gate, setGate] = useState<{ passed: number; total: number; pending: { quizId: string; title: string; dayNumber: number; attempts: number }[]; flagged: any[] } | null>(null);
   const [error, setError] = useState('');
@@ -160,9 +177,37 @@ const JourneyDay: React.FC = () => {
   /** A short "+5 XP" after a lesson is ticked off — the XP itself is paid by the server on that save. */
   const [flash, setFlash] = useState('');
   const { reload: reloadMember } = useMember();
+  const gridRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useDayPanes(gridRef, [loading, error, items.length > 0]);
+  // A new task starts at its top, and the task list keeps the chosen task in view.
+  useEffect(() => {
+    showLessonTop(gridRef.current);
+    keepTaskInView(gridRef.current);
+  }, [selIdx]);
+
+  /**
+   * The day's party. Played once per day per enrollment (`once`), so reopening a finished day,
+   * or the reload after the last tick, does not replay it.
+   */
+  const celebrateDay = useCallback((enrollmentId: string, list: any[], bonus: number, total: number) => {
+    const xp = list.reduce((t, it) => t + (Number(it.xp) || 0), 0) + bonus;
+    celebrate({
+      kind: 'day',
+      once: `day:${enrollmentId}:${dayNumber}`,
+      title: `Day ${dayNumber} done!`,
+      message: dayNumber < total
+        ? `Every task on today's mission is finished. Day ${dayNumber + 1} is next. Keep the streak going.`
+        : 'That was the last day of your journey. Brilliant work.',
+      stats: [
+        { value: xp, label: 'XP earned today', prefix: '+' },
+        { value: list.length, label: list.length === 1 ? 'Task done' : 'Tasks done' },
+      ].filter(s => s.value > 0),
+    });
+  }, [dayNumber]);
 
   const load = useCallback(async () => {
-    setLoading(true); setError(''); setLocked(false); setDayLock(''); setGate(null);
+    setLoading(true); setError(''); setLocked(false); setDayLock(''); setLockToWelcome(false); setGate(null);
     try {
       const j = await passportApi.myFoundationJourney();
       setJourney(j);
@@ -194,6 +239,22 @@ const JourneyDay: React.FC = () => {
         setItems([]);
         return;
       }
+      /* One programme day per calendar day, and the welcome days before Day 1 (server-held). */
+      if (plan?.isLocked && plan?.lockReason === 'orientation') {
+        setDayLock('Finish your welcome days (0.1 to 0.5) first. Day 1 opens after them, one day at a time.');
+        setLockToWelcome(true);
+        setItems([]);
+        return;
+      }
+      if (plan?.isLocked && plan?.lockReason === 'not_today') {
+        const at = plan?.lockOpensAt ? new Date(plan.lockOpensAt) : null;
+        const when = at
+          ? at.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' })
+          : 'tomorrow';
+        setDayLock(`One day at a time: Day ${dayNumber} opens on ${when}. Today's day is the one to finish.`);
+        setItems([]);
+        return;
+      }
       if (plan?.isLocked && plan?.lockReason === 'foundation' && plan?.gate) { setGate(plan.gate); setItems([]); return; }
       if (plan?.isLocked) { setLocked(true); setItems([]); return; }
 
@@ -202,6 +263,10 @@ const JourneyDay: React.FC = () => {
       setDayBonusXp(Number(plan?.dayBonusXp) || 0);
       // Opening the day settled XP for work finished elsewhere (e.g. the checkpoint just taken): refresh the top bar.
       if ((Number(plan?.xpJustPaid) || 0) > 0) reloadMember();
+      // XP paid on opening AND the day now complete: the last task was finished elsewhere (the checkpoint).
+      if (plan?.isDayCompleted && (Number(plan?.xpJustPaid) || 0) > 0 && Array.isArray(plan?.items)) {
+        celebrateDay(String(j.enrollmentId), plan.items, Number(plan?.dayBonusXp) || 0, j?.totalDays ?? programDaysRef.current ?? 90);
+      }
       // Coming back from a checkpoint lands on the task it was opened from (?task=), so the member
       // returns to where they were rather than to whatever is unfinished now. Otherwise open the
       // first unfinished task rather than always the first.
@@ -215,16 +280,18 @@ const JourneyDay: React.FC = () => {
       const reason = e?.response?.data?.reason;
       if (reason === 'FOUNDATION_NOT_VALIDATED' && e?.response?.data?.gate) setGate(e.response.data.gate);
       else if (reason === 'DAY_LOCKED') setDayLock(e?.response?.data?.message || `Finish day ${dayNumber - 1} first.`);
+      // A trial opens its first days only: say so, rather than showing the membership lock over a day they can see.
+      else if (reason === 'TRIAL_LIMIT') setDayLock(e?.response?.data?.message || 'This day is not part of your trial.');
       else if (e?.response?.status === 403) setLocked(true);
       else setError(e?.response?.data?.message || 'This day could not be opened.');
     } finally {
       setLoading(false);
     }
-  }, [dayNumber, reloadMember, params]);
+  }, [dayNumber, reloadMember, params, celebrateDay]);
 
   useEffect(() => { load(); }, [load]);
 
-  const totalDays = journey?.totalDays ?? 90;
+  const totalDays = journey?.totalDays ?? programDays ?? 90;
   const dayTitle = journey?.days?.find((d: any) => d.day === dayNumber)?.title || '';
   const selected = items[selIdx];
 
@@ -246,6 +313,9 @@ const JourneyDay: React.FC = () => {
       const finishedDay = Array.isArray(r?.completedDays) && r.completedDays.map(Number).includes(dayNumber);
       const earned = (Number(selected?.xp) || 0) + (finishedDay && !dayDone ? dayBonusXp : 0);
       if (finishedDay) setDayDone(true);
+      if (finishedDay && !dayDone) {
+        celebrateDay(enrollmentId, items.map((it, i) => (i === selIdx ? { ...it, isCompleted: true } : it)), dayBonusXp, totalDays);
+      }
       if (earned > 0) { setFlash(`+${earned} XP earned`); window.setTimeout(() => setFlash(''), 3200); }
       // The top bar's XP, level and streak come from the member payload; refresh it so they move now.
       reloadMember();
@@ -318,7 +388,12 @@ const JourneyDay: React.FC = () => {
           <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>Day {dayNumber} is not open yet</h2>
           <p>{dayLock}</p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {dayNumber > 1 && (
+            {lockToWelcome && (
+              <button type="button" className="jd-btn primary" onClick={() => nav('/careerpilot/plan')}>
+                Go to my welcome
+              </button>
+            )}
+            {!lockToWelcome && dayNumber > 1 && (
               <button type="button" className="jd-btn primary" onClick={() => nav(`/careerpilot/journey/day/${dayNumber - 1}`)}>
                 Go to day {dayNumber - 1}
               </button>
@@ -351,67 +426,71 @@ const JourneyDay: React.FC = () => {
 
   return (
     <div className="jd-page jdm">
-      {/* The day, in the logo navy: where it sits in the ninety, how far through it the member is, and what it pays. */}
-      <section className="jdm-hero">
-        <div className="jdm-hero-copy">
-          <button type="button" className="jdm-crumb" onClick={() => nav('/careerpilot/roadmap')}>
+      {/* The day at a glance, in the logo navy: where it sits in the programme, how far through it the
+          member is (one segment per task, and a ring), what it has paid so far, and the bonus still on
+          the table — which is also the shortest way back into the work. */}
+      <section className={`jdh2${dayDone ? ' is-done' : ''}`}>
+        <div className="jdh2-top">
+          <button type="button" className="jdh2-crumb" onClick={() => nav('/careerpilot/roadmap')}>
             <i className="bi bi-arrow-left" aria-hidden /> My Roadmap
           </button>
-          <span className="jdm-eyebrow">Day {dayNumber} of {totalDays}</span>
-          <h1>{dayTitle || `Day ${dayNumber}`}</h1>
-          {items.length > 0 && (
-            <>
-              <div className="jdm-chips">
-                <span><i className="bi bi-check2-circle" /> {doneCount} of {items.length} tasks done</span>
-                {totalXp > 0 && <span><i className="bi bi-lightning-charge-fill" /> {earnedXp} / {totalXp} XP</span>}
-              </div>
-              <div className="jdm-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Day progress">
-                <i style={{ width: `${Math.max(2, pct)}%` }} />
-              </div>
-            </>
-          )}
+          <div className="jdh2-nav" role="group" aria-label="Change day">
+            <button type="button" disabled={dayNumber <= 1} onClick={() => nav(`/careerpilot/journey/day/${dayNumber - 1}`)} aria-label="Previous day" title="Previous day">
+              <i className="bi bi-chevron-left" aria-hidden />
+            </button>
+            <span>Day <b>{dayNumber}</b> <em>of {totalDays}</em></span>
+            <button type="button" disabled={dayNumber >= totalDays} onClick={() => nav(`/careerpilot/journey/day/${dayNumber + 1}`)} aria-label="Next day" title="Next day">
+              <i className="bi bi-chevron-right" aria-hidden />
+            </button>
+          </div>
         </div>
-        {/* Today's momentum: the tasks finished, each task as a mark on the day, and the day bonus
-            still on the table — all from the day this member is actually working. */}
+
+        <div className="jdh2-head">
+          <span className="jdh2-eyebrow"><i className={`bi ${dayDone ? 'bi-patch-check-fill' : 'bi-calendar2-check'}`} aria-hidden /> {dayDone ? 'Day complete' : 'Your learning day'}</span>
+          <h1 title={dayTitle || undefined}>{dayTitle || `Day ${dayNumber}`}</h1>
+        </div>
+
         {items.length > 0 && (
-          <div className="jdm-momentum">
-            <span className="jdm-eyebrow">Today’s momentum</span>
-            <div className={`jdm-tasks${doneCount > 0 ? ' on' : ''}`}>
-              <span className="ic"><i className="bi bi-check2-circle" aria-hidden /></span>
-              <div>
-                <b>{doneCount} of {items.length} tasks done</b>
-                <span>{tasksLeft > 0 ? `${tasksLeft} still to work through` : 'Every task on this day is finished'}</span>
-              </div>
-              <i className="jdm-tasks-art" aria-hidden="true"><em /><em /><em /></i>
+          <div className="jdh2-progress">
+            <div className="jdh2-progress-row">
+              <span>{dayDone ? <><i className="bi bi-check-circle-fill" aria-hidden /> Every task on this day is done</> : <><b>{doneCount} of {items.length}</b> tasks done</>}</span>
+              <b className="jdh2-pct">{pct}%</b>
             </div>
-            <ol className="jdm-steps2" aria-hidden="true">
+            <ol className="jdh2-segs" aria-label={`${doneCount} of ${items.length} tasks done`}>
               {items.map((it, i) => (
-                <li key={it._id || it.contentId || it.sourceId || i} className={it.isCompleted ? 'done' : i === selIdx ? 'current' : ''}>
-                  <i /><span>{i + 1}</span>
-                </li>
+                <li key={it._id || it.contentId || it.sourceId || i} className={it.isCompleted ? 'done' : i === selIdx ? 'current' : ''}
+                  title={`Task ${i + 1}${it.isCompleted ? ' · done' : ''}`} />
               ))}
             </ol>
+          </div>
+        )}
+
+        {/* The figures sit on white tiles, so they stay readable whatever the shell does to text on navy. */}
+        {items.length > 0 && (
+          <div className="jdh2-tiles">
+            <div className="jdh2-tile">
+              <span className="ic tasks"><i className="bi bi-list-check" aria-hidden /></span>
+              <div><small>Tasks left</small><b>{tasksLeft} <em>of {items.length}</em></b></div>
+            </div>
+            {totalXp > 0 && (
+              <div className="jdh2-tile">
+                <span className="ic xp"><i className="bi bi-lightning-charge-fill" aria-hidden /></span>
+                <div><small>XP today</small><b>{earnedXp} <em>/ {totalXp}</em></b></div>
+              </div>
+            )}
             {dayBonusXp > 0 && (
-              <button type="button" className="jdm-challenge" onClick={workOnNext}>
+              <div className={`jdh2-tile bonus${dayDone ? ' won' : ''}`}>
                 <span className="ic"><i className={`bi ${dayDone ? 'bi-check-circle-fill' : 'bi-gift-fill'}`} aria-hidden /></span>
-                <div>
-                  <b>{dayDone ? 'Day bonus earned' : 'Day bonus'}</b>
-                  <span>{dayDone ? `All ${items.length} tasks finished today` : `Finish all ${items.length} tasks today (${tasksLeft} to go)`}</span>
-                  <em>{dayDone ? 'Earned' : 'Reward'}: +{dayBonusXp} bonus XP</em>
-                </div>
-                <i className="bi bi-chevron-right" aria-hidden />
+                <div><small>{dayDone ? 'Day bonus earned' : 'Day bonus'}</small><b>+{dayBonusXp} XP <em>{dayDone ? 'added' : `finish all ${items.length}`}</em></b></div>
+              </div>
+            )}
+            {!dayDone && (
+              <button type="button" className="jdh2-go" onClick={workOnNext}>
+                {doneCount ? 'Continue' : 'Start'} next task <i className="bi bi-arrow-right" aria-hidden />
               </button>
             )}
           </div>
         )}
-        <div className="jdm-daynav">
-          <button type="button" disabled={dayNumber <= 1} onClick={() => nav(`/careerpilot/journey/day/${dayNumber - 1}`)}>
-            <i className="bi bi-chevron-left" aria-hidden /> Previous day
-          </button>
-          <button type="button" disabled={dayNumber >= totalDays} onClick={() => nav(`/careerpilot/journey/day/${dayNumber + 1}`)}>
-            Next day <i className="bi bi-chevron-right" aria-hidden />
-          </button>
-        </div>
       </section>
 
       {!!flash && <div className="jdm-flash" role="status"><i className="bi bi-stars" /> {flash}</div>}
@@ -441,7 +520,7 @@ const JourneyDay: React.FC = () => {
       )}
 
       {!loading && !error && items.length > 0 && (
-        <div className="jd-grid">
+        <div className="jd-grid" ref={gridRef}>
           {/* The day's work, in order. Selecting never navigates: the member stays on the day. */}
           <aside className="jdm-rail-card">
             <div className="jdm-rail-head"><b>Today’s tasks</b><span>{doneCount}/{items.length}</span></div>
@@ -451,14 +530,14 @@ const JourneyDay: React.FC = () => {
                   <button
                     type="button"
                     className={`jd-item${i === selIdx ? ' sel' : ''}${it.isCompleted ? ' done' : ''}`}
-                    onClick={() => setSelIdx(i)}
+                    onClick={() => { setSelIdx(i); showLessonIfStacked(gridRef.current); }}
                     aria-current={i === selIdx ? 'true' : undefined}
                   >
                     <span className={`jd-item-icon t-${typeOf(it)}`} aria-hidden>
                       <i className={`bi ${it.isCompleted ? 'bi-check-lg' : (ICON[typeOf(it)] || 'bi-journal-text')}`} />
                     </span>
-                    <span className="jd-item-body">
-                      <b>{titleOf(it)}</b>
+                    <span className="jd-item-body" title={titleOf(it)}>
+                      <b>{railTitle(it)}</b>
                       <small>
                         {TYPE_LABEL[typeOf(it)] || typeOf(it)}
                         {it.estimatedDuration > 0 && <> · {mins(it.estimatedDuration)}</>}
@@ -479,7 +558,7 @@ const JourneyDay: React.FC = () => {
             )}
           </aside>
 
-          <section className="jd-stage" id="jdm-stage" aria-live="polite">
+          <section className={`jd-stage${opensAsBook(selected?.content) ? ' fill' : ''}`} id="jdm-stage" aria-live="polite">
             {selected && (
               <>
                 <div className="jd-stage-head">
@@ -493,9 +572,14 @@ const JourneyDay: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="jd-body">
+                <div className="jd-body" ref={bodyRef}>
                   {/* A checkpoint comes back to this day when it is done, instead of the LMS quiz list. */}
-                  <ItemBody item={selected} onLaunch={(p) => nav(selected?.kind === 'quiz' ? withReturn(p, `/careerpilot/journey/day/${dayNumber}?task=${selIdx}`) : p)} />
+                  <ItemBody item={selected} onLaunch={(p) => {
+                    const back = `/careerpilot/journey/day/${dayNumber}?task=${selIdx}`;
+                    // An assignment opens in the CareerPilot workspace and comes back to this day.
+                    if (p.startsWith('/assignments/')) return nav(withReturn(`/careerpilot${p}`, back));
+                    nav(selected?.kind === 'quiz' ? withReturn(p, back) : p);
+                  }} />
                 </div>
 
                 <div className="jd-actions">

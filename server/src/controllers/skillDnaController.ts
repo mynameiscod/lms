@@ -67,8 +67,33 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
         sourceType: String(a?.sourceType || ''),
         sourceId: String(a?.sourceId || ''),
         response: a?.response,
+        dontKnow: a?.dontKnow === true,
       }))
       .filter((a: any) => onPaper.has(`${a.sourceType}:${a.sourceId}`));
+
+    /*
+     * EVERY QUESTION GETS AN ANSWER — one of its options, or "I don't know".
+     *
+     * A question left untouched is refused here as well as on the screen, so no client can submit
+     * a half-done paper. "I don't know" counts (sent now, or saved earlier with the answers). The
+     * one exception is a timed paper whose time is up: it is submitted as it stands, so running
+     * out of time never leaves a member unable to finish.
+     */
+    const savedDontKnow = new Set<string>(((open.answers || []) as any[]).filter(a => a?.dontKnow).map(a => `${a.sourceType}:${a.sourceId}`));
+    const hasResponse = (r: any) => r !== undefined && r !== null && r !== '' && !(Array.isArray(r) && r.length === 0);
+    const unanswered = (open.items || []).filter((i: any) => {
+      const key = `${i.sourceType}:${i.sourceId}`;
+      const given = submitted.find((s: any) => `${s.sourceType}:${s.sourceId}` === key);
+      return !(given && (hasResponse(given.response) || given.dontKnow)) && !savedDontKnow.has(key);
+    }).length;
+    const limitMs = Number(open.timeLimitMinutes) > 0 ? Number(open.timeLimitMinutes) * 60000 : 0;
+    const timeUp = limitMs > 0 && open.startedAt && Date.now() >= new Date(open.startedAt).getTime() + limitMs - 5000;
+    if (unanswered > 0 && !timeUp) {
+      return res.status(400).json({
+        message: `Answer every question before submitting — choose an option or "I don't know". ${unanswered} still ${unanswered === 1 ? 'needs' : 'need'} an answer.`,
+        unanswered,
+      });
+    }
 
     // Every item on the paper is graded, answered or not. Silently dropping the unanswered
     // ones would bias every score upward — a skipped question is a real observation.

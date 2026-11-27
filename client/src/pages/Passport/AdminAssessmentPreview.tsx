@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import passportApi, { AssessmentPreview, AssessmentPolicyRow } from '../../api/passportApi';
 import './adminAssessmentPreview.css';
+import { personName } from '../../utils/personName';
+// Several shared classes (pm-btn, pm-msg and this page's own) live in the member stylesheet; import
+// it here so the page is styled the same on a fresh load as after visiting a member page.
+import './member.css';
 
 /**
  * What a given student's personalised assessment would look like.
@@ -66,7 +70,7 @@ const AdminAssessmentPreview: React.FC = () => {
             <option value="">— choose a member —</option>
             {students.slice(0, 50).map(s => (
               <option key={s._id || s.id} value={s._id || s.id}>
-                {[s.firstName, s.lastName].filter(Boolean).join(' ') || s.email}
+                {personName(s)}
               </option>
             ))}
           </select>
@@ -127,7 +131,7 @@ const AdminAssessmentPreview: React.FC = () => {
             <span>{result.context.policy}</span>
             <em>policy {result.context.policyKey} v{result.context.policyVersion}</em>
             {!result.context.discovery && <em>blueprint v{result.context.blueprintVersion}</em>}
-            {chosen && <em>{[chosen.firstName, chosen.lastName].filter(Boolean).join(' ')}</em>}
+            {chosen && <em>{personName(chosen)}</em>}
           </div>
 
           <div className="prv-cols">

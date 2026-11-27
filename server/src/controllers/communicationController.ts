@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { trialAllowsAnother } from '../services/trialService';
 import crypto from 'crypto';
 import fs from 'fs';
 import mongoose from 'mongoose';
@@ -7,7 +8,9 @@ import CommunicationChallenge, { challengeAudienceFilter, CHALLENGE_AUDIENCES } 
 import { audienceServes, readMemberAudience } from '../models/memberAudience';
 import CommunicationSchedule from '../models/CommunicationSchedule';
 import { resolveLabDay } from '../services/labTrackService';
+import { labBatchFor } from '../services/placementBatchService';
 import CommunicationAttempt from '../models/CommunicationAttempt';
+import CommunicationJob from '../models/CommunicationJob';
 import CommunicationStreak from '../models/CommunicationStreak';
 import User from '../models/User';
 import { allowedByRoleOrPermission } from '../middleware/roleGuard';
@@ -15,17 +18,22 @@ import * as bunny from '../services/bunnyStorageService';
 import { transcribeFile } from '../services/speakingService';
 import { evaluateIntroduction, computeSpeechMetrics, generateTemplate } from '../services/communicationEvalService';
 import { ensureSeedChallenges } from '../seed/communicationChallenges';
+import { isNoSpeechTranscript, isSilentAudio } from '../services/communicationCoachService';
 import { createNotifications } from '../notifications/notificationService';
 import { evaluateAchievements, getAchievementsForStudent, computeLeaderboard } from '../services/communicationGamificationService';
 import CommunicationInstructorFeedback from '../models/CommunicationInstructorFeedback';
 import CommunicationAuditLog from '../models/CommunicationAuditLog';
 import * as settings from '../services/settingsService';
+import { isCareerPilotMember } from '../services/careerPilotPopulation';
+import { awardLabDay, labStreakSettingsFor, LabDayAward } from '../services/labRewardService';
+import { advanceLabStreak } from '../data/labStreakPolicy';
+import { istToday, ymd as planYmd } from '../utils/planSchedule';
 
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
 const role = (req: Request) => (req as any).user?.role as string;
 const isAdminish = (req: Request) =>
-  allowedByRoleOrPermission((req as any).user, ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], ['manage_communication_lab', 'manage_tenant']);
+  allowedByRoleOrPermission((req as any).user, ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], ['manage_communication_lab', 'view_communication_progress', 'manage_tenant']);
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const validDate = (s: any) => (typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ymd(new Date()));
@@ -79,6 +87,40 @@ export const getToday = async (req: Request, res: Response) => {
      * Still admin-controlled: an untagged challenge is invisible here, exactly as an
      * unassigned one is invisible to a batch.
      */
+    /*
+     * An LMS demo student: the challenges chosen on the LMS Demo screen, in that order. Today's is
+     * the one already started today, else the first one not tried yet, so a demo of a few days
+     * still shows several kinds of speaking task.
+     */
+    {
+      const { lmsDemoScopeFor } = await import('../services/lmsDemoService');
+      const demo = await lmsDemoScopeFor(uId(req));
+      if (demo) {
+        const order = demo.oids('speakingIds');
+        // None picked on the LMS Demo screen: the institute's own active questions, in their usual order,
+        // so the lab is never empty for a demo student.
+        const list = order.length
+          ? (await CommunicationChallenge.find({ tenantId, _id: { $in: order }, active: true }).lean())
+            .sort((a: any, b: any) => order.findIndex(o => String(o) === String(a._id)) - order.findIndex(o => String(o) === String(b._id)))
+          : await CommunicationChallenge.find({ tenantId, active: true }).sort({ sequenceNumber: 1, _id: 1 }).limit(30).lean();
+        if (!list.length) return res.json({ challenge: null, status: 'not_started' });
+        const attemptToday = await CommunicationAttempt.findOne({ tenantId, studentId: uId(req), practiceDate: today, kind: { $ne: 'coach' } }).sort({ createdAt: -1 }).lean();
+        const tried = new Set((await CommunicationAttempt.distinct('challengeId', { tenantId, studentId: uId(req), kind: { $ne: 'coach' } })).map(String));
+        const startedId = attemptToday?.challengeId ? String(attemptToday.challengeId) : null;
+        const challenge = (startedId && list.find(c => String(c._id) === startedId)) || list.find(c => !tried.has(String(c._id))) || list[tried.size % list.length];
+        const streakDoc = await CommunicationStreak.findOne({ tenantId, studentId: uId(req) }).lean();
+        return res.json({
+          challenge,
+          status: attemptToday && String(attemptToday.challengeId) === String(challenge._id) ? (attemptToday.status || 'completed') : 'not_started',
+          attempt: attemptToday && String(attemptToday.challengeId) === String(challenge._id) ? attemptToday : null,
+          currentStreak: streakDoc?.currentStreak || 0,
+          longestStreak: streakDoc?.longestStreak || 0,
+          dayNumber: list.findIndex(c => String(c._id) === String(challenge._id)) + 1,
+          totalChallenges: list.length,
+        });
+      }
+    }
+
     if (!me?.batchId) {
       if (!me?.passport?.active) return res.json({ challenge: null, status: 'not_started' });
 
@@ -99,7 +141,7 @@ export const getToday = async (req: Request, res: Response) => {
 
       const streakDoc = await CommunicationStreak.findOne({ tenantId, studentId: uId(req) }).lean();
       const attemptToday = await CommunicationAttempt.findOne({
-        tenantId, studentId: uId(req), practiceDate: today,
+        tenantId, studentId: uId(req), practiceDate: today, kind: { $ne: 'coach' },
       }).sort({ createdAt: -1 }).lean();
 
       // Today's task is the one they already started, so a page refresh mid-attempt does
@@ -132,6 +174,8 @@ export const getToday = async (req: Request, res: Response) => {
         totalChallenges: memberChallenges.length,
       });
     }
+    // A placement batch that takes over this lab supplies it instead of the home batch.
+    me.batchId = await labBatchFor(String(tenantId), uId(req), me.batchId, 'communication');
     // Admin-scheduled batch challenge (may carry a time window) — IST-based.
     const now = istParts();
     let sc: any = await CommunicationSchedule.findOne({ tenantId, batchId: me.batchId, date: now.date }).lean();
@@ -148,6 +192,7 @@ export const getToday = async (req: Request, res: Response) => {
           startTime: r.assignment?.window?.startTime,
           endTime: r.assignment?.window?.endTime,
           fromTrack: true,
+          dayNumber: typeof r.dayIndex === 'number' ? r.dayIndex : undefined, // 1-based already
         };
       }
     }
@@ -163,7 +208,7 @@ export const getToday = async (req: Request, res: Response) => {
     const streak = await CommunicationStreak.findOne({ tenantId, studentId: uId(req) }).lean();
 
     // Already practised today? then today's challenge is that attempt's challenge.
-    const todaysAttempt = await CommunicationAttempt.findOne({ tenantId, studentId: uId(req), practiceDate: today })
+    const todaysAttempt = await CommunicationAttempt.findOne({ tenantId, studentId: uId(req), practiceDate: today, kind: { $ne: 'coach' } })
       .sort({ createdAt: -1 }).lean();
 
     const wStatus = windowStatus(sc, now.date, now.hm);
@@ -182,18 +227,32 @@ export const getToday = async (req: Request, res: Response) => {
     let challenge: any;
     let status = 'not_started';
     if (todaysAttempt) {
-      challenge = challenges.find((c) => String(c._id) === String(todaysAttempt.challengeId)) || challenges[0];
+      // Today's answer is for the question it was sent for. A track or scheduled question is usually not
+      // tagged to the batch, so look it up by id rather than falling to the first tagged one (or to nothing,
+      // which used to break this whole response right after a student answered).
+      challenge = challenges.find((c) => String(c._id) === String(todaysAttempt.challengeId))
+        || await CommunicationChallenge.findOne({ _id: todaysAttempt.challengeId, tenantId }).lean()
+        || challenges[0];
       status = todaysAttempt.status === 'completed' ? 'completed'
         : todaysAttempt.status === 'failed' ? 'not_started' : 'evaluating';
     } else if (sc) {
       // Scheduled challenge overrides rotation for this batch/day.
       challenge = challenges.find((c) => String(c._id) === String(sc.challengeId))
         || await CommunicationChallenge.findOne({ _id: sc.challengeId, tenantId, active: true }).lean()
-        || challenges[((streak?.totalCompletedDays || 0)) % challenges.length];
+        || (challenges.length ? challenges[((streak?.totalCompletedDays || 0)) % challenges.length] : null);
     } else {
       const idx = ((streak?.totalCompletedDays || 0)) % challenges.length;
       challenge = challenges[idx];
     }
+    if (!challenge) return res.json({ challenge: null, status: 'not_started', currentStreak: streak?.currentStreak || 0 });
+
+    // An answer being scored right now (the page shows its progress bar), or the last one that failed today.
+    await expireStaleJobs(String(tenantId), uId(req));
+    const job: any = await CommunicationJob.findOne({ tenantId, studentId: uId(req), practiceDate: today, challengeId: String(challenge._id), status: { $in: ['running', 'failed'] } })
+      .sort({ createdAt: -1 }).lean();
+    const takesUsed = await CommunicationAttempt.countDocuments({ tenantId, studentId: uId(req), challengeId: challenge._id, practiceDate: today });
+    const maxTakes = takesAllowed(me, challenge);
+    if (job?.status === 'running' && status !== 'completed') status = 'evaluating';
 
     const lastCompleted = await CommunicationAttempt.findOne({ tenantId, studentId: uId(req), status: 'completed' })
       .sort({ createdAt: -1 }).select('evaluation.overallScore').lean();
@@ -213,6 +272,12 @@ export const getToday = async (req: Request, res: Response) => {
       lastScore: (lastCompleted as any)?.evaluation?.overallScore ?? null,
       todaysAttemptId: todaysAttempt ? String(todaysAttempt._id) : null,
       window: windowView(sc, wStatus),
+      maxTakes, takesUsed,
+      // Which day of the batch's lab track this is, when the question came from the track.
+      dayNumber: sc?.dayNumber || undefined,
+      pendingJob: job && job.status === 'running' ? jobView(job) : null,
+      // A failed send shows its reason once, so the student knows the take was not used.
+      lastFailure: job && job.status === 'failed' && !todaysAttempt && Date.now() - new Date(job.updatedAt).getTime() < 30 * 60 * 1000 ? job.message : null,
     });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
@@ -244,80 +309,226 @@ export const updateProfile = async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
 
-// ── Submit a recording → transcribe → store → evaluate → streak ───────────────
+// ── Submit a recording → (background) transcribe → score + store → streak ─────
+/**
+ * How many answers a student may send for one question in a day. An LMS student gets ONE take (2026-11-27):
+ * the daily question is a single honest answer, like an interview. CareerPilot members keep the question's own
+ * limit. Silent recordings and failed scoring never count, so a broken microphone does not cost the take.
+ */
+export const takesAllowed = (user: any, challenge: any) => (user?.batchId ? 1 : (challenge?.maxAttempts || 2));
+
+/** A job older than this without finishing died with a server restart: treat it as failed, so the take is free again. */
+const JOB_STALE_MS = 10 * 60 * 1000;
+export async function expireStaleJobs(tenantId: string, studentId: string) {
+  await CommunicationJob.updateMany(
+    { tenantId, studentId, status: 'running', updatedAt: { $lt: new Date(Date.now() - JOB_STALE_MS) } },
+    { $set: { status: 'failed', message: 'Scoring took too long and was stopped. Your take was not used: please record again.' } },
+  );
+}
+
+/** Students sending right now: a double click must not start two jobs. */
+const sending = new Set<string>();
+
 export const submit = async (req: Request, res: Response) => {
   const file = (req as any).file as Express.Multer.File | undefined;
+  const lockKey = `${tId(req)}:${uId(req)}`;
+  let locked = false;
   try {
     const tenantId = tId(req);
+    const studentId = uId(req);
     const { challengeId, recordingType } = req.body || {};
     const practiceDate = validDate(req.body?.practiceDate);
     if (!file) return res.status(400).json({ message: 'A recording is required' });
+    // Students watch their own takes before sending, so every answer is video with sound — audio-only is no longer taken.
+    if (recordingType !== 'video') { cleanup(file.path); return res.status(400).json({ message: 'Please record with your camera and microphone on. Audio-only answers are not accepted.' }); }
     if (!challengeId || !mongoose.isValidObjectId(challengeId)) { cleanup(file.path); return res.status(400).json({ message: 'challengeId is required' }); }
     if (!bunny.isBunnyStorageConfigured()) { cleanup(file.path); return res.status(400).json({ message: 'Recording storage is not configured (Bunny Storage).' }); }
+    if (sending.has(lockKey)) { cleanup(file.path); return res.status(409).json({ message: 'Your answer is already being sent.' }); }
+    sending.add(lockKey); locked = true;
 
     const challenge = await CommunicationChallenge.findOne({ _id: challengeId, tenantId }).lean();
     if (!challenge) { cleanup(file.path); return res.status(404).json({ message: 'Challenge not found' }); }
 
+    // A trial counts each recording sent for feedback.
+    const trialStop = await trialAllowsAnother(tenantId, studentId, 'communication');
+    if (trialStop && !trialStop.ok) { cleanup(file.path); return res.status(trialStop.status).json(trialStop.body); }
+
     // Enforce the scheduled availability window (opt-in: only if a window is set for this batch+date).
-    const meForWindow: any = await User.findById(uId(req)).select('batchId').lean();
-    if (meForWindow?.batchId) {
+    const me: any = await User.findById(studentId).select('batchId').lean();
+    const labBatchId = me?.batchId ? await labBatchFor(String(tenantId), studentId, me.batchId, 'communication') : null;
+    if (labBatchId) {
       const now = istParts();
-      const sc: any = await CommunicationSchedule.findOne({ tenantId, batchId: meForWindow.batchId, date: now.date }).lean();
+      const sc: any = await CommunicationSchedule.findOne({ tenantId, batchId: labBatchId, date: now.date }).lean();
       const w = windowStatus(sc, now.date, now.hm);
       if (w === 'upcoming') { cleanup(file.path); return res.status(403).json({ message: `This challenge opens at ${sc.startTime} (IST).` }); }
       if (w === 'closed') { cleanup(file.path); return res.status(403).json({ message: `This challenge's window closed at ${sc.endTime} (IST). Submissions are no longer accepted.` }); }
     }
 
-    // Enforce max attempts per challenge per day
-    const priorCount = await CommunicationAttempt.countDocuments({ tenantId, studentId: uId(req), challengeId, practiceDate });
-    if (priorCount >= (challenge.maxAttempts || 2)) { cleanup(file.path); return res.status(429).json({ message: `Maximum ${challenge.maxAttempts} attempts reached for today.` }); }
+    // Takes per question per day: scored answers plus any still being scored.
+    await expireStaleJobs(tenantId, studentId);
+    const [priorCount, running] = await Promise.all([
+      CommunicationAttempt.countDocuments({ tenantId, studentId, challengeId, practiceDate }),
+      CommunicationJob.countDocuments({ tenantId, studentId, challengeId, practiceDate, status: 'running' }),
+    ]);
+    if (running) { cleanup(file.path); return res.status(409).json({ message: 'Your answer is still being scored. The report will appear in a moment.' }); }
+    const limit = takesAllowed(me, challenge);
+    const { isDemoUser } = await import('../services/demoService');
+    if (priorCount >= limit && !(await isDemoUser(String(studentId)))) {
+      cleanup(file.path);
+      return res.status(429).json({ message: limit === 1 ? "You have already answered today's question. Come back tomorrow for the next one." : `Maximum ${limit} attempts reached for today.` });
+    }
+    // An LMS demo student: a few sessions a day in all (LMS Demo settings), each one evaluated by AI.
+    {
+      const { takeDemoUse } = await import('../services/lmsDemoService');
+      const use = await takeDemoUse(String(studentId), 'comm');
+      if (use.demo && !use.ok) { cleanup(file.path); return res.status(429).json({ code: 'DEMO_COMM_LIMIT', message: `You have used today's ${use.limit} Communication Lab session${use.limit === 1 ? '' : 's'}. More tomorrow.` }); }
+    }
 
-    // 1) Transcribe (Whisper) from the temp file
+    const job = await CommunicationJob.create({ tenantId, studentId, challengeId: String(challengeId), practiceDate, stage: 'transcribing', status: 'running' });
+    // The answer is safe on the server: the page now follows the job instead of waiting on this request.
+    res.status(202).json({ job: jobView(job) });
+
+    processRecording({
+      jobId: String(job._id), tenantId, studentId, challenge, practiceDate, labBatchId: labBatchId || me?.batchId,
+      filePath: file.path, mimetype: file.mimetype, originalname: file.originalname, size: file.size, attemptNumber: priorCount + 1,
+    }).catch(() => { /* processRecording records its own failure */ });
+  } catch (err: any) {
+    cleanup(file?.path);
+    if (!res.headersSent) res.status(500).json({ message: err.message || 'Failed to submit recording' });
+  } finally {
+    if (locked) sending.delete(lockKey);
+  }
+};
+
+export const jobView = (j: any) => ({
+  _id: String(j._id), stage: j.stage, status: j.status, attemptId: j.attemptId ? String(j.attemptId) : null,
+  challengeId: j.challengeId, practiceDate: j.practiceDate, createdAt: j.createdAt,
+  message: j.status === 'failed' ? (j.message || null) : null,
+});
+
+export interface ProcessInput {
+  jobId: string; tenantId: string; studentId: string; challenge: any; practiceDate: string; labBatchId?: any;
+  filePath: string; mimetype?: string; originalname?: string; size: number; attemptNumber: number;
+}
+export interface ProcessDeps { transcribe?: typeof transcribeFile; evaluate?: typeof evaluateIntroduction; upload?: typeof bunny.uploadStream }
+
+/**
+ * The background half of a submit. Each stage is written to the job so the page can show it. Scoring and
+ * the upload to storage run side by side. When anything fails, the job fails with a plain message and no
+ * attempt is created, so the student may record again.
+ */
+export async function processRecording(p: ProcessInput, deps: ProcessDeps = {}) {
+  const transcribe = deps.transcribe || transcribeFile;
+  const evaluate = deps.evaluate || evaluateIntroduction;
+  const upload = deps.upload || bunny.uploadStream;
+  const { jobId, tenantId, studentId, challenge, practiceDate } = p;
+  const stage = (s: string) => CommunicationJob.updateOne({ _id: jobId }, { $set: { stage: s } });
+  const fail = async (message: string) => { cleanup(p.filePath); await CommunicationJob.updateOne({ _id: jobId }, { $set: { status: 'failed', message } }); return null; };
+  try {
+    // 1) Transcribe
     let transcript = ''; let durationSec = 0;
-    try { const t = await transcribeFile(file.path, tenantId, 'communication_stt'); transcript = t.text; durationSec = t.durationSec; } catch { /* eval will note low content */ }
+    try { const t = await transcribe(p.filePath, tenantId, 'communication_stt'); transcript = t.text; durationSec = t.durationSec; } catch { /* treated as silence below */ }
+    // A muted or wrong microphone records silence, which the speech service turns into "you you you": nothing to score.
+    if (transcript.trim().length < 10 || isNoSpeechTranscript(transcript, durationSec) || isSilentAudio(p.size, durationSec, 'video')) {
+      return fail('We could not hear your voice in that recording, so it was not counted and your take was not used. Check that your microphone is not muted and the right one is selected, then record again.');
+    }
     const metrics = computeSpeechMetrics(transcript, durationSec);
 
-    // 2) Upload to Bunny
-    const key = `communication/${tenantId}/${uId(req)}/${challengeId}/${Date.now()}-${crypto.randomBytes(4).toString('hex')}.webm`;
-    await bunny.uploadStream(key, fs.createReadStream(file.path), file.mimetype || 'video/webm', file.size);
-    cleanup(file.path);
+    // 2) Score and store the recording at the same time
+    await stage('analysing');
+    const key = `communication/${tenantId}/${studentId}/${challenge._id}/${Date.now()}-${crypto.randomBytes(4).toString('hex')}.webm`;
+    const profile = await CommunicationProfile.findOne({ tenantId, studentId }).lean();
+    // A storage error before the file is read must never surface later as an unhandled stream error.
+    const body = fs.createReadStream(p.filePath); body.on('error', () => { /* reported by upload */ });
+    let evaluation: any;
+    try {
+      [evaluation] = await Promise.all([
+        evaluate(profile as any, challenge as any, transcript, durationSec, 'video', tenantId),
+        upload(key, body, p.mimetype || 'video/webm', p.size),
+      ]);
+    } finally { body.destroy(); }
+    cleanup(p.filePath);
+    // Both AI services down: never hand a student a report full of zeros.
+    if (!evaluation?.aiProvider) return fail('The AI could not score your answer just now. Your take was not used: please record again in a few minutes.');
 
-    // 3) AI evaluation with the student's profile as context
-    const profile = await CommunicationProfile.findOne({ tenantId, studentId: uId(req) }).lean();
-    const evaluation = await evaluateIntroduction(profile as any, challenge as any, transcript, durationSec, recordingType === 'audio' ? 'audio' : 'video', tenantId);
-
-    const u: any = await User.findById(uId(req)).select('batchId').lean();
+    // 3) Save, then count the day
+    await stage('saving');
     const attempt = await CommunicationAttempt.create({
-      tenantId, studentId: uId(req), batchId: u?.batchId, challengeId,
+      tenantId, studentId, batchId: p.labBatchId, challengeId: challenge._id,
       challengeTitle: challenge.title, challengeType: challenge.challengeType, practiceDate,
-      attemptNumber: priorCount + 1,
-      recordingType: recordingType === 'audio' ? 'audio' : 'video',
-      recordingKey: key, recordingName: file.originalname, sizeBytes: file.size, recordingDuration: durationSec,
+      attemptNumber: p.attemptNumber, recordingType: 'video',
+      recordingKey: key, recordingName: p.originalname, sizeBytes: p.size, recordingDuration: durationSec,
       transcript, detectedLanguage: 'en', wordCount: metrics.wordCount, wordsPerMinute: metrics.wordsPerMinute,
       status: 'completed', evaluation, submittedAt: new Date(),
     });
-
-    // 4) Update the daily streak (server-authoritative) + award achievements
-    await bumpStreak(tenantId, uId(req), practiceDate);
-    const st: any = await CommunicationStreak.findOne({ tenantId, studentId: uId(req) }).lean();
-    if (st) evaluateAchievements(tenantId, uId(req), st, evaluation).catch(() => {});
-
-    // 5) Notify
-    createNotifications(tenantId, [uId(req)], 'general',
+    let reward: any = null;
+    try {
+      reward = await bumpStreak(tenantId, studentId, practiceDate);
+      const st: any = await CommunicationStreak.findOne({ tenantId, studentId }).lean();
+      if (st) evaluateAchievements(tenantId, studentId, st, evaluation).catch(() => {});
+    } catch { /* the answer is saved; a streak hiccup must not fail it */ }
+    createNotifications(tenantId, [studentId], 'general',
       'Your communication practice was scored',
       `${challenge.title}: ${evaluation.overallScore}/100 — ${evaluation.dailyCoachMessage || 'Keep practising daily.'}`,
       '/ai-communication-lab'
     ).catch(() => {});
-
-    const out = attempt.toObject() as any; delete out.recordingKey;
-    res.status(201).json({ attempt: out });
-  } catch (err: any) {
-    cleanup(file?.path);
-    res.status(500).json({ message: err.message || 'Failed to submit recording' });
+    await CommunicationJob.updateOne({ _id: jobId }, { $set: { status: 'done', stage: 'saving', attemptId: attempt._id, ...(reward ? { message: JSON.stringify({ reward }) } : {}) } });
+    return attempt;
+  } catch {
+    return fail('Something went wrong while scoring your answer. Your take was not used: please record again.');
   }
+}
+
+/** The page polls this while an answer is scored; when done it carries the full attempt for the report. */
+export const getJob = async (req: Request, res: Response) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Not found' });
+    await expireStaleJobs(tId(req), uId(req));
+    const job: any = await CommunicationJob.findOne({ _id: req.params.id, tenantId: tId(req), studentId: uId(req) }).lean();
+    if (!job) return res.status(404).json({ message: 'Not found' });
+    let attempt: any = null; let reward: any = null;
+    if (job.status === 'done' && job.attemptId) {
+      attempt = await CommunicationAttempt.findOne({ _id: job.attemptId, tenantId: tId(req) }).select('-recordingKey').lean();
+      try { reward = job.message ? JSON.parse(job.message).reward || null : null; } catch { reward = null; }
+    }
+    res.json({ job: jobView(job), attempt, ...(reward ? { reward } : {}) });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
 
-async function bumpStreak(tenantId: string, studentId: string, practiceDate: string) {
+/**
+ * A recording was scored: count the day for the streak.
+ *
+ * A CareerPilot member's streak also has freezes (data/labStreakPolicy.ts), and the day pays XP like a
+ * daily mission — once, through the shared engine (labRewardService). The XP day is the server's date,
+ * never one the browser sent. LMS students keep the streak exactly as it was.
+ */
+export async function bumpStreak(tenantId: string, studentId: string, practiceDate: string): Promise<LabDayAward | null> {
+  const u: any = await User.findById(studentId).select('batchId passport.product passport.active passport.activatedAt passport.verifiedAt').lean().catch(() => null);
+  if (u && !u.batchId && isCareerPilotMember(u.passport)) return memberStreakDay(tenantId, studentId, practiceDate);
+  await lmsStreakDay(tenantId, studentId, practiceDate);
+  return null;
+}
+
+async function memberStreakDay(tenantId: string, studentId: string, practiceDate: string): Promise<LabDayAward> {
+  const cfg = await labStreakSettingsFor(tenantId);
+  const s: any = await CommunicationStreak.findOne({ tenantId, studentId });
+  if (!s) {
+    const st = advanceLabStreak({ current: 0, longest: 0, lastDate: null, freezes: 0 }, practiceDate, cfg);
+    await CommunicationStreak.create({ tenantId, studentId, currentStreak: st.current, longestStreak: st.longest, totalCompletedDays: 1, lastCompletedDate: practiceDate, completedDates: [practiceDate], freezes: st.freezes });
+  } else if (!s.completedDates.includes(practiceDate)) {
+    const st = advanceLabStreak({ current: s.currentStreak, longest: s.longestStreak, lastDate: s.lastCompletedDate, freezes: s.freezes || 0 }, practiceDate, cfg);
+    if (st.advanced) {
+      s.currentStreak = st.current; s.longestStreak = st.longest; s.lastCompletedDate = st.lastDate; s.freezes = st.freezes;
+      if (st.frozenDates.length) s.frozenDates = [...(s.frozenDates || []), ...st.frozenDates].slice(-60);
+    }
+    s.totalCompletedDays += 1;
+    s.completedDates = [...s.completedDates, practiceDate].slice(-400);
+    await s.save();
+  }
+  return awardLabDay({ tenantId, studentId, lab: 'communication', day: planYmd(istToday()) });
+}
+
+async function lmsStreakDay(tenantId: string, studentId: string, practiceDate: string) {
   const s = await CommunicationStreak.findOne({ tenantId, studentId });
   if (!s) {
     await CommunicationStreak.create({ tenantId, studentId, currentStreak: 1, longestStreak: 1, totalCompletedDays: 1, lastCompletedDate: practiceDate, completedDates: [practiceDate] });
@@ -407,7 +618,7 @@ export const getProgress = async (req: Request, res: Response) => {
 export const listChallenges = async (req: Request, res: Response) => {
   try {
     await ensureSeedChallenges(tId(req), uId(req));
-    const items = await CommunicationChallenge.find({ tenantId: tId(req) }).sort({ challengeType: 1, sequenceNumber: 1 }).lean();
+    const items = await CommunicationChallenge.find({ tenantId: tId(req), isCoach: { $ne: true } }).sort({ challengeType: 1, sequenceNumber: 1 }).lean();
     res.json({ challenges: items });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
@@ -483,7 +694,7 @@ export const adminDashboard = async (req: Request, res: Response) => {
     const today = validDate(req.query.date);
     const monthAgo = ymdMinus(today, 30);
 
-    const students = await User.find({ tenantId, role: 'STUDENT', isActive: { $ne: false } }).select('_id batchId').lean();
+    const students = await User.find({ tenantId, role: 'STUDENT', isActive: { $ne: false }, 'lmsDemo.at': { $exists: false } }).select('_id batchId').lean();
     const totalStudents = students.length;
     const studentIds = students.map((s: any) => s._id);
 
@@ -526,7 +737,7 @@ export const adminStudents = async (req: Request, res: Response) => {
     const tenantId = tId(req);
     const today = validDate(req.query.date);
     const weekAgo = ymdMinus(today, 7);
-    const filter: any = { tenantId, role: 'STUDENT', isActive: { $ne: false } };
+    const filter: any = { tenantId, role: 'STUDENT', isActive: { $ne: false }, 'lmsDemo.at': { $exists: false } };
     if (req.query.batchId && mongoose.isValidObjectId(String(req.query.batchId))) filter.batchId = new mongoose.Types.ObjectId(String(req.query.batchId));
 
     const students = await User.find(filter).select('firstName lastName email batchId').lean();
@@ -600,7 +811,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
       return res.json({ enabled: false, rows: [], me: null });
     }
     let batchId = req.query.batchId ? String(req.query.batchId) : undefined;
-    if (!(await isAdminish(req))) { const me: any = await User.findById(uId(req)).select('batchId').lean(); batchId = me?.batchId ? String(me.batchId) : undefined; }
+    if (!(await isAdminish(req))) { const me: any = await User.findById(uId(req)).select('batchId').lean(); const lb = me?.batchId ? await labBatchFor(tenantId, uId(req), me.batchId, 'communication') : null; batchId = lb ? String(lb) : undefined; }
     const { rows, me } = await computeLeaderboard(tenantId, uId(req), batchId);
     res.json({ enabled: true, rows, me });
   } catch (err: any) { res.status(500).json({ message: err.message }); }

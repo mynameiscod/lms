@@ -51,22 +51,33 @@ const Media: React.FC<{ m: ChatMessage }> = ({ m }) => {
   return <button type="button" className="wac-file" onClick={open}><i className="bi bi-file-earmark-arrow-down" /> {m.mediaName || (m.kind === 'video' ? 'Video' : 'Document')}</button>;
 };
 
-const Bubble: React.FC<{ m: ChatMessage }> = ({ m }) => (
+/** Who sent an outgoing message, in words and one colour per sender type. */
+export function senderOf(m: ChatMessage): { cls: string; icon: string; label: string } {
+  const tpl = m.kind === 'template' ? ` · template ${m.templateName || ''}`.trimEnd() : '';
+  if (m.source === 'chat' || (m.sentBy && m.source !== 'broadcast')) return { cls: 'team', icon: 'bi-person-fill', label: `${m.sentBy || 'Team member'}${tpl}` };
+  if (m.source === 'bot') return { cls: 'bot', icon: 'bi-robot', label: 'Old bot' };
+  if (m.source === 'automation') return { cls: 'flow', icon: 'bi-lightning-charge-fill', label: `Workflow${tpl}` };
+  if (m.source === 'broadcast') return { cls: 'cast', icon: 'bi-megaphone-fill', label: `Broadcast${tpl}` };
+  return { cls: 'auto', icon: 'bi-gear-fill', label: `Automatic${tpl}` };
+}
+
+const Bubble: React.FC<{ m: ChatMessage }> = ({ m }) => {
+  if (m.kind === 'note') return <div className="wac-note-line"><span>{m.body} · {time(m.createdAt)}</span></div>;
+  const who = m.direction === 'out' ? senderOf(m) : null;
+  return (
   <div className={`wac-row ${m.direction}`}>
-    <div className={`wac-bubble ${m.direction} ${m.status === 'failed' ? 'failed' : ''}`}>
-      {m.direction === 'out' && m.source !== 'chat' && (
-        <div className="wac-tag">{m.source === 'bot' ? 'Bot' : m.kind === 'template' ? `Template · ${m.templateName || ''}` : m.source === 'broadcast' ? 'Broadcast' : 'Automatic'}</div>
-      )}
+    <div className={`wac-bubble ${m.direction} ${who ? `by-${who.cls}` : ''} ${m.status === 'failed' ? 'failed' : ''}`}>
+      {who && <div className={`wac-tag ${who.cls}`}><i className={`bi ${who.icon}`} /> {who.label}</div>}
       {['image', 'document', 'audio', 'video', 'sticker'].includes(m.kind) && <Media m={m} />}
       {m.body && <div className="wac-text">{m.body}</div>}
       {m.status === 'failed' && m.error && <div className="wac-error">Not delivered: {m.error}</div>}
       <div className="wac-meta">
-        {m.direction === 'out' && m.sentBy && <span>{m.sentBy} · </span>}
         {time(m.createdAt)} <Ticks m={m} />
       </div>
     </div>
   </div>
-);
+  );
+};
 
 const TemplateSender: React.FC<{ phone: string; firstName: string; onSent: () => void }> = ({ phone, firstName, onSent }) => {
   const [list, setList] = useState<ChatTemplate[] | null>(null);
@@ -122,7 +133,7 @@ const TemplateSender: React.FC<{ phone: string; firstName: string; onSent: () =>
 let staffPromise: Promise<{ staff: { _id: string; name: string }[]; canReassign: boolean; me: string }> | null = null;
 const loadStaff = () => (staffPromise ||= whatsAppChatApi.staff().catch((e) => { staffPromise = null; throw e; }));
 
-const OwnerSelect: React.FC<{ phone: string; assignedTo: ChatThread['assignedTo']; onChanged: () => void; onError: (m: string) => void }> = ({ phone, assignedTo, onChanged, onError }) => {
+const OwnerSelect: React.FC<{ phone: string; assignedTo: ChatThread['assignedTo']; fromLead?: boolean; onChanged: () => void; onError: (m: string) => void }> = ({ phone, assignedTo, fromLead, onChanged, onError }) => {
   const [info, setInfo] = useState<{ staff: { _id: string; name: string }[]; canReassign: boolean; me: string } | null>(null);
   useEffect(() => { loadStaff().then(setInfo).catch(() => {}); }, []);
   if (!info) return null;
@@ -132,17 +143,20 @@ const OwnerSelect: React.FC<{ phone: string; assignedTo: ChatThread['assignedTo'
   };
   if (info.canReassign) {
     return (
-      <select className="wac-owner" value={assignedTo?._id || ''} onChange={(e) => set(e.target.value || null)} aria-label="Assigned to">
-        <option value="">Unassigned</option>
+      <label className="wac-owner-wrap" title={fromLead ? "This is the lead's counsellor in CRM. Changing it here changes the lead too." : 'Who answers this chat. For a lead, this is also its counsellor.'}>
+        <span>Counsellor</span>
+      <select className="wac-owner" value={assignedTo?._id || ''} onChange={(e) => set(e.target.value || null)} aria-label="Counsellor">
+        <option value="">Nobody yet</option>
         {info.staff.map((s) => <option key={s._id} value={s._id}>{s._id === info.me ? `${s.name} (me)` : s.name}</option>)}
         {assignedTo && !info.staff.some((s) => s._id === assignedTo._id) && <option value={assignedTo._id}>{assignedTo.name}</option>}
       </select>
+      </label>
     );
   }
   // Without admin rights: take an unowned chat, or let go of your own.
   return (
     <span className="wac-owner-text">
-      {assignedTo ? <>Owner: <b>{mine ? 'you' : assignedTo.name}</b></> : 'Unassigned'}
+      {assignedTo ? <>Counsellor: <b>{mine ? 'you' : assignedTo.name}</b></> : 'No counsellor yet'}
       {!assignedTo && <button type="button" className="wac-link" onClick={() => set(info.me)}>Take it</button>}
       {mine && <button type="button" className="wac-link" onClick={() => set(null)}>Release</button>}
     </span>
@@ -288,12 +302,15 @@ const ChatPanel: React.FC<{ phone: string; name?: string }> = ({ phone, name }) 
     <div className="wac">
       <div className="wac-bar">
         <span className={`wac-window ${thread.window.open ? 'open' : 'closed'}`}>
-          {thread.window.open ? `Reply freely — ${hoursLeft(thread.window.closesAt)}` : 'Reply window closed — templates only'}
+          {thread.window.open ? `You can type freely · ${hoursLeft(thread.window.closesAt)}` : 'Typing closed · approved templates only'}
         </span>
         <span className="wac-bar-right">
-          <OwnerSelect phone={phone} assignedTo={thread.assignedTo} onChanged={load} onError={setErr} />
-          <button type="button" className="wac-bot" onClick={toggleBot} title="The qualification bot answers new WhatsApp contacts automatically">
-            <i className={`bi ${thread.botPaused ? 'bi-pause-circle' : 'bi-robot'}`} /> {thread.botPaused ? 'Bot paused' : 'Bot answering'}
+          <OwnerSelect phone={phone} assignedTo={thread.assignedTo} fromLead={thread.ownerFrom === 'lead'} onChanged={load} onError={setErr} />
+          <button type="button" className={`wac-bot ${thread.botPaused ? 'off' : 'on'}`} onClick={toggleBot}
+            title={thread.botPaused
+              ? 'The old qualification bot will not answer this person. Click to let it answer again.'
+              : 'The old qualification bot may answer this person automatically. It stops by itself when someone on the team replies.'}>
+            <i className={`bi ${thread.botPaused ? 'bi-pause-circle' : 'bi-robot'}`} /> {thread.botPaused ? 'Old bot: off for this chat' : 'Old bot: on'}
           </button>
         </span>
       </div>

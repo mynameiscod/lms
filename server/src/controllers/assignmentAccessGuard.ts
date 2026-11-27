@@ -26,6 +26,17 @@ export async function isAssignmentAuthor(user: { role?: string; customRoleId?: a
 export async function refuseLockedAssignment(
   tenantId: string, studentId: string, assignmentId: string, res: Response,
 ): Promise<boolean> {
+  // An LMS demo student opens only the assignments chosen for the demo or placed on its course days.
+  const { lmsDemoScopeFor, demoCourseModuleIds } = await import('../services/lmsDemoService');
+  const demo = await lmsDemoScopeFor(studentId);
+  if (demo) {
+    const ok = (demo.on('assignments') && demo.ids('assignmentIds').has(String(assignmentId)))
+      || (await demoCourseModuleIds(demo.cfg, 'assignment')).has(String(assignmentId));
+    if (!ok) {
+      res.status(403).json({ success: false, code: 'DEMO_SCOPE', message: 'This assignment is not part of the demo.' });
+      return true;
+    }
+  }
   const access = await foundationAssignmentAccess(String(tenantId), String(studentId), String(assignmentId));
   if (!access.bound || access.allowed === true) return false;
   res.status(403).json(refusalBody(access));

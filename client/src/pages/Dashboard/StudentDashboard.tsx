@@ -238,34 +238,28 @@ const TodayChallengeBanner: React.FC<{ navigate: (to: string) => void }> = ({ na
   );
 };
 
-// Today's Communication Challenge — self-contained (fetches its own data).
+// Today's speaking session (Communication Coach) — self-contained (fetches its own data).
 const CommunicationChallengeCard: React.FC<{ navigate: (to: string) => void }> = ({ navigate }) => {
-  const [t, setT] = useState<any>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [c, setC] = useState<any>(null);
   useEffect(() => {
     let alive = true;
-    const d = new Date();
-    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    communicationApi.today(date).then((r) => { if (alive) setT(r); }).catch(() => {}).finally(() => { if (alive) setLoaded(true); });
+    communicationApi.coach().then((r) => { if (alive) setC(r); }).catch(() => {});
     return () => { alive = false; };
   }, []);
-  if (!loaded || !t?.challenge) return null;
-  const done = t.status === 'completed';
+  if (!c) return null;
+  const baseline = c.mode === 'baseline';
+  const allDone = c.totalSteps > 0 && c.stepsDone >= c.totalSteps && !baseline;
+  const title = baseline ? 'Find your starting point' : allDone ? "Today's session is done" : `Session: ${c.stepsDone} of ${c.totalSteps} done`;
+  const sub = baseline ? `Baseline: ${c.baselineAreasDone} of 4 questions answered. About 10 minutes.` : `Readiness ${c.readiness.score}/100${c.readiness.ready ? ' · ready for companies' : ` · needs ${c.readiness.threshold}`}`;
   return (
-    <div style={{ background: 'linear-gradient(120deg,#0891b2,#0e7490)', color: '#fff', borderRadius: 16, padding: 18, margin: '0 0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+    <div style={{ background: 'linear-gradient(120deg,#0891b2,#0e7490)', color: '#fff', borderRadius: 16, padding: 18, margin: '0 0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
       <div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: .3 }}>🎙 TODAY'S COMMUNICATION CHALLENGE</span>
-          {t.currentStreak > 0 && <span style={{ fontSize: 11.5, background: 'rgba(255,255,255,.2)', borderRadius: 999, padding: '2px 9px', fontWeight: 700 }}>🔥 {t.currentStreak}-day streak</span>}
-          {t.lastScore != null && <span style={{ fontSize: 11.5, background: 'rgba(255,255,255,.2)', borderRadius: 999, padding: '2px 9px', fontWeight: 700 }}>Last {t.lastScore}%</span>}
-        </div>
-        <div style={{ fontSize: 17, fontWeight: 800, marginTop: 6 }}>{t.challenge.title}</div>
-        <div style={{ fontSize: 12.5, opacity: .92, marginTop: 2 }}>
-          ⏱ {Math.round(t.challenge.targetSeconds / 60)} min · {done ? '✓ Completed today' : 'Not started · Deadline today 11:59 PM'}
-        </div>
+        <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: .3 }}>🎙 YOUR SPEAKING PRACTICE</span>
+        <div style={{ fontSize: 17, fontWeight: 800, marginTop: 6 }}>{title}</div>
+        <div style={{ fontSize: 12.5, opacity: .92, marginTop: 2 }}>{sub}</div>
       </div>
-      <button onClick={() => navigate('/ai-communication-lab')} style={{ background: '#fff', color: '#0e7490', border: 'none', borderRadius: 10, padding: '11px 22px', fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-        {done ? '✓ Done — view feedback →' : 'Start Practice →'}
+      <button onClick={() => navigate('/ai-communication-lab')} style={{ background: '#fff', color: '#0e7490', border: 'none', borderRadius: 10, padding: '11px 22px', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+        {allDone ? '✓ Done — see progress →' : baseline ? 'Start baseline →' : 'Start session →'}
       </button>
     </div>
   );

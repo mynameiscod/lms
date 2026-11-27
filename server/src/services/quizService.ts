@@ -1,4 +1,5 @@
 import Quiz, { IQuiz } from '../models/Quiz';
+import { isDemoPassport } from '../data/demoPolicy';
 import { reconcileQuizTotalMarks, computeQuizTotalMarks, percentageOf } from './quizMarksService';
 import AssessmentSchedule from '../models/AssessmentSchedule';
 import Question from '../models/Question';
@@ -136,12 +137,21 @@ export class QuizService {
     const quiz = await Quiz.findById(quizId);
     if (!quiz) return false;
 
+    // An LMS demo student: only the chosen quizzes and those on the demo courses' days.
+    const { lmsDemoScopeFor, demoCourseModuleIds } = await import('./lmsDemoService');
+    const demo = await lmsDemoScopeFor(studentId);
+    if (demo) {
+      return (demo.on('quizzes') && demo.ids('quizIds').has(String(quizId))) || (await demoCourseModuleIds(demo.cfg, 'quiz')).has(String(quizId));
+    }
+
     const student = await User.findById(studentId).select('batchId').lean() as any;
 
     // Delivered to this student via an AssessmentSchedule (the reusable Assign-to-Batches
     // path — batch OR specific students)? That grants access regardless of accessibleTo.
     const or: any[] = [{ studentIds: studentId }];
-    if (student?.batchId) or.push({ batchId: student.batchId });
+    const { studentBatchIds } = await import('./placementBatchService');
+    const allBatches = await studentBatchIds(studentId, student?.batchId);
+    if (allBatches.length) or.push({ batchId: { $in: allBatches } });
     if (await AssessmentSchedule.exists({ contentType: 'quiz', contentId: quizId, status: 'active', $or: or })) {
       return true;
     }
@@ -152,7 +162,7 @@ export class QuizService {
       return true;
     } else if (quiz.accessibleTo === 'batch_wise') {
       if (!student) return false;
-      return quiz.selectedBatches?.includes(student.batchId?.toString() || '') || false;
+      return allBatches.some((b) => quiz.selectedBatches?.includes(b)) || false;
     } else if (quiz.accessibleTo === 'individual') {
       return quiz.selectedStudents?.includes(studentId) || false;
     }
@@ -277,8 +287,10 @@ export class QuizService {
         }
       }
 
-      // Check attempt count
-      if (quiz.multipleAttempts && quiz.maxAttempts) {
+      // Check attempt count. A demo account retakes any checkpoint during a demo (data/demoPolicy.ts).
+      // An LMS demo student may retake too: the demo is for trying things.
+      const demo = isDemoPassport((user as any)?.passport) || !!(user as any)?.lmsDemo?.at;
+      if (demo) { /* no attempt limit */ } else if (quiz.multipleAttempts && quiz.maxAttempts) {
         const previousAttempts = await QuizAttempt.countDocuments({
           quizId,
           studentId,

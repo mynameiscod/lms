@@ -9,11 +9,14 @@ export interface User {
   batchName?: string;
   batchJoinedDate?: string;
   customRoleId?: string;
+  /** The custom role's name, shown in the top bar instead of the base role. */
+  customRoleName?: string | null;
   isActive: boolean;
   profilePicture?: string;
   createdAt?: string;
   permissions?: string[];
   isCareerPilot?: boolean;   // true → focused CareerPilot experience (no batch LMS nav)
+  product?: 'lms' | 'careerpilot';   // which product this session is in (set by the server at login)
   // Profile fields
   phone?: string;
   bio?: string;

@@ -176,7 +176,7 @@ export const RoundsTimeline: React.FC<{ rounds: HubRound[] }> = ({ rounds }) => 
                 })}
               </ol>
             )}
-            {r.notes && <div className="pb-muted" style={{ marginTop: 8, fontSize: 13, whiteSpace: 'pre-wrap' }}>{r.notes}</div>}
+            {r.notes && <div className="pb-muted" style={{ marginTop: 8, fontSize: 'max(13px, var(--fs-floor, 0px))', whiteSpace: 'pre-wrap' }}>{r.notes}</div>}
           </div>
         </div>
       ))}
@@ -216,13 +216,13 @@ export const RoundsEditor: React.FC<{ rounds: HubRound[]; onChange: (r: HubRound
                 {CATEGORY_OPTIONS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
               </select>
               <button className="pb-btn pb-btn-ghost pb-btn-icon" title="Remove question" onClick={() => set(i, { questions: r.questions.filter((_, y) => y !== j) })}><i className="fa-solid fa-xmark" /></button>
-              <input className="pb-input" style={{ gridColumn: '1 / -1', fontSize: 13 }} placeholder="Optional: what you answered / the expected approach" value={q.answerHint || ''}
+              <input className="pb-input" style={{ gridColumn: '1 / -1', fontSize: 'max(13px, var(--fs-floor, 0px))' }} placeholder="Optional: what you answered / the expected approach" value={q.answerHint || ''}
                 onChange={(e) => set(i, { questions: r.questions.map((x, y) => (y === j ? { ...x, answerHint: e.target.value } : x)) })} />
             </div>
           ))}
           <div className="pb-row" style={{ marginTop: 10 }}>
             <button className="pb-btn pb-btn-sm" onClick={() => set(i, { questions: [...r.questions, { text: '', category: '' }] })}><i className="fa-solid fa-plus" /> Add a question</button>
-            <input className="pb-input pb-grow" style={{ fontSize: 13 }} placeholder="Anything else about this round (duration, panel, cut-off…)" value={r.notes || ''} onChange={(e) => set(i, { notes: e.target.value })} />
+            <input className="pb-input pb-grow" style={{ fontSize: 'max(13px, var(--fs-floor, 0px))' }} placeholder="Anything else about this round (duration, panel, cut-off…)" value={r.notes || ''} onChange={(e) => set(i, { notes: e.target.value })} />
           </div>
         </div>
       ))}
@@ -309,26 +309,38 @@ export const Recorder: React.FC<{ kind: 'audio' | 'video'; onDone: (r: { recordi
     <div className="ih-recorder">
       {kind === 'video' && !preview && <video ref={videoRef} playsInline />}
       {preview && (kind === 'video' ? <video src={preview} controls playsInline /> : <audio src={preview} controls style={{ width: '100%' }} />)}
-      <div className="pb-row" style={{ marginTop: 12, flexWrap: 'wrap' }}>
-        {recording ? <>
-          <span className="rec">{mm}</span>
-          <span className="pb-grow" />
-          <button className="pb-btn pb-btn-danger" onClick={stop}><i className="fa-solid fa-stop" /> Stop</button>
-        </> : <>
-          <span style={{ color: '#cbd5e1' }}>{preview ? `Recorded ${mm}. Listen back, or record again.` : `Speak for 3–10 minutes. We turn it into rounds and questions for you.`}</span>
-          <span className="pb-grow" />
-          <button className="pb-btn pb-btn-primary" onClick={() => { if (preview) { URL.revokeObjectURL(preview); onDone(null); } start(); }}>
-            <i className={`fa-solid ${kind === 'video' ? 'fa-video' : 'fa-microphone'}`} /> {preview ? 'Record again' : 'Start recording'}
-          </button>
-        </>}
+      <div className="ih-rec-head">
+        <span className={`ih-rec-badge${recording ? ' live' : ''}`} aria-hidden="true">
+          <i className={`fa-solid ${kind === 'video' ? 'fa-video' : 'fa-microphone'}`} />
+        </span>
+        <div className="ih-rec-copy">
+          {recording ? <>
+            <b><span className="rec">Recording {mm}</span></b>
+            <span>Talk it through. Press Stop when you are done.</span>
+          </> : preview ? <>
+            <b>Recorded {mm}</b>
+            <span>Listen back, or record again.</span>
+          </> : <>
+            <b>Speak for 3–10 minutes</b>
+            <span>We turn it into rounds and questions for you.</span>
+          </>}
+        </div>
+        {recording
+          ? <button className="pb-btn pb-btn-danger ih-rec-btn" onClick={stop}><i className="fa-solid fa-stop" /> Stop</button>
+          : <button className="pb-btn pb-btn-primary ih-rec-btn" onClick={() => { if (preview) { URL.revokeObjectURL(preview); onDone(null); } start(); }}>
+              <i className={`fa-solid ${kind === 'video' ? 'fa-video' : 'fa-microphone'}`} /> {preview ? 'Record again' : 'Start recording'}
+            </button>}
       </div>
       {!preview && (
-        <ul className="ih-prompts">
-          <li>How many rounds were there, and what was each one?</li>
-          <li>What exactly did they ask in each round — every question you remember.</li>
-          <li>Where did people get eliminated, and why?</li>
-          <li>What would you tell the next person to prepare?</li>
-        </ul>
+        <div className="ih-prompts-box">
+          <small>Cover these points</small>
+          <ul className="ih-prompts">
+            <li>How many rounds were there, and what was each one?</li>
+            <li>What exactly did they ask in each round — every question you remember.</li>
+            <li>Where did people get eliminated, and why?</li>
+            <li>What would you tell the next person to prepare?</li>
+          </ul>
+        </div>
       )}
       {err && <div className="pb-alert pb-alert-bad" style={{ marginTop: 10 }}>{err}</div>}
     </div>
@@ -386,12 +398,12 @@ export const Flashcards: React.FC<{ deckKey: string; items: FlashItem[]; onClose
       <div className={`ih-flash-card ${flipped ? 'flipped' : ''}`} onClick={() => setFlipped(!flipped)} role="button" tabIndex={0} aria-label="Flip card">
         <div className="ih-flash-inner">
           <div className="ih-flash-face">
-            <div className="pb-row">{it.tag && <span className="pb-tag">{it.tag}</span>}{it.note && <span className="pb-faint" style={{ fontSize: 12 }}>{it.note}</span>}</div>
+            <div className="pb-row">{it.tag && <span className="pb-tag">{it.tag}</span>}{it.note && <span className="pb-faint" style={{ fontSize: 'max(12px, var(--fs-floor, 0px))' }}>{it.note}</span>}</div>
             <div className="q">{it.q}</div>
             <div className="hint">Think of your answer, then tap to flip · Space</div>
           </div>
           <div className="ih-flash-face back">
-            <div className="pb-faint" style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>ANSWER</div>
+            <div className="pb-faint" style={{ fontSize: 'max(12px, var(--fs-floor, 0px))', fontWeight: 700, marginBottom: 8 }}>ANSWER</div>
             <div className="a">{it.a || 'No model answer yet — say yours out loud, then judge honestly.'}</div>
           </div>
         </div>
@@ -399,7 +411,7 @@ export const Flashcards: React.FC<{ deckKey: string; items: FlashItem[]; onClose
       <div className="ih-flash-bar">
         <button className="pb-btn" disabled={!flipped} onClick={() => mark('revise')}><i className="fa-solid fa-rotate-left" /> Revise</button>
         <div className="ih-flash-progress"><span style={{ width: `${(knewCount / items.length) * 100}%` }} /></div>
-        <span className="pb-muted" style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>{knewCount}/{items.length} known</span>
+        <span className="pb-muted" style={{ fontSize: 'max(12.5px, var(--fs-floor, 0px))', whiteSpace: 'nowrap' }}>{knewCount}/{items.length} known</span>
         <button className="pb-btn pb-btn-success" disabled={!flipped} onClick={() => mark('knew')}><i className="fa-solid fa-check" /> I knew it</button>
       </div>
     </div>

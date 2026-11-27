@@ -87,9 +87,10 @@ export const isOpenToInstitute = (lc: Pick<ILiveClass, 'openToInstitute' | 'batc
 /** May this logged-in user see and join this class (hosts are decided separately)? */
 export async function userMayJoin(lc: ILiveClass, userId: string): Promise<boolean> {
   if (isOpenToInstitute(lc)) return true;
-  const me: any = await User.findOne({ _id: userId, tenantId: lc.tenantId }).select('batchId email').lean();
+  const me: any = await User.findOne({ _id: userId, tenantId: lc.tenantId }).select('batchId placementBatchIds email').lean();
   if (!me) return false;
-  if (me.batchId && batchesOf(lc).includes(String(me.batchId))) return true;
+  const mine = [me.batchId, ...(me.placementBatchIds || [])].filter(Boolean).map(String);
+  if (mine.some((b) => batchesOf(lc).includes(b))) return true;
   return !!(await LiveClassInvite.exists({
     liveClassId: lc._id,
     $or: [{ userId: me._id }, ...(me.email ? [{ email: String(me.email).toLowerCase() }] : [])],
@@ -98,7 +99,7 @@ export async function userMayJoin(lc: ILiveClass, userId: string): Promise<boole
 
 /** The classes a logged-in non-host may see: open ones, their batch's, and ones they were invited to. */
 export async function visibleClassFilter(tenantId: string, userId: string) {
-  const me: any = await User.findOne({ _id: userId, tenantId }).select('batchId email').lean();
+  const me: any = await User.findOne({ _id: userId, tenantId }).select('batchId placementBatchIds email').lean();
   const invited = me ? await LiveClassInvite.find({
     tenantId, $or: [{ userId: me._id }, ...(me.email ? [{ email: String(me.email).toLowerCase() }] : [])],
   }).distinct('liveClassId') : [];
@@ -107,7 +108,9 @@ export async function visibleClassFilter(tenantId: string, userId: string) {
     { openToInstitute: { $exists: false }, batchId: { $in: [null] }, 'batchIds.0': { $exists: false } },
     { _id: { $in: invited } },
   ];
-  if (me?.batchId) or.push({ batchId: me.batchId }, { batchIds: me.batchId });
+  // Home batch plus placement batches.
+  const mine = [me?.batchId, ...(me?.placementBatchIds || [])].filter(Boolean);
+  if (mine.length) or.push({ batchId: { $in: mine } }, { batchIds: { $in: mine } });
   return { $or: or };
 }
 

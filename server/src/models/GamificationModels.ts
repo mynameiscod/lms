@@ -54,6 +54,45 @@ XpRuleSchema.index({ tenantId: 1, eventKey: 1 }, { unique: true });
 
 export const XpRule = mongoose.model<IXpRule>('XpRule', XpRuleSchema);
 
+// ── per-task XP overrides ───────────────────────────────────────────────────
+
+/**
+ * What one specific journey task is worth, set by an admin in the Content Builder.
+ *
+ * Keyed on the SOURCE — the library content or the quiz/assignment — not on a day. A roadmap day
+ * holds a snapshot of its tasks, so a price stored on the day would reach nobody already planned;
+ * a price stored on the source is read at award time and reaches every open day at once. A source
+ * shared by several years or tracks is priced once, for all of them, like every other edit to it.
+ */
+export interface IXpTaskOverride extends Document {
+  tenantId: string;
+  /** 'content' for library content; 'module' for a quiz, assignment or code task. */
+  refKind: 'content' | 'module';
+  refId: string;
+  xp: number;
+  /** For the admin list only — the title when it was priced. */
+  title?: string;
+  updatedBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const XpTaskOverrideSchema = new Schema<IXpTaskOverride>(
+  {
+    tenantId:  { type: String, required: true, index: true },
+    refKind:   { type: String, enum: ['content', 'module'], required: true },
+    refId:     { type: String, required: true },
+    xp:        { type: Number, required: true, min: 0 },
+    title:     { type: String },
+    updatedBy: { type: String },
+  },
+  { timestamps: true },
+);
+
+XpTaskOverrideSchema.index({ tenantId: 1, refKind: 1, refId: 1 }, { unique: true });
+
+export const XpTaskOverride = mongoose.model<IXpTaskOverride>('XpTaskOverride', XpTaskOverrideSchema);
+
 // ── XP ledger ───────────────────────────────────────────────────────────────
 
 export interface IXpLedger extends Document {
@@ -157,6 +196,8 @@ export interface IBadgeDefinition extends Document {
   name: string;
   description: string;
   iconKey: string;
+  /** The badge's colour once earned, as #rrggbb. */
+  color: string;
   active: boolean;
   conditionType: BadgeConditionType;
   conditionConfig: { threshold: number; eventKey?: string };
@@ -173,6 +214,7 @@ const BadgeDefinitionSchema = new Schema<IBadgeDefinition>(
     name:        { type: String, required: true, trim: true, maxlength: 60 },
     description: { type: String, default: '', trim: true, maxlength: 300 },
     iconKey:     { type: String, default: 'bi-award-fill' },
+    color:       { type: String, default: '#f59e0b' },
     active:      { type: Boolean, default: true },
     conditionType:   { type: String, required: true },
     conditionConfig: {
@@ -229,8 +271,6 @@ export interface IGamificationConfig extends Document {
 
   leaderboard: {
     collegeEnabled: boolean;
-    /** Opting IN to cross-tenant ranking. Default false — nobody is entered without saying so. */
-    globalEnabled: boolean;
     weeklyEnabled: boolean;
     monthlyEnabled: boolean;
     allTimeEnabled: boolean;
@@ -262,6 +302,21 @@ export interface IGamificationConfig extends Document {
     effectiveFrom?: Date;
   };
 
+  /**
+   * What each type of journey task is worth, by type key (TASK_XP_TYPES). A type absent here pays
+   * its shipped default, so a tenant that never opens the screen keeps today's prices.
+   */
+  taskXp?: Record<string, number>;
+
+  /** What each level is called, level 1 first. Empty = the shipped names (DEFAULT_LEVEL_NAMES). */
+  levelNames?: string[];
+  /** Lab streak freezes (data/labStreakPolicy.ts). Unset = the defaults. */
+  labStreak?: { freezeEvery?: number; freezeMax?: number };
+  /** Questions / tasks a day per year (data/thinkingDailyPolicy.ts). Unset = 1 a day. */
+  labDaily?: any;
+  /** Which shipped badge set this tenant has been migrated to (BADGE_SET_VERSION). */
+  badgeSetVersion?: number;
+
   updatedBy?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -273,7 +328,6 @@ const GamificationConfigSchema = new Schema<IGamificationConfig>(
 
     leaderboard: {
       collegeEnabled:  { type: Boolean, default: true },
-      globalEnabled:   { type: Boolean, default: false },
       weeklyEnabled:   { type: Boolean, default: true },
       monthlyEnabled:  { type: Boolean, default: true },
       allTimeEnabled:  { type: Boolean, default: true },
@@ -288,6 +342,15 @@ const GamificationConfigSchema = new Schema<IGamificationConfig>(
       capPaise:          { type: Number, default: 0, min: 0 },
       effectiveFrom:     { type: Date },
     },
+
+    taskXp: { type: Schema.Types.Mixed, default: undefined },
+    levelNames: { type: [String], default: undefined },
+    labDaily: { type: Schema.Types.Mixed, default: undefined },
+    labStreak: {
+      freezeEvery: { type: Number },
+      freezeMax: { type: Number },
+    },
+    badgeSetVersion: { type: Number, default: 0 },
 
     updatedBy: { type: String },
   },

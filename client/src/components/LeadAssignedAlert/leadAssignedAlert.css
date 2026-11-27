@@ -1,0 +1,13 @@
+/* Live "lead assigned to you" alert (index.tsx). Top right on desktop, full width at the top on phones. */
+.laa { position: fixed; top: 76px; right: 18px; z-index: 99998; display: flex; flex-direction: column; gap: 10px; width: min(420px, calc(100vw - 32px)); }
+.laa-card { display: flex; align-items: flex-start; gap: 12px; padding: 14px 14px 14px 16px; border-radius: 14px; background: #fff; border: 1px solid #D2DDE8; border-left: 5px solid #359AAD; box-shadow: 0 16px 40px rgba(5, 29, 100, .18); color: #102A4F; animation: laa-in .25s ease-out; }
+@keyframes laa-in { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .laa-card { animation: none; } }
+.laa-ic { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: #E6F4F7; color: #237C8C; font-size: 18px; }
+.laa-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.laa-body b { font-size: 16px; line-height: 1.3; overflow-wrap: anywhere; }
+.laa-body span { font-size: 14.5px; color: #4A5D73; line-height: 1.4; }
+.laa-go { align-self: flex-start; margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border: 0; border-radius: 9px; background: #051D64; color: #fff; font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; }
+.laa-go:hover { background: #0B2D72; }
+.laa-x { flex: none; border: 0; background: none; color: #6B7C90; font-size: 15px; padding: 4px; cursor: pointer; }
+@media (max-width: 560px) { .laa { top: 64px; right: 16px; left: 16px; width: auto; } }

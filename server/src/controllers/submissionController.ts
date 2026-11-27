@@ -5,6 +5,8 @@ import { SubmissionStatus } from '../models/Submission';
 import { checkDeadlineGate } from '../services/assessmentDeliveryService';
 import { isAssignmentAuthor, refuseLockedAssignment, refuseLockedSubmission } from './assignmentAccessGuard';
 import { toStudentSubmission } from '../services/studentAssignmentView';
+import Submission from '../models/Submission';
+import { fileProblem, storeSubmissionFile, sendSubmissionFile, removeSubmissionFile, MAX_FILES } from '../services/submissionFileService';
 /**
  * The tenant is the one the caller authenticated into. The X-Tenant-Id header is only a fallback for a
  * caller whose token carries none; it can never move a signed-in user into another tenant — which matters
@@ -48,7 +50,7 @@ class SubmissionController {
 
       res.status(201).json({
         success: true,
-        data: submission,
+        data: toStudentSubmission(submission),
         message: 'Submission started'
       });
     } catch (error) {
@@ -57,6 +59,94 @@ class SubmissionController {
         success: false,
         message: error instanceof Error ? error.message : 'Failed to start submission'
       });
+    }
+  }
+
+  /**
+   * The student starts another attempt. A new attempt record is made (the earlier one is kept, so the
+   * roadmap day stays done and the history stays), within the assignment's own attempt limit.
+   */
+  async retry(req: AuthRequest, res: Response) {
+    try {
+      const tenantId = callerTenant(req);
+      const userId = req.user?.id;
+      const { assignmentId } = req.params;
+      if (!tenantId || !userId) return res.status(401).json({ message: 'Unauthorized' });
+      if (await refuseLockedAssignment(tenantId, userId, assignmentId, res)) return;
+      const gate = await checkDeadlineGate(tenantId, userId, 'assignment', assignmentId);
+      if (!gate.allowed) return res.status(403).json({ success: false, message: gate.reason || 'This assignment is closed.' });
+
+      const submission = await submissionService.startNewAttempt(tenantId as any, assignmentId as any, userId as any, {
+        ipAddress: req.ip, userAgent: req.get('User-Agent'),
+      });
+      res.status(201).json({ success: true, data: toStudentSubmission(submission), message: 'New attempt started' });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Could not start another attempt' });
+    }
+  }
+
+  /** Add files to the student's open attempt (FILE_UPLOAD assignments). */
+  async uploadFiles(req: AuthRequest, res: Response) {
+    try {
+      const tenantId = callerTenant(req);
+      const userId = req.user?.id;
+      const { submissionId } = req.params;
+      if (!tenantId || !userId) return res.status(401).json({ message: 'Unauthorized' });
+      if (await refuseLockedSubmission(tenantId, userId, submissionId, res)) return;
+      const submission = await Submission.findOne({ _id: submissionId, student: userId, tenant: tenantId, status: SubmissionStatus.IN_PROGRESS });
+      if (!submission) return res.status(404).json({ success: false, message: 'This attempt is not open any more.' });
+      const files = ((req as any).files || []) as { originalname: string; mimetype: string; size: number; buffer: Buffer }[];
+      if (!files.length) return res.status(400).json({ success: false, message: 'Choose a file to upload.' });
+      if ((submission.uploadedFiles?.length || 0) + files.length > MAX_FILES) {
+        return res.status(400).json({ success: false, message: `You can hand in at most ${MAX_FILES} files.` });
+      }
+      for (const f of files) {
+        const problem = fileProblem(f.originalname, f.size);
+        if (problem) return res.status(400).json({ success: false, message: problem });
+      }
+      for (const f of files) submission.uploadedFiles.push(await storeSubmissionFile(String(tenantId), String(submission._id), f) as any);
+      await submission.save();
+      res.json({ success: true, data: toStudentSubmission(submission) });
+    } catch (error) {
+      console.error('Upload submission files error:', error);
+      res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Could not upload that file' });
+    }
+  }
+
+  /** Take one file back out of the open attempt. */
+  async removeFile(req: AuthRequest, res: Response) {
+    try {
+      const tenantId = callerTenant(req);
+      const userId = req.user?.id;
+      const { submissionId, filename } = req.params;
+      if (!tenantId || !userId) return res.status(401).json({ message: 'Unauthorized' });
+      const submission = await Submission.findOne({ _id: submissionId, student: userId, tenant: tenantId, status: SubmissionStatus.IN_PROGRESS });
+      if (!submission) return res.status(404).json({ success: false, message: 'This attempt is not open any more.' });
+      const file = submission.uploadedFiles.find(f => f.filename === filename);
+      if (!file) return res.status(404).json({ success: false, message: 'That file is not on this attempt.' });
+      submission.uploadedFiles = submission.uploadedFiles.filter(f => f.filename !== filename) as any;
+      await submission.save();
+      await removeSubmissionFile(file).catch(() => undefined);
+      res.json({ success: true, data: toStudentSubmission(submission) });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Could not remove that file' });
+    }
+  }
+
+  /** Download one handed-in file: the student's own, or any for someone who grades. */
+  async downloadFile(req: AuthRequest, res: Response) {
+    try {
+      const tenantId = callerTenant(req);
+      const userId = req.user?.id;
+      const { submissionId, filename } = req.params;
+      if (!tenantId || !userId) return res.status(401).json({ message: 'Unauthorized' });
+      const grader = await isAssignmentAuthor(req.user);
+      const submission = await Submission.findOne({ _id: submissionId, tenant: tenantId, ...(grader ? {} : { student: userId }) }).select('uploadedFiles').lean() as any;
+      const file = submission?.uploadedFiles?.find((f: any) => f.filename === filename);
+      if (!file) return res.status(404).json({ success: false, message: 'File not found' });
+      await sendSubmissionFile(req, res, file);
+    } catch (error) {
+      if (!res.headersSent) res.status(500).json({ success: false, message: 'Could not send that file' });
     }
   }
 
@@ -79,7 +169,8 @@ class SubmissionController {
         tenantId as any
       );
 
-      res.json({ success: true, data: submission });
+      // The student's own view: never the instructor's private notes.
+      res.json({ success: true, data: toStudentSubmission(submission) });
     } catch (error) {
       console.error('Get submission error:', error);
       res.status(500).json({
@@ -109,7 +200,7 @@ class SubmissionController {
         { code, language }
       );
 
-      res.json({ success: true, data: submission });
+      res.json({ success: true, data: toStudentSubmission(submission) });
     } catch (error) {
       console.error('Save code error:', error);
       res.status(400).json({
@@ -232,12 +323,13 @@ class SubmissionController {
       const submission = await submissionService.submitCoding(
         submissionId,
         userId as any,
-        tenantId as any
+        tenantId as any,
+        { code: req.body?.code, language: req.body?.language }
       );
 
       res.json({
         success: true,
-        data: submission,
+        data: toStudentSubmission(submission),
         message: 'Assignment submitted successfully'
       });
     } catch (error) {

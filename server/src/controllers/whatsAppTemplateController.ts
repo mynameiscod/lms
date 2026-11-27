@@ -1,10 +1,13 @@
+import { isPurpose, replyLeads, setBroadcastPurpose, archiveReplyLeads } from '../services/whatsAppReplyContext';
+import WhatsAppMessageLog from '../models/WhatsAppMessageLog';
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Batch from '../models/Batch';
 import * as settings from '../services/settingsService';
 import * as svc from '../services/whatsAppTemplateService';
-import { listMessages, explainWaError } from '../services/whatsAppDeliveryService';
+import { listMessages, deliverySummary, explainWaError } from '../services/whatsAppDeliveryService';
 import { WA_TEMPLATE_PURPOSES } from '../config/whatsappTemplatePurposes';
+import { AUDIENCE_SOURCES, getAudienceSource } from '../services/whatsAppAudiences';
 
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
@@ -16,7 +19,7 @@ const wrap = (fn: (req: Request, res: Response) => Promise<any>) => async (req: 
   } catch (e: any) {
     const status = e instanceof svc.WaTemplateError ? e.status : 500;
     if (status === 500) console.error('[wa-templates]', e);
-    res.status(status).json({ success: false, message: e?.message || 'Something went wrong' });
+    res.status(status).json({ success: false, message: e?.message || 'Something went wrong', ...(e?.code && e instanceof svc.WaTemplateError ? { code: e.code } : {}) });
   }
 };
 
@@ -82,9 +85,9 @@ export const compatibility = wrap(async (req, res) => {
 });
 
 export const sendTest = wrap(async (req, res) => {
-  const { phone, values, buttonParam } = req.body || {};
+  const { phone, values, buttonParam, force } = req.body || {};
   if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
-  const r = await svc.sendTest(tId(req), req.params.id, String(phone), Array.isArray(values) ? values.map(String) : [], buttonParam, uId(req));
+  const r = await svc.sendTest(tId(req), req.params.id, String(phone), Array.isArray(values) ? values.map(String) : [], buttonParam, uId(req), force === true);
   if (!r.ok) return res.status(400).json({ success: false, message: `Meta did not accept it: ${explainWaError(r.errorCode, r.error)}` });
   /* "Accepted", not "Sent": Meta has queued it. Whether it reaches the phone arrives later, from Meta's
      delivery report, and shows in the delivery log. */
@@ -93,15 +96,23 @@ export const sendTest = wrap(async (req, res) => {
 
 /** GET /whatsapp-templates/messages?phone=&templateId=&limit= — recent sends and what became of them. */
 export const messages = wrap(async (req, res) => {
-  const { phone, templateId, limit } = req.query as any;
-  res.json({ success: true, data: await listMessages(tId(req), { phone, templateId, limit: Number(limit) || 50 }) });
+  const { phone, templateId, limit, status, source, days, q } = req.query as any;
+  const str = (v: any) => (typeof v === 'string' ? v.slice(0, 80) : undefined);
+  res.json({ success: true, data: await listMessages(tId(req), {
+    phone: str(phone), templateId: str(templateId), limit: Number(limit) || 50, status: str(status), source: str(source), days: Number(days) || undefined, q: str(q),
+  }) });
+});
+
+export const messagesSummary = wrap(async (req, res) => {
+  res.json({ success: true, data: await deliverySummary(tId(req), Number((req.query as any).days) || 1) });
 });
 
 export const broadcast = wrap(async (req, res) => {
-  const { phones, batchId, leads, values, buttonParam } = req.body || {};
+  const { phones, batchId, leads, audience, values, buttonParam, purpose } = req.body || {};
   if (batchId && !mongoose.isValidObjectId(batchId)) return res.status(400).json({ success: false, message: 'Invalid batch' });
   const b = await svc.startBroadcast(tId(req), uId(req), req.params.id, {
-    phones, batchId, leads: leads ? leadFilter(leads) : undefined, values: Array.isArray(values) ? values.map(String) : [], buttonParam,
+    phones, batchId, leads: leads ? leadFilter(leads) : undefined, audience: audience ? sourceAudience(audience) : undefined, values: Array.isArray(values) ? values.map(String) : [], buttonParam,
+    purpose: isPurpose(purpose) ? purpose : undefined,
   });
   res.status(202).json({ success: true, data: b });
 });
@@ -110,6 +121,29 @@ const strList = (v: any) => (Array.isArray(v) ? v.map(String).filter(Boolean).sl
 const leadFilter = (b: any): svc.LeadFilter => ({
   stageIds: strList(b?.stageIds), sources: strList(b?.sources), passoutYears: strList(b?.passoutYears),
   skipAlreadySent: b?.skipAlreadySent !== false,
+});
+
+/** { source, pick: { filterKey: [values] }, skipAlreadySent } — only plain string lists get through. */
+const sourceAudience = (b: any): svc.SourceAudience => {
+  const pick: Record<string, string[]> = {};
+  if (b?.pick && typeof b.pick === 'object') {
+    for (const [k, v] of Object.entries(b.pick).slice(0, 10)) if (/^[a-zA-Z]{1,40}$/.test(k)) pick[k] = strList(v);
+  }
+  return { source: String(b?.source || ''), pick, skipAlreadySent: b?.skipAlreadySent !== false };
+};
+
+export const audienceSources = wrap(async (_req, res) => {
+  res.json({ success: true, data: AUDIENCE_SOURCES.map(({ key, label, description }) => ({ key, label, description })) });
+});
+
+export const audienceFilters = wrap(async (req, res) => {
+  const source = getAudienceSource(String(req.params.key));
+  if (!source) return res.status(404).json({ success: false, message: 'Unknown recipient list' });
+  res.json({ success: true, data: await source.filters(tId(req)) });
+});
+
+export const sourceAudiencePreview = wrap(async (req, res) => {
+  res.json({ success: true, data: await svc.previewSourceAudience(tId(req), req.params.id, sourceAudience(req.body)) });
 });
 
 export const leadAudience = wrap(async (req, res) => {
@@ -121,7 +155,36 @@ export const leadFilters = wrap(async (req, res) => {
 });
 
 export const broadcasts = wrap(async (req, res) => {
-  res.json({ success: true, data: await svc.listBroadcasts(tId(req)) });
+  // "Sent" only means Meta accepted it; what really happened arrives later per message — add it here.
+  const list: any[] = await svc.listBroadcasts(tId(req));
+  const ids = list.map((b) => b._id);
+  const rows: any[] = ids.length ? await WhatsAppMessageLog.aggregate([
+    { $match: { broadcastId: { $in: ids } } },
+    { $group: { _id: { b: '$broadcastId', s: '$status' }, n: { $sum: 1 } } },
+  ]) : [];
+  const out = list.map((b) => {
+    const mine = rows.filter((r) => String(r._id.b) === String(b._id));
+    const c = (k: string[]) => mine.filter((r) => k.includes(r._id.s)).reduce((t, r) => t + r.n, 0);
+    return { ...b, outcome: { delivered: c(['delivered', 'read']), read: c(['read']), failed: c(['failed']), pending: c(['accepted', 'sent']) } };
+  });
+  res.json({ success: true, data: out });
+});
+
+export const broadcastReplyLeads = wrap(async (req, res) => {
+  res.json({ success: true, data: await replyLeads(tId(req), req.params.id) });
+});
+
+export const broadcastPurpose = wrap(async (req, res) => {
+  const purpose = req.body?.purpose;
+  if (!isPurpose(purpose) || !mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, message: 'Choose what the message was for' });
+  const r = await setBroadcastPurpose(tId(req), req.params.id, purpose);
+  if (!r) return res.status(404).json({ success: false, message: 'Broadcast not found' });
+  res.json({ success: true, data: r });
+});
+
+export const archiveBroadcastReplyLeads = wrap(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, message: 'Invalid broadcast' });
+  res.json({ success: true, data: await archiveReplyLeads(tId(req), uId(req), req.params.id) });
 });
 
 export const batches = wrap(async (req, res) => {

@@ -226,7 +226,7 @@ async function resolveResources(tenantId: string, skillKeys: string[], member: R
 export async function getTodaysPlan(tenantId: string, studentId: string, now: Date = new Date()): Promise<DailyPlanOutcome> {
   const [roadmap, user, cfg] = await Promise.all([CareerRoadmap.findOne({ tenantId, studentId, status: 'ACTIVE' }).lean() as any, User.findOne({ _id: studentId, tenantId }).select('passport').lean() as any, PassportConfig.findOne({ tenantId }).lean() as any]);
   if (!isEntitled(cfg?.entitlements, user?.passport, 'daily_missions', now)) return { available: false, reason: 'MEMBERSHIP_REQUIRED', message: 'A CareerPilot membership is needed for your daily plan.' };
-  if (!roadmap) return { available: false, reason: 'ROADMAP_REQUIRED', message: 'Generate your 90-day roadmap and your daily plan starts from it.' };
+  if (!roadmap) return { available: false, reason: 'ROADMAP_REQUIRED', message: 'Generate your roadmap and your daily plan starts from it.' };
   /**
    * THE PLAN ENDS WHEN THE WORK IS DONE, NOT WHEN THE DAYS RUN OUT.
    *

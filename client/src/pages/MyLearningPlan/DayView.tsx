@@ -6,6 +6,7 @@ import { interactiveLessonApi } from '../../api/interactiveLessonApi';
 import InteractiveActivityViewer from './InteractiveActivityViewer';
 import { VideoPlayer } from './VideoPlayer';
 import { NotesContent, InlineNotes } from '../../components/content/NotesContent';
+import CodingPracticeQuestion from '../../components/practice/CodingPracticeQuestion';
 
 // ─── Video Player ─────────────────────────────────────────────────────────────
 // Moved to its own module when it grew seek controls and a Bunny Player.js bridge.
@@ -97,8 +98,28 @@ export function QAViewer({ content }: { content: any }) {
 
 // ─── Practice Viewer ─────────────────────────────────────────────────────────
 
+/**
+ * A question's title is a short label and its description the full text, but a question written
+ * in the Content Builder or imported from a CSV stores the same words in both (the title being the
+ * first 120 characters). Shown as heading AND body, every such question read twice. The body is
+ * shown only when it adds something.
+ */
+/*
+ * A question written line by line with no Markdown fences (code or a star pattern from a spreadsheet)
+ * is shown exactly as written. As notes its lines were joined into one sentence.
+ */
+const laidOut = (description: string) => String(description || '').includes('\n') && !String(description).includes('```');
+
+/**
+ * What a learner reads: the question. A practice question's title is an author's label (or, from a
+ * spreadsheet, the question cut to 120 characters), so showing it above the question printed the
+ * same words twice. The title is shown only by an old question that has no description.
+ */
+const questionText = (q: any) => (String(q.description || '').trim() ? q.description : q.title);
+
 export function PracticeViewer({ content }: { content: any }) {
-  const [answers, setAnswers] = useState<Record<number, number | null>>({});
+  /** One chosen option per question; a question with several right answers takes several. */
+  const [answers, setAnswers] = useState<Record<number, number[]>>({});
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const questions = content.practiceQuestions || [];
 
@@ -109,8 +130,8 @@ export function PracticeViewer({ content }: { content: any }) {
       {questions.map((q: any, qi: number) => (
         <div key={qi} style={{ border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '8px' }}>
-            <div style={{ fontWeight: 700, fontSize: '14px', color: '#0f172a', flex: 1 }}>
-              Q{qi + 1}. <InlineNotes text={q.title} />
+            <div style={{ fontWeight: 800, fontSize: '13px', color: '#475569', flex: 1, letterSpacing: '.02em' }}>
+              Question {qi + 1}
             </div>
             <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
               <span style={{
@@ -126,17 +147,28 @@ export function PracticeViewer({ content }: { content: any }) {
             </div>
           </div>
 
-          {q.description && (
-            <div style={{ marginBottom: '12px' }}>
-              <NotesContent text={q.description} compact />
+          {/* The question itself — the only text a learner needs before the options. */}
+          {!!String(questionText(q) || '').trim() && (
+            <div style={{ marginBottom: '12px', fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>
+              {laidOut(questionText(q))
+                ? <div style={{ lineHeight: 1.6 }}><InlineNotes text={questionText(q)} /></div>
+                : <NotesContent text={questionText(q)} compact />}
             </div>
           )}
 
           {/* MCQ options */}
-          {q.type === 'mcq' && q.options && (
+          {q.type === 'mcq' && q.options && (() => {
+            const multi = q.options.filter((o: any) => o.isCorrect).length > 1;
+            const picked = answers[qi] || [];
+            const pick = (oi: number) => setAnswers(prev => {
+              const cur = prev[qi] || [];
+              return { ...prev, [qi]: multi ? (cur.includes(oi) ? cur.filter(x => x !== oi) : [...cur, oi]) : [oi] };
+            });
+            return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {multi && <div style={{ fontSize: '12px', color: '#475569', marginBottom: '2px' }}>Choose every answer that applies.</div>}
               {q.options.map((opt: any, oi: number) => {
-                const selected = answers[qi] === oi;
+                const selected = picked.includes(oi);
                 const isCorrect = opt.isCorrect;
                 const showResult = revealed[qi];
                 let bg = '#f8fafc', border = '#e2e8f0', color = '#374151';
@@ -147,7 +179,7 @@ export function PracticeViewer({ content }: { content: any }) {
                 return (
                   <div
                     key={oi}
-                    onClick={() => !revealed[qi] && setAnswers(prev => ({ ...prev, [qi]: oi }))}
+                    onClick={() => !revealed[qi] && pick(oi)}
                     style={{
                       padding: '10px 14px', borderRadius: '8px', cursor: revealed[qi] ? 'default' : 'pointer',
                       background: bg, border: `1.5px solid ${border}`, color, fontSize: '14px',
@@ -161,7 +193,7 @@ export function PracticeViewer({ content }: { content: any }) {
                   </div>
                 );
               })}
-              {answers[qi] !== null && answers[qi] !== undefined && !revealed[qi] && (
+              {picked.length > 0 && !revealed[qi] && (
                 <button
                   onClick={() => setRevealed(prev => ({ ...prev, [qi]: true }))}
                   style={{ alignSelf: 'flex-start', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginTop: '4px' }}
@@ -169,26 +201,28 @@ export function PracticeViewer({ content }: { content: any }) {
                   Check Answer
                 </button>
               )}
+              {revealed[qi] && multi && (() => {
+                const right = q.options.map((o: any, k: number) => (o.isCorrect ? k : -1)).filter((k: number) => k >= 0);
+                const allRight = right.length === picked.length && right.every((k: number) => picked.includes(k));
+                return <div style={{ fontSize: '13px', fontWeight: 600, color: allRight ? '#15803d' : '#b45309', marginTop: '2px' }}>
+                  {allRight ? 'All correct.' : `The right answers are ${right.map((k: number) => String.fromCharCode(65 + k)).join(' and ')}.`}
+                </div>;
+              })()}
               {revealed[qi] && q.explanation && (
                 <div style={{ background: '#f0fdf4', borderRadius: '7px', padding: '10px 12px', fontSize: '13px', color: '#15803d', marginTop: '4px' }}>
                   💡 <InlineNotes text={q.explanation} />
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
-          {/* Theory / Coding */}
-          {(q.type === 'theory' || q.type === 'coding') && (
+          {/* Coding: an editor, Run, Check against the tests, and the answer (components/practice). */}
+          {q.type === 'coding' && <CodingPracticeQuestion q={q} index={qi} contentId={content._id || content.id} />}
+
+          {/* Theory: the model answer, when one was written. A button that opens nothing is not shown. */}
+          {q.type === 'theory' && !!String(q.explanation || '').trim() && (
             <div>
-              {q.type === 'coding' && q.starterCode && (
-                <div style={{ background: '#0f172a', borderRadius: '8px', padding: '14px', marginBottom: '10px', overflowX: 'auto' }}>
-                  <pre style={{ margin: 0, color: '#e2e8f0', fontSize: '13px', fontFamily: 'monospace' }}>
-                    {Object.entries(q.starterCode as Record<string, string>).map(([lang, code]) => (
-                      `// ${lang}\n${code}`
-                    )).join('\n\n')}
-                  </pre>
-                </div>
-              )}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   onClick={() => setRevealed(prev => ({ ...prev, [qi]: !prev[qi] }))}
@@ -197,7 +231,7 @@ export function PracticeViewer({ content }: { content: any }) {
                   {revealed[qi] ? 'Hide' : 'Show'} Answer
                 </button>
               </div>
-              {revealed[qi] && q.explanation && (
+              {revealed[qi] && (
                 <div style={{ background: '#f8fafc', borderRadius: '7px', padding: '12px', marginTop: '8px' }}>
                   <NotesContent text={q.explanation} compact />
                 </div>

@@ -3,16 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { problemSetAdminApi, ProblemSetAdmin } from '../../api/problemSetApi';
 import { pbError } from '../../api/problemBankApi';
 import { relTime } from './shared';
+import { useAuth } from '../../contexts/AuthContext';
 import './ProblemBank.css';
 
 /** Tabs shared by the Problem Bank's two admin pages. */
-export const BankTabs: React.FC<{ active: 'problems' | 'sets' | 'api' }> = ({ active }) => {
+export const BankTabs: React.FC<{ active: 'problems' | 'sets' | 'api' | 'thinking' }> = ({ active }) => {
   const nav = useNavigate();
+  const { user } = useAuth();
+  // The Thinking Lab bank is shared by every institute: a super admin, or a role they gave the permission.
+  const thinking = user?.role === 'SUPER_ADMIN' || (user?.permissions || []).includes('manage_thinking_bank');
   return (
     <div className="pb-tabs" style={{ padding: 0, background: 'transparent', marginBottom: 16 }}>
       <button className={active === 'problems' ? 'on' : ''} onClick={() => nav('/problem-bank')}><i className="fa-solid fa-code" /> Problems</button>
       <button className={active === 'sets' ? 'on' : ''} onClick={() => nav('/problem-bank/sets')}><i className="fa-solid fa-layer-group" /> Problem sets</button>
       <button className={active === 'api' ? 'on' : ''} onClick={() => nav('/problem-bank/api')}><i className="fa-solid fa-plug" /> API access</button>
+      {thinking && <button className={active === 'thinking' ? 'on' : ''} onClick={() => nav('/problem-bank/thinking')}><i className="fa-solid fa-lightbulb" /> Thinking Lab</button>}
     </div>
   );
 };

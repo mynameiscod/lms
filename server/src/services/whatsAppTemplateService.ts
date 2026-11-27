@@ -1,3 +1,4 @@
+import { BroadcastPurpose, isPurpose, markRepliesNotLeads } from './whatsAppReplyContext';
 import mongoose from 'mongoose';
 import WhatsAppTemplate, { IWhatsAppTemplate, IWaButton, WaTemplateCategory } from '../models/WhatsAppTemplate';
 import WhatsAppBroadcast from '../models/WhatsAppBroadcast';
@@ -6,12 +7,14 @@ import User from '../models/User';
 import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
 import WhatsAppMessageLog from '../models/WhatsAppMessageLog';
+import WhatsAppThread from '../models/WhatsAppThread';
 import * as settings from './settingsService';
 import { getWhatsAppCredentialCandidates, waPost, normalizeTo } from './assessmentOtpService';
 import { recordSend } from './whatsAppDeliveryService';
 import { recordOutbound, renderTemplateBody } from './whatsAppChatStore';
 import { WA_TEMPLATE_PURPOSES, WaTemplatePurpose, getPurpose } from '../config/whatsappTemplatePurposes';
 import { templateShape, buildSendComponents, varIndexes } from './whatsAppTemplateShape';
+import { AudiencePick, getAudienceSource, describePick } from './whatsAppAudiences';
 
 export { templateShape };
 
@@ -27,7 +30,7 @@ export { templateShape };
 const GRAPH = 'https://graph.facebook.com/v21.0';
 
 export class WaTemplateError extends Error {
-  constructor(message: string, public status = 400) { super(message); }
+  constructor(message: string, public status = 400, public code?: string) { super(message); }
 }
 
 // ── Connection ────────────────────────────────────────────────────────────────
@@ -109,7 +112,7 @@ export interface TemplateInput {
   name: string;
   language: string;
   category: WaTemplateCategory;
-  header?: { format: 'NONE' | 'TEXT' | 'IMAGE'; text?: string; imageUrl?: string };
+  header?: { format: 'NONE' | 'TEXT' | 'IMAGE' | 'DOCUMENT'; text?: string; imageUrl?: string; documentUrl?: string; fileName?: string };
   body?: string;
   bodyExamples?: string[];
   footer?: string;
@@ -149,6 +152,10 @@ export function validateInput(i: TemplateInput): string[] {
   if (h.format === 'IMAGE' && !/^https:\/\//i.test(h.imageUrl || '')) {
     errs.push('Image header needs a public https image URL (JPEG or PNG, under 5 MB). It is the sample Meta reviews and the default image sent.');
   }
+  if (h.format === 'DOCUMENT') {
+    if (!/^https:\/\//i.test(h.documentUrl || '')) errs.push('PDF header needs a PDF: upload one or give a public https link. It is the sample Meta reviews and the default PDF sent.');
+    if ((h.fileName || '').length > 120) errs.push('PDF file name is limited to 120 characters.');
+  }
   if ((i.footer || '').length > 60) errs.push('Footer is limited to 60 characters.');
   if (/\{\{/.test(i.footer || '')) errs.push('Footer cannot contain variables.');
 
@@ -184,6 +191,22 @@ async function uploadHeaderImage(c: Conn, imageUrl: string): Promise<string> {
   if (!['image/jpeg', 'image/png', 'image/jpg'].includes(type)) throw new WaTemplateError(`Header image must be JPEG or PNG (got "${type || 'unknown'}").`);
   const buf = Buffer.from(await img.arrayBuffer());
   if (buf.length > 5 * 1024 * 1024) throw new WaTemplateError('Header image must be under 5 MB.');
+  return uploadSample(c, buf, type === 'image/jpg' ? 'image/jpeg' : type, `header.${type.endsWith('png') ? 'png' : 'jpg'}`);
+}
+
+/** The sample PDF Meta reviews for a Document header. */
+async function uploadHeaderDocument(c: Conn, url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new WaTemplateError(`Could not download the PDF (HTTP ${res.status}). Use a public https link, or upload the file.`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  const type = (res.headers.get('content-type') || '').split(';')[0].trim();
+  if (type !== 'application/pdf' && buf.subarray(0, 5).toString() !== '%PDF-') throw new WaTemplateError(`The header file must be a PDF (got "${type || 'unknown'}").`);
+  if (buf.length > 100 * 1024 * 1024) throw new WaTemplateError('The PDF must be under 100 MB.');
+  return uploadSample(c, buf, 'application/pdf', 'sample.pdf');
+}
+
+/** Meta's Resumable Upload: the handle a template's media header is reviewed with. */
+async function uploadSample(c: Conn, buf: Buffer, type: string, fileName: string): Promise<string> {
 
   // Resumable Upload API — hangs off the Meta APP, not the WABA.
   let appId = settings.getStr('META_APP_ID', '').trim();
@@ -191,7 +214,7 @@ async function uploadHeaderImage(c: Conn, imageUrl: string): Promise<string> {
   if (!appId) throw new WaTemplateError('Could not determine the Meta App ID for the image upload. Set META_APP_ID in Platform Settings.');
 
   const session = await graph('POST',
-    `${GRAPH}/${appId}/uploads?file_name=header.${type.endsWith('png') ? 'png' : 'jpg'}&file_length=${buf.length}&file_type=${encodeURIComponent(type === 'image/jpg' ? 'image/jpeg' : type)}`,
+    `${GRAPH}/${appId}/uploads?file_name=${fileName}&file_length=${buf.length}&file_type=${encodeURIComponent(type)}`,
     c.accessToken);
   const res = await fetch(`${GRAPH}/${session.id}`, {
     method: 'POST',
@@ -199,7 +222,7 @@ async function uploadHeaderImage(c: Conn, imageUrl: string): Promise<string> {
     body: buf,
   });
   const j: any = await res.json().catch(() => ({}));
-  if (!res.ok || !j?.h) throw new WaTemplateError(j?.error?.message || 'Meta did not accept the header image upload.');
+  if (!res.ok || !j?.h) throw new WaTemplateError(j?.error?.message || 'Meta did not accept the header file upload.');
   return j.h;
 }
 
@@ -216,6 +239,10 @@ async function toMetaComponents(c: Conn, i: TemplateInput): Promise<any[]> {
   if (h.format === 'IMAGE') {
     const handle = await uploadHeaderImage(c, h.imageUrl!);
     comps.push({ type: 'HEADER', format: 'IMAGE', example: { header_handle: [handle] } });
+  }
+  if (h.format === 'DOCUMENT') {
+    const handle = await uploadHeaderDocument(c, h.documentUrl!);
+    comps.push({ type: 'HEADER', format: 'DOCUMENT', example: { header_handle: [handle] } });
   }
   const n = templateShape({ body: i.body || '', header: h as any, buttons: [], category: i.category }).bodyVarCount;
   const body: any = { type: 'BODY', text: i.body };
@@ -398,10 +425,11 @@ export async function syncTemplates(tenantId: string) {
     const f = fromMeta(m);
     const existing = await WhatsAppTemplate.findOne({ tenantId, name: f.name, language: f.language });
     if (existing) {
-      // Keep the locally stored default header image — Meta only returns a CDN sample.
-      const imageUrl = existing.header?.imageUrl;
+      // Keep the locally stored default header image / PDF — Meta only returns a CDN sample.
+      const { imageUrl, documentUrl, fileName } = (existing.header || {}) as any;
       Object.assign(existing, f, { lastSyncedAt: new Date() });
       if (imageUrl && existing.header?.format === 'IMAGE') existing.header.imageUrl = imageUrl;
+      if (documentUrl && existing.header?.format === 'DOCUMENT') { existing.header.documentUrl = documentUrl; existing.header.fileName = fileName; }
       await existing.save();
       updated++;
     } else {
@@ -467,7 +495,8 @@ export function checkCompatibility(t: IWhatsAppTemplate | any, p: WaTemplatePurp
   if (s.urlButtonIndex >= 0 && !p.buttonParam) errors.push('Template has a dynamic URL button, but this use has no value to put in it.');
   if (s.urlButtonIndex < 0 && p.buttonParam && t.category !== 'AUTHENTICATION') warnings.push('No dynamic URL button — recipients will not get their personal link.');
   if (s.headerHasVars) errors.push('Header text with variables is not supported — move them into the body.');
-  if (['VIDEO', 'DOCUMENT'].includes(s.headerFormat)) errors.push(`${s.headerFormat} headers are not supported for system messages.`);
+  if (s.headerFormat === 'VIDEO') errors.push('VIDEO headers are not supported for system messages.');
+  if (s.headerFormat === 'DOCUMENT' && !t.header?.documentUrl) errors.push('Template has a PDF header but no PDF is stored: edit the template and upload the PDF.');
   if (s.headerFormat === 'IMAGE' && !p.headerImage && !t.header?.imageUrl) {
     errors.push('Template has an image header but no default image is stored — edit the template and give an image URL.');
   }
@@ -512,7 +541,7 @@ export async function assignPurpose(tenantId: string, userId: string, purposeKey
 export async function sendTemplateTo(
   tenantId: string, t: IWhatsAppTemplate, phone: string,
   opts: {
-    body: string[]; urlButtonParam?: string; headerImageUrl?: string;
+    body: string[]; urlButtonParam?: string; headerImageUrl?: string; headerDocumentUrl?: string; headerFileName?: string;
     /** Where the send came from, for the delivery log. */
     log?: { source: 'test' | 'broadcast' | 'system'; broadcastId?: any; sentBy?: string };
   },
@@ -535,23 +564,64 @@ export async function sendTemplateTo(
   // …and in the person's conversation, so the Chat tab shows what they were sent.
   await recordOutbound(tenantId, to, {
     kind: 'template', templateName: t.name, wamid: result.messageId, ok: result.ok, error: result.error,
-    body: [t.header?.format === 'TEXT' ? t.header.text : '', renderTemplateBody(t.body, opts.body || [])].filter(Boolean).join('\n'),
+    body: [
+      t.header?.format === 'TEXT' ? t.header.text : '',
+      t.header?.format === 'DOCUMENT' ? `📄 ${opts.headerFileName || t.header.fileName || 'PDF'}` : '',
+      renderTemplateBody(t.body, opts.body || []),
+    ].filter(Boolean).join('\n'),
     sentBy: opts.log?.sentBy, source: opts.log?.source || 'system',
   });
   return result;
 }
 
-export async function sendTest(tenantId: string, id: string, phone: string, values: string[], buttonParam?: string, sentBy?: string) {
+/** Meta's per-person marketing limit (error 131049). */
+export const MARKETING_HELD_CODE = 131049;
+const MARKETING_HELD_WINDOW_MS = 24 * 3600 * 1000;
+
+/**
+ * Was a MARKETING message to this number held back by Meta (131049) in the last 24 hours, with no
+ * message from them since? Then another marketing send will almost certainly be held back too —
+ * Meta accepts it, then silently drops it, and the admin only finds out from the Delivery log.
+ *
+ * A message from the person opens their conversation and lifts the hold, so an inbound message
+ * after the failure clears this.
+ */
+export async function marketingHeldFor(tenantId: string, phone: string): Promise<Date | null> {
+  const to = normalizeTo(phone);
+  if (!to) return null;
+  const tid = new mongoose.Types.ObjectId(tenantId);
+  const held: any = await WhatsAppMessageLog.findOne({
+    tenantId: tid, to, errorCode: MARKETING_HELD_CODE,
+    createdAt: { $gte: new Date(Date.now() - MARKETING_HELD_WINDOW_MS) },
+  }).sort({ createdAt: -1 }).select('createdAt').lean();
+  if (!held) return null;
+  const thread: any = await WhatsAppThread.findOne({ tenantId: tid, phone: to }).select('lastInboundAt').lean();
+  if (thread?.lastInboundAt && new Date(thread.lastInboundAt) > new Date(held.createdAt)) return null;
+  return new Date(held.createdAt);
+}
+
+export async function sendTest(tenantId: string, id: string, phone: string, values: string[], buttonParam?: string, sentBy?: string, force = false) {
   const t = await WhatsAppTemplate.findOne({ _id: id, tenantId });
   if (!t) throw new WaTemplateError('Template not found', 404);
   if (t.status !== 'APPROVED') throw new WaTemplateError(`Template is ${t.status} — Meta only sends APPROVED templates.`);
+  if (t.category === 'MARKETING' && !force) {
+    const heldAt = await marketingHeldFor(tenantId, phone);
+    if (heldAt) {
+      throw new WaTemplateError(
+        `Meta already held back a marketing message to this number at ${heldAt.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })} (per-person marketing limit, code 131049), ` +
+        'and they have not messaged you since. Another marketing send will most likely be held back too. ' +
+        'Ask them to send any WhatsApp message to your business number first, test with a different number, or use a UTILITY template.',
+        409, 'MARKETING_HELD',
+      );
+    }
+  }
   return sendTemplateTo(tenantId, t, phone, { body: values, urlButtonParam: buttonParam, log: { source: 'test', sentBy } });
 }
 
 /** Recipients: pasted numbers, students of a batch, or CRM leads matching a filter. `{name}` in a value is personalised. */
 export async function startBroadcast(
   tenantId: string, userId: string, id: string,
-  input: { phones?: string; batchId?: string; leads?: LeadFilter; values: string[]; buttonParam?: string },
+  input: { phones?: string; batchId?: string; leads?: LeadFilter; audience?: SourceAudience; values: string[]; buttonParam?: string; purpose?: BroadcastPurpose },
 ) {
   const t = await WhatsAppTemplate.findOne({ _id: id, tenantId });
   if (!t) throw new WaTemplateError('Template not found', 404);
@@ -559,7 +629,11 @@ export async function startBroadcast(
 
   let recipients: { phone: string; name: string; leadId?: any }[] = [];
   let audience = '';
-  if (input.leads) {
+  if (input.audience) {
+    const r = await resolveSourceAudience(tenantId, t, input.audience);
+    recipients = r.recipients;
+    audience = `${r.label} (${recipients.length})`;
+  } else if (input.leads) {
     const r = await resolveLeadAudience(tenantId, t, input.leads);
     recipients = r.recipients;
     audience = `CRM leads: ${r.label} (${recipients.length})`;
@@ -586,9 +660,13 @@ export async function startBroadcast(
   if (!recipients.length) throw new WaTemplateError('No recipients with a phone number.');
   if (recipients.length > 2000) throw new WaTemplateError('At most 2000 recipients per broadcast.');
 
+  // CRM leads are sales by nature; anything else must say what it is for, and defaults to "not sales"
+  // so a hiring or wishes message never starts the bot or creates leads.
+  const purpose: BroadcastPurpose = isPurpose(input.purpose) ? input.purpose : input.leads ? 'sales' : 'update';
   const b = await WhatsAppBroadcast.create({
-    tenantId, templateId: t._id, templateName: t.name, audience, total: recipients.length, createdBy: userId,
+    tenantId, templateId: t._id, templateName: t.name, audience, total: recipients.length, createdBy: userId, purpose,
   });
+  await markRepliesNotLeads(tenantId, recipients.map((r) => r.phone), { kind: purpose, templateName: t.name, broadcastId: b._id });
 
   (async () => {
     let sent = 0, failed = 0;
@@ -621,6 +699,40 @@ export async function startBroadcast(
   });
 
   return b;
+}
+
+// ── People from other modules (hackathons, tech battles, events…) ─────────────
+
+export interface SourceAudience { source: string; pick: AudiencePick; skipAlreadySent?: boolean }
+
+/** One per number; optionally without the numbers this template already reached. */
+async function dedupeAndSkip(tenantId: string, t: IWhatsAppTemplate, rows: { phone: string; name: string }[], skip?: boolean) {
+  const seen = new Set<string>();
+  rows = rows.filter((r) => { const k = normalizeTo(r.phone); if (k.length < 10 || seen.has(k)) return false; seen.add(k); return true; });
+  let alreadySent = 0;
+  if (skip) {
+    const done = new Set<string>(await WhatsAppMessageLog.distinct('to', { tenantId: new mongoose.Types.ObjectId(tenantId), templateName: t.name, status: { $ne: 'failed' } }));
+    const before = rows.length;
+    rows = rows.filter((r) => !done.has(normalizeTo(r.phone)));
+    alreadySent = before - rows.length;
+  }
+  return { rows, alreadySent };
+}
+
+export async function resolveSourceAudience(tenantId: string, t: IWhatsAppTemplate, a: SourceAudience) {
+  const source = getAudienceSource(a.source);
+  if (!source) throw new WaTemplateError('Unknown recipient list.');
+  const { rows, alreadySent } = await dedupeAndSkip(tenantId, t, await source.resolve(tenantId, a.pick || {}), a.skipAlreadySent);
+  return { recipients: rows, alreadySent, label: await describePick(tenantId, source, a.pick || {}) };
+}
+
+export async function previewSourceAudience(tenantId: string, id: string, a: SourceAudience) {
+  const t = await WhatsAppTemplate.findOne({ _id: id, tenantId });
+  if (!t) throw new WaTemplateError('Template not found', 404);
+  const source = getAudienceSource(a.source);
+  if (!source) throw new WaTemplateError('Unknown recipient list.');
+  const { rows, alreadySent } = await dedupeAndSkip(tenantId, t, await source.resolve(tenantId, a.pick || {}), a.skipAlreadySent);
+  return { total: rows.length, alreadySent, sample: rows.slice(0, 5).map((x) => x.name || x.phone) };
 }
 
 // ── CRM leads as a broadcast audience ────────────────────────────────────────

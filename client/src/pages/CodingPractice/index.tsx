@@ -53,13 +53,13 @@ export const MySets: React.FC<{ base: string }> = ({ base }) => {
                     {due && <span className={`pb-pill ${due.cls}`}>{due.text}</span>}
                   </div>
                   <b style={{ fontSize: 16 }}>{s.title}</b>
-                  {s.description && <div className="pb-muted" style={{ fontSize: 13, marginTop: 4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.description}</div>}
+                  {s.description && <div className="pb-muted" style={{ fontSize: 'max(13px, var(--fs-floor, 0px))', marginTop: 4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.description}</div>}
                   <div className="pb-diffbar" style={{ marginTop: 12 }}><span style={{ width: `${pct}%`, background: 'var(--pb-ok)' }} /></div>
-                  <div className="pb-row" style={{ fontSize: 12.5 }}>
+                  <div className="pb-row" style={{ fontSize: 'max(12.5px, var(--fs-floor, 0px))' }}>
                     <span><b>{s.solved}</b>/{s.problemCount} solved</span><span className="pb-spacer" />
                     <span className="pb-muted">{s.score} / {s.totalMarks} marks</span>
                   </div>
-                  <div className="pb-row" style={{ gap: 10, fontSize: 12, marginTop: 6 }}>
+                  <div className="pb-row" style={{ gap: 10, fontSize: 'max(12px, var(--fs-floor, 0px))', marginTop: 6 }}>
                     <span style={{ color: 'var(--pb-easy)' }}>{s.counts.easy} easy</span>
                     <span style={{ color: 'var(--pb-medium)' }}>{s.counts.medium} medium</span>
                     <span style={{ color: 'var(--pb-hard)' }}>{s.counts.hard} hard</span>

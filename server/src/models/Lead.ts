@@ -1,6 +1,9 @@
+import { coursesFromCustomFields } from '../utils/leadCourse';
 import mongoose, { Schema, Document } from 'mongoose';
 
-export type CallOutcome = 'not_answered' | 'not_connected' | 'busy' | 'rejected' | 'connected' | 'wrong_number' | 'switched_off';
+/** Every call outcome the server accepts. The lead page, follow-up calendar and API all use this one list. */
+export const CALL_OUTCOMES = ['not_answered', 'not_connected', 'busy', 'rejected', 'connected', 'wrong_number', 'switched_off', 'callback_requested'] as const;
+export type CallOutcome = typeof CALL_OUTCOMES[number];
 export type CallStatus = 'scheduled' | 'completed' | 'missed' | 'rescheduled' | 'cancelled';
 export type CallSubOutcome = 'interested_follow_up' | 'interested_demo' | 'interested_visit' | 'interested_payment' | 'need_time' | 'not_interested';
 export type LeadLanguage = 'english' | 'telugu' | 'hindi';
@@ -35,6 +38,10 @@ export interface ISourceDetails {
   /** Click-to-WhatsApp ads: Meta's click id and the headline the person saw. */
   ctwaClid?: string;
   adHeadline?: string;
+  metaCampaignId?: string;
+  metaAdSetId?: string;
+  metaPageId?: string;
+  metaLeadCreatedAt?: Date;
 }
 
 export interface ICostData {
@@ -147,6 +154,14 @@ export interface ILead extends Document {
   courseInterest: string[];
   source: string;
   stageId: mongoose.Types.ObjectId;
+  subStageId?: mongoose.Types.ObjectId;
+  reasonId?: mongoose.Types.ObjectId;
+  reasonDetail?: string;
+  stageEnteredAt?: Date;
+  lastContactedAt?: Date;
+  lastCallOutcome?: string;
+  milestones?: Partial<Record<'contactingAt' | 'connectedAt' | 'qualifiedAt' | 'demoAt' | 'demoAttendedAt' | 'seatReservedAt' | 'enrolledAt' | 'nurtureAt' | 'lostAt', Date>>;
+  nurture?: { reactivateAt?: Date };
   assignedTo?: mongoose.Types.ObjectId;
   nextFollowUp?: Date;
   notes: string;
@@ -154,6 +169,8 @@ export interface ILead extends Document {
   interestConcerns: string[];
   customFields?: Map<string, any>;
   convertedStudentId?: mongoose.Types.ObjectId;
+  /** LMS Refer & Earn: the student who referred this lead (models/Referral.ts). */
+  referral?: { referralId?: mongoose.Types.ObjectId; referrerId?: mongoose.Types.ObjectId; referrerName?: string; code?: string };
   activities: ILeadActivity[];
   
   // Campaign tracking fields
@@ -211,11 +228,17 @@ export interface ILead extends Document {
     requestedBy: mongoose.Types.ObjectId;
     requestedAt: Date;
     reason?: string;
+    subStageId?: mongoose.Types.ObjectId;
+    reasonId?: mongoose.Types.ObjectId;
+    reasonDetail?: string;
+    note?: string;
+    nextFollowUp?: Date;
   };
   
   // NEW: SLA breach flag
   slaBreach?: boolean;
   slaBreachAt?: Date;
+  untouchedAlertAt?: Date | null;
 
   // P5: Fee & Payment tracking
   feeQuote?: number;
@@ -251,6 +274,12 @@ export interface ILead extends Document {
   archivedBy?: mongoose.Types.ObjectId;
   archiveReason?: string;
   archiveRunId?: mongoose.Types.ObjectId;
+  /** The same person enquired again (new ad form, website, enquiry form). See services/leadReEnquiryService. */
+  reEnquiryCount?: number;
+  lastReEnquiryAt?: Date;
+  /** True until somebody works the lead after the repeat enquiry: drives the "Enquired again" badge and filter. */
+  reEnquiryUnseen?: boolean;
+  reEnquiries?: Array<{ at: Date; channel: string; adId?: string; adName?: string; campaignName?: string; formId?: string; note?: string }>;
   aiFeedback?: { callId?: string; outcome?: string; receivedAt?: Date; callAt?: Date; state?: string; doNotContact?: boolean };
   outpero?: {
     status?: 'pending' | 'sent' | 'failed';
@@ -291,9 +320,13 @@ const LeadActivitySchema: Schema = new Schema(
       type: Date,
       default: Date.now
     },
+    // A built-in code (CALL_OUTCOMES) or the institute's own code from its call-outcome list
+    // (LeadPicklist). Controllers check it against validCallOutcomeCodes(tenantId).
     callOutcome: {
       type: String,
-      enum: ['not_answered', 'not_connected', 'busy', 'rejected', 'connected', 'wrong_number', 'switched_off']
+      trim: true,
+      maxlength: 60,
+      match: /^[a-z0-9_]+$/
     },
     callSubOutcome: {
       type: String,
@@ -354,6 +387,24 @@ const LeadSchema: Schema = new Schema(
       ref: 'LeadStage',
       required: true
     },
+    // Configurable pipeline (LeadSubStage / LeadReason). Optional: older leads have none.
+    subStageId: { type: mongoose.Types.ObjectId, ref: 'LeadSubStage' },
+    reasonId: { type: mongoose.Types.ObjectId, ref: 'LeadReason' },
+    reasonDetail: { type: String, trim: true, maxlength: 1000 },
+    stageEnteredAt: { type: Date },
+    // Kept in step when a call / WhatsApp / email is logged, so the list can show and sort them
+    // without loading every activity.
+    lastContactedAt: { type: Date },
+    lastCallOutcome: { type: String, trim: true },
+    // First time the lead reached each milestone. Set once, never overwritten — funnel
+    // reports and Meta events count from these, so a reopened lead is not counted twice.
+    milestones: {
+      contactingAt: Date, connectedAt: Date, qualifiedAt: Date, demoAt: Date,
+      seatReservedAt: Date, enrolledAt: Date, nurtureAt: Date, lostAt: Date,
+      // Not a stage: set when a demo meeting is marked attended.
+      demoAttendedAt: Date,
+    },
+    nurture: { reactivateAt: { type: Date } },
     assignedTo: {
       type: mongoose.Types.ObjectId,
       ref: 'User'
@@ -382,6 +433,12 @@ const LeadSchema: Schema = new Schema(
     convertedStudentId: {
       type: mongoose.Types.ObjectId,
       ref: 'User'
+    },
+    referral: {
+      referralId: { type: mongoose.Types.ObjectId, ref: 'Referral' },
+      referrerId: { type: mongoose.Types.ObjectId, ref: 'User' },
+      referrerName: { type: String },
+      code: { type: String },
     },
     metaSubmissionIds: { type: [String], default: undefined },
     activities: [LeadActivitySchema],
@@ -465,7 +522,12 @@ const LeadSchema: Schema = new Schema(
       landingPage: { type: String, trim: true },
       referrerUrl: { type: String, trim: true },
       ctwaClid: { type: String, trim: true },
-      adHeadline: { type: String, trim: true }
+      adHeadline: { type: String, trim: true },
+      // Meta's own ids (strings) — join keys for ad spend and CRM conversion events.
+      metaCampaignId: { type: String, trim: true },
+      metaAdSetId: { type: String, trim: true },
+      metaPageId: { type: String, trim: true },
+      metaLeadCreatedAt: { type: Date }
     },
     
     // NEW: Cost tracking (admin visibility only)
@@ -552,7 +614,9 @@ const LeadSchema: Schema = new Schema(
     lostReason: { type: String, trim: true },
     lostReasonCategory: {
       type: String,
-      enum: ['financial', 'competitor', 'timing', 'quality', 'other']
+      // Must include every category LostReasonConfig allows ('contact' was missing, so
+      // marking a lead lost with e.g. "Wrong number" failed validation).
+      enum: ['financial', 'competitor', 'timing', 'quality', 'contact', 'other']
     },
     lostReasonDetail: { type: String, trim: true },
     lostAt: { type: Date },
@@ -569,11 +633,18 @@ const LeadSchema: Schema = new Schema(
       requestedBy: { type: mongoose.Types.ObjectId, ref: 'User' },
       requestedAt: { type: Date },
       reason: { type: String, trim: true },
+      // Full request, so approval applies exactly what the counsellor chose.
+      subStageId: { type: mongoose.Types.ObjectId, ref: 'LeadSubStage' },
+      reasonId: { type: mongoose.Types.ObjectId, ref: 'LeadReason' },
+      reasonDetail: { type: String, trim: true },
+      note: { type: String, trim: true },
+      nextFollowUp: { type: Date },
     },
-    
+
     // NEW: SLA breach
     slaBreach: { type: Boolean, default: false },
     slaBreachAt: { type: Date },
+    untouchedAlertAt: { type: Date, default: null },
 
     // P5: Fee & Payment tracking
     feeQuote: { type: Number },
@@ -637,6 +708,24 @@ const LeadSchema: Schema = new Schema(
     archiveReason: { type: String, trim: true, maxlength: 300 },
     archiveRunId: { type: mongoose.Types.ObjectId, ref: 'LeadArchiveRun' },
 
+    // Repeat enquiries: the same person came back (another ad form, the website, an enquiry form).
+    reEnquiryCount: { type: Number, default: 0 },
+    lastReEnquiryAt: { type: Date },
+    reEnquiryUnseen: { type: Boolean, default: false },
+    reEnquiries: {
+      type: [{
+        _id: false,
+        at: { type: Date, default: Date.now },
+        channel: { type: String, trim: true },
+        adId: { type: String, trim: true },
+        adName: { type: String, trim: true },
+        campaignName: { type: String, trim: true },
+        formId: { type: String, trim: true },
+        note: { type: String, trim: true, maxlength: 300 },
+      }],
+      default: undefined,
+    },
+
     aiFeedbackLock: { token: String, until: Date },
     aiFeedback: { callId: String, outcome: String, receivedAt: Date, callAt: Date, state: String, doNotContact: Boolean },
     outpero: {
@@ -669,13 +758,19 @@ const LeadSchema: Schema = new Schema(
 
 LeadSchema.index({ tenantId: 1, metaSubmissionIds: 1 });
 LeadSchema.index({ tenantId: 1, stageId: 1 });
+LeadSchema.index({ tenantId: 1, subStageId: 1 }, { sparse: true });
+LeadSchema.index({ tenantId: 1, 'nurture.reactivateAt': 1 }, { sparse: true });
+LeadSchema.index({ tenantId: 1, lastContactedAt: -1 });
 LeadSchema.index({ tenantId: 1, archivedAt: 1, createdAt: -1 });
 LeadSchema.index({ archiveRunId: 1 }, { partialFilterExpression: { archiveRunId: { $exists: true } } });
 LeadSchema.index({ tenantId: 1, assignedTo: 1 });
 LeadSchema.index({ tenantId: 1, nextFollowUp: 1 });
 LeadSchema.index({ tenantId: 1, source: 1 });
+// Sales Teams: the every-minute "a lead was assigned to you" alert reads recent assignments across institutes.
+LeadSchema.index({ 'assignment.assignedAt': -1 }, { sparse: true });
 LeadSchema.index({ tenantId: 1, createdAt: -1 });
 LeadSchema.index({ tenantId: 1, campaignId: 1 });
+LeadSchema.index({ tenantId: 1, 'sourceDetails.adId': 1 });
 LeadSchema.index({ 'utmParams.source': 1, 'utmParams.campaign': 1 });
 // NEW: Additional indexes for performance
 LeadSchema.index({ tenantId: 1, priority: 1 });
@@ -695,6 +790,12 @@ LeadSchema.index({ 'outpero.status': 1, 'outpero.nextAttemptAt': 1 });
  */
 LeadSchema.pre('save', function (next) {
   (this as any).$locals.wasNew = this.isNew;
+  // Course asked in the lead form but stored only as a raw answer: show it as the course interest.
+  const self: any = this;
+  if ((!self.courseInterest || !self.courseInterest.length) && self.customFields) {
+    const courses = coursesFromCustomFields(self.customFields);
+    if (courses.length) self.courseInterest = courses;
+  }
   next();
 });
 LeadSchema.post('save', function (doc: any) {
@@ -702,6 +803,21 @@ LeadSchema.post('save', function (doc: any) {
   import('../services/outperoForwardService')
     .then((m) => m.onLeadCreated(doc))
     .catch((e) => console.error('[outpero] could not queue new lead', e?.message));
+  // The one assignment engine (Lead Assignment settings) — for every source, so none is missed.
+  // An owner set at creation is kept; a lead held for Outpero is assigned when the call result arrives.
+  if (!doc.assignedTo && !doc.assignment?.assignedTo && doc.tenantId) {
+    import('../services/leadAssignmentService')
+      .then((m) => m.assignLead(String(doc.tenantId), String(doc._id)))
+      .catch((e) => console.error('[lead-assignment] could not assign new lead', e?.message));
+  }
+  // Workflow Builder: "New lead" workflows (welcome, questions…). After assignment had its chance.
+  if (doc.tenantId) {
+    setTimeout(() => {
+      import('../services/workflow/engine')
+        .then((m) => m.fire({ tenantId: String(doc.tenantId), type: 'lead_created', leadId: doc._id, phone: doc.phone, data: { source: doc.source, name: doc.name } }))
+        .catch((e) => console.error('[workflow] lead_created failed', e?.message));
+    }, 3000).unref?.();
+  }
 });
 
 export default mongoose.model<ILead>('Lead', LeadSchema);

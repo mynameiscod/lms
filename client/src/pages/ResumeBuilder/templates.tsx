@@ -63,6 +63,18 @@ const ContactMeta: React.FC<{ c: ResumeSections['contact']; d: D; lineStyle: Rea
   return <div style={{ ...wrapStyle, ...lineStyle }}>{[primary, ...links].filter(Boolean).join(sep)}</div>;
 };
 
+/** "Name — Issuer, Year", leaving out what is not there (an achievement has no issuer). */
+const certLine = (c: { name: string; issuer?: string; year?: string }) =>
+  [c.name, c.issuer].filter(x => x && String(x).trim()).join(' — ') + (c.year ? `, ${c.year}` : '');
+/** "CGPA 8.4" for a grade point, "94.6%" as written for a percentage. */
+const gradeText = (g: string) => {
+  const v = String(g || '').trim();
+  if (!v) return '';
+  if (/%|percent|marks/i.test(v)) return v;
+  if (/^(cgpa|gpa|cpi|sgpa)\b/i.test(v)) return v;
+  return /^\d{1,2}(\.\d{1,2})?(\s*\/\s*10)?$/.test(v) ? `CGPA ${v}` : v;
+};
+
 type D = { fontFamily: string; scale: number; accent: string; lineHeight: number; align: 'left' | 'center'; base: number; showLinkUrls: boolean };
 const DEFAULTS: Record<ResumeTemplate, Omit<D, 'showLinkUrls'>> = {
   classic:      { fontFamily: 'Georgia, "Times New Roman", serif', scale: 1, accent: '#1a1a1a', lineHeight: 1.5, align: 'center', base: 12.5 },
@@ -119,14 +131,14 @@ const Classic: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
           <RichTextView html={p.description} />
         </div>
       ))}</Section>}
-      {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i}><strong>{g.category}: </strong>{g.items.join(', ')}</div>))}</Section>}
+      {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i}>{g.category && <strong>{g.category}: </strong>}{g.items.join(', ')}</div>))}</Section>}
       {has(s.education) && <Section title="Education">{s.education.map((e, i) => (
         <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span><strong>{e.degree}</strong>{e.college && `, ${e.college}`}</span>
-          <span style={{ color: '#555' }}>{e.year}{e.cgpa ? ` · CGPA ${e.cgpa}` : ''}</span>
+          <span style={{ color: '#555' }}>{e.year}{e.cgpa ? ` · ${gradeText(e.cgpa)}` : ''}</span>
         </div>
       ))}</Section>}
-      {has(s.certifications) && <Section title="Certifications">{s.certifications.map((c, i) => (<div key={i}>{c.name} — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>))}</Section>}
+      {has(s.certifications) && <Section title="Certifications">{s.certifications.map((c, i) => (<div key={i}>{certLine(c)}</div>))}</Section>}
     </div>
   );
 };
@@ -144,8 +156,8 @@ const Modern: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
     <div style={{ fontFamily: d.fontFamily, color: '#1f2937', fontSize: f(d.base), lineHeight: d.lineHeight }}>
       <div style={{ background: accent, color: '#fff', padding: '26px 36px', textAlign: d.align }}>
         <div style={{ fontSize: f(26), fontWeight: 800 }}>{s.contact.name || 'Your Name'}</div>
-        {s.contact.title && <div style={{ fontSize: f(12.5), opacity: 0.95, marginTop: 2 }}>{s.contact.title}</div>}
-        <ContactMeta c={s.contact} d={d} wrapStyle={{ marginTop: 4 }} lineStyle={{ fontSize: f(11.5), opacity: 0.92 }} sep="   ·   " />
+        {s.contact.title && <div style={{ fontSize: f(12.5), color: 'rgba(255,255,255,0.95)', marginTop: 2 }}>{s.contact.title}</div>}
+        <ContactMeta c={s.contact} d={d} wrapStyle={{ marginTop: 4 }} lineStyle={{ fontSize: f(11.5), color: 'rgba(255,255,255,0.92)' }} sep="   ·   " />
       </div>
       <div style={{ padding: '20px 36px' }}>
         {s.summary && <div style={{ marginBottom: 14 }}><Title t="Summary" /><p style={{ margin: 0 }}>{s.summary}</p></div>}
@@ -164,14 +176,14 @@ const Modern: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
           </div>
         ))}</div>}
         {has(s.skills) && <div style={{ marginBottom: 14 }}><Title t="Skills" />{s.skills.map((g, i) => (
-          <div key={i} style={{ marginBottom: 5 }}><strong>{g.category}: </strong>
+          <div key={i} style={{ marginBottom: 5 }}>{g.category && <strong>{g.category}: </strong>}
             {g.items.map(it => <span key={it} style={{ display: 'inline-block', background: `${accent}15`, color: accent, borderRadius: 12, padding: '1px 9px', fontSize: f(10.5), margin: '0 4px 4px 0' }}>{it}</span>)}
           </div>
         ))}</div>}
         {has(s.education) && <div style={{ marginBottom: 14 }}><Title t="Education" />{s.education.map((e, i) => (
-          <div key={i}><strong>{e.degree}</strong>{e.college && `, ${e.college}`} {e.year && <span style={{ color: '#6b7280' }}>· {e.year}</span>}{e.cgpa ? ` · CGPA ${e.cgpa}` : ''}</div>
+          <div key={i}><strong>{e.degree}</strong>{e.college && `, ${e.college}`} {e.year && <span style={{ color: '#6b7280' }}>· {e.year}</span>}{e.cgpa ? ` · ${gradeText(e.cgpa)}` : ''}</div>
         ))}</div>}
-        {has(s.certifications) && <div><Title t="Certifications" />{s.certifications.map((c, i) => (<div key={i}>{c.name} — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>))}</div>}
+        {has(s.certifications) && <div><Title t="Certifications" />{s.certifications.map((c, i) => (<div key={i}>{certLine(c)}</div>))}</div>}
       </div>
     </div>
   );
@@ -204,11 +216,11 @@ const Minimal: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
           <RichTextView html={p.description} />
         </div>
       ))}</Block>}
-      {has(s.skills) && <Block><Title t="Skills" />{s.skills.map((g, i) => (<div key={i} style={{ marginBottom: 3 }}><span style={{ color: '#9ca3af' }}>{g.category}</span>  —  {g.items.join(', ')}</div>))}</Block>}
+      {has(s.skills) && <Block><Title t="Skills" />{s.skills.map((g, i) => (<div key={i} style={{ marginBottom: 3 }}>{g.category && <><span style={{ color: '#9ca3af' }}>{g.category}</span>  —  </>}{g.items.join(', ')}</div>))}</Block>}
       {has(s.education) && <Block><Title t="Education" />{s.education.map((e, i) => (
-        <div key={i}><span style={{ fontWeight: 500, color: '#111827' }}>{e.degree}</span>{e.college && `, ${e.college}`}{e.year && <span style={{ color: '#9ca3af' }}>  ·  {e.year}</span>}{e.cgpa ? `  ·  CGPA ${e.cgpa}` : ''}</div>
+        <div key={i}><span style={{ fontWeight: 500, color: '#111827' }}>{e.degree}</span>{e.college && `, ${e.college}`}{e.year && <span style={{ color: '#9ca3af' }}>  ·  {e.year}</span>}{e.cgpa ? `  ·  ${gradeText(e.cgpa)}` : ''}</div>
       ))}</Block>}
-      {has(s.certifications) && <Block><Title t="Certifications" />{s.certifications.map((c, i) => (<div key={i}>{c.name} — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>))}</Block>}
+      {has(s.certifications) && <Block><Title t="Certifications" />{s.certifications.map((c, i) => (<div key={i}>{certLine(c)}</div>))}</Block>}
     </div>
   );
 };
@@ -220,20 +232,20 @@ const Professional: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
   const SideTitle: React.FC<{ t: string }> = ({ t }) => (<div style={{ fontSize: f(11), fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.3)', paddingBottom: 3, margin: '0 0 8px' }}>{t}</div>);
   const MainTitle: React.FC<{ t: string }> = ({ t }) => (<div style={{ fontSize: f(13), fontWeight: 800, color: accent, textTransform: 'uppercase', letterSpacing: 0.6, margin: '0 0 7px' }}>{t}</div>);
   return (
-    <div style={{ display: 'flex', fontFamily: d.fontFamily, color: '#1f2937', fontSize: f(d.base), lineHeight: d.lineHeight, minHeight: 600 }}>
+    <div style={{ display: 'flex', fontFamily: d.fontFamily, color: '#1f2937', fontSize: f(d.base), lineHeight: d.lineHeight, minHeight: '296mm' }}>
       <div style={{ width: '34%', background: accent, color: '#fff', padding: '30px 20px' }}>
         <div style={{ fontSize: f(20), fontWeight: 800, lineHeight: 1.2 }}>{s.contact.name || 'Your Name'}</div>
         <div style={{ marginTop: 18 }}>
           <SideTitle t="Contact" />
-          {[s.contact.email, s.contact.phone, s.contact.location, ...linkParts(s.contact, d.showLinkUrls)].filter(Boolean).map((v, i) => (<div key={i} style={{ fontSize: f(10.5), marginBottom: 4, wordBreak: 'break-word', opacity: 0.95 }}>{v}</div>))}
+          {[s.contact.email, s.contact.phone, s.contact.location, ...linkParts(s.contact, d.showLinkUrls)].filter(Boolean).map((v, i) => (<div key={i} style={{ fontSize: f(10.5), marginBottom: 4, wordBreak: 'break-word', color: 'rgba(255,255,255,0.95)' }}>{v}</div>))}
         </div>
         {has(s.skills) && <div style={{ marginTop: 18 }}><SideTitle t="Skills" />{s.skills.map((g, i) => (
-          <div key={i} style={{ marginBottom: 7 }}><div style={{ fontWeight: 700, fontSize: f(10.5) }}>{g.category}</div><div style={{ fontSize: f(10.5), opacity: 0.95 }}>{g.items.join(', ')}</div></div>
+          <div key={i} style={{ marginBottom: 7 }}>{g.category && <div style={{ fontWeight: 700, fontSize: f(10.5) }}>{g.category}</div>}<div style={{ fontSize: f(10.5), color: 'rgba(255,255,255,0.95)' }}>{g.items.join(', ')}</div></div>
         ))}</div>}
         {has(s.education) && <div style={{ marginTop: 18 }}><SideTitle t="Education" />{s.education.map((e, i) => (
-          <div key={i} style={{ marginBottom: 7, fontSize: f(10.5) }}><div style={{ fontWeight: 700 }}>{e.degree}</div><div style={{ opacity: 0.95 }}>{e.college}{e.year ? `, ${e.year}` : ''}{e.cgpa ? ` · CGPA ${e.cgpa}` : ''}</div></div>
+          <div key={i} style={{ marginBottom: 7, fontSize: f(10.5) }}><div style={{ fontWeight: 700 }}>{e.degree}</div><div style={{ color: 'rgba(255,255,255,0.95)' }}>{e.college}{e.year ? `, ${e.year}` : ''}{e.cgpa ? ` · ${gradeText(e.cgpa)}` : ''}</div></div>
         ))}</div>}
-        {has(s.certifications) && <div style={{ marginTop: 18 }}><SideTitle t="Certifications" />{s.certifications.map((c, i) => (<div key={i} style={{ marginBottom: 5, fontSize: f(10.5), opacity: 0.95 }}>{c.name} — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>))}</div>}
+        {has(s.certifications) && <div style={{ marginTop: 18 }}><SideTitle t="Certifications" />{s.certifications.map((c, i) => (<div key={i} style={{ marginBottom: 5, fontSize: f(10.5), color: 'rgba(255,255,255,0.95)' }}>{certLine(c)}</div>))}</div>}
       </div>
       <div style={{ width: '66%', padding: '30px 26px' }}>
         {s.summary && <div style={{ marginBottom: 16 }}><MainTitle t="Profile" /><p style={{ margin: 0 }}>{s.summary}</p></div>}
@@ -278,7 +290,7 @@ const Compact: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
           {has(e.bullets) && <ul style={{ margin: '2px 0 0', paddingLeft: 16 }}>{e.bullets.filter(Boolean).map((b, j) => <li key={j}>{b}</li>)}</ul>}
         </div>
       ))}</Section>}
-      {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i}><strong>{g.category}: </strong>{g.items.join(', ')}</div>))}</Section>}
+      {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i}>{g.category && <strong>{g.category}: </strong>}{g.items.join(', ')}</div>))}</Section>}
       {has(s.projects) && <Section title="Projects">{s.projects.map((p, i) => (
         <div key={i} style={{ marginBottom: 4 }}>
           <div style={{ fontWeight: 700 }}>{p.name}{has(p.tech) && <span style={{ fontWeight: 400, color: '#666' }}> — {p.tech.join(', ')}</span>}</div>
@@ -288,10 +300,10 @@ const Compact: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
       {has(s.education) && <Section title="Education">{s.education.map((e, i) => (
         <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span><strong>{e.degree}</strong>{e.college && `, ${e.college}`}</span>
-          <span style={{ color: '#666' }}>{e.year}{e.cgpa ? ` · ${e.cgpa}` : ''}</span>
+          <span style={{ color: '#666' }}>{e.year}{e.cgpa ? ` · ${gradeText(e.cgpa)}` : ''}</span>
         </div>
       ))}</Section>}
-      {has(s.certifications) && <Section title="Certifications">{s.certifications.map((c, i) => (<div key={i}>{c.name} — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>))}</Section>}
+      {has(s.certifications) && <Section title="Certifications">{s.certifications.map((c, i) => (<div key={i}>{certLine(c)}</div>))}</Section>}
     </div>
   );
 };
@@ -331,14 +343,14 @@ const Elegant: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
           <RichTextView html={p.description} />
         </div>
       ))}</Section>}
-      {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i} style={{ textAlign: 'center' }}><strong>{g.category}:</strong> {g.items.join('  ·  ')}</div>))}</Section>}
+      {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i} style={{ textAlign: 'center' }}>{g.category && <><strong>{g.category}:</strong> </>}{g.items.join('  ·  ')}</div>))}</Section>}
       {has(s.education) && <Section title="Education">{s.education.map((e, i) => (
         <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span><strong>{e.degree}</strong>{e.college && `, ${e.college}`}</span>
-          <span style={{ color: '#8a7a68' }}>{e.year}{e.cgpa ? ` · CGPA ${e.cgpa}` : ''}</span>
+          <span style={{ color: '#8a7a68' }}>{e.year}{e.cgpa ? ` · ${gradeText(e.cgpa)}` : ''}</span>
         </div>
       ))}</Section>}
-      {has(s.certifications) && <Section title="Certifications">{s.certifications.map((c, i) => (<div key={i} style={{ textAlign: 'center' }}>{c.name} — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>))}</Section>}
+      {has(s.certifications) && <Section title="Certifications">{s.certifications.map((c, i) => (<div key={i} style={{ textAlign: 'center' }}>{certLine(c)}</div>))}</Section>}
     </div>
   );
 };
@@ -367,12 +379,12 @@ const Mono: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
           {has(e.bullets) && <ul style={{ margin: '3px 0 0', paddingLeft: 18 }}>{e.bullets.filter(Boolean).map((b, j) => <li key={j}>{b}</li>)}</ul>}
         </div>
       ))}</Section>}
-      {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i}><span style={{ color: accent }}>{g.category}</span> = [{g.items.join(', ')}]</div>))}</Section>}
+      {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i}><span style={{ color: accent }}>{g.category || 'skills'}</span> = [{g.items.join(', ')}]</div>))}</Section>}
       {has(s.projects) && <Section title="Projects">{s.projects.map((p, i) => (
         <div key={i} style={{ marginBottom: 7 }}><div style={{ fontWeight: 700 }}>{p.name}{has(p.tech) && <span style={{ fontWeight: 400, color: '#64748b' }}> — {p.tech.join(', ')}</span>}</div><RichTextView html={p.description} /></div>
       ))}</Section>}
-      {has(s.education) && <Section title="Education">{s.education.map((e, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span><strong>{e.degree}</strong>{e.college && `, ${e.college}`}</span><span style={{ color: '#64748b' }}>{e.year}{e.cgpa ? ` · ${e.cgpa}` : ''}</span></div>))}</Section>}
-      {has(s.certifications) && <Section title="Certifications">{s.certifications.map((c, i) => (<div key={i}>{c.name} — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>))}</Section>}
+      {has(s.education) && <Section title="Education">{s.education.map((e, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span><strong>{e.degree}</strong>{e.college && `, ${e.college}`}</span><span style={{ color: '#64748b' }}>{e.year}{e.cgpa ? ` · ${gradeText(e.cgpa)}` : ''}</span></div>))}</Section>}
+      {has(s.certifications) && <Section title="Certifications">{s.certifications.map((c, i) => (<div key={i}>{certLine(c)}</div>))}</Section>}
     </div>
   );
 };
@@ -399,15 +411,24 @@ const Timeline: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
         </div>
       ))}</div></div>}
       {has(s.projects) && <div style={{ marginBottom: 14 }}><Title t="Projects" />{s.projects.map((p, i) => (<div key={i} style={{ marginBottom: 7 }}><div style={{ fontWeight: 700 }}>{p.name}{has(p.tech) && <span style={{ fontWeight: 400, color: '#6b7280' }}> — {p.tech.join(', ')}</span>}</div><RichTextView html={p.description} /></div>))}</div>}
-      {has(s.skills) && <div style={{ marginBottom: 14 }}><Title t="Skills" />{s.skills.map((g, i) => (<div key={i}><strong>{g.category}: </strong>{g.items.join(', ')}</div>))}</div>}
-      {has(s.education) && <div style={{ marginBottom: 14 }}><Title t="Education" />{s.education.map((e, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span><strong>{e.degree}</strong>{e.college && `, ${e.college}`}</span><span style={{ color: '#6b7280' }}>{e.year}{e.cgpa ? ` · CGPA ${e.cgpa}` : ''}</span></div>))}</div>}
-      {has(s.certifications) && <div><Title t="Certifications" />{s.certifications.map((c, i) => (<div key={i}>{c.name} — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>))}</div>}
+      {has(s.skills) && <div style={{ marginBottom: 14 }}><Title t="Skills" />{s.skills.map((g, i) => (<div key={i}>{g.category && <strong>{g.category}: </strong>}{g.items.join(', ')}</div>))}</div>}
+      {has(s.education) && <div style={{ marginBottom: 14 }}><Title t="Education" />{s.education.map((e, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span><strong>{e.degree}</strong>{e.college && `, ${e.college}`}</span><span style={{ color: '#6b7280' }}>{e.year}{e.cgpa ? ` · ${gradeText(e.cgpa)}` : ''}</span></div>))}</div>}
+      {has(s.certifications) && <div><Title t="Certifications" />{s.certifications.map((c, i) => (<div key={i}>{certLine(c)}</div>))}</div>}
     </div>
   );
 };
 
 // ── Switcher ────────────────────────────────────────────────────────────────────
-export const ResumeDocument: React.FC<{ sections: ResumeSections; template?: ResumeTemplate; design?: ResumeDesign }> = ({ sections, template, design }) => {
+const DOC_CSS = '.rb-doc .rb-rte-render ul,.rb-doc .rb-rte-render ol{margin:3px 0 0;padding-left:18px}.rb-doc .rb-rte-render li{margin:0 0 1px}.rb-doc .rb-rte-render p{margin:0 0 2px}.rb-doc .rb-rte-render>*:last-child{margin-bottom:0}';
+
+export const ResumeDocument: React.FC<{ sections: ResumeSections; template?: ResumeTemplate; design?: ResumeDesign }> = (props) => (
+  <div className="rb-doc"><style>{DOC_CSS}</style><ResumeBody {...props} /></div>
+);
+
+const ResumeBody: React.FC<{ sections: ResumeSections; template?: ResumeTemplate; design?: ResumeDesign }> = ({ sections: raw, template, design }) => {
+  // One skill group called just "Skills" sits under a "Skills" heading already: print its items without the label.
+  const sections = raw.skills?.length === 1 && /^(technical\s+|key\s+|core\s+)?skills?$/i.test(String(raw.skills[0].category || '').trim())
+    ? { ...raw, skills: [{ ...raw.skills[0], category: '' }] } : raw;
   const tpl = template || 'classic';
   const d = resolve(tpl, design);
   switch (tpl) {

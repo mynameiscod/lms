@@ -4,6 +4,9 @@ import passportApi, {
   RuleVocabulary, RulePreview, ReevaluateResult,
 } from '../../api/passportApi';
 import './adminPathwayRules.css';
+// Several shared classes (pm-btn, pm-msg and this page's own) live in the member stylesheet; import
+// it here so the page is styled the same on a fresh load as after visiting a member page.
+import './member.css';
 
 /**
  * Who each pathway serves.

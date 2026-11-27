@@ -362,6 +362,8 @@ export const DEFAULT_ENTITLEMENTS: IEntitlement[] = [
   { featureKey: 'interview_experiences', label: 'Interview Experiences',  tier: 'paid' },
   { featureKey: 'question_books',  label: 'Question Books',               tier: 'paid' },
   { featureKey: 'ai_mentor',       label: 'AI Mentor',                    tier: 'paid' },
+  { featureKey: 'thinking_lab',    label: 'Thinking Lab',                 tier: 'paid' },
+  { featureKey: 'industry_connect', label: 'Industry Connect',            tier: 'paid' },
 ];
 
 export default mongoose.model<IPassportConfig>('PassportConfig', PassportConfigSchema);

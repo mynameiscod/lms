@@ -2,6 +2,7 @@ import axios from 'axios';
 import { attributionForSubmit } from '../utils/careerPilotAttribution';
 import { loadRazorpay } from './paymentApi';
 import { visitorId, sessionId } from '../pages/Passport/activityBeacon';
+import { celebrateMembership } from '../components/Celebration/celebrate';
 
 const BASE = (process.env.REACT_APP_API_URL || '/api/v1') + '/passport';
 /**
@@ -175,6 +176,8 @@ export const passportApi = {
   updateConfig: async (patch: Partial<PassportConfig>): Promise<{
     config: PassportConfig; engine?: CurriculumEngineSummary;
     foundation?: FoundationReadiness; stageReadiness?: Record<string, StageReadiness>;
+    /** Years whose days changed, with the new length: their roadmaps are being resized. */
+    roadmapsResizing?: Record<string, number> | null;
   }> => {
     const { data } = await axios.put(`${BASE}/config`, patch, { headers: auth() });
     return data;
@@ -232,6 +235,121 @@ export const passportApi = {
   },
   revokeMembership: async (userId: string): Promise<any> => {
     const { data } = await axios.delete(`${BASE}/members/${userId}/grant`, { headers: auth() });
+    return data;
+  },
+  /** Demo plans (Super Admin): what a demo account shows, year by year. */
+  listDemoPlans: async (): Promise<{ plans: DemoPlan[]; years: DemoYearInfo[]; roundTypes: string[]; maxPerList: number }> => {
+    const { data } = await axios.get(`${BASE}/demo-plans`, { headers: auth() });
+    return data;
+  },
+  searchDemoOptions: async (kind: 'problems' | 'thinking' | 'books', q: string, opts: { page?: number; difficulty?: string; type?: string } = {}): Promise<{ items: DemoPickItem[]; total: number; hasMore: boolean }> => {
+    const { data } = await axios.get(`${BASE}/demo-plans/options/${kind}`, { params: { q, ...opts }, headers: auth() });
+    const items: DemoPickItem[] = data.items || [];
+    return { items, total: Number(data.total ?? items.length), hasMore: !!data.hasMore };
+  },
+  listDemoTracks: async (): Promise<{ key: string; name: string }[]> => {
+    const { data } = await axios.get(`${BASE}/demo-plans/options/tracks`, { headers: auth() });
+    return data.tracks || [];
+  },
+  saveDemoPlan: async (id: string | null, body: DemoPlanInput): Promise<{ id: string; missing: string[]; warnings: string[] }> => {
+    const { data } = id
+      ? await axios.put(`${BASE}/demo-plans/${id}`, body, { headers: auth() })
+      : await axios.post(`${BASE}/demo-plans`, body, { headers: auth() });
+    return data;
+  },
+  deleteDemoPlan: async (id: string): Promise<void> => {
+    await axios.delete(`${BASE}/demo-plans/${id}`, { headers: auth() });
+  },
+  /** Both labs today: questions / tasks done, streaks, XP (My N Days, Communication Lab). */
+  labsToday: async (): Promise<LabsToday> => (await axios.get(`${BASE}/labs/today`, { headers: auth() })).data,
+  /** Problem Bank → Thinking Lab: the shared question bank. */
+  thinkingBankMeta: async (): Promise<ThinkingBankMeta> => (await axios.get(`${BASE}/thinking-bank/meta`, { headers: auth() })).data,
+  thinkingBankList: async (f: { type?: string; difficulty?: string; year?: string; status?: string; q?: string; page?: number }): Promise<{ questions: ThinkingQuestionRow[]; total: number; page: number; pages: number }> =>
+    (await axios.get(`${BASE}/thinking-bank`, { headers: auth(), params: f })).data,
+  thinkingBankGet: async (id: string): Promise<{ question: ThinkingQuestionDetail }> => (await axios.get(`${BASE}/thinking-bank/${id}`, { headers: auth() })).data,
+  thinkingBankSave: async (id: string | null, body: Partial<ThinkingQuestionDetail>): Promise<{ question: ThinkingQuestionDetail }> =>
+    (id ? await axios.put(`${BASE}/thinking-bank/${id}`, body, { headers: auth() }) : await axios.post(`${BASE}/thinking-bank`, body, { headers: auth() })).data,
+  thinkingBankDelete: async (id: string): Promise<void> => { await axios.delete(`${BASE}/thinking-bank/${id}`, { headers: auth() }); },
+  thinkingBankGenerate: async (body: { type: string; difficulty: string; subCategory?: string; year?: string; count: number; brief?: string }): Promise<{ questions: ThinkingQuestionRow[]; failed: number }> =>
+    (await axios.post(`${BASE}/thinking-bank/generate`, body, { headers: auth(), timeout: 180000 })).data,
+  /** Job openings for every member (Job Board). */
+  listJobOpenings: async (): Promise<{ locked: boolean; openings: JobOpening[] }> => {
+    const { data } = await axios.get(`${BASE}/job-openings`, { headers: auth() });
+    return data;
+  },
+  markJobApplied: async (id: string, applied: boolean): Promise<{ appliedAt: string | null }> => {
+    const { data } = await axios.put(`${BASE}/job-openings/${id}/applied`, { applied }, { headers: auth() });
+    return data;
+  },
+  adminJobOpenings: async (): Promise<{ openings: AdminJobOpening[] }> => {
+    const { data } = await axios.get(`${BASE}/job-openings-admin`, { headers: auth() });
+    return data;
+  },
+  saveJobOpening: async (id: string | null, body: JobOpeningInput): Promise<{ opening: AdminJobOpening }> => {
+    const { data } = id
+      ? await axios.put(`${BASE}/job-openings-admin/${id}`, body, { headers: auth() })
+      : await axios.post(`${BASE}/job-openings-admin`, body, { headers: auth() });
+    return data;
+  },
+  deleteJobOpening: async (id: string): Promise<void> => {
+    await axios.delete(`${BASE}/job-openings-admin/${id}`, { headers: auth() });
+  },
+  /** One member's demo access (Super Admin). */
+  memberDemo: async (userId: string): Promise<MemberDemoView> => {
+    const { data } = await axios.get(`${BASE}/members/${userId}/demo`, { headers: auth() });
+    return data;
+  },
+  giveDemo: async (userId: string, planId: string, note: string): Promise<{ given: boolean; roadmap: { ok: boolean; message?: string } }> => {
+    const { data } = await axios.post(`${BASE}/members/${userId}/demo`, { planId, note }, { headers: auth() });
+    return data;
+  },
+  endDemo: async (userId: string): Promise<void> => {
+    await axios.delete(`${BASE}/members/${userId}/demo`, { headers: auth() });
+  },
+  resetDemo: async (userId: string, kind: 'progress' | 'full'): Promise<{ reset: string; cleared: Record<string, number> }> => {
+    const { data } = await axios.post(`${BASE}/members/${userId}/demo/reset`, { kind }, { headers: auth() });
+    return data;
+  },
+  /** The demo account's own: its plan and year, and moving between years. */
+  myDemo: async (): Promise<MyDemo | null> => {
+    const { data } = await axios.get(`${BASE}/me/demo`, { headers: auth() });
+    return data.demo || null;
+  },
+  switchMyDemoYear: async (year: string): Promise<void> => {
+    await axios.post(`${BASE}/me/demo/year`, { year }, { headers: auth() });
+  },
+  resetMyDemo: async (kind: 'progress' | 'full'): Promise<{ reset: string }> => {
+    const { data } = await axios.post(`${BASE}/me/demo/reset`, { kind }, { headers: auth() });
+    return data;
+  },
+  /** Trial plans: what a trial opens and for how long (CareerPilot → Trial plans). */
+  listTrialPlans: async (): Promise<{ plans: TrialPlan[]; catalogue: TrialCatalogueItem[]; maxDays: number; maxPicked: number }> => {
+    const { data } = await axios.get(`${BASE}/trial-plans`, { headers: auth() });
+    return data;
+  },
+  /** Practice-library problems an admin can name in a plan. */
+  searchTrialProblems: async (q: string): Promise<TrialProblem[]> => {
+    const { data } = await axios.get(`${BASE}/trial-plans/problems`, { params: { q }, headers: auth() });
+    return data.problems || [];
+  },
+  saveTrialPlan: async (id: string | null, body: Omit<TrialPlan, 'id' | 'running' | 'updatedAt' | 'practiceProblems'> & { practiceProblemIds: string[] }): Promise<{ plan: TrialPlan }> => {
+    const { data } = id
+      ? await axios.put(`${BASE}/trial-plans/${id}`, body, { headers: auth() })
+      : await axios.post(`${BASE}/trial-plans`, body, { headers: auth() });
+    return data;
+  },
+  deleteTrialPlan: async (id: string): Promise<void> => {
+    await axios.delete(`${BASE}/trial-plans/${id}`, { headers: auth() });
+  },
+  startTrial: async (userId: string, planId: string, reason: string): Promise<{ trial: TrialStatus | null }> => {
+    const { data } = await axios.post(`${BASE}/members/${userId}/trial`, { planId, reason }, { headers: auth() });
+    return data;
+  },
+  endTrial: async (userId: string): Promise<void> => {
+    await axios.delete(`${BASE}/members/${userId}/trial`, { headers: auth() });
+  },
+  memberTrial: async (userId: string): Promise<{ trial: TrialStatus | null; last: any }> => {
+    const { data } = await axios.get(`${BASE}/members/${userId}/trial`, { headers: auth() });
     return data;
   },
   deleteMember: async (userId: string): Promise<any> => {
@@ -357,6 +475,18 @@ export const passportApi = {
     const r = await axios.get(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/student-preview`, { headers: auth() });
     return r.data;
   },
+  /** The day's video shooting script (admin-only). null when none has been written. */
+  getVideoScript: async (unitCode: string): Promise<VideoScript | null> => {
+    const r = await axios.get(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/script`, { headers: auth() });
+    return r.data?.data || null;
+  },
+  saveVideoScript: async (unitCode: string, body: VideoScriptInput): Promise<VideoScript> => {
+    const r = await axios.put(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/script`, body, { headers: auth() });
+    return r.data.data;
+  },
+  deleteVideoScript: async (unitCode: string): Promise<void> => {
+    await axios.delete(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/script`, { headers: auth() });
+  },
   attachUnitContent: async (unitCode: string, contentId: string): Promise<{ attached: boolean }> => {
     const r = await axios.post(
       `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/content/${encodeURIComponent(contentId)}`,
@@ -410,11 +540,11 @@ export const passportApi = {
     return r.data;
   },
   createUnitAssessment: async (
-    unitCode: string, kind: 'QUIZ' | 'ASSIGNMENT', title?: string,
+    unitCode: string, kind: 'QUIZ' | 'ASSIGNMENT', title?: string, type?: string,
   ): Promise<{ created: boolean; id: string }> => {
     const r = await axios.post(
       `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/assessments`,
-      { kind, title }, { headers: auth() });
+      { kind, title, ...(type ? { type } : {}) }, { headers: auth() });
     return r.data;
   },
   // ── Module and topic order ────────────────────────────────────────
@@ -612,8 +742,8 @@ export const passportApi = {
     return data;
   },
   /** Saves progress without submitting — the paper stays open and nothing is graded. */
-  saveSkillAnswers: async (answers: { sourceType: string; sourceId: string; response: any }[]): Promise<{ saved: boolean; answered: number }> => {
-    const { data } = await axios.put(`${BASE}/me/assessment/personalized/answers`, { answers }, { headers: auth() });
+  saveSkillAnswers: async (answers: { sourceType: string; sourceId: string; response: any; dontKnow?: boolean }[], position?: number): Promise<{ saved: boolean; answered: number }> => {
+    const { data } = await axios.put(`${BASE}/me/assessment/personalized/answers`, { answers, position }, { headers: auth() });
     return data;
   },
   /** Today's roadmap-derived work. */
@@ -672,6 +802,39 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/me/redemptions`, { headers: auth() });
     return data;
   },
+  /** Admin: the reward catalogue. */
+  adminRewards: async (): Promise<{ rewards: AdminReward[]; policy: { minRedemption: number; expiryMonths: number } }> => {
+    const { data } = await axios.get(`${BASE}/rewards/admin`, { headers: auth() });
+    return data;
+  },
+  adminCreateReward: async (r: Partial<AdminReward>): Promise<{ reward: AdminReward }> => {
+    const { data } = await axios.post(`${BASE}/rewards/admin`, r, { headers: auth() });
+    return data;
+  },
+  adminUpdateReward: async (key: string, patch: Partial<AdminReward>): Promise<{ reward: AdminReward }> => {
+    const { data } = await axios.put(`${BASE}/rewards/admin/${encodeURIComponent(key)}`, patch, { headers: auth() });
+    return data;
+  },
+  adminRedemptions: async (status?: string, skip = 0): Promise<{ redemptions: AdminRedemption[]; total: number; counts: Record<string, number> }> => {
+    const { data } = await axios.get(`${BASE}/rewards/admin/redemptions`, { headers: auth(), params: { ...(status ? { status } : {}), skip, limit: 50 } });
+    return data;
+  },
+  adminFulfilRedemption: async (id: string, fulfillmentReference?: string, notes?: string): Promise<{ redemption: AdminRedemption }> => {
+    const { data } = await axios.post(`${BASE}/rewards/admin/redemptions/${id}/fulfill`, { fulfillmentReference, notes }, { headers: auth() });
+    return data;
+  },
+  adminCancelRedemption: async (id: string, reason?: string): Promise<{ redemption: AdminRedemption }> => {
+    const { data } = await axios.post(`${BASE}/rewards/admin/redemptions/${id}/cancel`, { reason }, { headers: auth() });
+    return data;
+  },
+  adminStrandedRedemptions: async (): Promise<{ stranded: AdminRedemption[] }> => {
+    const { data } = await axios.get(`${BASE}/rewards/admin/stranded`, { headers: auth() });
+    return data;
+  },
+  adminRecoverRedemption: async (id: string): Promise<{ ok: boolean; refused?: string }> => {
+    const { data } = await axios.post(`${BASE}/rewards/admin/redemptions/${id}/recover`, {}, { headers: auth() });
+    return data;
+  },
 
   // ── Gamification (Module 11) ──
   /** XP, level, streak, badges and ranks. Read-only: no client can award anything. */
@@ -683,32 +846,82 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/me/gamification/xp-history`, { headers: auth(), params: { limit } });
     return data;
   },
-  getMyLeaderboard: async (scope: string, period: string): Promise<ScopedLeaderboardResponse> => {
-    const { data } = await axios.get(`${BASE}/me/leaderboard`, { headers: auth(), params: { scope, period } });
+  getMyLeaderboard: async (scope: string, period: string, limit?: number): Promise<ScopedLeaderboardResponse> => {
+    const { data } = await axios.get(`${BASE}/me/leaderboard`, { headers: auth(), params: { scope, period, ...(limit ? { limit } : {}) } });
     return data;
   },
   /** Admin: XP rules, badges and leaderboard settings. */
-  getAdminGamification: async (): Promise<any> => {
+  getAdminGamification: async (): Promise<AdminGamification> => {
     const { data } = await axios.get(`${BASE}/gamification/admin`, { headers: auth() });
     return data;
+  },
+  /** Admin: this month's figures for the XP & Rewards header. */
+  getXpRewardsOverview: async (): Promise<XpRewardsOverview> => {
+    const { data } = await axios.get(`${BASE}/gamification/admin/overview`, { headers: auth() });
+    return data;
+  },
+  /** Admin: what each type of journey task pays. */
+  updateLabDaily: async (body: { thinking: Record<string, { perDay: number; codingPerDay: number }>; communication: Record<string, { perDay: number }> }): Promise<{ labDaily: LabDailySettings }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/lab-daily`, body, { headers: auth() });
+    return data;
+  },
+  updateLabStreak: async (freezeEvery: number, freezeMax: number): Promise<{ labStreak: LabStreakSettings }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/lab-streak`, { freezeEvery, freezeMax }, { headers: auth() });
+    return data;
+  },
+  updateTaskXp: async (byType: Record<string, number>): Promise<{ taskTypes: TaskXpType[] }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/task-xp`, { byType }, { headers: auth() });
+    return data;
+  },
+  /** The XP price list the day player pays from — the Content Builder's "+N XP". */
+  getTaskPrices: async (): Promise<TaskPrices> => {
+    const { data } = await axios.get(`${BASE}/gamification/task-prices`, { headers: auth() });
+    return data;
+  },
+  /** What one task pays, wherever it appears. */
+  setTaskXpOverride: async (refKind: 'content' | 'module', refId: string, xp: number, title?: string): Promise<{ key: string; xp: number }> => {
+    const { data } = await axios.put(`${BASE}/gamification/task-prices/override`, { refKind, refId, xp, title }, { headers: auth() });
+    return data;
+  },
+  clearTaskXpOverride: async (refKind: 'content' | 'module', refId: string): Promise<void> => {
+    await axios.delete(`${BASE}/gamification/task-prices/override`, { headers: auth(), params: { refKind, refId } });
   },
   updateXpRule: async (eventKey: string, patch: any): Promise<any> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/rules/${eventKey}`, patch, { headers: auth() });
     return data;
   },
-  updateBadgeDefinition: async (key: string, patch: any): Promise<any> => {
+  updateBadgeDefinition: async (key: string, patch: Partial<BadgeInput>): Promise<{ badges: AdminBadgeRow[] }> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/badges/${key}`, patch, { headers: auth() });
+    return data;
+  },
+  createBadgeDefinition: async (body: BadgeInput): Promise<{ badges: AdminBadgeRow[] }> => {
+    const { data } = await axios.post(`${BASE}/gamification/admin/badges`, body, { headers: auth() });
+    return data;
+  },
+  /** Only a badge nobody has earned; the server refuses the rest. */
+  deleteBadgeDefinition: async (key: string): Promise<{ badges: AdminBadgeRow[] }> => {
+    const { data } = await axios.delete(`${BASE}/gamification/admin/badges/${key}`, { headers: auth() });
+    return data;
+  },
+  /** The order members see the badges in. */
+  reorderBadgeDefinitions: async (keys: string[]): Promise<{ badges: AdminBadgeRow[] }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/badges-order`, { keys }, { headers: auth() });
+    return data;
+  },
+  /** Level names, level 1 first; [] goes back to the shipped names. */
+  saveLevelNames: async (names: string[]): Promise<{ levels: LevelLadder }> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/levels`, { names }, { headers: auth() });
     return data;
   },
   updateLeaderboardSettings: async (patch: any): Promise<any> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/leaderboard`, patch, { headers: auth() });
     return data;
   },
-  getRewardBudget: async (period?: string): Promise<any> => {
+  getRewardBudget: async (period?: string): Promise<RewardBudgetView> => {
     const { data } = await axios.get(`${BASE}/gamification/admin/reward-budget`, { headers: auth(), params: period ? { period } : {} });
     return data;
   },
-  updateRewardBudget: async (patch: any): Promise<any> => {
+  updateRewardBudget: async (patch: any): Promise<RewardBudgetView> => {
     const { data } = await axios.put(`${BASE}/gamification/admin/reward-budget`, patch, { headers: auth() });
     return data;
   },
@@ -727,6 +940,16 @@ export const passportApi = {
   submitPersonalizedAssessment: async (answers: { sourceType: string; sourceId: string; response?: any }[]): Promise<any> => {
     const { data } = await axios.post(`${BASE}/me/assessment/personalized/submit`, { answers }, { headers: auth() });
     return data;
+  },
+  /** Admin: one member's full picture — account, CareerPilot setup, membership, payments, progress. */
+  getMemberProfile: async (studentId: string): Promise<any> => {
+    const { data } = await axios.get(`${BASE}/admin/students/${encodeURIComponent(studentId)}/profile`, { headers: auth() });
+    return data.data;
+  },
+  /** Super admin: everything one member has done, newest first. `before` pages back in time. */
+  getMemberActivity: async (studentId: string, q: { before?: string; kinds?: string } = {}): Promise<MemberActivity> => {
+    const { data } = await axios.get(`${BASE}/admin/students/${encodeURIComponent(studentId)}/activity`, { headers: auth(), params: q });
+    return data.data;
   },
   /** Admin: one member's Skill DNA. */
   getStudentSkillDna: async (studentId: string): Promise<{ skills: SkillDnaRow[]; assessed: boolean }> => {
@@ -1188,6 +1411,8 @@ export const passportApi = {
     const { data } = await axios.post(`${BASE}/interview/start`, body, { headers: auth() });
     return data;
   },
+  /** One sitting, fresh from the server (History opens it with this rather than the list snapshot). */
+  getInterviewSession: async (id: string): Promise<{ session: InterviewSession }> => (await axios.get(`${BASE}/interview/${id}`, { headers: auth() })).data,
   interviewTurn: async (id: string, answer: string): Promise<{ say: string; kind: string; endInterview: boolean; session: InterviewSession }> => {
     const { data } = await axios.post(`${BASE}/interview/${id}/turn`, { answer }, { headers: auth() });
     return data;
@@ -1237,7 +1462,8 @@ export const passportApi = {
   },
 
   /** Import an existing CV. Parsed fields fill gaps only — they never overwrite typed work. */
-  importResume: async (file: File): Promise<{ sections: ResumeSections; importedChars: number }> => {
+  /** Reads the file and returns what it found — NOT saved: the member chooses to replace or fill gaps, then saves. */
+  importResume: async (file: File): Promise<{ parsed: ResumeSections; found: Record<string, number | boolean>; importedChars: number }> => {
     const fd = new FormData();
     fd.append('file', file);
     const { data } = await axios.post(`${BASE}/resume/import`, fd, { headers: auth() });
@@ -1449,10 +1675,6 @@ export const passportApi = {
   },
 
   // ── Leaderboard ──
-  getLeaderboard: async (limit = 50): Promise<LeaderboardResponse> => {
-    const { data } = await axios.get(`${BASE}/leaderboard`, { headers: auth(), params: { limit } });
-    return data;
-  },
 
   // ── My profile ──
   getMyProfile: async (): Promise<{ profile: MemberProfile }> => {
@@ -1467,6 +1689,11 @@ export const passportApi = {
   // ── Coins ──
   getCoins: async (): Promise<CoinsResponse> => {
     const { data } = await axios.get(`${BASE}/coins`, { headers: auth() });
+    return data;
+  },
+  /** Turn XP into coins. `coins` omitted: as many as possible. XP, level and rank never go down. */
+  convertXpToCoins: async (coins?: number): Promise<{ coins: number; xpUsed: number; balance: number; conversion: XpConversionStatus }> => {
+    const { data } = await axios.post(`${BASE}/coins/convert`, coins === undefined ? {} : { coins }, { headers: auth() });
     return data;
   },
   getCoinAdmin: async (): Promise<CoinAdminResponse> => {
@@ -1621,6 +1848,13 @@ export const passportApi = {
 
   // Membership checkout (₹499). Opens Razorpay and resolves true on successful activation.
   membershipCheckout: async (): Promise<{ ok: boolean; message?: string; testMode?: boolean }> => {
+    // Every caller's success is celebrated here, once, whichever screen the member paid from.
+    const r = await passportApi.membershipCheckoutRaw();
+    if (r.ok) celebrateMembership();
+    return r;
+  },
+
+  membershipCheckoutRaw: async (): Promise<{ ok: boolean; message?: string; testMode?: boolean }> => {
     /**
      * The order is requested BEFORE Razorpay's script is loaded, because in test mode there is
      * no Razorpay: loading it first would fail the whole checkout on a connection that is only
@@ -1663,7 +1897,7 @@ export const passportApi = {
     const base = apiRoot.startsWith('http') ? apiRoot : window.location.origin + apiRoot;
     // `origin`: come back to the address the member is on, not the server's configured one —
     // on a LAN dev machine that one goes stale with every new IP (server checks it is trusted).
-    const callbackUrl = `${base}/payments/return?to=${encodeURIComponent('/careerpilot')}&origin=${encodeURIComponent(window.location.origin)}`;
+    const callbackUrl = `${base}/payments/return?to=${encodeURIComponent('/careerpilot?paid=1')}&origin=${encodeURIComponent(window.location.origin)}`;
     return new Promise((resolve) => {
       const rzp = new (window as any).Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency,
@@ -1695,30 +1929,35 @@ export const passportApi = {
     });
   },
 
-  // ── Mock interview plans (admin) ──
-  listInterviewPlans: async (): Promise<InterviewPlansResponse> => {
-    const { data } = await axios.get(`${BASE}/interview-plans`, { headers: auth() });
+  // ── Mock interview plans (admin). `platform`: the super admin's plans for every institute (CareerPilot Limits). ──
+  listInterviewPlans: async (platform = false): Promise<InterviewPlansResponse> => {
+    const { data } = await axios.get(`${BASE}${platform ? '/platform' : ''}/interview-plans`, { headers: auth() });
     return data;
   },
-  createInterviewPlan: async (payload: InterviewPlanInput): Promise<{ plan: InterviewPlan }> => {
-    const { data } = await axios.post(`${BASE}/interview-plans`, payload, { headers: auth() });
+  createInterviewPlan: async (payload: InterviewPlanInput, platform = false): Promise<{ plan: InterviewPlan }> => {
+    const { data } = await axios.post(`${BASE}${platform ? '/platform' : ''}/interview-plans`, payload, { headers: auth() });
     return data;
   },
-  updateInterviewPlan: async (id: string, payload: InterviewPlanInput): Promise<{ plan: InterviewPlan }> => {
-    const { data } = await axios.put(`${BASE}/interview-plans/${id}`, payload, { headers: auth() });
+  updateInterviewPlan: async (id: string, payload: InterviewPlanInput, platform = false): Promise<{ plan: InterviewPlan }> => {
+    const { data } = await axios.put(`${BASE}${platform ? '/platform' : ''}/interview-plans/${id}`, payload, { headers: auth() });
     return data;
   },
-  deleteInterviewPlan: async (id: string): Promise<void> => {
-    await axios.delete(`${BASE}/interview-plans/${id}`, { headers: auth() });
+  deleteInterviewPlan: async (id: string, platform = false): Promise<void> => {
+    await axios.delete(`${BASE}${platform ? '/platform' : ''}/interview-plans/${id}`, { headers: auth() });
   },
-  reorderInterviewPlans: async (ids: string[]): Promise<{ plans: InterviewPlan[]; warnings: PlanWarning[] }> => {
-    const { data } = await axios.put(`${BASE}/interview-plans/reorder`, { ids }, { headers: auth() });
+  reorderInterviewPlans: async (ids: string[], platform = false): Promise<{ plans: InterviewPlan[]; warnings: PlanWarning[] }> => {
+    const { data } = await axios.put(`${BASE}${platform ? '/platform' : ''}/interview-plans/reorder`, { ids }, { headers: auth() });
     return data;
   },
-  previewInterviewPlan: async (studentId: string): Promise<InterviewPlanPreview> => {
-    const { data } = await axios.get(`${BASE}/interview-plans/preview`, { headers: auth(), params: { studentId } });
+  previewInterviewPlan: async (studentId: string, platform = false): Promise<InterviewPlanPreview> => {
+    const { data } = await axios.get(`${BASE}${platform ? '/platform' : ''}/interview-plans/preview`, { headers: auth(), params: { studentId } });
     return data;
   },
+
+  // ── CareerPilot Limits (super admin): Thinking Lab day and the left-open interview window. ──
+  getPlatformLimits: async (): Promise<PlatformLimits> => (await axios.get(`${BASE}/platform/limits`, { headers: auth() })).data,
+  savePlatformLimits: async (payload: { thinking?: PlatformLimits['thinking']; interviewStaleHours?: number }): Promise<PlatformLimits> =>
+    (await axios.put(`${BASE}/platform/limits`, payload, { headers: auth() })).data,
 
 };
 
@@ -1771,6 +2010,15 @@ export interface PlanBounds {
   priority: { min: number; max: number };
 }
 
+export interface PlatformLimits {
+  thinking: Record<string, { perDay: number; codingPerDay: number; practicePerDay: number }>;
+  thinkingSaved: boolean;
+  interviewStaleHours: number;
+  years: string[];
+  bounds: { perDayMax: number; practicePerDayMax: number; staleHours: { min: number; max: number } };
+  updatedAt: string | null;
+}
+
 export interface InterviewPlansResponse {
   plans: InterviewPlan[];
   warnings: PlanWarning[];
@@ -1780,6 +2028,10 @@ export interface InterviewPlansResponse {
   bounds: PlanBounds;
   roundTypes: { key: InterviewRoundType; label: string }[];
   defaultShape: { rounds: InterviewRound[]; totals: { questions: number; minutes: number } };
+  /** True on an institute's screen: the limits are the super admin's. */
+  readOnly?: boolean;
+  /** True once the super admin has written plans, which then apply to every institute. */
+  managedByPlatform?: boolean;
 }
 
 export interface PlanTraceRow {
@@ -1836,7 +2088,8 @@ export interface LevelInfo {
   xpIntoLevel: number; xpForThisLevel: number; xpToNextLevel: number;
   nextLevel: number; nextTitle: string; progressPct: number;
 }
-export interface Badge { key: string; label: string; icon: string; color: string; hint: string; earned: boolean; progress: number; }
+/** A member's badge. `icon` is a Bootstrap Icons class ("bi-mic-fill"). */
+export interface Badge { key: string; label: string; icon: string; color: string; hint: string; earned: boolean; progress: number; earnedAt?: string | null }
 export interface DashboardData {
   /**
    * The daily plan's own outcome, including WHY it is unavailable. The dashboard used to
@@ -1865,7 +2118,10 @@ export interface DashboardData {
   level?: LevelInfo;
   coderScore?: { score: number; parts: { label: string; earned: number; max: number }[] };
   percentileAhead?: number | null;
-  skills?: { key: string; label: string; score: number }[];
+  /** Rank among every CareerPilot member, by XP. */
+  globalRank?: { rank: number; participants: number } | null;
+  /** The skill meter: Skill DNA by skill area (early = only low-confidence evidence in that area). */
+  skills?: { key: string; label: string; score: number; early?: boolean }[];
   careerScore?: number | null;
   careerLevel?: string | null;
   pathwayLabel?: string;
@@ -1907,7 +2163,78 @@ export interface DashboardData {
   locked?: LockedSection[];
   /** Menu items the institute's admin has switched off for CareerPilot students (Student Features page). */
   hidden?: string[];
+  /** A running trial: limited access for a set time. Null for everyone else. */
+  trial?: TrialStatus | null;
 }
+
+/** A trial as the member and the admin see it (server: trialService.trialStatus). */
+export interface TrialStatus {
+  planName: string; startedAt: string; endsAt: string; daysLeft: number;
+  items: { key: string; label: string; icon: string; on: boolean; limit: number | null; used: number | null; unit: string | null }[];
+}
+export interface TrialItemSetting { on: boolean; limit: number | null }
+export interface TrialProblem { id: string; number: number; title: string; difficulty: string }
+/** Demo plans and demo accounts (Super Admin). */
+export interface DemoYearInfo { key: string; year: number; label: string }
+export interface DemoPickItem { id: string; title: string; number?: number; difficulty?: string; category?: string; live: boolean }
+export interface DemoYearView {
+  enabled: boolean; track: string; landingDay: number; interviewTypes: string[];
+  practice: DemoPickItem[]; thinking: DemoPickItem[]; books: DemoPickItem[];
+}
+export interface LabTodayRow { target: number; done: number; streak: number; atRisk: boolean; freezes: number; dayXp: number; earned: number }
+export interface LabsToday { date: string; thinking: LabTodayRow; communication: LabTodayRow }
+export type ThinkingType = 'math' | 'logical' | 'critical' | 'coding';
+export type ThinkingStatus = 'DRAFT' | 'PUBLISHED' | 'RETIRED';
+export interface ThinkingBankMeta {
+  types: { key: ThinkingType; label: string; suggestions: string[] }[];
+  difficulties: string[]; years: { key: string; label: string }[]; answerFormats: string[]; statuses: ThinkingStatus[];
+  limits: { keyStepsMin: number; keyStepsMax: number; hintsMax: number; aiBatchMax: number };
+  stats: { byType: Record<string, { published: number; total: number }>; byStatus: Record<string, number>; total: number };
+}
+export interface ThinkingQuestionRow {
+  id: string; number: number; code: string; type: ThinkingType; subCategory: string; difficulty: string; years: string[];
+  title: string; status: ThinkingStatus; source: 'manual' | 'ai' | 'migrated'; order: number | null;
+  timesServed: number; timesSolved: number; ready: boolean; updatedAt: string;
+}
+export interface ThinkingQuestionDetail extends ThinkingQuestionRow {
+  statement: string; imageUrl: string; answerFormat: 'number' | 'text' | 'choice'; choices: string[]; answer: string; acceptedAnswers: string[];
+  keySteps: string[]; explanation: string; hints: string[]; estimatedMinutes: number | null;
+  language: string; starterCode: string; examples: { input: string; expectedOutput: string; explanation?: string }[];
+  testCases: { input: string; expectedOutput: string; hidden: boolean }[]; referenceSolution: string; topics: string[];
+  problems: string[]; approvedAt: string | null;
+}
+export type JobKind = 'job' | 'internship';
+export type WorkMode = 'onsite' | 'hybrid' | 'remote';
+export interface JobOpening {
+  id: string; company: string; companyLogo: string; role: string; kind: JobKind; workMode: WorkMode;
+  locations: string[]; payMin: number | null; payMax: number | null; experience: string; batches: number[];
+  skills: string[]; description: string; applyUrl: string; lastDate: string | null; publishedAt: string;
+  appliedAt: string | null;
+}
+export interface AdminJobOpening extends JobOpening {
+  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED'; expired: boolean; applied: number; createdByName: string; updatedAt: string;
+}
+export interface JobOpeningInput {
+  company: string; companyLogo: string; role: string; kind: JobKind; workMode: WorkMode; locations: string[];
+  payMin: number | null; payMax: number | null; experience: string; batches: number[]; skills: string[];
+  description: string; applyUrl: string; lastDate: string | null; status: 'DRAFT' | 'PUBLISHED' | 'CLOSED';
+}
+export interface DemoPlan {
+  id: string; name: string; description: string; startYear: string; active: boolean; accounts: number; updatedAt?: string;
+  years: Record<string, DemoYearView>; missing: string[]; warnings: string[];
+}
+export interface DemoPlanInput {
+  name: string; description: string; startYear: string; active: boolean;
+  years: Record<string, { enabled: boolean; track: string; landingDay: number; interviewTypes: string[]; practiceIds: string[]; thinkingIds: string[]; bookIds: string[] }>;
+}
+export interface MemberDemoView {
+  demo: { planId: string; planName: string; year: string; years: DemoYearInfo[]; at: string; byName: string; note: string } | null;
+  plans: { id: string; name: string; missing: string[] }[];
+  paid: boolean;
+}
+export interface MyDemo { planName: string; year: string; years: DemoYearInfo[]; landingDay: number }
+export interface TrialPlan { id: string; name: string; description: string; days: number; items: Record<string, TrialItemSetting>; active: boolean; running: number; updatedAt?: string; practiceProblems: TrialProblem[] }
+export interface TrialCatalogueItem { key: string; label: string; icon: string; unit: string | null; hint: string | null }
 
 /** One day of the ninety. A unit of curriculum, not a calendar date. */
 export interface SpineDay {
@@ -1962,7 +2289,8 @@ export interface SpineCoverage {
 export type MemberSection =
   | 'score' | 'roadmap' | 'missions' | 'progress'
   | 'practice' | 'interview' | 'resume' | 'companies' | 'news'
-  | 'coding' | 'playground' | 'communication' | 'experiences' | 'questionBooks' | 'mentor';
+  | 'coding' | 'playground' | 'communication' | 'experiences' | 'questionBooks' | 'mentor'
+  | 'thinkingLab' | 'industryConnect';
 
 export interface LockedSection {
   section: MemberSection;
@@ -2056,7 +2384,7 @@ export interface InterviewSession {
   /** Which plan round this was, and what it was called at the time. Null on untyped mocks. */
   planRoundKey?: string | null;
   planRoundLabel?: string | null;
-  maxQuestions: number; askedCount: number; status: 'in_progress' | 'completed' | 'abandoned';
+  maxQuestions: number; askedCount: number; status: 'in_progress' | 'finalizing' | 'completed' | 'abandoned';
   transcript: InterviewTurn[];
   evaluation?: {
     overallScore: number; readinessLevel: string; summary: string;
@@ -2080,6 +2408,11 @@ export interface ResumeSections {
 export interface ResumeScore {
   total: number;
   breakdown: { contact: number; summary: number; experience: number; education: number; skills: number; projects: number; ats: number };
+  /** Each section's maximum for this resume; a fresher's experience weight moves to projects (experience max 0). */
+  maxes?: { contact: number; summary: number; experience: number; education: number; skills: number; projects: number; ats: number };
+  fresher?: boolean;
+  /** Every rubric check the score is made of. */
+  checks?: { section: string; label: string; got: number; max: number }[];
   suggestions: { section: string; issue: string; fix: string }[];
   atsWarnings: string[]; keywordsFound: string[]; keywordsMissing: string[];
 }
@@ -2320,6 +2653,88 @@ export interface UnitBundle {
   types: string[];
   resolvedMinutes: number;
 }
+
+export interface MemberActivityRow {
+  _id: string; kind: 'page' | 'action' | 'api' | 'error'; name: string; route?: string; method?: string; status?: number;
+  outcome?: string; errorMessage?: string; durationMs?: number; meta?: any; ip?: string; referrer?: string;
+  sessionId?: string; visitorId: string; userId?: string; createdAt: string;
+  device?: { browser?: string; os?: string; deviceType?: string; screen?: string };
+}
+export interface MemberActivity {
+  summary: { events: number; firstSeen: string; lastSeen: string; sessions: number; pages: number; actions: number; failures: number; browsers: number } | null;
+  devices: { deviceType: string | null; browser: string | null; os: string | null; events: number; lastSeen: string }[];
+  rows: MemberActivityRow[];
+  nextBefore: string | null;
+}
+
+export interface VideoScriptScene { heading: string; visual: string; narration: string; notes: string }
+export type VideoScriptStatus = 'DRAFT' | 'READY' | 'SHOT';
+export interface VideoScriptInput {
+  title: string; objective: string; targetMinutes: number; presenter: string;
+  scenes: VideoScriptScene[]; status: VideoScriptStatus;
+}
+export interface VideoScript extends VideoScriptInput {
+  _id: string; unitCode: string; updatedAt: string; updatedBy?: string; createdBy?: string;
+}
+
+export interface XpRewardsOverview {
+  xpThisMonth: { total: number; members: number } | null;
+  conversion: { enabled: boolean; xpPerCoin: number; coinsThisMonth: number; members: number } | null;
+  waiting: number | null;
+  liveRewards: number | null;
+  store: { open: boolean; budgetRupees: number; leftRupees: number } | null;
+}
+
+export interface TaskXpType { key: string; label: string; defaultXp: number; xp: number }
+
+export interface TaskPrices {
+  byType: Record<string, number>;
+  /** 'content:<id>' | 'module:<id>' → XP. */
+  overrides: Record<string, number>;
+  dayBonus: number;
+  tasksEnabled: boolean;
+  max: number;
+}
+
+export interface XpRuleRow {
+  eventKey: string; enabled: boolean; xp: number; dailyLimit: number; streakQualifying: boolean;
+}
+
+/** A badge as the admin defines it: its look, and the rule that earns it. */
+export interface AdminBadgeRow {
+  key: string; name: string; description: string; iconKey: string; color: string; active: boolean;
+  conditionType: string; threshold: number; eventKey: string | null; displayOrder: number;
+  /** The rule in words — what members see when the description is empty. */
+  rule: string;
+  /** How many members hold it. */
+  earnedBy: number;
+}
+export interface BadgeCondition { type: string; label: string; unit: string; max?: number; needsEvent?: boolean }
+export interface BadgeInput { name: string; description: string; iconKey: string; color: string; conditionType: string; threshold: number; eventKey?: string | null; active?: boolean }
+/** What each level is called, level 1 first, and the XP that reaches each. */
+export interface LevelLadder { names: string[]; defaults: string[]; custom: boolean; max: number; nameMax: number; xpToReach: number[] }
+
+export interface AdminGamification {
+  rules: XpRuleRow[];
+  badges: AdminBadgeRow[];
+  badgeConditions: BadgeCondition[];
+  levels: LevelLadder;
+  settings: any;
+  events: { key: string; name: string; description: string; defaultXp: number }[];
+  taskTypes: TaskXpType[];
+  taskOverrides: { refKind: 'content' | 'module'; refId: string; xp: number; title: string; updatedAt: string }[];
+  taskXpMax: number;
+  /** Thinking Lab and Communication Lab streak freezes. */
+  labStreak?: LabStreakSettings;
+  /** Thinking questions and Communication tasks a day, per year. */
+  labDaily?: LabDailySettings;
+}
+export interface LabDailySettings {
+  thinking: Record<string, { perDay: number; codingPerDay: number }>;
+  communication: Record<string, { perDay: number }>;
+  perDayMax?: number;
+}
+export interface LabStreakSettings { freezeEvery: number; freezeMax: number; everyMax: number; holdMax: number }
 
 export interface UnitStudentPreview {
   preview: true;
@@ -2575,7 +2990,7 @@ export interface AdminFoundationJourneyDay {
 export interface AdminFoundationJourney {
   available: boolean;
   engine: 'UNIT' | 'TOPIC';
-  student: { name: string; email: string | null; stage: string | null };
+  student: { name: string; email: string | null; stage: string | null; careerTrack?: string | null };
   totalDays: number;
   message?: string;
   curriculumId?: string;
@@ -2724,6 +3139,13 @@ export interface CoinConfig {
   annualRealCostBudgetInr: number; expiryMonths: number; minRedemption: number;
   referrerCoins: number; refereeCoins: number; referralMonthlyCap: number;
   freeMembersAccrue: boolean;
+  xpConversionEnabled: boolean; xpPerCoin: number; xpConversionStartsAt: string | null;
+}
+/** XP → coins: the rate, and what a member can convert now. */
+export interface XpConversionStatus {
+  enabled: boolean; xpPerCoin: number; startsAt: string | null;
+  earnedXp: number; convertedXp: number; availableXp: number;
+  coinsAvailable: number; monthlyRoom: number | null; xpToNextCoin: number;
 }
 export interface CoinRule {
   eventKey: string; label: string; coins: number;
@@ -2734,6 +3156,7 @@ export interface CoinsResponse {
   enabled: boolean; balance: number; lifetimeEarned: number; lifetimeSpent: number;
   redeemable: boolean; minRedemption: number; monthlyEarnCap: number; expiryMonths: number;
   earnRules: { eventKey: string; label: string; coins: number; dailyCap: number }[];
+  conversion?: XpConversionStatus;
   history: CoinHistoryRow[];
 }
 export interface CoinLedgerRow { at: string; coins: number; eventKey: string; note: string; balanceAfter: number; member: string; }
@@ -3102,7 +3525,8 @@ export interface ReadinessSkill {
 /** Readiness is unavailable for distinct, differently-fixable reasons. */
 export interface RoleReadinessUnavailable {
   available: false;
-  reason: 'ROLE_NOT_SELECTED' | 'ROLE_BLUEPRINT_NOT_READY' | 'NO_EVIDENCE';
+  /** YEAR_1: role readiness opens in Year 2 (Year 1 has no role). */
+  reason: 'ROLE_NOT_SELECTED' | 'ROLE_BLUEPRINT_NOT_READY' | 'NO_EVIDENCE' | 'YEAR_1';
   message: string;
   role?: { key: string; name?: string };
 }
@@ -3114,6 +3538,10 @@ export interface RoleReadinessAvailable {
   readiness: number | null;
   /** How much of the role has trustworthy evidence. Always shown beside readiness. */
   coverage: number;
+  /** Under 40% of the role measured: `readiness` is an early estimate, not the headline. */
+  provisional?: boolean;
+  /** Readiness against the whole role, unmeasured skills counted as 0. */
+  wholeRoleReadiness?: number;
   confidence: string;
   summary: {
     requiredSkills: number; assessedSkills: number;
@@ -3606,6 +4034,8 @@ export interface SkillAssessmentItem {
   points: number;
   /** What was saved earlier, so a resumed paper comes back filled in. */
   response?: any;
+  /** Saved as "I don't know". */
+  dontKnow?: boolean;
 }
 
 /* ── Orientation: the welcome days before Day 1 ── */
@@ -3695,6 +4125,8 @@ export interface PlacementResult {
 }
 
 export interface SkillAssessment {
+  /** The question the member was on when they last saved. */
+  lastPosition?: number;
   id: string;
   attemptNumber: number;
   /** 0 = untimed. */
@@ -3820,6 +4252,8 @@ export interface GamificationSummary {
   badges: GamificationBadgeView[];
   earnedCount: number;
   ranks: Record<string, RankView>;
+  /** XP → coins, when an admin switched it on. */
+  conversion?: { xpPerCoin: number; availableXp: number; coinsAvailable: number; xpToNextCoin: number } | null;
 }
 
 export interface XpHistoryEntry {
@@ -3887,6 +4321,41 @@ export interface RewardCatalogue {
     level: number;
     canSpend: boolean;
   };
+  /** XP → coins, when switched on: lets the store say "convert your XP". */
+  conversion?: { xpPerCoin: number; coinsAvailable: number; xpToNextCoin: number } | null;
+}
+
+/** A reward as the admin edits it. Costs: coins to the member, paise to the business. */
+export interface AdminReward {
+  _id?: string;
+  key: string; name: string; description: string;
+  type: 'PHYSICAL' | 'DISCOUNT' | 'ACCESS' | 'COUPON' | 'RECOGNITION';
+  iconKey: string; imageUrl?: string; instructions?: string;
+  coinCost: number; budgetCostPaise: number;
+  active: boolean; studentVisible: boolean;
+  stockMode: 'UNLIMITED' | 'LIMITED'; stockAvailable: number; stockReserved?: number; stockFulfilled?: number;
+  perStudentLimit: number; totalRedemptionLimit: number; totalRedeemed?: number;
+  minimumXp: number; minimumLevel: number;
+  availableFrom?: string | null; availableUntil?: string | null;
+  displayOrder: number;
+}
+
+export interface AdminRedemption {
+  _id: string; studentId: string; rewardKey: string; rewardName: string; rewardType: string;
+  coinCost: number; budgetCostPaise: number;
+  status: 'PENDING' | 'RESERVED' | 'FULFILLED' | 'CANCELLED';
+  requestedAt: string; reservedAt?: string; fulfilledAt?: string; cancelledAt?: string;
+  fulfillmentReference?: string; adminNotes?: string; cancelReason?: string;
+  studentSnapshot?: { displayName?: string; collegeName?: string };
+}
+
+export interface RewardBudgetView {
+  summary: {
+    enabled: boolean; mode: 'MANUAL' | 'PERCENTAGE'; period: string;
+    basisPoints: number; effectiveFrom: string | null; studentsRewarded: number;
+    display: { revenueBase: number; calculatedBudget: number; cap: number; effectiveBudget: number; reserved: number; redeemed: number; available: number; averageReward: number };
+  };
+  policy: { enabled: boolean; mode: 'MANUAL' | 'PERCENTAGE'; manualBudgetPaise: number; basisPoints: number; capPaise: number; effectiveFrom?: string | null };
 }
 
 export interface RedemptionRow {
@@ -4252,3 +4721,50 @@ export interface RebuildJob {
   running: boolean; stageKey: string | null; total: number; done: number; rebuilt: number;
   failed: { studentId: string; reason: string }[]; startedAt: string | null; finishedAt: string | null;
 }
+
+// ── Career tracks (Year 3 and 4): role + language roadmaps ──────────────────────────────────────
+export type TrackPriority = 'CORE' | 'MUST' | 'SHOULD' | 'OPTIONAL';
+export interface PackTopicRow { topicCode: string; title?: string | null; priority: TrackPriority }
+export interface SkillPackRow { key: string; title: string; kind: 'SKILL' | 'PLACEMENT'; description: string; topics: PackTopicRow[] }
+export interface CareerTrackRow {
+  key: string; name: string; language: string; description: string; status: 'DRAFT' | 'LIVE'; order: number;
+  specializePacks: string[]; placementPacks: string[];
+  split: { memberTrackShare: number; freshTrackShare: number };
+  problems: string[]; students: number;
+}
+export interface CareerTrackCatalogue { tracks: CareerTrackRow[]; packs: SkillPackRow[] }
+export interface CoverageUnit {
+  unitCode: string; title: string; unitType: string; stageKey: string; status: string;
+  video: 'REAL' | 'PLACEHOLDER' | 'NONE'; notes: boolean; practice: boolean; checkpoint: boolean;
+}
+export interface PackCoverage { key: string; topics: { topicCode: string; title: string | null; priority: TrackPriority; units: CoverageUnit[] }[] }
+export interface TopicHit { topicCode: string; title: string; stageKey: string; moduleCode: string }
+export interface MyTracks { stage: string | null; current: string | null; fixed?: boolean; canChange?: boolean; tracks: { key: string; name: string; language: string; description: string | null }[] }
+
+const keep500 = { validateStatus: (s: number) => s < 500 };
+export const careerTrackApi = {
+  list: async (): Promise<CareerTrackCatalogue> =>
+    (await axios.get(`${BASE}/admin/career-tracks`, { headers: auth() })).data,
+  createTrack: async (body: Partial<CareerTrackRow>): Promise<CareerTrackCatalogue> =>
+    (await axios.post(`${BASE}/admin/career-tracks`, body, { headers: auth() })).data,
+  updateTrack: async (key: string, body: Partial<CareerTrackRow>): Promise<CareerTrackCatalogue> =>
+    (await axios.put(`${BASE}/admin/career-tracks/${encodeURIComponent(key)}`, body, { headers: auth() })).data,
+  deleteTrack: async (key: string): Promise<CareerTrackCatalogue> =>
+    (await axios.delete(`${BASE}/admin/career-tracks/${encodeURIComponent(key)}`, { headers: auth() })).data,
+  createPack: async (body: Partial<SkillPackRow>): Promise<CareerTrackCatalogue> =>
+    (await axios.post(`${BASE}/admin/skill-packs`, body, { headers: auth() })).data,
+  updatePack: async (key: string, body: Partial<SkillPackRow>): Promise<CareerTrackCatalogue> =>
+    (await axios.put(`${BASE}/admin/skill-packs/${encodeURIComponent(key)}`, body, { headers: auth() })).data,
+  deletePack: async (key: string): Promise<CareerTrackCatalogue> =>
+    (await axios.delete(`${BASE}/admin/skill-packs/${encodeURIComponent(key)}`, { headers: auth() })).data,
+  coverage: async (key: string): Promise<PackCoverage> =>
+    (await axios.get(`${BASE}/admin/skill-packs/${encodeURIComponent(key)}/coverage`, { headers: auth() })).data,
+  searchTopics: async (q: string): Promise<{ topics: TopicHit[] }> =>
+    (await axios.get(`${BASE}/admin/career-topics`, { headers: auth(), params: { q } })).data,
+  setStudentTrack: async (studentId: string, key: string | null): Promise<{ ok?: boolean; key?: string | null; rebuilt?: boolean; message?: string }> =>
+    (await axios.put(`${BASE}/admin/students/${studentId}/career-track`, { key }, { headers: auth(), ...keep500 })).data,
+  myTracks: async (): Promise<MyTracks> =>
+    (await axios.get(`${BASE}/me/career-tracks`, { headers: auth() })).data,
+  pickMyTrack: async (key: string): Promise<{ ok?: boolean; key?: string; rebuilt?: boolean; message?: string }> =>
+    (await axios.put(`${BASE}/me/career-track`, { key }, { headers: auth(), ...keep500 })).data,
+};

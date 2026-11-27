@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { averageSkillScore } from './skillScore';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { DashboardData, RoleReadinessAvailable, SkillDnaRow, MemberSection } from '../../api/passportApi';
 import { useUnlock } from './SectionLock';
 import './dashboardLocked.css';
+import { readinessBand } from '../../utils/readinessBand';
+import { barWidth } from '../../utils/barWidth';
 
 /**
  * The dashboard a student sees before they pay.
@@ -73,13 +76,21 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
     if (dna?.length) return [...dna].sort((a, b) => b.score - a.score).slice(0, 6).map(s => ({ key: s.skillKey, label: s.skillName, score: s.score }));
     return (data.skills || []).slice(0, 6);
   }, [dna, data.skills]);
-  const avg = dna?.length ? Math.round(dna.reduce((t, s) => t + (s.score || 0), 0) / dna.length) : null;
+  /** The three lowest measured skills: what a Year-1 plan works on first. */
+  const focusFirst = useMemo(() => {
+    const rows = dna?.length ? dna.map(s => ({ key: s.skillKey, label: s.skillName, score: s.score })) : (data.skills || []);
+    return [...rows].sort((a, b) => a.score - b.score).slice(0, 3);
+  }, [dna, data.skills]);
+  // Same rule as the Skill DNA page (skillScore.ts): reliably measured skills only; `early` otherwise.
+  const avgInfo = dna?.length ? averageSkillScore(dna) : { score: null, counted: 0, early: false };
+  const avg = avgInfo.score;
 
   const gaps = readiness?.summary.priorityGaps ?? null;
   const needsWork = readiness?.summary.needsWork ?? null;
-  const measuredCount = readiness?.summary.assessedSkills ?? (dna?.length || data.skills?.length || null);
+  // "Measured" means MEDIUM or HIGH confidence everywhere — the same count role readiness reports.
+  const measuredCount = readiness?.summary.assessedSkills ?? (dna ? dna.filter(s => s.confidence === 'MEDIUM' || s.confidence === 'HIGH').length || null : null);
   const ready = readiness?.readiness ?? null;
-  const readyLabel = ready === null ? 'Still measuring' : ready >= 80 ? 'Strong alignment' : ready >= 60 ? 'Getting close' : ready >= 40 ? 'Building momentum' : 'Early stage';
+  const readyLabel = ready === null ? 'Still measuring' : readiness?.provisional ? 'Early estimate' : readinessBand(ready).label;
 
   /** This learner's own programme length, from the dashboard endpoint. */
   const days = Number(data.programDays) || 90;
@@ -127,7 +138,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
             </div>
             <div className="dl2-hero-score-copy">
               <small>{ready !== null ? 'Role readiness' : 'Average skill score'}</small>
-              <b>{ready !== null ? readyLabel : 'From your assessment'}</b>
+              <b>{ready !== null ? readyLabel : avgInfo.early ? 'Early estimate' : 'From your assessment'}</b>
               <button onClick={() => nav(ready !== null ? '/careerpilot/readiness' : '/careerpilot/skills')}>
                 See details <i className="bi bi-arrow-right" />
               </button>
@@ -157,7 +168,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
                 {skillRows.map(s => (
                   <li key={s.key}>
                     <span className="nm">{s.label}</span>
-                    <span className={`br ${band(s.score)}`}><i style={{ width: `${Math.max(2, Math.min(100, s.score))}%` }} /></span>
+                    <span className={`br ${band(s.score)}`}><i style={{ width: `${barWidth(s.score)}%` }} /></span>
                     <span className={`vl ${band(s.score)}`}>{s.score}<em>/100</em></span>
                   </li>
                 ))}
@@ -165,7 +176,24 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
             ) : <p className="dl2-empty">Your assessment results will appear here shortly.</p>}
           </article>
 
-          <article className="dl2-card">
+          {/* Year 1 has no role, so no role readiness: the half beside Skill DNA shows what the plan would
+              work on first (the lowest measured skills) and opens it. */}
+          {data.stage === 'foundation' && <article className="dl2-card dl2-plan">
+            <header className="dl2-card-head">
+              <div><h2>Your plan starts here</h2><p>Your {days}-day plan works on these first.</p></div>
+            </header>
+            {focusFirst.length ? (
+              <ol className="dl2-focus">
+                {focusFirst.map((s, i) => <li key={s.key}><span className="n">{i + 1}</span><b>{s.label}</b><em className={band(s.score)}>{s.score}/100</em></li>)}
+              </ol>
+            ) : <p className="dl2-empty">Your plan is built from your assessment results.</p>}
+            <div className="dl2-plan-foot">
+              <span><i className="bi bi-calendar3" /> {days} days, paced to the time you have</span>
+              <button className="dl2-btn primary" onClick={() => unlock()} disabled={busy}>{label}</button>
+            </div>
+            {!!msg && <p className="dl2-msg">{msg}</p>}
+          </article>}
+          {data.stage !== 'foundation' && <article className="dl2-card">
             <header className="dl2-card-head">
               <div><h2>Role readiness</h2><p>{readiness?.role?.name ? `Against ${readiness.role.name}.` : 'Against your target role.'}</p></div>
               <button className="dl2-link" onClick={() => nav('/careerpilot/readiness')}>Details <i className="bi bi-arrow-right" /></button>
@@ -176,11 +204,13 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
                   <strong>{ready === null ? '—' : `${ready}%`}</strong>
                   <div><b>{readyLabel}</b><span>{readiness.coverage}% of the role measured · {readiness.summary.assessedSkills}/{readiness.summary.requiredSkills} skills</span></div>
                 </div>
-                <div className="dl2-ready-bar"><i style={{ width: `${Math.max(2, ready ?? 0)}%` }} /></div>
+                <div className="dl2-ready-bar"><i style={{ width: `${barWidth(ready)}%` }} /></div>
                 <div className="dl2-ready-facts">
                   <div className="danger"><b>{readiness.summary.priorityGaps}</b><span>Priority gaps</span></div>
                   <div className="warn"><b>{readiness.summary.needsWork}</b><span>Need work</span></div>
                   <div className="good"><b>{readiness.summary.onTrack + readiness.summary.strong}</b><span>On track</span></div>
+                  {/* So the four add up to the role's skills: the rest are not measured enough to judge. */}
+                  <div><b>{readiness.summary.limitedEvidence + readiness.summary.notAssessed}</b><span>Not measured yet</span></div>
                 </div>
               </div>
             ) : (
@@ -189,7 +219,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
                 <button className="dl2-link" onClick={() => nav('/careerpilot/setup?step=direction')}>Choose my role <i className="bi bi-arrow-right" /></button>
               </div>
             )}
-          </article>
+          </article>}
         </section>
       )}
 

@@ -1,3 +1,4 @@
+import { mediaUrl } from '../../utils/mediaUrl';
 /**
  * Notes as safe HTML, whichever way they were written.
  *
@@ -242,7 +243,7 @@ const DROPPED = new Set([
   'audio', 'video', 'source', 'track', 'canvas', 'portal', 'head', 'title',
 ]);
 
-const SAFE_IMG = /^(https:\/\/|http:\/\/|data:image\/(png|gif|jpe?g|webp);base64,)/i;
+const SAFE_IMG = /^(https:\/\/|http:\/\/|\/(?!\/)|data:image\/(png|gif|jpe?g|webp);base64,)/i;
 const QUILL_CLASS = /^ql-[a-z0-9-]+$/;
 
 function cleanChildren(parent: Node, doc: Document) {
@@ -273,6 +274,8 @@ function cleanChildren(parent: Node, doc: Document) {
       const value = attr.value.replace(/[\u0000-\u0020\u007f-\u009f]/g, '');
       if (name === 'href' && !SAFE_HREF.test(value)) el.removeAttribute(attr.name);
       if (name === 'src' && !SAFE_IMG.test(value)) el.removeAttribute(attr.name);
+      // An uploaded image saved with an old API host is pointed at the current one (utils/mediaUrl).
+      else if (name === 'src') el.setAttribute('src', mediaUrl(value));
     }
     if (tag === 'img' && !el.getAttribute('src')) { parent.removeChild(el); continue; }
     if (tag === 'a' && /^https?:/i.test(el.getAttribute('href') || '')) {

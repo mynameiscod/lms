@@ -87,12 +87,19 @@ export async function resolveAssessedState(opts: {
   const attempt: any = await PassportAttempt.findOne({ tenantId, studentId })
     .sort({ createdAt: -1 }).lean();
   if (attempt) {
+    /*
+     * A member who also has a current, readiness-based Career Score (careerScoreService) is scored by
+     * THAT: the questionnaire is the older instrument, and it used to win for ever, so a member's score
+     * never moved however much they were measured since. The attempt still supplies its categories.
+     */
+    const current = passport?.careerScoreSource === 'role_readiness' && typeof passport?.careerScore === 'number'
+      ? passport.careerScore : null;
     return {
       assessed: true,
       source: 'attempt',
-      attempt: attempt as AttemptLite,
-      careerScore: attempt.careerScore ?? null,
-      level: attempt.level ?? null,
+      attempt: (current !== null ? { ...attempt, careerScore: current } : attempt) as AttemptLite,
+      careerScore: current ?? attempt.careerScore ?? null,
+      level: current !== null ? (passport?.level ?? attempt.level ?? null) : (attempt.level ?? null),
     };
   }
 

@@ -174,7 +174,8 @@
 
 /* ── Route: Code Playground ─────────────────────────────────────────────── */
 .student-core-remaining-surface[data-student-core-route="playground"] {
-  padding: 0 !important;
+  /* A framed workspace with room around it (pages/CodePlayground: .cp-lms), not an edge-to-edge strip. */
+  padding: 16px 22px 0 !important;
   overflow: hidden;
 }
 
@@ -268,36 +269,10 @@
 }
 
 /* ── Route: AI Mentor ───────────────────────────────────────────────────── */
+/* The page sizes itself (pages/AIMentor: .aml, useFillViewport). The old fixed 980px width and
+   calc(100dvh - 132px) height here fought that and left half the screen empty. */
 .student-core-remaining-surface[data-student-core-route="ai-mentor"] {
-  padding: 22px 26px !important;
-}
-
-.student-core-remaining-surface[data-student-core-route="ai-mentor"] > div {
-  max-width: 980px !important;
-  height: calc(100dvh - 132px) !important;
-  min-height: 560px;
-  padding: 0 !important;
-}
-
-.student-core-remaining-surface[data-student-core-route="ai-mentor"] > div > div:nth-of-type(2) {
-  background: #fff !important;
-  border-color: var(--cb-border) !important;
-  border-radius: 16px !important;
-  box-shadow: var(--cb-shadow) !important;
-}
-
-.student-core-remaining-surface[data-student-core-route="ai-mentor"] form button {
-  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
-  color: #fff !important;
-}
-
-.student-core-remaining-surface[data-student-core-route="ai-mentor"] form input {
-  min-height: 46px;
-  background: #fff !important;
-}
-
-.student-core-remaining-surface[data-student-core-route="ai-mentor"] button:not([type="submit"]) {
-  border-color: var(--cb-border) !important;
+  padding: 16px 24px 0 !important;
 }
 
 /* ── Route: Resource / Project Library ──────────────────────────────────── */
@@ -511,7 +486,8 @@
   }
 
   .student-core-remaining-surface[data-student-core-route="playground"] {
-    padding: 0 !important;
+    padding: 12px 12px 24px !important;
+    overflow: visible;
   }
 
   .student-core-remaining-surface[data-student-core-route="project-builder"] > div,
@@ -539,10 +515,6 @@
     font-size: 12px;
   }
 
-  .student-core-remaining-surface[data-student-core-route="ai-mentor"] > div {
-    height: auto !important;
-    min-height: 560px;
-  }
 }
 
 @media (max-width: 480px) {

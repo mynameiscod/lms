@@ -1,3 +1,4 @@
+import { recordReEnquiry } from '../services/leadReEnquiryService';
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Tenant from '../models/Tenant';
@@ -82,16 +83,9 @@ export const submitWebsiteLead = async (req: Request, res: Response) => {
 
     if (existing) {
       if (existing.archivedAt) { existing.archivedAt = null; existing.set('archivedBy', undefined); existing.set('archiveReason', undefined); existing.set('archiveRunId', undefined); }
-      existing.activities.push({
-        type: 'note',
-        description: `Re-enquired via website.${noteText ? ' Message: ' + noteText : ''}`,
-        createdBy:   adminId,
-        createdAt:   new Date(),
-      } as any);
-      if (existing.priority === 'cold' || existing.priority === 'warm') {
-        existing.priority = 'hot';
-      }
       await existing.save();
+      // Timeline entry, hot priority, flag and a notification to the owner (see leadReEnquiryService).
+      await recordReEnquiry(String(tenant._id), existing._id, { channel: 'website', note: noteText ? String(noteText).slice(0, 300) : undefined });
       return res.status(200).json({ success: true, message: 'Thank you! We will contact you shortly.', isExisting: true });
     }
 
@@ -221,14 +215,7 @@ export const submitPublicLeadForm = async (req: Request, res: Response) => {
 
     if (existingLead) {
       // Update existing lead with new activity
-      existingLead.activities = existingLead.activities || [];
-      existingLead.activities.push({
-        type: 'form_submission',
-        description: `Form resubmitted. ${notes ? 'Notes: ' + notes : ''}`,
-        performedBy: existingLead.assignedTo || (tenant as any).adminId,
-        createdAt: new Date(),
-      } as any);
-      await existingLead.save();
+      await recordReEnquiry(String(tenant._id), existingLead._id, { channel: 'enquiry_form', note: notes ? String(notes).slice(0, 300) : undefined });
 
       return res.status(200).json({
         success: true,

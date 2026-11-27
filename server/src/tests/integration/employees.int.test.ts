@@ -96,6 +96,23 @@ describe('employee records', () => {
     const out = await svc.updateEmployee(T, ADMIN, String(e._id), { status: 'exited' }, { sensitive: false });
     expect(out.status).toBe('exited'); expect(out.exitDate).toBeTruthy();
   });
+
+  it('keeps the role history in step: joining date, status changes, one exit that follows its date and reason, and a rejoin', async () => {
+    const e = await mkEmp({ designation: 'Trainee', joiningDate: '2025-12-25' });
+    const id = String(e._id);
+    await svc.updateEmployee(T, ADMIN, id, { joiningDate: '2025-12-20' }, { sensitive: false });
+    await svc.updateEmployee(T, ADMIN, id, { status: 'on_notice' }, { sensitive: false });
+    await svc.updateEmployee(T, ADMIN, id, { status: 'exited', exitDate: '2026-08-07', exitReason: 'Resigned' }, { sensitive: false });
+    let out = await svc.updateEmployee(T, ADMIN, id, { exitDate: '2026-08-08', exitReason: 'Resigned - higher studies' }, { sensitive: false });
+    const h = (o: any) => o.roleHistory.map((r: any) => [r.type, new Date(r.effectiveFrom).toISOString().slice(0, 10), r.note]);
+    expect(h(out)).toEqual([
+      ['joining', '2025-12-20', 'Joined'],
+      ['status_change', expect.any(String), 'Active → Serving notice'],
+      ['exit', '2026-08-08', 'Exited — Resigned - higher studies'],
+    ]);
+    out = await svc.updateEmployee(T, ADMIN, id, { status: 'active' }, { sensitive: false });
+    expect(out.roleHistory.map((r: any) => r.type)).toEqual(['joining', 'status_change', 'exit', 'rejoin']);
+  });
 });
 
 describe('daily activity', () => {

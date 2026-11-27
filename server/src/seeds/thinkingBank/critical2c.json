@@ -1,0 +1,1713 @@
+[
+  {
+    "seedKey": "critical-161",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Pen sales at the stationery shop",
+    "statement": "A stationery shop near a college in Vijayawada sells gel pens at Rs 10 each. Pens sold last week:\nMonday: 45\nTuesday: 60\nWednesday: 30\nThursday: 75\nFriday: 90\nHow many more rupees did the shop earn from pens on its best day than on its worst day?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "600",
+    "acceptedAnswers": [
+      "Rs 600",
+      "600 rupees"
+    ],
+    "keySteps": [
+      "Finds the best day: Friday with 90 pens.",
+      "Finds the worst day: Wednesday with 30 pens.",
+      "Difference is 90 - 30 = 60 pens; 60 x Rs 10 = Rs 600.",
+      "Avoids the tempting slip of comparing Friday with Monday (the first day) instead of with the actual lowest day."
+    ],
+    "explanation": "The highest sales were on Friday (90 pens) and the lowest on Wednesday (30 pens). The gap is 60 pens, and at Rs 10 each that is Rs 600. Check: Friday earned Rs 900, Wednesday Rs 300, and 900 - 300 = 600.",
+    "hints": [
+      "First find the highest and the lowest number in the list.",
+      "The lowest day is not Monday.",
+      "(90 - 30) x 10."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-162",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Electricity units by month",
+    "statement": "The Sharma family's electricity meter showed these units used:\nJanuary: 120\nFebruary: 135\nMarch: 180\nApril: 210\nMay: 290\nIn which month did usage rise the most compared with the month before?",
+    "answerFormat": "choice",
+    "choices": [
+      "February",
+      "March",
+      "April",
+      "May"
+    ],
+    "answer": "May",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Works out each month's rise: Feb +15, Mar +45, Apr +30, May +80.",
+      "Picks May, the largest rise (+80 units).",
+      "Notices May also has the largest percentage rise (80/210 is about 38%, versus about 33% for March), so the answer does not depend on how 'rise' is measured.",
+      "Does not pick March just because it was the first big jump."
+    ],
+    "explanation": "The month-to-month rises are 15, 45, 30 and 80 units, so May had the biggest jump. Even in percentage terms May leads: 80/210 is about 38%, while March's 45/135 is about 33%.",
+    "hints": [
+      "Subtract each month's units from the next month's.",
+      "You should get four differences.",
+      "The rises are 15, 45, 30 and 80."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-163",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Score needed in the sixth quiz",
+    "statement": "Priya's scores in five weekly quizzes (each out of 20) were:\nWeek 1: 14\nWeek 2: 17\nWeek 3: 12\nWeek 4: 19\nWeek 5: 18\nWhat must she score in the Week 6 quiz so that her average over all six quizzes is exactly 16.5?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "19",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Adds the five scores: 14 + 17 + 12 + 19 + 18 = 80.",
+      "Total needed for an average of 16.5 over six quizzes: 16.5 x 6 = 99.",
+      "Week 6 score = 99 - 80 = 19.",
+      "Avoids simply answering 16.5: the sixth score must also make up for the low weeks."
+    ],
+    "explanation": "Six quizzes averaging 16.5 must total 99 marks. Her first five add up to 80, so she needs 19 in Week 6. Check: (80 + 19) / 6 = 99 / 6 = 16.5.",
+    "hints": [
+      "An average times the count gives the total.",
+      "How many marks must six quizzes add up to?",
+      "16.5 x 6 = 99; subtract what she already has."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-164",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Picking a mini-project topic",
+    "statement": "Sai's team of three must submit a working mini-project in 3 weeks. All three know Python well; none of them has used Kotlin, Solidity or any GPU. Their laptops have no graphics card. Which project should they choose?",
+    "answerFormat": "choice",
+    "choices": [
+      "A blockchain voting system written in Solidity",
+      "A deep-learning model trained on 50 GB of satellite images",
+      "A Python expense tracker that saves data to a file and shows monthly summaries",
+      "An Android app in Kotlin for booking hostel laundry slots"
+    ],
+    "answer": "A Python expense tracker that saves data to a file and shows monthly summaries",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Lists the hard limits: 3 weeks, Python only, no GPU.",
+      "Checks each option against the limits; only the Python expense tracker fits all of them.",
+      "Rejects the Android app (needs Kotlin they do not know) and the image model (needs a GPU and a huge dataset).",
+      "Notes that a more impressive idea is worthless if it cannot be finished and demonstrated in 3 weeks."
+    ],
+    "explanation": "The deadline and skills rule out everything except the Python expense tracker. The deep-learning project sounds the most impressive, but training on 50 GB of images without a GPU is not realistic in 3 weeks, and an unfinished project scores worse than a finished simple one.",
+    "hints": [
+      "Write down what the team cannot do.",
+      "Which options need a skill or tool the team does not have?",
+      "Only one option uses only Python and an ordinary laptop."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-165",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Six hours before the exam",
+    "statement": "Sneha has 6 hours left before her Data Structures exam. The syllabus has three units:\nUnit 1 (Arrays): 25% of marks, revised once already\nUnit 2 (Linked lists): 25% of marks, revised once already\nUnit 3 (Trees and graphs): 50% of marks, not started\nWhat is the best way to use her 6 hours?",
+    "answerFormat": "choice",
+    "choices": [
+      "Skip Unit 3 completely because it is too big to finish",
+      "Revise Units 1 and 2 again first, since she already knows them and can secure those marks",
+      "Split the time equally: 2 hours per unit",
+      "Spend most of the time on Unit 3, then use the last hour for a quick revision of Units 1 and 2"
+    ],
+    "answer": "Spend most of the time on Unit 3, then use the last hour for a quick revision of Units 1 and 2",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that Unit 3 carries half the marks and is the only unit not studied.",
+      "Concludes most of the time should go to Unit 3.",
+      "Keeps a short slot at the end for a quick revision of Units 1 and 2 so they stay fresh.",
+      "Rejects revising Units 1 and 2 again first: it feels comfortable but adds little compared with half the paper she has never seen."
+    ],
+    "explanation": "The biggest gain comes from the unit worth 50% that she has not touched. Spending around 4 to 5 hours on Unit 3 and the last hour on a quick pass over Units 1 and 2 covers the whole paper. Revising the familiar units first is tempting because it feels productive, but it leaves half the marks at risk.",
+    "hints": [
+      "Which unit is worth the most marks?",
+      "Which unit has she not studied at all?",
+      "Put most of the time where marks are high and preparation is lowest."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-166",
+    "type": "critical",
+    "subCategory": "Evaluate the evidence",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The hostel water purifier",
+    "statement": "The warden claims that the new water purifier installed in the boys' hostel has reduced stomach infections. Which piece of evidence best supports this claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "The warden feels students look healthier this term.",
+      "The purifier brand is one of the top sellers in India.",
+      "Most students say the water now tastes better.",
+      "Infirmary records show stomach-infection visits fell from about 40 a month to 12 a month after installation, while visits for other illnesses stayed the same."
+    ],
+    "answer": "Infirmary records show stomach-infection visits fell from about 40 a month to 12 a month after installation, while visits for other illnesses stayed the same.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Picks the infirmary records: they measure the actual outcome (stomach infections) before and after.",
+      "Notes that visits for other illnesses stayed the same, which rules out a general drop in infirmary visits.",
+      "Rejects 'water tastes better': taste is not health.",
+      "Rejects brand popularity and impressions, which do not show any change in infections."
+    ],
+    "explanation": "Only the infirmary records count stomach infections directly, before and after the purifier. The steady count for other illnesses shows students did not simply stop visiting the infirmary. Better taste is pleasant but says nothing about infections.",
+    "hints": [
+      "What exactly does the claim say changed?",
+      "Which option actually counts infections?",
+      "Look for before-and-after numbers about stomach infections."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-167",
+    "type": "critical",
+    "subCategory": "Evaluate the evidence",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Two matching assignments",
+    "statement": "A lecturer suspects that Raj copied his C programming assignment from Meena. Which piece of evidence would most strongly support the suspicion?",
+    "answerFormat": "choice",
+    "choices": [
+      "Raj submitted 10 minutes after Meena.",
+      "Raj and Meena sit next to each other in the lab.",
+      "Both submissions have the same rare spelling mistake in a comment and the same wrongly named variable on the same line.",
+      "Both of them scored 8 out of 10."
+    ],
+    "answer": "Both submissions have the same rare spelling mistake in a comment and the same wrongly named variable on the same line.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Picks the shared unusual mistakes: two people working alone are very unlikely to make the same rare errors in the same place.",
+      "Rejects 'sit next to each other': being close gives a chance to copy but is not evidence of copying.",
+      "Rejects equal marks and submission times: many honest students get the same marks or submit close together.",
+      "Concludes that identical rare errors are the strongest sign of copying."
+    ],
+    "explanation": "Correct answers can match by chance, because there are few right ways to solve a problem, but the same rare spelling mistake and the same odd wrong variable name on the same line almost never happen independently. Sitting together only shows opportunity, not that copying happened.",
+    "hints": [
+      "Two honest students can both be right. Can they both be wrong in the same strange way?",
+      "Which option is hard to explain by chance?",
+      "Look at the mistakes, not the marks."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-168",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Tiffin app sign-ups halve",
+    "statement": "A home-tiffin delivery app in Indore released a new sign-up form that asks 12 questions instead of the earlier 3. The next week, completed sign-ups fell by 50%, while the number of people opening the sign-up page stayed the same. Nothing else changed. What is the most likely reason?",
+    "answerFormat": "choice",
+    "choices": [
+      "Competitors launched better advertisements that week.",
+      "People in Indore have stopped wanting home-cooked tiffins.",
+      "The longer form makes many people give up before finishing.",
+      "The app's prices must have gone up."
+    ],
+    "answer": "The longer form makes many people give up before finishing.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that the same number of people reached the sign-up page, so interest in the app did not fall.",
+      "Links the drop to the only change: a form four times longer.",
+      "Explains that long forms make people give up midway.",
+      "Rejects 'people no longer want tiffins': demand would have reduced page visits too, which did not happen."
+    ],
+    "explanation": "As many people as before opened the sign-up page, so interest did not drop. What changed is that far more of them stopped before finishing, and the only difference is a form with 12 questions instead of 3. A good next step is to check at which question people quit.",
+    "hints": [
+      "Did fewer people come to the sign-up page?",
+      "What was the only thing that changed?",
+      "Think about how you feel when a form keeps asking more questions."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-169",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Does the loyalty card work?",
+    "statement": "A juice shop owner in Mysuru starts a loyalty card: every 10th juice is free. He wants to know whether the card makes customers come back more often. Which number should he look at?",
+    "answerFormat": "choice",
+    "choices": [
+      "The number of loyalty cards printed",
+      "How often card-holders visit per month compared with how often they visited before getting the card",
+      "Total juices sold on the first day of the scheme",
+      "The number of likes on the shop's Instagram post about the card"
+    ],
+    "answer": "How often card-holders visit per month compared with how often they visited before getting the card",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Restates the goal: are customers returning more often?",
+      "Picks visit frequency of the same customers before and after getting the card, which measures exactly that.",
+      "Rejects cards printed or Instagram likes: they measure activity around the card, not repeat visits.",
+      "Rejects first-day sales: one day says nothing about coming back."
+    ],
+    "explanation": "The question is about repeat visits, so he needs to measure how often customers return, ideally comparing the same customers before and after they got the card. Cards printed and likes are easy to count but do not show whether anyone came back.",
+    "hints": [
+      "What exactly does he want to find out?",
+      "Which option measures 'coming back'?",
+      "Compare how often the same people visit before and after."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-170",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Photocopy shop in exam week",
+    "statement": "An old photocopy shop outside a college charges Rs 2 per page and has two machines. A new shop across the road charges Rs 1.50 per page but has only one machine, so students wait about 30 minutes there. During exam week, students need notes copied quickly between classes. What is the old shop's best move for exam week?",
+    "answerFormat": "choice",
+    "choices": [
+      "Raise the price to Rs 3 per page because demand is high",
+      "Cut the price to Rs 1 per page to undercut the new shop",
+      "Close during exam week to save electricity",
+      "Put up a board saying 'No queue, copies in 5 minutes' and keep both machines running"
+    ],
+    "answer": "Put up a board saying 'No queue, copies in 5 minutes' and keep both machines running",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies what customers value most in exam week: speed, not a 50-paise saving.",
+      "Sees the old shop's advantage: two machines and no queue.",
+      "Chooses to promote quick service, which plays to that advantage.",
+      "Rejects a price war down to Rs 1: it gives away money on the very thing students care least about this week."
+    ],
+    "explanation": "In exam week time matters more than a 50-paise difference, and the old shop is the one without a queue. Telling students 'copies in 5 minutes' uses its real advantage. Cutting the price to Rs 1 would lose money without fixing anything students care about right now.",
+    "hints": [
+      "What do students care about most during exam week?",
+      "Which shop is faster?",
+      "Use your strength instead of copying the competitor."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-171",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Hostel budget after food costs rise",
+    "statement": "Varun lives in a PG in Bengaluru. His monthly budget is:\nRent: Rs 6,000\nFood: Rs 4,500\nTravel: Rs 1,500\nPhone: Rs 500\nOther: Rs 2,500\nNext month his food cost rises by 20%. He wants to keep his total spending the same, and he will cut only the 'Other' category. How many rupees can he spend on 'Other' next month?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "1600",
+    "acceptedAnswers": [
+      "Rs 1600",
+      "Rs 1,600",
+      "1,600"
+    ],
+    "keySteps": [
+      "Total budget = 6,000 + 4,500 + 1,500 + 500 + 2,500 = Rs 15,000.",
+      "New food cost = 4,500 x 1.2 = Rs 5,400, an increase of Rs 900.",
+      "Other must fall by the same Rs 900: 2,500 - 900 = Rs 1,600.",
+      "Avoids cutting 'Other' by 20% (to Rs 2,000), which does not keep the total the same."
+    ],
+    "explanation": "Food goes up by 20% of 4,500, which is Rs 900. To keep the total at Rs 15,000, 'Other' must come down by exactly Rs 900, from 2,500 to 1,600. Check: 6,000 + 5,400 + 1,500 + 500 + 1,600 = 15,000.",
+    "hints": [
+      "First find how many rupees the food cost goes up by.",
+      "20% of 4,500 is 900.",
+      "Take that same amount away from 'Other'."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-172",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Fest website two days out",
+    "statement": "The tech fest website goes live in 2 days. Three features are unfinished:\n1. Registration and fee payment: needed on launch day; without it nobody can sign up\n2. Photo gallery: nice to have, photos only exist after the fest\n3. Dark mode: requested by a few students\nOnly one developer is free. In 2 days she can either finish one feature fully tested, or finish two features with some bugs left in both. What should the team lead decide?",
+    "answerFormat": "choice",
+    "choices": [
+      "Finish dark mode first because students asked for it",
+      "Finish registration and gallery together, accepting some bugs in both",
+      "Finish registration and payment fully tested; add the gallery and dark mode after launch",
+      "Delay the launch until all three features are done"
+    ],
+    "answer": "Finish registration and payment fully tested; add the gallery and dark mode after launch",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies registration and payment as the only launch-critical feature.",
+      "Notes that bugs in a payment flow can lose money and sign-ups, so it should be fully tested.",
+      "Sees that the gallery has no photos until after the fest and dark mode is optional, so both can wait.",
+      "Rejects 'two features with bugs': it trades a reliable must-have for an extra nice-to-have."
+    ],
+    "explanation": "Registration and payment is the one feature the launch cannot do without, and payment bugs directly cost money and trust, so it deserves the full 2 days and proper testing. The gallery is useless until photos exist after the fest, and dark mode is optional; both can follow later. Finishing two buggy features sounds like more output but puts the critical one at risk.",
+    "hints": [
+      "Which feature does the launch actually depend on?",
+      "What happens if the payment flow has bugs?",
+      "Can the gallery even be used before the fest?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-173",
+    "type": "critical",
+    "subCategory": "Evaluate the evidence",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Least useful keyboard evidence",
+    "statement": "A company claims its new keyboard layout reduces typing errors. Four pieces of evidence are offered. Which one is the LEAST relevant to the claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "The keyboard won an international award for its design and colours.",
+      "The same 40 people typed the same passage on the old and new layouts; the new layout gave 30% fewer errors.",
+      "In a test where typists were not told which layout was new, the new one still gave fewer errors.",
+      "Error logs from 200 office users show fewer corrections in the month after switching."
+    ],
+    "answer": "The keyboard won an international award for its design and colours.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Restates the claim: fewer typing errors.",
+      "Notes that options about tests, error logs and blind tests all measure errors.",
+      "Picks the design award: it judges looks, not accuracy, so it says nothing about errors.",
+      "Does not reject the error logs just because they are from office use: real-world error counts are still relevant, even if less controlled than a test."
+    ],
+    "explanation": "Three options measure typing errors in some way: a controlled test with the same typists and text, real error logs from 200 users, and a test where typists did not know which keyboard was new. A design award is about appearance and tells us nothing about whether people make fewer mistakes.",
+    "hints": [
+      "What would you need to measure to check the claim?",
+      "Three options count errors. Which one does not?",
+      "Looks and accuracy are different things."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-174",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Rides drop only on Android",
+    "statement": "An auto-booking app saw bookings in Mumbai fall 20% in the second week of June. Other cities were normal. Breaking down the Mumbai numbers: bookings from iPhone users were normal, but bookings from Android users fell sharply. An app update for Android was rolled out in Mumbai that week. What is the most likely cause?",
+    "answerFormat": "choice",
+    "choices": [
+      "Fares were too high for Mumbai customers",
+      "A bug in the new Android update is stopping bookings",
+      "Many drivers moved to a competitor app",
+      "Heavy monsoon rain kept people at home"
+    ],
+    "answer": "A bug in the new Android update is stopping bookings",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that the drop is limited to Android users in Mumbai.",
+      "Checks each option: rain, driver shortage and prices would hit iPhone and Android users alike.",
+      "Concludes the cause must be something that only Android users in Mumbai experienced: the new Android update.",
+      "Rejects the monsoon even though it is a Mumbai-only event in June, because it cannot explain why iPhone bookings stayed normal."
+    ],
+    "explanation": "The monsoon is the tempting answer because it is Mumbai-specific and starts in June, but rain would also reduce iPhone bookings, and those were normal. Driver shortages and prices also affect both platforms. Only the Android update reached exactly the group that dropped, so the team should check it for a bug first.",
+    "hints": [
+      "Who was affected, and who was not?",
+      "Would rain affect only Android users?",
+      "Find the one change that touched exactly the affected group."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-175",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Two coaching centres, one advert",
+    "statement": "Results of two GATE coaching centres in Hyderabad last year:\nCentre P: 400 students enrolled, 120 qualified\nCentre Q: 150 students enrolled, 60 qualified\nCentre P's advert says: 'Hyderabad's best results: most qualifiers!'. Which statement is best supported by the data?",
+    "answerFormat": "choice",
+    "choices": [
+      "Both centres performed equally well.",
+      "Centre Q had both more qualifiers and a higher success rate.",
+      "Centre P gives better results because it has twice as many qualifiers.",
+      "Centre P had more qualifiers, but Centre Q had a higher success rate (40% versus 30%)."
+    ],
+    "answer": "Centre P had more qualifiers, but Centre Q had a higher success rate (40% versus 30%).",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Computes P's rate: 120/400 = 30%.",
+      "Computes Q's rate: 60/150 = 40%.",
+      "Concludes P had more qualifiers in number, but Q had a higher success rate.",
+      "Rejects 'P is clearly better': a larger count can come simply from enrolling more students."
+    ],
+    "explanation": "P did have more qualifiers (120 versus 60), but it also had far more students. P's success rate is 30% while Q's is 40%, so a student at Q did better on average. The advert's 'most qualifiers' is true in count but misleading as a claim of 'best results'.",
+    "hints": [
+      "Count and rate are different things.",
+      "Divide qualifiers by students enrolled for each centre.",
+      "P: 30%. Q: ?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-176",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Average app store rating",
+    "statement": "A college club's event app has 100 ratings on the Play Store:\n5 stars: 60\n4 stars: 25\n3 stars: 10\n2 stars: 3\n1 star: 2\nWhat is the app's average rating? (Give the exact value.)",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4.38",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Multiplies each star value by its count: 300 + 100 + 30 + 6 + 2 = 438.",
+      "Checks the total count: 60 + 25 + 10 + 3 + 2 = 100.",
+      "Average = 438 / 100 = 4.38.",
+      "Avoids averaging the star values 1 to 5 (which gives 3), since that ignores how many people gave each rating."
+    ],
+    "explanation": "Each star value must be weighted by how many people gave it: 5x60 + 4x25 + 3x10 + 2x3 + 1x2 = 438 stars in total from 100 ratings, so the average is 4.38.",
+    "hints": [
+      "Not every star value has the same number of ratings.",
+      "Multiply each star value by how many people chose it.",
+      "Add up the stars and divide by 100."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-177",
+    "type": "critical",
+    "subCategory": "Evaluate the evidence",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Slow website in Chennai",
+    "statement": "A support engineer claims: 'Our website loads slowly for users in Chennai compared with other cities.' Which piece of evidence best supports this claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "A developer in Bengaluru tested the site on his laptop and found it slow.",
+      "Monitoring over two weeks shows a median page load of 6.2 seconds for Chennai users versus 1.8 seconds for users in other cities.",
+      "The home page size grew from 2 MB to 3 MB last month.",
+      "One user from Chennai tweeted that the site was slow last night."
+    ],
+    "answer": "Monitoring over two weeks shows a median page load of 6.2 seconds for Chennai users versus 1.8 seconds for users in other cities.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Picks monitoring data: it measures real load times for Chennai users and compares them with other cities over two weeks.",
+      "Rejects the single tweet: one complaint could be that user's own internet.",
+      "Rejects the developer test in Bengaluru: it says nothing about Chennai.",
+      "Rejects 'page size grew': a bigger page would slow down all cities, not Chennai specifically."
+    ],
+    "explanation": "The claim is a comparison between Chennai and other cities, so the best evidence measures both with real users over time, which the monitoring data does. One tweet is a single data point, and a test from Bengaluru cannot show anything about Chennai.",
+    "hints": [
+      "The claim compares one city with others. Which option does that?",
+      "One complaint is not a pattern.",
+      "Look for measurements from many real users in Chennai."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-178",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Is the sleep timer useful?",
+    "statement": "A music-streaming app added a 'sleep timer' that stops the music after a set time. The product manager wants to know whether users find the feature useful. Which metric is the best to check?",
+    "answerFormat": "choice",
+    "choices": [
+      "How many times the sleep-timer button was shown on screen",
+      "The number of engineers who worked on the feature",
+      "Total downloads of the app last year",
+      "The share of active users who used the sleep timer more than once in a month"
+    ],
+    "answer": "The share of active users who used the sleep timer more than once in a month",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Picks repeat usage among active users: people who keep using a feature find it useful.",
+      "Rejects total app downloads: they reflect the whole app, not this feature.",
+      "Rejects the number of times the button was seen: being seen is not being used.",
+      "Notes that a single try can be curiosity, so repeat use is the stronger signal."
+    ],
+    "explanation": "If a feature is useful, people come back to it. The share of active users who used the sleep timer more than once in a month captures that. Downloads and button views measure exposure, not usefulness.",
+    "hints": [
+      "What do people do with a feature they find useful?",
+      "Trying something once might just be curiosity.",
+      "Look for repeat use."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-179",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Two interviews, one morning",
+    "statement": "Arjun has two interviews on the same day. Company A (his dream backend role) interviews on campus at 10:00 am, and its rounds may run until 1:00 pm. Company B (a role similar to an offer he already holds) has an online interview at 11:00 am. He learns about the clash two days in advance. What should he do?",
+    "answerFormat": "choice",
+    "choices": [
+      "Skip Company A because Company B's time slot is fixed",
+      "Attend neither, to avoid the stress",
+      "Email Company B now asking to reschedule, and attend Company A fully",
+      "Join Company B's call on his phone during a break in Company A's rounds"
+    ],
+    "answer": "Email Company B now asking to reschedule, and attend Company A fully",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Ranks the options: A is his top goal; B is a backup similar to an offer he already has.",
+      "Uses the two days' notice to email B politely and request another slot.",
+      "Attends A fully without splitting attention.",
+      "Rejects joining B's call from A's venue: both interviews would suffer and it may break A's rules."
+    ],
+    "explanation": "A matters most and may run for hours, so he should attend it fully. Because he knows two days ahead, the professional move is to write to B now and ask for a different slot; many companies agree, and even if B refuses he loses only a backup similar to an offer he already has. Trying to do both at once risks both.",
+    "hints": [
+      "Which interview matters more to him?",
+      "He knows two days ahead. What can he do with that time?",
+      "Ask, early and politely."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-180",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Support tickets by category",
+    "statement": "A grocery app's support team received these tickets last month:\nLogin problems: 120\nPayment problems: 45\nDelivery problems: 210\nRefund problems: 75\nWhich statement is true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Login and Payment problems together are more than half of all tickets.",
+      "Payment problems are 15% of all tickets.",
+      "Delivery problems are more than 40% of all tickets.",
+      "Refund problems are more than Login and Payment problems combined."
+    ],
+    "answer": "Delivery problems are more than 40% of all tickets.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Finds the total: 120 + 45 + 210 + 75 = 450 tickets.",
+      "Delivery share: 210 / 450 is about 46.7%, which is more than 40%.",
+      "Checks the others: Login + Payment = 165, less than half of 450; Refund (75) is less than 165; Payment is 45/450 = 10%, not 15%.",
+      "Confirms only the Delivery statement is true."
+    ],
+    "explanation": "There are 450 tickets in all. Delivery problems are 210 of them, about 46.7%, so they are more than 40%. Login and Payment together are 165, well under half; Refund (75) is less than Login + Payment (165); and Payment is exactly 10%, not 15%.",
+    "hints": [
+      "Start by finding the total number of tickets.",
+      "40% of 450 is 180.",
+      "Check each statement against the total of 450."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-181",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Combined rating of two branches",
+    "statement": "A dosa chain has two branches in Chennai:\nBranch A: 200 reviews, average rating 4.5\nBranch B: 600 reviews, average rating 3.9\nWhat is the average rating across all 800 reviews?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "4.05",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Total stars at A = 200 x 4.5 = 900.",
+      "Total stars at B = 600 x 3.9 = 2,340.",
+      "Overall average = (900 + 2,340) / 800 = 3,240 / 800 = 4.05.",
+      "Rejects the simple average (4.5 + 3.9) / 2 = 4.2, which wrongly treats both branches as having the same number of reviews."
+    ],
+    "explanation": "Branch B has three times as many reviews, so it pulls the overall average towards 3.9. Total stars: 900 + 2,340 = 3,240 across 800 reviews, giving 4.05. The tempting 4.2 is the average of the two averages, which only works when the counts are equal.",
+    "hints": [
+      "Do both branches have the same number of reviews?",
+      "Turn each average back into a total.",
+      "(200 x 4.5 + 600 x 3.9) / 800."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-182",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Ed-tech growth with shrinking margin",
+    "statement": "A small ed-tech company's figures:\n2024: Revenue Rs 50 lakh, Total costs Rs 40 lakh\n2025: Revenue Rs 80 lakh, Total costs Rs 72 lakh\nWhich statement is best supported by the data?",
+    "answerFormat": "choice",
+    "choices": [
+      "Revenue grew by 60%, but profit fell from Rs 10 lakh to Rs 8 lakh.",
+      "The profit margin stayed the same at 20%.",
+      "The company made a loss in 2025.",
+      "Profit rose by 60% because revenue rose by 60%."
+    ],
+    "answer": "Revenue grew by 60%, but profit fell from Rs 10 lakh to Rs 8 lakh.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Revenue growth: 80 / 50 = 1.6, so revenue grew 60%.",
+      "Profit: 2024 = 50 - 40 = Rs 10 lakh; 2025 = 80 - 72 = Rs 8 lakh, so profit fell.",
+      "Margin: 10/50 = 20% fell to 8/80 = 10%.",
+      "Rejects 'profit rose because revenue rose': costs rose by 80%, faster than revenue's 60%."
+    ],
+    "explanation": "Revenue grew by 60%, but costs grew from 40 to 72 lakh, which is 80%. Profit therefore fell from Rs 10 lakh to Rs 8 lakh, and the profit margin halved from 20% to 10%. Higher revenue does not mean higher profit when costs grow faster.",
+    "hints": [
+      "Profit = revenue - costs. Work it out for both years.",
+      "Which grew faster, revenue or costs?",
+      "2024 profit is 10 lakh. What is 2025 profit?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-183",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "One hour, four bugs",
+    "statement": "A support lead has exactly 60 minutes of developer time before a release. Four bugs are open; each must be fixed completely or not at all:\nBug 1: affects 500 users, takes 60 minutes\nBug 2: affects 300 users, takes 20 minutes\nBug 3: affects 250 users, takes 30 minutes\nBug 4: affects 100 users, takes 10 minutes\nNo user is affected by more than one bug. To help the most users within 60 minutes, which bugs should be fixed?",
+    "answerFormat": "choice",
+    "choices": [
+      "Bugs 1 and 4",
+      "Bugs 2 and 3",
+      "Bugs 2, 3 and 4",
+      "Bug 1 only"
+    ],
+    "answer": "Bugs 2, 3 and 4",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes the limit: total fixing time must be at most 60 minutes.",
+      "Bug 1 alone uses all 60 minutes and helps 500 users.",
+      "Bugs 2 + 3 + 4 take 20 + 30 + 10 = 60 minutes and help 300 + 250 + 100 = 650 users.",
+      "Checks other combinations (2+3 = 550, 2+4 = 400, 3+4 = 350) and confirms 650 is the most.",
+      "Rejects 'fix the biggest bug first': Bug 1 helps the most users on its own but uses the whole hour."
+    ],
+    "explanation": "Fixing the single biggest bug feels right but uses all 60 minutes for 500 users. Bugs 2, 3 and 4 together take exactly 60 minutes and help 650 users, which beats every other combination that fits. Users helped per minute is a quick guide: Bug 1 helps about 8 per minute, while Bugs 2 to 4 help 10 to 15 per minute.",
+    "hints": [
+      "The bug that affects the most users is not automatically the best choice.",
+      "Which combinations fit inside 60 minutes?",
+      "Try Bugs 2, 3 and 4 together."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-184",
+    "type": "critical",
+    "subCategory": "Evaluate the evidence",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Are remote employees less productive?",
+    "statement": "A company's HR head claims that employees working from home are less productive than before. Which piece of evidence would best support this claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "The company spent more on laptops for remote staff this year.",
+      "Most managers say in a survey that they feel remote staff are less productive.",
+      "Remote employees show as 'online' in the company chat app for fewer hours a day.",
+      "For the same employees and the same type of tasks, completed work items per sprint fell by 18% after they moved to remote work."
+    ],
+    "answer": "For the same employees and the same type of tasks, completed work items per sprint fell by 18% after they moved to remote work.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Picks the before-and-after comparison of the same employees on the same kind of work: it measures output and removes differences between people and tasks.",
+      "Rejects fewer hours online in chat: chat activity is not work output, and deep work often happens offline.",
+      "Rejects the manager survey: it is opinion and may reflect managers simply seeing less of their teams.",
+      "Rejects the cost of laptops: it is about expenses, not productivity."
+    ],
+    "explanation": "Productivity means work completed, so the best evidence counts output for the same people before and after the switch while the task mix stays the same; an 18% drop in completed work would directly support the claim. Time shown as 'online' on chat is tempting because it is measurable, but it tracks activity, not results.",
+    "hints": [
+      "What does 'productive' actually mean: busy, or getting work done?",
+      "Which option compares the same people doing similar work?",
+      "Activity on a chat app is not output."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-185",
+    "type": "critical",
+    "subCategory": "Evaluate the evidence",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "What else do we need to know?",
+    "statement": "A product team claims: 'Our new onboarding video cut customer-support calls by 30%. Calls fell from 1,000 in the month before the video to 700 in the month after.' Which additional information is most important for judging this claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "The number of new customers who joined in each of the two months",
+      "How long the onboarding video is",
+      "Whether the video has background music",
+      "How much the video cost to make"
+    ],
+    "answer": "The number of new customers who joined in each of the two months",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that support calls depend heavily on how many new customers joined.",
+      "Sees that if far fewer customers joined in the second month, calls would fall without the video doing anything.",
+      "Concludes the claim needs calls per new customer in both months, so new-customer numbers are essential.",
+      "Rejects the video's length and production cost: they matter for other decisions but do not tell us whether calls fell because of the video."
+    ],
+    "explanation": "A drop from 1,000 to 700 calls means little unless we know whether the number of customers stayed similar. If new sign-ups also fell by 30%, calls per customer did not change at all. Comparing calls per new customer in both months is the minimum check. The video's cost or length does not test the cause.",
+    "hints": [
+      "What else, apart from the video, could make calls go down?",
+      "Calls usually come from new customers.",
+      "Was the number of new customers the same in both months?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-186",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Streaks raise users, not minutes",
+    "statement": "A quiz app added a 'daily streak' reward. After a month:\nDaily active users: up 25%\nAverage time per user per day: down from 12 minutes to 5 minutes\nThe app earns from ads, and ad income depends on total minutes watched. Which conclusion is best supported?",
+    "answerFormat": "choice",
+    "choices": [
+      "Total minutes stayed about the same, because more users made up for shorter sessions.",
+      "Total minutes rose, because daily active users matter more than session length.",
+      "Total minutes watched fell by about half, so ad income has most likely dropped.",
+      "The streak is a success because 25% more people use the app daily."
+    ],
+    "answer": "Total minutes watched fell by about half, so ad income has most likely dropped.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Total minutes = users x minutes per user.",
+      "Before: 1 x 12 = 12 units; after: 1.25 x 5 = 6.25 units.",
+      "Total minutes fell by about 48%, roughly half, so ad income likely fell.",
+      "Rejects 'more users means more money': the rise in users is far smaller than the fall in time per user. Many users probably open the app briefly just to keep the streak."
+    ],
+    "explanation": "Ad income tracks total minutes, which is users times minutes per user. Taking the old number of users as 100: before, 100 x 12 = 1,200 minutes; after, 125 x 5 = 625 minutes, a drop of about 48%. The streak brought people in, but many seem to open the app just long enough to keep the streak.",
+    "hints": [
+      "What does ad income depend on?",
+      "Total minutes = number of users x minutes each.",
+      "Compare 1 x 12 with 1.25 x 5."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-187",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Judging a support chatbot",
+    "statement": "A bank adds a chatbot to answer customer questions before handing them to a human agent. The manager wants one main measure of whether the chatbot is doing its job well. Which is best?",
+    "answerFormat": "choice",
+    "choices": [
+      "Total number of messages the chatbot sends per day",
+      "Share of chats resolved without a human agent where the customer rated the answer helpful",
+      "How fast the chatbot shows its first greeting",
+      "Total number of chats started with the chatbot"
+    ],
+    "answer": "Share of chats resolved without a human agent where the customer rated the answer helpful",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Defines the chatbot's job: solve customers' problems without needing a human, and leave them satisfied.",
+      "Picks the share of chats resolved without a human where the customer rates the answer as helpful.",
+      "Rejects the number of messages sent: a confused bot that goes round in circles sends more messages.",
+      "Rejects number of chats started: that reflects how many people tried it, not whether it helped."
+    ],
+    "explanation": "The chatbot exists to solve problems so humans do not have to, and to leave customers happy. Counting chats resolved without a human and rated helpful measures exactly that. The number of messages the bot sends is tempting because it looks like 'activity', but a bot that cannot understand the question sends more messages, not fewer.",
+    "hints": [
+      "What is the chatbot supposed to achieve?",
+      "Could a high number of messages actually be a bad sign?",
+      "Look for a measure that combines 'solved' and 'customer happy'."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-188",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Eight weeks to placements",
+    "statement": "Nikhil has 8 weeks before campus placements. His mock-test percentiles are:\nAptitude: 85\nCoding: 40\nCommunication: 70\nMost companies he is targeting first filter candidates with an online coding test (cut-off around the 60th percentile), then an aptitude test (cut-off around the 50th percentile), then interviews. How should he spend most of his preparation time?",
+    "answerFormat": "choice",
+    "choices": [
+      "Mostly aptitude, because it is his strongest area and he can push it higher",
+      "Mostly coding, because it is the first filter and he is below its cut-off",
+      "Equal time on all three, to be balanced",
+      "Mostly communication, because interviews decide the final offer"
+    ],
+    "answer": "Mostly coding, because it is the first filter and he is below its cut-off",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Lists the filters in order: coding cut-off 60, then aptitude cut-off 50.",
+      "Compares with his scores: coding 40 is below its cut-off; aptitude 85 is already well above its cut-off.",
+      "Concludes most time should go to coding, because failing the first filter ends the process.",
+      "Rejects polishing aptitude further: it is already safely above the cut-off, so extra marks there do not get him past the coding test."
+    ],
+    "explanation": "Coding is the first filter, and at the 40th percentile he would be rejected before anything else is seen. Aptitude is already far above its cut-off, so more practice there adds little. He should spend most of his time on coding, while keeping light practice in the other two so they do not slip.",
+    "hints": [
+      "Which test comes first in the process?",
+      "Which of his scores is below its cut-off?",
+      "Strengthening a strong area does not help if you fail the first round."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-189",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Cheapest way to commute",
+    "statement": "Ravi commutes to his internship in Pune. He makes 44 one-way trips a month. His options:\nMetro monthly pass: Rs 1,500 for unlimited trips\nAuto: Rs 80 per trip\nScooter: EMI Rs 2,000 per month plus petrol Rs 600 per month\nHow many rupees a month does he save by choosing the cheapest option instead of the most expensive one?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2020",
+    "acceptedAnswers": [
+      "Rs 2020",
+      "Rs 2,020",
+      "2,020"
+    ],
+    "keySteps": [
+      "Auto cost = 44 x 80 = Rs 3,520.",
+      "Scooter cost = 2,000 + 600 = Rs 2,600.",
+      "Metro cost = Rs 1,500 (unlimited trips).",
+      "Saving = 3,520 - 1,500 = Rs 2,020.",
+      "Avoids comparing with the scooter just because its EMI looks like the biggest number."
+    ],
+    "explanation": "Monthly costs are Metro Rs 1,500, Scooter Rs 2,600 and Auto 44 x 80 = Rs 3,520. The cheapest is the metro and the most expensive is the auto, so he saves Rs 2,020 a month.",
+    "hints": [
+      "Turn every option into a monthly cost.",
+      "The auto cost depends on how many trips he makes.",
+      "Auto is 44 x 80; compare it with the metro pass."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-190",
+    "type": "critical",
+    "subCategory": "Evaluate the evidence",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Survey or A/B test?",
+    "statement": "An online furniture store redesigned its checkout page. Two pieces of evidence came in:\nStudy 1: 50 followers who replied to an Instagram post; 90% said they love the new design.\nStudy 2: An A/B test where 20,000 randomly chosen visitors saw either the old or the new page; checkout completion was 3.1% on the old page and 2.8% on the new one.\nWhich evidence should the team rely on, and why?",
+    "answerFormat": "choice",
+    "choices": [
+      "Study 2, because it is large, random and measures actual checkouts",
+      "Neither, because the two studies disagree",
+      "Both equally, so the team should average them",
+      "Study 1, because it asks users directly what they think"
+    ],
+    "answer": "Study 2, because it is large, random and measures actual checkouts",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes Study 1 is small and self-selected: followers who choose to reply are likely fans.",
+      "Notes Study 1 measures opinions, not whether people actually complete checkout.",
+      "Notes Study 2 is large, random and measures the real goal: completed checkouts.",
+      "Concludes the team should rely on Study 2, which suggests the new design is worse.",
+      "Rejects Study 1's appeal of 'asking users directly': liking how a page looks is not the same as finishing a purchase on it."
+    ],
+    "explanation": "Study 2 is the stronger evidence: 20,000 randomly assigned visitors, and it measures what the page is for, which is completed checkouts. Study 1 asked a small group of fans who chose to reply about how it looks. People can like a design and still find it harder to buy on, which is what Study 2 suggests happened.",
+    "hints": [
+      "Who answered Study 1, and how were they chosen?",
+      "Which study measures what people did rather than what they said?",
+      "The goal of a checkout page is completed checkouts."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-191",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Price rise and subscribers",
+    "statement": "A fitness app raised its monthly subscription price:\nBefore: Rs 199 per month, 10,000 subscribers\nAfter: Rs 249 per month, 8,500 subscribers\nWhich statement is best supported by the data?",
+    "answerFormat": "choice",
+    "choices": [
+      "Monthly revenue fell because 1,500 subscribers left.",
+      "Monthly revenue rose by about 6% despite fewer subscribers.",
+      "Monthly revenue did not change.",
+      "Monthly revenue rose by about 25%, the same as the price increase."
+    ],
+    "answer": "Monthly revenue rose by about 6% despite fewer subscribers.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Revenue before = 199 x 10,000 = Rs 19,90,000.",
+      "Revenue after = 249 x 8,500 = Rs 21,16,500.",
+      "Change = 21,16,500 / 19,90,000, about a 6% rise.",
+      "Rejects 'revenue fell because 15% of subscribers left': the price rose by about 25%, more than enough to make up for the subscribers lost."
+    ],
+    "explanation": "Monthly revenue went from Rs 19,90,000 to Rs 21,16,500, a rise of about 6%. Losing 15% of subscribers sounds bad, but each remaining subscriber pays about 25% more, so revenue still went up. Whether this is good long-term depends on whether more people leave later.",
+    "hints": [
+      "Revenue = price x subscribers.",
+      "Work out both months' revenue.",
+      "199 x 10,000 versus 249 x 8,500."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-192",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Shorter free trial",
+    "statement": "A project-management SaaS tool cut its free trial from 30 days to 7 days. Comparing the months before and after:\nTrial sign-ups: unchanged\nTrial users who start paying: 10% before, 14% after\nPaying users still subscribed 3 months later: 80% before, 55% after\nWhich conclusion is best supported?",
+    "answerFormat": "choice",
+    "choices": [
+      "The shorter trial doubled the number of long-term customers.",
+      "The shorter trial is a clear success because conversions rose by 40%.",
+      "The shorter trial had no effect, because trial sign-ups did not change.",
+      "The shorter trial brought more first payments, but slightly fewer customers are still paying after 3 months (about 77 versus 80 per 1,000 trials)."
+    ],
+    "answer": "The shorter trial brought more first payments, but slightly fewer customers are still paying after 3 months (about 77 versus 80 per 1,000 trials).",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Takes 1,000 trial sign-ups for both periods, since sign-ups were unchanged.",
+      "Before: 1,000 x 10% = 100 paying, x 80% = 80 still paying after 3 months.",
+      "After: 1,000 x 14% = 140 paying, x 55% = 77 still paying after 3 months.",
+      "Concludes: more first payments, but slightly fewer long-term paying customers.",
+      "Rejects 'the change is a clear win because conversions rose 40%': many of the extra payers leave quickly."
+    ],
+    "explanation": "Out of every 1,000 trials, the shorter trial turns 140 people into payers instead of 100, a 40% rise that looks like a big win. But only 55% of them are still paying after 3 months, giving 77 long-term customers versus 80 before. The change brings in more early payments, but slightly fewer customers who stay, which suggests some people are being rushed into paying before they are sure the tool fits.",
+    "hints": [
+      "Pick a convenient number of trial users, say 1,000.",
+      "Follow them all the way to 3 months for both periods.",
+      "Before: 1,000 x 0.10 x 0.80. After: 1,000 x 0.14 x 0.55."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "critical-193",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Five-star reviews needed",
+    "statement": "A restaurant on a food app has 200 reviews with an average rating of 3.8. The app will show a 'Top Rated' badge once the average reaches 4.0. If every new review from now on is 5 stars, how many new reviews are needed to reach an average of exactly 4.0?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "40",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Current total stars = 200 x 3.8 = 760.",
+      "With n new 5-star reviews: (760 + 5n) / (200 + n) = 4.0.",
+      "760 + 5n = 800 + 4n, so n = 40.",
+      "Checks: (760 + 200) / 240 = 960 / 240 = 4.0.",
+      "Avoids guessing that only a handful of reviews are needed: the shortfall is 200 x 0.2 = 40 stars, and each new 5-star review makes up only 1 star (5 - 4.0), because it also adds to the count."
+    ],
+    "explanation": "The restaurant currently has 760 stars from 200 reviews. Each new 5-star review is 1 star above the 4.0 target, and the existing 200 reviews are 0.2 below it, a total shortfall of 40 stars. So 40 five-star reviews are needed. Check: (760 + 200) / 240 = 4.0.",
+    "hints": [
+      "Turn the average into a total number of stars.",
+      "Write the new average as (stars) / (reviews) and set it equal to 4.0.",
+      "(760 + 5n) / (200 + n) = 4."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-194",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Own server or cloud?",
+    "statement": "A startup needs a server for a client project. Options:\nOwn server: Rs 40,000 to buy now (no resale value) plus Rs 2,000 a month to run\nCloud server: no upfront cost, Rs 3,500 a month, can be stopped any time\nThe project runs for 36 months if the client renews, but there is a 50% chance the client cancels after exactly 12 months, and then the server is no longer needed. Which option has the lower expected cost?",
+    "answerFormat": "choice",
+    "choices": [
+      "Own server, because over 36 months it costs Rs 14,000 less",
+      "Own server, because the Rs 40,000 is a one-time cost",
+      "Both have the same expected cost",
+      "Cloud server, with an expected cost of Rs 84,000 against Rs 88,000"
+    ],
+    "answer": "Cloud server, with an expected cost of Rs 84,000 against Rs 88,000",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "If cancelled after 12 months: Own = 40,000 + 24,000 = Rs 64,000; Cloud = 12 x 3,500 = Rs 42,000.",
+      "If it runs 36 months: Own = 40,000 + 72,000 = Rs 1,12,000; Cloud = 36 x 3,500 = Rs 1,26,000.",
+      "Expected cost: Own = 0.5 x 64,000 + 0.5 x 1,12,000 = Rs 88,000; Cloud = 0.5 x 42,000 + 0.5 x 1,26,000 = Rs 84,000.",
+      "Chooses Cloud, cheaper by Rs 4,000 in expectation.",
+      "Rejects 'own server because it is cheaper over 36 months': that ignores the 50% chance the project stops at 12 months."
+    ],
+    "explanation": "Over a full 36 months the own server is cheaper (Rs 1,12,000 versus Rs 1,26,000), which makes it tempting. But there is an even chance the project ends after 12 months, when the cloud costs Rs 42,000 against Rs 64,000. Weighting both cases equally, the cloud's expected cost is Rs 84,000 and the own server's is Rs 88,000, so the cloud is the better choice.",
+    "hints": [
+      "There are two possible futures. Work out each option's cost in both.",
+      "12 months and 36 months.",
+      "Expected cost = 0.5 x (12-month cost) + 0.5 x (36-month cost)."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "critical-195",
+    "type": "critical",
+    "subCategory": "Evaluate the evidence",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Did the new recommendations sell more?",
+    "statement": "An e-commerce company launched a new product-recommendation algorithm in October. The team claims it increased sales. Which piece of evidence best supports the claim?",
+    "answerFormat": "choice",
+    "choices": [
+      "The new algorithm scored much higher on accuracy when tested on last year's data.",
+      "Total sales in October were 20% higher than in September.",
+      "Users clicked on recommended products 35% more often after the launch.",
+      "A randomly chosen 10% of users were kept on the old algorithm during the same weeks; users on the new algorithm spent 8% more per person."
+    ],
+    "answer": "A randomly chosen 10% of users were kept on the old algorithm during the same weeks; users on the new algorithm spent 8% more per person.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Picks the holdout test: users were randomly kept on the old algorithm over the same weeks, so festival season, prices and marketing affect both groups equally.",
+      "Rejects 'total sales rose 20% in October': October has the Diwali season, which raises sales anyway.",
+      "Rejects more clicks on recommendations: clicks are not purchases; users may click and not buy.",
+      "Rejects better offline accuracy: a model that scores well on old data may not change real buying."
+    ],
+    "explanation": "Only the random holdout compares like with like: the same weeks, the same festival rush, the same offers, with the algorithm as the only difference. A 20% rise in October is the tempting answer, but Diwali shopping lifts sales whatever the algorithm. Clicks and offline accuracy are steps along the way, not sales.",
+    "hints": [
+      "What else happens in October in India that affects shopping?",
+      "Which option keeps everything the same except the algorithm?",
+      "Look for a randomly chosen comparison group in the same period."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-196",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Weekly API bill",
+    "statement": "A payments API receives this traffic:\nMonday to Friday: 1.2 million requests per day\nSaturday and Sunday: 0.3 million requests per day\nThe cloud provider charges Rs 4 for every 10,000 requests. What is the bill for one week, in rupees?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "2640",
+    "acceptedAnswers": [
+      "Rs 2640",
+      "Rs 2,640",
+      "2,640"
+    ],
+    "keySteps": [
+      "Weekday requests = 5 x 1.2 million = 6 million.",
+      "Weekend requests = 2 x 0.3 million = 0.6 million; total = 6.6 million.",
+      "Units of 10,000 = 6,600,000 / 10,000 = 660.",
+      "Bill = 660 x Rs 4 = Rs 2,640.",
+      "Avoids treating all 7 days as weekdays (7 x 1.2 million gives Rs 3,360)."
+    ],
+    "explanation": "The week has 6 million weekday requests and 0.6 million weekend requests, 6.6 million in total. That is 660 blocks of 10,000, and at Rs 4 per block the bill is Rs 2,640.",
+    "hints": [
+      "Weekdays and weekends have different traffic.",
+      "Find the total requests for the week first.",
+      "6.6 million / 10,000 = 660 blocks."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-197",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Disk filling up on Friday night",
+    "statement": "It is Friday, 7:00 pm. An alert says the production database disk is 91% full and has been growing steadily at 3% per day. When the disk reaches 100%, the database stops accepting writes and the app goes down. The team is back on Monday at 10:00 am. Deleting old logs or adding disk space takes about 30 minutes. What should the on-call engineer do?",
+    "answerFormat": "choice",
+    "choices": [
+      "Restart the database server to clear the disk",
+      "Free up or add disk space now, since the margin is only a few hours and any spike would cause an outage",
+      "Wait until Monday; at 3% per day the disk lasts until Monday evening",
+      "Turn off the alert so it stops paging people over the weekend"
+    ],
+    "answer": "Free up or add disk space now, since the margin is only a few hours and any spike would cause an outage",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Calculates time left: 9% at 3% per day, about 3 days, so the disk fills around Monday 7:00 pm.",
+      "Notes the safety margin on Monday morning is only a few hours, and any spike in usage (a sale, a batch job) would fill it sooner.",
+      "Compares costs: 30 minutes of work now versus a possible full outage.",
+      "Decides to free or add disk space now.",
+      "Rejects 'wait till Monday because the maths says it lasts until Monday evening': it assumes growth stays perfectly steady with almost no margin."
+    ],
+    "explanation": "At 3% per day, 9% of space lasts about 3 days, until roughly Monday evening. On paper the team returns in time, but that leaves only a few hours of margin, and one busy day would bring the outage forward. A 30-minute fix now is cheap insurance against the whole app going down.",
+    "hints": [
+      "How many days until the disk is full?",
+      "How much margin is left on Monday morning?",
+      "Compare 30 minutes of work with the cost of an outage."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-198",
+    "type": "critical",
+    "subCategory": "Evaluate the evidence",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Hires from College X",
+    "statement": "A recruiter argues that the company should hire more from College X, because last year's 30 hires from College X have an average performance rating of 4.2 out of 5, against 3.6 for the 200 hires from other colleges. Which fact, if true, most seriously undermines this evidence?",
+    "answerFormat": "choice",
+    "choices": [
+      "There were only 30 hires from College X compared with 200 from other colleges.",
+      "All 30 College X hires were placed in one team whose manager is known to rate everyone generously.",
+      "College X charges higher fees than most other colleges.",
+      "College X is located closer to the company's office."
+    ],
+    "answer": "All 30 College X hires were placed in one team whose manager is known to rate everyone generously.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies what the evidence assumes: the ratings were given on a fair, common scale.",
+      "Sees that if all College X hires sat in one team whose manager rates everyone generously, the gap could come from the manager, not the hires.",
+      "Concludes this fact undermines the evidence most.",
+      "Rejects 'College X has higher fees': fees have nothing to do with whether the ratings comparison is fair.",
+      "Rejects '30 is fewer than 200': a smaller group is not by itself a reason to doubt a 0.6-point gap."
+    ],
+    "explanation": "The comparison only means something if both groups were rated the same way. If every College X hire was placed in one team with a manager known for generous ratings, the 4.2 may reflect the manager, not the people. A smaller group size is a weaker objection; 30 people can still show a real difference.",
+    "hints": [
+      "What must be true for the two averages to be comparable?",
+      "Who gives the ratings?",
+      "Could the rating system, not the hires, explain the gap?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-199",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Five notifications a day",
+    "statement": "A shopping app increased push notifications from 1 a day to 5 a day. In the first week:\nApp opens: up 10%\nUninstalls: doubled, from 0.5% to 1% of users per week\nThe growth team wants to keep 5 notifications a day because opens went up. What is the strongest reason to reconsider?",
+    "answerFormat": "choice",
+    "choices": [
+      "Notifications cost money to send",
+      "Competitors send fewer notifications",
+      "Uninstalled users are lost permanently, and the extra 0.5% per week keeps adding up, which can outweigh the short-term rise in opens",
+      "Opens rose by only 10%, not 50%"
+    ],
+    "answer": "Uninstalled users are lost permanently, and the extra 0.5% per week keeps adding up, which can outweigh the short-term rise in opens",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes the opens gain is a short-term effect seen in one week.",
+      "Notes uninstalled users can never be reached again, so the loss builds up every week.",
+      "Calculates roughly: an extra 0.5% of users lost per week is about 2% a month, over 25% in a year if it continues.",
+      "Recommends testing a lower frequency (for example 2 a day) instead of locking in 5.",
+      "Rejects 'opens are up, so it works': it ignores that the user base is shrinking faster."
+    ],
+    "explanation": "Opens rose 10% in one week, but uninstalls doubled. Each uninstalled user is gone permanently, so an extra 0.5% loss every week keeps adding up: about 2% a month and over a quarter of users in a year if it continues. A short-term bump in opens does not make up for a shrinking user base. Testing a smaller number of better-targeted notifications is the sensible next step.",
+    "hints": [
+      "What happens to a user who uninstalls?",
+      "The extra loss repeats every week.",
+      "Compare a one-week gain in opens with a permanent, growing loss of users."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-200",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Average fell, slowest got worse",
+    "statement": "A team released Version 2 of an API. Response times measured over a day:\nVersion 1: average 200 ms, 95th percentile 400 ms\nVersion 2: average 180 ms, 95th percentile 1,500 ms\n(The 95th percentile is the time within which 95% of requests finish; the slowest 5% take longer.) Which statement is best supported?",
+    "answerFormat": "choice",
+    "choices": [
+      "Most requests got slightly faster, but the slowest 5% now take over 1.5 seconds, much worse than before.",
+      "The two versions perform the same.",
+      "Version 2 is slower for most users.",
+      "Version 2 is faster for every user because the average dropped."
+    ],
+    "answer": "Most requests got slightly faster, but the slowest 5% now take over 1.5 seconds, much worse than before.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Reads the average: Version 2 is slightly faster on average (180 versus 200 ms).",
+      "Reads the 95th percentile: at least 5% of Version 2 requests take longer than 1,500 ms, compared with 400 ms in Version 1.",
+      "Concludes most requests got a little faster but the slowest requests got much slower.",
+      "Rejects 'Version 2 is better for everyone': an average can drop while a minority of users have a much worse experience."
+    ],
+    "explanation": "The average improved a little, so most requests are fine or faster. But 5% of requests in Version 2 take more than 1,500 ms, nearly four times Version 1's 400 ms. That is a real problem for those users. The average hides it because many slightly faster requests outweigh a few very slow ones.",
+    "hints": [
+      "What does the 95th percentile tell you that the average does not?",
+      "Look at what happened to the slowest 5%.",
+      "Can an average fall while some users wait much longer?"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-201",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Parents searching, no tutors",
+    "statement": "A home-tutor marketplace in Pune connects parents with tutors. Every week about 2,000 parents search for a tutor, but only 80 tutors are active, and 60% of searches end with 'No tutor available in your area'. New parent sign-ups are now falling. The marketing team wants to double the ad budget aimed at parents. What should the company focus on first?",
+    "answerFormat": "choice",
+    "choices": [
+      "Lower the price parents pay",
+      "Redesign the app's logo and colours",
+      "Double the ads aimed at parents to bring back sign-ups",
+      "Recruit more tutors, starting with the areas where searches most often find no one"
+    ],
+    "answer": "Recruit more tutors, starting with the areas where searches most often find no one",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the bottleneck: too few tutors, shown by 60% of searches finding nobody.",
+      "Sees that more parent ads would send more people into searches that fail, wasting money and spreading bad word of mouth.",
+      "Concludes the company should first recruit more tutors, especially in areas with the most failed searches.",
+      "Rejects the ad plan: demand is not the problem, since parents are already searching."
+    ],
+    "explanation": "Parents are already coming: 2,000 searches a week. The problem is that most of them find nobody, which is likely why sign-ups are falling as word spreads. More ads would bring even more parents to empty results. Recruiting tutors where searches fail most fixes the actual bottleneck.",
+    "hints": [
+      "Is the problem too few parents or too few tutors?",
+      "What happens to a parent who searches and finds no tutor?",
+      "Fix the side of the marketplace that is running short."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-202",
+    "type": "critical",
+    "subCategory": "Data interpretation",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Revenue per visitor in an A/B test",
+    "statement": "An online shoe store tested a 10% discount banner:\nControl (no banner): 12,000 visitors, 360 orders, average order value Rs 500\nVariant (banner): 12,000 visitors, 432 orders, average order value Rs 450\nBy how many rupees per visitor is the variant's revenue higher than the control's?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "1.2",
+    "acceptedAnswers": [
+      "1.20",
+      "Rs 1.2",
+      "Rs 1.20"
+    ],
+    "keySteps": [
+      "Control revenue = 360 x 500 = Rs 1,80,000; per visitor = 1,80,000 / 12,000 = Rs 15.",
+      "Variant revenue = 432 x 450 = Rs 1,94,400; per visitor = 1,94,400 / 12,000 = Rs 16.20.",
+      "Difference = 16.20 - 15 = Rs 1.20 per visitor.",
+      "Avoids judging only by conversion (3% to 3.6%, a 20% rise) without accounting for the lower order value."
+    ],
+    "explanation": "Revenue per visitor combines how many people buy with how much they spend. Control earns Rs 15 per visitor; the variant earns 432 x 450 / 12,000 = Rs 16.20. The variant is ahead by Rs 1.20 per visitor, much less than its 20% higher conversion suggests, because each order is worth 10% less.",
+    "hints": [
+      "Revenue per visitor = total revenue / visitors.",
+      "Compute total revenue for each group.",
+      "Control: Rs 15 per visitor. Variant: 432 x 450 / 12,000."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-203",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Churn from 5% to 4%",
+    "statement": "A SaaS company's monthly churn (the share of paying customers who cancel each month) fell from 5% to 4%. On average, a customer stays for about 1 / (monthly churn) months. Which statement is fully correct?",
+    "answerFormat": "choice",
+    "choices": [
+      "Churn fell by 20 percentage points, and average lifetime rises from 20 to 25 months.",
+      "Churn fell by just 1%, so average customer lifetime barely changes.",
+      "Churn fell by 25%, and average lifetime rises from 20 to 24 months.",
+      "Churn fell by 1 percentage point (a 20% relative drop), and average lifetime rises from 20 to 25 months."
+    ],
+    "answer": "Churn fell by 1 percentage point (a 20% relative drop), and average lifetime rises from 20 to 25 months.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Absolute change: 5% - 4% = 1 percentage point.",
+      "Relative change: 1 / 5 = 20% lower churn.",
+      "Average lifetime: 1 / 0.05 = 20 months before; 1 / 0.04 = 25 months after.",
+      "Picks the option with all three facts right.",
+      "Rejects 'churn fell by only 1%, so lifetime barely changes': lifetime actually grows by 25%, from 20 to 25 months."
+    ],
+    "explanation": "Churn fell by 1 percentage point, which is a 20% relative drop (1 out of 5). Average customer lifetime goes from 1/0.05 = 20 months to 1/0.04 = 25 months, a 25% increase. Small-looking changes in churn have large effects on how long customers stay.",
+    "hints": [
+      "Percentage points and percent are different.",
+      "1 out of 5 is what percent?",
+      "Lifetime = 1 / churn: compare 1/0.05 with 1/0.04."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-204",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Feature priority with a blocker",
+    "statement": "A product team scores features with: Score = (Reach x Impact x Confidence) / Effort.\nFeature A: Reach 5,000, Impact 2, Confidence 80%, Effort 4\nFeature B: Reach 2,000, Impact 3, Confidence 100%, Effort 2\nFeature C: Reach 10,000, Impact 1, Confidence 50%, Effort 1\nFeature D: Reach 8,000, Impact 2, Confidence 50%, Effort 5\nThe team can ship only one feature this quarter. Feature C depends on a partner's API, and the legal team has said that API cannot be used until next quarter. Which feature should the team build?",
+    "answerFormat": "choice",
+    "choices": [
+      "Feature A",
+      "Feature B",
+      "Feature C",
+      "Feature D"
+    ],
+    "answer": "Feature B",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Scores: A = 5,000 x 2 x 0.8 / 4 = 2,000; B = 2,000 x 3 x 1 / 2 = 3,000; C = 10,000 x 1 x 0.5 / 1 = 5,000; D = 8,000 x 2 x 0.5 / 5 = 1,600.",
+      "C has the highest score but cannot ship this quarter because of the legal block.",
+      "Among features that can ship, B has the highest score (3,000).",
+      "Rejects C: a score cannot override a hard constraint; Rejects A, whose large reach is cut down by its high effort."
+    ],
+    "explanation": "C scores highest (5,000), which makes it the tempting pick, but the legal block means it cannot ship this quarter, so its score does not matter now. Of the rest, B scores 3,000 against A's 2,000 and D's 1,600, so B should be built, with C planned for next quarter.",
+    "hints": [
+      "Compute all four scores first.",
+      "Then remove any feature that cannot ship this quarter.",
+      "C is blocked; compare A, B and D."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "critical-205",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Which fraud rule to switch on",
+    "statement": "An electronics marketplace processes 10,000 orders a week; 0.5% of orders are fraudulent. A fraud order that goes through loses Rs 1,000. A genuine order that is wrongly blocked loses the Rs 100 profit it would have made. Two rules are available (only one can be used):\nRule A: blocks 2% of all orders and catches 90% of fraud orders\nRule B: blocks 0.8% of all orders and catches 70% of fraud orders\nWhich rule gives the larger net benefit per week?",
+    "answerFormat": "choice",
+    "choices": [
+      "Rule B, net benefit Rs 30,500 versus Rs 29,500 for Rule A",
+      "Rule A, because it catches 90% of fraud",
+      "Both give exactly the same net benefit",
+      "Neither, because both block genuine customers"
+    ],
+    "answer": "Rule B, net benefit Rs 30,500 versus Rs 29,500 for Rule A",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Fraud orders = 0.5% of 10,000 = 50.",
+      "Rule A: catches 45 fraud (saves 45 x 1,000 = Rs 45,000); blocks 200 orders, so 155 genuine ones lost (155 x 100 = Rs 15,500); net Rs 29,500.",
+      "Rule B: catches 35 fraud (saves Rs 35,000); blocks 80 orders, so 45 genuine ones lost (Rs 4,500); net Rs 30,500.",
+      "Chooses Rule B, better by Rs 1,000 a week.",
+      "Rejects Rule A just for catching more fraud: it also blocks many more genuine customers."
+    ],
+    "explanation": "There are 50 fraud orders a week. Rule A catches 45 and saves Rs 45,000, but of its 200 blocked orders 155 are genuine, costing Rs 15,500, for a net of Rs 29,500. Rule B catches 35 and saves Rs 35,000, and of its 80 blocked orders only 45 are genuine, costing Rs 4,500, for a net of Rs 30,500. Catching more fraud is tempting, but Rule B comes out Rs 1,000 a week ahead.",
+    "hints": [
+      "Start with how many fraud orders there are in a week.",
+      "Blocked orders that are not fraud are genuine customers you lose.",
+      "Net = (fraud caught x 1,000) - (genuine blocked x 100), for each rule."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "critical-206",
+    "type": "critical",
+    "subCategory": "Evaluate the evidence",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Premium customers stay longer",
+    "statement": "A software company reports: 'Premium-plan customers stay with us for 30 months on average, while Basic-plan customers stay for 10 months. So moving customers to Premium makes them stay longer.' Which fact, if true, most seriously undermines this evidence?",
+    "answerFormat": "choice",
+    "choices": [
+      "Premium costs three times as much as Basic.",
+      "Customers can upgrade to Premium only after 12 months on Basic, and tenure is counted from the day they first signed up.",
+      "Most new customers start on the Basic plan.",
+      "Premium includes more features than Basic."
+    ],
+    "answer": "Customers can upgrade to Premium only after 12 months on Basic, and tenure is counted from the day they first signed up.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the assumption: the tenure gap is caused by the plan, not by how customers end up on it.",
+      "Sees that if customers can upgrade only after 12 months on Basic, and tenure is counted from first sign-up, every Premium customer has already stayed at least 12 months.",
+      "Concludes the gap is partly built into the rule (only long-staying customers can become Premium), so it says little about what Premium itself does.",
+      "Rejects 'Premium costs more': a higher price does not explain why the tenure figures would be misleading.",
+      "Rejects 'more features': that would, if anything, support the claim."
+    ],
+    "explanation": "If only customers who have already stayed 12 months can buy Premium, and tenure is counted from the first day, the Premium group is made up entirely of people who stayed at least a year. Their longer average tenure is then largely a result of who gets in, not of what Premium does. To test the claim, the company would need to compare similar customers, for example by offering Premium to a random group early.",
+    "hints": [
+      "How does a customer get onto the Premium plan?",
+      "When does the tenure count start?",
+      "Could the Premium group be long-staying customers by definition?"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-207",
+    "type": "critical",
+    "subCategory": "Evaluate the evidence",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "The 'top talent' screening tool",
+    "statement": "A vendor sells an AI resume screener. Its brochure says: 'Our tool flagged 90% of your company's actual top performers as top talent, so a flagged candidate is very likely to be a top performer.' The HR team checks past data: 10% of all candidates turn out to be top performers, and the tool also flags 30% of the candidates who are not top performers. Which conclusion is correct?",
+    "answerFormat": "choice",
+    "choices": [
+      "It cannot be worked out without knowing the total number of candidates.",
+      "Only about 25% of flagged candidates are top performers, so the claim is not supported.",
+      "About 70% of flagged candidates are top performers.",
+      "About 90% of flagged candidates are top performers, so the claim holds."
+    ],
+    "answer": "Only about 25% of flagged candidates are top performers, so the claim is not supported.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Uses 100 candidates: 10 top performers, 90 others.",
+      "Flagged top performers = 90% of 10 = 9; flagged others = 30% of 90 = 27.",
+      "Flagged total = 36, of which 9 are top performers: 9 / 36 = 25%.",
+      "Concludes only 1 in 4 flagged candidates is a top performer, so the vendor's claim is not supported.",
+      "Rejects 'about 90% of flagged candidates are top performers': that confuses 'flagged given top' with 'top given flagged'."
+    ],
+    "explanation": "Out of 100 candidates, 9 of the 10 top performers are flagged, but so are 27 of the 90 others, giving 36 flags. Only 9 of those 36, or 25%, are top performers. The 90% figure tells us the tool rarely misses a top performer, not that a flagged person is likely to be one; because top performers are rare, false flags outnumber true ones three to one.",
+    "hints": [
+      "Imagine 100 candidates and split them into top performers and others.",
+      "Count how many from each group get flagged.",
+      "Of everyone flagged, what fraction are top performers? 9 out of (9 + 27)."
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "seedKey": "critical-208",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Minimum order value backfires",
+    "statement": "A grocery delivery app introduced a minimum order of Rs 199 to cut delivery losses on small orders. One month later:\nAverage order value: Rs 250 to Rs 300 (up 20%)\nNumber of orders: 10,000 to 7,500\nThe operations team says: 'Customers are spending more per order, so the rule is working.' Which assessment is best supported?",
+    "answerFormat": "choice",
+    "choices": [
+      "The data shows the rule had no effect on customers.",
+      "The average rose mainly because small orders vanished; total revenue fell 10% and many customers left, so the team must check whether delivery savings outweigh this.",
+      "Revenue rose by 20%, in line with the average order value.",
+      "The rule is clearly working, because customers now spend 20% more per order."
+    ],
+    "answer": "The average rose mainly because small orders vanished; total revenue fell 10% and many customers left, so the team must check whether delivery savings outweigh this.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Revenue before = 10,000 x 250 = Rs 25 lakh; after = 7,500 x 300 = Rs 22.5 lakh, so revenue fell by 10%.",
+      "Sees that the average rose mainly because small orders disappeared from the data, not necessarily because customers bought more.",
+      "Notes 2,500 fewer orders: many customers with small baskets left instead of adding items.",
+      "Concludes the rule cut revenue and lost customers; whether it helped profit depends on how much the delivery losses fell, which needs to be checked.",
+      "Rejects the team's claim: a higher average is expected when you remove the smallest orders, even if no customer spends a rupee more."
+    ],
+    "explanation": "Removing small orders pushes the average up automatically, even if no customer changes their basket. Revenue actually fell from Rs 25 lakh to Rs 22.5 lakh, and 2,500 orders a month disappeared, which suggests many small-basket customers left instead of adding items. Before calling it a success the team must compare the delivery costs saved against the revenue and customers lost.",
+    "hints": [
+      "Work out total revenue before and after.",
+      "What happens to an average when you remove the smallest values?",
+      "10,000 x 250 versus 7,500 x 300."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-209",
+    "type": "critical",
+    "subCategory": "Product and business sense",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Cheaper Lite plan",
+    "statement": "A design tool sold only a Pro plan at Rs 299 a month and had 10,000 Pro subscribers. It then launched a Lite plan at Rs 99 a month. One month later it had 7,000 Pro subscribers and 5,000 Lite subscribers. By how many rupees did monthly subscription revenue fall?",
+    "answerFormat": "number",
+    "choices": [],
+    "answer": "402000",
+    "acceptedAnswers": [
+      "Rs 402000",
+      "Rs 4,02,000",
+      "4,02,000",
+      "402,000"
+    ],
+    "keySteps": [
+      "Revenue before = 10,000 x 299 = Rs 29,90,000.",
+      "Pro after = 7,000 x 299 = Rs 20,93,000; Lite after = 5,000 x 99 = Rs 4,95,000; total = Rs 25,88,000.",
+      "Fall = 29,90,000 - 25,88,000 = Rs 4,02,000.",
+      "Notes the likely reason: around 3,000 Pro users moved down to Lite, each now paying Rs 200 less, which outweighs the new revenue from Lite.",
+      "Avoids counting all 5,000 Lite subscribers as new customers adding revenue on top of the old total."
+    ],
+    "explanation": "Before the launch the tool earned 10,000 x 299 = Rs 29,90,000. Afterwards it earned 7,000 x 299 + 5,000 x 99 = Rs 25,88,000, so revenue fell by Rs 4,02,000. The 5,000 Lite sign-ups look like growth, but the 3,000 lost Pro users each took Rs 299 with them, more than the Lite plan brought in.",
+    "hints": [
+      "Revenue = subscribers x price, for each plan.",
+      "Compare the total before with the total after.",
+      "29,90,000 - (20,93,000 + 4,95,000)."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-210",
+    "type": "critical",
+    "subCategory": "Decision making",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Hire, push or cut scope?",
+    "statement": "A team must deliver 120 story points in 6 sprints. It currently completes 15 points per sprint. The budget allows at most 2 new developers. Options:\nHire 2 developers now: during sprints 1 and 2 the new hires produce nothing and training them lowers the existing team's output by 6 points per sprint; from sprint 3 onward each new hire adds 5 points per sprint.\nOvertime: the existing team completes 18 points per sprint for all 6 sprints.\nCut scope: agree with the client to drop the 30 lowest-priority points.\nWhich option is the only one that meets its delivery target on time?",
+    "answerFormat": "choice",
+    "choices": [
+      "Cut scope by 30 points with the client's agreement",
+      "Hire 2 developers now",
+      "Overtime for the existing team",
+      "None of them; the deadline cannot be met"
+    ],
+    "answer": "Cut scope by 30 points with the client's agreement",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Hire 2: sprints 1 to 2 give 15 - 6 = 9 each (18); sprints 3 to 6 give 15 + 10 = 25 each (100); total 118, short of 120.",
+      "Overtime: 6 x 18 = 108, short of 120 (and tiring the team).",
+      "Cut scope: target becomes 90; 6 x 15 = 90, which is met exactly.",
+      "Chooses cut scope as the only option that meets its target on time.",
+      "Rejects hiring, the tempting fix: the training slowdown in the first two sprints means it falls 2 points short."
+    ],
+    "explanation": "Hiring sounds like the obvious answer, but new people slow the team down at first: 9 + 9 in the first two sprints plus 25 x 4 afterwards gives 118, still 2 short. Overtime gives only 108. Cutting the 30 lowest-priority points brings the target to 90, which the current pace of 15 per sprint delivers exactly, so it is the only option that meets its target on time.",
+    "hints": [
+      "Work out total points for each option over 6 sprints.",
+      "Do not forget the slowdown in sprints 1 and 2 when hiring.",
+      "Hiring: 2 x 9 + 4 x 25."
+    ],
+    "estimatedMinutes": 6
+  }
+]

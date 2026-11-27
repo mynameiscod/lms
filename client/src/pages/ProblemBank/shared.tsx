@@ -50,7 +50,16 @@ export function renderMarkdown(src: string): string {
     if (!line.trim()) { i++; continue; }
     const para: string[] = [];
     while (i < lines.length && lines[i].trim() && !/^(```|#{1,4}\s|\s*[-*]\s|\s*\d+\.\s|>)/.test(lines[i])) para.push(lines[i++]);
-    html.push(`<p>${para.map(inline).join('<br/>')}</p>`);
+    /*
+     * A block that is laid out by its spaces — an indented line (code pasted without ```), or lines of
+     * symbols only (a star pyramid in a pattern problem) — is shown exactly as written. As a paragraph
+     * its leading spaces vanished and "**" became bold.
+     */
+    const from = para.findIndex((l) => /^( {2,}|\t)\S/.test(l) || /^[^A-Za-z0-9]+$/.test(l.trim()));
+    // Text lines before the block ("For n = 3:") stay a sentence; the block itself keeps its layout.
+    const text = from < 0 ? para : para.slice(0, from);
+    if (text.length) html.push(`<p>${text.map(inline).join('<br/>')}</p>`);
+    if (from >= 0) html.push(`<pre class="pb-pre-text">${esc(para.slice(from).join('\n'))}</pre>`);
   }
   return html.join('');
 }

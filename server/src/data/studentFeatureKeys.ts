@@ -17,14 +17,19 @@ export const STUDENT_FEATURE_KEYS = [
   'aiCommunicationLab', 'liveClasses', 'collegePortal', 'myApplications', 'alumniDirectory',
   // Menu items that had no switch of their own
   'myTasks', 'applyLeave', 'interviewExperiences', 'questionBooks', 'drives', 'myPractice', 'codingPractice', 'codeVisualizer',
+  // Project Studio
+  'myProject',
+  // LMS Refer & Earn
+  'referEarn',
 ] as const;
 
 export type StudentFeatureKey = typeof STUDENT_FEATURE_KEYS[number];
 
 /** The CareerPilot student's menu. Home, profile, result and the account block are always there. */
 export const CAREERPILOT_FEATURE_KEYS = [
-  'plan', 'roadmap', 'practice', 'coding', 'playground', 'visualizer', 'thinkingLab', 'communication', 'interview',
+  'plan', 'roadmap', 'practice', 'coding', 'playground', 'visualizer', 'thinkingLab', 'aptitude', 'reasoning', 'communication', 'interview',
   'experiences', 'questionBooks', 'mentor', 'companies', 'news', 'resume', 'progress',
+  'industryConnect', 'support',
 ] as const;
 
 export type CareerPilotFeatureKey = typeof CAREERPILOT_FEATURE_KEYS[number];

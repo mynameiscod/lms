@@ -620,7 +620,7 @@ const QuizTakingPage: React.FC = () => {
       </Modal>
 
       {/* Submit Confirmation Modal */}
-      <Modal isOpen={showSubmitConfirmModal} onClose={() => setShowSubmitConfirmModal(false)} title="Submit Quiz?" maxWidth="500px">
+      <Modal isOpen={showSubmitConfirmModal} onClose={() => setShowSubmitConfirmModal(false)} title="Ready to submit?" maxWidth="500px">
         <div className="confirm-content">
           <p>You have answered {answeredCount} out of {questions.length} questions.{markedForReview.size ? ` ${markedForReview.size} marked for review.` : ''}</p>
           <p>Are you sure you want to submit the quiz? You cannot change your answers after submission.</p>

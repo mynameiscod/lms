@@ -77,15 +77,15 @@ jest.mock('../services/codeRunnerService', () => ({
   __esModule: true,
   default: {
     executesForReal: () => false,
-    // The grader now compiles once and runs all stored cases through executeBatch.
-    executeBatch: async (x: any) => x.cases.map((testCase: any) => {
-      executed.push({ input: testCase.input, expectedOutput: testCase.expectedOutput });
-      return { passed: true, output: testCase.expectedOutput, executionTime: 1, memoryUsed: 1 };
-    }),
     execute: async (x: any) => {
       executed.push({ input: x.input, expectedOutput: x.expectedOutput });
       return { passed: true, output: x.expectedOutput, executionTime: 1, memoryUsed: 1 };
     },
+    // The grader runs every case in one batch (compile once); each case is recorded the same way.
+    executeBatch: async (x: any) => x.cases.map((c: any) => {
+      executed.push({ input: c.input, expectedOutput: c.expectedOutput });
+      return { passed: true, output: c.expectedOutput, executionTime: 1, memoryUsed: 1 };
+    }),
   },
 }));
 // Skill DNA evidence from a grade has its own suite (integration/appliedEvidence); not this one's concern.

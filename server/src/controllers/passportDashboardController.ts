@@ -6,10 +6,12 @@ import PassportProgress from '../models/PassportProgress';
 import PassportInterview from '../models/PassportInterview';
 import PassportResume from '../models/PassportResume';
 import TechBattle from '../models/TechBattle';
-import { membershipActive, entitlementMap } from '../services/passportEntitlementService';
+import { hasMemberAccess, entitlementMap } from '../services/passportEntitlementService';
+import { trialStatus } from '../services/trialService';
 import { lockedSections, lockedSectionViews } from '../data/memberAccessPolicy';
 import { hiddenCareerPilotFeatures } from '../services/careerPilotFeatureService';
 import { ensureContent, poolMapOf, dayNumber, ymd, clampSlots } from '../services/passportMissionService';
+import { liveStreak } from '../services/passportXpService';
 import { awardCoins, getAccount } from '../services/coinService';
 import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap } from '../services/passportRoadmapService';
@@ -18,51 +20,18 @@ import { getTodaysPlan, toMemberMissions } from '../services/dailyMissionOrchest
 import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
 import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import * as g from '../services/passportGamificationService';
-import { journeyDayGoal } from '../services/foundationJourneyXpService';
+import { levelNamesFor } from '../services/levelNameService';
+import { memberBadges } from '../services/badgeService';
+import { ensureGamificationDefaults } from '../services/gamificationEngine';
+import { journeyDayGoal, journeyCompletion } from '../services/foundationJourneyXpService';
+import { getLeaderboard as getScopedLeaderboard } from '../services/leaderboardService';
+import { calculateStudentRoleReadiness } from '../services/roleReadinessService';
+import { skillDnaByArea } from '../services/skillDnaService';
 import { programDaysFor } from '../services/foundationProgramLengthService';
 import { membershipPriceFor } from '../services/membershipPricingService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
-
-/** GET /passport/leaderboard — the full board, not the podium. */
-export const getLeaderboard = async (req: Request, res: Response) => {
-  try {
-    const tenantId = tenantOf(req);
-    const studentId = userIdOf(req);
-    const limit = Math.min(200, Math.max(10, Number(req.query.limit) || 50));
-
-    const board = await PassportProgress.find({ tenantId })
-      .select('studentId xp streak').sort({ xp: -1 }).limit(500).lean();
-    const users = await User.find({ _id: { $in: board.map((b: any) => b.studentId) } })
-      .select('firstName lastName passport.city').lean();
-    const byId = new Map(users.map((u: any) => [String(u._id), u]));
-
-    const ranked = board.map((b: any, i: number) => {
-      const u: any = byId.get(String(b.studentId));
-      return {
-        rank: i + 1,
-        name: u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Member' : 'Member',
-        city: u?.passport?.city || '',
-        xp: b.xp, streak: b.streak || 0,
-        me: String(b.studentId) === studentId,
-      };
-    });
-
-    const mine = ranked.find(r => r.me) || null;
-    res.json({
-      total: ranked.length,
-      rows: ranked.slice(0, limit),
-      me: mine,
-      percentile: mine && ranked.length > 1
-        ? Math.max(1, Math.round((mine.rank / ranked.length) * 100))
-        : null,
-    });
-  } catch (e: any) {
-    console.error('[passport] leaderboard:', e);
-    res.status(500).json({ message: e.message || 'Could not load the leaderboard' });
-  }
-};
 
 /**
  * GET /passport/dashboard — everything the gamified member home renders, in one call.
@@ -82,7 +51,9 @@ export const getDashboard = async (req: Request, res: Response) => {
       ensureContent(tenantId),
     ]);
 
-    const active = membershipActive(user?.passport);
+    // A running TRIAL gets the member app too; what it may open is in `entitled` / `locked`.
+    const active = hasMemberAccess(user?.passport);
+    const trial = await trialStatus(tenantId, studentId, user?.passport || null).catch(() => null);
 
     /**
      * ASKED ABOUT THE MEMBER, NOT ABOUT A COLLECTION.
@@ -155,6 +126,7 @@ export const getDashboard = async (req: Request, res: Response) => {
         entitled,
         locked,
         hidden: await hiddenCareerPilotFeatures(tenantId),
+        trial,
       });
     }
 
@@ -248,8 +220,9 @@ export const getDashboard = async (req: Request, res: Response) => {
       PassportInterview.find({ tenantId, studentId, status: 'completed' }).select('evaluation completedAt role').lean(),
       PassportResume.findOne({ tenantId, studentId }).select('score').lean() as any,
     ]);
-    const bestInterview = interviews.reduce<number | null>(
-      (best, i: any) => Math.max(best ?? 0, i?.evaluation?.overallScore ?? 0) || null, null);
+    // Best evaluated interview, 0–100. A real 0 stays 0; only "no evaluated interview" is null.
+    const interviewScores = interviews.map((i: any) => i?.evaluation?.overallScore).filter((n: any) => typeof n === 'number' && Number.isFinite(n));
+    const bestInterview = interviewScores.length ? Math.max(...interviewScores) : null;
 
     // Practice now comes from the Problem Bank. The old built-in exercises a member solved before
     // that still count: they are kept in solvedProblems and simply added.
@@ -257,35 +230,51 @@ export const getDashboard = async (req: Request, res: Response) => {
     const legacySolved = (progress.solvedProblems || []).length;
     const solvedCount = library.solved + legacySolved;
 
-    const board = await PassportProgress.find({ tenantId })
-      .select('studentId xp').sort({ xp: -1 }).limit(200).lean();
-    const boardIds = board.map(b => b.studentId);
-    const boardUsers = await User.find({ _id: { $in: boardIds } }).select('firstName lastName').lean();
-    const nameOf = new Map(boardUsers.map((u: any) => [String(u._id), `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Member']));
-    const ranked = board.map((b, i) => ({
-      rank: i + 1,
-      name: nameOf.get(String(b.studentId)) || 'Member',
-      xp: b.xp,
-      me: String(b.studentId) === studentId,
-    }));
-    const myRow = ranked.find(r => r.me);
-    const leaderboard = ranked.slice(0, 3);
-    if (myRow && !leaderboard.some(r => r.me)) leaderboard.push(myRow);
+    // The global rank: every CareerPilot member in every tenant, by XP — the rank the rail and Home show.
+    const global = await getScopedLeaderboard({ tenantId, studentId, scope: 'GLOBAL', period: 'ALL_TIME', limit: 3 })
+      .catch(() => null);
+    const globalRank = global && global.available && global.myRank
+      ? { rank: global.myRank, participants: global.participantCount } : null;
+    const leaderboard = global && global.available
+      ? global.entries.map(e => ({ rank: e.rank, name: e.name, xp: e.xp, me: e.me })) : [];
+    if (globalRank && !leaderboard.some(r => r.me)) {
+      leaderboard.push({ rank: globalRank.rank, name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'You', xp: (progress.xp || 0) + (progress.xpSpent || 0), me: true });
+    }
 
     const contests = await TechBattle.find({ tenantId, status: 'live', startAt: { $gt: now } })
       .select('title prize startAt slug').sort({ startAt: 1 }).limit(3).lean();
 
-    const level = g.levelFromXp(progress.xp);
+    const level = g.levelFromXp(progress.xp, await levelNamesFor(tenantId), progress.xpSpent);
+    /*
+     * THE ASSESSMENT PART reads the current readiness-based Career Score (careerScoreService, written
+     * when at least 40% of the role is measured). Below that, the whole-role readiness — the same
+     * ratios with every unmeasured skill counted as 0 — so a member who sat the paper is neither
+     * scored 0 nor flattered by the few skills measured so far. A legacy questionnaire score is the
+     * last resort, for members who only ever had one.
+     */
+    const passportScore = user?.passport?.careerScoreSource === 'role_readiness' && typeof user?.passport?.careerScore === 'number'
+      ? user.passport.careerScore : null;
+    let assessmentScore: number | null = passportScore;
+    if (assessmentScore === null && assessedState.source === 'skill_dna') {
+      const r: any = await calculateStudentRoleReadiness(tenantId, studentId).catch(() => null);
+      if (r?.available) assessmentScore = r.wholeRoleReadiness;
+    }
+    if (assessmentScore === null && assessedState.source === 'attempt') assessmentScore = attempt.careerScore ?? null;
+    // THE MISSIONS PART is the member's journey: days completed of the journey's days. The retired
+    // mission roadmap is used only by a member who has no journey.
+    const journey = await journeyCompletion(tenantId, studentId);
     const score = g.coderScore({
-      careerScore: attempt.careerScore ?? null,
+      careerScore: assessmentScore,
       solvedCount,
       totalProblems: g.PRACTICE_TARGET,
-      completedDays: roadmap.completedDays,
-      totalDays,
+      completedDays: journey ? journey.completedDays : roadmap.completedDays,
+      totalDays: journey ? journey.totalDays : totalDays,
       interviewsCompleted: interviews.length,
       bestInterviewScore: bestInterview,
       resumeScore: resume?.score?.total ?? null,
     });
+
+    const dnaAreas = await skillDnaByArea(tenantId, studentId).catch(() => []);
 
     res.json({
       active: true,
@@ -305,29 +294,42 @@ export const getDashboard = async (req: Request, res: Response) => {
 
       level,
       coderScore: score,
-      percentileAhead: g.percentileAhead(progress.xp, board.map(b => b.xp)),
+      // Share of the other members this one is ahead of, on the global board.
+      percentileAhead: globalRank && globalRank.participants > 1
+        ? Math.round(((globalRank.participants - globalRank.rank) / (globalRank.participants - 1)) * 100) : null,
+      globalRank,
 
-      skills: (attempt.categoryScores || []).map((c: any) => ({ key: c.key, label: c.label, score: c.score })),
-      careerScore: attempt.careerScore,
+      // The skill meter: Skill DNA by skill area. A member with no Skill DNA keeps their questionnaire categories.
+      skills: dnaAreas.length
+        ? dnaAreas.map(a => ({ key: a.key, label: a.label, score: a.score, early: a.early }))
+        : assessedState.source === 'attempt'
+          ? (attempt.categoryScores || []).map((c: any) => ({ key: c.key, label: c.label, score: c.score }))
+          : [],
+      // The same figure the coder score's assessment part uses (see assessmentScore above).
+      careerScore: assessmentScore,
       careerLevel: assessedState.level,
       pathwayLabel: attempt.pathwayLabel,
 
       stats: {
         solved: solvedCount,
         solvedToday: g.solvedToday(progress, now),
-        totalProblems: library.total,
+        // A trial shows its own number of problems, not the whole library.
+        totalProblems: (() => {
+          const t = trial?.items.find(i => i.key === 'practice');
+          return t && t.on && t.limit !== null ? Math.min(t.limit, library.total) : library.total;
+        })(),
         accuracy: g.accuracy(progress),
-        streak: progress.streak,
+        streak: liveStreak(progress, now),
         longestStreak: progress.longestStreak,
         xp: progress.xp,
         day: dailyPlan.available ? dailyPlan.roadmapDay : day,
         totalDays: dailyPlan.available ? Math.max(1, dailyPlan.weekCount * 7) : totalDays,
-        completedDays: roadmap.completedDays,
+        completedDays: journey ? journey.completedDays : roadmap.completedDays,
         interviews: interviews.length,
         bestInterview,
         resumeScore: resume?.score?.total ?? null,
-        cohortRank: ranked.find(r => r.me)?.rank ?? null,
-        cohortSize: ranked.length,
+        cohortRank: globalRank?.rank ?? null,
+        cohortSize: globalRank?.participants ?? 0,
       },
       weekly: g.weeklyStats(progress, now),
       recentActivity: g.recentActivity(progress, 6, now),
@@ -345,17 +347,18 @@ export const getDashboard = async (req: Request, res: Response) => {
       streakWeek: g.streakWeek(progress, now),
       activity: g.activitySeries(progress, 7, now),
 
-      badges: g.badges({
-        solvedCount,
-        codingSolved: solvedCount,
-        totalCoding: g.PRACTICE_TARGET,
-        streak: progress.streak,
-        longestStreak: progress.longestStreak,
-        completedDays: roadmap.completedDays,
-        interviewsCompleted: interviews.length,
-        resumeScore: resume?.score?.total ?? null,
-        careerScore: attempt.careerScore ?? null,
-      }),
+      // The admin's badges (XP & Rewards → Badges), judged on the figures counted above.
+      badges: await (async () => {
+        await ensureGamificationDefaults(tenantId);
+        return memberBadges(tenantId, studentId, {
+          XP_TOTAL: progress.xp || 0,
+          PROBLEMS_SOLVED: solvedCount,
+          STREAK: Math.max(liveStreak(progress, now), progress.longestStreak || 0),
+          DAYS_COMPLETED: journey ? journey.completedDays : roadmap.completedDays,
+          MOCK_INTERVIEWS: interviews.length,
+          RESUME_SCORE: resume?.score?.total ?? 0,
+        });
+      })().catch((e: any) => { console.error('[passport] badges:', e?.message || e); return []; }),
 
       journey: roadmap.phases.map(p => ({
         key: p.key, label: p.label, fromDay: p.fromDay, toDay: p.toDay,
@@ -393,6 +396,8 @@ export const getDashboard = async (req: Request, res: Response) => {
       locked,
       // Parts of the menu the institute's admin has switched off for CareerPilot students.
       hidden: await hiddenCareerPilotFeatures(tenantId),
+      /** A running trial: its plan, days left, and what each limit has used. Null otherwise. */
+      trial,
     });
   } catch (e: any) {
     console.error('[passport] getDashboard:', e);

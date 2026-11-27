@@ -28,6 +28,14 @@ export interface IQuestionBook extends Document {
   color: string;
   emblem: string;
   audience: 'all' | 'lms' | 'careerpilot';
+  /**
+   * WHO AMONG CAREERPILOT MEMBERS sees it (LMS readers ignore both). Empty means everyone.
+   * stages: foundation | build | specialize | placement — a member's year.
+   * tracks: career track keys (JAVA_FULLSTACK_AI …) — only members on one of these tracks.
+   * Both must hold. A Year 3/4 member with no track yet is matched as Year 2 (build).
+   */
+  stages: string[];
+  tracks: string[];
   status: 'draft' | 'published';
   chapters: IBookChapter[];
   questionCount: number;
@@ -52,6 +60,8 @@ const BookSchema = new Schema<IQuestionBook>({
   color: { type: String, default: '#4f46e5' },
   emblem: { type: String, default: '' },
   audience: { type: String, enum: ['all', 'lms', 'careerpilot'], default: 'all' },
+  stages: { type: [String], default: [] },
+  tracks: { type: [String], default: [] },
   status: { type: String, enum: ['draft', 'published'], default: 'draft' },
   chapters: { type: [ChapterSchema], default: [] },
   questionCount: { type: Number, default: 0 },
@@ -114,3 +124,39 @@ const ProgressSchema = new Schema<IBookProgress>({
 ProgressSchema.index({ userId: 1, bookId: 1 }, { unique: true });
 
 export const BookProgress = mongoose.model<IBookProgress>('BookProgress', ProgressSchema);
+
+/**
+ * WHO GETS WHICH BOOK, per institute (Question Books → "Who gets which book").
+ *
+ * A book carries its own default readers (audience / stages / tracks above, set by whoever wrote it).
+ * An institute can replace that for its own students with one of these rows — including for
+ * CodeBegun's shared books, which an institute cannot edit. No row = the book's default.
+ * Managed by a super admin, or a role a super admin gave `manage_question_books`.
+ */
+export interface IQuestionBookAccess extends Document {
+  tenantId: string;
+  bookId: mongoose.Types.ObjectId;
+  lms: boolean;
+  careerpilot: boolean;
+  /** CareerPilot years (foundation | build | specialize | placement); empty = every year. */
+  stages: string[];
+  /** CareerPilot career tracks; empty = every member. */
+  tracks: string[];
+  updatedBy?: string;
+  updatedByName?: string;
+  updatedAt: Date;
+}
+
+const AccessSchema = new Schema<IQuestionBookAccess>({
+  tenantId: { type: String, required: true },
+  bookId: { type: Schema.Types.ObjectId, ref: 'QuestionBook', required: true },
+  lms: { type: Boolean, default: true },
+  careerpilot: { type: Boolean, default: true },
+  stages: { type: [String], default: [] },
+  tracks: { type: [String], default: [] },
+  updatedBy: String,
+  updatedByName: String,
+}, { timestamps: true });
+AccessSchema.index({ tenantId: 1, bookId: 1 }, { unique: true });
+
+export const QuestionBookAccess = mongoose.model<IQuestionBookAccess>('QuestionBookAccess', AccessSchema);

@@ -72,7 +72,13 @@ export interface PilotAssignment {
 }
 
 export interface PilotAssignmentCoding {
-  language: 'python';
+  /**
+   * The runner's language. Java was added for career tracks (Java Full Stack + AI): its practice is
+   * graded by running the student's Java, as the years' practice runs their Python. The runner is
+   * Java 15, so a Java exercise must not need records (16+) or later features.
+   */
+  /* C# was added for .NET Full Stack + AI; its runner is Mono 6.12 (about C# 7) — classic Main, no records. */
+  language: 'python' | 'java' | 'csharp';
   starter: string;
   /** Visible cases are worked examples on the page; hidden ones check the program generalises. */
   tests: { input: string; expectedOutput: string; isHidden?: boolean }[];

@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { placementDriveApi } from '../../api';
 import './PlacementAnalytics.css';
+import { barWidth } from '../../utils/barWidth';
 
 const COLORS = ['#6650d8', '#38bdf8', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#10b981', '#f97316'];
 
@@ -230,7 +231,7 @@ const PlacementAnalytics: React.FC = () => {
                   <div
                     className="pa-status-bar"
                     style={{
-                      width: `${Math.max(4, (count / data.summary.totalDrives) * 100)}%`,
+                      width: `${barWidth((count / data.summary.totalDrives) * 100)}%`,
                       backgroundColor: status === 'completed' ? '#22c55e' : status === 'ongoing' ? '#6650d8' : status === 'upcoming' ? '#38bdf8' : '#ef4444',
                     }}
                   />

@@ -3,10 +3,10 @@
    Inputs and selects inherit the admin surface's own styling (AdminCore.css); only layout,
    switches and rows are defined here. Prefix: cpc-. */
 
-.cpc { --cpc-ink: #0f172a; --cpc-sub: #64748b; --cpc-line: #e8edf4; --cpc-teal: #0d9488; --cpc-indigo: #4f46e5;
+.cpcfg { --cpc-ink: #0f172a; --cpc-sub: #475569; --cpc-line: #e8edf4; --cpc-teal: #0d9488; --cpc-indigo: #051D64;
   padding: 20px 26px 96px; max-width: 1240px; }
 
-.cpc-crumb { font-size: 12.5px; color: #94a3b8; margin-bottom: 6px; }
+.cpc-crumb { font-size: 12.5px; color: #4B5B72; margin-bottom: 6px; }
 .cpc-crumb b { color: #334155; font-weight: 600; }
 .cpc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
 .cpc-head h1 { font-size: 24px; font-weight: 800; color: var(--cpc-ink); margin: 0 0 4px; }
@@ -36,7 +36,7 @@
 .cpc-f { min-width: 0; }
 .cpc-f > .lbl { display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; }
 .cpc-f > .lbl em { color: #e11d48; font-style: normal; }
-.cpc-f > .hint { display: block; font-size: 11.5px; color: #8494a8; margin-top: 5px; line-height: 1.45; }
+.cpc-f > .hint { display: block; font-size: 11.5px; color: #4B5B72; margin-top: 5px; line-height: 1.45; }
 .cpc-f input, .cpc-f select { width: 100%; }
 .cpc-f .inline { display: flex; align-items: center; gap: 10px; min-height: 40px; }
 
@@ -61,8 +61,8 @@
 .cpc-ent { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 4px; border-bottom: 1px solid #f3f5f9; font-size: 13.5px; color: #334155; }
 .cpc-ent:last-child { border-bottom: 0; }
 .cpc-seg { display: inline-flex; background: #f1f5f9; border-radius: 8px; padding: 3px; }
-.cpc-seg button { border: 0; border-radius: 6px; padding: 5px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer; background: transparent; color: #64748b; text-transform: capitalize; }
-.cpc-seg button.free { background: #16a34a; color: #fff; }
+.cpc-seg button { border: 0; border-radius: 6px; padding: 5px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer; background: transparent; color: #475569; text-transform: capitalize; }
+.cpc-seg button.free { background: #15803d; color: #fff; }
 .cpc-seg button.paid { background: var(--cpc-indigo); color: #fff; }
 
 /* Registration form rows */
@@ -76,15 +76,15 @@
 .cpc-row.off .name, .cpc-row.off .ph { opacity: .55; }
 .cpc-row.drag-over { box-shadow: inset 0 2px 0 var(--cpc-indigo); }
 .cpc-row.dragging { opacity: .4; }
-.cpc-grip { color: #94a3b8; cursor: grab; font-size: 16px; line-height: 1; text-align: center; }
-.cpc-grip.fixed { cursor: default; color: #cbd5e1; }
+.cpc-grip { color: #4B5B72; cursor: grab; font-size: 16px; line-height: 1; text-align: center; }
+.cpc-grip.fixed { cursor: default; color: #4B5B72; }
 .cpc-row .name { font-size: 13.5px; font-weight: 600; color: #1e293b; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cpc-row .name .lock { color: #94a3b8; font-size: 12px; margin-left: 6px; }
+.cpc-row .name .lock { color: #4B5B72; font-size: 12px; margin-left: 6px; }
 .cpc-type { justify-self: start; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: #eef2ff; color: #4f46e5; }
-.cpc-row .ph { font-size: 12.5px; color: #94a3b8; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cpc-row .ph { font-size: 12.5px; color: #4B5B72; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cpc-acts { display: flex; align-items: center; gap: 14px; }
 .cpc-req { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: #475569; font-weight: 600; min-width: 94px; }
-.cpc-icon { border: 0; background: none; cursor: pointer; color: #64748b; font-size: 15px; padding: 4px; border-radius: 6px; }
+.cpc-icon { border: 0; background: none; cursor: pointer; color: #475569; font-size: 15px; padding: 4px; border-radius: 6px; }
 .cpc-icon:hover { background: #f1f5f9; color: #1e293b; }
 .cpc-icon.danger:hover { background: #fef2f2; color: #dc2626; }
 .cpc-icon:disabled { visibility: hidden; }
@@ -97,8 +97,11 @@
 .cpc-btn-sm.ghost { background: #fff; color: #475569; border: 1px solid #dbe2ec; }
 
 /* Sticky save bar */
-.cpc-bar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 12px 0; margin-top: 8px;
-  background: linear-gradient(to top, #f6f8fb 70%, rgba(246, 248, 251, 0)); }
+/* Its own name: shareCard.css uses .cpc-bar for an 8px progress bar, and whichever loaded last won.
+   A solid bar pinned to the bottom of the window, so the page never shows through behind it. */
+.cpc-savebar { position: sticky; bottom: 0; z-index: 20; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 18px; margin: 12px 0 0; background: #fff; border: 1px solid #E3EAF1; border-radius: 14px;
+  box-shadow: 0 -10px 28px rgba(15, 46, 77, .10); }
 .cpc-save { display: inline-flex; align-items: center; gap: 8px; background: var(--cpc-indigo); color: #fff; border: 0; border-radius: 10px; padding: 11px 20px; font-weight: 800; font-size: 14px; cursor: pointer; }
 .cpc-save:disabled { opacity: .6; cursor: default; }
 .cpc-reset { display: inline-flex; align-items: center; gap: 8px; background: #fff; color: var(--cpc-indigo); border: 1.5px solid var(--cpc-indigo); border-radius: 10px; padding: 10px 18px; font-weight: 700; font-size: 14px; cursor: pointer; }
@@ -107,7 +110,7 @@
 .cpc-dirty { font-size: 12.5px; color: #b45309; font-weight: 600; }
 
 @media (max-width: 760px) {
-  .cpc { padding: 16px 16px 96px; }
+  .cpcfg { padding: 16px 16px 96px; }
   .cpc-head { flex-direction: column; }
   .cpc-row { grid-template-columns: 22px 1fr auto; }
   .cpc-row .cpc-type, .cpc-row .ph { display: none; }
@@ -119,15 +122,15 @@
 .cpc-years { margin-top: 14px; border: 1px solid #E6E9F2; border-radius: 12px; overflow: hidden; }
 .cpc-years-hd,
 .cpc-year { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 14px; }
-.cpc-years-hd { background: #F6F8FC; border-bottom: 1px solid #E6E9F2; font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: #6B7488; }
+.cpc-years-hd { background: #F6F8FC; border-bottom: 1px solid #E6E9F2; font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: #4B5B72; }
 .cpc-year + .cpc-year { border-top: 1px solid #F0F2F7; }
 .cpc-year-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .cpc-year-name b { font-size: 13.5px; color: #0F172A; }
-.cpc-year-name small { font-size: 11.5px; color: #8B93A4; }
+.cpc-year-name small { font-size: 11.5px; color: #4B5B72; }
 .cpc-year input { width: 100%; min-width: 0; border: 1px solid #DDE2EC; border-radius: 9px; padding: 8px 10px; font-size: 13.5px; color: #0F172A; background: #fff; }
 .cpc-year input:focus { outline: none; border-color: #051D64; box-shadow: 0 0 0 3px rgba(5, 29, 100, .09); }
 .cpc-year input::placeholder { color: #AEB6C4; }
-.cpc-years-note { margin-top: 10px; font-size: 11.5px; color: #8B93A4; line-height: 1.5; }
+.cpc-years-note { margin-top: 10px; font-size: 11.5px; color: #4B5B72; line-height: 1.5; }
 
 /* Each input carries its own label in the markup; on desktop the heading row says it once,
    so the per-box label is hidden rather than repeated four times down each column. */
@@ -138,7 +141,7 @@
   .cpc-years-hd { display: none; }
   .cpc-year { grid-template-columns: 1fr 1fr; gap: 10px 12px; padding: 12px 14px; }
   .cpc-year-name { grid-column: 1 / -1; }
-  .cpc-year-lbl { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #8B93A4; }
+  .cpc-year-lbl { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #4B5B72; }
 }
 
 /* ── Which years are live ─────────────────────────────────────────────────────────────────
@@ -148,7 +151,7 @@
 .cpc-units { display: flex; flex-direction: column; gap: 2px; font-size: 14px; font-weight: 700; color: #0F172A; }
 .cpc-units em { font-style: normal; font-size: 11px; font-weight: 600; color: #B86B00; }
 .cpc-units.short { color: #B86B00; }
-.cpc-locked { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #6B7488; }
+.cpc-locked { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #4B5B72; }
 .cpc-toggle { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-size: 13px; font-weight: 700; color: #0F172A; }
 .cpc-toggle input { width: 17px; height: 17px; accent-color: #051D64; cursor: pointer; flex: none; }
 .cpc-toggle.off { cursor: not-allowed; color: #98A1B0; }
@@ -159,3 +162,16 @@
   .cpc-engine .cpc-year { grid-template-columns: 1fr 1fr; }
   .cpc-engine .cpc-year-name { grid-column: 1 / -1; }
 }
+
+/* Phone: the sign-up form rows cut every field name to one letter ("F…", "Br…") to fit the two
+   switches. The name gets its own line; the switches and buttons go on the line below it. */
+@media (max-width: 560px) {
+  .cpc-row { grid-template-columns: 22px minmax(0, 1fr); grid-template-areas: "grip name" ". acts"; row-gap: 8px; }
+  .cpc-row > .cpc-grip { grid-area: grip; }
+  .cpc-row > .name { grid-area: name; white-space: normal; overflow: visible; }
+  .cpc-row > .cpc-acts { grid-area: acts; flex-wrap: wrap; gap: 10px 14px; }
+}
+
+/* Inputs and selects: text was flush against the left border. */
+.cpcfg input:not([type=checkbox]):not([type=radio]), .cpcfg select { padding-left: 12px !important; padding-right: 12px !important; }
+.cpcfg select { padding-right: 32px !important; }

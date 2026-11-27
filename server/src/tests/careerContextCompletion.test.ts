@@ -97,13 +97,26 @@ describe('complete:true with required answers still missing', () => {
   });
 
   it('still saves the answers that WERE supplied — a partial step is not a failure', async () => {
-    const doc = memberDoc({ degree: 'B.Tech', yearOfStudy: '1st Year' });
+    // A 2nd year: a 1st year has no role (see below).
+    const doc = memberDoc({ degree: 'B.Tech', yearOfStudy: '2nd Year' });
     findOneUser.mockReturnValue(userHandle(doc));
 
     await updateCareerContext('tenant-1', 'student-a', { primaryRole: 'QA_SDET', complete: true }, NOW);
 
     expect(doc.passport.primaryRole).toBe('QA_SDET');
     expect(doc.save).toHaveBeenCalled();
+  });
+
+  it('stores "Not sure" for a 1st year whatever role is sent — roles open in Year 2', async () => {
+    const doc = memberDoc({ degree: 'B.Tech', yearOfStudy: '1st Year' });
+    doc.passport.secondaryRole = 'DATA_ANALYST';
+    findOneUser.mockReturnValue(userHandle(doc));
+
+    await updateCareerContext('tenant-1', 'student-a', { primaryRole: 'QA_SDET' }, NOW);
+
+    expect(doc.passport.stage).toBe('foundation');
+    expect(doc.passport.primaryRole).toBe('NOT_SURE');
+    expect(doc.passport.secondaryRole).toBeUndefined();
   });
 
   it('does not write completion on the save it does perform', async () => {

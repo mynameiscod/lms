@@ -12,6 +12,12 @@ export const ORIGINAL_MODULE_KEYS = [
   'careerPilot', 'aiCommunicationLab',
 ] as const;
 
+/** The CareerPilot features: parts of CareerPilot, never on while CareerPilot itself is off. */
+export const CAREERPILOT_FEATURE_KEYS = ['cpMembers', 'cpSetup', 'cpPathways', 'cpCareerMap', 'cpAssessment', 'cpContent', 'cpRoadmap', 'cpPractice', 'cpRewards'] as const;
+
+/** The Leads / CRM features: parts of the CRM, never on while Leads / CRM itself is off. Mirrors server/src/config/crmFeatures.ts. */
+export const CRM_FEATURE_KEYS = ['crmPipeline', 'crmReports', 'crmSalesTeams', 'crmLeadReport', 'crmAutomation', 'crmSources', 'crmCalling', 'crmSalesContent', 'crmArchive', 'crmDemoBooking'] as const;
+
 export const MODULE_PARENT = {
   skillAssessment: 'leads',
   whatsapp: 'leads',
@@ -26,11 +32,38 @@ export const MODULE_PARENT = {
   codeVisualizer: 'codeAssessments',
   techBattles: 'codeAssessments',
   hackathons: 'codeAssessments',
+  // CareerPilot, one feature at a time. Each follows careerPilot until the platform administrator sets it.
+  cpMembers: 'careerPilot',
+  cpSetup: 'careerPilot',
+  cpPathways: 'careerPilot',
+  cpCareerMap: 'careerPilot',
+  cpAssessment: 'careerPilot',
+  cpContent: 'careerPilot',
+  cpRoadmap: 'careerPilot',
+  cpPractice: 'careerPilot',
+  cpRewards: 'careerPilot',
+  // Leads / CRM, one feature at a time. Each follows leads until the platform administrator sets it.
+  crmPipeline: 'leads',
+  crmReports: 'leads',
+  crmSalesTeams: 'leads',
+  crmLeadReport: 'leads',
+  crmAutomation: 'leads',
+  crmSources: 'leads',
+  crmCalling: 'leads',
+  crmSalesContent: 'leads',
+  crmArchive: 'leads',
+  crmDemoBooking: 'leads',
 } as const;
 
-export type ModuleKey = typeof ORIGINAL_MODULE_KEYS[number] | keyof typeof MODULE_PARENT;
+/** The institute-admin menu. Unset reads as ON for institutes that existed before; new ones start with all off. */
+export const ADMIN_MODULE_KEYS = [
+  'userManagement', 'rolesManagement', 'batchManagement', 'notifications', 'concerns', 'employees', 'expenses',
+  'aiSpend', 'apiLogs', 'integrations', 'branding', 'studentFeatures',
+] as const;
+
+export type ModuleKey = typeof ORIGINAL_MODULE_KEYS[number] | keyof typeof MODULE_PARENT | typeof ADMIN_MODULE_KEYS[number];
 export type TenantModules = Record<ModuleKey, boolean>;
-export const ALL_MODULE_KEYS = [...ORIGINAL_MODULE_KEYS, ...Object.keys(MODULE_PARENT)] as ModuleKey[];
+export const ALL_MODULE_KEYS = [...ORIGINAL_MODULE_KEYS, ...Object.keys(MODULE_PARENT), ...ADMIN_MODULE_KEYS] as ModuleKey[];
 
 export function effectiveModules(stored?: Partial<Record<string, unknown>> | null): TenantModules {
   const raw = (stored || {}) as Record<string, unknown>;
@@ -39,6 +72,11 @@ export function effectiveModules(stored?: Partial<Record<string, unknown>> | nul
   for (const [k, parent] of Object.entries(MODULE_PARENT) as [keyof typeof MODULE_PARENT, ModuleKey][]) {
     out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : out[parent];
   }
+  for (const k of CAREERPILOT_FEATURE_KEYS) out[k] = out.careerPilot && out[k];
+  for (const k of CRM_FEATURE_KEYS) out[k] = out.leads && out[k];
+  out.crmLeadReport = out.crmLeadReport && out.crmSalesTeams; // lists team members' leads
+  out.crmDemoBooking = out.leads && raw.crmDemoBooking === true; // opens a public page: off until switched on
+  for (const k of ADMIN_MODULE_KEYS) out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : true;
   return out;
 }
 
@@ -74,6 +112,16 @@ export const MODULE_DEFS: ModuleDef[] = [
   { group: 'Careers & placement', key: 'mockInterviews', label: 'Mock Interviews', icon: 'fa-solid fa-user-tie', desc: 'AI & scheduled mock interviews' },
   { group: 'Careers & placement', key: 'careerPilot', label: 'CareerPilot', icon: 'fa-solid fa-compass', desc: 'AI Mentor, Job Tracker, Project Builder, Career Profile' },
 
+  { group: 'CareerPilot features', key: 'cpMembers', label: 'CareerPilot: Members & activity', icon: 'fa-solid fa-id-card-clip', desc: 'Member list, activity, analytics, drop-off funnel, granting membership' },
+  { group: 'CareerPilot features', key: 'cpSetup', label: 'CareerPilot: Setup, coins & news', icon: 'fa-solid fa-sliders', desc: 'Configuration, coin rules, rewards and news' },
+  { group: 'CareerPilot features', key: 'cpPathways', label: 'CareerPilot: Pathways & missions', icon: 'fa-solid fa-route', desc: 'Pathways, pathway rules and daily missions' },
+  { group: 'CareerPilot features', key: 'cpCareerMap', label: 'CareerPilot: Roles & skills', icon: 'fa-solid fa-diagram-project', desc: 'Career roles, skill graph, role blueprints, skill evidence, stage curriculum' },
+  { group: 'CareerPilot features', key: 'cpAssessment', label: 'CareerPilot: Assessment & question bank', icon: 'fa-solid fa-list-check', desc: 'Assessment shape, coverage, preview, question drafting and bank' },
+  { group: 'CareerPilot features', key: 'cpContent', label: 'CareerPilot: Learning content', icon: 'fa-solid fa-layer-group', desc: 'Content builder, mega curriculum, orientation, learning studio, concepts, company questions' },
+  { group: 'CareerPilot features', key: 'cpRoadmap', label: 'CareerPilot: Member roadmap', icon: 'fa-solid fa-map', desc: 'Personal roadmap, plan and foundation journey for each member' },
+  { group: 'CareerPilot features', key: 'cpPractice', label: 'CareerPilot: Member practice & interviews', icon: 'fa-solid fa-microphone-lines', desc: 'Practice problems, mock tests, mock interviews, company prep' },
+  { group: 'CareerPilot features', key: 'cpRewards', label: 'CareerPilot: Member coins & rewards', icon: 'fa-solid fa-coins', desc: 'Coins, rewards, gamification and the leaderboard' },
+
   { group: 'Events', key: 'techBattles', label: 'Tech Battles', icon: 'fa-solid fa-trophy', desc: 'Public coding competitions' },
   { group: 'Events', key: 'hackathons', label: 'Hackathons', icon: 'fa-solid fa-laptop-code', desc: 'Paid team hackathons & exams' },
 
@@ -82,6 +130,30 @@ export const MODULE_DEFS: ModuleDef[] = [
   { group: 'Admissions & money', key: 'skillAssessment', label: 'Skill Assessment', icon: 'fa-solid fa-clipboard-question', desc: 'Public skill assessment funnel & candidates' },
   { group: 'Admissions & money', key: 'marketing', label: 'Marketing', icon: 'fa-solid fa-bullhorn', desc: 'Campaigns, analytics, insights' },
   { group: 'Admissions & money', key: 'feeManagement', label: 'Fee Management', icon: 'fa-solid fa-wallet', desc: 'Seat reservations, payments, receipts, installments' },
+
+  { group: 'CRM features', key: 'crmPipeline', label: 'CRM: Pipeline, stages & sub-stages', icon: 'fa-solid fa-stairs', desc: 'Lead stages and sub-stages, qualification questions, lead form settings' },
+  { group: 'CRM features', key: 'crmReports', label: 'CRM: Dashboards & reports', icon: 'fa-solid fa-chart-simple', desc: 'Admissions dashboard, analytics, manager board, team activity, my performance' },
+  { group: 'CRM features', key: 'crmSalesTeams', label: 'CRM: Sales Teams', icon: 'fa-solid fa-sitemap', desc: 'Teams and managers, My Team and My Day daily reports' },
+  { group: 'CRM features', key: 'crmLeadReport', label: 'CRM: Lead Report & probables', icon: 'fa-solid fa-chart-column', desc: 'Leads by stage and sub-stage, follow-ups and overdue, probables per batch (needs Sales Teams)' },
+  { group: 'CRM features', key: 'crmAutomation', label: 'CRM: Automation & assignment', icon: 'fa-solid fa-diagram-project', desc: 'Workflows, CRM automation, lead assignment, lead scoring, priority settings' },
+  { group: 'CRM features', key: 'crmSources', label: 'CRM: Lead sources & integrations', icon: 'fa-solid fa-plug-circle-bolt', desc: 'Lead sources, Meta sync, Google Sheets, event APIs for the website' },
+  { group: 'CRM features', key: 'crmCalling', label: 'CRM: Calling (AI calls & Callyzer)', icon: 'fa-solid fa-phone-volume', desc: 'Outpero AI calls, AI call settings, Callyzer SIM calls and recordings' },
+  { group: 'CRM features', key: 'crmSalesContent', label: 'CRM: Sales content', icon: 'fa-solid fa-file-invoice', desc: 'Brochures, fee sheets and other content counsellors share' },
+  { group: 'CRM features', key: 'crmArchive', label: 'CRM: Archive & audit logs', icon: 'fa-solid fa-box-archive', desc: 'Archive and restore leads, lead audit logs' },
+  { group: 'CRM features', key: 'crmDemoBooking', label: 'CRM: Book a demo', icon: 'fa-solid fa-calendar-check', desc: 'Demo slots, the public booking page for the website, join links, attendance (starts off)' },
+
+  { group: 'Institute admin', key: 'userManagement', label: 'Users', icon: 'fa-solid fa-users', desc: 'Add and manage students, instructors and staff' },
+  { group: 'Institute admin', key: 'rolesManagement', label: 'Roles', icon: 'fa-solid fa-user-shield', desc: 'Custom roles and permissions' },
+  { group: 'Institute admin', key: 'batchManagement', label: 'Batches', icon: 'fa-solid fa-layer-group', desc: 'Create and manage batches' },
+  { group: 'Institute admin', key: 'notifications', label: 'Notifications', icon: 'fa-solid fa-bell', desc: 'Notification page for everyone in the institute' },
+  { group: 'Institute admin', key: 'concerns', label: 'Concerns', icon: 'fa-solid fa-circle-question', desc: 'Student concerns and responses' },
+  { group: 'Institute admin', key: 'branding', label: 'Branding', icon: 'fa-solid fa-palette', desc: 'Logo, name and colours' },
+  { group: 'Institute admin', key: 'studentFeatures', label: 'Student Features', icon: 'fa-solid fa-toggle-on', desc: 'Choose which menu items students see' },
+  { group: 'Institute admin', key: 'integrations', label: 'Integrations', icon: 'fa-solid fa-plug', desc: 'Own email sender, payments, tracking (their own accounts and keys)' },
+  { group: 'Institute admin', key: 'employees', label: 'Employees', icon: 'fa-solid fa-people-group', desc: 'Employee directory, daily activity, employee portal' },
+  { group: 'Institute admin', key: 'expenses', label: 'Expenses', icon: 'fa-solid fa-receipt', desc: 'Company expense ledger and employee claims' },
+  { group: 'Institute admin', key: 'aiSpend', label: 'AI Spend', icon: 'fa-solid fa-indian-rupee-sign', desc: 'What AI costs, by day, module and model' },
+  { group: 'Institute admin', key: 'apiLogs', label: 'API Logs', icon: 'fa-solid fa-bug', desc: 'Technical request and error logs' },
 ];
 
 /**
@@ -94,11 +166,11 @@ const PATH_MODULE: [string, ModuleKey][] = ([
   ['/attendance', 'attendance'], ['/my-attendance', 'attendance'], ['/attendance-reports', 'attendance'],
   ['/my-leave', 'attendance'], ['/admin/leave-requests', 'attendance'],
   ['/quizzes', 'quizzes'], ['/quiz-management', 'quizzes'], ['/registrations', 'quizzes'], ['/question-bank', 'quizzes'], ['/quiz-reports', 'quizzes'],
-  ['/assignments', 'assignments'], ['/admin/assignments', 'assignments'],
+  ['/assignments', 'assignments'], ['/admin/assignments', 'assignments'], ['/exams', 'assignments'],
   ['/coding-snippets', 'codeAssessments'], ['/admin/coding-snippets', 'codeAssessments'], ['/playground', 'codeAssessments'], ['/coding-practice', 'codeAssessments'],
   ['/my-learning', 'learningPlans'], ['/my-tasks', 'learningPlans'], ['/learning-library', 'learningPlans'],
   ['/curriculum-builder', 'learningPlans'], ['/enrollment-plans', 'learningPlans'], ['/batch-offerings', 'learningPlans'],
-  ['/drives', 'placement'], ['/admin/placement-partnership', 'placement'],
+  ['/drives', 'placement'], ['/admin/placement-partnership', 'placement'], ['/placement-desk', 'placement'], ['/talent-pool', 'placement'],
   ['/admin/placement-program', 'placementProgram'], ['/placement-program/my-interviews', 'placementProgram'],
   ['/admin/interview-experiences', 'interviewHub'], ['/interview-experiences', 'interviewHub'],
   ['/question-books', 'interviewHub'], ['/admin/question-books', 'interviewHub'],
@@ -108,6 +180,8 @@ const PATH_MODULE: [string, ModuleKey][] = ([
   ['/admin/battles', 'techBattles'],
   ['/admin/hackathons', 'hackathons'],
   ['/admin/passport', 'careerPilot'], ['/admin/careerpilot', 'careerPilot'],
+  // each CareerPilot screen under its own switch (longest prefix wins)
+  ['/admin/passport/students', 'cpMembers'], ['/admin/passport/trial-plans', 'cpMembers'], ['/admin/passport/demo-plans', 'cpMembers'], ['/admin/passport/analytics', 'cpMembers'], ['/admin/passport/funnel', 'cpMembers'], ['/admin/passport/journey', 'cpMembers'], ['/admin/passport/activity', 'cpMembers'], ['/admin/passport/config', 'cpSetup'], ['/admin/passport/coins', 'cpSetup'], ['/admin/passport/xp-rewards', 'cpSetup'], ['/admin/passport/news', 'cpSetup'], ['/admin/passport/job-openings', 'cpSetup'], ['/admin/passport/pathways', 'cpPathways'], ['/admin/passport/pathway-rules', 'cpPathways'], ['/admin/passport/missions', 'cpPathways'], ['/admin/passport/career-roles', 'cpCareerMap'], ['/admin/passport/skills', 'cpCareerMap'], ['/admin/passport/role-blueprints', 'cpCareerMap'], ['/admin/passport/skill-evidence', 'cpCareerMap'], ['/admin/passport/stage-skills', 'cpCareerMap'], ['/admin/passport/stage-curriculum', 'cpCareerMap'], ['/admin/passport/assessment', 'cpAssessment'], ['/admin/passport/assessment-coverage', 'cpAssessment'], ['/admin/passport/assessment-preview', 'cpAssessment'], ['/admin/passport/assessment-shape', 'cpAssessment'], ['/admin/passport/question-drafts', 'cpAssessment'], ['/admin/passport/question-bank', 'cpAssessment'], ['/admin/passport/content-builder', 'cpContent'], ['/admin/passport/mega-curriculum', 'cpContent'], ['/admin/passport/orientation', 'cpContent'], ['/admin/passport/learning-studio', 'cpContent'], ['/admin/passport/concepts', 'cpContent'], ['/admin/passport/curriculum', 'cpContent'], ['/admin/passport/roadmap-v2', 'cpContent'], ['/admin/passport/career-tracks', 'cpContent'], ['/admin/passport/companies', 'cpContent'], ['/admin/careerpilot/staging', 'cpContent'], ['/admin/careerpilot/paper-design', 'cpAssessment'], ['/careerpilot/roadmap', 'cpRoadmap'], ['/careerpilot/practice', 'cpPractice'], ['/careerpilot/interview', 'cpPractice'], ['/careerpilot/coins', 'cpRewards'],
   ['/project-builder', 'careerPilot'], ['/job-tracker', 'careerPilot'], ['/ai-mentor', 'careerPilot'],
   ['/resume-builder', 'careerPilot'], ['/career-profile', 'careerPilot'], ['/admin/career-profiles', 'careerPilot'],
   ['/interview-question-bank', 'mockInterviews'], ['/scheduled-interviews', 'mockInterviews'], ['/my-interviews', 'mockInterviews'], ['/admin/interviews', 'mockInterviews'],
@@ -119,8 +193,21 @@ const PATH_MODULE: [string, ModuleKey][] = ([
   ['/my-practice', 'practicePass'], ['/practice-pass', 'practicePass'],
   ['/problem-bank', 'problemBank'],
   ['/thinking-lab', 'thinkingLab'], ['/admin/thinking-lab', 'thinkingLab'], ['/lab-tracks', 'thinkingLab'],
-  ['/leads', 'leads'], ['/follow-ups', 'leads'], ['/lead-', 'leads'], ['/team-activity', 'leads'], ['/sales-content', 'leads'],
-  ['/qualification-settings', 'leads'], ['/google-sheet-integration', 'leads'], ['/admin/outpero', 'leads'], ['/event-apis', 'leads'], ['/ai-call-config', 'leads'],
+  ['/users', 'userManagement'], ['/roles', 'rolesManagement'], ['/batches', 'batchManagement'], ['/notifications', 'notifications'],
+  ['/admin/concerns', 'concerns'], ['/admin/support', 'careerPilot'], ['/admin/branding', 'branding'], ['/student-features', 'studentFeatures'], ['/admin/integrations', 'integrations'],
+  ['/employee', 'employees'], ['/employees', 'employees'], ['/employee-activity', 'employees'], ['/employee-portal', 'employees'], ['/expenses', 'expenses'],
+  ['/admin/ai-spend', 'aiSpend'], ['/admin/logs', 'apiLogs'],
+  ['/leads', 'leads'], ['/follow-ups', 'leads'], ['/follow-up-queue', 'leads'], ['/lead-', 'leads'],
+  // each CRM screen under its own switch (mirrors server/src/config/crmFeatures.ts `paths`)
+  ['/lead-stages', 'crmPipeline'], ['/qualification-settings', 'crmPipeline'], ['/lead-form-settings', 'crmPipeline'],
+  ['/admissions-dashboard', 'crmReports'], ['/leads/analytics', 'crmReports'], ['/lead-manager-board', 'crmReports'], ['/team-activity', 'crmReports'], ['/lead-my-performance', 'crmReports'],
+  ['/sales-teams', 'crmSalesTeams'], ['/my-team', 'crmSalesTeams'], ['/my-day', 'crmSalesTeams'], ['/lead-report', 'crmLeadReport'],
+  ['/workflows', 'crmAutomation'], ['/lead-automation', 'crmAutomation'], ['/lead-assignment-settings', 'crmAutomation'], ['/lead-scoring-settings', 'crmAutomation'], ['/lead-priority-settings', 'crmAutomation'],
+  ['/lead-sources', 'crmSources'], ['/meta-sync', 'crmSources'], ['/google-sheet-integration', 'crmSources'], ['/event-apis', 'crmSources'],
+  ['/admin/outpero', 'crmCalling'], ['/ai-call-config', 'crmCalling'], ['/admin/callyzer', 'crmCalling'],
+  ['/sales-content', 'crmSalesContent'],
+  ['/leads/archive', 'crmArchive'], ['/lead-audit-logs', 'crmArchive'],
+  ['/demo-slots', 'crmDemoBooking'],
 ] as [string, ModuleKey][]).sort((a, b) => b[0].length - a[0].length);
 
 export function moduleForPath(path?: string): ModuleKey | null {

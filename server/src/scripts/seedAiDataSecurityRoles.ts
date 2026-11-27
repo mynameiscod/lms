@@ -3,6 +3,12 @@
  *
  *   npx ts-node src/scripts/seedAiDataSecurityRoles.ts <tenantId>            # plan only
  *   npx ts-node src/scripts/seedAiDataSecurityRoles.ts <tenantId> --apply
+ *   npx ts-node src/scripts/seedAiDataSecurityRoles.ts <tenantId> --skills-only [--apply]
+ *
+ * --skills-only adds the skills this file defines that the catalogue does not have yet, and
+ * nothing else: no blueprints (so it does not need the roles to exist), and a skill already in
+ * the catalogue is left exactly as it is. Career tracks (Data Analytics, Data Science, AI and ML)
+ * measure against these skills.
  *
  * ── WHAT IT FIXES ─────────────────────────────────────────────────────────────────────────
  *
@@ -29,7 +35,21 @@ import mongoose from 'mongoose';
 import CareerSkill from '../models/CareerSkill';
 import CareerRole from '../models/CareerRole';
 import RoleSkillBlueprint, { DEFAULT_WEIGHT } from '../models/RoleSkillBlueprint';
-import { NEW_SKILLS, NEW_DOMAINS } from '../data/aiDataSecuritySkills';
+import { NEW_SKILLS as ALL_NEW_SKILLS, NEW_DOMAINS } from '../data/aiDataSecuritySkills';
+import { CAREER_SKILL_TAXONOMY } from '../data/careerSkillTaxonomy';
+
+/*
+ * A KEY THE CAREER TAXONOMY DEFINES IS NEVER WRITTEN HERE.
+ *
+ * Nine keys appear in both files. Eight are skills in both; AI_AGENTS is an assessable SKILL in the
+ * career taxonomy (the career tracks measure it with fifty questions) but a non-assessable GROUP
+ * here. Run before seedCareerSkills on a tenant that lacked it, this script created the group, the
+ * career seed then saw the key "already present" and skipped it, and the track bank import was
+ * refused for a non-assessable skill (production, 2026-10-21). The career taxonomy owns its keys;
+ * this file only adds the ones it does not have, whatever order the two seeds run in.
+ */
+const CAREER_KEYS = new Set(CAREER_SKILL_TAXONOMY.map((k: any) => String(k.key)));
+const NEW_SKILLS = ALL_NEW_SKILLS.filter(sk => !CAREER_KEYS.has(sk.key));
 import { NEW_BLUEPRINTS } from '../data/aiDataSecurityBlueprints';
 
 const ACTOR = 'ai-data-security-seed';
@@ -37,6 +57,7 @@ const ACTOR = 'ai-data-security-seed';
 async function main() {
   const tenantId = process.argv[2];
   const apply = process.argv.includes('--apply');
+  const skillsOnly = process.argv.includes('--skills-only');
   if (!tenantId || tenantId.startsWith('--')) {
     console.error('Usage: seedAiDataSecurityRoles.ts <tenantId> [--apply]');
     process.exit(1);
@@ -58,6 +79,31 @@ async function main() {
   say(`    this seed defines    ${NEW_SKILLS.length}  across ${NEW_DOMAINS.map(d => d.key).join(', ')}`);
   say(`    already present      ${already}`);
   say(`    would create         ${toCreate.length}`);
+
+  if (skillsOnly) {
+    if (!apply) { say(`\n  SKILLS ONLY, PLAN — nothing written. Re-run with --apply.`); await mongoose.disconnect(); return; }
+    let inserted = 0;
+    for (const sk of toCreate) {
+      const res = await CareerSkill.updateOne(
+        { key: sk.key },
+        {
+          $setOnInsert: {
+            key: sk.key, name: sk.name, description: sk.description, domainKey: sk.domainKey,
+            nodeType: sk.nodeType, parentKey: sk.parentKey, difficulty: sk.difficulty,
+            prerequisiteKeys: sk.prerequisiteKeys || [],
+            assessable: sk.assessable !== false && sk.nodeType === 'SKILL',
+            learnable: sk.nodeType === 'SKILL',
+            aliases: sk.aliases || [], active: true, systemSkill: true, createdBy: ACTOR, updatedBy: ACTOR,
+          },
+        },
+        { upsert: true },
+      );
+      if ((res as any).upsertedCount) inserted++;
+    }
+    say(`\n  SKILLS ONLY: ${inserted} created; ${already} already present and left untouched; no blueprints written.`);
+    await mongoose.disconnect();
+    return;
+  }
 
   /* ── 2. every blueprint reference must resolve ───────────────────────────────────────── */
   const afterSkills = new Set<string>([...existingKeys, ...NEW_SKILLS.map(s => s.key)]);

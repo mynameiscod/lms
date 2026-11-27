@@ -16,6 +16,9 @@ import { verifyMetaSignature } from '../services/whatsAppWebhookSignature';
 import { reviveIfArchived } from '../services/leadArchiveService';
 import { extractReferral, applyReferralToLead, lookupAd, adFields, referralActivity, AdReferral } from '../services/whatsAppAdReferralService';
 import { linkLeadToCampaign } from './adCampaignController';
+import { onInbound, attachLeadToRuns, hasLiveRun, workflowWelcomesNewLeads } from '../services/workflow/engine';
+import { quietReason } from '../services/whatsAppReplyContext';
+import WhatsAppChatMessage from '../models/WhatsAppChatMessage';
 
 // ===================== TYPES =====================
 
@@ -105,6 +108,10 @@ const DEFAULT_QUESTIONS: IQualificationQuestion[] = [
   { id: 'q_mode', question: "💻 Would you prefer Online or Offline training?", category: 'technical', answerType: 'select', options: ['Online', 'Offline', 'Either is fine'], order: 4, required: false, enabled: true, fieldToUpdate: 'interests.mode', scoreImpact: [], skipKeywords: [] },
   { id: 'q_timeline', question: "📅 When are you planning to start? (immediately / next month / just exploring)", category: 'timeline', answerType: 'text', order: 5, required: false, enabled: true, fieldToUpdate: 'interests.urgency', scoreImpact: [{ answerValue: 'immediately', impact: 15 }, { answerValue: 'next month', impact: 8 }], skipKeywords: ['exploring'] },
 ];
+
+export async function loadBotQuestions(tenantId: string) {
+  return loadQuestions(tenantId);
+}
 
 async function loadQuestions(tenantId: string): Promise<IQualificationQuestion[]> {
   const config = await QualificationQuestionConfig.findOne({
@@ -262,7 +269,11 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
 
       // Delivery reports (sent / delivered / read / failed) — applied to the delivery log by wamid.
       if (value.statuses && value.statuses.length > 0) {
-        console.log('📊 Status update:', value.statuses[0].status, 'for', value.statuses[0].recipient_id);
+        for (const st of value.statuses as any[]) {
+          const err = st.errors?.[0];
+          console.log('📊 Status update:', st.status, 'for', st.recipient_id,
+            st.status === 'failed' ? `— code ${err?.code ?? '?'}: ${err?.title || err?.message || 'no reason given'}` : '');
+        }
         await applyDeliveryStatuses(value.statuses as any)
           .catch((e) => console.error('[WA] delivery status update failed:', e?.message));
         await applyChatStatuses(value.statuses as any)
@@ -298,8 +309,27 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
         const messageText = stored?.botText ?? ((message.type === 'text' && message.text?.body) || message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || '');
         if (!messageText) continue;
 
-        // A person on our side has taken over this chat — the bot stays quiet, the lead still gets the note.
-        if (await isBotPaused(tenantInfo.tenantId, phoneNumber)) {
+        // A reply to a hiring / wishes / update message, or from a student or placement candidate who is
+        // not a lead: kept in the inbox for a person. No bot, no workflows, no new lead. (An ad click is sales.)
+        if (!referral) {
+          const quiet = await quietReason(tenantInfo.tenantId, phoneNumber).catch(() => null);
+          if (quiet) continue;
+        }
+
+        // Workflow Builder first: answers to a workflow's question, STOP/START, keyword and
+        // out-of-office replies. When a workflow took the message, the old qualification bot stays quiet.
+        const botPaused = await isBotPaused(tenantInfo.tenantId, phoneNumber);
+        const wf = await onInbound(tenantInfo.tenantId, phoneNumber, senderName, messageText, { botPaused });
+        if (wf.handled) {
+          const lead = await ensureLeadExists(phoneNumber, senderName, tenantInfo.tenantId, 'warm');
+          if (lead?._id) await attachLeadToRuns(tenantInfo.tenantId, phoneNumber, lead._id);
+          await appendMessageToLead(phoneNumber, messageText, tenantInfo.tenantId);
+          continue;
+        }
+
+        // A person on our side has taken over this chat, or a workflow is mid-conversation with them —
+        // the old bot stays quiet (one automation at a time), the lead still gets the note.
+        if (botPaused || await hasLiveRun(tenantInfo.tenantId, phoneNumber)) {
           await appendMessageToLead(phoneNumber, messageText, tenantInfo.tenantId);
           continue;
         }
@@ -330,15 +360,22 @@ async function handleConversation(
 
   let state = await getConversationState(phoneNumber, tenantId);
 
-  // Already qualified — just log
+  // Already qualified — just log. The "we'll get back" note goes at most once a day, not after every message.
   if (state?.conversationStep === 'qualified') {
     await appendMessageToLead(phoneNumber, messageText, tenantId);
-    await sendWhatsAppMessage(phoneNumberId, phoneNumber, `Thanks for your message! Our team will get back to you soon. 🙂`, accessToken);
+    const recent = await WhatsAppChatMessage.exists({ tenantId: new mongoose.Types.ObjectId(tenantId), phone: phoneNumber, direction: 'out', createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } });
+    if (!recent) await sendWhatsAppMessage(phoneNumberId, phoneNumber, `Thanks for your message! Our team will get back to you soon. 🙂`, accessToken);
     return;
   }
 
   // New conversation
   if (!state || state.conversationStep === 'initial') {
+    // A "New lead arrives" workflow does the welcome and questions now — the old bot must not ask them too.
+    if (await workflowWelcomesNewLeads(tenantId)) {
+      await ensureLeadExists(phoneNumber, senderName, tenantId, 'warm');
+      await appendMessageToLead(phoneNumber, messageText, tenantId);
+      return;
+    }
     const firstName = senderName.split(' ')[0];
     const welcome = settings.welcomeMessage.replace('{{name}}', firstName);
     await sendWhatsAppMessage(phoneNumberId, phoneNumber, welcome, accessToken);
@@ -393,6 +430,11 @@ async function keepAdOnLead(phone: string, name: string, tenantId: string, refer
 }
 
 // ===================== ENSURE LEAD EXISTS =====================
+
+/** Make (or find) the CRM lead for a WhatsApp number — also used by the inbox's "Turn into a lead". */
+export async function leadFromWhatsApp(phone: string, name: string, tenantId: string) {
+  return ensureLeadExists(phone, name, tenantId, 'warm');
+}
 
 async function ensureLeadExists(phone: string, name: string, tenantId: string, priority: 'hot' | 'warm' | 'cold', referral?: AdReferral) {
   try {

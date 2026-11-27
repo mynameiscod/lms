@@ -50,7 +50,7 @@ const EmployeeSchema = new Schema({
   exitDate: Date,
   exitReason: String,
   roleHistory: [{
-    effectiveFrom: Date, type: { type: String, enum: ['joining', 'promotion', 'transfer', 'role_change', 'correction'] },
+    effectiveFrom: Date, type: { type: String, enum: ['joining', 'promotion', 'transfer', 'role_change', 'correction', 'status_change', 'exit', 'rejoin'] },
     designation: String, department: String, grade: String, reportingManagerId: Schema.Types.ObjectId, note: String,
     createdBy: Schema.Types.ObjectId, createdAt: { type: Date, default: Date.now },
   }],

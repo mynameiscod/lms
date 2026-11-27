@@ -70,6 +70,7 @@ export type RedemptionRefusal =
   | 'NOT_STARTED'
   | 'EXPIRED'
   | 'MEMBERSHIP_REQUIRED'
+  | 'DEMO_ACCOUNT'
   | 'INSUFFICIENT_COINS'
   | 'MIN_REDEMPTION_NOT_REACHED'
   | 'INSUFFICIENT_XP'
@@ -97,6 +98,7 @@ export const REFUSAL_MESSAGE: Record<string, string> = {
   NOT_STARTED: 'This reward is not open yet.',
   EXPIRED: 'This reward is no longer available.',
   MEMBERSHIP_REQUIRED: 'An active CareerPilot membership is needed to redeem rewards.',
+  DEMO_ACCOUNT: 'This is a demo account: rewards can be shown, but not redeemed.',
   INSUFFICIENT_COINS: 'You do not have enough coins for this yet.',
   MIN_REDEMPTION_NOT_REACHED: 'Your coin balance is below the minimum needed to redeem.',
   INSUFFICIENT_XP: 'You need more XP to unlock this reward.',

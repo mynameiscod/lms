@@ -415,5 +415,10 @@ export function dayNumber(startDate: Date, now: Date): number {
   return Math.max(1, Math.floor(ms / 86400000) + 1);
 }
 
-/** UTC 'YYYY-MM-DD' for streak bookkeeping. */
-export function ymd(d: Date): string { return new Date(d).toISOString().slice(0, 10); }
+/**
+ * 'YYYY-MM-DD' for streak bookkeeping, IN INDIA TIME (UTC+5:30). It was UTC, so anything a member
+ * did between midnight and 5:30 am counted for the day before — a streak could break, or a daily
+ * goal reset, at 5:30 in the morning. CareerPilot's members are in India.
+ */
+export const IST_OFFSET_MS = 330 * 60 * 1000;
+export function ymd(d: Date): string { return new Date(new Date(d).getTime() + IST_OFFSET_MS).toISOString().slice(0, 10); }

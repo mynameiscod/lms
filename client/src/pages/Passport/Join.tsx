@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { hostTenantSlug } from '../../config/hostTenant';
 import PassportLogin from './Login';
 import { useSearchParams } from 'react-router-dom';
@@ -6,7 +6,9 @@ import { passportPublicApi } from '../../api/passportApi';
 import type { OnboardingField, RegistrationWindow } from '../../api/passportApi';
 import OtpVerify, { isOtpInfo, otpSendMessage } from './OtpVerify';
 import './careerpilotJoin.css';
-import { copyrightLine } from '../../config/brand';
+import { startActivityBeacon, trackPage, trackAction, trackFailure, trackNow } from './activityBeacon';
+import { JOURNEY, sourceMeta } from './journeyTrack';
+import CareerPilotFooter from '../../components/CareerPilotFooter';
 
 const LOGO = '/assets/careerpilot/careerpilot-logo.png';
 
@@ -91,6 +93,21 @@ const BASE_FAQS: [string, string][] = [
   ['Can I change my target career later?', 'Yes. Career direction can evolve. CareerPilot is designed to help you reassess your goal and understand what changes in your roadmap.'],
 ];
 
+/**
+ * A field label whose required "*" can never wrap onto a line of its own: the last word and the
+ * star are kept together, so "Branch / Specialization *" breaks as "Branch /" + "Specialization *".
+ */
+const LabelText: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => {
+  const words = String(text || '').trim().split(/\s+/);
+  const last = words.pop() || '';
+  return (
+    <>
+      {words.length ? `${words.join(' ')} ` : ''}
+      <span className="cpx-label-end">{last}{required ? <em>{'\u00a0'}*</em> : null}</span>
+    </>
+  );
+};
+
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export const toMobile = (raw: string) => raw.replace(/\D/g, '').slice(-10);
@@ -158,6 +175,23 @@ const PassportJoin: React.FC = () => {
   const [resendIn, setResendIn] = useState(25);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // ── Where do people give up? The page tells us: it was opened, started, submitted, and where it was left.
+  const startedRef = useRef(false);
+  const verifiedRef = useRef(false);
+  const lastFieldRef = useRef('');
+  const stepRef = useRef<'form' | 'otp'>('form');
+  const filledRef = useRef<string[]>([]);
+  stepRef.current = step;
+  filledRef.current = Object.keys(form).filter((k) => form[k]);
+  useEffect(() => {
+    startActivityBeacon();
+    trackPage(JOURNEY.view, '/careerpilot/join', sourceMeta());
+    const leave = () => { if (!verifiedRef.current) trackNow(JOURNEY.left, { step: stepRef.current, lastField: lastFieldRef.current || '(nothing typed)', filled: filledRef.current }); };
+    window.addEventListener('pagehide', leave);
+    return () => window.removeEventListener('pagehide', leave);
+  }, []);
+  useEffect(() => { if (step === 'otp') trackPage(JOURNEY.otpScreen, '/careerpilot/join'); }, [step]);
+
   const extra = useMemo(() => fieldsDef.filter(f => !['name', 'mobile', 'email'].includes(f.key)), [fieldsDef]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [tried, setTried] = useState(false);
@@ -210,7 +244,11 @@ const PassportJoin: React.FC = () => {
     return () => clearInterval(t);
   }, [step, token]);
 
-  const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
+  const set = (k: string, v: any) => {
+    lastFieldRef.current = k;
+    if (!startedRef.current) { startedRef.current = true; trackAction(JOURNEY.started, { meta: { field: k, ...sourceMeta() } }); }
+    setForm(p => ({ ...p, [k]: v }));
+  };
   /**
    * ── ONE PAGE, TWO FORMS ────────────────────────────────────────────────────────────
    *
@@ -234,16 +272,46 @@ const PassportJoin: React.FC = () => {
     document.getElementById('careerpilot-signup')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     window.setTimeout(() => document.getElementById('jn-name')?.focus({ preventScroll: true }), 450);
   };
+  /**
+   * A section lands BELOW the sticky top bar, not under it.
+   *
+   * scrollIntoView({ block: 'start' }) put the section's top at the window's top, where the bar
+   * covered its heading. The bar's height is measured at the moment of the jump (it is taller on a
+   * phone, and the menu closes first), and the section stops just beneath it.
+   */
+  /**
+   * Opened as /careerpilot/join#faqs (the footer on other public pages links here), so land on that
+   * section — or on the signup card for #careerpilot-signup — once the page has drawn.
+   */
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    const t = window.setTimeout(() => {
+      if (id === 'careerpilot-signup') { setAuthMode('create'); scrollToSignup(); } else if (document.getElementById(id)) scrollTo(id);
+    }, 300);
+    return () => window.clearTimeout(t);
+    // Once, on arrival: later hash changes come from the page's own links, which scroll themselves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const scrollTo = (id: string) => {
     setMenuOpen(false);
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const target = document.getElementById(id);
+      if (!target) return;
+      const bar = document.querySelector('.cpx-nav') as HTMLElement | null;
+      const barBottom = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+      const top = target.getBoundingClientRect().top + window.scrollY - barBottom - 12;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }));
   };
 
   const submit = async () => {
     /* Belt and braces: the form is not rendered before the fields arrive, and not sent either. */
     if (!loaded) return;
     setTried(true);
-    if (Object.keys(errors).length) { setMsg(''); return; }
+    trackAction(JOURNEY.pressed, { meta: { errorFields: Object.keys(errors) } });
+    if (Object.keys(errors).length) { trackFailure(JOURNEY.errors, 'form has errors', { fields: Object.keys(errors) }); setMsg(''); return; }
 
     setBusy(true);
     setMsg('');
@@ -256,10 +324,12 @@ const PassportJoin: React.FC = () => {
         fields: extra.reduce((o, f) => ({ ...o, [f.key]: form[f.key] }), {}),
       });
       setToken(r.token);
+      trackAction(JOURNEY.sent);
       setDevCode(r.otp?.devCode || '');
       setStep('otp');
       setMsg(otpSendMessage(r.otp));
     } catch (e: any) {
+      trackFailure(JOURNEY.rejected, String(e?.response?.data?.message || 'Signup failed').slice(0, 140));
       setMsg(e?.response?.data?.message || 'Signup failed');
     }
     setBusy(false);
@@ -280,10 +350,14 @@ const PassportJoin: React.FC = () => {
           firstName: r.user.firstName,
           lastName: r.user.lastName,
           role: r.user.role,
+          product: 'careerpilot',
         }));
       }
+      verifiedRef.current = true;
+      trackNow(JOURNEY.verified, undefined, 'success');
       window.location.href = r.onboardingCompleted ? '/careerpilot' : '/careerpilot/setup';
     } catch (e: any) {
+      trackFailure(JOURNEY.wrongOtp, String(e?.response?.data?.message || 'Verification failed').slice(0, 140));
       setMsg(e?.response?.data?.message || 'Verification failed');
     }
     setBusy(false);
@@ -291,6 +365,7 @@ const PassportJoin: React.FC = () => {
 
   const resend = async () => {
     setResendIn(25);
+    trackAction(JOURNEY.resent);
     try {
       const r = await passportPublicApi.resend(token);
       setDevCode(r.otp?.devCode || '');
@@ -317,7 +392,7 @@ const PassportJoin: React.FC = () => {
   const NAV: [string, string][] = [
     ['How It Works', 'how-it-works'],
     ['Career Tools', 'career-tools'],
-    ['Opportunities', 'opportunities'],
+    ['Job Board', 'opportunities'],
     ['Success Stories', 'success-stories'],
     ['FAQs', 'faqs'],
   ];
@@ -436,24 +511,24 @@ const PassportJoin: React.FC = () => {
                   {/* Two columns on a wide card — the same fields in about half the height. */}
                   <div className="cpx-fields">
                   <div className="cpx-field full">
-                    <label htmlFor="jn-name">Full Name <em>*</em></label>
+                    <label htmlFor="jn-name"><LabelText text="Full Name" required /></label>
                     <div className={`cpx-input${errFor('name') ? ' bad' : ''}`}><i className={`bi ${ICON.name}`} /><input id="jn-name" value={form.name || ''} autoComplete="name" aria-invalid={!!errFor('name')} aria-describedby={errFor('name') ? 'jn-name-err' : undefined} onBlur={() => blur('name')} onChange={e => set('name', e.target.value)} placeholder="Enter your full name" /></div>
                     {errFor('name') && <div className="cpx-fe" id="jn-name-err">{errFor('name')}</div>}
                   </div>
                   <div className="cpx-field">
-                    <label htmlFor="jn-mob">Mobile Number <em>*</em></label>
+                    <label htmlFor="jn-mob"><LabelText text="Mobile Number" required /></label>
                     <div className={`cpx-input${errFor('mobile') ? ' bad' : ''}`}><i className={`bi ${ICON.mobile}`} /><input id="jn-mob" value={form.mobile || ''} inputMode="numeric" autoComplete="tel" maxLength={10} aria-invalid={!!errFor('mobile')} aria-describedby={errFor('mobile') ? 'jn-mob-err' : undefined} onBlur={() => blur('mobile')} onChange={e => set('mobile', toMobile(e.target.value))} placeholder="10-digit number" /></div>
                     {errFor('mobile') && <div className="cpx-fe" id="jn-mob-err">{errFor('mobile')}</div>}
                   </div>
                   <div className="cpx-field">
-                    <label htmlFor="jn-mail">Email Address <em>*</em></label>
+                    <label htmlFor="jn-mail"><LabelText text="Email Address" required /></label>
                     <div className={`cpx-input${errFor('email') ? ' bad' : ''}`}><i className={`bi ${ICON.email}`} /><input id="jn-mail" type="email" value={form.email || ''} autoComplete="email" aria-invalid={!!errFor('email')} aria-describedby={errFor('email') ? 'jn-mail-err' : undefined} onBlur={() => blur('email')} onChange={e => set('email', e.target.value)} placeholder="you@example.com" /></div>
                     {errFor('email') && <div className="cpx-fe" id="jn-mail-err">{errFor('email')}</div>}
                   </div>
 
                   {extra.map((f, i) => (
                     <div className={`cpx-field${extra.length % 2 === 1 && i === extra.length - 1 ? ' full' : ''}`} key={f.key}>
-                      <label htmlFor={`jn-${f.key}`}>{f.label}{f.required ? <em> *</em> : null}</label>
+                      <label htmlFor={`jn-${f.key}`}><LabelText text={f.label} required={!!f.required} /></label>
                       <div className={`cpx-input plain${errFor(f.key) ? ' bad' : ''}`}>
                         {f.type === 'select' ? (
                           <select id={`jn-${f.key}`} value={form[f.key] || ''} aria-invalid={!!errFor(f.key)} onBlur={() => blur(f.key)} onChange={e => set(f.key, e.target.value)}>
@@ -476,7 +551,7 @@ const PassportJoin: React.FC = () => {
                   </button>
                   <div className="cpx-or"><span>Already on CareerPilot?</span></div>
                   <button className="cpx-btn cpx-btn-soft cpx-login" type="button" onClick={goLogin}>Log In to Your Account</button>
-                  <div className="cpx-secure"><i className="bi bi-shield-check" /> We verify your account with a one-time WhatsApp code.</div>
+                  <p className="cpx-secure"><i className="bi bi-shield-check" aria-hidden="true" />We verify your account with a one-time WhatsApp code.</p>
                 </>
               )}
               </>
@@ -506,54 +581,67 @@ const PassportJoin: React.FC = () => {
               <h2>Your Entire Career, In One Dashboard</h2>
               <p>Know where you stand, what to improve and exactly what you should do next.</p>
             </div>
-            <div className="cpx-dash" aria-label="CareerPilot dashboard preview">
-              <aside className="cpx-dash-side">
-                <div className="cpx-dash-brand">CareerPilot</div>
-                {[['bi-grid-1x2-fill', 'Dashboard'], ['bi-signpost-split-fill', 'My Roadmap'], ['bi-fingerprint', 'Skill DNA'], ['bi-flag-fill', 'Missions'], ['bi-clipboard2-check-fill', 'Assessments'], ['bi-briefcase-fill', 'Opportunities'], ['bi-gift-fill', 'Rewards']].map(([ic, label], i) => (
-                  <div key={label} className={`cpx-dash-item${i === 0 ? ' active' : ''}`}><i className={`bi ${ic}`} />{label}</div>
-                ))}
+            {/*
+              * THE PREVIEW IS THE REAL HOME, IN MINIATURE.
+              *
+              * Same sidebar (items and icons as MemberShell), same top bar of stats, same three-part
+              * banner (Today's focus | Daily momentum | Coder score) and Today's missions — so what a
+              * visitor is shown is what a member gets. Illustrative numbers, built in HTML (no image),
+              * and it adapts like the app: icon rail on tablets, stacked on phones.
+              */}
+            <div className="cpd" role="img" aria-label="Preview of the CareerPilot member home: sidebar, today's focus, daily momentum, coder score and today's missions">
+              <aside className="cpd-side" aria-hidden="true">
+                <div className="cpd-logo"><img src={LOGO} alt="" /></div>
+                <nav>
+                  {[['house-door-fill', 'Home'], ['grid', 'My 90 Days'], ['map', 'My Roadmap'], ['code-slash', 'Practice'], ['collection', 'Coding Sets'], ['lightbulb', 'Thinking Lab'], ['chat-dots', 'Communication Lab'], ['mic-fill', 'Mock Interview'], ['file-earmark-text', 'Resume'], ['trophy-fill', 'My Progress']].map(([ic, label], i) => (
+                    <span key={label} className={`cpd-nav${i === 0 ? ' on' : ''}`}><i className={`bi bi-${ic}`} /><em>{label}</em></span>
+                  ))}
+                </nav>
+                <div className="cpd-goal"><b><i className="bi bi-bullseye" /> <em>Daily Goal</em></b><span><strong>40</strong> / 115 XP</span><i className="cpd-goal-bar"><s style={{ width: '35%' }} /></i></div>
               </aside>
-              <div className="cpx-dash-main">
-                <div className="cpx-dash-top">
-                  <div><h3>Good morning, Arjun <span aria-hidden="true">👋</span></h3><p>Keep going. You’re building something great.</p></div>
-                  <span className="cpx-pill">Career Ready: 64%</span>
-                </div>
-                <div className="cpx-dash-row">
-                  <div className="cpx-panel">
-                    <h4>Career Readiness</h4>
-                    <div className="cpx-ready">
-                      <div className="cpx-ring" style={{ ['--p' as any]: 64 }}><strong>64</strong></div>
-                      <div className="cpx-bars">
-                        {[['Problem Solving', 78], ['Technical Skills', 64], ['Communication', 58], ['Learning Agility', 72]].map(([n, v]) => (
-                          <div className="cpx-bar" key={String(n)}>
-                            <div className="cpx-bar-top"><span>{n}</span><b>{v}%</b></div>
-                            <div className="cpx-bar-track"><i style={{ width: `${v}%` }} /></div>
-                          </div>
-                        ))}
-                      </div>
+              <div className="cpd-main" aria-hidden="true">
+                <header className="cpd-top">
+                  <div className="cpd-hello"><h3>Hey Arjun!</h3><p>Let’s code, solve problems and level up your skills.</p></div>
+                  <div className="cpd-stats">
+                    <span><i className="bi bi-fire c-fire" /><b>7</b></span>
+                    <span><i className="bi bi-coin c-coin" /><b>120</b></span>
+                    <span><i className="bi bi-award-fill c-lvl" /><b>Level 4</b></span>
+                    <span><i className="bi bi-lightning-charge-fill c-xp" /><b>1,240</b><em>XP</em></span>
+                  </div>
+                </header>
+                <section className="cpd-hero">
+                  <div className="cpd-focus">
+                    <span className="cpd-eyebrow">Day 12 of 90</span>
+                    <h4>Today’s <span>focus</span></h4>
+                    <p>75 XP to today’s goal. Finish your missions to get there.</p>
+                    <div className="cpd-goalrow"><b>Today’s goal</b><span>40 / 115 XP</span></div>
+                    <i className="cpd-bar"><s style={{ width: '35%' }} /></i>
+                    <div className="cpd-btns"><span className="cpd-btn primary">Start Day 1 <i className="bi bi-arrow-right" /></span><span className="cpd-btn"><i className="bi bi-map" /> My roadmap</span></div>
+                  </div>
+                  <div className="cpd-momentum">
+                    <span className="cpd-eyebrow">Daily momentum</span>
+                    <div className="cpd-streak"><span className="ic"><i className="bi bi-fire" /></span><div><b>7 day streak</b><small>Show up today. Build consistency.</small></div></div>
+                    <ol className="cpd-steps"><li className="done"><i /><span>Start</span></li><li className="now"><i /><span>Today</span></li><li className="done"><i /><span>7 days</span></li><li><i /><span>30 days</span></li></ol>
+                    <div className="cpd-challenge"><i className="bi bi-bullseye" /><div><b>Today’s challenge</b><small>Finish all 4 tasks today (2 to go)</small></div></div>
+                  </div>
+                  <div className="cpd-score">
+                    <div className="cpd-ring" style={{ ['--p' as any]: 64 }}><div><strong>640</strong><small>/ 1000</small></div></div>
+                    <span className="cpd-eyebrow t">Coder score</span>
+                    <b>On track</b>
+                    <small>Ahead of <strong>72%</strong> of members</small>
+                  </div>
+                </section>
+                <section className="cpd-missions">
+                  <header><b><i className="bi bi-list-task" /> Today’s missions</b><span>2 of 4 done</span></header>
+                  {[['play-circle', 'Collections in Java — List, Set and Map', 'Watch · 12 min', 20, true], ['code-slash', 'Count word frequencies with a HashMap', 'Code practice · 20 min', 40, true], ['patch-question', 'Checkpoint: choosing the right collection', 'Checkpoint · 10 min', 30, false]].map(([ic, t, meta, xp, done]) => (
+                    <div key={String(t)} className={`cpd-mission${done ? ' done' : ''}`}>
+                      <span className="ic"><i className={`bi bi-${ic}`} /></span>
+                      <span className="tx"><b>{t}</b><small>{meta}</small></span>
+                      <span className="xp">+{xp} XP</span>
+                      <span className="ck">{done && <i className="bi bi-check-lg" />}</span>
                     </div>
-                  </div>
-                  <div className="cpx-panel cpx-focus">
-                    <small>Today’s Focus</small>
-                    <strong>Master Java Collections</strong>
-                    <p>Complete this guided module and assessment to improve your backend readiness.</p>
-                    <span className="cpx-focus-btn">Continue Learning <i className="bi bi-arrow-right" /></span>
-                  </div>
-                </div>
-                <div className="cpx-panel">
-                  <h4>Your Career Roadmap</h4>
-                  <div className="cpx-road">
-                    {[['Foundation', 'Build core skills', 'done'], ['Direction', 'Choose your path', 'current'], ['Practice', 'Build real skills', ''], ['Opportunities', 'Apply and grow', '']].map(([t, s, state], i, all) => (
-                      <React.Fragment key={t}>
-                        <div className={`cpx-road-step ${state}`}>
-                          <span className="cpx-road-n">{i + 1}</span>
-                          <div><b>{t}</b><small>{s}</small></div>
-                        </div>
-                        {i < all.length - 1 && <i className="bi bi-arrow-right cpx-road-arrow" aria-hidden="true" />}
-                      </React.Fragment>
-                    ))}
-                  </div>
-                </div>
+                  ))}
+                </section>
               </div>
             </div>
           </div>
@@ -668,7 +756,6 @@ const PassportJoin: React.FC = () => {
         <section className="cpx-section cpx-white" id="faqs">
           <div className="cpx-wrap">
             <div className="cpx-head">
-              <div className="cpx-eyebrow">Questions</div>
               <h2>Frequently Asked Questions</h2>
             </div>
             <div className="cpx-faq">
@@ -704,34 +791,7 @@ const PassportJoin: React.FC = () => {
         </section>
       </main>
 
-      {/* ── Footer ─────────────────────────────────────────────────── */}
-      <footer className="cpx-footer">
-        <div className="cpx-wrap cpx-footer-grid">
-          <div className="cpx-footer-brand">
-            <img src={LOGO} alt="CareerPilot by CodeBegun" />
-            <p>Career clarity, skill development and personalised progress — built for the next generation of careers.</p>
-          </div>
-          <div>
-            <h4>Product</h4>
-            <a href="#how-it-works" onClick={e => { e.preventDefault(); scrollTo('how-it-works'); }}>How It Works</a>
-            <a href="#career-tools" onClick={e => { e.preventDefault(); scrollTo('career-tools'); }}>Career Tools</a>
-            <a href="#opportunities" onClick={e => { e.preventDefault(); scrollTo('opportunities'); }}>Opportunities</a>
-            <a href="#faqs" onClick={e => { e.preventDefault(); scrollTo('faqs'); }}>FAQs</a>
-          </div>
-          <div>
-            <h4>Company</h4>
-            <a href="https://codebegun.com" target="_blank" rel="noopener noreferrer">About CodeBegun</a>
-            <a href="https://codebegun.com" target="_blank" rel="noopener noreferrer">Programs</a>
-            <a href="https://codebegun.com" target="_blank" rel="noopener noreferrer">For Colleges</a>
-          </div>
-          <div>
-            <h4>Account</h4>
-            <button type="button" className="cpx-footer-link" onClick={goLogin}>CareerPilot Login</button>
-            <button type="button" className="cpx-footer-link" onClick={scrollToSignup}>Create an Account</button>
-          </div>
-        </div>
-        <div className="cpx-wrap cpx-copy">{copyrightLine()}</div>
-      </footer>
+      <CareerPilotFooter variant="visitor" wrapClassName="cpx-wrap" actions={{ onSection: scrollTo, onLogin: goLogin, onCreateAccount: () => { setAuthMode('create'); scrollToSignup(); } }} />
     </div>
   );
 };

@@ -79,7 +79,8 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
       data: {
         ...myObj,
         exists: true,
-        completeness: myObj.profileCompletionPercentage ?? computeProfileCompleteness(myObj),
+        completeness: computeProfileCompleteness(myObj),
+        profileCompletionPercentage: computeProfileCompleteness(myObj), // stored value predates the photo rule
         missing: computeProfileMissing(myObj),
       },
     });
@@ -137,6 +138,14 @@ export const saveProfile = async (req: AuthRequest, res: Response) => {
       courseInterest: cleanEmptyStrings(parseField(req.body.courseInterest)),
       additionalInfo: cleanEmptyStrings(parseField(req.body.additionalInfo)),
     };
+    // Placement preferences (Talent Pool). Only touched when the form sends them, so an older
+    // client that does not know the field never wipes what the student or an admin set.
+    const prefsIn = req.body.placementPreferences !== undefined ? parseField(req.body.placementPreferences) : undefined;
+    const placementPreferences = prefsIn && typeof prefsIn === 'object' ? {
+      expectedRole: String(prefsIn.expectedRole || '').trim().slice(0, 120) || undefined,
+      preferredLocations: (Array.isArray(prefsIn.preferredLocations) ? prefsIn.preferredLocations : String(prefsIn.preferredLocations || '').split(','))
+        .map((x: any) => String(x).trim().slice(0, 60)).filter(Boolean).slice(0, 10),
+    } : undefined;
 
     // Validate required fields
     if (!profileData.personalInfo?.firstName || !profileData.personalInfo?.surname) {
@@ -222,6 +231,7 @@ export const saveProfile = async (req: AuthRequest, res: Response) => {
       profile.markModified('technicalBackground');
       profile.markModified('courseInterest');
       profile.markModified('additionalInfo');
+      if (placementPreferences) { (profile as any).placementPreferences = placementPreferences; profile.markModified('placementPreferences'); }
       
       await profile.save();
     } else {
@@ -230,6 +240,7 @@ export const saveProfile = async (req: AuthRequest, res: Response) => {
         userId,
         tenantId,
         ...profileData,
+        ...(placementPreferences ? { placementPreferences } : {}),
       });
       
       await profile.save();
@@ -316,7 +327,7 @@ export const getProfileByUserId = async (req: AuthRequest, res: Response) => {
     const obj = profile.toObject();
     res.json({
       success: true,
-      data: { ...obj, completeness: obj.profileCompletionPercentage ?? computeProfileCompleteness(obj), missing: computeProfileMissing(obj) },
+      data: { ...obj, completeness: computeProfileCompleteness(obj), profileCompletionPercentage: computeProfileCompleteness(obj), missing: computeProfileMissing(obj) },
     });
   } catch (error) {
     console.error('Get profile by user ID error:', error);

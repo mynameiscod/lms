@@ -248,9 +248,24 @@ const DEFAULT_TABLE_COLUMNS = [
   { key: 'source', type: 'system', label: 'Source', enabled: true, order: 4 },
   { key: 'assignedTo', type: 'system', label: 'Assigned To', enabled: true, order: 5 },
   { key: 'followUp', type: 'system', label: 'Next Follow-up', enabled: true, order: 6 },
-  { key: 'created', type: 'system', label: 'Created', enabled: true, order: 7 },
-  { key: 'actions', type: 'system', label: 'Actions', enabled: true, order: 8, width: '60px' }
+  { key: 'lastCall', type: 'system', label: 'Last call', enabled: true, order: 7 },
+  { key: 'lastContacted', type: 'system', label: 'Last contacted', enabled: true, order: 8 },
+  { key: 'age', type: 'system', label: 'Lead age', enabled: true, order: 9 },
+  { key: 'created', type: 'system', label: 'Created', enabled: true, order: 10 },
+  { key: 'actions', type: 'system', label: 'Actions', enabled: true, order: 11, width: '60px' }
 ];
+
+/** System columns added after an institute saved its own column setup are appended to it. */
+function withNewSystemColumns(saved: any[]): any[] {
+  const have = new Set(saved.map(c => c.key));
+  const missing = DEFAULT_TABLE_COLUMNS.filter(c => c.type === 'system' && !have.has(c.key));
+  if (!missing.length) return saved;
+  const actions = saved.find(c => c.key === 'actions');
+  const rest = saved.filter(c => c.key !== 'actions');
+  let order = rest.reduce((m, c) => Math.max(m, c.order ?? 0), 0);
+  const added = missing.filter(c => c.key !== 'actions').map(c => ({ ...c, order: ++order }));
+  return [...rest, ...added, ...(actions ? [{ ...(actions.toObject?.() || actions), order: ++order }] : [])];
+}
 
 // Get table columns configuration
 export const getTableColumnsConfig = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
@@ -267,8 +282,8 @@ export const getTableColumnsConfig = async (req: AuthenticatedRequest, res: Resp
     }
 
     // Return configured columns or defaults
-    const columns = config.tableColumns && config.tableColumns.length > 0 
-      ? config.tableColumns 
+    const columns = config.tableColumns && config.tableColumns.length > 0
+      ? withNewSystemColumns(config.tableColumns.map((c: any) => c.toObject?.() || c))
       : DEFAULT_TABLE_COLUMNS;
 
     res.json({ 

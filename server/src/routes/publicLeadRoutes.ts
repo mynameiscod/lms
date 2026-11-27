@@ -2,6 +2,13 @@ import express, { Request, Response, NextFunction } from 'express';
 import multer, { MulterError } from 'multer';
 import fs from 'fs';
 import path from 'path';
+import { rateLimit } from '../middleware/rateLimit';
+import { sendWebsiteOtp, verifyWebsiteOtp, submitCourseLead } from '../controllers/publicWebsiteController';
+import { getPublicNextBatch } from '../controllers/websiteBatchController';
+import {
+  getPublicPlacements, getPublicMedia, getPublicTechBattle, getPublicEvents, getPublicCourses, getPublicCourse,
+  getPublicTestimonials, getPublicTrainers, getPublicSite,
+} from '../controllers/websiteContentController';
 import { submitPublicLeadForm, getPublicFormConfig, submitWebsiteLead } from '../controllers/publicLeadController';
 import { registerForWeeklyQuizFromWebsite, getQuizByToken, startQuizSession, submitQuizByToken, quizHeartbeat } from '../controllers/publicQuizController';
 
@@ -48,6 +55,23 @@ router.post('/form/:tenantSlug', multipart, submitPublicLeadForm);
 // Simple hot-lead capture for website contact/enquiry forms (no config needed)
 // POST /api/v1/public/:tenantSlug/website-lead
 router.post('/:tenantSlug/website-lead', multipart, submitWebsiteLead);
+
+// Course landing pages (FDE): verify the phone by WhatsApp OTP, then submit the lead.
+router.post('/:tenantSlug/otp/send', rateLimit('websiteIp'), rateLimit('websiteOtpSend'), sendWebsiteOtp);
+router.post('/:tenantSlug/otp/verify', rateLimit('websiteIp'), rateLimit('websiteOtpVerify'), verifyWebsiteOtp);
+// The website's "next batch" date and seats (read-only, no personal data; cached 60 s).
+router.get('/:tenantSlug/next-batch', rateLimit('websiteRead'), getPublicNextBatch);
+// Website Content: placement numbers, companies, placed students, and their images (read-only, published only).
+router.get('/:tenantSlug/placements', rateLimit('websiteRead'), getPublicPlacements);
+router.get('/:tenantSlug/media/:file', getPublicMedia);
+router.get('/:tenantSlug/tech-battle', rateLimit('websiteRead'), getPublicTechBattle);
+router.get('/:tenantSlug/events', rateLimit('websiteRead'), getPublicEvents);
+router.get('/:tenantSlug/courses', rateLimit('websiteRead'), getPublicCourses);
+router.get('/:tenantSlug/courses/:key', rateLimit('websiteRead'), getPublicCourse);
+router.get('/:tenantSlug/testimonials', rateLimit('websiteRead'), getPublicTestimonials);
+router.get('/:tenantSlug/trainers', rateLimit('websiteRead'), getPublicTrainers);
+router.get('/:tenantSlug/site', rateLimit('websiteRead'), getPublicSite);
+router.post('/:tenantSlug/course-lead', rateLimit('websiteIp'), submitCourseLead);
 
 // Register for the current weekly/featured public quiz (called from external website)
 // POST /api/v1/public/:tenantSlug/weekly-quiz-register

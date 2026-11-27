@@ -37,8 +37,10 @@ COPY server/tsconfig.json ./
 # Install dependencies
 RUN npm install --no-audit --prefer-offline || npm install --no-audit
 
-# Copy source code and build
+# Copy source code and build. tsc outgrew Node's default heap (OOM 2026-11-16), so give it the
+# same 4 GB the client build gets.
 COPY server/src ./src
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # Verify backend build output
@@ -48,6 +50,8 @@ RUN ls -la dist/ && \
 # Final production image
 FROM node:18-alpine
 WORKDIR /app
+# ffmpeg makes the 360p-1080p versions of uploaded videos (services/videoRenditionService.ts).
+RUN apk add --no-cache ffmpeg
 
 # Copy package.json
 COPY server/package*.json ./

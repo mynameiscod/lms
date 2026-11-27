@@ -1,0 +1,54 @@
+.cpl { --navy: #051D64; --primary: #005897; --teal: #359AAD; --ink: #102A4F; --muted: #52637A; --line: #E2EAF2;
+  max-width: 1180px; margin: 0 auto; padding: 8px 4px 36px; color: var(--ink); font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.cpl * { box-sizing: border-box; }
+.cpl-hd { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.cpl-hd-ic { width: 46px; height: 46px; border-radius: 13px; background: #EAF3FD; color: var(--primary); display: grid; place-items: center; font-size: 20px; flex: 0 0 46px; }
+.cpl-hd h1 { margin: 0; font-size: 28px; font-weight: 850; color: var(--navy); letter-spacing: -.4px; }
+.cpl-hd p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+.cpl-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 16px; overflow-x: auto; }
+.cpl-tabs button { border: none; background: transparent; padding: 12px 16px; font-size: 14px; font-weight: 750; color: #2F3F56; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; display: inline-flex; gap: 7px; align-items: center; }
+.cpl-tabs button.on { color: var(--primary); border-bottom-color: var(--primary); }
+.cpl-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; box-shadow: 0 4px 18px rgba(15,46,77,.045); margin-bottom: 16px; }
+.cpl-card-hd { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; }
+.cpl-card-hd h2 { margin: 0; font-size: 18px; color: var(--navy); font-weight: 820; }
+.cpl-card-hd p { margin: 5px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.55; max-width: 760px; }
+.cpl-tag { font-size: 12px; font-weight: 750; padding: 5px 10px; border-radius: 99px; background: #FFF4E5; color: #8A5300; }
+.cpl-row { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.cpl-row-c { min-width: 240px; flex: 1; }
+.cpl-row-c b { display: block; font-size: 15px; color: var(--navy); }
+.cpl-row-c small { display: block; margin-top: 3px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.cpl-row-ctl { display: flex; gap: 8px; align-items: center; }
+.cpl-row-ctl span { font-size: 13px; font-weight: 700; color: var(--muted); }
+.cpl input[type=number] { width: 84px; border: 1px solid #C8D8E6; border-radius: 9px; padding: 8px 10px; font: inherit; font-size: 14px; color: var(--ink); }
+.cpl input[type=number]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,88,151,.12); }
+.cpl-table-wrap { overflow-x: auto; }
+.cpl-table { width: 100%; border-collapse: collapse; min-width: 560px; }
+.cpl-table th, .cpl-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.cpl-table thead th { font-size: 12.5px; font-weight: 800; color: #3F4F66; text-transform: uppercase; letter-spacing: .02em; }
+.cpl-table thead small { display: block; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--muted); }
+.cpl-table tbody th { color: var(--navy); font-weight: 800; }
+.cpl-table tr.bad input { border-color: #DC2626; }
+.cpl-muted { font-size: 13px; color: var(--muted); font-weight: 600; }
+.cpl-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.cpl-btn { border: 1px solid #C8D8E6; background: #fff; color: var(--navy); border-radius: 10px; padding: 9px 16px; font-size: 13.5px; font-weight: 780; cursor: pointer; min-height: 40px; }
+.cpl-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.cpl-btn:disabled { opacity: .55; cursor: not-allowed; }
+.cpl-err { margin-bottom: 12px; padding: 10px 14px; border-radius: 10px; background: #FDECEC; color: #B4232A; font-size: 13.5px; }
+.cpl-ok { margin-bottom: 12px; padding: 10px 14px; border-radius: 10px; background: #EAF8F1; color: #13784F; font-size: 13.5px; font-weight: 700; }
+.cpl-bad { display: block; margin-top: 8px; color: #B4232A; font-size: 12.5px; }
+@media (max-width: 640px) {
+  .cpl-hd { align-items: flex-start; }
+  .cpl-hd-ic { width: 40px; height: 40px; flex-basis: 40px; font-size: 18px; margin-top: 2px; }
+  .cpl-hd h1 { font-size: 23px; }
+  /* Each year becomes a card: the table would otherwise hide its last columns off-screen. */
+  /* The admin surface gives every table min-width: 680px on phones (CareerPilotAdmin.css); this one stacks instead. */
+  .cpl table.cpl-table { min-width: 0; }
+  .cpl-table thead { display: none; }
+  .cpl-table, .cpl-table tbody, .cpl-table tr, .cpl-table th, .cpl-table td { display: block; width: 100%; }
+  .cpl-table tr { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+  .cpl-table tbody th { border: 0; padding: 0 0 6px; font-size: 15px; }
+  .cpl-table td { border: 0; padding: 6px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .cpl-table td::before { content: attr(data-label); font-size: 13px; font-weight: 700; color: var(--muted); }
+  .cpl-card { padding: 14px; }
+  .cpl-row-ctl { width: 100%; }
+}

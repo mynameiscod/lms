@@ -9,7 +9,7 @@ const authHeader = () => {
 const h = () => ({ headers: authHeader() });
 const d = (r: any) => r.data.data;
 
-export type PracticeTask = 'communication' | 'coding_problem' | 'assignment' | 'thinking_lab';
+export type PracticeTask = 'communication' | 'coding_problem' | 'assignment' | 'thinking_lab' | 'project_task';
 export type TaskCounts = Partial<Record<PracticeTask, number>>;
 
 export interface Standing {

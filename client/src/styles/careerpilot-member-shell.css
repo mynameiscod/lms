@@ -9,8 +9,8 @@
 #root .gd .gd-logo>div{display:none!important}
 #root .gd .gd-nav{gap:4px!important;padding:4px 1px 8px!important;scrollbar-color:#31558c transparent!important}
 #root .gd .gd-nav::-webkit-scrollbar-thumb{background:#31558c!important}
-#root .gd .gd-nav-label{color:#8299bd!important;padding:15px 11px 6px!important;font-size:9.5px!important;letter-spacing:.12em!important}
-#root .gd .gd-nav-btn{color:#c7d4ea!important;background:transparent!important;border-radius:9px!important;padding:11px 12px!important;min-height:42px!important;font-size:13.2px!important;font-weight:650!important;box-shadow:none!important;transform:none!important}
+#root .gd .gd-nav-label{color:#8299bd!important;padding:15px 11px 6px!important;font-size:max(9.5px, var(--fs-floor, 0px))!important;letter-spacing:.12em!important}
+#root .gd .gd-nav-btn{color:#c7d4ea!important;background:transparent!important;border-radius:9px!important;padding:11px 12px!important;min-height:42px!important;font-size:max(13.2px, var(--fs-floor, 0px))!important;font-weight:650!important;box-shadow:none!important;transform:none!important}
 #root .gd .gd-nav-btn .ic{color:#9fb2d0!important}
 #root .gd .gd-nav-btn:hover{background:rgba(255,255,255,.08)!important;color:#fff!important;transform:none!important}
 #root .gd .gd-nav-btn:hover .ic{color:#fff!important}
@@ -35,7 +35,7 @@
 #root .gd .gd-main .pm-shell{background:transparent!important;min-height:0!important;padding:0!important}
 #root .gd .gd-topbar{background:transparent!important;border:0!important;box-shadow:none!important;margin-bottom:18px!important}
 #root .gd .gd-hello h1{color:#051d64!important}
-#root .gd .gd-hello p{color:#718096!important}
+#root .gd .gd-hello p{color:#2F3F56!important}
 #root .gd .gd-user-btn{border:1px solid #e0e6ee!important;border-radius:999px!important;background:#fff!important;box-shadow:0 4px 14px rgba(5,29,100,.05)!important}
 #root .gd .gd-pill{border:1px solid #e0e6ee!important;background:#fff!important;border-radius:12px!important;box-shadow:none!important}
 #root .gd .gd-pill.level .hex{background:linear-gradient(135deg,#051d64,#359aad)!important}
@@ -102,7 +102,7 @@
   /* The drawer's own rows: a 42px row at 13.2px type was the smallest thing a
      student had to hit repeatedly. */
   #root .gd .gd-nav-btn { min-height: 48px !important; font-size: 15px !important; padding: 12px 14px !important; }
-  #root .gd .gd-nav-label { font-size: 11px !important; }
+  #root .gd .gd-nav-label { font-size: max(11px, var(--fs-floor, 0px)) !important; }
   /* The wordmark sits under the close button; keep it clear at the larger size. */
   #root .gd-logo { padding-right: 56px; }
 }
@@ -160,13 +160,13 @@
   /* Career path: three steps that fit the card instead of a sideways scroller. */
   #root .gd .md-steps { overflow-x: visible; gap: 6px; }
   #root .gd .md-steps .md-step { min-width: 0 !important; }
-  #root .gd .md-steps .dot { width: 30px; height: 30px; font-size: 12px; }
-  #root .gd .md .md-steps .cap { font-size: 12px; }
-  #root .gd .md .md-steps .cap span { font-size: 11px; }
+  #root .gd .md-steps .dot { width: 30px; height: 30px; font-size: max(12px, var(--fs-floor, 0px)); }
+  #root .gd .md .md-steps .cap { font-size: max(12px, var(--fs-floor, 0px)); }
+  #root .gd .md .md-steps .cap span { font-size: max(11px, var(--fs-floor, 0px)); }
   /* Skill meter: the chart scales down to the card, so its labels are drawn larger to land
      at a readable size. */
-  #root .gd .md-radar .gd-radar text { font-size: 12.5px !important; }
-  #root .gd .md-radar .gd-radar text.v { font-size: 13px !important; }
+  #root .gd .md-radar .gd-radar text { font-size: max(12.5px, var(--fs-floor, 0px)) !important; }
+  #root .gd .md-radar .gd-radar text.v { font-size: max(13px, var(--fs-floor, 0px)) !important; }
 }
 
 /* The closed drawer sits just off-screen to the left, and its shadow (40px blur) still fell
@@ -203,7 +203,7 @@
   /* Communication Lab: three tiles in a 280px row broke "SESSIONS" mid-word. */
   #root .gd .clx-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
   #root .gd .clx-kpis > * { min-width: 0; padding: 12px 10px !important; }
-  #root .gd .clx-kpis :is(small, span, label) { font-size: 10.5px !important; letter-spacing: .02em !important; }
+  #root .gd .clx-kpis :is(small, span, label) { font-size: max(10.5px, var(--fs-floor, 0px)) !important; letter-spacing: .02em !important; }
 
   /* Code Playground: the toolbar was a ragged wrap of seven buttons and two fields. On a
      phone it is a tidy grid — language and file name full width, then three even columns,
@@ -237,7 +237,7 @@
      labels on a 260px line ran together ("CONTACTSUMMARYSKILLS"). Each step gets an equal
      share and its label shrinks and ellipsises inside it. */
   #root .gd [class*="-steps2"] > li { flex: 1 1 0; min-width: 0; }
-  #root .gd [class*="-steps2"] > li > span { font-size: 9px !important; letter-spacing: .02em !important; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+  #root .gd [class*="-steps2"] > li > span { font-size: max(9px, var(--fs-floor, 0px)) !important; letter-spacing: .02em !important; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
 
   /* Score cards (a ring with its copy beside it: `*-score`, `rc-score-card`): the copy was
      squeezed to a word per line. They wrap — the copy drops under the ring when it must. */
@@ -254,9 +254,10 @@
   /* Roadmap hero: the Today card is a 380px desktop panel. In a single `1fr` column it could
      still be wider than the hero, which clips — so on a phone its left edge was cut off
      ("ODAY · DAY 1", "Jnderstanding"). It now fills the hero and never exceeds it. */
-  #root .gd .fjm-hero { grid-template-columns: minmax(0, 1fr) !important; }
+  #root .gd .frm .fjm-hero { grid-template-columns: minmax(0, 1fr) !important; }
   #root .gd .fjm-hero > * { min-width: 0; }
-  #root .gd .fjm-today { width: 100% !important; max-width: 100% !important; justify-self: stretch !important; box-sizing: border-box; margin-left: 0 !important; transform: none !important; }
+  /* Stretched to the banner's width but inset like the copy above it, never touching its edges. */
+  #root .gd .frm .fjm-today { width: auto !important; max-width: none !important; justify-self: stretch !important; box-sizing: border-box; margin: 0 22px !important; transform: none !important; }
 }
 @media (max-width: 480px) {
   #root .gd .fjm-hero { padding: 20px 16px !important; }
@@ -288,7 +289,7 @@
      sideways row, no scrollbar); the strip under them moves with its own arrows (DayStrip). */
   #root .gd .fj-range { align-items: stretch; gap: 6px !important; }
   #root .gd .fj-range-jumps { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px !important; min-width: 0; width: 100%; }
-  #root .gd .fj-range-btn { white-space: nowrap; min-height: 40px !important; padding: 0 8px !important; font-size: 13px !important; }
+  #root .gd .fj-range-btn { white-space: nowrap; min-height: 40px !important; padding: 0 8px !important; font-size: max(13px, var(--fs-floor, 0px)) !important; }
 }
 @media (max-width: 640px) {
   /* Roadmap filters: "All 130 days", five ranges and "Expand all" wrapped onto four rows.
@@ -302,7 +303,7 @@
   /* Roadmap hero, stacked: the progress bar is the last line of the copy and the Today card
      the next grid row, with no row gap — so the card sat on the bar and the two read as one
      block. A clear gap, and the bar itself keeps its own breathing room. */
-  #root .gd .fjm-hero { row-gap: 20px !important; }
+  #root .gd .frm .fjm-hero { row-gap: 20px !important; }
   #root .gd .fjm-hero .fjm-hero-bar { margin-bottom: 4px; }
 }
 
@@ -338,14 +339,14 @@
   display: grid; place-items: center; font-size: 19px; line-height: 1;
 }
 #root .gd .gd-stat-ic i { display: block; line-height: 1; }
-#root .gd .s-streak .gd-stat-ic { background: #FFEFE3; color: #E8590C; }
-#root .gd .s-coins .gd-stat-ic { background: #FFF5D1; color: #B7791F; }
+#root .gd .s-streak .gd-stat-ic { background: #FFEFE3; color: #C84D0A; }
+#root .gd .s-coins .gd-stat-ic { background: #FFF5D1; color: #9D681B; }
 #root .gd .s-level .gd-stat-ic { background: #051D64; color: #FFD166; box-shadow: 0 4px 10px rgba(5, 29, 100, .2); }
 #root .gd .s-xp .gd-stat-ic { background: #E1F3F6; color: #1B7D91; }
 #root .gd .gd-stat-tx { display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.15; }
 #root .gd .gd-stat-tx b { display: block; font-size: 17px; font-weight: 800; color: #051D64; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
-#root .gd .gd-stat-tx b em { font-style: normal; font-size: 13px; font-weight: 700; color: #33475B; }
-#root .gd .gd-stat-tx small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 600; color: #52667D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+#root .gd .gd-stat-tx b em { font-style: normal; font-size: max(13px, var(--fs-floor, 0px)); font-weight: 700; color: #33475B; }
+#root .gd .gd-stat-tx small { display: block; margin-top: 2px; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 600; color: #2F3F56; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
 #root .gd .gd-stat-short { display: none; }
 #root .gd .gd-stat-bar { display: block; width: 100px; height: 6px; margin-top: 5px; border-radius: 999px; background: #E2EAF2; overflow: hidden; }
 #root .gd .gd-stat-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #051D64, #359AAD); }
@@ -353,7 +354,7 @@
 #root .gd .gd-tip {
   position: absolute; top: calc(100% + 10px); left: 50%; z-index: 60;
   width: max-content; max-width: 240px; padding: 8px 11px; border-radius: 9px;
-  background: #051D64; color: #fff; font-size: 12.5px; font-weight: 500; line-height: 1.45; white-space: normal; text-align: left;
+  background: #051D64; color: #fff; font-size: max(12.5px, var(--fs-floor, 0px)); font-weight: 500; line-height: 1.45; white-space: normal; text-align: left;
   box-shadow: 0 10px 24px rgba(5, 29, 100, .22);
   opacity: 0; visibility: hidden; transform: translate(-50%, -4px); pointer-events: none;
   transition: opacity .15s ease, transform .15s ease, visibility .15s;
@@ -381,19 +382,19 @@
 }
 #root .gd .gd-user-btn .nm-wrap { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
 #root .gd .gd-user-btn .nm { font-size: 14.5px; font-weight: 800; color: #051D64; max-width: 170px; }
-#root .gd .gd-user-btn .nm-wrap small { font-size: 12px; font-weight: 600; color: #52667D; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
-#root .gd .gd-user-btn .cr { width: 18px; height: 18px; color: #52667D; font-size: 13px; }
+#root .gd .gd-user-btn .nm-wrap small { font-size: max(12px, var(--fs-floor, 0px)); font-weight: 600; color: #2F3F56; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+#root .gd .gd-user-btn .cr { width: 18px; height: 18px; color: #2F3F56; font-size: max(13px, var(--fs-floor, 0px)); }
 /* The account menu (desktop top bar and phone bar share it). */
 #root .gd .gd-user-menu { width: 280px; padding: 6px; border-radius: 16px; border: 1px solid #E2EAF2 !important; }
 #root .gd .gd-user-menu .hd { display: flex; align-items: center; gap: 11px; padding: 10px 10px 12px; }
 #root .gd .gd-user-menu .hd .av { flex: none; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: linear-gradient(135deg, #051D64, #359AAD); color: #fff; font-weight: 800; font-size: 16px; }
 #root .gd .gd-user-menu .hd > div { min-width: 0; }
 #root .gd .gd-user-menu .hd b { color: #051D64; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#root .gd .gd-user-menu .hd span { display: block; color: #52667D; font-size: 12px; }
+#root .gd .gd-user-menu .hd span { display: block; color: #2F3F56; font-size: max(12px, var(--fs-floor, 0px)); }
 #root .gd .gd-user-menu .stats b { color: #051D64; }
-#root .gd .gd-user-menu .stats span { color: #52667D; font-size: 11.5px; }
+#root .gd .gd-user-menu .stats span { color: #2F3F56; font-size: max(11.5px, var(--fs-floor, 0px)); }
 #root .gd .gd-user-menu button { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #33475B; padding: 10px 12px; }
-#root .gd .gd-user-menu button i { width: 18px; font-size: 16px; color: #359AAD; text-align: center; }
+#root .gd .gd-user-menu button i { width: 18px; font-size: 16px; color: #2B7E8E; text-align: center; }
 #root .gd .gd-user-menu button:hover:not(:disabled) { background: #F4F8FC; color: #051D64; }
 #root .gd .gd-user-menu button.out, #root .gd .gd-user-menu button.out i { color: #C93737; }
 #root .gd .gd-user-menu button.out:hover { background: #FFF0F0; }
@@ -417,12 +418,12 @@
   #root .gd .gd-stat-ic { width: 30px; height: 30px; border-radius: 9px; font-size: 15px; }
   #root .gd .gd-stat-tx b { font-size: 15px; }
   #root .gd .gd-stat-tx small, #root .gd .gd-stat-tx b em, #root .gd .gd-stat-long { display: none; }
-  #root .gd .gd-stat-short { display: inline; font-size: 12px; font-weight: 700; color: #33475B; }
+  #root .gd .gd-stat-short { display: inline; font-size: max(12px, var(--fs-floor, 0px)); font-weight: 700; color: #33475B; }
   #root .gd .gd-stat-bar { width: 100%; min-width: 30px; height: 4px; margin-top: 3px; }
 }
 @media (max-width: 360px) {
   #root .gd .gd-stat { gap: 5px; }
-  #root .gd .gd-stat-ic { width: 26px; height: 26px; font-size: 13px; }
+  #root .gd .gd-stat-ic { width: 26px; height: 26px; font-size: max(13px, var(--fs-floor, 0px)); }
   #root .gd .gd-stat-tx b { font-size: 14px; }
 }
 
@@ -435,4 +436,332 @@
 #root .gd { min-height: calc(100vh / var(--app-zoom, 1)) !important; position: relative; }
 @media (min-width: 981px) {
   #root .gd::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 264px; background: #061e66; pointer-events: none; }
+}
+
+/* ── ONE PAGE WIDTH ─────────────────────────────────────────────────────────────────────────
+   Every CareerPilot page used to cap its own width (Thinking Lab 1240px, Interview Experiences
+   and Question Books 1280px, Practice 1100–1440px, most others 1760px — some zoomed 1.12 on
+   top), each centred with margin:auto. Under #root's zoom .75 those caps drew as cards of
+   930–1520 real pixels floating in a 1677px column at 1920, each a different width, none lined
+   up with the top bar.
+
+   Now there is one rule. The page box (.cb-member-page) is the column between the rail and the
+   right edge, minus .gd-main's own padding — the same edges as the top bar's contents — and
+   every page's own root fills it. Only on very wide screens (from ~2200 real pixels) does the
+   column stop growing, at --cp-page-max, centred, and the top bar's contents follow it.
+
+   The page roots' caps are neutralised here rather than in their own files because those
+   components are shared: ThinkingLab also renders at /thinking-lab in the LMS, ProblemBank.css
+   styles the admin problem pages, and InterviewHub/QuestionBooks have admin screens. This only
+   applies inside the member shell. `#root#root` (two ids) outranks the page files' own
+   `#root .gd .cb-member-x .root` !important caps without listing each one. */
+#root .gd { --cp-page-max: 3400px; }   /* fills the column on screens up to ~2560 real pixels (zoom .75) */
+#root .gd .cb-member-page { max-width: var(--cp-page-max); margin-left: auto; margin-right: auto; }
+#root#root .gd .cb-member-page > *,
+#root#root .gd .cb-member-page > [class*="-surface"] > *,
+#root#root .gd .cb-member-page > .pb-root > .pb-page {
+  max-width: none !important; margin-left: 0 !important; margin-right: 0 !important;
+}
+/* The member shell already gives the page its side gutter (.gd-main padding); pb-page's own
+   24px would make Practice/Coding/Interview Experiences/Question Books sit further in than the
+   rest. Keep its top/bottom rhythm. */
+#root#root .gd .cb-member-page > .pb-root > .pb-page { padding-left: 0 !important; padding-right: 0 !important; }
+@media (min-width: 981px) {
+  /* The bar bleeds across .gd-main's padding (margin -30px, padding 30px). Once the page box stops
+     at --cp-page-max and centres, push the bar's contents in by the same amount. */
+  #root .gd .gd-topbar { padding-left: max(30px, calc(30px + (100% - var(--cp-page-max)) / 2)) !important;
+                         padding-right: max(30px, calc(30px + (100% - var(--cp-page-max)) / 2)) !important; }
+}
+/* Page roots that pad themselves sideways would sit 6–28px inside everyone else's edge. */
+#root#root .gd .cb-member-page > :is(.ori, .vz-root, .plr, .cpw) { padding-left: 0 !important; padding-right: 0 !important; }
+
+/* ── Using the width, not stretching into it ─────────────────────────────────────────────────
+   Pages that now fill the column keep their inner layouts readable on a wide screen. Card grids
+   (Interview Experiences, Question Books) are auto-fill and simply gain columns. These are the
+   layouts that would otherwise stretch: */
+/* Tech News: one story per row made a 1,300px summary line. Two columns from laptop-wide up. */
+@media (min-width: 1500px) {
+  #root .gd .cb-member-news .nws-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+  #root .gd .cb-member-news .nws-card { grid-template-columns: 168px minmax(0, 1fr); }
+}
+/* Forms keep a form's width — the card lines up with the page, the fields don't run 800px. */
+#root .gd .cb-member-profile .form-step { max-width: 1480px; }
+#root .gd .cb-member-page .ih-wizard :is(.pb-field-row, .pb-textarea, .ih-modes) { max-width: 1240px; }
+
+/* ── One text size on wide screens ─────────────────────────────────────────────────────────
+   My Days, Roadmap, Progress, Mock Interview and the dashboards enlarge themselves on wide
+   screens (zoom 1.05 at 1200–1599px, 1.12 from 1600px — foundationMember.css and friends), so
+   pages built on the Problem Bank shell (Practice, Coding Sets, Interview Experiences, Question
+   Books) read 5–12% smaller next to them. Same steps here. The Thinking Lab sizes its own text
+   for the member shell (thinkingLab.css) and keeps Monaco out of a nested zoom. */
+@media (min-width: 1200px) and (max-width: 1599px) {
+  #root .gd .cb-member-page > .pb-root > .pb-page { zoom: 1.05; }
+}
+@media (min-width: 1600px) {
+  #root .gd .cb-member-page > .pb-root > .pb-page { zoom: 1.12; }
+}
+
+/* ── CodeBegun colours on the Problem Bank pages ───────────────────────────────────────────
+   Practice, Coding Sets and the problem solver are built on the Problem Bank shell, whose accent is
+   indigo (ProblemBank.css --pb-accent). Students see CodeBegun navy/teal; the admin Problem Bank keeps
+   its own look because this applies only inside the member page. */
+#root .gd .cb-member-page .pb-root {
+  --pb-accent: #051D64;
+  --pb-accent-ink: #051D64;
+  --pb-accent-soft: #E8F1FB;
+  --pb-accent-line: #C9D8E5;
+}
+
+/* ── 981–1280px (laptops, 1024/1200 windows) ─────────────────────────────────────────────────
+   The stats tray and the account chip shared one row and squeezed each other's labels into
+   "Day s…", "C…". In this range the tray shows badge + number only; each label stays in the
+   tooltip on hover/focus. */
+@media (max-width: 1280px) and (min-width: 981px) {
+  #root .gd .gd-stat-tx small { display: none; }
+  #root .gd .gd-stat { padding: 4px 10px 4px 6px; gap: 8px; }
+  #root .gd .gd-stat-bar { width: 64px; }
+}
+/* Shorter screens (a 1024×768 or 1366×768 laptop): a denser rail so every item fits without
+   scrolling the menu — at 900px tall the last seven items sat below the fold. */
+@media (min-width: 981px) and (max-height: 940px) {
+  #root .gd .gd-nav-btn { min-height: 34px !important; padding-top: 6px !important; padding-bottom: 6px !important; font-size: 13.5px !important; }
+  #root .gd .gd-logo.gd-logo-cp { min-height: 58px !important; padding: 8px 12px !important; margin-bottom: 10px !important; }
+  #root .gd .gd-logo.gd-logo-cp img { max-height: 42px !important; }
+  #root .gd .gd-goal { padding: 10px 12px !important; margin-top: 8px !important; }
+  #root .gd .gd-goal .note, #root .gd .gd-goal .cta { display: none !important; }
+}
+
+/* My 130 Days banner (three sections) stacks only on tablets and phones; from 981px it keeps its
+   three columns (foundationMember.css). The 1100px rules above are for the Roadmap banner (.frm). */
+@media (max-width: 980px) {
+  #root .gd .fjm-hero { grid-template-columns: minmax(0, 1fr) !important; row-gap: 0; }
+}
+
+/* 981–1280px: the stat labels ("Day streak", "Coins", the level title, "N to level") stay visible.
+   Room comes from the account chip instead, which shows the avatar only in this range (the name is
+   in its menu). Replaces the earlier rule that hid the labels here. */
+@media (max-width: 1280px) and (min-width: 981px) {
+  #root .gd .gd-stat-tx small { display: block; font-size: max(11.5px, var(--fs-floor, 0px)); max-width: 112px; }
+  #root .gd .gd-stat { padding: 4px 10px 4px 6px; gap: 8px; }
+  #root .gd .gd-user-btn .nm-wrap { display: none; }
+  #root .gd .gd-user-btn { padding-right: 8px; }
+}
+
+/* Phone/tablet menu above everything on the page: a sticky bar further down the page (the resume
+   actions, a day's Finish button) shared its layer and was painted on top of the open drawer. */
+@media (max-width: 980px) {
+  #root .gd .gd-side { z-index: 1200 !important; }
+  #root .gd .gd-side-backdrop, #root .gd .gd-scrim, #root .gd .gd-overlay { z-index: 1190 !important; }
+}
+
+/* ── Phones: every tab visible, nothing past the right edge ─────────────────────────────────
+   Tab bars wrap onto a second line instead of scrolling tabs off-screen (Thinking Lab, roadmap
+   day ranges, Communication Lab, Opportunities, profile steps). The day strip on My N Days keeps
+   its sideways scroll — that one is a timeline with arrows. */
+@media (max-width: 600px) {
+  #root .gd .tl-cp-tabs, #root .gd .fr-ranges, #root .gd .clx .clx-tabs, #root .gd .opp-tabs {
+    flex-wrap: wrap !important; overflow-x: visible !important; row-gap: 6px;
+  }
+  #root .gd .opp-tabs { gap: 6px 14px !important; }
+  #root .gd .tl-cp-tabs > button, #root .gd .clx .clx-tab { min-height: 38px; padding: 0 14px; }
+  #root .gd .student-profile-page .step-indicators { flex-wrap: wrap !important; overflow-x: visible !important; gap: 8px !important; justify-content: flex-start !important; }
+  #root .gd .student-profile-page .step-indicator { min-width: 0 !important; flex: 1 1 30% !important; }
+  /* My result: the overall-readiness block keeps inside the card. */
+  #root .gd .rr .rr-hero .rr-hero-score { min-width: 0; max-width: 100%; flex-wrap: wrap; }
+  #root .gd .rr .rr-hero-score-copy { min-width: 0; flex: 1 1 140px; }
+  #root .gd .rr .rr-hero-score-copy span { max-width: none; }
+}
+
+/* ── Phones, second pass ─────────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Top bar: every stat has its name under its number (it was icon + number only). */
+  #root .gd .gd-stat { flex-direction: column; justify-content: center; align-items: center; gap: 3px; padding: 6px 2px; min-height: 56px; }
+  #root .gd .gd-stat-ic { width: 26px; height: 26px; font-size: max(13px, var(--fs-floor, 0px)); border-radius: 8px; }
+  #root .gd .gd-stat-tx { align-items: center; text-align: center; }
+  #root .gd .gd-stat-tx b { font-size: 14px; }
+  #root .gd .gd-stat-tx small { display: block !important; margin-top: 1px; font-size: max(10.5px, var(--fs-floor, 0px)); font-weight: 700; max-width: 76px; color: #2F3F56; }
+  #root .gd .s-level .gd-stat-tx small, #root .gd .s-xp .gd-stat-tx small { display: none !important; }
+  #root .gd .s-level .gd-stat-tx::after { content: "Level"; display: block; font-size: max(10.5px, var(--fs-floor, 0px)); font-weight: 700; color: #2F3F56; }
+  #root .gd .s-xp .gd-stat-tx::after { content: "XP"; display: block; font-size: max(10.5px, var(--fs-floor, 0px)); font-weight: 700; color: #2F3F56; }
+  #root .gd .s-level .gd-stat-bar { display: none; }
+  #root .gd .gd-stat-short { display: none !important; }
+
+  /* Score rings centred on their card, with their text centred under them. */
+  #root .gd .md .md-hero-score, #root .gd .iv2 .iv2-hero .iv2-score, #root .gd .rr .rr-hero .rr-hero-score {
+    flex-direction: column !important; align-items: center !important; justify-content: center !important; text-align: center !important;
+  }
+  #root .gd .md .md-hero-score > *, #root .gd .iv2 .iv2-score-copy, #root .gd .rr .rr-hero-score-copy { text-align: center; align-items: center; }
+  /* The ring section was a shrink-wrapped grid item: ring off-centre, divider half the card wide. */
+  #root .gd .iv2 .iv2-hero .iv2-score { width: 100% !important; justify-self: stretch !important; min-height: 0 !important; height: auto !important; }
+  #root .gd .iv2 .iv2-hero .iv2-score > * { flex: 0 0 auto !important; }
+  /* Step labels such as COMMUNICATION were cut to "COMMUNICATIO…". */
+  #root .gd .iv2-steps2 li span { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: normal !important; word-break: normal !important; font-size: max(9.5px, var(--fs-floor, 0px)) !important; letter-spacing: 0 !important; text-align: center; }
+  #root .gd .fjm-hero .fjm-ring, #root .gd .md .md-score-ring, #root .gd .iv2 .iv2-ring, #root .gd .rr .rr-gauge { justify-self: center !important; align-self: center !important; margin-left: auto !important; margin-right: auto !important; }
+
+  /* Profile steps: a 3 × 2 grid that fits the phone (six fixed 112px steps made the page 670px wide). */
+  #root .gd .cb-member-profile .step-indicators.step-indicators { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 6px !important; padding: 12px 8px !important; overflow: visible !important; }
+  #root .gd .cb-member-profile .step-indicators .step-indicator.step-indicator { min-width: 0 !important; padding: 6px 2px !important; gap: 6px; }
+  #root .gd .cb-member-profile .step-indicators .step-indicator.step-indicator::after { display: none !important; }
+  #root .gd .cb-member-profile .step-indicators .step-number { width: 32px !important; height: 32px !important; font-size: max(13px, var(--fs-floor, 0px)) !important; }
+  #root .gd .cb-member-profile .step-indicators .step-label { font-size: max(11.5px, var(--fs-floor, 0px)) !important; text-align: center; line-height: 1.25; overflow-wrap: normal; word-break: normal; hyphens: none; }
+
+  /* Welcome day finished: trophy + text on top, the button full width below (the text was a
+     one-word-wide column squeezed beside the button). */
+  #root .gd .jdm-complete { display: grid !important; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px 14px; }
+  #root .gd .jdm-complete > button, #root .gd .jdm-complete .jd-btn { grid-column: 1 / -1; width: 100%; justify-content: center; }
+}
+
+/* The code editor's hidden typing field (Monaco's .inputarea / .ime-text-area) picked up the
+   member-wide textarea style — white, rounded, bordered, a minimum size — and showed as an empty box
+   in the editor on phones. It must stay invisible, exactly as the editor draws it. */
+#root .gd .monaco-editor textarea, #root .gd .monaco-editor textarea:focus, .monaco-editor textarea.inputarea, .monaco-editor textarea.ime-text-area {
+  background: transparent !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+  outline: none !important; padding: 0 !important; margin: 0 !important; min-width: 0 !important; min-height: 0 !important;
+  color: transparent !important; resize: none !important;
+}
+
+@media (max-width: 760px) {
+  /* Resume action bar: space between "Keep improving" and the buttons (they touched). */
+  #root .gd .rc2 .rc-sticky-actions, .rc2 .rc-sticky-actions { gap: 14px !important; }
+  #root .gd .rc2 .rc-sticky-actions > div:last-child { gap: 10px !important; }
+}
+
+@media (max-width: 640px) {
+  /* "CODER SCORE ?" centred under its ring like the lines below it. */
+  #root .gd .md .md-hero-score small, #root .gd .md .md-hero-score .md-score-label {
+    display: flex !important; justify-content: center !important; align-items: center; width: 100%; text-align: center !important;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Stat cards two to a row (Home, Role readiness, Skill DNA, My Progress, Communication Lab):
+     icon, label, number and note centred in the card, as on the score rings above them. */
+  #root .gd .md-kpis > div, #root .gd .rr-kpis > div, #root .gd .sdn-kpis > div,
+  #root .gd .gam-metric, #root .gd .clx-kpi {
+    display: flex !important; flex-direction: column !important; align-items: center !important;
+    justify-content: flex-start !important; text-align: center !important;
+  }
+  #root .gd .md-kpis > div > div, #root .gd .rr-kpis > div > div, #root .gd .sdn-kpis > div > div, #root .gd .clx-kpi > div {
+    display: flex !important; flex-direction: column !important; align-items: center !important; text-align: center !important; width: 100%; min-width: 0;
+  }
+  #root .gd .md-kpis > div > .ic, #root .gd .rr-kpis > div > .ic, #root .gd .sdn-kpis > div > .ic,
+  #root .gd .gam-metric > .gam-mi, #root .gd .clx-kpi > i { margin-left: auto !important; margin-right: auto !important; }
+  #root .gd .md-kpis > div > div > *, #root .gd .rr-kpis > div > div > *, #root .gd .sdn-kpis > div > div > *,
+  #root .gd .gam-metric > *, #root .gd .clx-kpi > div > * { text-align: center !important; }
+  /* The level bar spans the card under the centred text. */
+  #root .gd .md-kpis > div > div > [class*="bar"], #root .gd .md-kpis [class*="md-mini"],
+  #root .gd .sdn-kpis .sdn-kpi-bar { width: 100% !important; align-self: stretch !important; }
+}
+@media (max-width: 640px) {
+  /* An odd last card (My Progress: Global rank) spans the row instead of sitting half-width alone. */
+  #root .gd .gam-metric:last-child:nth-child(odd), #root .gd .md-kpis > div:last-child:nth-child(odd),
+  #root .gd .rr-kpis > div:last-child:nth-child(odd), #root .gd .sdn-kpis > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+/* Colours and sizes that depended on which page's styles loaded first (right only after a refresh),
+   pinned at a priority the shared heading/text rules cannot beat. */
+#root .gd .cp-iv-page .good-title { color: #178268 !important; }
+#root .gd .cp-iv-page .warn-title { color: #B45D20 !important; }
+#root .gd .clx .clx-card.clx-empty, #root .gd .clx .clx-empty { font-size: 15px !important; }
+#root .gd .pl .pl-help b { font-size: 15px !important; }
+
+@media (max-width: 420px) {
+  /* Skill DNA "How sure is this picture?": three narrow cards broke their labels mid-word
+     ("evidenc / e"). On small phones each is a row — number left, label beside it. */
+  #root .gd .sdn-evidence { grid-template-columns: 1fr !important; gap: 8px !important; }
+  #root .gd .sdn-evidence > div { display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; gap: 12px !important; text-align: left !important; padding: 10px 14px !important; }
+  #root .gd .sdn-evidence > div b { min-width: 34px; text-align: left !important; }
+  #root .gd .sdn-evidence > div span { text-align: left !important; margin: 0 !important; }
+
+  /* Mock Interview: the start button's label wrapped and left the play icon stranded at the edge. */
+  #root .gd .iv2 .iv2-hero .iv2-btn { justify-content: center !important; gap: 8px !important; font-size: 14.5px !important; padding-left: 14px !important; padding-right: 14px !important; text-align: center; }
+
+  /* Profile checklist chips: a two-line label stays left-aligned like the one-line ones. */
+  #root .gd .cb-member-profile .score-check { text-align: left !important; justify-content: flex-start !important; }
+
+}
+@media (max-width: 400px) {
+  /* Daily momentum: "START YOUR STREAK" wrapped one word per line beside the icon and the bars. */
+  #root .gd .md .md-streak { gap: 12px !important; padding: 12px 14px !important; }
+  #root .gd .md .md-streak-art { display: none !important; }
+  #root .gd .md .md-streak b { font-size: 15px !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ONE BUTTON STYLE FOR CAREERPILOT — the Communication Lab "Start Speaking" button.
+   Main buttons: blue gradient, white bold text, 10px corners, soft blue shadow that lifts on
+   hover. Outline buttons: the same shape in white with blue text and border. Only colour,
+   border, corners, shadow and weight are set here; each page keeps its own sizes and layout.
+   Listed by class because the pages name their buttons differently; a new page's buttons join
+   by using one of these classes or the `primary` modifier on a *-btn class.
+   ════════════════════════════════════════════════════════════════════════════ */
+#root .gd :is(button, a):is(
+  [class*="btn"].primary, [class*="-act"].primary, [class*="-cta"].primary,
+  .rq-primary, .cpp-primary, .mc-mission-primary, .sp-btn-primary, .cpx-btn-primary,
+  .fj-start:not(.ghost), .clh-start, .pl-btn.go, .skc-cta, .spc-cta, .skp-cta, .plr-cta,
+  .opp-side-cta, .opp-resume-cta, .ska-v2-start, .fjp-day-cta,
+  .iv2-btn.light, .opp2-btn.light, .fjm-btn.light, .tl-ov-start, .cps-cta,
+  .sp-btn-teal, .dl2-btn.light, .slk-btn:not(.ghost):not(.secondary),
+  .cp-iv-round-go, .gd-pwd-nudge .go, .gd-unlock-cta
+) {
+  background: linear-gradient(135deg, #1976D2, #1752D6) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 12px 26px rgba(23, 82, 214, .32) !important;
+  font-weight: 800 !important;
+  transition: transform .12s, box-shadow .12s, filter .12s;
+}
+#root .gd :is(button, a):is(
+  [class*="btn"].primary, [class*="-act"].primary, [class*="-cta"].primary,
+  .rq-primary, .cpp-primary, .mc-mission-primary, .sp-btn-primary, .cpx-btn-primary,
+  .fj-start:not(.ghost), .clh-start, .pl-btn.go, .skc-cta, .spc-cta, .skp-cta, .plr-cta,
+  .opp-side-cta, .opp-resume-cta, .ska-v2-start, .fjp-day-cta,
+  .iv2-btn.light, .opp2-btn.light, .fjm-btn.light, .tl-ov-start, .cps-cta,
+  .sp-btn-teal, .dl2-btn.light, .slk-btn:not(.ghost):not(.secondary),
+  .cp-iv-round-go, .gd-pwd-nudge .go, .gd-unlock-cta
+) :is(i, svg, span:not([class])) { color: inherit !important; }
+#root .gd :is(button, a):is(
+  [class*="btn"].primary, [class*="-act"].primary, [class*="-cta"].primary,
+  .rq-primary, .cpp-primary, .mc-mission-primary, .sp-btn-primary, .cpx-btn-primary,
+  .fj-start:not(.ghost), .clh-start, .pl-btn.go, .skc-cta, .spc-cta, .skp-cta, .plr-cta,
+  .opp-side-cta, .opp-resume-cta, .ska-v2-start, .fjp-day-cta,
+  .iv2-btn.light, .opp2-btn.light, .fjm-btn.light, .tl-ov-start, .cps-cta,
+  .sp-btn-teal, .dl2-btn.light, .slk-btn:not(.ghost):not(.secondary),
+  .cp-iv-round-go, .gd-pwd-nudge .go, .gd-unlock-cta
+):hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 16px 30px rgba(23, 82, 214, .38) !important; filter: brightness(1.04); }
+
+#root .gd :is(button, a):is(
+  .md-btn, .pm-btn, .pl-btn, .sdn-btn, .dl2-btn, .ska-btn, .plr-btn, .rr-btn, .clx-btn, .mpl-btn,
+  .rc-btn, .qb-btn, .jd-btn, .qd-btn, .ori-btn, .ivp-btn, .rwd-btn, .sci-btn, .skp-btn, .ss-btn,
+  .tdp-btn, .mv-btn, .lst-btn, .mgc-btn, .cj-btn, .fjp-btn, .fjm-act, .fj-start.ghost, .rq-ghost,
+  .iv2-btn.ghost, .opp2-btn.ghost, .pl-solve:not(.done)
+):not(.primary):not(.light):not(.go):not(.on):not(.active):not(.danger) {
+  background: #fff !important;
+  color: #1752D6 !important;
+  border: 1.5px solid #C7D8F6 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 16px rgba(23, 82, 214, .08) !important;
+  font-weight: 800 !important;
+  transition: transform .12s, box-shadow .12s, border-color .12s, background .12s;
+}
+#root .gd :is(button, a):is(
+  .md-btn, .pm-btn, .pl-btn, .sdn-btn, .dl2-btn, .ska-btn, .plr-btn, .rr-btn, .clx-btn, .mpl-btn,
+  .rc-btn, .qb-btn, .jd-btn, .qd-btn, .ori-btn, .ivp-btn, .rwd-btn, .sci-btn, .skp-btn, .ss-btn,
+  .tdp-btn, .mv-btn, .lst-btn, .mgc-btn, .cj-btn, .fjp-btn, .fjm-act, .fj-start.ghost, .rq-ghost,
+  .iv2-btn.ghost, .opp2-btn.ghost, .pl-solve:not(.done)
+):not(.primary):not(.light):not(.go):not(.on):not(.active):not(.danger):hover:not(:disabled) {
+  border-color: #1752D6 !important; background: #F3F7FF !important; transform: translateY(-1px);
+}
+#root .gd :is(button, a):is(
+  .md-btn, .pm-btn, .pl-btn, .sdn-btn, .dl2-btn, .ska-btn, .plr-btn, .rr-btn, .clx-btn, .mpl-btn,
+  .rc-btn, .qb-btn, .jd-btn, .qd-btn, .ori-btn, .ivp-btn, .rwd-btn, .sci-btn, .skp-btn, .ss-btn,
+  .tdp-btn, .mv-btn, .lst-btn, .mgc-btn, .cj-btn, .fjp-btn, .fjm-act, .fj-start.ghost, .rq-ghost,
+  .iv2-btn.ghost, .opp2-btn.ghost, .pl-solve:not(.done)
+):not(.primary):not(.light):not(.go):not(.on):not(.active):not(.danger) i { color: inherit !important; }
+#root .gd :is(button, a):disabled, #root .gd :is(button, a)[aria-disabled="true"] { transform: none !important; }
+/* Phones: a hero's two buttons stack full width instead of squeezing a long label onto three lines. */
+@media (max-width: 560px) {
+  #root .gd .iv2-actions { flex-direction: column; padding-bottom: 8px; }
+  #root .gd .iv2-actions .iv2-btn { width: 100%; flex: none; justify-content: center; }
 }

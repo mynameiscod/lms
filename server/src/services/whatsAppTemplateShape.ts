@@ -27,7 +27,7 @@ export function templateShape(t: Pick<IWhatsAppTemplate, 'body' | 'header' | 'bu
  */
 export function buildSendComponents(
   t: Pick<IWhatsAppTemplate, 'body' | 'header' | 'buttons' | 'category'>,
-  opts: { body: string[]; urlButtonParam?: string; headerImageUrl?: string },
+  opts: { body: string[]; urlButtonParam?: string; headerImageUrl?: string; headerDocumentUrl?: string; headerFileName?: string },
 ): any[] {
   const s = templateShape(t);
   const clean = (v: string) => String(v ?? '').replace(/[\r\n\t]+/g, ' ').replace(/ {2,}/g, ' ').trim();
@@ -35,6 +35,14 @@ export function buildSendComponents(
   if (s.headerFormat === 'IMAGE') {
     const link = (opts.headerImageUrl && /^https:\/\//i.test(opts.headerImageUrl)) ? opts.headerImageUrl : t.header?.imageUrl;
     if (link) comps.push({ type: 'header', parameters: [{ type: 'image', image: { link } }] });
+  }
+  if (s.headerFormat === 'DOCUMENT') {
+    // A PDF header: this send's own PDF if given, else the template's default brochure.
+    const own = !!(opts.headerDocumentUrl && /^https:\/\//i.test(opts.headerDocumentUrl));
+    const link = own ? opts.headerDocumentUrl : t.header?.documentUrl;
+    const fromLink = link ? decodeURIComponent(link.split('?')[0].split('/').pop() || '') : '';
+    const filename = clean((own ? opts.headerFileName : '') || (own ? fromLink : t.header?.fileName) || fromLink || 'document.pdf').slice(0, 120);
+    if (link) comps.push({ type: 'header', parameters: [{ type: 'document', document: { link, filename } }] });
   }
   if (s.bodyVarCount > 0) {
     comps.push({ type: 'body', parameters: opts.body.slice(0, s.bodyVarCount).map((v) => ({ type: 'text', text: clean(v) || '-' })) });

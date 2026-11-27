@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
+import { refreshLessonsInBackground } from '../services/roadmapLessonRefreshService';
 import fs from 'fs';
+import { enqueueRenditions, renditionPath, qualitiesFor, LADDER } from '../services/videoRenditionService';
 import path from 'path';
 import LearningContentLibrary from '../models/LearningContentLibrary';
 import CareerSkill from '../models/CareerSkill';
@@ -7,6 +9,7 @@ import { getAllSkills } from '../services/careerSkillService';
 import { CAREER_DIRECTIONS, DIRECTION_ALL, isDirectionKey } from '../data/careerDirectionPolicy';
 import { videoUrlProblem } from '../data/videoUrlPolicy';
 import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
+import { isContentProduct, productCondition, stageCondition, withCareerPilotPlace, CP_STAGES } from '../services/contentProductService';
 
 /* ------------------------------------------------------------------ *
  * Adaptive fields (ADAPTIVE_CURRICULUM_V1)
@@ -158,7 +161,7 @@ async function readAdaptiveFields(body: any): Promise<Record<string, any>> {
 export const listContent = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
-    const { type, topic, course, search, published, source, skill, mapped } = req.query;
+    const { type, topic, course, search, published, source, skill, mapped, product, stage } = req.query;
 
     const query: any = { tenantId };
     /**
@@ -208,7 +211,28 @@ export const listContent = async (req: Request, res: Response) => {
       });
     }
 
+    /**
+     * The LMS / CareerPilot tabs (services/contentProductService.ts). Opt-in: with no `product`
+     * the list is exactly what it was, which is what the Curriculum Builder's picker relies on.
+     * `stage` narrows the CareerPilot tab to one year or track.
+     */
+    const cp = isContentProduct(product) ? product : null;
+    if (cp) and.push(productCondition(cp));
+    if (cp === 'careerpilot' && stage) {
+      const byStage = await stageCondition(String(tenantId), String(stage));
+      if (byStage) and.push(byStage);
+    }
+
     if (and.length) query.$and = and;
+
+    if (cp === 'careerpilot') {
+      // Lean so each row can carry the unit it is taught in; the list's fields are unchanged.
+      const rows = await LearningContentLibrary.find(query)
+        .sort({ createdAt: -1 })
+        .select('-notesContent -qaItems -practiceQuestions').lean();
+      const items = await withCareerPilotPlace(String(tenantId), rows.map((r: any) => ({ ...r, id: String(r._id) })));
+      return res.json({ items, total: items.length, stages: CP_STAGES });
+    }
 
     const items = await LearningContentLibrary.find(query)
       .sort({ createdAt: -1 })
@@ -305,7 +329,10 @@ export const createContent = async (req: Request, res: Response) => {
     if (badVideo) return res.status(400).json({ message: badVideo });
 
     await item.save();
+    enqueueRenditions((item as any).videoFilePath);
     res.status(201).json(item);
+    // A lesson attached to a unit reaches the roadmaps that already have that unit.
+    if (item.isPublished) refreshLessonsInBackground(String(tenantId), [(item as any).unitCode]);
   } catch (err: any) {
     res.status(400).json({ message: err.message });
   }
@@ -368,6 +395,7 @@ export const updateContent = async (req: Request, res: Response) => {
         fs.unlink(item.videoFilePath, () => {});
       }
       item.videoFilePath = (req as any).videoFilePath;
+      enqueueRenditions(item.videoFilePath);
     }
     if ((req as any).notesFilePath) {
       if (item.notesFilePath && fs.existsSync(item.notesFilePath)) {
@@ -385,6 +413,7 @@ export const updateContent = async (req: Request, res: Response) => {
 
     await item.save();
     res.json(item);
+    refreshLessonsInBackground(String(tenantId), [(item as any).unitCode]);
   } catch (err: any) {
     res.status(400).json({ message: err.message });
   }
@@ -411,8 +440,10 @@ export const deleteContent = async (req: Request, res: Response) => {
       fs.unlink(item.notesFilePath, () => {});
     }
 
+    const unitCode = (item as any).unitCode;
     await item.deleteOne();
     res.json({ message: 'Deleted successfully' });
+    refreshLessonsInBackground(String(tenantId), [unitCode]);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
@@ -428,6 +459,7 @@ export const togglePublish = async (req: Request, res: Response) => {
     item.isPublished = !item.isPublished;
     await item.save();
     res.json({ isPublished: item.isPublished });
+    refreshLessonsInBackground(String(tenantId), [(item as any).unitCode]);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
@@ -442,7 +474,10 @@ export const streamVideo = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Video not found' });
     }
 
-    const filePath = item.videoFilePath;
+    /* ?q=720 serves that quality version when it exists (videoRenditionService); else the original. */
+    const q = Number(req.query.q);
+    const asked = (LADDER as readonly number[]).includes(q) ? renditionPath(item.videoFilePath, q) : null;
+    const filePath = asked && fs.existsSync(asked) ? asked : item.videoFilePath;
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ message: 'Video file not found on disk' });
     }
@@ -545,6 +580,19 @@ export const getSkillOptions = async (_req: Request, res: Response) => {
       depths: DEPTHS,
       directions: CAREER_DIRECTIONS.map(d => ({ key: d.key, name: d.name })),
     });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/** GET /learning-content/:id/qualities — the quality versions of an uploaded video. */
+export const videoQualities = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).user?.tenantId || (req as any).tenantId;
+    const item: any = await LearningContentLibrary.findOne({ _id: req.params.id, tenantId }).select('videoFilePath').lean();
+    if (!item?.videoFilePath || !fs.existsSync(item.videoFilePath)) return res.json({ status: 'none', sourceHeight: null, heights: [] });
+    res.setHeader('Cache-Control', 'no-cache');
+    res.json(qualitiesFor(item.videoFilePath));
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }

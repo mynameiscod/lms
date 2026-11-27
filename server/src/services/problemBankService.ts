@@ -1,9 +1,10 @@
 import mongoose from 'mongoose';
-import CodingProblem, { CodingProblemTestCase, ICodingProblem, nextProblemNumber, ProblemScope } from '../models/CodingProblem';
+import CodingProblem, { CodingProblemTestCase, ICodingProblem, nextProblemNumber, ProblemScope, PROBLEM_PRODUCTS, ProblemProduct, LEGACY_AUDIENCES, availableTo, notAssigned } from '../models/CodingProblem';
 import {
   PB_DEFAULT_MARKS, PB_LANGUAGE_KEYS, PB_TOPIC_KEYS, normalizeDifficulty, normalizeLanguage, normalizeTopic,
 } from '../config/problemBankTaxonomy';
 import { judge, JudgeProblem, generateExpectedOutputs } from './problemJudgeService';
+import { globalPracticeClause } from './contentGrantService';
 
 /**
  * Problem Bank — authoring, visibility and verification.
@@ -36,6 +37,8 @@ export interface ProblemInput {
   marks?: number;
   topics?: string[];
   tags?: string[];
+  /** Products it may be assigned in. Omitted or empty = both. */
+  audiences?: string[];
   companies?: string[];
   languages?: { language: string; starterCode?: string; headerCode?: string; footerCode?: string; solutionCode?: string }[];
   sqlSetup?: string;
@@ -134,6 +137,8 @@ export function normalizeInput(raw: ProblemInput) {
     rating: Number.isFinite(Number(raw.rating)) && Number(raw.rating) > 0 ? Math.round(Number(raw.rating)) : undefined,
     marks,
     topics, tags,
+    // Only what was sent: none ticked is a real choice ("not assigned yet"); not sent leaves it alone.
+    audiences: Array.isArray(raw.audiences) ? PROBLEM_PRODUCTS.filter((x) => (raw.audiences as string[]).includes(x)) : undefined,
     companies: cleanList(raw.companies),
     languages,
     sqlSetup: kind === 'sql' ? String(raw.sqlSetup || '') : '',
@@ -156,15 +161,21 @@ export function normalizeInput(raw: ProblemInput) {
 
 /* ── Access ───────────────────────────────────────────────────────────────────────────────── */
 
-export function visibilityFilter(a: Actor): any {
+/**
+ * What this person may see: their institute's own problems, plus the shared (global) library — all
+ * of it for a super admin, and for everyone else only the published problems the super admin has
+ * granted their institute (see contentGrantService; no grant = the whole library).
+ */
+export async function visibilityFilter(a: Actor): Promise<any> {
   const own = { scope: 'tenant', tenantId: a.tenantId };
-  const global = isSuperAdmin(a) ? { scope: 'global' } : { scope: 'global', status: 'published' };
-  return { $or: [own, global] };
+  if (isSuperAdmin(a)) return { $or: [own, { scope: 'global' }] };
+  const shared = await globalPracticeClause(a.tenantId);
+  return { $or: [own, ...(shared ? [{ ...shared, status: 'published' }] : [])] };
 }
 
 export async function loadVisible(a: Actor, id: string) {
   if (!mongoose.isValidObjectId(id)) throw new PbError('Problem not found', 404);
-  const p = await CodingProblem.findOne({ _id: id, ...visibilityFilter(a) });
+  const p = await CodingProblem.findOne({ _id: id, ...(await visibilityFilter(a)) });
   if (!p) throw new PbError('Problem not found', 404);
   return p;
 }
@@ -186,37 +197,15 @@ async function loadEditable(a: Actor, id: string) {
 /* ── Read ─────────────────────────────────────────────────────────────────────────────────── */
 
 export interface ListQuery {
-  q?: string; difficulty?: string; topic?: string; language?: string; company?: string;
+  q?: string; difficulty?: string; topic?: string; language?: string; company?: string; tag?: string; product?: string;
   scope?: 'all' | 'global' | 'tenant'; status?: string; verification?: string; source?: string;
   sort?: 'number' | 'newest' | 'updated' | 'title' | 'difficulty'; page?: number; limit?: number;
 }
 
-const LIST_FIELDS = 'scope tenantId number slug title kind difficulty rating marks topics tags companies status testCount sampleCount verification.status verification.checkedAt source updatedAt createdAt languages.language stats';
+const LIST_FIELDS = 'scope tenantId number slug title kind difficulty rating marks topics tags audiences companies status testCount sampleCount verification.status verification.checkedAt source updatedAt createdAt languages.language stats';
 
 export async function listProblems(a: Actor, q: ListQuery) {
-  const and: any[] = [visibilityFilter(a)];
-  if (q.scope === 'global') and.push({ scope: 'global' });
-  if (q.scope === 'tenant') and.push({ scope: 'tenant', tenantId: a.tenantId });
-  if (q.difficulty) and.push({ difficulty: { $in: String(q.difficulty).split(',') } });
-  if (q.topic) and.push({ topics: { $all: String(q.topic).split(',') } });
-  if (q.language) and.push({ 'languages.language': { $in: String(q.language).split(',') } });
-  if (q.company) and.push({ companies: { $in: String(q.company).split(',') } });
-  if (q.status) and.push({ status: { $in: String(q.status).split(',') } });
-  else and.push({ status: { $ne: 'archived' } });
-  if (q.verification) and.push({ 'verification.status': { $in: String(q.verification).split(',') } });
-  if (q.source) and.push({ source: q.source });
-
-  const text = String(q.q || '').trim();
-  if (text) {
-    if (/^#?\d+$/.test(text)) and.push({ number: Number(text.replace('#', '')) });
-    else {
-      // Substring match so search-as-you-type finds "fibon". At catalogue scale this moves to a
-      // search engine; the $text index is there for whole-word search from the API.
-      const rx = { $regex: text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
-      and.push({ $or: [{ title: rx }, { tags: rx }, { companies: rx }] });
-    }
-  }
-  const filter = { $and: and };
+  const filter = await listFilter(a, q);
   const limit = Math.min(Math.max(Number(q.limit) || 25, 1), 100);
   const page = Math.max(Number(q.page) || 1, 1);
   const sort: any = {
@@ -234,9 +223,82 @@ export async function listProblems(a: Actor, q: ListQuery) {
   };
 }
 
+/** The bank list's filters as a query: what the list shows is exactly what a bulk action "on all matching" reaches. */
+export async function listFilter(a: Actor, q: ListQuery) {
+  const and: any[] = [await visibilityFilter(a)];
+  if (q.scope === 'global') and.push({ scope: 'global' });
+  if (q.scope === 'tenant') and.push({ scope: 'tenant', tenantId: a.tenantId });
+  if (q.difficulty) and.push({ difficulty: { $in: String(q.difficulty).split(',') } });
+  if (q.topic) and.push({ topics: { $all: String(q.topic).split(',') } });
+  if (q.language) and.push({ 'languages.language': { $in: String(q.language).split(',') } });
+  if (q.company) and.push({ companies: { $in: String(q.company).split(',') } });
+  // Tags are free text ("DSA", "dsa"…): an exact tag, any case.
+  if (q.tag) and.push({ tags: { $regex: `^${String(q.tag).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } });
+  if (q.product === 'lms' || q.product === 'careerpilot') and.push(availableTo(q.product));
+  if (q.product === 'none') and.push(notAssigned());
+  if (q.status) and.push({ status: { $in: String(q.status).split(',') } });
+  else and.push({ status: { $ne: 'archived' } });
+  if (q.verification) and.push({ 'verification.status': { $in: String(q.verification).split(',') } });
+  if (q.source) and.push({ source: q.source });
+
+  const text = String(q.q || '').trim();
+  if (text) {
+    if (/^#?\d+$/.test(text)) and.push({ number: Number(text.replace('#', '')) });
+    else {
+      // Substring match so search-as-you-type finds "fibon". At catalogue scale this moves to a
+      // search engine; the $text index is there for whole-word search from the API.
+      const rx = { $regex: text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+      and.push({ $or: [{ title: rx }, { tags: rx }, { companies: rx }] });
+    }
+  }
+  return { $and: and };
+}
+
+/* ── Who a problem is given to, in bulk ──────────────────────────────────────────────────── */
+
+/** Most problems one "all matching" request changes; a bigger bank is done filter by filter. */
+export const MAX_BULK_AUDIENCE = 20_000;
+
+/**
+ * Give problems to a product, or take them away from it — the ticked ones (`ids`) or every problem
+ * the list's current filters match (`filter`). Only problems this person may edit change: a
+ * CodeBegun library problem is the super admin's to assign. What a problem already has is kept, so
+ * adding CareerPilot to an LMS problem makes it both. A row with no setting yet (older problems)
+ * starts from LMS only, which is how it has always been read.
+ */
+export async function bulkSetAudience(a: Actor, body: any) {
+  const product = String(body?.product || '') as ProblemProduct;
+  if (!PROBLEM_PRODUCTS.includes(product)) throw new PbError('Choose CareerPilot or LMS.');
+  const on = body?.on !== false;
+
+  let target: any;
+  if (Array.isArray(body?.ids)) {
+    const ids = [...new Set(body.ids.map(String).filter((x: string) => mongoose.Types.ObjectId.isValid(x)))];
+    if (!ids.length) throw new PbError('Select at least one problem.');
+    target = { _id: { $in: ids } };
+  } else if (body?.filter && typeof body.filter === 'object') {
+    target = await listFilter(a, body.filter as ListQuery);
+  } else throw new PbError('Select problems, or choose all that match the filters.');
+
+  const editable = isSuperAdmin(a) ? { $or: [{ scope: 'tenant', tenantId: a.tenantId }, { scope: 'global' }] } : { scope: 'tenant', tenantId: a.tenantId };
+  const where = { $and: [target, editable] };
+  const matched = await CodingProblem.countDocuments(where);
+  if (matched > MAX_BULK_AUDIENCE) throw new PbError(`That is ${matched} problems; at most ${MAX_BULK_AUDIENCE} change at once. Narrow the filters and repeat.`);
+  const skipped = (await CodingProblem.countDocuments(target)) - matched;
+
+  const current = { $ifNull: ['$audiences', LEGACY_AUDIENCES] };
+  const next = on ? { $setUnion: [current, [product]] } : { $setDifference: [current, [product]] };
+  const r = await CodingProblem.updateMany(where, [{ $set: { audiences: next, updatedBy: a.userId } }]);
+  onAudienceChange.forEach((fn) => { try { fn(); } catch { /* a cache that cannot clear expires on its own */ } });
+  return { product, on, matched, changed: r.modifiedCount, skipped };
+}
+
+/** Caches that depend on who a problem is given to (the practice library's totals) register here. */
+export const onAudienceChange: (() => void)[] = [];
+
 export async function bankStats(a: Actor) {
   const rows = await CodingProblem.aggregate([
-    { $match: { ...visibilityFilter(a), status: { $ne: 'archived' } } },
+    { $match: { ...(await visibilityFilter(a)), status: { $ne: 'archived' } } },
     { $group: {
       _id: null,
       total: { $sum: 1 },
@@ -249,7 +311,7 @@ export async function bankStats(a: Actor) {
       verified: { $sum: { $cond: [{ $eq: ['$verification.status', 'verified'] }, 1, 0] } },
     } },
   ]);
-  const companies = await CodingProblem.distinct('companies', visibilityFilter(a));
+  const companies = await CodingProblem.distinct('companies', await visibilityFilter(a));
   return { ...(rows[0] || { total: 0, easy: 0, medium: 0, hard: 0, global: 0, mine: 0, published: 0, verified: 0 }), companies: companies.filter(Boolean).sort() };
 }
 
@@ -293,6 +355,8 @@ export async function createProblem(a: Actor, raw: ProblemInput, source: ICoding
 
   const p = await CodingProblem.create({
     ...clean, scope, tenantId,
+    // New problems are given to nobody until an admin chooses (see CodingProblem: audiences).
+    audiences: clean.audiences ?? [],
     number: await nextProblemNumber(scope, tenantId),
     slug: await uniqueSlug(scope, tenantId, clean.title),
     status: wantsPublish ? 'published' : 'draft',
@@ -318,7 +382,9 @@ export async function updateProblem(a: Actor, id: string, raw: ProblemInput) {
     !== JSON.stringify(tests.map((t) => [t.input, t.expectedOutput, !!t.isSample, t.weight]));
 
   if (clean.title !== p.title) p.slug = await uniqueSlug(p.scope, p.tenantId, clean.title, p._id);
-  Object.assign(p, clean);
+  // "Available to" not sent: keep what the problem has.
+  const { audiences, ...rest } = clean;
+  Object.assign(p, rest, audiences ? { audiences } : {});
   const judgedChanged = testsChanged || judgedBefore !== JSON.stringify([p.kind, p.languages, p.sqlSetup, p.comparisonMode]);
   if (judgedChanged) {
     // Whatever was verified before no longer describes this problem.
@@ -372,7 +438,7 @@ export async function bulkSetStatus(a: Actor, ids: unknown, status: unknown) {
       changed.push({ id, title: p.title });
     } catch (e: any) {
       // Only name problems this person can see; an id from elsewhere stays an id.
-      const p: any = await CodingProblem.findOne({ _id: id, ...visibilityFilter(a) }).select('title').lean().catch(() => null);
+      const p: any = await CodingProblem.findOne({ _id: id, ...(await visibilityFilter(a)) }).select('title').lean().catch(() => null);
       failed.push({ id, title: p?.title || id, reason: e?.message || 'Could not change this problem.' });
     }
   }

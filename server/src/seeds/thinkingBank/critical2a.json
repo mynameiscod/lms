@@ -1,0 +1,1680 @@
+[
+  {
+    "seedKey": "critical-061",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "A second bus at 8 am",
+    "statement": "The transport head of a college in Vijayawada says: 'Many students who come by college bus are missing the first period. We will add a second bus on the 8 am route so that they reach on time.' Which assumption is this plan based on?",
+    "answerFormat": "choice",
+    "choices": [
+      "First period is the most important class of the day.",
+      "Students are missing first period mainly because they cannot get onto the single, crowded 8 am bus.",
+      "The college can afford to buy several new buses every year.",
+      "Students prefer coming by bus rather than by two-wheeler."
+    ],
+    "answer": "Students are missing first period mainly because they cannot get onto the single, crowded 8 am bus.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the plan: add a second 8 am bus to fix late arrival.",
+      "Sees that the plan only helps if lack of space on the 8 am bus is what makes students late.",
+      "Rejects 'first period is most important': the plan works whether or not that is true, so it is not needed."
+    ],
+    "explanation": "A second bus can only fix late arrival if students are late because the one bus is too crowded to board. If they were late for some other reason, such as oversleeping, the extra bus would change nothing. Whether first period matters more than others is not needed for the plan to work.",
+    "hints": [
+      "What problem does an extra bus actually solve?",
+      "If students were late for a different reason, would the second bus help?",
+      "The plan assumes the single bus is the cause of the lateness."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-062",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Three months free at the gym",
+    "statement": "Statement: A gym in Jaipur puts up a banner: 'Join before 31 March and get 3 months free on a yearly plan.'\n\nAssumptions:\nI. Some people will be more likely to join because of the free months.\nII. People join a gym only when they are offered something for free.\n\nWhich of the assumptions is implicit in the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only assumption I is implicit",
+      "Only assumption II is implicit",
+      "Both I and II are implicit",
+      "Neither I nor II is implicit"
+    ],
+    "answer": "Only assumption I is implicit",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Sees that any offer is made because the gym expects it to attract some members, so I is implicit.",
+      "Notices II uses 'only': the gym need not believe people never join without offers.",
+      "Concludes that only I is implicit."
+    ],
+    "explanation": "A business runs an offer because it expects the offer to pull in at least some extra people, so assumption I is implicit. Assumption II is far too strong: the gym can believe offers help without believing nobody ever joins at full price.",
+    "hints": [
+      "Why would a gym bother running an offer at all?",
+      "Look closely at the word 'only' in assumption II.",
+      "An offer assumes it helps some people decide, not that it is the only reason anyone joins."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-063",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "More CSE students placed",
+    "statement": "A placement report from an engineering college in Coimbatore says: 'This year, 180 of our 240 final-year CSE students were placed through on-campus drives. Last year, 150 of 240 were placed.' Which of the following can be inferred from the report?",
+    "answerFormat": "choice",
+    "choices": [
+      "The college's teaching has improved since last year.",
+      "Salaries offered to CSE students were higher this year.",
+      "Every CSE student who wanted a job this year got one.",
+      "30 more CSE students were placed through on-campus drives this year than last year."
+    ],
+    "answer": "30 more CSE students were placed through on-campus drives this year than last year.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Reads the numbers: 180 placed this year, 150 last year, out of the same 240.",
+      "Computes the difference: 180 - 150 = 30 more students placed.",
+      "Rejects 'teaching improved': the report gives no reason for the rise, so that is a guess, not an inference."
+    ],
+    "explanation": "The only thing the numbers directly support is the count: 180 - 150 = 30 more students placed on campus. The rise could be due to more companies visiting, a better job market or better preparation, and the report says nothing about salaries or about students who did not want jobs.",
+    "hints": [
+      "Stick to what the numbers actually say.",
+      "Which option can you check with simple subtraction?",
+      "180 - 150 = ?"
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-064",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Hackathon team sizes",
+    "statement": "In a college hackathon, every team must have at least 2 and at most 4 members. Team Byte has 3 members. Team Spark, which also entered the hackathon, has more members than Team Byte. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Team Spark has 3 or 4 members.",
+      "Team Spark has exactly 4 members.",
+      "Team Spark has 5 members.",
+      "Team Byte will lose to Team Spark."
+    ],
+    "answer": "Team Spark has exactly 4 members.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Uses the rule: any team has between 2 and 4 members.",
+      "Uses the comparison: Spark has more than Byte's 3, so Spark has at least 4.",
+      "Combines both: at least 4 and at most 4 means exactly 4; '3 or 4' fails because 3 is not more than 3."
+    ],
+    "explanation": "Team Spark has more than 3 members, so at least 4. The rules allow at most 4. So Spark must have exactly 4 members. Five members would break the rule, and nothing tells us who wins.",
+    "hints": [
+      "What is the smallest number that is more than 3?",
+      "What is the largest team size allowed?",
+      "At least 4 and at most 4 leaves only one possibility."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-065",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Library closed for stock-taking",
+    "statement": "Statement: The college library will remain closed this Saturday for stock-taking. Students may return books in the drop box at the main gate.\n\nConclusions:\nI. Students cannot borrow books from the library this Saturday.\nII. The library is closed every Saturday.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Sees that a closed library cannot issue books, so I follows directly.",
+      "Notices the closure is for one Saturday and for a stated one-time reason (stock-taking).",
+      "Rejects II: one closure does not tell us about every Saturday."
+    ],
+    "explanation": "If the library is closed this Saturday, books cannot be borrowed from it that day, so I follows. The statement talks about one Saturday and gives a special reason, so concluding that it closes every Saturday is an over-generalisation.",
+    "hints": [
+      "What can a library not do while it is closed?",
+      "Is the closure about one day or every week?",
+      "The word 'this' Saturday matters."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-066",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The Python bridge course",
+    "statement": "Statement: Of the 60 first-year students who took an optional Python bridge course, 54 passed the programming exam. Of the 200 students who did not take it, 120 passed.\n\nConclusions:\nI. The bridge course is the reason these students had a higher pass rate.\nII. The pass rate among students who took the bridge course was higher than among those who did not.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Computes the pass rates: 54/60 = 90% and 120/200 = 60%, so II follows.",
+      "Notices the course was optional, so the students who chose it may already have been more motivated or better prepared.",
+      "Rejects I: the data show a difference, not its cause."
+    ],
+    "explanation": "54 out of 60 is 90% and 120 out of 200 is 60%, so the pass rate was clearly higher for bridge-course students, and II follows. But students chose the course themselves, and keen students are likely to both join extra courses and pass exams, so the data cannot prove the course caused the difference.",
+    "hints": [
+      "Turn both results into percentages.",
+      "Who decided which students took the course?",
+      "A difference in results does not by itself show what caused it."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-067",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Metro QR ticket discount",
+    "statement": "Statement: Pune Metro has announced that passengers who buy tickets through its QR ticket app will get a 10% discount on every journey.\n\nConclusions:\nI. Paper tickets will be discontinued soon.\nII. Most metro passengers already use the QR ticket app.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Neither I nor II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes the statement only says app tickets get a 10% discount.",
+      "Rejects I: offering a discount on one method says nothing about stopping another.",
+      "Rejects II: a discount to encourage the app suggests, if anything, that not everyone uses it yet; the statement gives no usage figures."
+    ],
+    "explanation": "The announcement only gives a discount for app tickets. It does not say paper tickets will end, so I does not follow. It also gives no figures about how many people use the app, so II does not follow either.",
+    "hints": [
+      "What exactly did the metro announce?",
+      "Does a discount on one ticket type mean the other is being removed?",
+      "Neither conclusion is stated or forced by the announcement."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-068",
+    "type": "critical",
+    "subCategory": "Course of action",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "The roadside stall",
+    "statement": "Statement: Several first-year students in a hostel have fallen ill after eating at a roadside stall outside the college gate. The stall cooks and stores food in unhygienic conditions.\n\nCourses of action:\nI. The hostel should inform the local food-safety authority and ask for the stall to be inspected.\nII. The college should ban all students from leaving the campus.\n\nWhich of the courses of action should be followed?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only course of action I follows",
+      "Only course of action II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only course of action I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the problem: one unhygienic stall is making students ill.",
+      "Sees that I targets that cause through the proper authority, so it is practical and follows.",
+      "Rejects II: banning everyone from leaving campus is extreme and does not fix the stall."
+    ],
+    "explanation": "The problem is one specific stall. Asking the food-safety authority to inspect it deals with the cause in the right way, so I follows. Stopping all students from leaving campus is out of proportion and leaves the stall unchanged for everyone else.",
+    "hints": [
+      "What is the actual cause of the illness?",
+      "Which action deals with that cause directly?",
+      "A good course of action is practical and not out of proportion."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-069",
+    "type": "critical",
+    "subCategory": "Course of action",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Fee portal crash",
+    "statement": "A college's online fee portal crashed on the last day of fee payment, and several hundred students could not pay. What is the best course of action for the college?",
+    "answerFormat": "choice",
+    "choices": [
+      "Charge a late fee to every student who did not pay by the deadline.",
+      "Stop online payments for good and accept only cash at the counter.",
+      "Fix the portal, extend the deadline by a few days and inform all students of the new date.",
+      "Cancel the admission of students who did not pay on time."
+    ],
+    "answer": "Fix the portal, extend the deadline by a few days and inform all students of the new date.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes the students could not pay because of the college's own system failure, not their fault.",
+      "Chooses fixing the portal and extending the deadline, which solves the problem fairly.",
+      "Rejects the late fee: it punishes students for a failure they did not cause."
+    ],
+    "explanation": "The students missed the deadline because the college's portal failed, so penalising them is unfair. Fixing the portal, extending the deadline and telling everyone the new date solves the actual problem. Dropping online payment altogether over one crash is an over-reaction.",
+    "hints": [
+      "Whose fault is it that students could not pay?",
+      "Which option fixes the problem without punishing anyone unfairly?",
+      "Give students a fair chance to pay once the portal works again."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-070",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "easy",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Switch off your monitor",
+    "statement": "Statement: A notice in a Gurugram office reads: 'Please switch off your monitor before leaving for the day to save electricity.'\n\nAssumptions:\nI. A monitor left on overnight uses electricity.\nII. Employees read notices put up in the office.\n\nWhich of the assumptions is implicit in the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only assumption I is implicit",
+      "Only assumption II is implicit",
+      "Both I and II are implicit",
+      "Neither I nor II is implicit"
+    ],
+    "answer": "Both I and II are implicit",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Sees that the reason given, saving electricity, only makes sense if monitors left on use power, so I is implicit.",
+      "Sees that putting up a notice only makes sense if people are expected to read it, so II is implicit.",
+      "Concludes both are implicit."
+    ],
+    "explanation": "The notice says switching off saves electricity, which assumes monitors left on consume power. Anyone who puts up a notice expects people to read it; otherwise there is no point writing it. So both assumptions are implicit.",
+    "hints": [
+      "Why would switching off save electricity?",
+      "Why would someone put up a notice at all?",
+      "Each assumption is needed for the notice to make sense."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-071",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Mock interviews move online",
+    "statement": "The placement cell of a college in Mysuru announces: 'From next month, all mock interviews will be held online on video calls in the evenings, so that many more students can attend.' Which assumption is the placement cell making?",
+    "answerFormat": "choice",
+    "choices": [
+      "Online mock interviews are exactly as effective as face-to-face ones.",
+      "Companies now hold all their interviews online.",
+      "Most students have a device and an internet connection good enough to join a video call in the evening.",
+      "Faculty members prefer to take interviews from home."
+    ],
+    "answer": "Most students have a device and an internet connection good enough to join a video call in the evening.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the goal: more students attending.",
+      "Sees that more students can only attend online if they have a device and a usable connection at that time.",
+      "Rejects 'exactly as effective': the claim is about attendance, not quality, and 'exactly' is too strong to be needed."
+    ],
+    "explanation": "The cell expects attendance to rise because students will not have to be physically present. That only works if most students can actually join a video call in the evening. Whether online interviews are exactly as good as face-to-face ones is a separate question; the plan's claim is only about how many can attend.",
+    "hints": [
+      "What is the plan trying to increase?",
+      "What would stop a student from attending an online session?",
+      "Separate 'more students attend' from 'the interviews are equally good'."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-072",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Cricket and badminton class",
+    "statement": "In a class of 40 students, 25 play cricket and 20 play badminton. Every student in the class plays at least one of the two games. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Exactly 5 students play both games.",
+      "15 students play only cricket.",
+      "More students play only badminton than only cricket.",
+      "Some students play neither game."
+    ],
+    "answer": "Exactly 5 students play both games.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Adds the two groups: 25 + 20 = 45, which is 5 more than the 40 students.",
+      "Since everyone plays at least one game, the extra 5 must be students counted twice, so exactly 5 play both.",
+      "Checks the others: only cricket = 25 - 5 = 20 (not 15), only badminton = 20 - 5 = 15, so badminton-only is fewer, and 'neither' is ruled out by the statement."
+    ],
+    "explanation": "Counting cricket and badminton players gives 45, but there are only 40 students, all of whom play something. The 5 extra counts are students who play both. So only cricket = 20 and only badminton = 15, and no one plays neither. Check: 20 + 15 + 5 = 40.",
+    "hints": [
+      "Add the two numbers and compare with the class size.",
+      "Who gets counted twice when you add them?",
+      "45 - 40 = 5 students are in both groups."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-073",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Chat versus email tickets",
+    "statement": "A Kochi startup's support team finds that tickets raised through in-app chat are resolved in 2 hours on average, while tickets raised by email take 9 hours. Chat is available only from 9 am to 6 pm. Email tickets can be raised at any time, and those sent at night wait until the team starts work the next morning. Which of the following is best supported by this information?",
+    "answerFormat": "choice",
+    "choices": [
+      "Chat agents work faster than email agents.",
+      "Part of the gap may be because many email tickets sit overnight before anyone can look at them.",
+      "The company should shut down email support.",
+      "Customers prefer chat to email."
+    ],
+    "answer": "Part of the gap may be because many email tickets sit overnight before anyone can look at them.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes the key detail: night-time email tickets wait until morning, while chat tickets are raised only during working hours.",
+      "Infers that some of the 9-hour average is waiting time, not slow work, so the second option is supported.",
+      "Rejects 'chat agents work faster': the passage gives a clear reason for the gap that has nothing to do with agent speed."
+    ],
+    "explanation": "Chat tickets only arrive while the team is working, but email tickets sent at night wait many hours before work even starts. That waiting time alone can push up the email average, so the gap does not show that one set of agents is faster. Nothing is said about customer preferences, and shutting email is a recommendation, not an inference.",
+    "hints": [
+      "When can each type of ticket be raised?",
+      "What happens to an email sent at 11 pm?",
+      "Waiting overnight adds hours without anyone working slowly."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-074",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Attendance and the exam",
+    "statement": "Statement: No student with attendance below 75% will be allowed to write the semester exam. Arjun has been allowed to write the semester exam.\n\nConclusions:\nI. Arjun's attendance is 75% or more.\nII. Every student with attendance of 75% or more will be allowed to write the exam.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Rewrites the rule: below 75% means not allowed.",
+      "Applies it backwards: Arjun is allowed, so he cannot be below 75%; I follows.",
+      "Rejects II: the rule only blocks low attendance; students with 75% or more could still be stopped for other reasons such as unpaid fees."
+    ],
+    "explanation": "The rule says anyone below 75% is stopped. Arjun was not stopped, so his attendance cannot be below 75%, and I follows. The rule does not promise that everyone with good attendance gets in; there may be other conditions, so II does not follow.",
+    "hints": [
+      "What happens to everyone below 75%?",
+      "Arjun was allowed in. Could he be below 75%?",
+      "The rule gives a reason to stop students, not a guarantee to let everyone else in."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-075",
+    "type": "critical",
+    "subCategory": "Course of action",
+    "difficulty": "medium",
+    "years": [
+      "foundation",
+      "build"
+    ],
+    "title": "Skipping breakfast",
+    "statement": "Statement: A survey at a Bengaluru college finds that 40% of first-year hostel students skip breakfast. Most of them say the mess opens at 8:15 am and the first class starts at 8:30 am, which leaves too little time to eat and walk to class.\n\nCourses of action:\nI. The mess should open earlier, for example at 7:30 am.\nII. The college should run an awareness campaign on why breakfast is important.\n\nWhich of the courses of action should be followed?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only course of action I follows",
+      "Only course of action II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only course of action I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the stated cause: a 15-minute gap between the mess opening and the first class.",
+      "Sees that opening earlier directly removes that cause, so I follows.",
+      "Rejects II: students skip because of time, not because they do not know breakfast matters, so a campaign does not address the cause."
+    ],
+    "explanation": "The survey gives the reason clearly: the mess opens too close to the first class. Opening at 7:30 am removes that problem, so I follows. An awareness campaign sounds helpful, but the students are not skipping out of ignorance; even fully convinced students would still have no time to eat.",
+    "hints": [
+      "Why do the students say they skip breakfast?",
+      "Which action changes that reason?",
+      "Would more awareness give students more time?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-076",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Timesheets by Friday",
+    "statement": "Statement: A manager tells her team: 'Submit your timesheets by Friday 5 pm so that salaries can be processed on time.'\n\nAssumptions:\nI. Employees dislike filling in timesheets.\nII. Salary processing depends on the timesheets being received.\n\nWhich of the assumptions is implicit in the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only assumption I is implicit",
+      "Only assumption II is implicit",
+      "Both I and II are implicit",
+      "Neither I nor II is implicit"
+    ],
+    "answer": "Only assumption II is implicit",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Sees that the reason given links timesheets to salary processing, so II is implicit.",
+      "Notes that nothing in the instruction depends on how employees feel about timesheets.",
+      "Concludes only II is implicit."
+    ],
+    "explanation": "The manager asks for timesheets so that salaries are processed on time, which only makes sense if processing needs those timesheets. Whether employees like timesheets is irrelevant to the instruction, so I is not implicit.",
+    "hints": [
+      "What reason does the manager give?",
+      "Does the instruction need any belief about employees' feelings?",
+      "Look for the link the manager draws between two things."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-077",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "No debit SMS last month",
+    "statement": "Ritu's bank sends her an SMS for every single debit of more than Rs 5,000 from her account. Assume the SMS service never fails. Last month, Ritu received no debit SMS from the bank. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Ritu made no debits at all last month.",
+      "Ritu's total spending last month was under Rs 5,000.",
+      "Ritu did not use her debit card last month.",
+      "No single debit from Ritu's account last month was more than Rs 5,000."
+    ],
+    "answer": "No single debit from Ritu's account last month was more than Rs 5,000.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Uses the rule: every debit above Rs 5,000 triggers an SMS.",
+      "No SMS means no debit above Rs 5,000 happened, so the last option must be true.",
+      "Rejects 'total under Rs 5,000': many small debits of, say, Rs 2,000 each could add up to much more without any SMS."
+    ],
+    "explanation": "Since every debit over Rs 5,000 produces an SMS and the service never fails, getting no SMS means no single debit crossed Rs 5,000. Ritu could still have made many smaller debits that add up to well over Rs 5,000, so nothing follows about her total, and she may still have used her card.",
+    "hints": [
+      "What exactly triggers an SMS?",
+      "Could Ritu spend Rs 20,000 in a month without getting any SMS?",
+      "The rule is about each single debit, not the total."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-078",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Rice pack prices",
+    "statement": "Statement: In one year, the price of a 1 kg pack of a popular rice brand rose from Rs 80 to Rs 100, while its 5 kg pack rose from Rs 380 to Rs 450.\n\nConclusions:\nI. The 1 kg pack's price rose by a larger percentage than the 5 kg pack's.\nII. In both years, one 5 kg pack cost less than five 1 kg packs.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Both I and II follow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Computes the rises: 1 kg went up 20/80 = 25%; 5 kg went up 70/380, about 18%; so I follows.",
+      "Checks II for last year: five 1 kg packs = Rs 400 > Rs 380.",
+      "Checks II for this year: five 1 kg packs = Rs 500 > Rs 450; both hold, so both follow."
+    ],
+    "explanation": "The 1 kg pack rose by Rs 20 on Rs 80, which is 25%, while the 5 kg pack rose by Rs 70 on Rs 380, about 18%, so I follows. Five 1 kg packs cost Rs 400 last year and Rs 500 this year, both more than the 5 kg pack's Rs 380 and Rs 450, so II follows too.",
+    "hints": [
+      "Find each rise as a fraction of the old price.",
+      "Multiply the 1 kg price by 5 for each year.",
+      "Compare Rs 400 with Rs 380 and Rs 500 with Rs 450."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-079",
+    "type": "critical",
+    "subCategory": "Course of action",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Riders cannot find addresses",
+    "statement": "Statement: A delivery startup notices that many orders in one part of Lucknow arrive late because riders cannot find the addresses in a newly built housing colony.\n\nCourses of action:\nI. The startup should stop delivering to that colony.\nII. The app should ask customers in that area to add a landmark or drop a map pin when they order.\n\nWhich of the courses of action should be followed?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only course of action I follows",
+      "Only course of action II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only course of action II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the cause: riders cannot locate addresses in the new colony.",
+      "Sees that landmarks or a map pin solve exactly that problem, so II follows.",
+      "Rejects I: refusing to deliver loses customers instead of fixing the cause."
+    ],
+    "explanation": "Late deliveries happen because addresses are hard to find. Asking for a landmark or map pin gives riders what they are missing, so II follows. Simply stopping deliveries throws away customers to avoid a problem that has an easy fix.",
+    "hints": [
+      "Why are the orders late?",
+      "Which action gives riders the information they lack?",
+      "Avoiding a problem is not the same as solving it."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-080",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "easy",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Free Wi-Fi at the café",
+    "statement": "A café near a college in Kolkata starts offering free Wi-Fi, hoping to attract more students in the afternoons. Which assumption is the café owner making?",
+    "answerFormat": "choice",
+    "choices": [
+      "No other café nearby offers anything for free.",
+      "Some students would choose a café partly because it has free Wi-Fi.",
+      "Students will spend more per visit than other customers do.",
+      "Wi-Fi costs the café almost nothing."
+    ],
+    "answer": "Some students would choose a café partly because it has free Wi-Fi.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the goal: more student visitors through free Wi-Fi.",
+      "Sees that the plan only works if free Wi-Fi matters to at least some students when choosing a café.",
+      "Rejects 'no other café offers anything free': the plan could still attract students even if competitors have other offers."
+    ],
+    "explanation": "Free Wi-Fi will only bring in more students if some students care about it when deciding where to sit. That is the assumption. The café does not need competitors to offer nothing; it only needs its Wi-Fi to tip some students its way.",
+    "hints": [
+      "What does the owner expect students to do?",
+      "Why would free Wi-Fi change a student's choice?",
+      "The plan needs Wi-Fi to matter to at least some students."
+    ],
+    "estimatedMinutes": 2
+  },
+  {
+    "seedKey": "critical-081",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Cloud training for freshers",
+    "statement": "Statement: The HR head of a Chennai IT firm says: 'From this year, all freshers will go through a four-week cloud basics programme before being assigned to client projects.'\n\nAssumptions:\nI. Many freshers do not already have enough cloud knowledge for project work.\nII. Freshers who finish the programme will never need any further training.\n\nWhich of the assumptions is implicit in the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only assumption I is implicit",
+      "Only assumption II is implicit",
+      "Both I and II are implicit",
+      "Neither I nor II is implicit"
+    ],
+    "answer": "Only assumption I is implicit",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Asks why a firm would add training before projects: it believes many freshers lack the skill, so I is implicit.",
+      "Notes II uses 'never': a four-week basics course does not require believing no more training will ever be needed.",
+      "Concludes only I is implicit."
+    ],
+    "explanation": "A company adds a basics programme because it believes many freshers would otherwise not be ready for cloud work, so I is implicit. II is far too strong: calling it a 'basics' programme suggests the opposite, that more learning will come later.",
+    "hints": [
+      "Why would a company train people before giving them projects?",
+      "Look at the word 'never' in II.",
+      "A 'basics' programme does not claim to be the last training anyone needs."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-082",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Twice as many dustbins",
+    "statement": "A municipal corporation in Nagpur plans to reduce garbage on its main roads by placing twice as many dustbins along them. Which assumption is the plan based on?",
+    "answerFormat": "choice",
+    "choices": [
+      "Doubling the dustbins will remove all garbage from the roads.",
+      "Most garbage on the main roads is dumped by shops, not by passers-by.",
+      "Some people throw garbage on the road because there is no dustbin close by.",
+      "The corporation has enough money to hire more sweepers."
+    ],
+    "answer": "Some people throw garbage on the road because there is no dustbin close by.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies how the plan is supposed to work: more bins should mean less littering.",
+      "Sees this only works if some littering happens because bins are not close enough, so that option is the assumption.",
+      "Rejects 'remove all garbage': the plan aims to reduce garbage, so it does not need to eliminate it."
+    ],
+    "explanation": "Adding bins can only reduce litter if at least some people litter because no bin is handy. The plan only claims to reduce garbage, not wipe it out, so 'remove all garbage' is far stronger than needed. The shop option would actually weaken the plan, and sweepers are a different solution.",
+    "hints": [
+      "How could more dustbins lead to less garbage on roads?",
+      "Does the plan claim to end garbage completely?",
+      "The plan assumes lack of nearby bins causes some littering."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-083",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Feature X is not released",
+    "statement": "At a software startup, a feature is released to all users only if it has passed both code review and the full QA test suite. Feature X has passed code review but has not been released to all users. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Feature X failed the QA test suite.",
+      "Feature X will never be released.",
+      "Passing code review alone was not enough for Feature X to be released to all users.",
+      "Feature X passed the QA test suite."
+    ],
+    "answer": "Passing code review alone was not enough for Feature X to be released to all users.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Reads 'only if' as a set of requirements: code review and QA are both needed, but meeting them does not force a release.",
+      "Concludes that code review alone can never be enough, since QA is also required; the third option must be true.",
+      "Rejects 'failed QA': Feature X may have passed QA and still be waiting for a release date, so failure is possible but not certain."
+    ],
+    "explanation": "The rule lists conditions that must be met before release; it does not say a feature is released as soon as they are met. Since QA is also required, passing code review alone is never enough, so the third option must be true. Feature X might have failed QA, might not have been tested yet, or might have passed and be scheduled for later, so neither 'failed' nor 'passed' must be true.",
+    "hints": [
+      "Does 'only if' mean meeting the conditions guarantees a release?",
+      "Could Feature X have passed QA and still not be released yet?",
+      "Code review is one of two requirements, so it can never be enough on its own."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-084",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Coding club and internships",
+    "statement": "Every member of a college coding club has solved at least 100 problems on the practice portal. Some members of the coding club are first-year students. No first-year student at the college has done an internship. Which of these must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "No member of the coding club has done an internship.",
+      "Every first-year student has solved at least 100 problems.",
+      "Some students who have solved at least 100 problems have not done an internship.",
+      "Some students who have done internships are not in the coding club."
+    ],
+    "answer": "Some students who have solved at least 100 problems have not done an internship.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Takes the first-year club members: they have solved 100+ problems (they are club members).",
+      "The same students have done no internship (they are first-years), so some 100+ solvers have no internship.",
+      "Rejects 'no club member has done an internship': only the first-year members are covered; senior members may have."
+    ],
+    "explanation": "The first-year members of the club have solved at least 100 problems because every member has, and they have no internship because no first-year has. So some students with 100+ problems have not done an internship. Senior club members might have done internships, and we know nothing about first-years outside the club or about students outside the club.",
+    "hints": [
+      "Focus on the students who are both club members and first-years.",
+      "What do you know about these students from each sentence?",
+      "Those students have 100+ problems and no internship."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-085",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Free delivery above Rs 199",
+    "statement": "A food-delivery app in Ahmedabad offered free delivery on orders above Rs 199 for one week. That week, total orders rose by 10%. Orders worth Rs 150 to Rs 199 fell sharply, while orders worth Rs 200 to Rs 250 rose sharply. Restaurant menus and prices did not change. Which of the following is best supported?",
+    "answerFormat": "choice",
+    "choices": [
+      "The app lost money during the offer week.",
+      "Many customers added an item to push their order just above Rs 199 to get free delivery.",
+      "Customers have permanently stopped ordering cheaper meals.",
+      "The 10% rise in orders came entirely from new customers."
+    ],
+    "answer": "Many customers added an item to push their order just above Rs 199 to get free delivery.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notices the shift: orders just below Rs 199 fell while those just above rose, with prices unchanged.",
+      "Infers that customers topped up their orders to cross the free-delivery line.",
+      "Rejects 'the app lost money': the passage gives no cost or profit data, so that cannot be inferred."
+    ],
+    "explanation": "With menus and prices fixed, the drop just below Rs 199 and the jump just above it point strongly to customers adding a little more to cross the free-delivery line. The passage has no profit figures, says nothing about what happens after the offer, and gives no split between new and old customers.",
+    "hints": [
+      "Look at where the orders moved from and to.",
+      "Why would an order of Rs 180 become an order of Rs 210?",
+      "Crossing Rs 199 was worth it for free delivery."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-086",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "SSD laptops in the lab",
+    "statement": "Statement: Some of the laptops in the computer lab have SSDs. Every laptop that has an SSD boots in under 20 seconds.\n\nConclusions:\nI. Laptops in the lab that do not have SSDs take more than 20 seconds to boot.\nII. Some laptops in the lab boot in under 20 seconds.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Combines the two sentences: the lab's SSD laptops boot in under 20 seconds, so some lab laptops do; II follows.",
+      "Notes the second sentence only describes laptops with SSDs.",
+      "Rejects I: the statement says nothing about laptops without SSDs; they might also boot quickly."
+    ],
+    "explanation": "The lab has some SSD laptops, and every SSD laptop boots in under 20 seconds, so some lab laptops boot in under 20 seconds and II follows. The statement never describes laptops without SSDs, so concluding they are slow is reading in the reverse of the rule.",
+    "hints": [
+      "Which laptops does the second sentence talk about?",
+      "Can you combine 'some lab laptops have SSDs' with the boot rule?",
+      "A rule about SSD laptops tells you nothing about the others."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-087",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Rent and fresher salaries",
+    "statement": "Statement: Last year, the average monthly rent of a 1BHK flat in Bengaluru rose by 18%, while the average starting salary of software freshers in the city rose by 6%.\n\nConclusions:\nI. For a fresher on the average starting salary renting an average 1BHK, rent now takes up a larger share of salary than a year ago.\nII. Fewer freshers will move to Bengaluru this year.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Writes the share as rent divided by salary.",
+      "Sees the top grows by 18% and the bottom by 6%, so the share is multiplied by 1.18/1.06, which is more than 1; I follows.",
+      "Rejects II: it predicts future behaviour that depends on many other things, such as job offers."
+    ],
+    "explanation": "Rent's share of salary is rent divided by salary. If rent grows 18% and salary only 6%, the share becomes 1.18/1.06, about 1.11 times as large, so I follows. Whether fewer freshers move depends on job opportunities and other factors the statement does not cover, so II does not follow.",
+    "hints": [
+      "Think of rent as a fraction of salary.",
+      "What happens to a fraction when the top grows faster than the bottom?",
+      "1.18 divided by 1.06 is more than 1."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-088",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Revenue up, profit down",
+    "statement": "Statement: A company's annual report says that its revenue grew from Rs 50 crore to Rs 60 crore this year, while its profit fell from Rs 8 crore to Rs 6 crore.\n\nConclusions:\nI. The company will make a loss next year.\nII. The company's total costs rose by more rupees than its revenue did.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Uses cost = revenue - profit: last year 50 - 8 = Rs 42 crore, this year 60 - 6 = Rs 54 crore.",
+      "Compares rises: costs rose by Rs 12 crore, revenue by Rs 10 crore, so II follows.",
+      "Rejects I: one year of falling profit does not prove a loss next year."
+    ],
+    "explanation": "Costs are revenue minus profit: Rs 42 crore last year and Rs 54 crore this year, a rise of Rs 12 crore, while revenue rose only Rs 10 crore, so II follows. The company is still profitable, and a single year's trend cannot tell us it will make a loss next year.",
+    "hints": [
+      "How can you work out costs from revenue and profit?",
+      "Find the costs for both years.",
+      "Compare a Rs 12 crore rise with a Rs 10 crore rise."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-089",
+    "type": "critical",
+    "subCategory": "Course of action",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Fifteen-field sign-up form",
+    "statement": "Statement: A Hyderabad startup sees that many people uninstall its app within a week. In reviews, users complain that the sign-up form asks for 15 details before they can even try the app.\n\nCourses of action:\nI. The startup should spend more on ads to bring in new users.\nII. The startup should cut the sign-up form to the few details needed to start, and ask for the rest later.\n\nWhich of the courses of action should be followed?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only course of action I follows",
+      "Only course of action II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only course of action II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the stated reason for uninstalls: a long sign-up form before trying the app.",
+      "Sees that shortening the form removes that reason, so II follows.",
+      "Rejects I: more ads bring more people to the same bad form, so they would leave too."
+    ],
+    "explanation": "Users say they leave because of the long sign-up form, so shortening it fixes the cause and II follows. Spending more on ads only sends more people into the same problem; it does not address why they uninstall.",
+    "hints": [
+      "What do users say makes them leave?",
+      "Would new users from ads face the same problem?",
+      "Fix the reason people leave before bringing in more people."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-090",
+    "type": "critical",
+    "subCategory": "Course of action",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Examiner falls ill",
+    "statement": "A college's final-year project demo day is tomorrow, with 60 students ready to present. The external examiner appointed by the university has fallen ill and cannot come. What is the best course of action for the department?",
+    "answerFormat": "choice",
+    "choices": [
+      "Postpone demo day indefinitely until the same examiner recovers.",
+      "Let the students grade each other's projects to save time.",
+      "Hold the demo with internal faculty only and do not inform the university.",
+      "Ask the university at once for a substitute examiner, and move demo day by a short, fixed time only if no substitute can come."
+    ],
+    "answer": "Ask the university at once for a substitute examiner, and move demo day by a short, fixed time only if no substitute can come.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that the evaluation must stay valid, which needs a properly appointed examiner.",
+      "Chooses requesting a substitute quickly, with a short fixed delay as the fallback, which keeps both validity and the schedule.",
+      "Rejects holding it secretly with internal faculty: the results may not be valid and hiding it breaks the rules."
+    ],
+    "explanation": "The department needs a valid assessment without leaving 60 students hanging. Asking the university for a substitute right away, and only moving the date briefly if that fails, does both. An open-ended postponement is unfair to students, peer grading is not a proper evaluation, and quietly skipping the external examiner risks the results being rejected.",
+    "hints": [
+      "What makes the evaluation officially valid?",
+      "Which option keeps the delay as small as possible?",
+      "Think about both the rules and the students' time."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-091",
+    "type": "critical",
+    "subCategory": "Course of action",
+    "difficulty": "medium",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Blood banks out of balance",
+    "statement": "Statement: Two of a city's six blood banks report that they are running dangerously low on O-negative blood, while the other four have more O-negative units than they expect to need.\n\nCourses of action:\nI. Move surplus O-negative units from the four well-stocked banks to the two that are short.\nII. Set up a shared daily stock report across all six banks so that shortages are spotted early.\n\nWhich of the courses of action should be followed?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only course of action I follows",
+      "Only course of action II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Both I and II follow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Sees that the city as a whole has enough O-negative; the problem is that it is in the wrong banks, so moving units (I) fixes the immediate shortage.",
+      "Sees that the imbalance went unnoticed until it became dangerous, so a shared stock report (II) prevents a repeat.",
+      "Concludes both follow: one fixes the present problem and the other its cause."
+    ],
+    "explanation": "There is enough O-negative blood in the city, just not where it is needed, so transferring the surplus solves today's danger. The shortage was only noticed once it became serious, so a shared daily stock report is a practical way to catch it earlier next time. Both are sensible and address the problem.",
+    "hints": [
+      "Is the city short of blood overall, or is it in the wrong place?",
+      "What would fix today's shortage?",
+      "What would stop this from happening again?"
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-092",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Doubt sessions at 8 pm",
+    "statement": "An ed-tech company finds that only 15% of enrolled students attend its weekly live doubt sessions, held at 3 pm. It plans to move the sessions to 8 pm and expects attendance to triple. Which of the following is an assumption the plan depends on?",
+    "answerFormat": "choice",
+    "choices": [
+      "Every student who attends at 3 pm will also be able to attend at 8 pm.",
+      "Attendance at 8 pm will be higher than at any other possible time.",
+      "Recorded sessions are less useful to students than live ones.",
+      "A large number of students who now skip the sessions are kept away mainly by the 3 pm timing and would join at 8 pm."
+    ],
+    "answer": "A large number of students who now skip the sessions are kept away mainly by the 3 pm timing and would join at 8 pm.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Notes that tripling 15% means about 45% must attend, so roughly 30% of students who now skip must start coming.",
+      "Sees this requires many current absentees to be blocked by the time slot and free at 8 pm, so the last option is needed.",
+      "Rejects 'every current attendee will still come': attendance could still triple even if a few 3 pm attendees drop out, so that is not required.",
+      "Rejects 'higher than at any other time': the plan only needs 8 pm to beat 3 pm by enough, not to be the best slot."
+    ],
+    "explanation": "Moving the time can only triple attendance if the timing is what keeps many students away. If they skip because the sessions are not useful, an 8 pm slot changes nothing. The plan does not need every current attendee to stay, nor 8 pm to be the best possible slot, nor any view on recordings. Test it by negating: if absentees were not kept away by timing, the expected tripling collapses.",
+    "hints": [
+      "What has to change for attendance to go from 15% to about 45%?",
+      "Try negating each option: which one breaks the plan if false?",
+      "The plan works only if the 3 pm timing is the real barrier for many students."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-093",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Atlas, Java and support",
+    "statement": "At a company: every employee who works on Project Atlas knows Java. No employee who knows Java is on the support team. Some members of the support team work in the Pune office. Which of the following CANNOT be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "Some Pune employees work on Project Atlas.",
+      "Some support team members work on Project Atlas.",
+      "Some employees who know Java work in Pune.",
+      "Some Pune employees do not know Java."
+    ],
+    "answer": "Some support team members work on Project Atlas.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Chains the first two rules: Atlas -> knows Java -> not on support, so no Atlas employee is on support.",
+      "Concludes 'some support members work on Atlas' contradicts this, so it cannot be true.",
+      "Checks the others: Pune can hold Atlas and Java employees outside support, so those can be true; and the Pune support members do not know Java, so the last option is actually certain."
+    ],
+    "explanation": "Anyone on Atlas knows Java, and no one who knows Java is on support, so no Atlas employee can be on support. That makes the second option impossible. The Pune office may have Atlas or Java employees who are not on support, so the first and third options can be true, and the last one must be true because the Pune support members cannot know Java.",
+    "hints": [
+      "Link the first two sentences together.",
+      "Can someone on Atlas ever be on the support team?",
+      "The question asks what is impossible, not what is certain."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-094",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "OPD waits after online booking",
+    "statement": "Statement: A Mumbai hospital introduced online appointment booking for its OPD. Over the next three months, the average OPD waiting time fell from 90 minutes to 50 minutes. In the same period, the hospital added four OPD doctors, and the number of OPD patients fell by 10% because a new clinic opened nearby.\n\nConclusions:\nI. The average OPD waiting time fell by more than 40%.\nII. Online booking is the main reason the waiting time fell.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion I follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Computes the fall: 90 - 50 = 40 minutes, and 40/90 is about 44%, which is more than 40%; I follows.",
+      "Notes two other changes in the same period: more doctors and fewer patients, both of which cut waiting time.",
+      "Rejects II: with three changes at once, the data cannot single out online booking as the main cause."
+    ],
+    "explanation": "The waiting time fell by 40 minutes from 90, which is about 44%, so I follows. But four extra doctors and 10% fewer patients would also shorten waits, and all three changes happened together. The statement gives no way to separate their effects, so II does not follow.",
+    "hints": [
+      "Work out the percentage fall carefully: 40 out of what?",
+      "What else changed at the hospital in the same months?",
+      "40/90 is more than 40%, but three changes cannot be told apart from this data."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-095",
+    "type": "critical",
+    "subCategory": "Course of action",
+    "difficulty": "hard",
+    "years": [
+      "build",
+      "specialize",
+      "placement"
+    ],
+    "title": "Freshers leaving in year one",
+    "statement": "A mid-sized Pune IT company finds that 35% of its freshers leave within the first year. Exit interviews give two main reasons: being kept on the bench without project work for months, and having no clear person to turn to for help.\n\nCourses of action:\nI. Assign every fresher a mentor from their own team for the first six months.\nII. Make all new freshers sign a two-year service bond with a Rs 2 lakh penalty for leaving early.\nIII. Plan fresher hiring to match expected project demand, so that fewer freshers sit on the bench.\n\nWhich of the courses of action should be followed?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only I",
+      "Only I and III",
+      "Only II and III",
+      "All of I, II and III"
+    ],
+    "answer": "Only I and III",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Matches I to the 'no one to ask for help' reason: a mentor fixes it directly.",
+      "Matches III to the 'kept on the bench' reason: hiring to demand reduces bench time.",
+      "Rejects II: a bond forces people to stay without fixing either reason, and is likely to put off good candidates.",
+      "Concludes I and III follow."
+    ],
+    "explanation": "The two stated causes are idle bench time and lack of support. A mentor tackles the second and hiring in line with project demand tackles the first, so I and III follow. A penalty bond only traps unhappy freshers without improving anything, and it makes the company less attractive to strong candidates, so II does not follow.",
+    "hints": [
+      "List the two reasons freshers give for leaving.",
+      "Which courses of action address one of those reasons?",
+      "A course that only stops people leaving, without fixing why, is not a real solution."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-096",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Dark stores near customers",
+    "statement": "A quick-commerce company plans to cut its average delivery time in Kolkata by opening small warehouses ('dark stores') within 2 km of every major customer cluster. Which assumption does the plan depend on?",
+    "answerFormat": "choice",
+    "choices": [
+      "Customers will pay more for faster delivery.",
+      "Riders will be paid more per delivery.",
+      "Competitors have not yet opened dark stores in Kolkata.",
+      "The distance between the current stores and customers is a significant part of today's delivery time."
+    ],
+    "answer": "The distance between the current stores and customers is a significant part of today's delivery time.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the mechanism: being closer should make delivery faster.",
+      "Sees that this only works if travel distance is a big part of delivery time now; if most delay were in packing, closeness would barely help.",
+      "Rejects 'customers will pay more': the plan's claim is about time, not revenue, so that is not needed."
+    ],
+    "explanation": "Moving stores closer cuts delivery time only if travel from far-off stores is a meaningful part of the current time. If most delay came from order packing or rider shortage, the new stores would not help much. Whether customers pay more is a business question, not something the time claim depends on.",
+    "hints": [
+      "How exactly is a nearby store supposed to speed things up?",
+      "What if most of the delay came from packing orders, not travel?",
+      "The plan assumes travel distance is a large part of the delay."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-097",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Twenty more salespeople",
+    "statement": "The CEO of a Bengaluru B2B startup says: 'We will hire 20 more sales staff this quarter, and that will double our revenue by the end of the year.'\n\nAssumptions:\nI. There are enough potential customers that more salespeople can win more business.\nII. The startup can find and train 20 suitable salespeople in time for them to bring in revenue this year.\nIII. The startup's product is the cheapest in its market.\n\nWhich of the assumptions are implicit?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only I",
+      "Only I and II",
+      "Only II and III",
+      "All of I, II and III"
+    ],
+    "answer": "Only I and II",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Checks I: if the market were already saturated, extra salespeople would win nothing, so I is needed.",
+      "Checks II: if the hires cannot be made or trained in time, they cannot add revenue this year, so II is needed.",
+      "Rejects III: products can sell well without being the cheapest, so the plan does not depend on price leadership."
+    ],
+    "explanation": "Doubling revenue through more salespeople needs enough untapped customers for them to sell to and needs the people to be hired and productive in time, so I and II are implicit. Being the cheapest is not required; a product can grow on quality, features or service, so III is not implicit.",
+    "hints": [
+      "Negate each assumption and see if the plan still makes sense.",
+      "Could the plan work if the product is not the cheapest?",
+      "The plan needs customers to sell to and salespeople ready in time."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-098",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Average up, median flat",
+    "statement": "A Tier-2 engineering college's placement report: 'Our average package rose from Rs 4.2 lakh to Rs 5.1 lakh this year. The median package stayed at Rs 3.6 lakh. The number of students placed was the same in both years.' Which of the following is best supported?",
+    "answerFormat": "choice",
+    "choices": [
+      "Most placed students got higher packages this year.",
+      "Fewer companies visited the campus this year.",
+      "The lowest package offered fell this year.",
+      "The rise in the average came mainly from a smaller group of higher packages, while the typical student's package did not change."
+    ],
+    "answer": "The rise in the average came mainly from a smaller group of higher packages, while the typical student's package did not change.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Recalls that the median is the middle value, so an unchanged median means the typical placed student earns about the same.",
+      "Notes the average rose sharply, so the total of all packages rose, and that gain must come from packages above the middle.",
+      "Rejects 'most students got higher packages': if most had risen, the median would very likely have risen too."
+    ],
+    "explanation": "The median, the middle package, did not move, so the typical student is no better off. Yet the average jumped, which means the total of all packages grew, and that growth must be concentrated among the higher packages. This is the classic pattern of a few big offers pulling up an average. Nothing is said about the number of companies or the lowest offer.",
+    "hints": [
+      "What does the median tell you that the average does not?",
+      "How can the average rise while the middle value stays put?",
+      "A few large packages can lift the average without moving the median."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-099",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Hackathon finalists and stars",
+    "statement": "Statement: All finalists of a national hackathon have at least one GitHub project with more than 50 stars. No student from College K has a GitHub project with more than 50 stars.\n\nConclusions:\nI. Every student who has a GitHub project with more than 50 stars is a finalist.\nII. No student from College K is a finalist.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Only conclusion II follows",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Applies the first rule backwards: without a 50+ star project, a student cannot be a finalist.",
+      "College K students have no such project, so none is a finalist; II follows.",
+      "Rejects I: the rule says finalists have such projects, not that everyone with such a project became a finalist."
+    ],
+    "explanation": "Being a finalist requires a project with over 50 stars. No College K student has one, so no College K student can be a finalist, and II follows. I reverses the rule: many students with popular projects may never have entered or reached the final.",
+    "hints": [
+      "What does every finalist have?",
+      "Can someone without that be a finalist?",
+      "'All finalists have X' is not the same as 'everyone with X is a finalist'."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-100",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Paid parking on market roads",
+    "statement": "Statement: To reduce traffic jams in its market area, a city corporation has decided to charge Rs 50 per hour for parking on its five busiest market roads, which were free until now. The money collected will be used to run free shuttle buses from two parking lots just outside the market area.\n\nConclusions:\nI. From now on, parking on those five roads will no longer be free.\nII. The corporation hopes that at least some shoppers will park outside the market area and use the shuttle.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Both I and II follow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Reads the decision: a charge on roads that were free, so I follows directly.",
+      "Links the stated aim (fewer jams) with the design (charge inside, free shuttle from lots outside).",
+      "Concludes the scheme is clearly meant to move some parking outside, so II follows as well."
+    ],
+    "explanation": "The roads were free and will now cost Rs 50 per hour, so I follows directly. The corporation says it wants fewer jams, and it is charging for parking inside while running free shuttles from outside lots, which only makes sense if it wants some shoppers to park outside and ride in. So II follows too.",
+    "hints": [
+      "What happens to parking prices on those roads?",
+      "Why would the corporation run free shuttles from lots outside the market?",
+      "The design of the scheme reveals what it hopes shoppers will do."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-101",
+    "type": "critical",
+    "subCategory": "Course of action",
+    "difficulty": "medium",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Ambulances in the food lane",
+    "statement": "A popular street-food lane in Indore gets so crowded in the evenings that ambulances often cannot get through to the hospital at the end of the lane. What is the most suitable course of action for the city?",
+    "answerFormat": "choice",
+    "choices": [
+      "Shut down all the food stalls in the lane permanently.",
+      "Ask the hospital to move to a less crowded area.",
+      "Mark an emergency lane down the street and have traffic wardens keep it clear during evening hours.",
+      "Do nothing, since the crowd thins out after 11 pm."
+    ],
+    "answer": "Mark an emergency lane down the street and have traffic wardens keep it clear during evening hours.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the real problem: ambulances blocked during peak evening hours, not the existence of the stalls.",
+      "Chooses an enforced emergency lane, which fixes access while letting the stalls continue.",
+      "Rejects shutting all stalls: it destroys livelihoods when a targeted fix is available."
+    ],
+    "explanation": "The problem is blocked access at peak times. A marked emergency lane, kept clear by wardens in the evenings, solves exactly that while the stalls keep running. Closing every stall is out of proportion, moving a hospital is unrealistic, and doing nothing leaves patients at risk.",
+    "hints": [
+      "What exactly is going wrong, and when?",
+      "Is there a fix that keeps the ambulance route open without closing the lane?",
+      "Prefer the targeted, practical option over extreme ones."
+    ],
+    "estimatedMinutes": 3
+  },
+  {
+    "seedKey": "critical-102",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Migrate to the new framework",
+    "statement": "A tech lead argues: 'After we rebuilt our ticketing app on the new framework, its crash rate fell from 4% to 1%. So the new framework is more stable, and we should move our other three apps to it as well.' Which of the following is an assumption the argument requires?",
+    "answerFormat": "choice",
+    "choices": [
+      "The other three apps currently have a crash rate of 4%.",
+      "Moving the other apps will cost nothing.",
+      "The fall in crashes was not mainly due to other changes made during the rebuild, such as fixing long-standing bugs.",
+      "Users of the ticketing app noticed the improvement."
+    ],
+    "answer": "The fall in crashes was not mainly due to other changes made during the rebuild, such as fixing long-standing bugs.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the conclusion: the framework itself caused the fall in crashes, so other apps should switch.",
+      "Applies the negation test: if the fall was mainly due to bug fixes made during the rebuild, the framework deserves no credit and the argument collapses; so that option is required.",
+      "Rejects 'the other apps have a 4% crash rate': they only need to be unstable enough to benefit; their exact rate does not matter.",
+      "Rejects 'costs nothing': the argument can hold even if migration has some cost."
+    ],
+    "explanation": "The argument credits the framework for the fall in crashes. A rebuild usually brings many other changes, such as fixing old bugs, and if those were the real reason, the framework is not shown to be more stable. So the argument needs the fall to come mainly from the framework. The other apps do not need the exact same crash rate, migration does not need to be free, and user perception is irrelevant.",
+    "hints": [
+      "What does the tech lead claim caused the drop?",
+      "What else changes when you rebuild an app from scratch?",
+      "Negate each option; the right one destroys the argument when false."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-103",
+    "type": "critical",
+    "subCategory": "Assumptions",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Rising college CGPA",
+    "statement": "A college dean says: 'Our students' average CGPA has risen from 7.1 to 7.8 over two years. Clearly our students are learning much more than before.' Which of the following is an assumption the dean's conclusion depends on?",
+    "answerFormat": "choice",
+    "choices": [
+      "Every student's CGPA went up over the two years.",
+      "The college hired better teachers in these two years.",
+      "Grading did not become easier over these two years.",
+      "Average CGPAs at other colleges fell over the same period."
+    ],
+    "answer": "Grading did not become easier over these two years.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Identifies the leap: higher grades are taken as proof of more learning.",
+      "Negates the third option: if grading became easier, CGPAs could rise with no extra learning, so the conclusion falls apart; it is required.",
+      "Rejects 'every student's CGPA went up': an average can rise and still reflect more learning even if some students' grades fell.",
+      "Rejects 'better teachers': that is one possible explanation, not something the conclusion needs."
+    ],
+    "explanation": "The dean treats grades as a measure of learning. That only works if the grading standard stayed the same; if marking became more lenient, CGPAs could rise without students learning more. The conclusion does not need every student to improve, does not depend on any particular reason such as new teachers, and does not depend on other colleges.",
+    "hints": [
+      "What is the dean using as a measure of learning?",
+      "What else could make grades go up?",
+      "If the yardstick changed, the comparison means nothing."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-104",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "CNG buses and Route 9",
+    "statement": "In a city's bus fleet: all CNG buses were bought after 2018. Every bus bought after 2018 has a GPS tracker. Some buses that have GPS trackers are air-conditioned. No air-conditioned bus runs on Route 9. Which of the following must be true?",
+    "answerFormat": "choice",
+    "choices": [
+      "No CNG bus runs on Route 9.",
+      "Some CNG buses are air-conditioned.",
+      "No bus on Route 9 has a GPS tracker.",
+      "Every CNG bus has a GPS tracker."
+    ],
+    "answer": "Every CNG bus has a GPS tracker.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Chains the first two rules: CNG -> bought after 2018 -> has GPS, so every CNG bus has a GPS tracker.",
+      "Rejects 'no CNG bus runs on Route 9': only AC buses are banned from Route 9, and CNG buses need not be AC.",
+      "Rejects the others: 'some GPS buses are AC' says nothing about CNG buses specifically, and non-AC GPS buses may run on Route 9."
+    ],
+    "explanation": "All CNG buses are post-2018 buses, and all post-2018 buses have GPS, so every CNG bus has GPS. The tempting first option fails because Route 9 only excludes air-conditioned buses, and nothing says CNG buses are air-conditioned. Likewise, the AC buses with GPS might all be non-CNG, and non-AC GPS buses can still run on Route 9.",
+    "hints": [
+      "Which statements link together in a chain?",
+      "Does anything force a CNG bus to be air-conditioned?",
+      "Follow CNG -> after 2018 -> GPS."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-105",
+    "type": "critical",
+    "subCategory": "Inference",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "The batch-wise clearing rate",
+    "statement": "A coaching institute in Kota publishes its results. Morning batch: 120 students, 30% cleared the exam. Evening batch: 80 students, 45% cleared. The institute's poster says: 'Overall success rate: 37.5%.' Which of the following can be concluded from these figures?",
+    "answerFormat": "choice",
+    "choices": [
+      "The evening batch is taught better than the morning batch.",
+      "More evening students cleared the exam than morning students.",
+      "The poster is correct, since 37.5% is the average of 30% and 45%.",
+      "The poster is wrong: the overall success rate was 36%."
+    ],
+    "answer": "The poster is wrong: the overall success rate was 36%.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Counts the students who cleared: morning 30% of 120 = 36, evening 45% of 80 = 36.",
+      "Computes the true overall rate: 72 out of 200 = 36%, so the poster's 37.5% is wrong.",
+      "Rejects the poster's method: averaging 30% and 45% ignores that the batches are of different sizes.",
+      "Rejects 'more evening students cleared': both batches had exactly 36 students clear."
+    ],
+    "explanation": "Morning: 0.30 x 120 = 36 cleared. Evening: 0.45 x 80 = 36 cleared. So 72 of 200 students cleared, which is 36%, not 37.5%. The poster simply averaged the two percentages, which is only valid when both batches are the same size. The same number cleared from each batch, and a higher rate alone does not prove better teaching.",
+    "hints": [
+      "Convert each percentage into a number of students.",
+      "Is it fair to average two percentages from groups of different sizes?",
+      "36 + 36 = 72 students out of 200."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-106",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Late-night grocery orders",
+    "statement": "Statement: An online grocery store in Chennai reports that orders placed after 10 pm grew by 60% this year. These late-night orders now make up 12% of all orders, compared with 8% last year.\n\nConclusions:\nI. The store's total number of orders grew this year.\nII. Orders placed before 10 pm grew by a smaller percentage than late-night orders.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Both I and II follow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Lets last year's total be 100: late-night orders were 8, so this year they are 8 x 1.6 = 12.8.",
+      "Since 12.8 is 12% of this year's total, the total is 12.8 / 0.12, about 106.7, which is more than 100; I follows.",
+      "Before-10-pm orders went from 92 to about 106.7 - 12.8 = 93.9, a rise of about 2%, which is less than 60%; II follows."
+    ],
+    "explanation": "Take last year's total as 100, so 8 late-night orders. A 60% rise gives 12.8 this year, and since that is 12% of the new total, the total is about 106.7, so total orders grew and I follows. Earlier orders went from 92 to about 93.9, roughly a 2% rise, far below 60%, so II follows too.",
+    "hints": [
+      "Pick a convenient number, like 100, for last year's total orders.",
+      "If 12.8 orders are 12% of this year's total, what is the total?",
+      "Compare 92 last year with about 93.9 this year for the earlier orders."
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "seedKey": "critical-107",
+    "type": "critical",
+    "subCategory": "Statement and conclusion",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Managers, engineers and the audit",
+    "statement": "Statement: Some managers at Firm Z are engineers. All engineers at Firm Z have passed the safety course. No one who has passed the safety course is allowed to skip the annual audit.\n\nConclusions:\nI. Some managers at Firm Z are not allowed to skip the annual audit.\nII. Some people at Firm Z who have passed the safety course are managers.\n\nWhich of the conclusions logically follow from the statement?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only conclusion I follows",
+      "Only conclusion II follows",
+      "Both I and II follow",
+      "Neither I nor II follows"
+    ],
+    "answer": "Both I and II follow",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Takes the managers who are engineers: they have passed the safety course because all engineers have.",
+      "Those same managers cannot skip the audit because no one who passed the course can; I follows.",
+      "Those same people are course-passers who are managers, so some course-passers are managers; II follows too."
+    ],
+    "explanation": "Focus on the managers who are engineers. Being engineers, they passed the safety course, and having passed it, they cannot skip the audit, so some managers cannot skip it and I follows. The same people are safety-course passers who are managers, so II follows as well. Many solvers stop at I, but 'some A are B' always means 'some B are A'.",
+    "hints": [
+      "Follow the group of managers who are also engineers.",
+      "What do you learn about that group from each sentence?",
+      "If some managers passed the course, then some people who passed the course are managers."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-108",
+    "type": "critical",
+    "subCategory": "Course of action",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Polluted drinking-water lake",
+    "statement": "A lake that supplies a city's drinking water has become steadily more polluted. Tests show that most of the pollution comes from untreated sewage from three housing colonies whose drains open into the lake, and a smaller part from plastic and food waste thrown by visitors at the lakeside.\n\nCourses of action:\nI. Connect the three colonies' drains to the city's sewage treatment plant.\nII. Ban all visitors from the lake area permanently.\nIII. Put up fences and litter bins along the lakeside and fine people who dump waste.\n\nWhich of the courses of action should be followed?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only I",
+      "Only II and III",
+      "Only I and III",
+      "All of I, II and III"
+    ],
+    "answer": "Only I and III",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Matches I to the main source, untreated sewage: connecting drains to treatment stops it.",
+      "Matches III to the smaller source, visitor waste: bins, fences and fines reduce it in a proportionate way.",
+      "Rejects II: a permanent ban on all visitors is extreme when bins and fines can control the dumping.",
+      "Rejects 'Only I': visitor waste is a real, if smaller, source, and III is a practical way to deal with it."
+    ],
+    "explanation": "Most pollution comes from sewage, so connecting the drains to the treatment plant is essential. Visitor waste is a smaller but real source, and bins, fences and fines tackle it directly. A permanent ban on all visitors goes far beyond what is needed, so I and III follow but II does not.",
+    "hints": [
+      "What are the two sources of pollution?",
+      "Which course tackles each source in a reasonable way?",
+      "Reject the option that is out of proportion to the problem."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-109",
+    "type": "critical",
+    "subCategory": "Course of action",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Invoice PDFs exposed",
+    "statement": "On Friday evening, a SaaS startup discovers that for about six hours a bug let some logged-in customers open other customers' invoice PDFs. The bug has now been fixed. What is the best course of action?",
+    "answerFormat": "choice",
+    "choices": [
+      "Since the bug is fixed, say nothing to customers, to avoid panic.",
+      "Wait until a full investigation is finished in a few weeks, so that the message to customers is completely accurate.",
+      "Find out quickly whose invoices were exposed and to whom, inform those customers promptly and honestly about what happened and what has been done, and meet any legal reporting duty.",
+      "Fire the developer who wrote the bug and announce this publicly to restore trust."
+    ],
+    "answer": "Find out quickly whose invoices were exposed and to whom, inform those customers promptly and honestly about what happened and what has been done, and meet any legal reporting duty.",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Recognises that customers' private data was exposed, so the affected customers have a right to know.",
+      "Chooses identifying the affected customers quickly and informing them honestly, while meeting any legal duty to report.",
+      "Rejects waiting weeks for a perfect report: the affected customers need to know promptly to protect themselves, and many laws set short reporting deadlines.",
+      "Rejects firing and announcing: it blames one person without informing the people whose data leaked."
+    ],
+    "explanation": "Customers' invoices, which hold private business details, were seen by others, so the startup must work out who was affected and tell them quickly and honestly, and report it if the law requires. Saying nothing hides a real breach. Waiting weeks for a perfect report sounds careful, but it leaves affected customers unaware and may break reporting deadlines. Publicly firing one developer does nothing for the affected customers.",
+    "hints": [
+      "Whose interests were harmed by the bug?",
+      "Why might waiting weeks be a problem even if the final report is more accurate?",
+      "Be prompt and honest with the affected customers, and meet legal duties."
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "seedKey": "critical-110",
+    "type": "critical",
+    "subCategory": "Course of action",
+    "difficulty": "hard",
+    "years": [
+      "specialize",
+      "placement"
+    ],
+    "title": "Cleared aptitude, failed technical",
+    "statement": "In its last two campus drives, a college found that 40% of its students cleared the online aptitude test, but only 10% of those who cleared it got through the technical interview. Interviewers reported that most candidates could not explain their own projects or write simple code on paper.\n\nCourses of action:\nI. Run regular mock technical interviews in which students explain their projects and write code live.\nII. Ask the visiting companies to drop the technical interview round.\nIII. Add more aptitude-test practice sessions for all students.\n\nWhich of the courses of action should be followed?",
+    "answerFormat": "choice",
+    "choices": [
+      "Only I",
+      "Only III",
+      "Only I and III",
+      "All of I, II and III"
+    ],
+    "answer": "Only I",
+    "acceptedAnswers": [],
+    "keySteps": [
+      "Locates the bottleneck: students pass aptitude reasonably well but fail badly at the technical interview.",
+      "Matches I to the interviewers' feedback (cannot explain projects or code live), so I follows.",
+      "Rejects III: aptitude is not where students are failing, so more aptitude practice does not address the problem.",
+      "Rejects II: a college cannot reasonably ask companies to drop their hiring rounds, and it hides the skill gap instead of fixing it."
+    ],
+    "explanation": "The numbers show the real drop-off is at the technical interview, and the feedback says exactly why: students cannot explain their projects or code live. Mock technical interviews target that gap, so I follows. More aptitude practice works on the stage students are already clearing, and asking companies to drop a round is neither realistic nor a fix.",
+    "hints": [
+      "At which stage do most students fail?",
+      "What did the interviewers say was missing?",
+      "Pick only the action aimed at the stage where students actually fail."
+    ],
+    "estimatedMinutes": 4
+  }
+]

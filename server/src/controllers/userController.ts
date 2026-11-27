@@ -1,3 +1,4 @@
+import { isPureMember, canUseCareerPilot } from '../services/accountProduct';
 import { Response, Request } from 'express';
 import { assertSeats, LimitError } from '../services/tenantLimits';
 import mongoose from 'mongoose';
@@ -15,10 +16,11 @@ import AssessmentSubmission from '../models/AssessmentSubmission';
 import StudentProfile from '../models/StudentProfile';
 import { computeProfileCompleteness } from '../utils/profileCompleteness';
 import { collectStudentStats, EMPTY_STATS } from '../services/userExportService';
-import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
+import { ROLE_PERMISSIONS, permissionsOf } from '../middleware/roleGuard';
 import csvParser from 'csv-parser';
 import * as XLSX from 'xlsx';
 import { LMS_USERS_FILTER } from '../services/learnerAudience';
+import * as lifecycle from '../services/studentLifecycleService';
 
 const userService = new UserService();
 const emailService = new EmailService();
@@ -212,6 +214,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       const emps: any[] = await Employee.find({ tenantId: req.tenantId, userId: { $in: ids } }).select('userId employeeCode').lean();
       const empOf = new Map(emps.map(e => [String(e.userId), e.employeeCode]));
       users = (users as any[]).map(u => ({ ...(u.toObject ? u.toObject() : u), completeness: byUser[String(u._id)] ?? 0, employeeCode: empOf.get(String(u._id)) }));
+      users = await lifecycle.withAccess(String(req.tenantId), users as any[]) as any;
     } catch { /* non-fatal — return users without completeness */ }
 
     res.json({ success: true, message: 'Users fetched successfully', data: users });
@@ -437,7 +440,11 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
     // (funnel candidate, or an existing student who joined via the assessment).
     // Drives the focused, career-only experience on the client (no batch LMS clutter).
     const isCareerPilot = !!(await AssessmentSubmission.exists({ candidateUserId: userId }));
-    const data = { ...stripSecrets(user), isCareerPilot };
+    // Which product this session is. A pure member is CareerPilot whatever the token says; an account that is both
+    // follows the door it came in by (the token), and falls back to the LMS.
+    const tokenProduct = self ? (req.user as any)?.product : undefined;
+    const product = isPureMember(user) ? 'careerpilot' : (tokenProduct === 'careerpilot' && canUseCareerPilot(user) ? 'careerpilot' : 'lms');
+    const data = { ...stripSecrets(user), isCareerPilot, product };
 
     res.json({
       success: true,
@@ -635,6 +642,9 @@ export const inviteStudent = async (req: AuthenticatedRequest, res: Response) =>
         if (batchId) {
           existingUser.batchId = batchId;
           existingUser.batchJoinedDate = new Date();
+          // A deleted student coming back is a new admission: a fresh access window.
+          (existingUser as any).lmsJoinedAt = new Date();
+          (existingUser as any).accessUntil = undefined;
         }
         await existingUser.save();
         user = existingUser;
@@ -743,20 +753,21 @@ export const inviteStudent = async (req: AuthenticatedRequest, res: Response) =>
 
 export const getMyPermissions = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const user = await User.findById(req.user.id).select('role customRoleId');
+    const user = await User.findById(req.user.id).select('role customRoleId tenantId');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    let permissions: string[] = [];
+    // The same rule every API check uses, so what the menu shows is what the server allows.
+    const permissions: string[] = await permissionsOf({ role: user.role, customRoleId: user.customRoleId, tenantId: user.tenantId });
+    // The role itself too, so an open session picks up a role given (or changed) after it logged in.
+    let customRoleName: string | null = null;
     if (user.customRoleId) {
-      const customRole = await Role.findById(user.customRoleId);
-      permissions = customRole ? customRole.permissions : (ROLE_PERMISSIONS[user.role] || []);
-    } else {
-      permissions = ROLE_PERMISSIONS[user.role] || [];
+      const RoleModel = (await import('../models/Role')).default;
+      const r: any = await RoleModel.findById(user.customRoleId).select('name').lean();
+      customRoleName = r?.name || null;
     }
-
-    res.json({ success: true, data: { permissions } });
+    res.json({ success: true, data: { permissions, role: user.role, customRoleId: user.customRoleId ? String(user.customRoleId) : null, customRoleName } });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -972,6 +983,9 @@ export const bulkUploadStudents = async (req: AuthenticatedRequest, res: Respons
             existingUser.lastName = lastName;
             existingUser.batchId = batchId;
             existingUser.batchJoinedDate = new Date();
+            // A deleted student coming back is a new admission: a fresh access window.
+            (existingUser as any).lmsJoinedAt = new Date();
+            (existingUser as any).accessUntil = undefined;
             await existingUser.save();
             user = existingUser;
           } else {
@@ -1068,4 +1082,40 @@ export const downloadBulkTemplate = async (req: AuthenticatedRequest, res: Respo
       message: 'Failed to generate template'
     });
   }
+};
+
+// ─── Student status ──────────────────────────────────────────────────────────
+// Active / Inactive (never really attended) / Discontinued (joined, then stopped) / Completed
+// (finished the course). Inactive and Discontinued set isActive=false, so every report, reminder
+// and Non-Attendees count that already skips inactive accounts leaves them out; Completed keeps
+// login until the access window ends. Rules live in services/studentLifecycleService.ts.
+export const STUDENT_STATUSES = lifecycle.STUDENT_STATUSES;
+const lifecycleFail = (res: Response, error: any, fallback: string) =>
+  res.status(error instanceof lifecycle.LifecycleError ? error.status : 500).json({ success: false, message: error?.message || fallback });
+
+export const setStudentStatus = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { status, date, reason, note } = req.body || {};
+    const user = await lifecycle.setStatus(String(req.tenantId), req.params.userId, { status, date, reason, note, source: 'users' }, String(req.user?.id || req.userId || ''));
+    res.json({ success: true, message: `Student marked ${status}`, data: stripSecrets(user) });
+  } catch (error: any) { lifecycleFail(res, error, 'Failed to change status'); }
+};
+
+/** One status for several students at once. */
+export const setStudentStatusMany = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userIds, status, date, reason, note } = req.body || {};
+    const data = await lifecycle.setStatusMany(String(req.tenantId), userIds, { status, date, reason, note, source: 'users_bulk' }, String(req.user?.id || req.userId || ''));
+    res.json({ success: true, message: `${data.updated} student(s) updated`, data });
+  } catch (error: any) { lifecycleFail(res, error, 'Failed to change status'); }
+};
+
+/** Extend / change a student's LMS access end date ({ until: 'YYYY-MM-DD' | null, reason }). */
+export const setStudentAccess = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { until, reason } = req.body || {};
+    const user = await lifecycle.setAccess(String(req.tenantId), req.params.userId, until || null, reason, String(req.user?.id || req.userId || ''));
+    const [row] = await lifecycle.withAccess(String(req.tenantId), [stripSecrets(user)]);
+    res.json({ success: true, message: until ? 'Access extended' : 'Access back to the default window', data: row });
+  } catch (error: any) { lifecycleFail(res, error, 'Failed to change access'); }
 };

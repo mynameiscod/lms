@@ -6,6 +6,7 @@ import { LANG_SHORT } from '../ProblemBank/shared';
 import LibrarySolve from './LibrarySolve';
 import '../ProblemBank/ProblemBank.css';
 import './practiceLibrary.css';
+import './practiceHub.css';
 
 /**
  * The practice library: every published Problem Bank problem, chosen by the member. Filters live
@@ -19,7 +20,6 @@ const FILTERS = ['q', 'difficulty', 'topic', 'tag', 'company', 'language', 'stat
 
 const kfmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '')}K` : String(n));
 const cap = (d: string) => d[0].toUpperCase() + d.slice(1);
-const DCOL: Record<string, string> = { easy: '#10b981', medium: '#f59e0b', hard: '#f43f5e' };
 
 export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
   const nav = useNavigate();
@@ -77,140 +77,155 @@ export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
 
   const active = FILTERS.filter((k) => k !== 'sort' && k !== 'page' && k !== 'status' && get(k));
   const prog = data?.progress;
-  const pct = (a?: number, b?: number) => (b ? Math.round(((a || 0) / b) * 100) : 0);
   const reset = () => { setText(''); setParams({}, { replace: true }); };
   const start = () => { if (data?.next) nav(`${base}/${data.next._id}`); else if (data?.rows[0]) nav(`${base}/${data.rows[0]._id}`); };
   const from = data ? (data.page - 1) * data.limit + 1 : 0;
 
+  /** The tabs' counts are the learner's own, across the whole library — not the filtered list. */
+  const attempted = prog?.attempted ?? null;
+  const counts: Record<string, number | null> = prog ? {
+    '': prog.total,
+    todo: attempted === null ? null : Math.max(0, prog.total - prog.solved - attempted),
+    attempted,
+    solved: prog.solved,
+  } : { '': null, todo: null, attempted: null, solved: null };
+  const accuracy = prog?.accuracy ?? null;
+  const to = data ? from + data.rows.length - 1 : 0;
+  const open = (id: string) => nav(`${base}/${id}`);
+
   return (
-    <div className="pl">
-      <div className="pl-grid">
-        <div>
-          <section className="pl-hero">
-            <div className="pl-eyebrow">PRACTICE &nbsp;•&nbsp; LEARN &nbsp;•&nbsp; IMPROVE</div>
-            <h1>Turn Problems into <span>Progress</span></h1>
-            <p>Solve real-world coding problems, track your progress and get interview ready with structured practice.</p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <button className="pl-btn primary" onClick={start} disabled={!data}><i className="fa-solid fa-play" /> {prog?.solved ? 'Continue practicing' : 'Start Practicing'}</button>
-              <button className="pl-btn" onClick={() => nav('/careerpilot/roadmap')}><i className="fa-regular fa-map" /> View My Roadmap</button>
-            </div>
-            <div className="pl-hero-art" aria-hidden><i /><i /><i /><i /><i /></div>
-          </section>
-
-          <div className="pl-stats">
-            <div className="pl-card pl-stat"><span className="ic" style={{ background: '#d1fae5', color: '#047857' }}><i className="fa-solid fa-chart-simple" /></span>
-              <div><b>{prog?.solved ?? 0} <span style={{ color: '#64748b', fontWeight: 600, fontSize: 15 }}>/ {prog?.total ?? '…'}</span></b><small>Problems Solved</small></div></div>
-            {(['easy', 'medium', 'hard'] as const).map((d) => {
-              const x = prog?.byDifficulty[d];
-              return (
-                <div key={d} className="pl-card pl-stat"><span className="ic" style={{ background: d === 'easy' ? '#d1fae5' : d === 'medium' ? '#fef3c7' : '#ffe4e6', color: d === 'easy' ? '#047857' : d === 'medium' ? '#b45309' : '#be123c' }}><i className="fa-solid fa-signal" /></span>
-                  <div style={{ flex: 1 }}><b>{x?.solved ?? 0} <span style={{ color: '#64748b', fontWeight: 600, fontSize: 15 }}>/ {x?.total ?? '…'}</span></b><small>{cap(d)} solved</small>
-                    <div className="bar"><span style={{ width: `${pct(x?.solved, x?.total)}%`, background: DCOL[d] }} /></div></div></div>
-              );
-            })}
+    <div className="pl pl2x plh">
+      {/*
+        * THE TOP OF THE PAGE: what to do next on the left, the learner's three figures beside it,
+        * and the list across the page below — filters in the address, so a filtered list can be
+        * bookmarked and survives opening a problem and pressing Back.
+        */}
+      <section className="plh-top">
+        <div className="plh-copy">
+          <span className="plh-eyebrow">Practice Lab</span>
+          <h1>Turn Problems into <span>Progress</span></h1>
+          <p>Solve real coding problems, build strong problem-solving skills and get ready for interviews.</p>
+          {data?.trial && (
+            <p className="plx-trial"><i className="bi bi-hourglass-split" /> Your trial includes <b>{data.trial.problems}</b> of the {data.trial.libraryTotal.toLocaleString('en-IN')} problems. Membership opens all of them.</p>
+          )}
+        </div>
+        <div className="plh-bar">
+          <div className="plh-actions">
+            <button type="button" className="plh-btn primary" onClick={start} disabled={!data}>
+              <i className="fa-solid fa-play" aria-hidden /> {prog?.solved ? 'Continue Practising' : 'Start Practising'}
+            </button>
+            <button type="button" className="plh-btn" onClick={() => nav('/careerpilot/mentor')}>
+              <i className="fa-solid fa-robot" aria-hidden /> Ask AI Mentor
+            </button>
           </div>
+          <div className="plh-stats">
+            <div className="plh-stat"><i className="fa-solid fa-code ic blue" aria-hidden /><span><b>{prog ? prog.total.toLocaleString('en-IN') : '—'}</b><small>Problems</small></span></div>
+            <div className="plh-stat"><i className="fa-regular fa-circle-check ic green" aria-hidden /><span><b>{prog ? prog.solved.toLocaleString('en-IN') : '—'}</b><small>Solved</small></span></div>
+            <div className="plh-stat"><i className="fa-solid fa-chart-simple ic violet" aria-hidden /><span><b>{accuracy !== null ? `${accuracy}%` : '—'}</b><small>Accuracy</small></span></div>
+          </div>
+        </div>
+        {data?.next && (
+          <p className="plh-next">
+            <span>{prog?.solved ? 'Up next for you' : 'Start with'}</span>
+            <button type="button" onClick={() => open(data.next!._id)}>{data.next.number}. {data.next.title}</button>
+            <em className={`pl-diff ${data.next.difficulty}`}>{cap(data.next.difficulty)}</em>
+          </p>
+        )}
+      </section>
 
-          <section className="pl-card pl-panel">
-            <div className="pl-tabs">
-              {STATUS.map(([v, l]) => (
-                <button key={v} className={`pl-tab${get('status') === v ? ' on' : ''}`} onClick={() => set({ status: v })}>
-                  <i className={`fa-${v === '' ? 'solid fa-table-cells-large' : v === 'todo' ? 'regular fa-star' : v === 'attempted' ? 'solid fa-clock-rotate-left' : 'regular fa-circle-check'}`} /> {l}
-                </button>
-              ))}
-              <span className="grow" />
-              <button className="pl-btn" onClick={randomProblem} disabled={!data || picking}><i className="fa-solid fa-shuffle" /> Random Problem</button>
-            </div>
-
-            <div className="pl-filters">
-              <div className="pl-search"><i className="fa-solid fa-magnifying-glass" />
-                <input placeholder="Search by title, topic, tag or number…" value={text} onChange={(e) => setText(e.target.value)} aria-label="Search problems" /></div>
-              <label className="pl-field">Difficulty
-                <select value={get('difficulty')} onChange={(e) => set({ difficulty: e.target.value })}>
-                  <option value="">All</option>
-                  {(['easy', 'medium', 'hard'] as const).map((d) => <option key={d} value={d}>{cap(d)}{facets ? ` (${facets.difficulties[d] || 0})` : ''}</option>)}
-                </select></label>
-              <label className="pl-field">Topic
-                <select value={get('topic')} onChange={(e) => set({ topic: e.target.value })}>
-                  <option value="">All</option>{(facets?.topics || []).map((t) => <option key={t.name} value={t.name}>{t.name} ({t.count})</option>)}
-                </select></label>
-              <label className="pl-field">Company
-                <select value={get('company')} onChange={(e) => set({ company: e.target.value })}>
-                  <option value="">All</option>{(facets?.companies || []).map((t) => <option key={t.name} value={t.name}>{t.name} ({t.count})</option>)}
-                </select></label>
-              <label className="pl-field">Language
-                <select value={get('language')} onChange={(e) => set({ language: e.target.value })}>
-                  <option value="">All</option>{(facets?.languages || []).map((t) => <option key={t.name} value={t.name}>{LANG_SHORT[t.name] || t.name} ({t.count})</option>)}
-                </select></label>
-              <button className="pl-btn" onClick={reset} disabled={!active.length && !get('status') && !get('sort')}><i className="fa-solid fa-rotate" /> Reset</button>
-            </div>
-
-            <div className="pl-meta">
-              <span>{data ? (data.total ? `Showing ${from} - ${from + data.rows.length - 1} of ${data.total.toLocaleString()} problems` : 'No problems') : 'Loading…'}</span>
-              <span>Sort by
-                <select value={get('sort') || 'number'} onChange={(e) => set({ sort: e.target.value === 'number' ? '' : e.target.value })} aria-label="Sort">
-                  {SORTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select></span>
-            </div>
-
-            {err && <div className="pb-alert pb-alert-bad">{err}</div>}
-            {data && !data.rows.length && <div className="pl-empty"><h3>{active.length || get('status') ? 'No problems match' : 'No problems yet'}</h3><p>{active.length || get('status') ? 'Try removing a filter.' : 'Problems appear here as they are published.'}</p></div>}
-            {data?.rows.map((r) => (
-              <div key={r._id} className="pl-row" onClick={() => nav(`${base}/${r._id}`)} role="link" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') nav(`${base}/${r._id}`); }}>
-                <span title={r.status === 'solved' ? 'Solved' : r.status === 'attempted' ? 'Attempted' : 'Not started'}>
-                  {r.status === 'solved' ? <i className="fa-solid fa-circle-check" style={{ color: '#059669' }} />
-                    : r.status === 'attempted' ? <i className="fa-solid fa-circle-half-stroke" style={{ color: '#d97706' }} />
-                      : <i className="fa-regular fa-circle" style={{ color: '#a3acc0' }} />}
-                </span>
-                <span className="num">{r.number}</span>
-                <span className="t">{r.title}</span>
-                <span className="pl-chips hide-sm">{r.topics.slice(0, 3).map((t) => <span key={t} className="pl-chip" onClick={(e) => { e.stopPropagation(); set({ topic: t }); }}>{t}</span>)}</span>
-                <span className="pl-chips hide-sm">{r.companies.slice(0, 2).map((c) => <span key={c} className="pl-chip co">{c}</span>)}</span>
-                <span className="hide-sm" style={{ color: '#475569' }}>{r.acceptance != null ? `${r.acceptance}%` : ''}</span>
-                <span className="pl-att hide-sm">{r.attempts ? <>{kfmt(r.attempts)}<br />attempts</> : ''}</span>
-                <span className={`pl-diff ${r.difficulty}`}>{cap(r.difficulty)}</span>
-                <button className={`pl-solve${r.status === 'solved' ? ' done' : ''}`} onClick={(e) => { e.stopPropagation(); nav(`${base}/${r._id}`); }}>{r.status === 'solved' ? 'Review' : 'Solve →'}</button>
-                <i className="fa-solid fa-chevron-right hide-sm" style={{ color: '#a3acc0', fontSize: 11 }} />
-              </div>
-            ))}
-
-            {data && data.pages > 1 && (
-              <div className="pl-pager">
-                <button className="pl-btn sm" disabled={data.page <= 1} onClick={() => set({ page: String(data.page - 1) }, true)}><i className="fa-solid fa-chevron-left" /> Previous</button>
-                <span>Page {data.page} of {data.pages}</span>
-                <button className="pl-btn sm" disabled={data.page >= data.pages} onClick={() => set({ page: String(data.page + 1) }, true)}>Next <i className="fa-solid fa-chevron-right" /></button>
-              </div>
-            )}
-          </section>
+      <section className="pl-card pl-panel plh-panel">
+        <div className="pl-tabs">
+          {STATUS.map(([v, l]) => (
+            <button key={v} className={`pl-tab${get('status') === v ? ' on' : ''}`} onClick={() => set({ status: v })} aria-pressed={get('status') === v}>
+              <i className={`fa-${v === '' ? 'solid fa-table-cells-large' : v === 'todo' ? 'regular fa-star' : v === 'attempted' ? 'solid fa-rotate' : 'regular fa-circle-check'}`} aria-hidden /> {l}{counts[v] !== null ? ` (${(counts[v] as number).toLocaleString('en-IN')})` : ''}
+            </button>
+          ))}
+          <span className="grow" />
+          <button className="pl-btn plh-random" onClick={randomProblem} disabled={!data || picking}><i className="fa-solid fa-shuffle" aria-hidden /> Random Problem</button>
         </div>
 
-        <aside className="pl-rail">
-          {data?.next && (
-            <div className="pl-card">
-              <h3><i className="fa-solid fa-bolt" style={{ color: '#d97706' }} /> Up next for you</h3>
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>{data.next.number}. {data.next.title}</div>
-              <span className={`pl-diff ${data.next.difficulty}`} style={{ display: 'inline-block', padding: '3px 14px', marginBottom: 12 }}>{cap(data.next.difficulty)}</span>
-              <button className="pl-btn go" style={{ width: '100%', justifyContent: 'center' }} onClick={() => nav(`${base}/${data.next!._id}`)}>Solve it →</button>
+        <div className="pl-filters">
+          <div className="pl-search"><i className="fa-solid fa-magnifying-glass" />
+            <input placeholder="Search by title, topic, company or number…" value={text} onChange={(e) => setText(e.target.value)} aria-label="Search problems" /></div>
+          <label className="pl-field">Difficulty
+            <select value={get('difficulty')} onChange={(e) => set({ difficulty: e.target.value })}>
+              <option value="">All</option>
+              {(['easy', 'medium', 'hard'] as const).map((d) => <option key={d} value={d}>{cap(d)}{facets ? ` (${facets.difficulties[d] || 0})` : ''}</option>)}
+            </select></label>
+          <label className="pl-field">Topic
+            <select value={get('topic')} onChange={(e) => set({ topic: e.target.value })}>
+              <option value="">All</option>{(facets?.topics || []).map((t) => <option key={t.name} value={t.name}>{t.name} ({t.count})</option>)}
+            </select></label>
+          <label className="pl-field">Company
+            <select value={get('company')} onChange={(e) => set({ company: e.target.value })}>
+              <option value="">All</option>{(facets?.companies || []).map((t) => <option key={t.name} value={t.name}>{t.name} ({t.count})</option>)}
+            </select></label>
+          <label className="pl-field">Language
+            <select value={get('language')} onChange={(e) => set({ language: e.target.value })}>
+              <option value="">All</option>{(facets?.languages || []).map((t) => <option key={t.name} value={t.name}>{LANG_SHORT[t.name] || t.name} ({t.count})</option>)}
+            </select></label>
+          <button className="pl-btn" onClick={reset} disabled={!active.length && !get('status') && !get('sort')}><i className="fa-solid fa-rotate-left" aria-hidden /> Reset</button>
+        </div>
+
+        <div className="pl-meta">
+          <span>{data ? (data.total ? `Showing ${from} – ${to} of ${data.total.toLocaleString('en-IN')} problems` : 'No problems') : 'Loading…'}</span>
+          <label className="plh-sort">Sort by
+            <select value={get('sort') || 'number'} onChange={(e) => set({ sort: e.target.value === 'number' ? '' : e.target.value })}>
+              {SORTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select></label>
+        </div>
+
+        {err && <div className="pb-alert pb-alert-bad">{err}</div>}
+        {data && !data.rows.length && <div className="pl-empty"><h3>{active.length || get('status') ? 'No problems match' : 'No problems yet'}</h3><p>{active.length || get('status') ? 'Try removing a filter.' : 'Problems appear here as they are published.'}</p></div>}
+
+        {!!data?.rows.length && (
+          <div className="plh-table" role="table" aria-label="Problems">
+            <div className="plh-row plh-thead" role="row">
+              <span role="columnheader" className="c-st" aria-label="Status" />
+              <span role="columnheader" className="c-num">#</span>
+              <span role="columnheader" className="c-title">Problem Title</span>
+              <span role="columnheader" className="c-topic">Topic</span>
+              <span role="columnheader" className="c-att">Attempts</span>
+              <span role="columnheader" className="c-acc">Acceptance</span>
+              <span role="columnheader" className="c-diff">Difficulty</span>
+              <span role="columnheader" className="c-act">Action</span>
             </div>
-          )}
-          <div className="pl-card">
-            <h3><i className="fa-solid fa-bullseye" style={{ color: '#4f46e5' }} /> Your progress</h3>
-            {(['easy', 'medium', 'hard'] as const).map((d) => {
-              const x = prog?.byDifficulty[d];
-              return (
-                <div key={d} className="pl-diffrow">
-                  <div className="h"><span>{cap(d)}</span><span style={{ color: '#64748b' }}>{x?.solved ?? 0} / {x?.total ?? 0}</span></div>
-                  <div className="bar"><span style={{ width: `${pct(x?.solved, x?.total)}%`, background: DCOL[d] }} /></div>
-                </div>
-              );
-            })}
+            {data.rows.map((r) => (
+              <div key={r._id} className={`plh-row s-${r.status}`} role="row" tabIndex={0} onClick={() => open(r._id)} onKeyDown={(e) => { if (e.key === 'Enter') open(r._id); }}>
+                <span role="cell" className="c-st" title={r.status === 'solved' ? 'Solved' : r.status === 'attempted' ? 'Attempted' : 'Not started'}>
+                  {r.status === 'solved' ? <i className="fa-solid fa-circle-check" aria-label="Solved" />
+                    : r.status === 'attempted' ? <i className="fa-solid fa-circle-half-stroke" aria-label="Attempted" />
+                      : <i className="fa-regular fa-circle" aria-label="Not started" />}
+                </span>
+                <span role="cell" className="c-num">{r.number}</span>
+                <span role="cell" className="c-title">
+                  <b>{r.title}</b>
+                  {!!r.companies.length && <small>{r.companies.slice(0, 2).join(' · ')}</small>}
+                </span>
+                <span role="cell" className="c-topic">
+                  {r.topics[0] && <span className="plh-topic" onClick={(e) => { e.stopPropagation(); set({ topic: r.topics[0] }); }} title={`Show ${r.topics[0]} problems`}>{r.topics[0]}</span>}
+                </span>
+                <span role="cell" className="c-att">{r.attempts ? `${kfmt(r.attempts)} attempt${r.attempts === 1 ? '' : 's'}` : '—'}</span>
+                <span role="cell" className="c-acc">{r.acceptance != null ? `${r.acceptance}%` : '—'}</span>
+                <span role="cell" className="c-diff"><span className={`pl-diff ${r.difficulty}`}>{cap(r.difficulty)}</span></span>
+                <span role="cell" className="c-act">
+                  <button type="button" className={`plh-solve${r.status === 'solved' ? ' done' : ''}`} onClick={(e) => { e.stopPropagation(); open(r._id); }}>
+                    {r.status === 'solved' ? 'Review' : <>Solve <i className="fa-solid fa-arrow-right" aria-hidden /></>}
+                  </button>
+                </span>
+              </div>
+            ))}
           </div>
-          <div className="pl-card pl-quote"><i className="fa-solid fa-quote-left" style={{ opacity: 0.5 }} /><div style={{ marginTop: 6 }}>Consistency today creates opportunities tomorrow.</div><div style={{ opacity: 0.7, marginTop: 8, fontSize: 13 }}>— CodeBegun</div></div>
-          <div className="pl-card">
-            <div className="pl-help"><span className="ic"><i className="fa-solid fa-robot" /></span><div><b>Need Help?</b><div style={{ color: '#64748b', fontSize: 13 }}>Get hints, explanations and learning resources from AI Mentor.</div></div></div>
-            <button className="pl-btn" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }} onClick={() => nav('/careerpilot/mentor')}>Open AI Mentor →</button>
+        )}
+
+        {data && data.pages > 1 && (
+          <div className="pl-pager">
+            <button className="pl-btn sm" disabled={data.page <= 1} onClick={() => set({ page: String(data.page - 1) }, true)}><i className="fa-solid fa-chevron-left" /> Previous</button>
+            <span>Page {data.page} of {data.pages}</span>
+            <button className="pl-btn sm" disabled={data.page >= data.pages} onClick={() => set({ page: String(data.page + 1) }, true)}>Next <i className="fa-solid fa-chevron-right" /></button>
           </div>
-        </aside>
-      </div>
+        )}
+      </section>
     </div>
   );
 };

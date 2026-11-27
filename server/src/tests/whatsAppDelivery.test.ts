@@ -53,7 +53,17 @@ describe('explainWaError', () => {
   it('turns the marketing limit into something an admin can act on', () => {
     expect(explainWaError(131049)).toMatch(/marketing/i);
     expect(explainWaError(131026)).toMatch(/not on WhatsApp/);
+    expect(explainWaError(131042)).toMatch(/Billing & payments/);
     expect(explainWaError(999999, 'raw meta text')).toBe('raw meta text');
+  });
+});
+
+describe('recordSend for a send Meta refused', () => {
+  it('is logged as failed with Meta’s error, so a refused OTP is not invisible', async () => {
+    const { default: Log } = await import('../models/WhatsAppMessageLog');
+    await recordSend({ tenantId: '69c7723868202a8e4616ef3d', to: '919542789417', templateName: 'cb_otp (OTP)', source: 'system',
+      result: { ok: false, errorCode: 132001, error: 'Template name does not exist' } });
+    expect((Log as any).create).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'failed', errorCode: 132001, to: '919542789417' }));
   });
 });
 

@@ -1,6 +1,6 @@
 import InterviewPlan, {
   IInterviewPlan, IInterviewRound, IInterviewQuota, InterviewRoundType,
-  ROUND_TYPES, ROUND_TYPE_LABEL, PLAN_BOUNDS, DEFAULT_PLAN_SHAPE,
+  ROUND_TYPES, ROUND_TYPE_LABEL, PLAN_BOUNDS, DEFAULT_PLAN_SHAPE, PLATFORM_PLAN_TENANT,
 } from '../models/InterviewPlan';
 import {
   IMemberAudience, EMPTY_MEMBER_AUDIENCE, readMemberAudience, audienceServes,
@@ -173,8 +173,19 @@ export function resolvePlan(plans: IInterviewPlan[], member: AudienceMember | nu
 }
 
 /** Load a tenant's plans and resolve in one step. The call the runtime will make. */
+/**
+ * The plans in force for a tenant: the super admin's (one set for every institute) once any exist,
+ * otherwise the institute's own older plans, so nothing changes until the super admin writes one.
+ */
+export async function plansInForce(tenantId: string): Promise<{ plans: IInterviewPlan[]; platform: boolean }> {
+  const platform = await InterviewPlan.find({ tenantId: PLATFORM_PLAN_TENANT }).sort({ priority: -1, createdAt: 1 }).lean() as any as IInterviewPlan[];
+  if (platform.length) return { plans: platform, platform: true };
+  const own = await InterviewPlan.find({ tenantId }).sort({ priority: -1, createdAt: 1 }).lean() as any as IInterviewPlan[];
+  return { plans: own, platform: false };
+}
+
 export async function resolvePlanForMember(tenantId: string, member: AudienceMember | null): Promise<ResolvedPlan> {
-  const plans = await InterviewPlan.find({ tenantId }).sort({ priority: -1, createdAt: 1 }).lean() as any as IInterviewPlan[];
+  const { plans } = await plansInForce(tenantId);
   return resolvePlan(plans, member);
 }
 

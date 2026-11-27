@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { trackAction, trackNow } from '../Passport/activityBeacon';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import { youtubeIdOf, vimeoIdOf } from '../../components/content/videoUrl';
+import './videoControls.css';
+import { useUndoZoom } from '../../utils/useUndoZoom';
 
 /**
  * Lesson video playback for students.
@@ -16,9 +19,60 @@ import { youtubeIdOf, vimeoIdOf } from '../../components/content/videoUrl';
  * and Vimeo keep their own controls, which already seek perfectly well on their own.
  */
 
+/**
+ * Students watch lesson videos; they are not offered a copy. Hides the browser's own Download item
+ * (Chrome/Edge put it in the player's ⋮ menu) and the right-click "Save video as…". Spread onto every
+ * <video> a student watches; staff players keep the defaults. It removes the obvious way, not every way.
+ */
+export const NO_DOWNLOAD = {
+  controlsList: 'nodownload',
+  onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+};
+
 const SKIP_SECONDS = 10;
 const BIG_SKIP_SECONDS = 30;
-const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
+export const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+const SPEED_KEY = 'cp.video.speed';
+/** The student's last chosen speed, kept across videos (a convenience; any failure means 1x). */
+export const savedSpeed = (): number => { try { const n = Number(localStorage.getItem(SPEED_KEY)); return SPEEDS.includes(n) ? n : 1; } catch { return 1; } };
+export const rememberSpeed = (s: number) => { try { localStorage.setItem(SPEED_KEY, String(s)); } catch { /* private mode */ } };
+
+/*
+ * QUALITY. An uploaded video gets 360p–1080p versions after upload (server videoRenditionService).
+ * 0 means the original file. "Auto" (the default) starts at 720p when it exists — the original is
+ * often a heavy 1080p recording that is slow to start — else the best version at or below 720p.
+ */
+const QUALITY_KEY = 'cp.video.quality';
+export type QualityPref = 'auto' | number;
+export const savedQuality = (): QualityPref => { try { const v = localStorage.getItem(QUALITY_KEY); return !v || v === 'auto' ? 'auto' : Number(v) || 'auto'; } catch { return 'auto'; } };
+export const rememberQuality = (q: QualityPref) => { try { localStorage.setItem(QUALITY_KEY, String(q)); } catch { /* private mode */ } };
+/** The height to play for a preference: 0 = the original file. */
+export const pickQuality = (heights: number[], pref: QualityPref): number => {
+  if (pref === 'auto') return heights.find(h => h <= 720) ?? 0;
+  if (pref === 0) return 0;
+  return heights.includes(pref) ? pref : (heights.find(h => h <= pref) ?? 0);
+};
+
+/**
+ * Change the file a <video> plays without losing the student's place: same second, same speed,
+ * still playing if it was. `onReady` lets a watch tracker resync after the jump.
+ */
+export const switchSource = (v: HTMLVideoElement | null, src: string, onReady?: () => void) => {
+  if (!v) return;
+  const abs = new URL(src, window.location.href).href;
+  if (v.currentSrc === abs || v.src === abs) return;
+  const t = v.currentTime, playing = !v.paused, rate = v.playbackRate;
+  const restore = () => {
+    v.removeEventListener('loadedmetadata', restore);
+    try { v.currentTime = t; } catch { /* not seekable yet */ }
+    v.playbackRate = rate;
+    onReady?.();
+    if (playing) v.play().catch(() => {});
+  };
+  v.addEventListener('loadedmetadata', restore);
+  v.src = abs;
+  v.load();
+};
 
 function formatTime(secs: number): string {
   if (!secs || !isFinite(secs) || secs < 0) return '0:00';
@@ -36,21 +90,79 @@ function formatTime(secs: number): string {
  * Threshold 0 means "complete on open" (see LearningContentLibrary.completionThreshold),
  * so firing on the first progress report is deliberate, not an off-by-one.
  */
-function useWatchProgress(threshold: number, onWatchEnough: () => void) {
+/**
+ * What a CareerPilot member watched, for the super admin's activity trail: "Started watching", the
+ * 25/50/75/100% milestones, and how many seconds of the video were actually played when they left.
+ * Only on CareerPilot pages — this player is shared with the LMS, whose students have their own log.
+ */
+const onCareerPilot = () => typeof window !== 'undefined' && window.location.pathname.startsWith('/careerpilot');
+const videoMeta = (content: any) => ({ contentId: content?._id ? String(content._id) : undefined, title: content?.title || undefined, source: content?.videoSource || undefined });
+
+function useVideoActivity(content: any) {
+  const started = useRef(false);
+  const milestones = useRef(new Set<number>());
+  const lastTime = useRef<number | null>(null);
+  const playedSeconds = useRef(0);
+  const duration = useRef(0);
+  const meta = useRef(videoMeta(content));
+  meta.current = videoMeta(content);
+
+  useEffect(() => {
+    if (!onCareerPilot()) return undefined;
+    trackAction('Opened a video', { meta: meta.current });
+    return () => {
+      if (!started.current) return;
+      trackNow('Stopped watching a video', {
+        ...meta.current,
+        watchedSeconds: Math.round(playedSeconds.current),
+        durationSeconds: Math.round(duration.current) || undefined,
+        maxPct: Math.max(0, ...Array.from(milestones.current)),
+      });
+    };
+    // Mount/unmount of one video only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return useCallback((time: number, dur: number) => {
+    if (!onCareerPilot() || !dur || !isFinite(dur)) return;
+    duration.current = dur;
+    // Count only time actually played: a jump of more than 3s is a seek, not watching.
+    if (lastTime.current !== null) {
+      const delta = time - lastTime.current;
+      if (delta > 0 && delta <= 3) playedSeconds.current += delta;
+    }
+    lastTime.current = time;
+    if (!started.current && time > 0) {
+      started.current = true;
+      trackAction('Started watching a video', { meta: meta.current });
+    }
+    const pct = (time / dur) * 100;
+    for (const m of [25, 50, 75, 100]) {
+      if (pct >= (m === 100 ? 97 : m) && !milestones.current.has(m)) {
+        milestones.current.add(m);
+        trackAction(`Watched ${m}% of a video`, { meta: { ...meta.current, pct: m, watchedSeconds: Math.round(playedSeconds.current) } });
+      }
+    }
+  }, []);
+}
+
+function useWatchProgress(threshold: number, onWatchEnough: () => void, content?: any) {
   const [pct, setPct] = useState(0);
   const notified = useRef(false);
   const notify = useRef(onWatchEnough);
   notify.current = onWatchEnough;
+  const activity = useVideoActivity(content);
 
   const report = useCallback((time: number, duration: number) => {
     if (!duration || !isFinite(duration) || duration <= 0) return;
+    activity(time, duration);
     const watched = Math.round((time / duration) * 100);
     setPct(watched);
     if (!notified.current && watched >= threshold) {
       notified.current = true;
       notify.current();
     }
-  }, [threshold]);
+  }, [threshold, activity]);
 
   return { pct, report };
 }
@@ -60,12 +172,12 @@ function useWatchProgress(threshold: number, onWatchEnough: () => void) {
 const btnStyle: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '6px 11px', border: '1px solid #e2e8f0', borderRadius: 8,
-  background: '#fff', color: '#334155', fontSize: 13, fontWeight: 600,
+  background: '#fff', color: '#334155', fontSize: 'max(13px, var(--fs-floor, 0px))', fontWeight: 600,
   cursor: 'pointer', lineHeight: 1.2,
 };
 
-function SeekControls({
-  onSkip, currentTime, duration, speed, onSpeedChange, note,
+export function SeekControls({
+  onSkip, currentTime, duration, speed, onSpeedChange, note, videoRef, qualities, quality, onQualityChange,
 }: {
   onSkip: (delta: number) => void;
   currentTime: number;
@@ -73,9 +185,21 @@ function SeekControls({
   speed?: number;
   onSpeedChange?: (s: number) => void;
   note?: string;
+  /** When given, a picture-in-picture button floats the video while the student reads on. */
+  videoRef?: React.RefObject<HTMLVideoElement>;
+  /** Quality versions on offer (heights, highest first); the menu shows only when there are some. */
+  qualities?: number[];
+  quality?: QualityPref;
+  onQualityChange?: (q: QualityPref) => void;
 }) {
+  const pipOk = !!videoRef && typeof document !== 'undefined' && (document as any).pictureInPictureEnabled;
+  const togglePip = async () => {
+    const v = videoRef?.current; if (!v) return;
+    try { if ((document as any).pictureInPictureElement) await (document as any).exitPictureInPicture(); else await (v as any).requestPictureInPicture(); } catch { /* not allowed here */ }
+  };
   return (
-    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+    <div className="vpc">
+      <div className="vpc-row">
       <button
         type="button"
         style={btnStyle}
@@ -96,26 +220,51 @@ function SeekControls({
       </button>
 
       {duration > 0 && (
-        <span style={{ fontSize: 12, color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>
+        <span className="vpc-time">
           {formatTime(currentTime)} / {formatTime(duration)}
         </span>
       )}
 
-      {onSpeedChange && (
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginLeft: 'auto', fontSize: 12, color: '#64748b' }}>
-          Speed
+      {pipOk && (
+        <button type="button" style={btnStyle} onClick={togglePip} aria-label="Picture in picture" title="Keep the video floating while you read or code">
+          <i className="bi bi-pip" /> Float
+        </button>
+      )}
+      </div>
+
+      <div className="vpc-sel">
+
+      {onQualityChange && !!qualities?.length && (
+        <label className="vpc-pick">
+          Quality
           <select
-            value={speed}
-            onChange={e => onSpeedChange(Number(e.target.value))}
-            aria-label="Playback speed"
-            style={{ border: '1px solid #e2e8f0', borderRadius: 7, padding: '4px 6px', fontSize: 12, color: '#334155', background: '#fff', cursor: 'pointer' }}
+            value={String(quality ?? 'auto')}
+            onChange={e => { const v: QualityPref = e.target.value === 'auto' ? 'auto' : Number(e.target.value); rememberQuality(v); onQualityChange(v); }}
+            aria-label="Video quality"
           >
-            {SPEEDS.map(s => <option key={s} value={s}>{s}x</option>)}
+            <option value="auto">Auto ({pickQuality(qualities, 'auto') ? `${pickQuality(qualities, 'auto')}p` : 'original'})</option>
+            <option value="0">Original</option>
+            {qualities.map(h => <option key={h} value={h}>{h}p</option>)}
           </select>
         </label>
       )}
 
-      {note && <span style={{ fontSize: 11, color: '#94a3b8', width: '100%' }}>{note}</span>}
+      {onSpeedChange && (
+        <label className="vpc-pick">
+          Speed
+          <select
+            value={speed}
+            onChange={e => { const v = Number(e.target.value); rememberSpeed(v); onSpeedChange(v); }}
+            aria-label="Playback speed"
+          >
+            {SPEEDS.map(s => <option key={s} value={s}>{s === 1 ? 'Normal' : `${s}x`}</option>)}
+          </select>
+        </label>
+      )}
+
+      </div>
+
+      {note && <span className="vpc-note">{note}</span>}
     </div>
   );
 }
@@ -131,7 +280,7 @@ function ProgressNote({ threshold, pct }: { threshold: number; pct: number }) {
 }
 
 /** Keys we take over. Ignored while the student is typing somewhere. */
-function useSeekKeys(onSkip: (delta: number) => void, onTogglePlay?: () => void) {
+export function useSeekKeys(onSkip: (delta: number) => void, onTogglePlay?: () => void) {
   return useCallback((e: React.KeyboardEvent) => {
     const el = e.target as HTMLElement;
     const tag = el?.tagName?.toLowerCase();
@@ -223,7 +372,7 @@ function useBunnyPlayer(
 
 function BunnyPlayer({ content, threshold, onWatchEnough }: { content: any; threshold: number; onWatchEnough: () => void }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { pct, report } = useWatchProgress(threshold, onWatchEnough);
+  const { pct, report } = useWatchProgress(threshold, onWatchEnough, content);
   const { skip, time, duration } = useBunnyPlayer(iframeRef, report);
   const onKeyDown = useSeekKeys(skip);
 
@@ -255,13 +404,26 @@ function BunnyPlayer({ content, threshold, onWatchEnough }: { content: any; thre
 
 function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; threshold: number; onWatchEnough: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(savedSpeed);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [unseekable, setUnseekable] = useState(false);
-  const { pct, report } = useWatchProgress(threshold, onWatchEnough);
+  const { pct, report } = useWatchProgress(threshold, onWatchEnough, content);
 
-  const streamUrl = learningContentLibraryApi.getStreamUrl(content._id);
+  const baseUrl = learningContentLibraryApi.getStreamUrl(content._id);
+  const [heights, setHeights] = useState<number[]>([]);
+  const [quality, setQuality] = useState<QualityPref>(savedQuality);
+  useEffect(() => {
+    let live = true;
+    learningContentLibraryApi.getQualities(content._id).then(q => { if (live) setHeights(q.heights || []); }).catch(() => {});
+    return () => { live = false; };
+  }, [content._id]);
+  const playing = pickQuality(heights, quality);
+  const streamUrl = playing ? `${baseUrl}&q=${playing}` : baseUrl;
+  /* The element keeps the address it mounted with; every later change (the qualities arriving,
+     the student picking one) goes through switchSource, which keeps their place. */
+  const mountSrc = useRef(streamUrl);
+  useEffect(() => { switchSource(videoRef.current, streamUrl); }, [streamUrl]);
 
   const skip = useCallback((delta: number) => {
     const v = videoRef.current;
@@ -304,13 +466,17 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
     if (videoRef.current) videoRef.current.playbackRate = s;
   }, []);
 
+  // The app zoom skews the browser's own timeline: undo it on the player.
+  useUndoZoom(videoRef);
+
   return (
     <div onKeyDown={onKeyDown} tabIndex={0} style={{ outline: 'none' }}>
       <video
         ref={videoRef}
-        src={streamUrl}
+        src={mountSrc.current}
         poster={content.videoThumbnail || undefined}
         controls
+        {...NO_DOWNLOAD}
         preload="metadata"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
@@ -322,10 +488,14 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
         duration={duration}
         speed={speed}
         onSpeedChange={changeSpeed}
+        videoRef={videoRef}
+        qualities={heights}
+        quality={quality}
+        onQualityChange={setQuality}
         note="Tip: the left and right arrow keys skip 10s (hold Shift for 30s), K plays and pauses."
       />
       {unseekable && (
-        <div style={{ fontSize: 12, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', marginTop: 6 }}>
+        <div style={{ fontSize: 'max(12px, var(--fs-floor, 0px))', color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', marginTop: 6 }}>
           <i className="bi bi-exclamation-triangle" style={{ marginRight: 6 }} />
           This file was uploaded in a format that cannot be skipped through. It will play from
           the start, but seeking will not work until it is re-encoded — please let your trainer know.
@@ -340,10 +510,16 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
 
 /** A saved link the player cannot read — said plainly rather than shown as an empty frame. */
 const UnplayableLink: React.FC = () => (
-  <div style={{ borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', padding: '20px 18px', fontSize: 13, lineHeight: 1.55 }}>
+  <div style={{ borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', padding: '20px 18px', fontSize: 'max(13px, var(--fs-floor, 0px))', lineHeight: 1.55 }}>
     This video's link could not be read, so there is nothing to play yet. Please let your trainer know.
   </div>
 );
+
+/** YouTube and Vimeo embeds expose no playback events here, so only the opening is recorded. */
+function OpenedOnly({ content, children }: { content: any; children: React.ReactNode }) {
+  useEffect(() => { if (onCareerPilot()) trackAction('Opened a video', { meta: videoMeta(content) }); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  return <>{children}</>;
+}
 
 export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchEnough: () => void }) {
   const threshold = content.completionThreshold || 0;
@@ -351,16 +527,21 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
   if (content.videoSource === 'youtube' && content.videoUrl) {
     const ytId = youtubeIdOf(content.videoUrl);
     if (!ytId) return <UnplayableLink />;
-    return (
+    return (<OpenedOnly content={content}>
       <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '10px', overflow: 'hidden' }}>
         <iframe
           src={`https://www.youtube.com/embed/${ytId}`}
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+          // YouTube refuses to play an embed that arrives with no referrer ("Error 153"). The
+          // page's own policy may be stricter, so the frame states the one YouTube needs: our
+          // origin only, never the path.
+          referrerPolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           title={content.title}
         />
       </div>
-    );
+    </OpenedOnly>);
   }
 
   if (content.videoSource === 'bunny' && content.bunnyVideoId && content.bunnyLibraryId) {
@@ -379,7 +560,7 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
             <i className="bi bi-exclamation-triangle" style={{ marginRight: 8 }} />
             This recording could not be processed
           </div>
-          <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+          <div style={{ fontSize: 'max(13px, var(--fs-floor, 0px))', lineHeight: 1.55 }}>
             The upload failed while being prepared, so there is nothing to play. It needs to be
             uploaded again — please let your trainer know.
           </div>
@@ -396,7 +577,7 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
             <i className="bi bi-hourglass-split" style={{ marginRight: 8 }} />
             Still being prepared
           </div>
-          <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+          <div style={{ fontSize: 'max(13px, var(--fs-floor, 0px))', lineHeight: 1.55 }}>
             This recording is being processed and will play shortly. Check back in a few minutes.
           </div>
         </div>
@@ -409,16 +590,18 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
   if (content.videoSource === 'vimeo' && content.videoUrl) {
     const vimeoId = vimeoIdOf(content.videoUrl);
     if (!vimeoId) return <UnplayableLink />;
-    return (
+    return (<OpenedOnly content={content}>
       <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '10px', overflow: 'hidden' }}>
         <iframe
           src={`https://player.vimeo.com/video/${vimeoId}`}
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+          referrerPolicy="strict-origin-when-cross-origin"
+          allow="autoplay; fullscreen; picture-in-picture"
           allowFullScreen
           title={content.title}
         />
       </div>
-    );
+    </OpenedOnly>);
   }
 
   // Uploaded video (streaming)

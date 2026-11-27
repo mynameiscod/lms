@@ -1,18 +1,58 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import { RoleService } from '../services/roleService';
-import { PERMISSION_GROUPS } from '../middleware/roleGuard';
+import { PERMISSION_GROUPS, SUPER_ADMIN_GRANTED, PLATFORM_ONLY } from '../middleware/roleGuard';
+import { modulesForTenant } from '../middleware/moduleGate';
+import { moduleOfPermission, groupOfPermission } from '../config/permissionModules';
 
 const roleService = new RoleService();
+
+const isSuper = (req: AuthenticatedRequest) => req.user?.role === 'SUPER_ADMIN';
+
+/**
+ * The permissions a role ends up with when someone other than a super admin saves it: everything
+ * they asked for except the super-admin-only ones, which stay exactly as the role already had them.
+ */
+const guardGrants = async (req: AuthenticatedRequest, requested: string[], existing: string[] = []): Promise<string[]> => {
+  requested = (requested || []).filter((p) => !PLATFORM_ONLY.includes(p));
+  if (isSuper(req)) return requested;
+  // A permission of a module the institute does not have cannot be added; one the role already has
+  // stays, so switching the module back on later needs no role edits.
+  const offered = await offeredFor(req);
+  const blocked = (p: string) => SUPER_ADMIN_GRANTED.includes(p) || !offered(p);
+  const kept = existing.filter(blocked);
+  return Array.from(new Set([...requested.filter((p) => !blocked(p)), ...kept]));
+};
+
+/**
+ * Whether a permission is offered to this person on the Roles screen: not to an institute admin when it
+ * belongs to a module their institute does not have (config/permissionModules). The super admin, and an
+ * institute whose modules cannot be read, see everything (fail open: a database blip must not empty the screen).
+ */
+async function offeredFor(req: AuthenticatedRequest): Promise<(permKey: string) => boolean> {
+  if (isSuper(req) || !req.tenantId) return () => true;
+  let modules: Record<string, boolean>;
+  try { modules = await modulesForTenant(String(req.tenantId)); } catch { return () => true; }
+  return (permKey: string) => {
+    const group = groupOfPermission(PERMISSION_GROUPS as any, permKey);
+    const mod = group ? moduleOfPermission(group, permKey) : null;
+    return !mod || modules[mod] !== false;
+  };
+}
 
 export const getAvailablePermissions = async (
   req: AuthenticatedRequest,
   res: Response<ApiResponse<any>>
 ) => {
+  const offered = await offeredFor(req);
   res.status(200).json({
     success: true,
     message: 'Available permissions fetched',
-    data: PERMISSION_GROUPS
+    // Nobody is shown what cannot be given: the platform keys never go on a role, an institute admin
+    // does not see the super-admin-only ones, nor the permissions of modules their institute does not have.
+    data: Object.fromEntries(Object.entries(PERMISSION_GROUPS).map(([k, g]) => [k, {
+      ...g, permissions: g.permissions.filter((p) => !PLATFORM_ONLY.includes(p.key) && (isSuper(req) || !SUPER_ADMIN_GRANTED.includes(p.key)) && offered(p.key)),
+    }]).filter(([, g]: any) => g.permissions.length > 0)),
   });
 };
 
@@ -34,7 +74,7 @@ export const createRole = async (
     const roleData = {
       name,
       description,
-      permissions: permissions || [],
+      permissions: await guardGrants(req, permissions || []),
       tenantId: req.tenantId!
     };
 
@@ -117,7 +157,10 @@ export const updateRole = async (
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
-    if (permissions !== undefined) updateData.permissions = permissions;
+    if (permissions !== undefined) {
+      const current: any = isSuper(req) ? null : await roleService.getRoleById(roleId, req.tenantId!);
+      updateData.permissions = await guardGrants(req, permissions, current?.permissions || []);
+    }
 
     const role = await roleService.updateRole(roleId, req.tenantId!, updateData);
 
@@ -190,7 +233,7 @@ export const addPermissions = async (
       });
     }
 
-    const role = await roleService.addPermissions(roleId, req.tenantId!, permissions);
+    const role = await roleService.addPermissions(roleId, req.tenantId!, await guardGrants(req, permissions));
 
     if (!role) {
       return res.status(404).json({
@@ -230,7 +273,7 @@ export const removePermissions = async (
       });
     }
 
-    const role = await roleService.removePermissions(roleId, req.tenantId!, permissions);
+    const role = await roleService.removePermissions(roleId, req.tenantId!, await guardGrants(req, permissions));
 
     if (!role) {
       return res.status(404).json({

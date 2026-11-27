@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { User } from '../types';
+import { LOGGED_OUT_KEY } from '../utils/loginPath';
 
 interface AuthContextType {
   user: User | null;
@@ -61,6 +62,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // straight to /login with no error shown.
             if (!response.ok) {
               if (response.status === 401) {
+                // LMS access window over: say so on the login page.
+                const body = await response.clone().json().catch(() => ({} as any));
+                if (body?.code === 'ACCESS_ENDED' && body.message) localStorage.setItem('loginMessage', body.message);
                 localStorage.removeItem('user');
                 localStorage.removeItem('token');
                 localStorage.removeItem('tenantId');
@@ -116,6 +120,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (permResponse.ok) {
                 const permData = await permResponse.json();
                 freshUser.permissions = permData.data?.permissions || [];
+                if (permData.data?.role) freshUser.role = permData.data.role;
+                freshUser.customRoleId = permData.data?.customRoleId || undefined;
+                freshUser.customRoleName = permData.data?.customRoleName || null;
               }
             } catch (permError) {
               console.error('Failed to fetch permissions:', permError);
@@ -220,6 +227,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('tenantId');
     if (message) {
       localStorage.setItem('loginMessage', message);
+    } else {
+      // A deliberate log-out: the login page that follows is not "sign in to open that page".
+      try { sessionStorage.setItem(LOGGED_OUT_KEY, String(Date.now())); } catch { /* private mode */ }
     }
     setToken(null);
     setUser(null);
@@ -267,7 +277,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Don't intercept the login/register/forgot-password/setup-password/refresh endpoints themselves
         const isAuthEndpoint = /\/(login|register|register-organization|forgot-password|reset-password|setup-password|refresh-token)/.test(url);
         if (!isAuthEndpoint) {
-          logout('Your session has expired. Please log in again.');
+          const body = await response.clone().json().catch(() => ({} as any));
+          logout(body?.code === 'ACCESS_ENDED' && body.message ? body.message
+            : body?.code === 'ACCOUNT_DEACTIVATED' ? 'Your account has been deactivated. Please contact your administrator.'
+            : 'Your session has expired. Please log in again.');
         }
       }
       return response;
@@ -276,6 +289,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.fetch = originalFetch;
     };
   }, [logout]);
+
+  /*
+   * Permissions change while people are logged in: a super admin ticks a box on the Roles screen.
+   * The menu, tabs and page guards read user.permissions, so refresh them whenever the tab comes
+   * back into view — the new access appears without logging out. Errors keep what we have.
+   */
+  const userId = (user as any)?._id || (user as any)?.id;
+  useEffect(() => {
+    if (!userId || !token) return;
+    const API_URL = process.env.REACT_APP_API_URL || '/api/v1';
+    let last = 0;
+    const refresh = async () => {
+      if (document.visibilityState !== 'visible' || Date.now() - last < 30000) return;
+      last = Date.now();
+      try {
+        const r = await fetch(`${API_URL}/users/me/permissions`, { headers: { Authorization: `Bearer ${token}`, 'X-Tenant-Id': localStorage.getItem('tenantId') || '' } });
+        if (!r.ok) return;
+        const data = (await r.json())?.data || {};
+        const next: string[] = data.permissions || [];
+        setUser((prev) => {
+          if (!prev) return prev;
+          // A role given or changed while this tab was open: the role, the custom role and its permissions all move
+          // together, so the menu (which looks at all three) shows what the Users screen just gave.
+          const key = (u: any) => [u.role, u.customRoleId || '', u.customRoleName || '', (u.permissions || []).slice().sort().join(',')].join('|');
+          const updated: any = { ...prev, permissions: next, role: data.role || prev.role, customRoleId: data.customRoleId || undefined, customRoleName: data.customRoleName || null };
+          if (key(prev) === key(updated)) return prev;
+          localStorage.setItem('user', JSON.stringify(updated));
+          return updated;
+        });
+      } catch { /* keep the permissions we have */ }
+    };
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('focus', refresh);
+    return () => { document.removeEventListener('visibilitychange', refresh); window.removeEventListener('focus', refresh); };
+  }, [userId, token]);
 
   const updateProfile = (updates: Partial<User>) => {
     if (user) {

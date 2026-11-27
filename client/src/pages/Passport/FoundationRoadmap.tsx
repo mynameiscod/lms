@@ -23,7 +23,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { FoundationJourney as Journey } from '../../api/passportApi';
 import FoundationJourneyPage from './FoundationJourney';
-import RoadmapPhaseBands from './RoadmapPhaseBands';
+import CareerTrackPicker from './CareerTrackPicker';
 import { useUnlock } from './SectionLock';
 import {
   dayState, canOpenDay, planLinkFor, welcomeLinkFor, groupJourneyDays, dayRanges, KIND_LABEL, STATE_LABEL, RoadmapGroup,
@@ -31,6 +31,8 @@ import {
 import './foundationJourney.css';
 import './foundationRoadmap.css';
 import './foundationMember.css';
+import { useProgramDays } from './useProgramDays';
+import { barWidth } from '../../utils/barWidth';
 
 const GROUP_LABEL: Record<RoadmapGroup['state'], string> = {
   COMPLETED: 'Completed',
@@ -51,6 +53,7 @@ const STATE_ICON: Record<string, string> = {
 
 const FoundationRoadmap: React.FC = () => {
   const nav = useNavigate();
+  const programDays = useProgramDays();
   const [journey, setJourney] = useState<Journey | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -67,8 +70,10 @@ const FoundationRoadmap: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const groups = useMemo(() => groupJourneyDays(journey?.days || []), [journey]);
-  const totalDays = journey?.totalDays ?? 90;
+  /* While the welcome is required, today is a welcome day and Day 1 is shut — never a second "Today". */
+  const welcomeFirst = !!journey?.orientation?.blocking;
+  const groups = useMemo(() => groupJourneyDays(journey?.days || [], welcomeFirst), [journey, welcomeFirst]);
+  const totalDays = journey?.totalDays ?? programDays ?? 90;
   /** The welcome days, 0.1–0.5. Open by default while they still have to be done. */
   const orientation = journey?.orientation || null;
   const [welcomeOpen, setWelcomeOpen] = useState(true);
@@ -120,6 +125,8 @@ const FoundationRoadmap: React.FC = () => {
 
   return (
     <div className="fj-page fr-page frm">
+      {/* The roadmap is opened from My N Days ("View roadmap"), so it leads back there. */}
+      <button type="button" className="frm-back" onClick={() => nav('/careerpilot/plan')}><i className="bi bi-arrow-left" aria-hidden /> Back to My {totalDays} Days</button>
       <section className="fjm-hero">
         <div className="fjm-hero-copy">
           <span className="fjm-eyebrow">Your personalised {totalDays}-day roadmap</span>
@@ -146,7 +153,7 @@ const FoundationRoadmap: React.FC = () => {
           {!preview && (
             <div className="fjm-hero-bar" role="progressbar" aria-valuenow={percentComplete}
                  aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress">
-              <i style={{ width: `${Math.max(1, percentComplete)}%` }} />
+              <i style={{ width: `${barWidth(percentComplete)}%` }} />
             </div>
           )}
         </div>
@@ -161,7 +168,26 @@ const FoundationRoadmap: React.FC = () => {
                 <i className="bi bi-arrow-right" />
               </button>
             </>
-          ) : (
+          ) : orientation?.blocking && orientation.days.length > 0 ? (() => {
+            /* While the welcome is required, today is a welcome day, not Day 1 — which is still shut. */
+            const w = orientation.days.find(d => d.status === 'CURRENT') || orientation.days.find(d => d.status !== 'COMPLETED') || orientation.days[0];
+            return (
+              <>
+                <small>Today · Day {w.day} · before Day 1</small>
+                <b>{w.title}</b>
+                <span>Finish the welcome and Day 1 opens</span>
+                {w.locked ? (
+                  <button type="button" className="fjm-btn light" disabled>
+                    {w.lockedReason === 'NOT_TODAY_YET' ? 'Opens tomorrow' : 'Finish the day before'}
+                  </button>
+                ) : (
+                  <button type="button" className="fjm-btn light" onClick={() => nav(welcomeLinkFor(w.dayNumber))}>
+                    {`Start Day ${w.day}`} <i className="bi bi-arrow-right" />
+                  </button>
+                )}
+              </>
+            );
+          })() : (
             <>
               <small>{allDone ? 'Journey complete' : `Today · Day ${currentDay} of ${totalDays}`}</small>
               <b>{allDone ? 'You have completed every day' : today?.title || `Day ${currentDay}`}</b>
@@ -174,8 +200,7 @@ const FoundationRoadmap: React.FC = () => {
         </div>
       </section>
 
-      {/* Roadmap V2: why a day is locked, while earlier checkpoints hold it. The bridge/year split is admin-only. */}
-      <RoadmapPhaseBands gate={journey.gate} />
+      <CareerTrackPicker onPicked={() => window.location.reload()} />
 
       <div className="fr-tools">
         <div className="fr-ranges" role="group" aria-label="Show days">
@@ -320,7 +345,7 @@ const FoundationRoadmap: React.FC = () => {
                 {isOpen && (
                   <ol className="fr-days">
                     {g.days.map(d => {
-                      const state = preview ? 'LOCKED' : dayState(d);
+                      const state = preview ? 'LOCKED' : dayState(d, welcomeFirst);
                       const body = (
                         <>
                           <span className={`fr-dot small st-${state.toLowerCase()}`} aria-hidden><i className={`bi ${STATE_ICON[state]}`} /></span>

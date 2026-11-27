@@ -7,6 +7,7 @@ import TracePlayer from './TracePlayer';
 import ProblemBreakdown from './ProblemBreakdown';
 import { CONCEPT_WIDGETS } from './concepts';
 import './CodeVisualizer.css';
+import './vzWorkspace.css';
 import { confirmDialog } from '../../components/feedback/appFeedback';
 
 /** The same page serves the LMS (/visualizer) and CareerPilot (/careerpilot/visualizer). */
@@ -41,7 +42,7 @@ const useWorkspaceWidth = () => {
     if (!el || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(([entry]) => {
       const w = entry.contentRect.width;
-      setSize(w >= 1060 ? 'wide' : w >= 700 ? 'mid' : 'narrow');
+      setSize(w >= 1060 ? 'wide' : w >= 860 ? 'mid' : 'narrow');
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -178,7 +179,7 @@ const Workspace: React.FC = () => {
   if (!item) return <div className="vz-root"><div className="vz-empty">Loading…</div></div>;
 
   const header = (
-    <>
+    <header className="vz-head-card">
       <nav className="vz-crumbs" aria-label="Breadcrumb">
         <Link to={base}><i className="fa-solid fa-arrow-left" aria-hidden /> Library</Link>
         <i className="fa-solid fa-chevron-right sep" aria-hidden />
@@ -195,13 +196,12 @@ const Workspace: React.FC = () => {
           {item.summary && <p className="vz-subtitle">{item.summary}</p>}
         </div>
         <div className="vz-tags">
-          <span className="vz-tag">{item.topic}</span>
-          {item.kind === 'concept' ? <span className="vz-tag">Concept</span> : <span className="vz-tag">Java</span>}
-          {item.timeComplexity && <span className="vz-tag mono">Time {item.timeComplexity}</span>}
-          {item.spaceComplexity && <span className="vz-tag mono">Space {item.spaceComplexity}</span>}
+          <span className="vz-tag"><i className={item.kind === 'concept' ? 'fa-regular fa-lightbulb' : 'fa-brands fa-java'} aria-hidden /> {item.kind === 'concept' ? 'Concept' : 'Java'}</span>
+          {item.kind === 'problem' && item.timeComplexity && <span className="vz-tag cx" title="Time complexity"><i className="fa-regular fa-clock" aria-hidden /> {item.timeComplexity}</span>}
+          {item.kind === 'problem' && item.spaceComplexity && <span className="vz-tag cx" title="Space complexity"><i className="fa-solid fa-memory" aria-hidden /> {item.spaceComplexity}</span>}
         </div>
       </div>
-    </>
+    </header>
   );
 
   if (item.kind === 'concept') {
@@ -316,9 +316,9 @@ const Workspace: React.FC = () => {
               </select>
               <i className="fa-solid fa-chevron-down caret" aria-hidden />
             </label>
+            <button className="vz-btn" onClick={reset} title="Back to the starter code" aria-label="Starter code"><i className="fa-solid fa-rotate-left" aria-hidden /><span className="lbl">Starter</span></button>
+            {item.solutionCode && <button className="vz-btn" onClick={loadSolution} title="Load the reference solution" aria-label="Solution"><i className="fa-regular fa-lightbulb" aria-hidden /><span className="lbl">Solution</span></button>}
             <div className="vz-spacer" />
-            <button className="vz-btn" onClick={reset}><i className="fa-solid fa-code" aria-hidden /> Starter</button>
-            {item.solutionCode && <button className="vz-btn" onClick={loadSolution}><i className="fa-regular fa-lightbulb vz-bulb" aria-hidden /> Solution</button>}
             <button className="vz-btn vz-btn-primary" onClick={visualize} disabled={running || !code.trim()}>
               <i className={running ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-play'} aria-hidden /> {running ? 'Running…' : 'Visualize'}
             </button>
@@ -332,10 +332,10 @@ const Workspace: React.FC = () => {
               onMount={(ed, monaco) => { editorRef.current = ed; monacoRef.current = monaco; }}
               theme="light"
               options={{
-                minimap: { enabled: false }, fontSize: 13, lineHeight: 22, scrollBeyondLastLine: false,
+                minimap: { enabled: false }, fontSize: size === 'narrow' ? 14 : 15, lineHeight: size === 'narrow' ? 22 : 24, scrollBeyondLastLine: false,
                 fontFamily: VZ_CODE_FONT, stickyScroll: { enabled: false },
                 automaticLayout: true, tabSize: 4, renderLineHighlight: 'none', padding: { top: 12 },
-                overviewRulerLanes: 0, lineDecorationsWidth: 14,
+                overviewRulerLanes: 0, lineDecorationsWidth: 14, wordWrap: size === 'narrow' ? 'on' : 'off',
               }}
             />
             <button type="button" className="vz-fs-btn" onClick={() => setFullEditor(f => !f)}
@@ -361,14 +361,20 @@ const Workspace: React.FC = () => {
             )}
             {!running && !result && !runError && (
               <div className="vz-idle">
-                <div className="vz-idle-icon"><i className="fa-solid fa-chart-simple" aria-hidden /></div>
+                <div className="vz-idle-demo" aria-hidden>
+                  {[46, 78, 30, 62, 90, 38, 70].map((h, i) => <i key={i} style={{ height: `${h}%`, animationDelay: `${i * 0.12}s` }} className={i === 2 || i === 3 ? 'cmp' : ''} />)}
+                </div>
                 <h3>Watch your code run</h3>
-                <ol>
-                  <li>Read the problem. Stuck? Open <b>Break it down</b>.</li>
-                  <li>Write your solution in the editor.</li>
-                  <li>Press <b>Visualize</b> — your code really runs, and every step is recorded.</li>
-                  <li>Step with the arrow buttons (or ← → keys) and watch the variables and the array change.</li>
+                <p className="vz-idle-sub">Press <b>Visualize</b> and every line your program runs becomes a step you can play, pause and rewind.</p>
+                <ol className="vz-idle-steps">
+                  <li><b>1</b><span>Read the problem. Stuck? Open <strong>Break it down</strong>.</span></li>
+                  <li><b>2</b><span>Write your solution in the editor.</span></li>
+                  <li><b>3</b><span>Press <strong>Visualize</strong> — your code really runs.</span></li>
+                  <li><b>4</b><span>Step with the buttons or the <kbd>←</kbd> <kbd>→</kbd> keys.</span></li>
                 </ol>
+                <button type="button" className="vz-btn vz-btn-primary vz-idle-go" onClick={visualize} disabled={running || !code.trim()}>
+                  <i className="fa-solid fa-play" aria-hidden /> Visualize my code
+                </button>
               </div>
             )}
           </div>

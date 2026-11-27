@@ -21,7 +21,7 @@ jest.mock('../models/OutperoCall', () => ({
 }));
 const settingValues: Record<string, string> = {};
 const assigned = jest.fn(async () => '65a0000000000000000000cc');
-jest.mock('../services/leadDistributionService', () => ({ autoAssignLead: (...a: any[]) => (assigned as any)(...a) }));
+jest.mock('../services/leadAssignmentService', () => ({ assignLead: (...a: any[]) => (assigned as any)(...a) }));
 jest.mock('../models/LeadStage', () => ({ __esModule: true, default: { findOne: jest.fn((q: any) => ({ lean: async () => q._id ? { _id: q._id, category: 'new', isActive: true } : null })) } }));
 const LEAD: any = { _id: '65a0000000000000000000aa', name: 'Ravi', phone: '9876543210', customFields: {}, createdBy: '65a0000000000000000000bb', aiCallAttempts: 0 };
 const leadUpdates: any[] = [];
@@ -130,9 +130,14 @@ describe('post-call assignment and stages', () => {
     await receiveCall(T, { call_id: 'waiting', lms_lead_id: LEAD._id, outcome: 'callback' });
     expect(LEAD.aiFeedback.state).toBe('awaiting_assignment'); expect(followUps).toHaveLength(0);
   });
-  it('stops further calls on opt-out and still gives the lead an owner', async () => {
+  it('stops further calls on opt-out and leaves the lead unassigned for an admin', async () => {
     enable(); await receiveCall(T, { call_id: 'stop', lms_lead_id: LEAD._id, outcome: 'do not call' });
-    expect(LEAD.aiFeedback.doNotContact).toBe(true); expect(assigned).toHaveBeenCalled(); expect(followUps).toHaveLength(0);
+    expect(LEAD.aiFeedback.doNotContact).toBe(true); expect(assigned).not.toHaveBeenCalled(); expect(followUps).toHaveLength(0);
+    expect(LEAD.aiFeedback.state).not.toBe('awaiting_assignment');
+  });
+  it('does not give a not-interested lead to a counsellor', async () => {
+    enable(); await receiveCall(T, { call_id: 'ni', lms_lead_id: LEAD._id, outcome: 'not_interested' });
+    expect(assigned).not.toHaveBeenCalled();
   });
   it('does not change a newer human stage, but the lead still gets its owner', async () => {
     enable(); LEAD.activities = [{ type: 'status_change', createdAt: new Date('2026-10-12T10:00:00Z') }];

@@ -38,6 +38,9 @@ const chain = (value: any): any => {
 
 const matches = (doc: any, q: any): boolean =>
   Object.entries(q).every(([k, v]: [string, any]) => {
+    if (k === '$or') return (v as any[]).some(sub => matches(doc, sub));
+    // A dotted path ('questionIds.0') reads into the document, as Mongo does.
+    if (k.includes('.')) doc = { [k]: k.split('.').reduce((o: any, part) => (o == null ? undefined : o[part]), doc) };
     if (v && typeof v === 'object' && '$in' in v) {
       return (v.$in as any[]).map(String).includes(String(doc[k]));
     }
@@ -327,7 +330,7 @@ describe('a day carries ordered activities for its unit', () => {
         title: 'Worked', estimatedDuration: 10, unitCode: 'ZZTEST_U001',
       },
     ];
-    quizzes = [{ _id: 'q1', tenantId: TENANT, unitCode: 'ZZTEST_U001', title: 'Checkpoint', totalTime: 20 }];
+    quizzes = [{ _id: 'q1', tenantId: TENANT, unitCode: 'ZZTEST_U001', title: 'Checkpoint', totalTime: 20, totalQuestions: 5 }];
   });
 
   it('orders teaching before practice before assessment', async () => {
@@ -348,6 +351,17 @@ describe('a day carries ordered activities for its unit', () => {
     expect(quiz.isGating).toBe(true);
     expect(quiz.sourceModel).toBe('Quiz');
     expect(day1.items.find((i: any) => i.contentTitle === 'Lesson').isGating).toBe(false);
+  });
+
+  it('leaves off a checkpoint with no questions, or one switched off — it would hold the day shut', async () => {
+    quizzes = [
+      { _id: 'q-empty', tenantId: TENANT, unitCode: 'ZZTEST_U001', title: 'Empty', totalTime: 20, totalQuestions: 0, isActive: true },
+      { _id: 'q-off', tenantId: TENANT, unitCode: 'ZZTEST_U001', title: 'Off', totalTime: 20, totalQuestions: 4, isActive: false },
+      { _id: 'q-ok', tenantId: TENANT, unitCode: 'ZZTEST_U001', title: 'Ready', totalTime: 20, totalQuestions: 4, isActive: true },
+    ];
+    await persistFoundationJourney(TENANT, STUDENT, profile);
+    const day1 = dayPlans.find(d => d.dayNumber === 1);
+    expect(day1.items.filter((i: any) => i.kind === 'quiz').map((i: any) => i.contentTitle)).toEqual(['Ready']);
   });
 
   it('includes a bound assignment as a submission activity', async () => {

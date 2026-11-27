@@ -4,6 +4,7 @@ import { currentTenantId } from './requestContext';
 import * as settings from './settingsService';
 import { istToday, ymd } from '../utils/planSchedule';
 import AiUsage from '../models/AiUsage';
+import { recordAiFailure } from './supportMonitoring';
 
 // ── Pricing (USD per 1M tokens) — override any via settings AI_PRICE_<MODEL>_IN/OUT ──
 // Sensible defaults; the USD→INR rate is a single setting.
@@ -113,8 +114,10 @@ export async function aiComplete(o: AiCompleteOpts): Promise<string> {
     } catch (err: any) {
       lastErr = err;
       console.error(`[aiGateway] ${provider} failed for ${o.module}:`, err?.status || '', err?.message?.slice(0, 140));
+      recordAiFailure({ provider, module: o.module, status: err?.status, message: err?.message?.slice(0, 160) });
       // fall through to the next provider
     }
   }
+  if (!lastErr) recordAiFailure({ module: o.module, cause: 'not_configured', message: 'No AI provider is configured' });
   throw lastErr || new Error('No AI provider is configured');
 }

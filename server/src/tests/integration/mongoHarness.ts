@@ -20,16 +20,31 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
  */
 
 let mongod: MongoMemoryServer | null = null;
+const nativeSetTimeout = global.setTimeout;
+const pendingTimers = new Set<ReturnType<typeof setTimeout>>();
+// Keep real time and real MongoDB I/O. Track timers scheduled while this
+// synthetic application is alive so delayed model hooks cannot outlive it.
+const ownedSetTimeout = ((callback: (...args: any[]) => void, delay?: number, ...args: any[]) => {
+  const timer = nativeSetTimeout(callback, delay, ...args);
+  pendingTimers.add(timer);
+  return timer;
+}) as typeof setTimeout;
 
 /** Start an isolated mongod and point the default mongoose connection at it. */
 export async function startMongo(): Promise<string> {
   mongod = await MongoMemoryServer.create();
   const uri = mongod.getUri();
   await mongoose.connect(uri);
+  global.setTimeout = ownedSetTimeout;
   return uri;
 }
 
 export async function stopMongo(): Promise<void> {
+  // Stop future application work before disposing the database/Jest environment.
+  // Restore native scheduling first: MongoDB shutdown still needs real timers.
+  if (global.setTimeout === ownedSetTimeout) global.setTimeout = nativeSetTimeout;
+  for (const timer of pendingTimers) clearTimeout(timer);
+  pendingTimers.clear();
   await mongoose.connection.dropDatabase().catch(() => {});
   await mongoose.disconnect();
   if (mongod) await mongod.stop();

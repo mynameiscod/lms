@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { projectStudioApi, TemplateRow, ProgressRow, ReviewItem, Enrollment, PTemplate, PROOF_LABEL, errMsg } from '../../api/projectStudioApi';
+import { projectStudioApi, StarterRow, TemplateRow, ProgressRow, ReviewItem, Enrollment, PTemplate, PROOF_LABEL, errMsg } from '../../api/projectStudioApi';
 import { Modal, useToast, relTime } from '../ProblemBank/shared';
 import Builder from './Builder';
 import { PctBar } from './PctBar';
@@ -18,6 +18,7 @@ const STATUS_PILL: Record<string, string> = { published: 'pb-badge-ok', draft: '
 const ProjectsTab: React.FC<{ onOpen: (id: string) => void; toast: (t: string, bad?: boolean) => void }> = ({ onOpen, toast }) => {
   const [rows, setRows] = useState<TemplateRow[] | null>(null);
   const [creating, setCreating] = useState(false);
+  const [starters, setStarters] = useState<StarterRow[] | null>(null);
   const [title, setTitle] = useState('');
   const [domain, setDomain] = useState('');
   const [stack, setStack] = useState('');
@@ -30,6 +31,15 @@ const ProjectsTab: React.FC<{ onOpen: (id: string) => void; toast: (t: string, b
       setCreating(false); setTitle(''); setDomain(''); setStack('');
       if (t._id) onOpen(t._id);
     } catch (e) { toast(errMsg(e, 'Could not create'), true); }
+  };
+  const openStarters = () => { setStarters([]); projectStudioApi.starters().then(setStarters).catch((e) => { setStarters(null); toast(errMsg(e), true); }); };
+  const addStarter = async (st: StarterRow) => {
+    try {
+      const t = await projectStudioApi.installStarter(st.key);
+      setStarters(null);
+      toast(`"${st.title}" added as a draft — review it, release it to batches, then publish`);
+      if (t._id) onOpen(t._id);
+    } catch (e) { toast(errMsg(e, 'Could not add the starter project'), true); }
   };
   const duplicate = async (r: TemplateRow) => {
     try { const t = await projectStudioApi.duplicate(r._id); toast('Copied — rename it and change the domain'); if (t._id) onOpen(t._id); } catch (e) { toast(errMsg(e), true); }
@@ -44,13 +54,17 @@ const ProjectsTab: React.FC<{ onOpen: (id: string) => void; toast: (t: string, b
     <>
       <div className="pb-row" style={{ marginBottom: 12 }}>
         <span className="pb-grow pb-muted">Write a project once, publish it, and release it to batches. Students pick one and cannot switch.</span>
+        <button className="pb-btn" onClick={openStarters}><i className="fa-solid fa-box-open" /> Add starter project</button>
         <button className="pb-btn pb-btn-primary" onClick={() => setCreating(true)}><i className="fa-solid fa-plus" /> New project</button>
       </div>
       {rows.length === 0 ? (
         <div className="pb-card pb-empty">
           <h2>No projects yet</h2>
           <p className="pb-muted">Start with one project, e.g. a Clinic Appointment System, split into sprints, days and small tasks.</p>
-          <button className="pb-btn pb-btn-primary" onClick={() => setCreating(true)}>Create the first project</button>
+          <div className="pb-row" style={{ justifyContent: 'center', gap: 8 }}>
+            <button className="pb-btn" onClick={openStarters}>Start from a ready-made project</button>
+            <button className="pb-btn pb-btn-primary" onClick={() => setCreating(true)}>Create from scratch</button>
+          </div>
         </div>
       ) : (
         <div className="pb-card pb-table-wrap">
@@ -76,6 +90,22 @@ const ProjectsTab: React.FC<{ onOpen: (id: string) => void; toast: (t: string, b
             </tbody>
           </table>
         </div>
+      )}
+      {starters && (
+        <Modal title="Starter projects" onClose={() => setStarters(null)}>
+          <p className="pb-muted" style={{ marginTop: 0 }}>Ready-made projects with tasks, checklists and interview questions. It is added as a <b>draft</b> — no student sees it until you release it to batches and publish.</p>
+          {starters.length === 0 ? <div className="pb-muted"><span className="pb-spinner" /> Loading…</div> : starters.map((st) => (
+            <div key={st.key} className="pb-card pb-row" style={{ padding: 12, marginBottom: 8, alignItems: 'flex-start' }}>
+              <div className="pb-grow">
+                <b>{st.title}</b>
+                <div className="pb-muted" style={{ fontSize: 12.5 }}>{st.domain} · {st.level} · {st.techStack.join(', ')}</div>
+                <div className="pb-muted" style={{ fontSize: 12.5 }}>{st.sprintCount} sprints · {st.dayCount} days · {st.taskCount} tasks</div>
+              </div>
+              {st.added ? <span className="pb-pill pb-badge-neutral">Already added</span>
+                : <button className="pb-btn pb-btn-primary pb-btn-sm" onClick={() => addStarter(st)}>Add as draft</button>}
+            </div>
+          ))}
+        </Modal>
       )}
       {creating && (
         <Modal title="New project" onClose={() => setCreating(false)} footer={<>

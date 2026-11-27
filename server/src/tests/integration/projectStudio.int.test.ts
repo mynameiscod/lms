@@ -55,13 +55,13 @@ describe('admin builds and releases a project', () => {
   });
 
   it('creates, refuses to publish an empty project, then publishes with tasks', async () => {
-    const c = await call('admin', 'post', '/admin/templates', { title: 'Clinic Appointment System', domain: 'Healthcare', techStack: ['Spring Boot', 'React'] });
+    const c = await call('admin', 'post', '/admin/templates', { title: 'Hostel Booking (test)', domain: 'Healthcare', techStack: ['Spring Boot', 'React'] });
     expect(c.status).toBe(200);
     templateId = c.body.data._id;
-    expect((await call('admin', 'put', `/admin/templates/${templateId}`, { title: 'Clinic Appointment System', status: 'published', sprints: [] })).status).toBe(400);
+    expect((await call('admin', 'put', `/admin/templates/${templateId}`, { title: 'Hostel Booking (test)', status: 'published', sprints: [] })).status).toBe(400);
 
     const r = await call('admin', 'put', `/admin/templates/${templateId}`, {
-      title: 'Clinic Appointment System', techStack: ['Spring Boot', 'React'], status: 'published', releasedBatchIds: [batchA],
+      title: 'Hostel Booking (test)', techStack: ['Spring Boot', 'React'], status: 'published', releasedBatchIds: [batchA],
       sprints: [{ title: 'Sprint 1', goal: 'Auth', days: [{ title: 'Day 1', tasks: [
         { title: 'Login API', proofType: 'commit', weight: 3, acceptance: ['POST /auth/login returns a token'], questions: [{ q: 'JWT vs session?', a: 'Stateless token vs server state' }] },
         { title: 'Explain roles', proofType: 'text', weight: 1 },
@@ -166,5 +166,25 @@ describe('Practice Pass counts project submissions', () => {
     const day: any = await PracticeDay.findOne({ studentId: ids.ravi, date: today }).lean();
     expect(day?.done?.project_task).toBe(1);
     expect(day?.met).toBe(true);
+  });
+});
+
+describe('starter projects', () => {
+  it('adds the Clinic starter as a draft for no batch, once', async () => {
+    const list = (await call('admin', 'get', '/admin/starters')).body.data;
+    const clinic = list.find((s: any) => s.key === 'clinic-appointment-system');
+    expect(clinic).toMatchObject({ added: false, taskCount: 27, sprintCount: 4, dayCount: 20 });
+    const r = await call('admin', 'post', '/admin/starters/clinic-appointment-system/install');
+    expect(r.status).toBe(200);
+    expect(r.body.data).toMatchObject({ status: 'draft', releasedBatchIds: [] });
+    expect(r.body.data.sprints[1].days[0].tasks[0].questions.length).toBeGreaterThan(0);
+    expect((await call('admin', 'post', '/admin/starters/clinic-appointment-system/install')).status).toBe(409);
+    expect((await call('admin', 'get', '/admin/starters')).body.data[0].added).toBe(true);
+    // A draft is invisible to students.
+    expect((await call('bala', 'get', '/me')).body.data.catalog).toHaveLength(0);
+  });
+
+  it('students cannot add starters', async () => {
+    expect((await call('asha', 'post', '/admin/starters/clinic-appointment-system/install')).status).toBe(403);
   });
 });

@@ -4,6 +4,7 @@ import {
 } from '../models/ProjectStudio';
 import User from '../models/User';
 import Batch from '../models/Batch';
+import { clinicAppointmentSystem } from '../seeds/projectStudio/clinicAppointmentSystem';
 
 /**
  * Project Studio (docs/design/project-studio.md), Phase 1.
@@ -181,6 +182,32 @@ export async function deleteTemplate(tenantId: string, id: string) {
   }
   await t.deleteOne();
   return { deleted: true };
+}
+
+/* ── Starter projects: ready-made drafts an admin can add and then edit ───────────────────── */
+
+const STARTERS: Record<string, any> = { 'clinic-appointment-system': clinicAppointmentSystem };
+
+export async function listStarters(tenantId: string) {
+  const titles = Object.values(STARTERS).map((p) => p.title);
+  const have = new Set((await ProjectTemplate.find({ tenantId, title: { $in: titles } }).select('title').lean()).map((t: any) => t.title));
+  return Object.entries(STARTERS).map(([key, p]) => {
+    const tasks = flattenTasks(p);
+    return {
+      key, title: p.title, domain: p.domain, techStack: p.techStack, level: p.level,
+      sprintCount: p.sprints.length, dayCount: p.sprints.reduce((n: number, s: any) => n + s.days.length, 0), taskCount: tasks.length,
+      added: have.has(p.title),
+    };
+  });
+}
+
+/** Adds the starter as a DRAFT, released to no batch — no student sees it until an admin publishes it. */
+export async function installStarter(tenantId: string, userId: string, key: string) {
+  const p = STARTERS[key];
+  if (!p) throw new ProjectError('Starter project not found', 404);
+  if (await ProjectTemplate.exists({ tenantId, title: p.title })) throw new ProjectError(`"${p.title}" is already in your projects`, 409);
+  const t = await ProjectTemplate.create({ ...cleanTemplate(p), tenantId, status: 'draft', releasedBatchIds: [], createdBy: userId, updatedBy: userId });
+  return t.toObject();
 }
 
 export async function listBatches(tenantId: string) {

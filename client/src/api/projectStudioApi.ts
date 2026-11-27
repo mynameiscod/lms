@@ -53,6 +53,11 @@ export interface ReviewItem {
   proofType: ProofType; proofUrl?: string; note?: string; repoUrl?: string; submittedAt: string; attempts: number;
 }
 
+export interface StarterRow {
+  key: string; title: string; domain: string; techStack: string[]; level: string;
+  sprintCount: number; dayCount: number; taskCount: number; added: boolean;
+}
+
 export const projectStudioApi = {
   // Student
   me: async (): Promise<MyProjectData> => d(await axios.get(`${BASE}/me`, h())),
@@ -69,6 +74,8 @@ export const projectStudioApi = {
   save: async (id: string, body: PTemplate): Promise<{ template: PTemplate; rescored: number }> => d(await axios.put(`${BASE}/admin/templates/${id}`, body, h())),
   duplicate: async (id: string): Promise<PTemplate> => d(await axios.post(`${BASE}/admin/templates/${id}/duplicate`, {}, h())),
   remove: async (id: string): Promise<{ deleted?: boolean; archived?: boolean; students?: number }> => d(await axios.delete(`${BASE}/admin/templates/${id}`, h())),
+  starters: async (): Promise<StarterRow[]> => d(await axios.get(`${BASE}/admin/starters`, h())),
+  installStarter: async (key: string): Promise<PTemplate> => d(await axios.post(`${BASE}/admin/starters/${key}/install`, {}, h())),
   batches: async (): Promise<{ _id: string; name: string }[]> => d(await axios.get(`${BASE}/admin/batches`, h())),
   progress: async (q: { batchId?: string; templateId?: string }): Promise<ProgressRow[]> => d(await axios.get(`${BASE}/admin/progress`, { ...h(), params: q })),
   reviewQueue: async (): Promise<ReviewItem[]> => d(await axios.get(`${BASE}/admin/review`, h())),

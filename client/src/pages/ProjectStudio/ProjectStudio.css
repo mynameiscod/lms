@@ -1,0 +1,68 @@
+/* Project Studio — builds on ProblemBank.css (pb-*). Only what that sheet lacks lives here. */
+
+.ps-bar { height: 8px; border-radius: 99px; background: #eef0f6; overflow: hidden; min-width: 80px; }
+.ps-bar > span { display: block; height: 100%; background: var(--pb-accent, #4f46e5); border-radius: 99px; transition: width .3s; }
+.ps-bar.done > span { background: #059669; }
+.ps-pct { display: flex; align-items: center; gap: 8px; }
+.ps-pct b { min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Builder outline */
+.ps-outline { flex: 1; overflow-y: auto; padding: 10px 10px 24px; }
+.ps-node { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 8px;
+  padding: 7px 9px; cursor: pointer; color: var(--pb-body); font-size: 13.5px; }
+.ps-node:hover { background: #f4f5fa; }
+.ps-node.on { background: var(--pb-accent-soft, #eef2ff); color: var(--pb-accent-ink, #3730a3); font-weight: 650; }
+.ps-node .ps-node-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ps-node .ps-node-m { font-size: 11.5px; color: var(--pb-muted); font-weight: 600; }
+.ps-node.sprint { font-weight: 750; color: var(--pb-ink); margin-top: 6px; }
+.ps-node.day { padding-left: 24px; }
+.ps-node.task { padding-left: 42px; }
+.ps-add { border: 1px dashed var(--pb-line-strong, #d6d9e4); background: #fff; color: var(--pb-muted); border-radius: 8px; padding: 5px 10px;
+  font-size: 12.5px; font-weight: 650; cursor: pointer; margin: 4px 0 4px 0; }
+.ps-add:hover { color: var(--pb-accent-ink, #3730a3); border-color: var(--pb-accent-line, #c7d2fe); }
+.ps-add.day { margin-left: 24px; }
+.ps-add.task { margin-left: 42px; }
+.ps-editor { flex: 1; overflow-y: auto; padding: 18px 22px 40px; }
+.ps-editor h3 { margin: 0 0 12px; font-size: 16px; }
+.ps-list-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; }
+.ps-list-row .pb-input, .ps-list-row .pb-textarea { flex: 1; }
+.ps-q { border: 1px solid var(--pb-line, #e5e7ef); border-radius: 10px; padding: 10px; margin-bottom: 8px; background: #fff; }
+.ps-dirty { font-size: 12px; font-weight: 700; color: #b45309; }
+
+/* Student */
+.ps-wrap { max-width: 1080px; margin: 0 auto; padding: 22px 20px 48px; }
+.ps-hero { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; padding: 18px 20px; }
+.ps-hero h1 { font-size: 22px; margin: 0 0 4px; }
+.ps-stack { display: flex; gap: 6px; flex-wrap: wrap; }
+.ps-catalog { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.ps-cat-card { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.ps-cat-card h3 { margin: 0; font-size: 16px; }
+.ps-sprint { margin-top: 16px; }
+.ps-sprint-h { display: flex; align-items: baseline; gap: 10px; margin: 0 0 8px; }
+.ps-sprint-h h2 { font-size: 16px; margin: 0; }
+.ps-day { margin-bottom: 10px; padding: 12px 14px; }
+.ps-day-h { font-weight: 750; font-size: 13.5px; color: var(--pb-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+.ps-task { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; }
+.ps-task:hover { background: #f7f8fc; border-color: var(--pb-line, #e5e7ef); }
+.ps-task.next { border-color: var(--pb-accent-line, #c7d2fe); background: var(--pb-accent-soft, #eef2ff); }
+.ps-task .ps-task-t { flex: 1; min-width: 0; }
+.ps-task .ps-task-t b { display: block; font-size: 14px; }
+.ps-task .ps-task-t small { color: var(--pb-muted); }
+.ps-dot { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;
+  border: 2px solid #cbd5e1; color: #fff; flex-shrink: 0; }
+.ps-dot.done { background: #059669; border-color: #059669; }
+.ps-dot.submitted { background: #f59e0b; border-color: #f59e0b; }
+.ps-dot.changes { background: #dc2626; border-color: #dc2626; }
+.ps-check { list-style: none; padding: 0; margin: 0; }
+.ps-check li { padding: 4px 0 4px 24px; position: relative; }
+.ps-check li::before { content: '✓'; position: absolute; left: 4px; color: #059669; font-weight: 800; }
+.ps-git { background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 10px 12px; font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12.5px; white-space: pre-wrap; word-break: break-all; }
+.ps-qa { border: 1px solid var(--pb-line, #e5e7ef); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; background: #fff; }
+.ps-qa .a { margin-top: 8px; padding: 8px 10px; background: #f8fafc; border-radius: 8px; white-space: pre-wrap; }
+
+@media (max-width: 720px) {
+  .ps-wrap { padding: 16px 12px 40px; }
+  .ps-node.day, .ps-add.day { padding-left: 16px; margin-left: 0; }
+  .ps-node.task, .ps-add.task { padding-left: 28px; margin-left: 0; }
+}

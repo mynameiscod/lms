@@ -112,6 +112,8 @@ const ActivityReview = lazy(() => import('./pages/Employees/ActivityReview'));
 const CompanyExpenses = lazy(() => import('./pages/Expenses/CompanyExpenses'));
 const EmployeePortal = lazy(() => import('./pages/Employees/portal/EmployeePortal'));
 const MyPractice = lazy(() => import('./pages/PracticePass/MyPractice'));
+const ProjectStudioAdmin = lazy(() => import('./pages/ProjectStudio'));
+const MyProject = lazy(() => import('./pages/ProjectStudio/MyProject'));
 const InterviewHubFeed = lazy(() => import('./pages/InterviewHub/Feed'));
 const InterviewHubDetail = lazy(() => import('./pages/InterviewHub/Detail'));
 const InterviewHubCompany = lazy(() => import('./pages/InterviewHub/Company'));
@@ -380,7 +382,7 @@ const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
     'manage_battles', 'view_battles', 'manage_hackathons', 'view_hackathons', 'manage_passport', 'view_passport_members', 'view_passport_funnel',
     'manage_event_apis', 'view_admin_dashboard', 'archive_leads'],
   'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments', 'manage_snippets', 'grade_snippets', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews',
-    'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans', 'manage_live_classes',
+    'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_project_studio', 'manage_learning_plans', 'manage_live_classes',
     'manage_skill_assessment', 'manage_leave_requests', 'manage_thinking_lab', 'manage_resources', 'manage_speaking', 'manage_communication_lab', 'view_communication_progress',
     'manage_passport_members', 'manage_passport_setup', 'manage_passport_pathways', 'manage_passport_career_map', 'manage_passport_assessment', 'manage_passport_content'],
   'ATTENDANCE_ADMIN': ['mark_attendance'],
@@ -400,7 +402,7 @@ const STUDENT_PAGE_FEATURES: [string, keyof StudentFeatures][] = [
   ['/my-attendance', 'attendance'], ['/playground', 'codePlayground'], ['/project-builder', 'projectBuilder'], ['/job-tracker', 'jobTracker'],
   ['/ai-mentor', 'aiMentor'], ['/resource-library', 'resourceLibrary'], ['/ai-communication-lab', 'aiCommunicationLab'], ['/thinking-lab', 'thinkingLab'],
   ['/resume-builder', 'resumeBuilder'], ['/career-profile', 'careerProfile'], ['/hms-classes', 'liveClasses'], ['/my-learning', 'learningPlan'],
-  ['/speaking-practice', 'speakingPractice'],
+  ['/speaking-practice', 'speakingPractice'], ['/my-project', 'myProject'],
 ];
 const featureForStudentPath = (pathname: string) =>
   STUDENT_PAGE_FEATURES.find(([p]) => pathname === p || pathname.startsWith(`${p}/`))?.[1];
@@ -1149,6 +1151,26 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
             <Layout>
               <InterviewHubAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-project"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT']}>
+            <Layout>
+              <MyProject />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/project-studio"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <ProjectStudioAdmin />
             </Layout>
           </ProtectedRoute>
         }

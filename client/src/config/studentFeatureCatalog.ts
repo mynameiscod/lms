@@ -12,6 +12,7 @@ export type StudentFeatureKey =
   | 'aiCommunicationLab' | 'liveClasses' | 'collegePortal' | 'myApplications' | 'alumniDirectory'
   // Menu items that used to have no switch
   | 'myTasks' | 'applyLeave' | 'interviewExperiences' | 'questionBooks' | 'drives' | 'myPractice' | 'codingPractice' | 'codeVisualizer'
+  | 'myProject'
   | 'referEarn';
 
 export type FeatureGroup = 'Home' | 'Daily Practice' | 'My Learning' | 'Prep & Career' | 'College' | 'My Account';
@@ -55,6 +56,7 @@ export const FEATURE_MODULE_MAP: Record<StudentFeatureKey, string | null> = {
   myPractice:           'practicePass',
   codingPractice:       null,
   codeVisualizer:       'codeVisualizer',
+  myProject:            'assignments',
   referEarn:            null,
 };
 
@@ -81,6 +83,7 @@ export const FEATURE_META: FeatureMeta[] = [
   { key: 'topicHub',            label: 'Topic Hub',                description: 'Topic-wise practice, mastery and learning hub', icon: '🧠', group: 'My Learning' },
   { key: 'classHub',            label: 'My Classes (Class Hub)',   description: 'Recorded classes with AI summary, quiz, notes and practice', icon: '🎬', group: 'My Learning' },
   { key: 'myTasks',             label: 'My Tasks',                 description: 'The tasks from the learning plan that are due', icon: '✅', group: 'My Learning' },
+  { key: 'myProject',           label: 'My Project',               description: 'Guided end-to-end project: daily tasks, GitHub proof and interview questions', icon: '🚀', group: 'My Learning' },
   { key: 'quizzes',             label: 'Quizzes',                  description: 'Take quizzes and view quiz results', icon: '✍', group: 'My Learning' },
   { key: 'assignments',         label: 'Assignments',              description: 'Submit coding assignments and view results', icon: '📝', group: 'My Learning' },
   { key: 'codingSnippets',      label: 'Code Practice',            description: 'Code editor with snippet manager and practice problems', icon: '💻', group: 'My Learning' },

@@ -14,6 +14,7 @@ import { estimateCost, purposeTemplate, sendByPurpose, waCostPerMessage } from '
  *   coding_problem  a Problem Bank submission that passed at least one test
  *   assignment      an assignment submitted that day
  *   thinking_lab    a Thinking Lab daily challenge submitted or solved that day
+ *   project_task    a Project Studio task submitted that day (each submission counts, even before review)
  * Weekly offs, holidays and special days come from the batch calendar; approved leave from
  * leave requests. Days before the institute switched the pass on never count, so nobody is
  * judged on the months before the rule existed.
@@ -22,7 +23,8 @@ import { estimateCost, purposeTemplate, sendByPurpose, waCostPerMessage } from '
 export class PracticeError extends Error { constructor(message: string, public status = 400) { super(message); } }
 
 const MIN_RECORDING_SECONDS = 20;
-const DEFAULT_REQUIREMENTS: Required<TaskCounts> = { communication: 1, coding_problem: 1, assignment: 0, thinking_lab: 1 };
+const DEFAULT_REQUIREMENTS: Required<TaskCounts> = { communication: 1, coding_problem: 1, assignment: 0, thinking_lab: 1, project_task: 0 };
+const ZERO_COUNTS = (): Required<TaskCounts> => ({ communication: 0, coding_problem: 0, assignment: 0, thinking_lab: 0, project_task: 0 });
 // Automatic reminders stay OFF unless an admin turns them on: every WhatsApp message costs money.
 const DEFAULTS = { thresholdPct: 80, windowDays: 30, enforce: true, remindersEnabled: false };
 
@@ -95,11 +97,11 @@ async function gatherDone(studentIds: any[], from: string, to: string) {
     const k = String(sid);
     if (!done.has(k)) done.set(k, new Map());
     const m = done.get(k)!;
-    if (!m.has(day)) m.set(day, { communication: 0, coding_problem: 0, assignment: 0, thinking_lab: 0 });
+    if (!m.has(day)) m.set(day, ZERO_COUNTS());
     m.get(day)![task]++;
   };
 
-  const [comm, coding, assigns, thinking] = await Promise.all([
+  const [comm, coding, assigns, thinking, projects] = await Promise.all([
     col('communicationattempts').find(
       { studentId: { $in: ids }, status: 'completed', createdAt: { $gte: fromDate, $lt: toDate } },
       { projection: { studentId: 1, createdAt: 1, practiceDate: 1, recordingDuration: 1, evaluation: 1 } },
@@ -116,6 +118,10 @@ async function gatherDone(studentIds: any[], from: string, to: string) {
       { studentId: { $in: ids }, date: { $gte: from, $lte: to }, status: { $in: ['submitted', 'solved'] } },
       { projection: { studentId: 1, date: 1 } },
     ).toArray(),
+    col('projectenrollments').find(
+      { studentId: { $in: idStr }, active: true, 'tasks.submissions.at': { $gte: fromDate, $lt: toDate } },
+      { projection: { studentId: 1, 'tasks.taskId': 1, 'tasks.submissions.at': 1 } },
+    ).toArray(),
   ]);
   for (const c of comm) {
     if ((c.recordingDuration || 0) < MIN_RECORDING_SECONDS) continue;
@@ -125,6 +131,17 @@ async function gatherDone(studentIds: any[], from: string, to: string) {
   for (const s of coding) bump(s.userId, istDay(s.createdAt), 'coding_problem');
   for (const s of assigns) bump(s.student, istDay(s.submittedAt), 'assignment');
   for (const t of thinking) bump(t.studentId, t.date, 'thinking_lab');
+  // Project Studio: one per task submitted that day (re-submitting the same task the same day counts once).
+  for (const e of projects) {
+    for (const task of e.tasks || []) {
+      const days = new Set<string>();
+      for (const s of task.submissions || []) {
+        if (!s?.at || s.at < fromDate || s.at >= toDate) continue;
+        days.add(istDay(s.at));
+      }
+      for (const day of days) bump(e.studentId, day, 'project_task');
+    }
+  }
   return done;
 }
 
@@ -189,7 +206,7 @@ export async function recompute(tenantId: string, students: StudentRow[]) {
     let metDays = 0, countedDays = 0;
     const dayResults: { date: string; met: boolean; counted: boolean }[] = [];
     for (let d = from; d <= today; d = addDays(d, 1)) {
-      const got = done.get(sid)?.get(d) || { communication: 0, coding_problem: 0, assignment: 0, thinking_lab: 0 };
+      const got = done.get(sid)?.get(d) || ZERO_COUNTS();
       const excused = pol.exempt ? 'exempt' : excuseFor(d, batch, leave.get(sid), startDay);
       const met = needed.length > 0 && needed.every((t) => got[t] >= req[t]);
       dayOps.push({ updateOne: {
@@ -281,6 +298,7 @@ const TASK_META: Record<PracticeTask, { label: string; link: string }> = {
   coding_problem: { label: 'Coding problem', link: '/coding-practice' },
   assignment: { label: 'Assignment', link: '/assignments' },
   thinking_lab: { label: 'Thinking Lab', link: '/thinking-lab' },
+  project_task: { label: 'Project task', link: '/my-project' },
 };
 
 export async function myPractice(tenantId: string, studentId: string) {

@@ -38,6 +38,7 @@ export interface StudentFeatures {
   myPractice: boolean;
   codingPractice: boolean;
   codeVisualizer: boolean;
+  myProject: boolean;
 }
 
 const DEFAULT_FEATURES: StudentFeatures = {
@@ -76,6 +77,7 @@ const DEFAULT_FEATURES: StudentFeatures = {
   myPractice: true,
   codingPractice: true,
   codeVisualizer: true,
+  myProject: true,
 };
 
 interface StudentFeaturesContextType {

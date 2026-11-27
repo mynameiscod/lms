@@ -12,10 +12,10 @@ import './labHome.css';
 const pad = (n: number) => String(n).padStart(2, '0');
 const keyOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const parseKey = (k: string) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); };
-const dayDiff = (a: string, b: string) => Math.round((parseKey(b).getTime() - parseKey(a).getTime()) / 86400000);
+export const dayDiff = (a: string, b: string) => Math.round((parseKey(b).getTime() - parseKey(a).getTime()) / 86400000);
 const addDays = (k: string, n: number) => { const d = parseKey(k); d.setDate(d.getDate() + n); return keyOf(d); };
 const shortDate = (k: string) => parseKey(k).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-const longDate = (k: string) => parseKey(k).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+export const longDate = (k: string) => parseKey(k).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
 /** A coach recording where nothing was heard does not count (the same rule the History tab uses). */
 export const isCounted = (a: CommAttempt) => {
@@ -131,7 +131,7 @@ const TodayCard: React.FC<{
   </section>;
 };
 
-const ImprovementCard: React.FC<{ days: DayRow[] }> = ({ days }) => {
+export const ImprovementCard: React.FC<{ days: DayRow[] }> = ({ days }) => {
   const pts = days.slice(-14);
   const W = 520; const H = 210; const L = 44; const R = 18; const T = 16; const B = 34;
   const x = (i: number) => (pts.length === 1 ? (L + W - R) / 2 : L + (i * (W - L - R)) / (pts.length - 1));
@@ -164,7 +164,7 @@ const ImprovementCard: React.FC<{ days: DayRow[] }> = ({ days }) => {
         {pts.length > 1 && <path d={line} className="ln" />}
         {pts.map((p, i) => <circle key={p.date} cx={x(i)} cy={y(p.score)} r={i === pts.length - 1 ? 5.5 : 4} className={i === pts.length - 1 ? 'dot last' : 'dot'}><title>{`${shortDate(p.date)}: ${p.score}`}</title></circle>)}
         {pts.length > 1 && <g><rect x={Math.min(x(pts.length - 1) - 22, W - 52)} y={y(last) - 30} width="44" height="20" rx="10" className="tag" /><text x={Math.min(x(pts.length - 1), W - 30)} y={y(last) - 16} textAnchor="middle" className="tagtx">{last}%</text></g>}
-        {pts.map((p, i) => (pts.length <= 7 || i % 2 === pts.length % 2 || i === pts.length - 1) ? <text key={`l${p.date}`} x={x(i)} y={H - 10} textAnchor="middle" className="axis">{shortDate(p.date)}</text> : null)}
+        {pts.map((p, i) => (pts.length <= 7 || i % 2 === pts.length % 2 || i === pts.length - 1) ? <text key={`l${p.date}`} x={pts.length > 1 && i === pts.length - 1 ? W - 2 : x(i)} y={H - 10} textAnchor={pts.length > 1 && i === pts.length - 1 ? 'end' : 'middle'} className="axis">{shortDate(p.date)}</text> : null)}
       </svg>
     </div> : <div className="clh-empty-sm"><i className="bi bi-graph-up" /><p>Your score graph appears after your first recording.</p></div>}
     <div className={`clh-note ${msg.tone}`}>
@@ -174,7 +174,7 @@ const ImprovementCard: React.FC<{ days: DayRow[] }> = ({ days }) => {
   </section>;
 };
 
-const RecentDays: React.FC<{ days: DayRow[]; start: string; onOpen: (a: CommAttempt) => void; onAll: () => void }> = ({ days, start, onOpen, onAll }) => {
+export const RecentDays: React.FC<{ days: DayRow[]; start: string; onOpen: (a: CommAttempt) => void; onAll: () => void; byQuestion?: boolean }> = ({ days, start, onOpen, onAll, byQuestion }) => {
   const rows = days.slice(-6).reverse();
   return <section className="clh-card clh-side">
     <div className="clh-card-head tight">
@@ -182,12 +182,13 @@ const RecentDays: React.FC<{ days: DayRow[]; start: string; onOpen: (a: CommAtte
       <h2>Recent Practice Days</h2>
       <button className="clh-link" onClick={onAll}>View all</button>
     </div>
-    {rows.length ? <ul className="clh-days">
+    {rows.length ? <ul className={`clh-days${byQuestion ? ' byq' : ''}`}>
       {rows.map((r) => <li key={r.date}>
         <button onClick={() => onOpen(r.attempt)}>
           <span className="tick"><i className="bi bi-check-lg" /></span>
-          <b>Day {dayDiff(start, r.date) + 1}</b>
-          <span className="dt">{longDate(r.date)}</span>
+          {byQuestion
+            ? <span className="clh-dayq"><b>{r.attempt.challengeTitle || 'Daily question'}</b><span className="dt">{longDate(r.date)}</span></span>
+            : <><b>Day {dayDiff(start, r.date) + 1}</b><span className="dt">{longDate(r.date)}</span></>}
           <span className={`sc ${scoreTone(r.score)}`}>{r.score}%</span>
           <i className="bi bi-chevron-right chev" />
         </button>

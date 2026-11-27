@@ -17,6 +17,16 @@ export interface CommToday {
   currentStreak: number; longestStreak: number; lastScore: number | null; todaysAttemptId: string | null;
   locked?: boolean; message?: string;
   window?: { date: string; startTime: string | null; endTime: string | null; status: string } | null;
+  /** Answers allowed for today's question (1 for an LMS student) and how many were scored. */
+  maxTakes?: number; takesUsed?: number; dayNumber?: number;
+  /** An answer being scored right now; the page shows its progress. */
+  pendingJob?: CommJob | null;
+  /** Why the last send today did not count, when it failed. */
+  lastFailure?: string | null;
+}
+export interface CommJob {
+  _id: string; stage: 'transcribing' | 'analysing' | 'saving'; status: 'running' | 'done' | 'failed';
+  message: string | null; attemptId: string | null; challengeId: string; practiceDate: string; createdAt: string;
 }
 export interface CommProfile {
   fullName?: string; currentCity?: string; nativePlace?: string; degree?: string; specialization?: string; college?: string;
@@ -51,13 +61,18 @@ export const communicationApi = {
   today: async (date: string): Promise<CommToday> => (await axios.get(`${BASE}/today?date=${date}`, { headers: authHeader() })).data,
   getProfile: async (): Promise<{ profile: CommProfile | null; template: string }> => (await axios.get(`${BASE}/profile`, { headers: authHeader() })).data,
   updateProfile: async (body: CommProfile): Promise<{ profile: CommProfile; template: string }> => (await axios.put(`${BASE}/profile`, body, { headers: authHeader() })).data,
-  submit: async (challengeId: string, practiceDate: string, recordingType: 'audio' | 'video', blob: Blob): Promise<CommAttempt> => {
+  /** Sends today's answer; the server replies at once with a job, scored in the background. */
+  send: async (challengeId: string, practiceDate: string, blob: Blob, onUpload?: (fraction: number) => void): Promise<CommJob> => {
     const fd = new FormData();
-    fd.append('challengeId', challengeId); fd.append('practiceDate', practiceDate); fd.append('recordingType', recordingType);
-    fd.append('recording', blob, `intro.${recordingType === 'audio' ? 'webm' : 'webm'}`);
-    const { data } = await axios.post(`${BASE}/submit`, fd, { headers: { ...authHeader(), 'Content-Type': 'multipart/form-data' }, timeout: 300000 });
-    return data.attempt;
+    fd.append('challengeId', challengeId); fd.append('practiceDate', practiceDate); fd.append('recordingType', 'video');
+    fd.append('recording', blob, 'answer.webm');
+    const { data } = await axios.post(`${BASE}/submit`, fd, {
+      headers: { ...authHeader(), 'Content-Type': 'multipart/form-data' }, timeout: 300000,
+      onUploadProgress: (e: any) => { if (onUpload && e.total) onUpload(Math.min(1, e.loaded / e.total)); },
+    });
+    return data.job;
   },
+  job: async (id: string): Promise<{ job: CommJob; attempt: CommAttempt | null; reward?: any }> => (await axios.get(`${BASE}/jobs/${id}`, { headers: authHeader() })).data,
   coach: async (): Promise<any> => (await axios.get(`${BASE}/coach`, { headers: authHeader() })).data,
   coachCompare: async (): Promise<any[]> => (await axios.get(`${BASE}/coach/compare`, { headers: authHeader() })).data.comparisons || [],
   coachSubmit: async (area: string, step: number, blob: Blob, mode: 'video' | 'audio'): Promise<{ attempt: any; next: any }> => {

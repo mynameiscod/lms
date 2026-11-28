@@ -2,7 +2,9 @@ import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import assignmentService from '../services/assignmentService';
 import { AssignmentType, AssignmentStatus, DifficultyLevel } from '../models/Assignment';
-import { generateCodingAssignmentWithAI } from '../services/aiService';
+import { generateCodingAssignmentWithAI, generateWebAssignmentWithAI } from '../services/aiService';
+import { isWebStack } from '../services/webAssignment/webChecks';
+import { saveAsset, AssetError } from '../services/webAssignment/assetService';
 import Submission from '../models/Submission';
 import { isAssignmentAuthor, refuseLockedAssignment } from './assignmentAccessGuard';
 import { toStudentAssignment, isSubmittedStatus } from '../services/studentAssignmentView';
@@ -37,7 +39,7 @@ class AssignmentController {
       });
     } catch (error) {
       console.error('Create assignment error:', error);
-      res.status(500).json({
+      res.status((error as any)?.status === 400 ? 400 : 500).json({
         success: false,
         message: error instanceof Error ? error.message : 'Failed to create assignment'
       });
@@ -110,7 +112,7 @@ class AssignmentController {
       });
     } catch (error) {
       console.error('Update assignment error:', error);
-      res.status(500).json({
+      res.status((error as any)?.status === 400 ? 400 : 500).json({
         success: false,
         message: error instanceof Error ? error.message : 'Failed to update assignment'
       });
@@ -1002,7 +1004,20 @@ class AssignmentController {
   // AI Generate Coding Assignment
   async generateWithAI(req: AuthRequest, res: Response) {
     try {
-      const { title, concept, language, difficulty, testCaseCount } = req.body;
+      const { title, concept, language, difficulty, testCaseCount, webStack } = req.body;
+
+      /* A web assignment is not a program with stdin/stdout, so it has its own generator: a design
+         brief, palette, fonts, starter files and a checklist, checked against the model's own reference
+         page. It never goes near the code runner, which has no runtime for HTML or CSS. */
+      if (webStack !== undefined) {
+        if (!title || !concept) return res.status(400).json({ message: 'title and concept are required' });
+        if (!isWebStack(webStack)) return res.status(400).json({ message: 'Unknown web stack' });
+        const result = await generateWebAssignmentWithAI({
+          title: String(title), concept: String(concept), stack: webStack,
+          difficulty: ['beginner', 'easy', 'medium', 'hard', 'expert'].includes(difficulty) ? difficulty : 'medium',
+        });
+        return res.json({ success: true, data: result });
+      }
 
       if (!title || !concept || !language) {
         return res.status(400).json({ message: 'title, concept, and language are required' });
@@ -1030,6 +1045,20 @@ class AssignmentController {
         return res.status(503).json({ message: error.message });
       }
       res.status(500).json({ message: error.message || 'Failed to generate assignment with AI' });
+    }
+  }
+
+  /** An image for a web assignment's brief (mockup or a file the student must use). */
+  async uploadAsset(req: AuthRequest, res: Response) {
+    try {
+      const file = (req as any).file;
+      if (!file) throw new AssetError('Choose an image to upload.');
+      const saved = await saveAsset(String(req.tenantId), file.buffer, file.originalname, req.user?.id);
+      res.status(201).json({ success: true, data: saved });
+    } catch (error: any) {
+      const status = error instanceof AssetError ? error.status : 500;
+      if (status === 500) console.error('Assignment asset upload error:', error);
+      res.status(status).json({ success: false, message: error?.message || 'Could not upload the image' });
     }
   }
 }

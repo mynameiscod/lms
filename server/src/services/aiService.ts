@@ -1,6 +1,8 @@
 import { getOpenAI } from './aiClients';
 import codeRunner from './codeRunnerService';
 import { ProgrammingLanguage } from '../models/Assignment';
+import { STACK_FILES, WebFile, WebRequirement, WebStack, evaluateWebChecks, requirementProblem } from './webAssignment/webChecks';
+import { normalizeHex } from './webAssignment/markup';
 
 export interface GeneratedQuestion {
   question: string;
@@ -547,4 +549,178 @@ export async function generateCodingAssignmentWithAI(
       dropped: failures,
     },
   };
+}
+
+/* ══════════════════════════ Web (frontend) assignments ══════════════════════════ */
+
+export interface GenerateWebAssignmentParams {
+  title: string;
+  concept: string;
+  stack: WebStack;
+  difficulty: 'beginner' | 'easy' | 'medium' | 'hard' | 'expert';
+}
+
+export interface GeneratedWebAssignment {
+  description: string;
+  instructions: string;
+  brief: string;
+  colors: { name: string; hex: string }[];
+  fonts: { family: string; weights: string }[];
+  requirements: WebRequirement[];
+  files: WebFile[];
+  topics: string[];
+  /** Checks the model wrote that were malformed or that its own reference page failed, so they were dropped. */
+  verification: { requested: number; kept: number; dropped: string[] };
+}
+
+const STACK_TEXT: Record<WebStack, string> = {
+  html_css: 'plain HTML and CSS only (no JavaScript). Files: index.html, style.css. index.html links style.css.',
+  html_css_js: 'HTML, CSS and vanilla JavaScript (no libraries). Files: index.html, style.css, script.js. index.html links style.css and loads script.js at the end of body.',
+  bootstrap: 'HTML with Bootstrap 5.3 from the jsDelivr CDN, plus a small style.css and optional script.js. Files: index.html, style.css, script.js. index.html includes the Bootstrap CSS and bundle JS CDN links.',
+  react: 'React 18 written in a single App.jsx (function components and hooks, no imports, no build step: React and ReactDOM are globals). App.jsx ends with ReactDOM.createRoot(document.getElementById("root")).render(<App />);. Files: index.html (has <div id="root"></div>), App.jsx, style.css.',
+};
+
+function buildWebAssignmentPrompt(p: GenerateWebAssignmentParams): string {
+  const files = STACK_FILES[p.stack];
+  return `Create a frontend (web page) assignment for students.
+
+Title: ${p.title}
+What to build: ${p.concept}
+Difficulty: ${p.difficulty}
+Stack: ${STACK_TEXT[p.stack]}
+
+Return a JSON object with exactly these keys:
+- "description": 2-4 sentences of HTML (<p>, <strong>) saying what the student builds and why.
+- "instructions": HTML steps (<ol><li>) for building it, in order. Mention the colours and fonts by name.
+- "brief": a plain-text design brief a designer would hand a developer: layout from top to bottom, each section's content, spacing and behaviour on mobile. 8-20 lines.
+- "colors": 3-6 objects {"name": "Primary", "hex": "#1e40af"} forming a coherent palette.
+- "fonts": 1-2 Google Fonts objects {"family": "Poppins", "weights": "400;600;700"}.
+- "requirements": 6-12 checks of what the finished page must have. Each is an object:
+  {"text": "plain sentence the student reads", "kind": one of "element" | "text" | "color" | "font" | "responsive" | "source", "selector": CSS selector (for element, optional for text), "value": the text / hex / font family / code snippet, "min": number (optional, element only), "points": 1-3}
+  Selectors may only use tag, #id, .class, [attr], [attr=value], descendant and > combinators. No pseudo-classes.
+  Use "element" for structure (e.g. "form input[type=email]"), "text" for visible words, "color" for each main palette colour, "font" for the main font, one "responsive" check, and "source" only for JavaScript/React behaviour (e.g. "addEventListener", "useState").
+- "starterFiles": an object with keys ${files.map(f => `"${f}"`).join(', ')}: the starting point the student gets. The boilerplate and file links in place, the Google Fonts <link> for the chosen fonts in index.html, empty sections marked with comments. Not the solution.
+- "solutionFiles": an object with the same keys: a complete reference page that meets EVERY requirement. It is used only to verify the checks and is never shown to students.
+- "topics": 2-5 short topic tags.
+
+Respond with the JSON object only.`;
+}
+
+export async function generateWebAssignmentWithAI(p: GenerateWebAssignmentParams): Promise<GeneratedWebAssignment> {
+  const openai = getOpenAI();
+  if (!openai) throw new Error('OPENAI_API_KEY is not configured on the server.');
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: 'You are an expert frontend instructor and UI designer. Always respond with valid JSON only.' },
+      { role: 'user', content: buildWebAssignmentPrompt(p) },
+    ],
+    temperature: 0.4,
+    response_format: { type: 'json_object' },
+  });
+  let parsed: any;
+  try { parsed = JSON.parse(response.choices[0]?.message?.content || '{}'); } catch {
+    throw new Error('AI service returned malformed JSON. Please try again.');
+  }
+  return shapeGeneratedWeb(parsed, p.stack);
+}
+
+/**
+ * The model's draft, checked. A requirement is kept only if it is well formed AND the model's own
+ * reference page passes it: a check the reference fails would fail every correct student too. On the
+ * JavaScript and React stacks the page is built at run time, so element and text checks cannot be
+ * run against the reference here; those are kept when well formed. Exported for tests.
+ */
+export function shapeGeneratedWeb(parsed: any, stack: WebStack): GeneratedWebAssignment {
+  const fileList = (o: any): WebFile[] => STACK_FILES[stack].map(name => ({ name, code: String(o?.[name] ?? '') }));
+  const files = fileList(parsed?.starterFiles);
+  if (!files.some(f => f.code.trim())) throw new Error('AI returned no starter files. Please try again.');
+  const solution = fileList(parsed?.solutionFiles);
+
+  const raw: any[] = Array.isArray(parsed?.requirements) ? parsed.requirements : [];
+  const dropped: string[] = [];
+  const shaped: WebRequirement[] = [];
+  raw.slice(0, 15).forEach((r, i) => {
+    const req: WebRequirement = {
+      id: `r${i + 1}`,
+      text: String(r?.text || '').trim().slice(0, 300),
+      kind: r?.kind,
+      selector: r?.selector ? String(r.selector).trim() : undefined,
+      value: r?.value !== undefined && r?.value !== null ? String(r.value).trim() : undefined,
+      min: r?.min ? Math.max(1, Math.floor(Number(r.min) || 1)) : undefined,
+      points: Math.max(1, Math.min(3, Math.round(Number(r?.points) || 1))),
+    };
+    const problem = requirementProblem([req]);
+    if (problem) { dropped.push(`${req.text || `Check ${i + 1}`}: ${problem.replace(/^Requirement 1:?\s*/, '')}`); return; }
+    shaped.push(req);
+  });
+
+  let kept = shaped;
+  if (solution.some(f => f.code.trim())) {
+    const results = evaluateWebChecks({ stack, files: solution, requirements: shaped });
+    const runtimeBuilt = stack !== 'html_css';
+    kept = shaped.filter((r, i) => {
+      if (results[i].passed) return true;
+      if (runtimeBuilt && (r.kind === 'element' || r.kind === 'text')) return true;
+      dropped.push(`${r.text}: the reference page did not pass it (${results[i].detail})`);
+      return false;
+    });
+  }
+  kept = kept.map((r, i) => ({ ...r, id: `r${i + 1}` }));
+
+  const colors = (Array.isArray(parsed?.colors) ? parsed.colors : [])
+    .map((c: any) => ({ name: String(c?.name || '').slice(0, 60), hex: normalizeHex(String(c?.hex || '')) || '' }))
+    .filter((c: any) => c.hex).slice(0, 8);
+  const fonts = (Array.isArray(parsed?.fonts) ? parsed.fonts : [])
+    .map((f: any) => ({ family: String(f?.family || '').trim().slice(0, 80), weights: String(f?.weights || '400;700').replace(/[^0-9;]/g, '') || '400;700' }))
+    .filter((f: any) => f.family).slice(0, 3);
+
+  return {
+    description: String(parsed?.description || ''),
+    instructions: String(parsed?.instructions || ''),
+    brief: String(parsed?.brief || ''),
+    colors,
+    fonts,
+    requirements: kept,
+    files,
+    topics: Array.isArray(parsed?.topics) ? parsed.topics.map(String).slice(0, 6) : [],
+    verification: { requested: raw.length, kept: kept.length, dropped },
+  };
+}
+
+/** Comments on a handed-in web page against its brief. Feedback only: it never changes the mark. */
+export async function reviewWebSubmissionWithAI(input: {
+  assignment: any;
+  files: WebFile[];
+  checks: { text: string; passed: boolean }[];
+}): Promise<string | null> {
+  const openai = getOpenAI();
+  if (!openai) return null;
+  const a = input.assignment;
+  const code = input.files.map(f => `--- ${f.name} ---\n${f.code.slice(0, 12000)}`).join('\n\n');
+  const checklist = input.checks.map(c => `${c.passed ? '[x]' : '[ ]'} ${c.text}`).join('\n');
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: "You are a friendly senior frontend developer reviewing a student's web page. Be specific and encouraging. Plain text, no markdown headings." },
+      {
+        role: 'user', content: `Assignment: ${a.title}
+Design brief:
+${String(a.web?.brief || '').slice(0, 3000)}
+Colours: ${(a.web?.colors || []).map((c: any) => `${c.name} ${c.hex}`).join(', ') || 'none given'}
+Fonts: ${(a.web?.fonts || []).map((f: any) => f.family).join(', ') || 'none given'}
+Checklist results:
+${checklist || '(no checklist)'}
+
+The student's files:
+${code}
+
+Write 4-8 short bullet points ("- ") covering: what is done well, what is missing from the brief, HTML structure and accessibility (labels, alt text, headings), CSS (layout, responsiveness, use of the palette), and one concrete next step. Do not give a score.`,
+      },
+    ],
+    temperature: 0.3,
+    max_tokens: 600,
+  });
+  const text = String(response.choices[0]?.message?.content || '').trim();
+  return text ? text.slice(0, 4000) : null;
 }

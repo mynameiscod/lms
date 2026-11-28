@@ -179,6 +179,22 @@ router.use(moduleGate);
 // CareerPilot signup (specific, before generic /public). Mounted at BOTH paths:
 // /passport is the legacy path and must keep answering, because member card links
 // already sent to recruiters point at it and cannot be recalled.
+// A web assignment's images: the student's page in the preview loads them with no sign-in.
+router.get('/public/assignment-assets/:tenantId/:file', async (req, res) => {
+  const m = /^([a-f0-9]{24})\.webp$/i.exec(String(req.params.file || ''));
+  if (!m) return res.status(404).end();
+  try {
+    const { openAsset } = await import('../services/webAssignment/assetService');
+    const f = await openAsset(String(req.params.tenantId), m[1]);
+    if (!f) return res.status(404).end();
+    res.setHeader('Content-Type', f.contentType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    f.stream.on('error', () => { if (!res.headersSent) res.status(404); res.end(); });
+    f.stream.pipe(res);
+  } catch { res.status(404).end(); }
+});
 router.use('/public/lms-demo', publicLmsDemoRoutes); // the free LMS demo sign-up (no auth)
 router.use('/public/refer', publicReferralRoutes); // LMS Refer & Earn: the link a student shares (no auth)
 router.use('/public/careerpilot', careerPilotActivity, publicPassportRoutes);

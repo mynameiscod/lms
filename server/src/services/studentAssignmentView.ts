@@ -61,6 +61,16 @@ export function toStudentAssignment(doc: any, options: StudentAssignmentOptions 
       input: t.input, expectedOutput: t.expectedOutput, description: t.description, isHidden: false,
     })),
     hiddenTestCaseCount: tests.filter(t => t.isHidden).length,
+    // A web assignment's brief is the task itself: the checklist lines are what the student must build.
+    ...(a.web ? {
+      web: {
+        stack: a.web.stack, files: a.web.files || [], brief: a.web.brief || '',
+        referenceImages: a.web.referenceImages || [], assets: a.web.assets || [],
+        colors: a.web.colors || [], fonts: a.web.fonts || [],
+        requirements: (a.web.requirements || []).map((r: any) => ({ id: r.id, text: r.text, kind: r.kind, points: r.points })),
+        autoWeight: a.web.autoWeight, aiFeedback: a.web.aiFeedback,
+      },
+    } : {}),
     starterCode: (a.starterCode || []).map((s: any) => ({ language: s.language, code: s.code })),
     rubric: (a.rubric || []).map((r: any) => pick(r, ['criterion', 'description', 'maxPoints', 'order'])),
     mcqQuestions: (a.mcqQuestions || []).map((q: any) => ({

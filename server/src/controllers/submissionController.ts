@@ -186,7 +186,7 @@ class SubmissionController {
       const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const { submissionId } = req.params;
-      const { code, language } = req.body;
+      const { code, language, files } = req.body;
 
       if (!tenantId || !userId) {
         return res.status(401).json({ message: 'Unauthorized' });
@@ -197,7 +197,7 @@ class SubmissionController {
         submissionId,
         userId as any,
         tenantId as any,
-        { code, language }
+        { code, language, files }
       );
 
       res.json({ success: true, data: toStudentSubmission(submission) });
@@ -338,6 +338,25 @@ class SubmissionController {
         success: false,
         message: error instanceof Error ? error.message : 'Failed to submit'
       });
+    }
+  }
+
+  // Submit a web (frontend) assignment: all files, plus the preview's page on the JS/React stacks
+  async submitWeb(req: AuthRequest, res: Response) {
+    try {
+      const tenantId = callerTenant(req);
+      const userId = req.user?.id;
+      const { submissionId } = req.params;
+      if (!tenantId || !userId) return res.status(401).json({ message: 'Unauthorized' });
+      if (await refuseLockedSubmission(tenantId, userId, submissionId, res)) return;
+
+      const submission = await submissionService.submitWeb(submissionId, userId as any, tenantId as any, {
+        files: req.body?.files, renderedHtml: req.body?.renderedHtml,
+      });
+      res.json({ success: true, data: toStudentSubmission(submission), message: 'Assignment submitted successfully' });
+    } catch (error) {
+      console.error('Submit web error:', error);
+      res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Failed to submit' });
     }
   }
 

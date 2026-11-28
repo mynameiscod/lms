@@ -1,3 +1,5 @@
+import { isWebStack, cleanFiles, requirementProblem } from './webAssignment/webChecks';
+import { normalizeHex } from './webAssignment/markup';
 import Assignment, { 
   IAssignment, 
   AssignmentType, 
@@ -109,6 +111,50 @@ function examFields(input: { type?: AssignmentType; poolExam?: any }) {
   return { poolExam, totalPoints: examTotalMarks(poolExam.sections), maxAttempts: poolExam.maxAttempts };
 }
 
+/**
+ * A web assignment's brief, made safe to store: a known stack, only that stack's files, colours as
+ * #rrggbb, numbers in range, and a checklist whose every check can actually run. A broken check is
+ * refused here, where the author can fix it, rather than failing every student later.
+ */
+export function webFields(input: { type?: AssignmentType; web?: any }) {
+  if (input.type !== AssignmentType.WEB || input.web === undefined || input.web === null) return {};
+  const w = input.web || {};
+  const stack = isWebStack(w.stack) ? w.stack : 'html_css';
+  const str = (v: any, max = 500) => String(v ?? '').trim().slice(0, max);
+  const list = (v: any) => (Array.isArray(v) ? v : []);
+  const assetsOf = (v: any) => list(v).filter((a: any) => a && str(a.url, 2000))
+    .slice(0, 30).map((a: any) => ({ url: str(a.url, 2000), name: str(a.name, 120), note: str(a.note, 300) || undefined }));
+  const requirements = list(w.requirements).slice(0, 60).map((r: any, i: number) => ({
+    id: str(r?.id, 40) || `r${i + 1}`,
+    text: str(r?.text, 300),
+    kind: r?.kind,
+    selector: str(r?.selector, 300) || undefined,
+    value: str(r?.value, 2000) || undefined,
+    min: r?.min !== undefined && r?.min !== null && r?.min !== '' ? Math.max(1, Math.floor(Number(r.min) || 1)) : undefined,
+    points: Math.max(0, Math.min(100, Number(r?.points ?? 1) || 0)),
+  }));
+  const problem = requirementProblem(requirements as any);
+  if (problem) throw Object.assign(new Error(problem), { status: 400 });
+  const colors = list(w.colors).slice(0, 20).map((c: any) => ({ name: str(c?.name, 60), hex: normalizeHex(str(c?.hex, 20)) || '' }));
+  const badColor = colors.find(c => !c.hex);
+  if (badColor) throw Object.assign(new Error(`Colour "${badColor.name || '?'}" needs a colour code like #1a2b3c`), { status: 400 });
+  return {
+    web: {
+      stack,
+      files: cleanFiles(stack, w.files),
+      brief: str(w.brief, 20000),
+      referenceImages: assetsOf(w.referenceImages),
+      assets: assetsOf(w.assets),
+      colors,
+      fonts: list(w.fonts).filter((f: any) => str(f?.family, 80)).slice(0, 6)
+        .map((f: any) => ({ family: str(f.family, 80), weights: str(f.weights, 60).replace(/[^0-9;,\s]/g, '').replace(/[,\s]+/g, ';') || '400;700' })),
+      requirements,
+      autoWeight: Math.max(0, Math.min(100, Math.round(Number(w.autoWeight ?? 50)))),
+      aiFeedback: w.aiFeedback !== false,
+    },
+  };
+}
+
 async function examAttemptAsSubmission(assignment: IAssignment, studentId: Types.ObjectId) {
   const a = await PoolExamAttempt.findOne({ assignment: assignment._id, student: studentId }).sort({ attemptNumber: -1 }).lean() as any;
   if (!a) return null;
@@ -168,6 +214,7 @@ class AssignmentService {
       ...input,
       ...settingsFields(input),
       ...examFields(input),
+      ...webFields(input as any),
       ...deliveryFields(input.accessibleTo, (input as any).isExternalAssignment),
       status: AssignmentStatus.DRAFT
     });
@@ -205,6 +252,7 @@ class AssignmentService {
         ...input,
         ...settingsFields(input),
         ...examFields({ ...input, type: input.type || existingAssignment?.type }),
+        ...webFields({ ...(input as any), type: input.type || existingAssignment?.type }),
         ...deliveryFields(input.accessibleTo, (input as any).isExternalAssignment ?? existingAssignment?.isExternalAssignment),
       } },
       { new: true, runValidators: true }

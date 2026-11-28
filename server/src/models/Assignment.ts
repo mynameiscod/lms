@@ -97,6 +97,40 @@ export interface IMCQQuestion {
   points: number;
 }
 
+/**
+ * A web (frontend) assignment's design brief, starter files and checklist. Only on type WEB.
+ *
+ * The brief is what a designer would hand a developer: the mockups to match, the images to use, the
+ * colours and fonts, and a checklist of what the page must have. Each checklist line carries one
+ * automatic check (services/webAssignment/webChecks.ts); the trainer's rubric marks the rest.
+ */
+export interface IWebAsset { url: string; name: string; note?: string }
+export interface IWebColor { name: string; hex: string }
+export interface IWebFont { family: string; weights: string }
+export interface IWebRequirement {
+  id: string;
+  text: string;
+  kind: 'element' | 'text' | 'image' | 'color' | 'font' | 'responsive' | 'source';
+  selector?: string;
+  value?: string;
+  min?: number;
+  points: number;
+}
+export interface IWebAssignment {
+  stack: 'html_css' | 'html_css_js' | 'bootstrap' | 'react';
+  files: { name: string; code: string }[];
+  brief: string;
+  referenceImages: IWebAsset[];
+  assets: IWebAsset[];
+  colors: IWebColor[];
+  fonts: IWebFont[];
+  requirements: IWebRequirement[];
+  /** Share of the total points the checklist gives (0–100); the rubric gives the rest. */
+  autoWeight: number;
+  /** AI writes comments on the submitted code (never changes the mark). */
+  aiFeedback: boolean;
+}
+
 // Main Assignment Interface
 /**
  * One block of a pool exam — "3 from the Java Coding Pool: 1 easy, 1 medium, 1 hard, 20 marks each".
@@ -213,6 +247,9 @@ export interface IAssignment extends Document {
   
   /** Only for type EXAM: how each student's paper is drawn from Question Pools, and the exam rules. */
   poolExam?: IPoolExam;
+
+  /** Only for type WEB: the design brief, starter files and checklist. */
+  web?: IWebAssignment;
 
   // MCQ Fields
   mcqQuestions: IMCQQuestion[];
@@ -378,6 +415,33 @@ const AssignmentSchema = new Schema<IAssignment>({
       blockCopyPaste: { type: Boolean, default: true },
       showResultsImmediately: { type: Boolean, default: false },
       resultsReleasedAt: { type: Date, default: null },
+    }, { _id: false }),
+    default: undefined,
+  },
+
+  web: {
+    type: new Schema({
+      stack: { type: String, enum: ['html_css', 'html_css_js', 'bootstrap', 'react'], default: 'html_css' },
+      files: { type: [new Schema({ name: { type: String, required: true }, code: { type: String, default: '' } }, { _id: false })], default: [] },
+      brief: { type: String, default: '' },
+      referenceImages: { type: [new Schema({ url: { type: String, required: true }, name: { type: String, default: '' }, note: String }, { _id: false })], default: [] },
+      assets: { type: [new Schema({ url: { type: String, required: true }, name: { type: String, default: '' }, note: String }, { _id: false })], default: [] },
+      colors: { type: [new Schema({ name: { type: String, default: '' }, hex: { type: String, required: true } }, { _id: false })], default: [] },
+      fonts: { type: [new Schema({ family: { type: String, required: true }, weights: { type: String, default: '400;700' } }, { _id: false })], default: [] },
+      requirements: {
+        type: [new Schema({
+          id: { type: String, required: true },
+          text: { type: String, required: true },
+          kind: { type: String, enum: ['element', 'text', 'image', 'color', 'font', 'responsive', 'source'], required: true },
+          selector: String,
+          value: String,
+          min: Number,
+          points: { type: Number, default: 1, min: 0 },
+        }, { _id: false })],
+        default: [],
+      },
+      autoWeight: { type: Number, default: 50, min: 0, max: 100 },
+      aiFeedback: { type: Boolean, default: true },
     }, { _id: false }),
     default: undefined,
   },

@@ -1,3 +1,4 @@
+import { STACK_FILES, WebFile, WebStack, isWebStack, cleanFiles, combinedCode, evaluateWebChecks, webAutoScore } from './webAssignment/webChecks';
 import Submission, { 
   ISubmission, 
   SubmissionStatus,
@@ -28,6 +29,18 @@ interface StartSubmissionInput {
 interface SaveCodeInput {
   code: string;
   language: ProgrammingLanguage;
+  /** A web assignment saves all its files at once (index.html, style.css, …). */
+  files?: unknown;
+}
+
+/** Every file name any web stack uses; a save keeps only these. */
+const WEB_FILE_NAMES = [...new Set(Object.values(STACK_FILES).flat())];
+function savedWebFiles(raw: unknown): WebFile[] | null {
+  if (!Array.isArray(raw)) return null;
+  return WEB_FILE_NAMES
+    .map(name => raw.find((f: any) => f && f.name === name && typeof f.code === 'string'))
+    .filter(Boolean)
+    .map((f: any) => ({ name: f.name, code: String(f.code).slice(0, 200_000) }));
 }
 
 interface SubmitMCQInput {
@@ -241,14 +254,21 @@ class SubmissionService {
     }
 
     // Save code
-    submission.code = input.code;
-    submission.language = input.language;
+    const webFiles = savedWebFiles(input.files);
+    if (webFiles) {
+      submission.webFiles = webFiles;
+      submission.code = combinedCode(webFiles);
+      submission.language = ProgrammingLanguage.HTML;
+    } else {
+      submission.code = input.code;
+      submission.language = input.language;
+    }
 
     // Add to snapshots only if code is not empty (limit to last 50 snapshots)
-    if (input.code && input.code.trim().length > 0) {
+    if (submission.code && submission.code.trim().length > 0) {
       submission.codeSnapshots.push({
-        code: input.code,
-        language: input.language,
+        code: submission.code,
+        language: submission.language!,
         timestamp: new Date()
       });
 
@@ -533,6 +553,94 @@ class SubmissionService {
     scheduleAppliedEvidence({ tenantId: String(tenant), submissionId: String(updated._id), evaluation: 'AUTO_GRADED' });
     void tellCounsellor(studentId, assignment, updated);
 
+    return updated;
+  }
+
+  /**
+   * Hand in a web (frontend) assignment: every file, marked against the checklist.
+   *
+   * The checklist gives its share of the points now; the trainer's rubric gives the rest when they
+   * mark it, so the attempt stays SUBMITTED until then. An assignment with no checklist is marked by
+   * the rubric alone. AI comments, when switched on, are written afterwards and never change the mark.
+   */
+  async submitWeb(
+    submissionId: string | Types.ObjectId,
+    studentId: Types.ObjectId,
+    tenant: Types.ObjectId,
+    input: { files?: unknown; renderedHtml?: unknown } = {}
+  ): Promise<ISubmission> {
+    const submission = await Submission.findOne({
+      _id: submissionId, student: studentId, tenant, status: SubmissionStatus.IN_PROGRESS,
+    }).populate('assignment');
+    if (!submission) throw new Error('Submission not found or already submitted');
+    const assignment = submission.assignment as unknown as IAssignment;
+    if (assignment.type !== AssignmentType.WEB) throw new Error('This is not a web assignment.');
+
+    const stack: WebStack = isWebStack(assignment.web?.stack) ? assignment.web!.stack : 'html_css';
+    const sent = cleanFiles(stack, input.files);
+    const files = sent.length ? sent : cleanFiles(stack, submission.webFiles);
+    if (!files.some(f => f.code.trim())) throw new Error('Write your page before you submit it.');
+
+    const renderedHtml = stack !== 'html_css' && typeof input.renderedHtml === 'string'
+      ? input.renderedHtml.slice(0, 400_000) : undefined;
+    const checks = evaluateWebChecks({
+      stack, files, renderedHtml, requirements: (assignment.web?.requirements || []) as any,
+    });
+    const hasChecks = checks.some(c => c.points > 0);
+    const autoWeight = hasChecks ? (assignment.web?.autoWeight ?? 50) : 0;
+    const autoScore = webAutoScore(checks, assignment.totalPoints, autoWeight);
+
+    let penalty = 0;
+    let status = SubmissionStatus.SUBMITTED;
+    if (assignment.dueDate && new Date() > assignment.dueDate && !(await isLmsDemoStudent(studentId))) {
+      status = SubmissionStatus.LATE;
+      if (assignment.lateSubmissionDeadline && new Date() <= assignment.lateSubmissionDeadline) {
+        penalty = Math.round(autoScore * (assignment.lateSubmissionPenalty / 100));
+      }
+    }
+    const finalScore = Math.max(0, autoScore - penalty);
+
+    const updated = await Submission.findOneAndUpdate(
+      { _id: submissionId, student: studentId, tenant, status: SubmissionStatus.IN_PROGRESS },
+      {
+        $set: {
+          webFiles: files,
+          code: combinedCode(files),
+          language: ProgrammingLanguage.HTML,
+          renderedHtml,
+          webChecks: checks,
+          testCaseResults: [],
+          autoScore,
+          // A checklist is not an executed program: never evidence of skill on its own.
+          autoGradeTrusted: false,
+          penaltyApplied: penalty,
+          totalScore: autoScore,
+          finalScore,
+          percentage: assignment.totalPoints ? Math.round((finalScore / assignment.totalPoints) * 100) : 0,
+          isPassing: finalScore >= assignment.passingPoints,
+          status,
+          submittedAt: new Date(),
+          timeSpent: submission.startedAt ? Math.floor((Date.now() - submission.startedAt.getTime()) / 1000) : 0,
+          shareToken: submission.shareToken || crypto.randomUUID(),
+        },
+      },
+      { new: true }
+    );
+    if (!updated) throw new Error('Submission has already been submitted');
+
+    await assignmentService.updateStats(assignment._id, tenant);
+    void tellCounsellor(studentId, assignment, updated);
+    if (assignment.web?.aiFeedback !== false) {
+      void (async () => {
+        try {
+          const { reviewWebSubmissionWithAI } = await import('./aiService');
+          const review = await reviewWebSubmissionWithAI({ assignment, files, checks });
+          if (review) await Submission.updateOne({ _id: updated._id }, { $set: { aiReview: review } });
+        } catch (e: any) {
+          console.warn('[web-review] AI comments skipped:', e?.message);
+        }
+      })();
+    }
     return updated;
   }
 

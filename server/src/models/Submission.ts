@@ -85,6 +85,13 @@ export interface ISubmission extends Document {
   compilationError?: string;
   runtimeError?: string;
 
+  // Web (frontend) submission: every file, the checklist results and the AI's comments.
+  webFiles?: { name: string; code: string }[];
+  webChecks?: { id: string; text: string; kind: string; passed: boolean; points: number; detail: string }[];
+  /** The page as it stood in the preview when Submit was pressed (JavaScript and React stacks). */
+  renderedHtml?: string;
+  aiReview?: string;
+
   // AI Hints (per-attempt usage, capped by Assignment.maxAiHints)
   aiHintsUsed: number;
   aiHintLog: IAiHintLogEntry[];
@@ -206,6 +213,16 @@ const SubmissionSchema = new Schema<ISubmission>({
   testCaseResults: [TestCaseResultSchema],
   compilationError: { type: String },
   runtimeError: { type: String },
+
+  webFiles: { type: [new Schema({ name: { type: String, required: true }, code: { type: String, default: '' } }, { _id: false })], default: undefined },
+  webChecks: {
+    type: [new Schema({
+      id: String, text: String, kind: String, passed: Boolean, points: Number, detail: String,
+    }, { _id: false })],
+    default: undefined,
+  },
+  renderedHtml: { type: String },
+  aiReview: { type: String },
 
   // AI Hints
   aiHintsUsed: { type: Number, default: 0 },

@@ -6,6 +6,7 @@ import { roleGuard } from '../middleware/roleGuard';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import multer from 'multer';
 import { MAX_FILE_BYTES, MAX_FILES } from '../services/submissionFileService';
+import { MAX_ASSET_BYTES } from '../services/webAssignment/assetService';
 
 const router = express.Router();
 
@@ -32,6 +33,12 @@ router.get('/reports/by-student', roleGuard(['manage_assignments']), assignmentC
 router.get('/reports/completion', roleGuard(['manage_assignments']), assignmentController.getCompletionReport);
 
 // Assignment CRUD
+const assetUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_ASSET_BYTES, files: 1 } });
+const oneAsset: express.RequestHandler = (req, res, next) => assetUpload.single('file')(req, res, (err: any) => {
+  if (!err) return next();
+  res.status(400).json({ success: false, message: err?.code === 'LIMIT_FILE_SIZE' ? 'The image is larger than 8 MB.' : 'Could not read the upload.' });
+});
+router.post('/assets', roleGuard(['manage_assignments']), oneAsset, assignmentController.uploadAsset);
 router.post('/generate-ai', roleGuard(['manage_assignments']), assignmentController.generateWithAI);
 router.post('/', roleGuard(['manage_assignments']), assignmentController.create);
 router.get('/', roleGuard(['manage_assignments']), assignmentController.list);
@@ -68,6 +75,7 @@ router.post('/submissions/:submissionId/run', submissionController.runCode);
 router.post('/submissions/:submissionId/hint', submissionController.getHint);
 router.post('/submissions/:submissionId/concept-hint', submissionController.getConceptHint);
 router.post('/submissions/:submissionId/submit-coding', submissionController.submitCoding);
+router.post('/submissions/:submissionId/submit-web', submissionController.submitWeb);
 router.post('/submissions/:submissionId/submit-mcq', submissionController.submitMCQ);
 router.post('/submissions/:submissionId/submit-theory', submissionController.submitTheory);
 // Files for FILE_UPLOAD assignments: kept in memory only long enough to store them.

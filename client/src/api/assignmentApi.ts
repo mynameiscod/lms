@@ -1,3 +1,4 @@
+import type { WebAssignmentConfig, WebFile, WebCheckResult, WebStack, WebColor, WebFont, WebRequirement } from '../pages/assignments/web/webStack';
 import axios from 'axios';
 
 // Create axios instance
@@ -169,6 +170,8 @@ export interface Assignment {
   mcqQuestions: MCQQuestion[];
   /** Only on an EXAM: how each student's paper is drawn from Question Pools. */
   poolExam?: PoolExamSettings;
+  /** Only on a WEB assignment: design brief, starter files and checklist. */
+  web?: WebAssignmentConfig;
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
   rubric: RubricItem[];
@@ -264,6 +267,11 @@ export interface Submission {
   feedback?: string;
   rubricScores?: RubricScore[];
   shareToken?: string;
+  /** A WEB assignment: every file, the checklist results, and AI comments (feedback only). */
+  webFiles?: WebFile[];
+  webChecks?: WebCheckResult[];
+  renderedHtml?: string;
+  aiReview?: string;
   /** Files handed in for a FILE_UPLOAD assignment. */
   uploadedFiles?: { filename: string; originalName: string; mimeType: string; size: number; uploadedAt: string }[];
   createdAt: string;
@@ -358,6 +366,21 @@ export const assignmentApi = {
   // AI Generate Coding Assignment
   generateWithAI: (data: { title: string; concept: string; language: string; difficulty: string; testCaseCount: number }) =>
     api.post<ApiResponse<any>>('/assignments/generate-ai', data),
+
+  // AI Generate a web (frontend) assignment: brief, palette, fonts, starter files, checklist
+  generateWebWithAI: (data: { title: string; concept: string; webStack: WebStack; difficulty: string }) =>
+    api.post<ApiResponse<{
+      description: string; instructions: string; brief: string; colors: WebColor[]; fonts: WebFont[];
+      requirements: WebRequirement[]; files: WebFile[]; topics: string[];
+      verification: { requested: number; kept: number; dropped: string[] };
+    }>>('/assignments/generate-ai', data),
+
+  // An image for a web assignment's brief; returns its path under the API
+  uploadAsset: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post<ApiResponse<{ id: string; path: string; width?: number; height?: number; name: string }>>('/assignments/assets', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
 
   // Admin - Create assignment
   create: (data: AssignmentInput) =>
@@ -521,6 +544,14 @@ export const submissionApi = {
   // Save code (auto-save)
   saveCode: (submissionId: string, data: { code: string; language: ProgrammingLanguage }) =>
     api.post<ApiResponse<Submission>>(`/assignments/submissions/${submissionId}/save-code`, data),
+
+  // Save every file of a web assignment
+  saveWeb: (submissionId: string, files: WebFile[]) =>
+    api.post<ApiResponse<Submission>>(`/assignments/submissions/${submissionId}/save-code`, { code: '', language: 'html', files }),
+
+  // Hand in a web assignment (renderedHtml: the preview's page, for the JavaScript and React stacks)
+  submitWeb: (submissionId: string, data: { files: WebFile[]; renderedHtml?: string }) =>
+    api.post<ApiResponse<Submission>>(`/assignments/submissions/${submissionId}/submit-web`, data),
 
   // Run code
   runCode: (submissionId: string, data: { code: string; language: ProgrammingLanguage }) =>

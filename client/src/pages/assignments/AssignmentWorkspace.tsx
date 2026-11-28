@@ -16,6 +16,8 @@ import ShareOnLinkedIn from '../../components/common/ShareOnLinkedIn';
 import { submissionKindFor, projectSubmissionProblem } from './submissionKind';
 import { briefHtml } from './briefHtml';
 import { careerpilotReturn, withReturn, returnLabel } from '../../utils/careerpilotReturn';
+import WebWorkspace from './web/WebWorkspace';
+import WebDesignPanel from './web/WebDesignPanel';
 import './assignments.css';
 
 /** The server sends a student only the count of hidden tests, never the tests; an author's full document still carries them. */
@@ -619,11 +621,13 @@ const AssignmentWorkspace: React.FC = () => {
     const maxAttempts = assignment.settings?.maxAttempts || assignment.maxAttempts || 0;
     const submissionsLabel = maxAttempts > 0 ? `${maxAttempts} attempt${maxAttempts === 1 ? '' : 's'} allowed` : 'Unlimited attempts';
     const startKind = submissionKindFor(assignment.type);
-    const startLabel = startKind === 'code' ? 'Start coding →' : startKind === 'written' ? 'Start writing →' : startKind === 'files' ? 'Start →' : 'Start →';
+    const startLabel = assignment.type === AssignmentType.WEB ? 'Start building →' : startKind === 'code' ? 'Start coding →' : startKind === 'written' ? 'Start writing →' : startKind === 'files' ? 'Start →' : 'Start →';
     const hasSamples = (assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL || assignment.type === AssignmentType.WEB)
       && (assignment.testCases || []).some(tc => !tc.isHidden);
     const typeIcon = startKind === 'code' ? '💻' : startKind === 'written' ? '📝' : startKind === 'files' ? '📎' : '🧩';
-    const tips: string[] = startKind === 'code'
+    const tips: string[] = assignment.type === AssignmentType.WEB
+      ? ['Look at the design and the checklist before you start', 'Copy the image links and colour codes from the Design tab', 'Check your page at Mobile width as well as Desktop', 'Use clear class names and semantic tags (header, nav, main, footer)']
+      : startKind === 'code'
       ? ['Read the problem twice before you write any code', 'Run your code on the examples first', 'Think about edge cases: empty input, zero, very large values', 'Keep names clear, so your code explains itself']
       : startKind === 'written'
         ? ['Answer every part of the brief', 'Put the link to your work first', 'Say what you built, and what you could not finish']
@@ -709,6 +713,13 @@ const AssignmentWorkspace: React.FC = () => {
                 </div>
               )}
 
+              {assignment.type === AssignmentType.WEB && assignment.web && (
+                <div className="asgn-section" id="asgn-design">
+                  <h3 className="asgn-h3">🎨 Design</h3>
+                  <WebDesignPanel web={assignment.web} />
+                </div>
+              )}
+
               {(assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL || assignment.type === AssignmentType.WEB)
                 && assignment.testCases.some(tc => !tc.isHidden) && (
                 <div className="asgn-section" id="asgn-samples">
@@ -787,6 +798,21 @@ const AssignmentWorkspace: React.FC = () => {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // A web assignment has its own workspace: all its files, a live preview, the design brief.
+  if (assignment.type === AssignmentType.WEB && submission) {
+    return (
+      <WebWorkspace
+        assignment={assignment}
+        submission={submission}
+        previewMode={previewMode}
+        exitLabel={exitLabel}
+        onExit={exit}
+        onSubmitted={() => navigate(resultPath)}
+        timeRemaining={timeRemaining}
+      />
     );
   }
 

@@ -18,9 +18,21 @@ import { courseApi, subjectApi, chapterApi, quizApi, batchApi, userApi } from '.
 import { TECH_CATEGORIES } from '../../config/techCategories';
 import { AUDIENCE_OPTIONS, audienceDef, ContentAudience } from '../../config/contentAudience';
 import CourseSelect from '../../components/common/CourseSelect';
+import WebBriefEditor from './web/WebBriefEditor';
+import { WebAssignmentConfig, STACKS, emptyWebConfig, filesForStack, defaultWebRubric } from './web/webStack';
+import './web/web.css';
 import './assignments.css';
 
-type ActiveTab = 'basic' | 'coding' | 'mcq' | 'rubric' | 'exam' | 'settings';
+/** Languages the code runner really executes: a Coding Challenge offers only these. */
+const RUNNABLE_LANGUAGES: ProgrammingLanguage[] = [
+  ProgrammingLanguage.PYTHON, ProgrammingLanguage.JAVA, ProgrammingLanguage.JAVASCRIPT, ProgrammingLanguage.TYPESCRIPT,
+  ProgrammingLanguage.CPP, ProgrammingLanguage.C, ProgrammingLanguage.CSHARP, ProgrammingLanguage.GO, ProgrammingLanguage.RUST,
+];
+/** What each type may offer a student; Web has stacks instead (see web/webStack). */
+const languagesFor = (t: AssignmentType): ProgrammingLanguage[] =>
+  t === AssignmentType.SQL ? [ProgrammingLanguage.SQL] : RUNNABLE_LANGUAGES;
+
+type ActiveTab = 'basic' | 'coding' | 'web' | 'mcq' | 'rubric' | 'exam' | 'settings';
 
 const AdminAssignmentForm: React.FC = () => {
   const navigate = useNavigate();
@@ -94,6 +106,10 @@ const AdminAssignmentForm: React.FC = () => {
 
   // Rubric
   const [rubric, setRubric] = useState<RubricItem[]>([]);
+
+  // Web (frontend) assignment: stack, design brief, images, colours, fonts, checklist, starter files
+  const [web, setWeb] = useState<WebAssignmentConfig>(() => emptyWebConfig());
+  const isWeb = type === AssignmentType.WEB;
 
   // Settings
   const [startDate, setStartDate] = useState('');
@@ -326,6 +342,13 @@ const AdminAssignmentForm: React.FC = () => {
       // Rubric
       setRubric(a.rubric);
 
+      // Web brief; an older web assignment brings its HTML/CSS starter code across.
+      if (a.web) setWeb({ ...emptyWebConfig(a.web.stack), ...a.web, files: filesForStack(a.web.stack, a.web.files, a.web.fonts, a.title) });
+      else if (a.type === AssignmentType.WEB) {
+        const old = (a.starterCode || []).flatMap(sc => sc.language === ProgrammingLanguage.HTML ? [{ name: 'index.html', code: sc.code }] : sc.language === ProgrammingLanguage.CSS ? [{ name: 'style.css', code: sc.code }] : []);
+        setWeb({ ...emptyWebConfig('html_css'), files: filesForStack('html_css', old, [], a.title) });
+      }
+
       // Settings
       if (a.startDate) {
         setStartDate(new Date(a.startDate).toISOString().slice(0, 16));
@@ -389,12 +412,15 @@ const AdminAssignmentForm: React.FC = () => {
         totalPoints: effectiveTotal,
         passingPoints,
         ...(isExam ? { poolExam } : {}),
+        ...(isWeb ? { web: { ...web, files: filesForStack(web.stack, web.files, web.fonts, title) } } : {}),
         topics,
         // Course structure linking
         course: selectedCourse || undefined,
         subject: selectedSubject || undefined,
         chapter: selectedChapter || undefined,
-        allowedLanguages,
+        allowedLanguages: isWeb
+          ? [ProgrammingLanguage.HTML, ProgrammingLanguage.CSS, ...(web.stack === 'html_css' ? [] : [ProgrammingLanguage.JAVASCRIPT])]
+          : allowedLanguages,
         starterCode,
         testCases,
         timeLimit,
@@ -535,7 +561,7 @@ const AdminAssignmentForm: React.FC = () => {
   // AI helper for Coding assignments
   const generateAICodingAssignment = async () => {
     if (!title.trim() || !aiCoding.concept.trim()) return;
-    const primaryLang = aiCodingLanguage || allowedLanguages[0];
+    const primaryLang = aiCodingLanguage || allowedLanguages.find(l => languagesFor(type).includes(l));
     if (!primaryLang) {
       setAiCodingError('Please select a programming language first.');
       return;
@@ -594,6 +620,31 @@ const AdminAssignmentForm: React.FC = () => {
         // Switch to coding tab to show results
         setActiveTab('coding');
       }
+    } catch (err: any) {
+      setAiCodingError(err.response?.data?.message || err.message || 'AI generation failed');
+    } finally {
+      setAiCodingLoading(false);
+    }
+  };
+
+  // AI helper for Web assignments: a brief, palette, fonts, starter files and a checklist.
+  const generateAIWebAssignment = async () => {
+    if (!title.trim() || !aiCoding.concept.trim()) return;
+    try {
+      setAiCodingLoading(true);
+      setAiCodingError('');
+      const res = await assignmentApi.generateWebWithAI({ title: title.trim(), concept: aiCoding.concept.trim(), webStack: web.stack, difficulty });
+      const d = res.data.data;
+      if (d.description) setDescription(d.description);
+      if (d.instructions) setInstructions(d.instructions);
+      setWeb(w => ({ ...w, brief: d.brief || w.brief, colors: d.colors?.length ? d.colors : w.colors, fonts: d.fonts?.length ? d.fonts : w.fonts, requirements: d.requirements || [], files: filesForStack(w.stack, d.files, d.fonts, title) }));
+      if (d.topics?.length) setTopics(prev => [...new Set([...prev, ...d.topics])]);
+      if (!rubric.length) setRubric(defaultWebRubric(totalPoints - Math.round(totalPoints * web.autoWeight / 100)));
+      const v = d.verification;
+      if (v && v.dropped?.length) {
+        setAiCodingError(`${v.kept} of ${v.requested} checks kept. ${v.dropped.length} dropped because they could not run or the AI's own page failed them. First: ${v.dropped[0]}`);
+      }
+      setActiveTab('web');
     } catch (err: any) {
       setAiCodingError(err.response?.data?.message || err.message || 'AI generation failed');
     } finally {
@@ -732,12 +783,20 @@ const AdminAssignmentForm: React.FC = () => {
         >
           📝 Basic Info
         </button>
-        {(type === AssignmentType.CODING || type === AssignmentType.SQL || type === AssignmentType.WEB) && (
-          <button 
+                {(type === AssignmentType.CODING || type === AssignmentType.SQL) && (
+          <button
             className={`tab ${activeTab === 'coding' ? 'active' : ''}`}
             onClick={() => setActiveTab('coding')}
           >
             💻 Coding Settings
+          </button>
+        )}
+        {isWeb && (
+          <button
+            className={`tab ${activeTab === 'web' ? 'active' : ''}`}
+            onClick={() => setActiveTab('web')}
+          >
+            🎨 Web Page
           </button>
         )}
         {type === AssignmentType.MCQ && (
@@ -748,8 +807,8 @@ const AdminAssignmentForm: React.FC = () => {
             📋 MCQ Questions
           </button>
         )}
-        {(type === AssignmentType.PROJECT || type === AssignmentType.THEORY) && (
-          <button 
+                {(type === AssignmentType.PROJECT || type === AssignmentType.THEORY || isWeb) && (
+          <button
             className={`tab ${activeTab === 'rubric' ? 'active' : ''}`}
             onClick={() => setActiveTab('rubric')}
           >
@@ -944,7 +1003,9 @@ const AdminAssignmentForm: React.FC = () => {
                   ✨ AI Assignment Generator
                 </h4>
                 <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#6366f1' }}>
-                  Fill in the title, pick the language it should generate for, then describe the concept below. AI will generate description, instructions, starter code, and test cases.
+                  {isWeb
+                    ? 'Fill in the title, pick the stack, then describe the page. AI writes the description, steps, a design brief, colours, fonts, starter files and a checklist. Upload your own images on the Web Page tab afterwards.'
+                    : 'Fill in the title, pick the language it should generate for, then describe the concept below. AI will generate description, instructions, starter code, and test cases.'}
                 </p>
                 {aiCodingError && <p style={{ color: '#ef4444', fontSize: '0.88rem', marginBottom: '8px', padding: '8px 12px', background: '#fef2f2', borderRadius: '8px' }}>{aiCodingError}</p>}
 
@@ -953,27 +1014,42 @@ const AdminAssignmentForm: React.FC = () => {
                     <label className="form-label">Concept / Problem Description <span className="text-danger">*</span></label>
                     <textarea
                       className="form-control"
-                      placeholder="e.g., Write a program that reads N integers and prints them in sorted order. Include edge cases for empty input and single element."
+                      placeholder={isWeb
+                        ? 'e.g., A landing page for a coffee shop: a header with the logo and links, a hero with a heading and an Order button, three menu cards, and a footer with contact details.'
+                        : 'e.g., Write a program that reads N integers and prints them in sorted order. Include edge cases for empty input and single element.'}
                       value={aiCoding.concept}
                       onChange={e => setAiCoding({ ...aiCoding, concept: e.target.value })}
                       rows={3}
                       style={{ resize: 'vertical' }}
                     />
                   </div>
+                  {isWeb ? (
+                    <div className="form-group" style={{ width: '220px', marginBottom: 0 }}>
+                      <label className="form-label">Stack <span className="text-danger">*</span></label>
+                      <select
+                        className="form-control"
+                        value={web.stack}
+                        onChange={e => { const st = e.target.value as WebAssignmentConfig['stack']; setWeb(w => ({ ...w, stack: st, files: filesForStack(st, w.files, w.fonts, title) })); }}
+                      >
+                        {STACKS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
+                      </select>
+                    </div>
+                  ) : (
                   <div className="form-group" style={{ width: '160px', marginBottom: 0 }}>
                     <label className="form-label">Language <span className="text-danger">*</span></label>
                     <select
                       className="form-control"
-                      value={aiCodingLanguage || allowedLanguages[0] || ''}
+                      value={aiCodingLanguage || allowedLanguages.find(l => languagesFor(type).includes(l)) || ''}
                       onChange={e => setAiCodingLanguage(e.target.value as ProgrammingLanguage)}
                     >
                       <option value="" disabled>Select language</option>
-                      {Object.values(ProgrammingLanguage).map(lang => (
+                      {languagesFor(type).map(lang => (
                         <option key={lang} value={lang}>{lang}</option>
                       ))}
                     </select>
                   </div>
-                  <div className="form-group" style={{ width: '120px', marginBottom: 0 }}>
+                  )}
+                  {!isWeb && <div className="form-group" style={{ width: '120px', marginBottom: 0 }}>
                     <label className="form-label">Test Cases</label>
                     <input
                       type="number"
@@ -983,19 +1059,19 @@ const AdminAssignmentForm: React.FC = () => {
                       value={aiCoding.testCaseCount}
                       onChange={e => setAiCoding({ ...aiCoding, testCaseCount: Math.min(15, Math.max(2, Number(e.target.value))) })}
                     />
-                  </div>
+                  </div>}
                   <button
                     type="button"
                     className="btn btn-primary"
-                    onClick={generateAICodingAssignment}
-                    disabled={aiCodingLoading || !title.trim() || !aiCoding.concept.trim() || !(aiCodingLanguage || allowedLanguages[0])}
+                    onClick={isWeb ? generateAIWebAssignment : generateAICodingAssignment}
+                    disabled={aiCodingLoading || !title.trim() || !aiCoding.concept.trim() || (!isWeb && !(aiCodingLanguage || allowedLanguages[0]))}
                     style={{
                       marginBottom: 0,
                       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                       border: 'none',
                       padding: '10px 28px',
                       fontWeight: 600,
-                      opacity: (aiCodingLoading || !title.trim() || !aiCoding.concept.trim() || !(aiCodingLanguage || allowedLanguages[0])) ? 0.6 : 1
+                      opacity: (aiCodingLoading || !title.trim() || !aiCoding.concept.trim() || (!isWeb && !(aiCodingLanguage || allowedLanguages[0]))) ? 0.6 : 1
                     }}
                   >
                     {aiCodingLoading ? '⏳ Generating...' : '✨ Generate Assignment'}
@@ -1162,14 +1238,22 @@ const AdminAssignmentForm: React.FC = () => {
         )}
 
         {/* Coding Settings Tab */}
-        {activeTab === 'coding' && (type === AssignmentType.CODING || type === AssignmentType.SQL || type === AssignmentType.WEB) && (
+        {activeTab === 'web' && isWeb && (
+          <div className="form-section">
+            <h3 className="section-title">Web Page</h3>
+            <p className="section-description">The design the student builds, the images and palette they use, and how it is marked.</p>
+            <WebBriefEditor value={web} onChange={setWeb} title={title} totalPoints={totalPoints} rubric={rubric} onRubric={setRubric} />
+          </div>
+        )}
+
+        {activeTab === 'coding' && (type === AssignmentType.CODING || type === AssignmentType.SQL) && (
           <>
             <div className="form-section">
               <h3 className="section-title">Programming Languages</h3>
               <p className="section-description">Select which languages students can use</p>
 
               <div className="language-pills">
-                {Object.values(ProgrammingLanguage).map((lang) => (
+                {[...new Set([...languagesFor(type), ...allowedLanguages])].map((lang) => (
                   <button
                     key={lang}
                     type="button"
@@ -1453,7 +1537,7 @@ const AdminAssignmentForm: React.FC = () => {
         )}
 
         {/* Rubric Tab */}
-        {activeTab === 'rubric' && (type === AssignmentType.PROJECT || type === AssignmentType.THEORY) && (
+        {activeTab === 'rubric' && (type === AssignmentType.PROJECT || type === AssignmentType.THEORY || isWeb) && (
           <div className="form-section">
             <h3 className="section-title">Grading Rubric</h3>
             <p className="section-description">Define criteria for grading submissions</p>
@@ -1613,7 +1697,7 @@ const AdminAssignmentForm: React.FC = () => {
               </div>
             )}
 
-            {(type === AssignmentType.CODING || type === AssignmentType.SQL || type === AssignmentType.WEB) && (
+            {(type === AssignmentType.CODING || type === AssignmentType.SQL) && (
               <>
                 <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
                 <h4 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>

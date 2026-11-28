@@ -10,6 +10,8 @@ import {
 } from '../../api/assignmentApi';
 import ShareOnLinkedIn from '../../components/common/ShareOnLinkedIn';
 import './AssignmentResultRedesign.css';
+import WebResultSections from './web/WebResultSections';
+import './web/web.css';
 import { careerpilotReturn, withReturn, returnLabel } from '../../utils/careerpilotReturn';
 
 const AssignmentResultRedesign: React.FC = () => {
@@ -67,6 +69,8 @@ const AssignmentResultRedesign: React.FC = () => {
   const autoGraded = !instructorGraded
     && (assignment?.type === AssignmentType.CODING || assignment?.type === AssignmentType.SQL || assignment?.type === AssignmentType.WEB)
     && !!submission?.testResults?.length;
+  /* A web page: the checklist gives its share at once; the trainer's rubric gives the rest later. */
+  const webMarked = assignment?.type === AssignmentType.WEB && !!submission?.webChecks;
   const isGraded = instructorGraded || autoGraded;
   const attemptLimit = assignment ? (assignment.settings?.maxAttempts || assignment.maxAttempts || 0) : 0;
   const canRetry = !!submission && (attemptLimit === 0 || (submission.attemptNumber || 1) < attemptLimit);
@@ -130,7 +134,7 @@ const AssignmentResultRedesign: React.FC = () => {
         </div>
         <div className={`cb-ar-status ${isGraded ? (isPassing ? 'passed' : 'failed') : 'pending'}`}>
           <i className={`bi ${isGraded ? (isPassing ? 'bi-patch-check-fill' : 'bi-x-circle-fill') : 'bi-hourglass-split'}`} />
-          <div><span>{isGraded ? (isPassing ? 'Passed' : 'Needs Improvement') : 'Pending Review'}</span><small>{instructorGraded ? 'Evaluation completed' : autoGraded ? 'Checked by the test cases · your trainer may review it' : 'Instructor evaluation in progress'}</small></div>
+          <div><span>{isGraded ? (isPassing ? 'Passed' : 'Needs Improvement') : 'Pending Review'}</span><small>{instructorGraded ? 'Evaluation completed' : autoGraded ? 'Checked by the test cases · your trainer may review it' : webMarked ? `Checklist: ${submission?.autoScore ?? 0} marks so far · your trainer marks the rest` : 'Instructor evaluation in progress'}</small></div>
         </div>
       </div>
 
@@ -162,6 +166,10 @@ const AssignmentResultRedesign: React.FC = () => {
               <div className="cb-ar-feedback-body">{submission.feedback}</div>
             </section>
           )}
+
+          {assignment.type === AssignmentType.WEB && (submission.webFiles?.length || submission.webChecks) ? (
+            <WebResultSections assignment={assignment} submission={submission} />
+          ) : null}
 
           {assignment.type === AssignmentType.CODING && submission.testResults && (
             <section className="cb-ar-card">

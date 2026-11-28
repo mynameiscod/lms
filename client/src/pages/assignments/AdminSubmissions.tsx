@@ -8,6 +8,8 @@ import {
   SubmissionStatus,
   AssignmentType
 } from '../../api/assignmentApi';
+import WebResultSections from './web/WebResultSections';
+import './web/web.css';
 import './assignments.css';
 
 const AdminSubmissions: React.FC = () => {
@@ -347,7 +349,8 @@ const AdminSubmissions: React.FC = () => {
           <div style={{
             background: '#fff',
             borderRadius: '12px',
-            width: '800px',
+            width: assignment?.type === AssignmentType.WEB ? '1120px' : '800px',
+            maxWidth: '95vw',
             maxHeight: '90vh',
             overflow: 'auto'
           }}>
@@ -381,6 +384,13 @@ const AdminSubmissions: React.FC = () => {
             </div>
 
             <div style={{ padding: '20px' }}>
+              {/* A web page: the checklist, the page running beside the reference design, the code, AI comments */}
+              {assignment?.type === AssignmentType.WEB && assignment && (selectedSubmission.webFiles?.length || selectedSubmission.webChecks) ? (
+                <div className="wr-grade">
+                  <WebResultSections assignment={assignment} submission={selectedSubmission} cardClass="wr-grade-card" />
+                </div>
+              ) : null}
+
               {/* Submission Content */}
               {assignment?.type === AssignmentType.CODING && selectedSubmission.code && (
                 <div className="form-group">
@@ -539,10 +549,19 @@ const AdminSubmissions: React.FC = () => {
                 </div>
               )}
 
+              {assignment?.type === AssignmentType.WEB && selectedSubmission.webChecks && (
+                <div className="wr-total">
+                  <span>Checklist (automatic) <b>{selectedSubmission.autoScore ?? 0}</b></span>
+                  <span>+ Trainer <b>{assignment.rubric?.length ? calculateRubricTotal() : gradingScore}</b></span>
+                  <span>= <b>{(selectedSubmission.autoScore ?? 0) + (assignment.rubric?.length ? calculateRubricTotal() : gradingScore)}</b> / {assignment.totalPoints}</span>
+                </div>
+              )}
+
               {/* Overall Score */}
+              {!(assignment?.type === AssignmentType.WEB && assignment.rubric?.length) && (
               <div className="form-row" style={{ marginTop: '20px' }}>
                 <div className="form-group">
-                  <label className="form-label">Final Score</label>
+                  <label className="form-label">{assignment?.type === AssignmentType.WEB ? 'Trainer marks' : 'Final Score'}</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <input
                       type="number"
@@ -551,12 +570,13 @@ const AdminSubmissions: React.FC = () => {
                       value={gradingScore}
                       onChange={(e) => setGradingScore(Number(e.target.value))}
                       min={0}
-                      max={assignment?.totalPoints || 100}
+                      max={assignment?.type === AssignmentType.WEB ? Math.max(0, (assignment.totalPoints || 100) - (selectedSubmission.autoScore ?? 0)) : (assignment?.totalPoints || 100)}
                     />
-                    <span>/ {assignment?.totalPoints || 100}</span>
+                    <span>/ {assignment?.type === AssignmentType.WEB ? Math.max(0, (assignment.totalPoints || 100) - (selectedSubmission.autoScore ?? 0)) : (assignment?.totalPoints || 100)}</span>
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Feedback */}
               <div className="form-group">

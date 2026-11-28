@@ -31,7 +31,6 @@ import { startSalesTeamScheduler } from './services/salesTeamService';
 import { registerUserSocket } from './realtime/userSocket';
 import { startAssessmentMissedSweep } from './jobs/assessmentMissedSweepCron';
 import { startRecordingAlertScheduler } from './jobs/recordingAlertCron';
-import { startSpeakingReminderScheduler } from './jobs/speakingReminderCron';
 import { startPracticePassScheduler } from './jobs/practicePassCron';
 import { startWeeklyReportScheduler } from './jobs/weeklyReportCron';
 import { startInactivityScheduler } from './jobs/inactivityCron';
@@ -415,8 +414,8 @@ const startServer = async () => {
     // Start stale class-recording alert scheduler (in-app, every 10 min)
     startRecordingAlertScheduler();
 
-    // Start speaking-practice reminder scheduler (in-app, daily)
-    startSpeakingReminderScheduler();
+    // The old speaking module's daily reminder is off (2026-11-28): the AI Communication Lab replaced it, and
+    // its pages are off the menu, so students were reminded about a page they could not reach.
     startPracticePassScheduler(); // Daily Practice Pass: hourly standings + 7 PM reminders
     startWeeklyReportScheduler(); // Weekly reports: automatic Monday 8 AM send for institutes that switched it on
     startInactivityScheduler(); // Student Rules: daily inactivity WhatsApps (student → trainer → parent)

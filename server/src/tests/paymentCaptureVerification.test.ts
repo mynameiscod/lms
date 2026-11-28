@@ -43,7 +43,8 @@ jest.mock('../services/razorpayService', () => ({
 jest.mock('../services/assessmentEnrollmentService', () => ({ __esModule: true, unlockCandidatePlans: async () => [] }));
 jest.mock('../services/feePaymentService', () => ({ __esModule: true, applyFeePayment: async () => {}, reverseFeePayment: async () => {} }));
 jest.mock('../services/settingsService', () => ({ __esModule: true, getStr: (_k: string, d: string) => d, getNum: (_k: string, d: number) => d }));
-jest.mock('../models/User', () => ({ __esModule: true, default: {} }));
+// Receipt delivery is separate from settling a payment; this fixture has no email recipient.
+jest.mock('../models/User', () => ({ __esModule: true, default: { findById: () => ({ select: () => ({ lean: async () => null }) }) } }));
 jest.mock('../models/Fee', () => ({ __esModule: true, default: {} }));
 jest.mock('../models/CurriculumEnrollment', () => ({ __esModule: true, default: {} }));
 

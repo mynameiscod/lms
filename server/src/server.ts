@@ -12,6 +12,7 @@ import http from 'http';
 import cluster from 'cluster';
 import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
+import { assertMcpReady } from './mcp/bootstrap';
 import { attachDbMonitoring, startMonitoring, recordRelease } from './services/supportMonitoring';
 import { startSupportRetentionScheduler } from './services/supportRetention';
 import { registerSupportEmail } from './services/supportEmailChannel';
@@ -79,6 +80,7 @@ const startServer = async () => {
     console.log('📡 Attempting to connect to MongoDB...');
     // Connect to database
     await connectDB();
+    await assertMcpReady();
     console.log('✅ MongoDB connection successful');
     // Help & Support monitoring: record this release, watch the database, flush every 15 s.
     attachDbMonitoring();

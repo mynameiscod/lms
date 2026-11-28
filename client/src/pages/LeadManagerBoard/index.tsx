@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { leadApi, leadStageApi, meetingApi } from '../../api';
+import { leadApi, meetingApi } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import './LeadManagerBoard.css';
 

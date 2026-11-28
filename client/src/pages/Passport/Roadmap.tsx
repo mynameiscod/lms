@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import passportApi, { Roadmap as RoadmapT, RoadmapWeek, RoadmapPhase } from '../../api/passportApi';
+import passportApi, { Roadmap as RoadmapT, RoadmapWeek } from '../../api/passportApi';
 import { useMember } from './MemberLayout';
 import { copyText } from '../../components/feedback/appFeedback';
 import SkillPlan, { SkillPlanState } from './SkillPlan';
 import SectionLock from './SectionLock';
 import FoundationRoadmap from './FoundationRoadmap';
 import './roadmap.css';
-import { useProgramDays, daysLabel } from './useProgramDays';
+import { useProgramDays } from './useProgramDays';
 import { barWidth } from '../../utils/barWidth';
 
 /**

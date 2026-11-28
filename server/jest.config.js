@@ -19,7 +19,12 @@ module.exports = {
 
   // Transform files
   transform: {
-    '^.+\\.ts$': 'ts-jest'
+    '^.+\\.ts$': ['ts-jest', {
+      // The build checks types once; each test worker only needs transpilation.
+      // Avoid rebuilding the entire large TS program whenever a worker recycles.
+      isolatedModules: true,
+      tsconfig: { esModuleInterop: true, allowSyntheticDefaultImports: true }
+    }]
   },
 
   // Module name mapper for path aliases
@@ -58,16 +63,6 @@ module.exports = {
 
   // Setup files after env
   setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
-
-  // Globals
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true
-      }
-    }
-  },
 
   // Don't collect coverage from node_modules
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],

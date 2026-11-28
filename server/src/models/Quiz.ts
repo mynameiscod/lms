@@ -75,6 +75,8 @@ export interface IQuiz extends Document {
   attemptCount?: number;
   lastAttemptMarks?: number;
   lastAttemptPassed?: boolean;
+  /** Last time it was given to a batch or to students (Assign, Reassign). Puts it at the top of the curriculum picker. */
+  lastAssignedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -131,7 +133,8 @@ const quizSchema = new Schema<IQuiz>(
     warnings: { type: [Number], default: [] }, // [50%, 75%, 90%] etc
     isActive: { type: Boolean, default: true },
     isExternalQuiz: { type: Boolean, default: false },
-    archivedAt: { type: Date, default: null }
+    archivedAt: { type: Date, default: null },
+    lastAssignedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

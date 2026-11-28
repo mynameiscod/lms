@@ -149,6 +149,10 @@ export const assignToBatches = async (req: Request, res: Response) => {
       );
       results.push(row);
     }
+    // Assigned (or assigned again) just now: the curriculum picker lists it first.
+    const stamp = { $set: { lastAssignedAt: new Date() } };
+    if (contentType === 'quiz') await Quiz.updateOne({ _id: contentId }, stamp).catch(() => undefined);
+    else await Assignment.updateOne({ _id: contentId }, stamp).catch(() => undefined);
     res.json({ message: `Assigned to ${results.length} batch(es)`, schedules: results });
     // After the response: emailing a big batch is paced and takes a while.
     notifyAssignedInBackground(tId, contentType, String(contentId), fresh);

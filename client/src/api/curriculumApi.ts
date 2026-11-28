@@ -83,6 +83,8 @@ export interface ActivityBankItem {
   id: string;
   title: string;
   sourceModel: string;
+  /** Quiz / assignment: last time it was assigned (the picker lists these first). */
+  lastAssignedAt?: string | null;
   kind: DayActivityKind;
   meta?: string;
 }

@@ -68,10 +68,14 @@ export const createQuiz = async (req: Request, res: Response) => {
   }
 };
 
+/** When a quiz last mattered: assigned again, or created — whichever is later. */
+const recentAt = (q: any) => Math.max(q.lastAssignedAt ? new Date(q.lastAssignedAt).getTime() : 0, q.createdAt ? new Date(q.createdAt).getTime() : 0);
+
 export const getQuizzes = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;
-    const quizzes = await quizService.getQuizzes(tenantId, req.query);
+    // Recently assigned (or added) first — the same order as the curriculum picker.
+    const quizzes = (await quizService.getQuizzes(tenantId, req.query)).sort((a: any, b: any) => recentAt(b) - recentAt(a));
     // Batches reached through Assign-to-Batches schedules, so the list chip isn't "0 Batches"
     // for quizzes that were assigned the new way.
     const rows = await AssessmentSchedule.aggregate([
@@ -887,6 +891,7 @@ export const reassignNonAttendees = async (req: Request, res: Response) => {
       endDate: newEndDate,
       isActive: true,
       archivedAt: null,
+      lastAssignedAt: new Date(),
     });
     // Schedule rows carry their own deadline, which is what students on them are held to.
     if (extendDays > 0) {

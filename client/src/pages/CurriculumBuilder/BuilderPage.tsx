@@ -50,7 +50,17 @@ interface PickerModalProps {
   onClose: () => void;
 }
 
-interface PickerRow extends PickedActivity { meta?: string; tags?: string[]; }
+interface PickerRow extends PickedActivity { meta?: string; tags?: string[]; lastAssignedAt?: string | null; }
+
+/** "Assigned today" / "Assigned 3 days ago" — why a quiz or assignment sits at the top of the list. */
+const assignedAgo = (iso?: string | null) => {
+  if (!iso) return '';
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return 'Assigned today';
+  if (days === 1) return 'Assigned yesterday';
+  if (days < 30) return `Assigned ${days} days ago`;
+  return `Assigned ${new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+};
 
 const CONTENT_TYPE_FILTERS: { label: string; icon: string; types: string[] }[] = [
   { label: 'Video',                icon: '🎬', types: ['video'] },
@@ -87,7 +97,7 @@ export function ActivityPickerModal({ onSelect, onClose }: PickerModalProps) {
         })));
       } else {
         const items = await curriculumApi.activityBank(activeKind, search || undefined);
-        setRows(items.map(i => ({ kind: activeKind, id: i.id, title: i.title, contentType: activeKind, sourceModel: i.sourceModel, meta: i.meta })));
+        setRows(items.map(i => ({ kind: activeKind, id: i.id, title: i.title, contentType: activeKind, sourceModel: i.sourceModel, meta: i.meta, lastAssignedAt: i.lastAssignedAt })));
       }
     } catch { setRows([]); } finally { setLoading(false); }
   }, [activeKind, search, typeFilter]);
@@ -182,7 +192,7 @@ export function ActivityPickerModal({ onSelect, onClose }: PickerModalProps) {
               <span className="cbp-count">{filtered.length} items</span>
               <div className="right">
                 <span style={{ fontSize: 12.5, color: '#94a3b8' }}>Sort by</span>
-                <select className="cbp-sort" defaultValue="recent"><option value="recent">Recently Added</option></select>
+                <select className="cbp-sort" value="recent" onChange={() => undefined}><option value="recent">{activeKind === 'quiz' || activeKind === 'assignment' ? 'Recently Assigned' : 'Recently Added'}</option></select>
               </div>
             </div>
             <div className="cbp-list">
@@ -201,7 +211,7 @@ export function ActivityPickerModal({ onSelect, onClose }: PickerModalProps) {
                     <div className="cbp-item-ic" style={{ background: `${color}15` }}>{icon}</div>
                     <div className="cbp-item-main">
                       <div className="cbp-item-title">{item.title}</div>
-                      <div className="cbp-item-meta">{meta}</div>
+                      <div className="cbp-item-meta">{meta}{item.lastAssignedAt && <span className="cbp-assigned">{assignedAgo(item.lastAssignedAt)}</span>}</div>
                       {!!(item.tags && item.tags.length) && (
                         <div className="cbp-item-tags">{item.tags.slice(0, 3).map(t => <span key={t} className="cbp-tag">{t}</span>)}</div>
                       )}

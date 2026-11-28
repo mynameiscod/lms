@@ -247,6 +247,8 @@ export interface IAssignment extends Document {
   // Metadata
   createdBy: Types.ObjectId;
   updatedBy?: Types.ObjectId;
+  /** Last time it was given to a batch or to students. Puts it at the top of the curriculum picker. */
+  lastAssignedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   
@@ -418,6 +420,7 @@ const AssignmentSchema = new Schema<IAssignment>({
   // Metadata
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  lastAssignedAt: { type: Date, default: null },
   
   // Statistics
   stats: {

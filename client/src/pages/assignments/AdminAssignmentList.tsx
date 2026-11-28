@@ -165,6 +165,7 @@ const AdminAssignmentList: React.FC = () => {
 
   const SORTS: Record<string, { sortBy: string; sortOrder: 'asc' | 'desc'; label: string }> = {
     newest: { sortBy: 'createdAt', sortOrder: 'desc', label: 'Newest First' },
+    assigned: { sortBy: 'lastAssignedAt', sortOrder: 'desc', label: 'Recently Assigned' },
     oldest: { sortBy: 'createdAt', sortOrder: 'asc', label: 'Oldest First' },
     due: { sortBy: 'dueDate', sortOrder: 'asc', label: 'Due Date' },
     points: { sortBy: 'totalPoints', sortOrder: 'desc', label: 'Highest Points' },

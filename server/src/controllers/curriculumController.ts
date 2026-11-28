@@ -352,6 +352,19 @@ export const cloneTemplate = async (req: Request, res: Response) => {
 };
 
 // ─── Activity bank ───────────────────────────────────────────────────────────
+/**
+ * Quizzes / assignments for the picker, most recently ASSIGNED or added first (whichever is later), so
+ * one just assigned again is at the top when it is added to a day. The filter must already hold real
+ * types (Quiz.tenantId is a String, Assignment.tenant an ObjectId): aggregate() does not cast.
+ */
+const recentFirst = (model: any, match: any, fields: Record<string, 1>) => model.aggregate([
+  { $match: match },
+  { $addFields: { _recentAt: { $max: [{ $ifNull: ['$lastAssignedAt', null] }, '$createdAt'] } } },
+  { $sort: { _recentAt: -1, _id: -1 } },
+  { $limit: 100 },
+  { $project: { ...fields, lastAssignedAt: 1 } },
+]);
+
 // Normalized list of standalone-module items (Quiz / Assignment / Code Snippet /
 // Mock Interview) so the day builder can drop them onto a day. Content library
 // has its own picker (learningContentLibraryApi). Tenant fields differ per model
@@ -361,22 +374,23 @@ export const getActivityBank = async (req: Request, res: Response) => {
     const tId = tenantId(req);
     const kind = String(req.query.kind || '');
     const search = String(req.query.search || '').trim();
-    const rx = search ? { $regex: search, $options: 'i' } : undefined;
+    // Typed text is matched literally (a stray "(" used to break the search).
+    const rx = search ? { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } : undefined;
     const oid = mongoose.Types.ObjectId.isValid(tId) ? new mongoose.Types.ObjectId(tId) : null;
 
-    let items: Array<{ id: any; title: string; sourceModel: string; kind: string; meta?: string }> = [];
+    let items: Array<{ id: any; title: string; sourceModel: string; kind: string; meta?: string; lastAssignedAt?: Date | null }> = [];
 
     if (kind === 'quiz') {
       const q: any = { tenantId: tId };
       if (rx) q.title = rx;
-      const rows = await Quiz.find(q).select('title').sort({ createdAt: -1 }).limit(100).lean();
-      items = rows.map((r: any) => ({ id: r._id, title: r.title, sourceModel: 'Quiz', kind }));
+      const rows = await recentFirst(Quiz, q, { title: 1 });
+      items = rows.map((r: any) => ({ id: r._id, title: r.title, sourceModel: 'Quiz', kind, lastAssignedAt: r.lastAssignedAt || null }));
     } else if (kind === 'assignment') {
       const q: any = {};
       if (oid) q.tenant = oid;
       if (rx) q.title = rx;
-      const rows = await Assignment.find(q).select('title type difficulty').sort({ createdAt: -1 }).limit(100).lean();
-      items = rows.map((r: any) => ({ id: r._id, title: r.title, sourceModel: 'Assignment', kind, meta: r.type || r.difficulty }));
+      const rows = await recentFirst(Assignment, q, { title: 1, type: 1, difficulty: 1 });
+      items = rows.map((r: any) => ({ id: r._id, title: r.title, sourceModel: 'Assignment', kind, meta: r.type || r.difficulty, lastAssignedAt: r.lastAssignedAt || null }));
     } else if (kind === 'codeSnippet') {
       const q: any = {};
       if (oid) q.tenantId = oid;

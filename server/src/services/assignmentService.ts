@@ -312,7 +312,8 @@ class AssignmentService {
     // Pagination
     const { page, limit, sortBy = 'createdAt', sortOrder = 'desc' } = options;
     const skip = (page - 1) * limit;
-    const sort: any = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+    // "Recently assigned": the ones given out most recently first, then the rest newest first.
+    const sort: any = sortBy === 'lastAssignedAt' ? { lastAssignedAt: -1, createdAt: -1 } : { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
 
     const [assignments, total] = await Promise.all([
       Assignment.find(query)

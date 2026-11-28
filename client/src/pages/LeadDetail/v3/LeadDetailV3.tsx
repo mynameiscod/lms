@@ -18,6 +18,7 @@ import QualificationChecklist from './QualificationChecklist';
 import EditLeadModal from './EditLeadModal';
 import GiveDemoFromLead from '../../../components/lmsDemo/GiveDemoFromLead';
 import '../LeadDetailV2.css';
+import ActionMenu from '../../../components/common/ActionMenu';
 import './LeadDetailV3.css';
 
 /**
@@ -237,36 +238,29 @@ const LeadDetailV3: React.FC = () => {
         <div className="ldv-titlebar-actions" onClick={e => e.stopPropagation()}>
           <button className="ldv-btn" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/leads'))}><i className="bi bi-arrow-left" /> Back</button>
           <button className="ldv-btn" onClick={() => setModal('edit')}><i className="bi bi-pencil" /> Edit</button>
-          <div className="ldv-dd">
-            <button className="ldv-btn" aria-haspopup="menu" aria-expanded={menu === 'stage'} onClick={() => setMenu(menu === 'stage' ? null : 'stage')}>Change Stage <i className="bi bi-chevron-down" /></button>
-            {menu === 'stage' && (
-              <div className="ldv-menu" role="menu">
-                {pipeline.filter(s => s.isActive).map(s => (
-                  <button key={s._id} role="menuitem" onClick={() => openStage(s._id)} className={s._id === stage?._id ? 'current' : ''}>
-                    <span className="ldv-dot" style={{ background: s.color }} aria-hidden="true" />{s.name}{s._id === stage?._id ? ' (current)' : ''}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="ldv-dd">
-            <button className="ldv-btn" aria-haspopup="menu" aria-expanded={menu === 'more'} onClick={() => setMenu(menu === 'more' ? null : 'more')}>More <i className="bi bi-chevron-down" /></button>
-            {menu === 'more' && (
-              <div className="ldv-menu" role="menu">
-                <button role="menuitem" onClick={() => { setMenu(null); setAct({ type: 'note', text: '', outcome: '', file: null }); setModal('activity'); }}>Log activity</button>
-                <button role="menuitem" onClick={() => { setMenu(null); setDemo({ at: '', notes: '' }); setModal('demo'); }}>Book demo</button>
-                <button role="menuitem" onClick={() => { setMenu(null); setModal('lmsdemo'); }}>Give LMS demo access</button>
-                <button role="menuitem" onClick={() => { setMenu(null); whatsapp(); }}>WhatsApp chat</button>
-                {canReassign && <button role="menuitem" onClick={openAssign}>Reassign</button>}
-                {(['hot', 'warm', 'cold'] as const).map(p => (
-                  <button key={p} role="menuitem" onClick={() => { setMenu(null); run(() => leadApi.updateLead(lead._id, { priority: p }), `Priority set to ${p}`, false); }}>
-                    Priority: {p}{lead.priority === p ? ' ✓' : ''}
-                  </button>
-                ))}
-                {canConvert && !lead.convertedStudentId && <button role="menuitem" onClick={() => { setMenu(null); setModal('convert'); }}>Convert to student</button>}
-              </div>
-            )}
-          </div>
+          <ActionMenu
+            trigger={<>Change Stage <i className="bi bi-chevron-down" /></>}
+            buttonClassName="ldv-btn"
+            title={pipeline.some(s => s.isActive) ? 'Change stage' : 'No stages set up — add them in Lead Pipeline'}
+            items={pipeline.filter(s => s.isActive).map(s => ({ label: s.name, dot: s.color, current: s._id === stage?._id, onSelect: () => openStage(s._id) }))}
+          />
+          <ActionMenu
+            trigger={<>More <i className="bi bi-chevron-down" /></>}
+            buttonClassName="ldv-btn"
+            title={lead.name || 'More'}
+            items={[
+              { label: 'Log activity', icon: 'bi-journal-plus', onSelect: () => { setAct({ type: 'note', text: '', outcome: '', file: null }); setModal('activity'); } },
+              { label: 'Book demo', icon: 'bi-camera-video', onSelect: () => { setDemo({ at: '', notes: '' }); setModal('demo'); } },
+              { label: 'Give LMS demo access', icon: 'bi-key', onSelect: () => setModal('lmsdemo') },
+              { label: 'WhatsApp chat', icon: 'bi-whatsapp', onSelect: () => whatsapp() },
+              { label: 'Reassign', icon: 'bi-person-check', hidden: !canReassign, onSelect: openAssign },
+              ...(['hot', 'warm', 'cold'] as const).map(p => ({
+                label: `Priority: ${p[0].toUpperCase()}${p.slice(1)}`, icon: p === 'hot' ? 'bi-fire' : p === 'warm' ? 'bi-thermometer-half' : 'bi-snow',
+                current: lead.priority === p, onSelect: () => run(() => leadApi.updateLead(lead._id, { priority: p }), `Priority set to ${p}`, false),
+              })),
+              { label: 'Convert to student', icon: 'bi-mortarboard', hidden: !(canConvert && !lead.convertedStudentId), onSelect: () => setModal('convert') },
+            ]}
+          />
         </div>
       </header>
 

@@ -7,6 +7,7 @@ import StageChangeDialog from '../../components/leads/StageChangeDialog';
 import FunnelChart, { FUNNEL_RAMP } from './FunnelChart';
 import TrendChart, { SERIES } from './TrendChart';
 import LeadKanbanPage from '../LeadKanban';
+import ActionMenu from '../../components/common/ActionMenu';
 import './LeadDashboard.css';
 
 /**
@@ -628,8 +629,8 @@ const LeadDashboard: React.FC = () => {
               const lastContact = l.lastContactedAt || l.telecallerMetrics?.lastActionAt;
               return (
                 <tr key={l._id} className={selected.has(l._id) ? 'selected' : ''}>
-                  <td className="ldb-check"><input type="checkbox" checked={selected.has(l._id)} onChange={() => toggleOne(l._id)} aria-label={`Select ${l.name}`} /></td>
-                  <td>
+                  <td className="ldb-check ldb-c-check"><input type="checkbox" checked={selected.has(l._id)} onChange={() => toggleOne(l._id)} aria-label={`Select ${l.name}`} /></td>
+                  <td className="ldb-c-person">
                     <button className="ldb-person" onClick={() => navigate(`/leads/${l._id}`)}>
                       <span className="ldb-avatar" aria-hidden="true">{initials(l.name)}</span>
                       <span>
@@ -641,31 +642,33 @@ const LeadDashboard: React.FC = () => {
                       </span>
                     </button>
                   </td>
-                  <td>{(l.courseInterest || []).slice(0, 2).map((c: string) => <span key={c} className="ldb-chip">{c}</span>)}{!l.courseInterest?.length && <span className="ldb-muted">—</span>}</td>
-                  <td className="ldb-nowrap"><i className={`bi ${SOURCE_ICON[l.source] || 'bi-dot'} ldb-src-icon`} aria-hidden="true" /> {SOURCE_LABEL[l.source] || (l.source || '').replace(/_/g, ' ')}</td>
-                  <td>
+                  <td className="ldb-c-course" data-label="Course">{(l.courseInterest || []).slice(0, 2).map((c: string) => <span key={c} className="ldb-chip">{c}</span>)}{!l.courseInterest?.length && <span className="ldb-muted">—</span>}</td>
+                  <td className="ldb-nowrap ldb-c-source" data-label="Source"><i className={`bi ${SOURCE_ICON[l.source] || 'bi-dot'} ldb-src-icon`} aria-hidden="true" /> {SOURCE_LABEL[l.source] || (l.source || '').replace(/_/g, ' ')}</td>
+                  <td className="ldb-c-stage" data-label="Stage">
                     <span className="ldb-stage" style={{ ['--stage' as any]: stage?.color || '#64748b' }}>{stage?.name || '—'}</span>
                     {l.subStageId?.name && <span className="ldb-sub">{l.subStageId.name}</span>}
                   </td>
-                  <td className="ldb-nowrap">{lastContact ? when(lastContact) : <span className="ldb-muted">—</span>}</td>
-                  <td className="ldb-nowrap">{fu ? <span className={`ldb-fu ${fuTone}`}><i className="bi bi-calendar3" aria-hidden="true" /> {when(l.nextFollowUp)}</span> : <span className="ldb-muted">—</span>}</td>
-                  <td className="ldb-nowrap">{owner ? <><span className="ldb-avatar ldb-avatar-sm" aria-hidden="true">{initials(owner)}</span> {owner}</> : <span className="ldb-muted">Unassigned</span>}</td>
-                  <td className="ldb-nowrap">{ageDays(l.createdAt)} day{ageDays(l.createdAt) === 1 ? '' : 's'}</td>
+                  <td className="ldb-nowrap ldb-c-last" data-label="Last contact">{lastContact ? when(lastContact) : <span className="ldb-muted">—</span>}</td>
+                  <td className="ldb-nowrap ldb-c-fu" data-label="Follow-up">{fu ? <span className={`ldb-fu ${fuTone}`}><i className="bi bi-calendar3" aria-hidden="true" /> {when(l.nextFollowUp)}</span> : <span className="ldb-muted">—</span>}</td>
+                  <td className="ldb-nowrap ldb-c-owner" data-label="Counsellor">{owner ? <><span className="ldb-avatar ldb-avatar-sm" aria-hidden="true">{initials(owner)}</span> {owner}</> : <span className="ldb-muted">Unassigned</span>}</td>
+                  <td className="ldb-nowrap ldb-c-age" data-label="Lead age">{ageDays(l.createdAt)} day{ageDays(l.createdAt) === 1 ? '' : 's'}</td>
                   <td className="ldb-actions">
                     <button className="ldb-icon-btn" onClick={() => callLead(l)} title={`Call ${l.name}`} aria-label={`Call ${l.name}`}><i className="bi bi-telephone" /></button>
                     <button className="ldb-icon-btn" onClick={() => navigate(`/leads/${l._id}`)} title="Open and edit" aria-label={`Open ${l.name}`}><i className="bi bi-pencil" /></button>
-                    <span className="ldb-menu-wrap" onClick={e => e.stopPropagation()}>
-                      <button className="ldb-icon-btn" onClick={() => setMenuFor(menuFor === l._id ? null : l._id)} aria-haspopup="menu" aria-expanded={menuFor === l._id} aria-label="More actions"><i className="bi bi-three-dots" /></button>
-                      {menuFor === l._id && (
-                        <div className="ldb-menu" role="menu">
-                          <button role="menuitem" onClick={() => navigate(`/leads/${l._id}`)}>View details</button>
-                          {canBulk && <button role="menuitem" onClick={() => { setMenuFor(null); setAssignIds([l._id]); setAssignTo(l.assignedTo?._id || (typeof l.assignedTo === 'string' ? l.assignedTo : '') || ''); setAssignOpen(true); }}>{l.assignedTo ? 'Reassign' : 'Assign'}</button>}
-                          <button role="menuitem" onClick={() => { setMenuFor(null); setStageDialog({ leadIds: [l._id], currentStageId: stage?._id, currentSubStageId: l.subStageId?._id || null }); }}>Move stage</button>
-                          <a role="menuitem" href={`https://wa.me/${String(l.phone || '').replace(/\D/g, '')}`} target="_blank" rel="noreferrer">WhatsApp</a>
-                          {canDelete && <button role="menuitem" className="ldb-menu-danger" onClick={() => deleteLead(l)}>Delete</button>}
-                        </div>
-                      )}
-                    </span>
+                    <ActionMenu
+                      trigger={<i className="bi bi-three-dots" />}
+                      buttonClassName="ldb-icon-btn"
+                      ariaLabel={`More actions for ${l.name}`}
+                      title={l.name}
+                      items={[
+                        { label: 'View details', icon: 'bi-box-arrow-up-right', onSelect: () => navigate(`/leads/${l._id}`) },
+                        { label: 'Call', icon: 'bi-telephone', onSelect: () => callLead(l) },
+                        { label: l.assignedTo ? 'Reassign' : 'Assign', icon: 'bi-person-check', hidden: !canBulk, onSelect: () => { setAssignIds([l._id]); setAssignTo(l.assignedTo?._id || (typeof l.assignedTo === 'string' ? l.assignedTo : '') || ''); setAssignOpen(true); } },
+                        { label: 'Move stage', icon: 'bi-arrow-left-right', onSelect: () => setStageDialog({ leadIds: [l._id], currentStageId: stage?._id, currentSubStageId: l.subStageId?._id || null }) },
+                        { label: 'WhatsApp', icon: 'bi-whatsapp', href: `https://wa.me/${String(l.phone || '').replace(/\D/g, '')}` },
+                        { label: 'Delete', icon: 'bi-trash', danger: true, hidden: !canDelete, onSelect: () => deleteLead(l) },
+                      ]}
+                    />
                   </td>
                 </tr>
               );

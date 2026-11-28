@@ -183,3 +183,25 @@
 .ele-checks label { display: inline-flex; gap: 6px; align-items: center; margin: 0; }
 .ele-foot { display: flex; justify-content: flex-end; gap: 8px; position: sticky; bottom: -1px; background: #fff; padding-top: 8px; }
 @media (max-width: 640px) { .ele-grid { grid-template-columns: 1fr; } }
+
+/* ── Tablets and phones (2026-11-28) ── */
+@media (max-width: 1200px) {
+  /* the name and phone get a full row instead of a quarter-width column */
+  .ldv-profile-main { grid-column: 1 / -1; }
+  .ldv-contact span { overflow-wrap: normal; white-space: nowrap; }
+}
+@media (max-width: 1024px) {
+  /* Lifecycle: labels wrap between words, never inside one ("Contacti / ng"); scroll sideways if needed */
+  .ldv-steps { grid-template-columns: repeat(7, minmax(96px, 1fr)); overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+  .ldv-step-label { overflow-wrap: normal; word-break: normal; hyphens: manual; font-size: 0.82rem; }
+}
+@media (max-width: 640px) {
+  /* Header buttons: a tidy 2x2 grid instead of "More" alone on a second row */
+  .ldv-titlebar { align-items: stretch; }
+  .ldv-titlebar-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 8px; }
+  .ldv-titlebar-actions .ldv-btn { justify-content: center; min-height: 44px; }
+  .ldv-tabs button { padding: 8px 12px; }
+  .ldv-avatar { width: 52px; height: 52px; font-size: 1.1rem; }
+  .ldv-name-row h2 { font-size: 1.2rem; }
+  .ldv-contact span { white-space: normal; overflow-wrap: anywhere; }
+}

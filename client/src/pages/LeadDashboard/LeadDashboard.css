@@ -218,3 +218,57 @@
 .ldb-card-sub { font-size: 0.78rem; color: var(--ldb-muted); margin: -4px 0 10px; }
 .ldb-click-row { cursor: pointer; }
 .ldb-click-row:hover td { background: rgba(37, 99, 235, 0.06); }
+
+/* ── Phones and tablets (2026-11-28): each lead is a card, not a 1150px table row that hides the name and the ⋯ menu off-screen ── */
+@media (max-width: 1024px) {
+  .ldb-table-wrap { background: none; border: 0; overflow: visible; }
+  /* beats the admin shell's 680px floor for every table on a phone (CareerPilotAdmin.css) */
+  .ldb-page table.ldb-table { min-width: 0 !important; width: 100% !important; display: block; }
+  .ldb-page .ldb-table td { white-space: normal; }
+  .ldb-tabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .ldb-tabs > * { flex-shrink: 0; }
+  .ldb-table thead { display: none; }
+  .ldb-table tbody { display: flex; flex-direction: column; gap: 10px; }
+  .ldb-table tr { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "check person person" ". stage fu" ". owner age" ". course source" ". last last";
+    gap: 10px 12px; align-items: start; background: var(--ldb-surface); border: 1px solid var(--ldb-line); border-radius: 12px; padding: 12px; }
+  .ldb-table tr:hover td, .ldb-table tr.selected td { background: none; }
+  .ldb-table tr.selected { background: #f5f6ff; border-color: #c7cbff; }
+  .ldb-table td { display: block; padding: 0; border: 0; min-width: 0; font-size: 0.86rem; }
+  .ldb-table td.ldb-empty { grid-column: 1 / -1; }
+  .ldb-table tr:has(> td.ldb-empty) { display: block; }
+  .ldb-c-check { grid-area: check; width: auto; }
+  .ldb-c-person { grid-area: person; padding-right: 84px !important; min-height: 38px; }
+  .ldb-c-check { padding-top: 9px !important; }
+  .ldb-c-stage { grid-area: stage; }
+  .ldb-c-fu { grid-area: fu; }
+  .ldb-c-owner { grid-area: owner; overflow: hidden; text-overflow: ellipsis; }
+  .ldb-c-age { grid-area: age; }
+  .ldb-c-course { grid-area: course; }
+  .ldb-c-source { grid-area: source; overflow: hidden; text-overflow: ellipsis; }
+  .ldb-c-last { grid-area: last; }
+  .ldb-table td[data-label]::before { content: attr(data-label); display: block; font-size: 0.7rem; font-weight: 700; color: var(--ldb-muted); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 2px; }
+  /* Call and ⋯ sit in the card's top-right corner; the pencil duplicates tapping the name, so it goes. */
+  .ldb-table td.ldb-actions { position: absolute; top: 10px; right: 8px; display: flex; gap: 2px; }
+  .ldb-table td.ldb-actions .ldb-icon-btn { width: 40px; height: 40px; }
+  .ldb-table td.ldb-actions .ldb-icon-btn[title="Open and edit"] { display: none; }
+  .ldb-person { width: 100%; }
+  .ldb-name { overflow-wrap: anywhere; }
+
+}
+@media (max-width: 760px) {
+  .ldb-pager { flex-direction: column; align-items: stretch; gap: 10px; }
+  .ldb-pager > span { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .ldb-pager div { justify-content: space-between; }
+  .ldb-pager div span { white-space: nowrap; }
+  .ldb-pager button { min-height: 40px; padding: 6px 16px; }
+}
+
+/* Tablets: the card has room for four details a row */
+@media (min-width: 761px) and (max-width: 1024px) {
+  .ldb-table tbody { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .ldb-table tr { grid-template-columns: 28px repeat(4, minmax(0, 1fr));
+    grid-template-areas: "check person person person person" ". stage fu owner age" ". course source last last"; }
+  .ldb-table td.ldb-actions .ldb-icon-btn[title="Open and edit"] { display: inline-grid; }
+  .ldb-c-person { padding-right: 130px !important; }
+}

@@ -185,6 +185,32 @@ export const suggestCandidates = async (req: AuthenticatedRequest, res: Response
   } catch (e) { fail(res, e); }
 };
 
+// POST /drives/:id/match-list  (file: CSV/Excel, or { text }) → each row matched to an LMS student. Adds nothing.
+export const matchCandidateList = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!isOid(req.params.id)) return res.status(400).json({ success: false, message: 'Invalid drive' });
+    const drive: any = await PlacementDeskDrive.findOne({ _id: req.params.id, tenantId: tid(req) }).select('_id').lean();
+    if (!drive) return res.status(404).json({ success: false, message: 'Drive not found' });
+    const { parseList, matchList, MAX_LIST_ROWS } = await import('../services/placementListMatch');
+    const file = (req as any).file;
+    let rows;
+    try { rows = parseList({ buffer: file?.buffer, text: typeof req.body?.text === 'string' ? req.body.text.slice(0, 500_000) : undefined }); } catch {
+      return res.status(400).json({ success: false, message: 'That file could not be read. Upload a CSV or Excel (.xlsx) file.' });
+    }
+    if (!rows.length) return res.status(400).json({ success: false, message: 'No names, emails or phone numbers were found in the list.' });
+    const onDrive = new Set((await PlacementDeskCandidate.find({ driveId: drive._id, studentId: { $exists: true } }).distinct('studentId')).map(String));
+    const results = await matchList(String(req.tenantId), rows, onDrive);
+    // A row not in the LMS but already on the drive as an outside candidate (same phone or email).
+    const { phone10 } = await import('../services/placementListMatch');
+    const outsiders: any[] = await PlacementDeskCandidate.find({ driveId: drive._id, kind: 'external' }).select('phone email').lean();
+    const outKeys = new Set(outsiders.flatMap((c) => [c.email && String(c.email).toLowerCase(), phone10(c.phone)]).filter(Boolean));
+    for (const r of results) {
+      if (r.status === 'not_found' && ((r.input.email && outKeys.has(r.input.email)) || (r.input.phone && outKeys.has(phone10(r.input.phone))))) r.status = 'already';
+    }
+    res.json({ success: true, data: { results, truncated: rows.length >= MAX_LIST_ROWS } });
+  } catch (e) { fail(res, e); }
+};
+
 // POST /drives/:id/candidates  { studentIds?: string[], externals?: {name, phone, email, college, degree, passoutYear}[] }
 export const addCandidates = async (req: AuthenticatedRequest, res: Response) => {
   try {

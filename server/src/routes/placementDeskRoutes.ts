@@ -2,7 +2,14 @@ import express from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
+import multer from 'multer';
 import * as c from '../controllers/placementDeskController';
+
+const listUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
+const oneList: express.RequestHandler = (req, res, next) => listUpload.single('file')(req, res, (err: any) => {
+  if (!err) return next();
+  res.status(400).json({ success: false, message: err?.code === 'LIMIT_FILE_SIZE' ? 'The file is larger than 5 MB.' : 'Could not read the upload.' });
+});
 
 /**
  * Placement Desk — /api/v1/placement-desk
@@ -32,6 +39,7 @@ router.get('/drives/:id', ...auth, view, c.getDrive);
 router.patch('/drives/:id', ...auth, manage, c.updateDrive);
 router.delete('/drives/:id', ...auth, manage, c.deleteDrive);
 router.get('/drives/:id/suggest', ...auth, manage, c.suggestCandidates);
+router.post('/drives/:id/match-list', ...auth, manage, oneList, c.matchCandidateList);
 router.post('/drives/:id/candidates', ...auth, manage, c.addCandidates);
 router.patch('/drives/:id/candidates', ...auth, manage, c.bulkStatus);
 router.patch('/candidates/:cid', ...auth, manage, c.updateCandidate);

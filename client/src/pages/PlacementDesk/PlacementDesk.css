@@ -162,3 +162,35 @@ button.pd-status{cursor:pointer}
   .pd-table td small{text-align:right}
   .pd-public-row{flex-wrap:wrap}
 }
+/* Upload a list (2026-11-28) */
+.pd-ul{display:flex;flex-direction:column;gap:10px}
+.pd-ul-drop{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px;border:1.5px dashed #CBD5E1;border-radius:12px;background:#F8FAFC}
+.pd-ul-sum{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.pd-ul-sum>span:not(.pd-ul-grow){padding:4px 10px;border-radius:999px;border:1px solid}
+.pd-ul-sum .ok{background:#EAF8F1;border-color:#BFE6D2;color:#17885D}
+.pd-ul-sum .warn{background:#FFF7E8;border-color:#F2D4AE;color:#8A5A00}
+.pd-ul-sum .no{background:#FFF0F0;border-color:#F3C2C2;color:#C93737}
+.pd-ul-sum .skip{background:#F1F5F9;border-color:#E2E8F0;color:#64748B}
+.pd-ul-grow{flex:1}
+.pd-ul-list{max-height:48vh}
+.pd-ul-row{display:grid;grid-template-columns:34px minmax(0,1fr) minmax(0,1.3fr);gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid #F1F5F9;font-size:13px}
+.pd-ul-row.s-several,.pd-ul-row.s-name{background:#FFFBF2}
+.pd-ul-row.s-not_found{background:#FFF8F8}
+.pd-ul-row.s-already,.pd-ul-row.s-repeat{opacity:.65}
+.pd-ul-n{color:#94A3B8;font-size:12px;font-variant-numeric:tabular-nums}
+.pd-ul-in{display:flex;flex-direction:column;min-width:0}
+.pd-ul-in b{font-weight:600;color:#0F172A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pd-ul-in small,.pd-ul-pick small{color:#64748B;font-size:11.5px}
+.pd-ul-pick{display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer}
+.pd-ul-pick>span{display:flex;flex-direction:column;min-width:0;flex:1}
+.pd-ul-pick>span b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0F172A}
+.pd-ul-pick select{flex:1;min-width:0;padding:6px 8px;border:1px solid #F2D4AE;border-radius:8px;font:inherit;font-size:12.5px;background:#fff}
+.pd-ul-pick em{font-style:normal;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pd-ul-pick em.ok{background:#EAF8F1;color:#17885D}
+.pd-ul-pick em.warn{background:#FFF0D6;color:#8A5A00}
+.pd-ul-pick em.no{background:#FFE4E4;color:#C93737}
+.pd-ul-pick em.skip{background:#F1F5F9;color:#64748B}
+@media (max-width:640px){
+  .pd-ul-row{grid-template-columns:28px minmax(0,1fr)}
+  .pd-ul-out{grid-column:2}
+}

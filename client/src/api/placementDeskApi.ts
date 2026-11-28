@@ -44,6 +44,16 @@ export interface Candidate {
   companyFeedback?: string; internalRemarks?: string;
 }
 export interface Suggestion { _id: string; name: string; email: string; phone?: string; batchName: string; degree: string; passoutYear: number | null; percent: number | null; match: 'yes' | 'no' | 'unknown'; reasons: string[]; added: boolean }
+export interface ListStudent { _id: string; name: string; email?: string; phone?: string; batchName?: string; active: boolean }
+export interface ListMatch {
+  row: number;
+  input: { name?: string; email?: string; phone?: string };
+  status: 'matched' | 'several' | 'not_found' | 'already' | 'repeat';
+  via?: 'email' | 'phone' | 'name';
+  student?: ListStudent;
+  options?: ListStudent[];
+  nameDiffers?: boolean;
+}
 export interface ExternalInput { name: string; phone?: string; email?: string; college?: string; degree?: string; passoutYear?: number | string }
 export interface Report {
   from: string; to: string;
@@ -70,6 +80,15 @@ export const placementDeskApi = {
   deleteDrive: (id: string) => full(API.delete(`/drives/${id}`)),
   suggest: (id: string, batchId?: string) => data<Suggestion[]>(API.get(`/drives/${id}/suggest`, { params: batchId ? { batchId } : {} })),
   addCandidates: (id: string, body: { studentIds?: string[]; externals?: ExternalInput[] }) => full(API.post(`/drives/${id}/candidates`, body)),
+  /** Check a CSV / Excel file or pasted lines against the LMS students; adds nothing. */
+  matchList: (id: string, src: { file?: File; text?: string }) => {
+    if (src.file) {
+      const form = new FormData();
+      form.append('file', src.file);
+      return data<{ results: ListMatch[]; truncated: boolean }>(API.post(`/drives/${id}/match-list`, form, { headers: { 'Content-Type': 'multipart/form-data' } }));
+    }
+    return data<{ results: ListMatch[]; truncated: boolean }>(API.post(`/drives/${id}/match-list`, { text: src.text || '' }));
+  },
   bulkStatus: (id: string, ids: string[], status: CandidateStatus) => full(API.patch(`/drives/${id}/candidates`, { ids, status })),
   updateCandidate: (cid: string, patch: Partial<Candidate>) => data<Candidate>(API.patch(`/candidates/${cid}`, patch)),
   removeCandidate: (cid: string) => full(API.delete(`/candidates/${cid}`)),

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { batchApi } from '../../api';
 import { placementDeskApi, Candidate, Drive, ExternalInput, Suggestion } from '../../api/placementDeskApi';
+import UploadList, { ListChoice } from './UploadList';
 
 /**
  * Add people to a drive: our LMS students (sorted by how well they match the eligibility), or
@@ -10,7 +11,8 @@ const MATCH_LABEL = { yes: 'Eligible', unknown: 'Profile incomplete', no: 'Not e
 const emptyRow = (): ExternalInput => ({ name: '', phone: '', email: '', college: '', degree: '', passoutYear: '' });
 
 const AddCandidates: React.FC<{ drive: Drive; onClose: () => void; onAdded: (list: Candidate[], msg: string) => void }> = ({ drive, onClose, onAdded }) => {
-  const [mode, setMode] = useState<'students' | 'outside'>('students');
+  const [mode, setMode] = useState<'students' | 'list' | 'outside'>('students');
+  const [listChoice, setListChoice] = useState<ListChoice>({ studentIds: [], externals: [] });
   const [rows, setRows] = useState<Suggestion[] | null>(null);
   const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
   const [batchId, setBatchId] = useState('');
@@ -40,6 +42,17 @@ const AddCandidates: React.FC<{ drive: Drive; onClose: () => void; onAdded: (lis
   const save = async () => {
     setSaving(true); setErr('');
     try {
+      if (mode === 'list') {
+        // The server takes up to 500 students per request; a long list goes in parts.
+        const ids = listChoice.studentIds;
+        let r: any = null; let added = 0;
+        for (let i = 0; i < Math.max(1, Math.ceil(ids.length / 500)); i++) {
+          r = await placementDeskApi.addCandidates(drive._id, { studentIds: ids.slice(i * 500, i * 500 + 500), ...(i === 0 ? { externals: listChoice.externals } : {}) });
+          added += Number(String(r.message || '').match(/^(\d+)/)?.[1] || 0);
+        }
+        onAdded(r.data, `${added} added from the list`);
+        return;
+      }
       const body = mode === 'students'
         ? { studentIds: [...picked] }
         : { externals: ext.filter(r => r.name.trim()).map(r => ({ ...r, passoutYear: r.passoutYear ? Number(r.passoutYear) : undefined })) };
@@ -47,7 +60,7 @@ const AddCandidates: React.FC<{ drive: Drive; onClose: () => void; onAdded: (lis
       onAdded(r.data, r.message);
     } catch (e: any) { setErr(e.message); } finally { setSaving(false); }
   };
-  const count = mode === 'students' ? picked.size : ext.filter(r => r.name.trim()).length;
+  const count = mode === 'students' ? picked.size : mode === 'list' ? listChoice.studentIds.length + listChoice.externals.length : ext.filter(r => r.name.trim()).length;
 
   return (
     <div className="pd-overlay" onClick={onClose}>
@@ -55,11 +68,14 @@ const AddCandidates: React.FC<{ drive: Drive; onClose: () => void; onAdded: (lis
         <div className="pd-modal-head"><h3>Add candidates — {drive.companyName}</h3><button className="pd-x" onClick={onClose}>×</button></div>
         <div className="pd-seg pd-seg-pad">
           <button className={mode === 'students' ? 'on' : ''} onClick={() => setMode('students')}>Our students</button>
+          <button className={mode === 'list' ? 'on' : ''} onClick={() => setMode('list')}>Upload a list</button>
           <button className={mode === 'outside' ? 'on' : ''} onClick={() => setMode('outside')}>Outside candidates</button>
         </div>
         {err && <div className="pd-err">{err}</div>}
         <div className="pd-modal-body">
-          {mode === 'students' ? (
+          {mode === 'list' ? (
+            <UploadList driveId={drive._id} onChange={setListChoice} />
+          ) : mode === 'students' ? (
             <>
               <div className="pd-toolbar">
                 <select value={batchId} onChange={e => setBatchId(e.target.value)}><option value="">{drive.eligibility?.batchIds?.length ? 'Batches set on the drive' : 'All batches'}</option>{batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}</select>

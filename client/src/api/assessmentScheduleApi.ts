@@ -76,10 +76,10 @@ export const assessmentScheduleApi = {
     return data;
   },
 
-  // Students to pick from for individual delivery. Uses the same authed axios instance
-  // as the rest of this modal (proven to work) rather than a bare fetch.
+  // Students to pick from for individual delivery. Its own endpoint, guarded by the same
+  // quiz/assignment permissions as assigning (not the Activity Logs / Reports permission).
   searchStudents: async (search: string) => {
-    const { data } = await api.get('/activity/students', { params: { search } });
+    const { data } = await api.get('/assessment-schedules/students', { params: { search } });
     return (data.data || []) as { _id: string; firstName?: string; lastName?: string; email?: string; batchId?: string }[];
   },
 };

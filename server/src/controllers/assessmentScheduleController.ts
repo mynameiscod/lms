@@ -4,6 +4,7 @@ import AssessmentSchedule from '../models/AssessmentSchedule';
 import Assignment from '../models/Assignment';
 import Quiz from '../models/Quiz';
 import Batch from '../models/Batch';
+import User from '../models/User';
 import { allowedByRoleOrPermission } from '../middleware/roleGuard';
 import { mergePolicy, DEFAULT_POLICY } from '../services/deadlinePolicyService';
 import { notifyAssignedInBackground, AssignedTarget } from '../services/assessmentAssignNotify';
@@ -21,6 +22,28 @@ async function contentTitleOf(type: string, id: string): Promise<string> {
   } catch { /* ignore */ }
   return '';
 }
+
+/**
+ * GET /assessment-schedules/students?search=
+ * Students to pick from in "Assign → Specific students". Same permission as assigning itself, so a role
+ * with only quiz/assignment permissions can pick a student (it used /activity/students, which needs
+ * the Activity Logs or Reports permission).
+ */
+export const searchStudents = async (req: Request, res: Response) => {
+  try {
+    if (!(await canManage(req))) return res.status(403).json({ success: false, message: 'Not allowed' });
+    const q: any = { tenantId: tenantId(req), role: 'STUDENT' };
+    const s = String(req.query.search || '').trim().slice(0, 60);
+    if (s) {
+      const rx = new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      q.$or = [{ firstName: rx }, { lastName: rx }, { email: rx }];
+    }
+    const students = await User.find(q).select('firstName lastName email batchId').sort({ firstName: 1 }).limit(50).lean();
+    res.json({ success: true, data: students });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to load students' });
+  }
+};
 
 /**
  * GET /assessment-schedules?contentType=&contentId=&batchId=

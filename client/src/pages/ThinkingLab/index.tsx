@@ -66,6 +66,8 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
   const cpLook = true;
   const [challenge, setChallenge] = useState<TLChallenge | null>(null);
   const [memberPos, setMemberPos] = useState<{ position: number; total: number } | null>(null);
+  /** A lab-track day with several questions: "Question 2 of 3 today". */
+  const [dayPos, setDayPos] = useState<{ position: number; total: number; done: number } | null>(null);
   const [stats, setStats] = useState<TLStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [empty, setEmpty] = useState<string>('');
@@ -142,6 +144,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
       const [r, s] = await Promise.all([thinkingLabApi.getToday(), thinkingLabApi.stats().catch(() => null)]);
       if (s) setStats(s);
       setMemberPos(r.member || null);
+      setDayPos(r.day || null);
       if (r.empty || !r.challenge) { setEmpty(r.message || 'No challenge available yet.'); setChallenge(null); }
       else hydrate(r.challenge);
     } catch (e: any) { setErr(e?.response?.data?.message || 'Failed to load your challenge.'); }
@@ -274,10 +277,14 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
     try {
       const r = await thinkingLabApi.next();
       if (r.empty || !r.challenge) {
-        // A member keeps today's solved problem on screen and is told when the next one comes.
-        if (member) toast(r.message || 'Your next problem unlocks tomorrow.', 'info');
+        // A member keeps today's solved problem on screen and is told when the next one comes;
+        // so does a student who has finished every question of a several-question day.
+        if (member || r.dayComplete) {
+          toast(r.message || 'Your next problem unlocks tomorrow.', r.dayComplete ? 'success' : 'info');
+          if (r.dayComplete) setDayPos(d => (d ? { ...d, done: d.total } : d));
+        }
         else setEmpty('No more challenges right now — come back tomorrow!');
-      } else { hydrate(r.challenge); setSubmitResult(null); setOpen(false); }
+      } else { hydrate(r.challenge); setDayPos(r.day || null); setSubmitResult(null); setOpen(false); }
     }
     catch (e: any) { setErr(e?.response?.data?.message || 'Failed.'); }
     finally { setLoading(false); }
@@ -480,7 +487,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
           problem={shown} puzzle={!!q}
           xp={xpOf(shown.xp || 0)}
           challenge={challenge} position={memberPos} seconds={seconds} done={done} minWords={minWords}
-          onOpen={() => setOpen(true)}
+          onOpen={() => setOpen(true)} day={dayPos} onNext={nextChallenge}
         />
       )}
 
@@ -488,14 +495,14 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
       {tab === 'challenge' && challenge?.kind === 'puzzle' && challenge.question && open && (
         <div className="pl pl2x plh tl3 tl-puzzle">
           <Solve
-            q={challenge.question} practice={false} demo={false} hasNext={false}
+            q={challenge.question} practice={false} demo={false} hasNext={!!dayPos && dayPos.position < dayPos.total}
             api={{
               answer: (id, body) => thinkingLabApi.puzzleAnswer(challenge.challengeId, body).then((r) => ({ question: r.question, reward: r.reward })),
               hint: () => thinkingLabApi.puzzleHint(challenge.challengeId),
               run: (() => { throw new Error('Puzzles are not run.'); }) as unknown as SolveApi['run'],
             }}
             onBack={() => setOpen(false)}
-            onNext={() => setOpen(false)}
+            onNext={() => (dayPos && dayPos.position < dayPos.total ? nextChallenge() : setOpen(false))}
             onUpdate={(q, r) => {
               const finished = q.state === 'solved' || q.state === 'finished';
               setChallenge(c => c ? { ...c, question: q, status: finished ? (q.state === 'solved' ? 'solved' : 'submitted') : c.status, passed: q.state === 'solved', xpEarned: r?.xpNow ?? c.xpEarned } : c);
@@ -518,6 +525,9 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 {memberPos && memberPos.position > 0 && (
                   <span style={{ fontSize: fz(t, 11.5), fontWeight: 800, color: t.primary, background: t.primarySoft, border: `1px solid ${t.primaryBorder}`, borderRadius: 999, padding: '3px 10px' }}>Problem {memberPos.position} of {memberPos.total}</span>
+                )}
+                {dayPos && (
+                  <span style={{ fontSize: fz(t, 11.5), fontWeight: 800, color: t.primary, background: t.primarySoft, border: `1px solid ${t.primaryBorder}`, borderRadius: 999, padding: '3px 10px' }}>Question {dayPos.position} of {dayPos.total} today</span>
                 )}
                 <span style={{ fontSize: fz(t, 11), fontWeight: 800, color: '#fff', background: diffColor, borderRadius: 999, padding: '3px 10px', textTransform: 'capitalize' }}>{p.difficulty}</span>
                 <span style={{ fontSize: fz(t, 11.5), fontWeight: 700, color: cp ? t.accentInk : t.primary, background: cp ? t.accentSoft : t.primarySoft, borderRadius: 999, padding: '3px 10px' }}>{p.category}</span>
@@ -650,7 +660,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
           {err && <div role="alert" style={{ background: t.dangerSoft, color: t.danger, borderRadius: 8, padding: '10px 12px', fontSize: fz(t, 13), marginTop: 12 }}>{err}</div>}
 
           {/* AI feedback */}
-          {submitResult && <Feedback result={submitResult} onNext={nextChallenge} nextLabel={member ? 'What’s next →' : 'Next challenge →'} />}
+          {submitResult && <Feedback result={submitResult} onNext={nextChallenge} nextLabel={member ? 'What’s next →' : dayPos && dayPos.position < dayPos.total ? `Next question (${dayPos.position + 1} of ${dayPos.total}) →` : 'Next challenge →'} />}
 
           {/* Thinking Journal — mandatory reflection after solving */}
           {done && (
@@ -852,12 +862,14 @@ const PUZZLE_LABEL: Record<string, string> = { math: 'Math puzzle', logical: 'Lo
 
 const ChallengeOverview: React.FC<{
   challenge: TLChallenge; position: { position: number; total: number } | null; seconds: number; done: boolean; minWords: number; onOpen: () => void;
+  /** A several-question day, and the way to the next question. */
+  day?: { position: number; total: number; done: number } | null; onNext?: () => void;
   /** What solving it pays this viewer (0 = not shown). */
   xp: number;
   /** The coding problem, or a puzzle in the same shape. */
   problem: any;
   puzzle?: boolean;
-}> = ({ challenge, position, seconds, done, minWords, onOpen, xp, problem, puzzle }) => {
+}> = ({ challenge, position, seconds, done, minWords, onOpen, xp, problem, puzzle, day, onNext }) => {
   const t = useT();
   const p = problem;
   const started = !done && (seconds > 0 || challenge.attempts > 0 || !!challenge.approach?.trim());
@@ -883,6 +895,7 @@ const ChallengeOverview: React.FC<{
           <div className="tl-ov-chips">
             <span className="tl-ov-eyebrow">{puzzle ? 'Today’s question' : 'Today’s problem'}</span>
             {position && position.position > 0 && <span className="tl-ov-chip">Problem {position.position} of {position.total}</span>}
+            {day && <span className="tl-ov-chip">Question {day.position} of {day.total} today</span>}
             <span className="tl-ov-chip diff" style={{ background: t.diff[p.difficulty] || t.primary }}>{p.difficulty}</span>
             {p.category && <span className="tl-ov-chip soft">{p.category}</span>}
           </div>
@@ -909,6 +922,12 @@ const ChallengeOverview: React.FC<{
             {done ? 'Review your solution' : started ? 'Continue solving' : 'Start solving'} <i className="bi bi-arrow-right" aria-hidden />
           </button>
           {!done && <small className="tl-ov-note">The timer starts when you open the problem.</small>}
+          {done && day && day.position < day.total && onNext && (
+            <button type="button" className="tl-ov-start next" onClick={onNext}>
+              Next question ({day.position + 1} of {day.total}) <i className="bi bi-arrow-right" aria-hidden />
+            </button>
+          )}
+          {done && day && day.done >= day.total && <div className="tl-ov-sub ok">All {day.total} of today’s questions done</div>}
         </aside>
       </section>
 

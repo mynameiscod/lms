@@ -85,7 +85,7 @@ const LabTracks: React.FC = () => {
                 <div className="lt-card" key={t._id}>
                   <div className="lt-card-top">
                     <span className={`lt-status ${t.status}`}>{t.status}</span>
-                    <span className="lt-days">{t.filledDays || 0} / {t.totalDays} days</span>
+                    <span className="lt-days">{t.filledDays || 0} / {t.totalDays} days{(t.questions || 0) > (t.filledDays || 0) ? ` · ${t.questions} questions` : ''}</span>
                   </div>
                   <h4>{t.name}</h4>
                   {t.description && <p className="lt-desc">{t.description}</p>}
@@ -149,6 +149,7 @@ const FillDialog: React.FC<{ trackId: string; totalDays: number; filled: number;
   const [mix, setMix] = useState<Record<string, number>>({ math: 1, logical: 1, critical: 1, coding: 0 });
   const [ramp, setRamp] = useState(true);
   const [onlyEmpty, setOnlyEmpty] = useState(true);
+  const [perDay, setPerDay] = useState(1);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [result, setResult] = useState<Awaited<ReturnType<typeof api.autofill>> | null>(null);
@@ -158,7 +159,7 @@ const FillDialog: React.FC<{ trackId: string; totalDays: number; filled: number;
   const days = onlyEmpty ? totalDays - filled : totalDays;
   const run = async () => {
     setBusy(true); setErr('');
-    try { setResult(await api.autofill(trackId, { year, mix: effective, ramp, onlyEmpty })); }
+    try { setResult(await api.autofill(trackId, { year, mix: effective, ramp, onlyEmpty, perDay })); }
     catch (e: any) { setErr(e.message); }
     setBusy(false);
   };
@@ -168,7 +169,7 @@ const FillDialog: React.FC<{ trackId: string; totalDays: number; filled: number;
         <div className="lt-modal-head"><h4>Fill the track for me</h4><button onClick={onClose} aria-label="Close">×</button></div>
         {result ? (
           <div className="lt-fill-done">
-            <p><b>{result.filled}</b> day{result.filled === 1 ? '' : 's'} filled — {result.filledDays} of {result.totalDays} now have a question.</p>
+            <p><b>{result.filled}</b> day{result.filled === 1 ? '' : 's'} filled{perDay > 1 ? ` with up to ${perDay} questions each` : ''} — {result.filledDays} of {result.totalDays} now have questions.</p>
             {result.byType && <p className="lt-fill-break">{Object.entries(result.byType).map(([k, v]) => `${TYPE_LABEL[k] || k} ${v}`).join(' · ')}{result.byLevel ? ` — ${['easy', 'medium', 'hard'].filter(l => result.byLevel![l]).map(l => `${result.byLevel![l]} ${l}`).join(', ')}` : ''}</p>}
             {result.message && <div className="lt-note">{result.message}</div>}
             <p className="lt-fill-hint">Check the days, change any you like, then publish the track.</p>
@@ -178,6 +179,11 @@ const FillDialog: React.FC<{ trackId: string; totalDays: number; filled: number;
           <>
             <label className="lt-fill-row"><span>Year this track is for</span>
               <select value={year} onChange={e => setYear(e.target.value)}>{YEARS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+            </label>
+            <label className="lt-fill-row"><span>Questions each day</span>
+              <select value={perDay} onChange={e => setPerDay(Number(e.target.value))} aria-label="Questions each day">
+                {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
             </label>
             <div className="lt-fill-mix">
               <span>Mix of questions <small>how many of each in every {sum || '…'} days</small></span>
@@ -223,9 +229,10 @@ const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, o
     api.library(data.track.lab, q, data.track.lab === 'thinking' ? filters : {}).then(setBank).catch(() => setBank([]));
   }, [data?.track.lab, q, filters]);
 
+  // A day may hold several questions, in order.
   const byDay = useMemo(() => {
-    const m = new Map<number, TrackItem>();
-    (data?.items || []).forEach(i => m.set(i.dayIndex, i));
+    const m = new Map<number, TrackItem[]>();
+    (data?.items || []).forEach(i => m.set(i.dayIndex, [...(m.get(i.dayIndex) || []), i]));
     return m;
   }, [data]);
 
@@ -233,14 +240,26 @@ const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, o
   const { track } = data;
   const per = track.daysPerWeek || 5;
   const weeks = Math.ceil(track.totalDays / per);
-  const filled = data.items.length;
+  const filled = byDay.size;
+  const maxPerDay = (data as any).maxPerDay || 5;
 
   const usedIds = new Set(data.items.map(i => String(i.contentId)));
   const thinking = track.lab === 'thinking';
-  const assign = async (dayIndex: number, contentId: string | null, contentKind?: 'question' | 'problem') => {
+  /** Save a day's questions as this list, in this order. */
+  const saveDay = async (dayIndex: number, list: { contentId: string; contentKind?: 'question' | 'problem' }[]) => {
     setBusy(true); setErr('');
-    try { await api.setItems(trackId, [{ dayIndex, contentId, ...(contentKind ? { contentKind } : {}) }]); await load(); setPicking(null); }
+    try { await api.setDay(trackId, dayIndex, list); await load(); }
     catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+  };
+  const dayList = (day: number) => (byDay.get(day) || []).map(i => ({ contentId: String(i.contentId), ...(thinking ? { contentKind: i.contentKind || 'problem' } : {}) }));
+  const addToDay = (day: number, contentId: string, contentKind?: 'question' | 'problem') =>
+    saveDay(day, [...dayList(day), { contentId, ...(contentKind ? { contentKind } : {}) }]);
+  const removeFromDay = (day: number, idx: number) => saveDay(day, dayList(day).filter((_, i) => i !== idx));
+  const moveInDay = (day: number, idx: number, by: number) => {
+    const l = dayList(day); const j = idx + by;
+    if (j < 0 || j >= l.length) return;
+    [l[idx], l[j]] = [l[j], l[idx]];
+    saveDay(day, l);
   };
 
   const publish = async () => {
@@ -285,17 +304,19 @@ const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, o
               {Array.from({ length: per }, (_, d) => {
                 const day = w * per + d + 1;
                 if (day > track.totalDays) return <div key={d} className="lt-day spacer" />;
-                const item = byDay.get(day);
+                const list = byDay.get(day) || [];
+                const item = list[0];
+                const anyMissing = list.some(i => i.missing);
                 return (
                   <button
                     key={d}
-                    className={`lt-day ${item ? 'filled' : ''} ${item?.missing ? 'missing' : ''}`}
+                    className={`lt-day ${item ? 'filled' : ''} ${anyMissing ? 'missing' : ''}`}
                     onClick={() => setPicking(day)}
-                    title={item?.content?.title || 'Empty — click to assign'}
+                    title={list.length ? list.map((i, n) => `${n + 1}. ${i.content?.title || 'content deleted'}`).join('\n') : 'Empty — click to assign'}
                   >
-                    <span className="lt-day-n">Day {day}{item?.content?.type && thinking && <em className={`lt-type t-${item.content.type}`}>{TYPE_LABEL[item.content.type] || item.content.type}</em>}</span>
+                    <span className="lt-day-n">Day {day}{item?.content?.type && thinking && <em className={`lt-type t-${item.content.type}`}>{TYPE_LABEL[item.content.type] || item.content.type}</em>}{list.length > 1 && <em className="lt-count">{list.length} Qs</em>}</span>
                     <span className="lt-day-t">
-                      {item?.missing ? '⚠ content deleted' : (item?.content?.title || 'Empty')}
+                      {anyMissing ? '⚠ content deleted' : (item?.content?.title || 'Empty')}
                     </span>
                   </button>
                 );
@@ -313,8 +334,29 @@ const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, o
               <h4>Day {picking}</h4>
               <button onClick={() => setPicking(null)} aria-label="Close">×</button>
             </div>
+            {/* The day's questions, in the order students get them. */}
+            <div className="lt-daylist">
+              <div className="lt-daylist-head">
+                <b>Questions on this day</b>
+                <span>{(byDay.get(picking) || []).length} of {maxPerDay}</span>
+              </div>
+              {(byDay.get(picking) || []).length === 0 ? (
+                <p className="lt-daylist-empty">No question yet. Pick one below.</p>
+              ) : (byDay.get(picking) || []).map((i, n, arr) => (
+                <div className={`lt-dayq${i.missing ? ' missing' : ''}`} key={String(i._id || n)}>
+                  <span className="lt-dayq-n">{n + 1}</span>
+                  <span className="lt-dayq-t">{thinking && i.content?.type && <em className={`lt-type t-${i.content.type}`}>{TYPE_LABEL[i.content.type] || i.content.type}</em>}{i.missing ? '⚠ content deleted' : i.content?.title}</span>
+                  <span className="lt-dayq-act">
+                    <button disabled={busy || n === 0} onClick={() => moveInDay(picking, n, -1)} aria-label="Move up" title="Move up">↑</button>
+                    <button disabled={busy || n === arr.length - 1} onClick={() => moveInDay(picking, n, 1)} aria-label="Move down" title="Move down">↓</button>
+                    <button disabled={busy} onClick={() => removeFromDay(picking, n)} aria-label="Remove" title="Remove" className="rm">×</button>
+                  </span>
+                </div>
+              ))}
+            </div>
+            {(byDay.get(picking) || []).length >= maxPerDay && <div className="lt-note">A day holds up to {maxPerDay} questions. Remove one to add another.</div>}
             <input className="lt-search" value={q} onChange={e => setQ(e.target.value)}
-                   placeholder={thinking && filters.source !== 'lms' ? 'Search the question bank…' : 'Search the library…'} autoFocus />
+                   placeholder={thinking && filters.source !== 'lms' ? 'Add a question: search the bank…' : 'Add a question: search the library…'} autoFocus />
             {thinking && (
               <div className="lt-filters">
                 <div className="lt-seg" role="tablist" aria-label="Where to pick from">
@@ -339,16 +381,20 @@ const Builder: React.FC<{ trackId: string; onBack: () => void }> = ({ trackId, o
                 <p className="lt-bank-empty">
                   Nothing in the library yet. Add problems to {LABS.find(l => l.key === track.lab)?.label} first.
                 </p>
-              ) : bank.map(b => (
-                <button key={b._id} className={`lt-bank-row${usedIds.has(String(b._id)) ? ' used' : ''}`} disabled={busy}
-                        onClick={() => assign(picking, b._id, thinking ? (b.kind === 'question' ? 'question' : 'problem') : undefined)}>
-                  <span>{thinking && b.type && <em className={`lt-type t-${b.type}`}>{TYPE_LABEL[b.type] || b.type}</em>}{b.title}</span>
-                  <small>{b.category || b.challengeType || ''}{b.difficulty ? ` · ${b.difficulty}` : ''}{usedIds.has(String(b._id)) ? ' · already in this track' : ''}</small>
-                </button>
-              ))}
+              ) : bank.map(b => {
+                const onDay = (byDay.get(picking) || []).some(i => String(i.contentId) === String(b._id));
+                const full = (byDay.get(picking) || []).length >= maxPerDay;
+                return (
+                  <button key={b._id} className={`lt-bank-row${usedIds.has(String(b._id)) ? ' used' : ''}`} disabled={busy || onDay || full}
+                          onClick={() => addToDay(picking, b._id, thinking ? (b.kind === 'question' ? 'question' : 'problem') : undefined)}>
+                    <span>{thinking && b.type && <em className={`lt-type t-${b.type}`}>{TYPE_LABEL[b.type] || b.type}</em>}{b.title}</span>
+                    <small>{b.category || b.challengeType || ''}{b.difficulty ? ` · ${b.difficulty}` : ''}{onDay ? ' · on this day' : usedIds.has(String(b._id)) ? ' · already in this track' : ''}</small>
+                  </button>
+                );
+              })}
             </div>
-            {byDay.get(picking) && (
-              <button className="lt-btn ghost full" disabled={busy} onClick={() => assign(picking, null)}>
+            {(byDay.get(picking) || []).length > 0 && (
+              <button className="lt-btn ghost full" disabled={busy} onClick={() => saveDay(picking, [])}>
                 Clear this day
               </button>
             )}

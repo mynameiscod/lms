@@ -416,6 +416,8 @@ const startServer = async () => {
 
     // The old speaking module's daily reminder is off (2026-11-28): the AI Communication Lab replaced it, and
     // its pages are off the menu, so students were reminded about a page they could not reach.
+    // Lab tracks: a day may hold several questions — drop the old one-per-day index (idempotent).
+    void import('./models/LabTrack').then(m => m.ensureLabTrackItemIndexes());
     startPracticePassScheduler(); // Daily Practice Pass: hourly standings + 7 PM reminders
     startWeeklyReportScheduler(); // Weekly reports: automatic Monday 8 AM send for institutes that switched it on
     startInactivityScheduler(); // Student Rules: daily inactivity WhatsApps (student → trainer → parent)

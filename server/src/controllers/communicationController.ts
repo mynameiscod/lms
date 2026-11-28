@@ -7,7 +7,7 @@ import CommunicationProfile from '../models/CommunicationProfile';
 import CommunicationChallenge, { challengeAudienceFilter, CHALLENGE_AUDIENCES } from '../models/CommunicationChallenge';
 import { audienceServes, readMemberAudience } from '../models/memberAudience';
 import CommunicationSchedule from '../models/CommunicationSchedule';
-import { resolveLabDay } from '../services/labTrackService';
+import { resolveLabDay, labDayStatus } from '../services/labTrackService';
 import { labBatchFor } from '../services/placementBatchService';
 import CommunicationAttempt from '../models/CommunicationAttempt';
 import CommunicationJob from '../models/CommunicationJob';
@@ -183,12 +183,26 @@ export const getToday = async (req: Request, res: Response) => {
     // Fall back to the batch's track when nobody scheduled today by hand. An explicit
     // CommunicationSchedule still wins, so existing rows and one-off overrides are
     // unaffected — this only fills the days that would otherwise be blank.
+    // A track day may hold several questions (2026-11-28): the student answers them in order, one take each.
+    let multiDay: { items: any[]; answered: Set<string> } | null = null;
     if (!sc) {
       const r: any = await resolveLabDay(String(tenantId), String(me.batchId), 'communication');
       if (r && r.contentId) {
+        let pickId: any = r.contentId;
+        if ((r.items || []).length > 1) {
+          const ids = r.items.map((i: any) => i.contentId);
+          const [answered, running] = await Promise.all([
+            CommunicationAttempt.distinct('challengeId', { tenantId, studentId: uId(req), practiceDate: today, status: 'completed', kind: { $ne: 'coach' }, challengeId: { $in: ids } }),
+            CommunicationJob.findOne({ tenantId, studentId: uId(req), practiceDate: today, status: 'running', challengeId: { $in: ids.map(String) } }).select('challengeId').lean(),
+          ]);
+          multiDay = { items: r.items, answered: new Set(answered.map(String)) };
+          // The one being scored now, else the first not answered yet, else (all done) the last.
+          const next = r.items.find((i: any) => !multiDay!.answered.has(String(i.contentId)));
+          pickId = (running as any)?.challengeId || next?.contentId || r.items[r.items.length - 1].contentId;
+        }
         sc = {
           tenantId, batchId: me.batchId, date: now.date,
-          challengeId: r.contentId,
+          challengeId: pickId,
           startTime: r.assignment?.window?.startTime,
           endTime: r.assignment?.window?.endTime,
           fromTrack: true,
@@ -207,9 +221,11 @@ export const getToday = async (req: Request, res: Response) => {
 
     const streak = await CommunicationStreak.findOne({ tenantId, studentId: uId(req) }).lean();
 
-    // Already practised today? then today's challenge is that attempt's challenge.
-    const todaysAttempt = await CommunicationAttempt.findOne({ tenantId, studentId: uId(req), practiceDate: today, kind: { $ne: 'coach' } })
-      .sort({ createdAt: -1 }).lean();
+    // Already practised today? then today's challenge is that attempt's challenge. On a several-question day,
+    // only an answer to the question now up counts — the others have their own.
+    const todaysAttempt = await CommunicationAttempt.findOne({
+      tenantId, studentId: uId(req), practiceDate: today, kind: { $ne: 'coach' }, ...(multiDay ? { challengeId: sc.challengeId } : {}),
+    }).sort({ createdAt: -1 }).lean();
 
     const wStatus = windowStatus(sc, now.date, now.hm);
 
@@ -275,6 +291,8 @@ export const getToday = async (req: Request, res: Response) => {
       maxTakes, takesUsed,
       // Which day of the batch's lab track this is, when the question came from the track.
       dayNumber: sc?.dayNumber || undefined,
+      // "Question 2 of 3 today", and where each of today's questions stands.
+      ...(multiDay ? { day: await commDayView(multiDay, String(challenge._id), String(tenantId)) } : {}),
       pendingJob: job && job.status === 'running' ? jobView(job) : null,
       // A failed send shows its reason once, so the student knows the take was not used.
       lastFailure: job && job.status === 'failed' && !todaysAttempt && Date.now() - new Date(job.updatedAt).getTime() < 30 * 60 * 1000 ? job.message : null,
@@ -316,6 +334,32 @@ export const updateProfile = async (req: Request, res: Response) => {
  * limit. Silent recordings and failed scoring never count, so a broken microphone does not cost the take.
  */
 export const takesAllowed = (user: any, challenge: any) => (user?.batchId ? 1 : (challenge?.maxAttempts || 2));
+
+/** Today's questions of a several-question day, for the student's page. */
+async function commDayView(d: { items: any[]; answered: Set<string> }, currentId: string, tenantId: string) {
+  const titles = new Map((await CommunicationChallenge.find({ _id: { $in: d.items.map((i: any) => i.contentId) }, tenantId }).select('title').lean())
+    .map((c: any) => [String(c._id), c.title]));
+  return {
+    position: Math.max(1, d.items.findIndex((i: any) => String(i.contentId) === currentId) + 1),
+    total: d.items.length,
+    done: d.items.filter((i: any) => d.answered.has(String(i.contentId))).length,
+    questions: d.items.map((i: any) => ({
+      _id: String(i.contentId), title: titles.get(String(i.contentId)) || 'Question',
+      status: d.answered.has(String(i.contentId)) ? 'done' : String(i.contentId) === currentId ? 'current' : 'next',
+    })),
+  };
+}
+
+/**
+ * Does this answer complete the student's day? A several-question track day counts (streak) only once all
+ * of its questions are answered; any other day, as before, with its one answer.
+ */
+async function completesCommDay(tenantId: string, studentId: string, labBatchId: any, practiceDate: string): Promise<boolean> {
+  if (!labBatchId || practiceDate !== istParts().date) return true;
+  const r: any = await resolveLabDay(String(tenantId), String(labBatchId), 'communication');
+  if (!r?.items || r.items.length <= 1) return true;
+  return (await labDayStatus('communication', studentId, r, practiceDate)).complete;
+}
 
 /** A job older than this without finishing died with a server restart: treat it as failed, so the take is free again. */
 const JOB_STALE_MS = 10 * 60 * 1000;
@@ -463,7 +507,7 @@ export async function processRecording(p: ProcessInput, deps: ProcessDeps = {}) 
     });
     let reward: any = null;
     try {
-      reward = await bumpStreak(tenantId, studentId, practiceDate);
+      if (await completesCommDay(tenantId, studentId, p.labBatchId, practiceDate)) reward = await bumpStreak(tenantId, studentId, practiceDate);
       const st: any = await CommunicationStreak.findOne({ tenantId, studentId }).lean();
       if (st) evaluateAchievements(tenantId, studentId, st, evaluation).catch(() => {});
     } catch { /* the answer is saved; a streak hiccup must not fail it */ }

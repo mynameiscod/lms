@@ -77,6 +77,49 @@ async function creditBonusXp(req: Request, amount: number) {
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
 const today = () => ymd(istToday());
+const DONE = ['submitted', 'solved'];
+
+/**
+ * Today's questions from the student's lab track when the day holds MORE than one (2026-11-28), else null.
+ * `done` = the day's questions this student has finished today (by question id).
+ */
+async function trackDayFor(req: Request, batchId: any): Promise<{ items: any[]; done: Set<string>; dayIndex: number } | null> {
+  if (!batchId) return null;
+  const r: any = await resolveLabDay(tId(req), String(batchId), 'thinking');
+  if (!r?.items || r.items.length <= 1) return null;
+  const rows: any[] = await DailyChallenge.find({ tenantId: tId(req), studentId: uId(req), date: today(), status: { $in: DONE } }).select('problemId').lean();
+  return { items: r.items, done: new Set(rows.map((x) => String(x.problemId))), dayIndex: r.dayIndex };
+}
+const dayView = (d: { items: any[]; done: Set<string> }, current: any) => ({
+  position: Math.max(1, d.items.findIndex((i) => String(i.contentId) === String(current)) + 1),
+  total: d.items.length,
+  done: d.items.filter((i) => d.done.has(String(i.contentId))).length,
+});
+
+/**
+ * A several-question day: is it complete once THIS challenge is finished? Single-question days (and
+ * days not from a track) are complete with their one question, as before. Used for the streak.
+ */
+async function completesTrackDay(req: Request, ch: any): Promise<{ multi: boolean; complete: boolean }> {
+  if (ch.date !== today()) return { multi: false, complete: true };
+  const u: any = await User.findById(uId(req)).select('batchId').lean();
+  const bid = u?.batchId ? await labBatchFor(tId(req), uId(req), u.batchId, 'thinking') : null;
+  const d = await trackDayFor(req, bid);
+  if (!d) return { multi: false, complete: true };
+  d.done.add(String(ch.problemId));
+  return { multi: true, complete: d.items.every((i) => d.done.has(String(i.contentId))) };
+}
+
+/** The lab streak for a several-question day moves once, when the last of its questions is finished. */
+async function countTrackDayStreak(req: Request) {
+  const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
+  const gs: any = await StudentGameStats.findOneAndUpdate(
+    { tenantId: tId(req), studentId: uId(req) },
+    { $setOnInsert: { tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId } },
+    { new: true, upsert: true },
+  );
+  if (game.advanceDayStreak(gs, today())) await gs.save();
+}
 
 // Current IST time-of-day as 'HH:MM' (IST = UTC+5:30). Comparable lexicographically.
 const istNowHM = (): string => {
@@ -309,13 +352,20 @@ export const getToday = async (req: Request, res: Response) => {
     // "no challenge scheduled yet" from being the normal experience: a track is authored
     // once and every batch resolves its own day from it.
     let dayIndex: number | null = null;
+    let multiDay: { items: any[]; done: Set<string>; dayIndex: number } | null = null;
     if (!sc && u?.batchId) {
       const r: any = await resolveLabDay(tId(req), String(u.batchId), 'thinking');
       if (r && r.contentId) {
         dayIndex = r.dayIndex;
+        // A day with several questions: the first one not finished yet (all finished → the last one).
+        let pick: any = r.item;
+        if ((r.items || []).length > 1) {
+          multiDay = await trackDayFor(req, u.batchId);
+          if (multiDay) pick = multiDay.items.find((i) => !multiDay!.done.has(String(i.contentId))) || multiDay.items[multiDay.items.length - 1];
+        }
         sc = {
           tenantId: tId(req), batchId: u.batchId, date: d,
-          problemId: r.contentId, contentKind: r.item?.contentKind || 'problem',
+          problemId: pick.contentId, contentKind: pick.contentKind || 'problem',
           startTime: r.assignment?.window?.startTime,
           endTime: r.assignment?.window?.endTime,
           fromTrack: true,
@@ -352,7 +402,9 @@ export const getToday = async (req: Request, res: Response) => {
 
     const wStatus = windowStatus(sc, d, istNowHM());
 
-    let ch: any = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });
+    let ch: any = multiDay
+      ? await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d, problemId: sc.problemId }).sort({ seq: -1 })
+      : await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });
 
     // Window not open yet — don't start the challenge until it opens.
     if (wStatus === 'upcoming' && (!ch || !['submitted', 'solved'].includes(ch.status))) {
@@ -374,16 +426,18 @@ export const getToday = async (req: Request, res: Response) => {
         ? asProblem(await ThinkingQuestion.findOne({ _id: sc.problemId, status: 'PUBLISHED' }).lean())
         : await ThinkingProblem.findOne({ _id: sc.problemId, tenantId: tId(req), active: true });
       if (!p) return res.json({ challenge: null, empty: true, message: 'No challenge scheduled yet. Your instructor will assign one for your batch.' });
+      const lastToday: any = multiDay ? await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 }).select('seq').lean() : null;
       ch = await DailyChallenge.create({
         tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId,
-        date: d, seq: 1, problemId: p._id, contentKind: fromBank ? 'question' : 'problem',
+        date: d, seq: (lastToday?.seq || 0) + 1, problemId: p._id, contentKind: fromBank ? 'question' : 'problem',
         difficulty: p.difficulty, language: p.language, code: p.starterCode || '',
       });
       if (fromBank) await ThinkingQuestion.updateOne({ _id: p._id }, { $inc: { timesServed: 1 } });
       else await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesAssigned: 1 } });
     }
     const p = await contentOf(ch);
-    res.json({ challenge: challengeView(ch, p), window: windowView(sc, wStatus) });
+    // "Question 2 of 3 today" when the day holds several.
+    res.json({ challenge: challengeView(ch, p), window: windowView(sc, wStatus), ...(multiDay ? { day: dayView(multiDay, ch.problemId) } : {}) });
   } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to load today\'s challenge' }); }
 };
 
@@ -422,6 +476,15 @@ export const nextChallenge = async (req: Request, res: Response) => {
         status: 'assigned', startedAt: new Date(),
       });
       return res.json({ challenge: challengeView(ch, p), member: { position: positionInBank(bank, String(p._id)), total: bank.length } });
+    }
+    // A day with several questions: the next one not finished yet comes up (getToday picks it).
+    if (!isMemberView(u) && u?.batchId) {
+      const bid = await labBatchFor(tId(req), uId(req), u.batchId, 'thinking');
+      const day = await trackDayFor(req, bid);
+      if (day) {
+        if (day.items.some((i) => !day.done.has(String(i.contentId)))) return getToday(req, res);
+        return res.json({ challenge: null, empty: true, dayComplete: true, message: `That's all ${day.items.length} of today's questions done. Come back tomorrow for the next ones.` });
+      }
     }
     const message = isMemberView(u)
       ? "That's today's problem done. Your next Thinking Lab problem unlocks tomorrow."
@@ -542,6 +605,8 @@ export const submit = async (req: Request, res: Response) => {
     const lmsDemo = await isLmsDemoUser(req);
     // Demo students earn no game stats: they would show on the institute's Thinking Lab board.
     const firstSolve = !member && !lmsDemo && allPassed && !ch.gameAwarded;
+    // A several-question day moves the streak once, when its last question is finished (solved or not).
+    const trackDay = !member && !lmsDemo ? await completesTrackDay(req, ch) : { multi: false, complete: true };
     if (firstSolve) {
       const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
       const gs: any = await StudentGameStats.findOneAndUpdate(
@@ -549,12 +614,13 @@ export const submit = async (req: Request, res: Response) => {
         { $setOnInsert: { tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId } },
         { new: true, upsert: true }
       );
-      const r = game.applySolve(gs, { xpEarned: xp, category: p.category, difficulty: p.difficulty, hintsUsed: ch.hintsUsed, perfect: (ch.attempts <= 1 && ch.hintsUsed === 0), dateStr: today() });
+      const r = game.applySolve(gs, { xpEarned: xp, category: p.category, difficulty: p.difficulty, hintsUsed: ch.hintsUsed, perfect: (ch.attempts <= 1 && ch.hintsUsed === 0), dateStr: today(), countDay: !trackDay.multi });
       await gs.save();
       newBadges = r.newBadges; coinsEarned = r.coinsEarned;
       (ch as any).gameAwarded = true;
     }
     await ch.save();
+    if (trackDay.multi && trackDay.complete) await countTrackDayStreak(req);
     if (allPassed && !lmsDemo && !(await (await import('../services/demoService')).isDemoUser(uId(req)))) await bumpSolved(p);
 
     res.json({
@@ -1045,6 +1111,7 @@ export const puzzleAnswer = async (req: Request, res: Response) => {
 
     let reward: any = null;
     const finishing = correct || answers.length >= ATTEMPTS_PUZZLE;
+    const trackDay = finishing ? await completesTrackDay(req, ch) : { multi: false, complete: false };
     if (finishing) {
       ch.status = correct ? 'solved' : 'submitted'; ch.passed = correct; ch.submittedAt = new Date();
       ch.score = Math.round((ch.bestShare || 0) * 100);
@@ -1057,7 +1124,7 @@ export const puzzleAnswer = async (req: Request, res: Response) => {
           { $setOnInsert: { tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId } },
           { new: true, upsert: true },
         );
-        const r = game.applySolve(gs, { xpEarned: ch.xpEarned, category: p.category, difficulty: p.difficulty, hintsUsed: ch.hintsUsed || 0, perfect: correct && answers.length === 1 && !ch.hintsUsed, dateStr: today() });
+        const r = game.applySolve(gs, { xpEarned: ch.xpEarned, category: p.category, difficulty: p.difficulty, hintsUsed: ch.hintsUsed || 0, perfect: correct && answers.length === 1 && !ch.hintsUsed, dateStr: today(), countDay: !trackDay.multi });
         await gs.save();
         ch.gameAwarded = true;
         reward = { xpNow: ch.xpEarned, coinsEarned: r.coinsEarned, newBadges: r.newBadges };
@@ -1065,6 +1132,7 @@ export const puzzleAnswer = async (req: Request, res: Response) => {
       if (correct) await bumpSolved(p);
     }
     await ch.save();
+    if (trackDay.multi && trackDay.complete) await countTrackDayStreak(req);
     res.json({ question: memberQuestion(q, puzzleState(ch)), reward, status: ch.status, xpEarned: ch.xpEarned });
   } catch (err: any) { res.status(500).json({ message: err.message || 'Could not check your answer.' }); }
 };

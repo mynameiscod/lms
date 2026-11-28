@@ -94,9 +94,12 @@ export const memberLabApi = {
     (await axios.get(`${BASE}/member/history`, { ...h(), params: { page } })).data,
 };
 
+/** A lab-track day with several questions: which one this is, how many, how many are finished. */
+export interface TLDay { position: number; total: number; done: number }
+
 export const thinkingLabApi = {
-  getToday: async (): Promise<{ challenge: TLChallenge | null; empty?: boolean; message?: string; member?: { position: number; total: number } }> => (await axios.get(`${BASE}/today`, h())).data,
-  next: async (): Promise<{ challenge: TLChallenge | null; empty?: boolean; message?: string }> => (await axios.post(`${BASE}/next`, {}, h())).data,
+  getToday: async (): Promise<{ challenge: TLChallenge | null; empty?: boolean; message?: string; member?: { position: number; total: number }; day?: TLDay }> => (await axios.get(`${BASE}/today`, h())).data,
+  next: async (): Promise<{ challenge: TLChallenge | null; empty?: boolean; message?: string; day?: TLDay; dayComplete?: boolean }> => (await axios.post(`${BASE}/next`, {}, h())).data,
   stats: async (): Promise<TLStats> => (await axios.get(`${BASE}/stats`, h())).data,
   badges: async (): Promise<TLBadge[]> => (await axios.get(`${BASE}/badges`, h())).data.badges || [],
   leaderboard: async (scope: string): Promise<{ scope: string; leaderboard: TLLeaderRow[]; myRank: number | null }> => (await axios.get(`${BASE}/leaderboard`, { ...h(), params: { scope } })).data,

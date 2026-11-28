@@ -56,6 +56,8 @@ export interface ILabTrackItem extends Document {
   tenantId: string;
   trackId: mongoose.Types.ObjectId;
   dayIndex: number;             // 1..totalDays
+  /** Order inside the day (0, 1, 2…). A day may hold several questions (2026-11-28); old rows are 0. */
+  position: number;
   contentId: mongoose.Types.ObjectId;   // ThinkingProblem | ThinkingQuestion | CommunicationChallenge
   /** Thinking tracks: 'question' = the shared Thinking Lab bank (ThinkingQuestion), 'problem' = an LMS ThinkingProblem. */
   contentKind?: 'problem' | 'question';
@@ -69,6 +71,7 @@ const LabTrackItemSchema = new Schema<ILabTrackItem>({
   tenantId: { type: String, required: true, index: true },
   trackId: { type: Schema.Types.ObjectId, ref: 'LabTrack', required: true, index: true },
   dayIndex: { type: Number, required: true, min: 1 },
+  position: { type: Number, default: 0, min: 0 },
   contentId: { type: Schema.Types.ObjectId, required: true },
   // Old rows have no kind and are LMS problems, so every existing track keeps working unchanged.
   contentKind: { type: String, enum: ['problem', 'question'], default: 'problem' },
@@ -76,8 +79,9 @@ const LabTrackItemSchema = new Schema<ILabTrackItem>({
   optional: { type: Boolean, default: false },
 }, { timestamps: true });
 
-// One item per day per track — stops a day silently holding two problems.
-LabTrackItemSchema.index({ trackId: 1, dayIndex: 1 }, { unique: true });
+// One item per slot of a day. A day may hold several questions (position 0, 1, 2…); the old
+// { trackId, dayIndex } unique index is dropped at start-up by ensureLabTrackItemIndexes().
+LabTrackItemSchema.index({ trackId: 1, dayIndex: 1, position: 1 }, { unique: true });
 
 /* ── 3. Assignment: track → batch, and every knob ────────────────────────── */
 
@@ -169,5 +173,14 @@ LabTrackAssignmentSchema.index({ tenantId: 1, batchId: 1, lab: 1, status: 1 });
 export const LabTrack = mongoose.model<ILabTrack>('LabTrack', LabTrackSchema);
 export const LabTrackItem = mongoose.model<ILabTrackItem>('LabTrackItem', LabTrackItemSchema);
 export const LabTrackAssignment = mongoose.model<ILabTrackAssignment>('LabTrackAssignment', LabTrackAssignmentSchema);
+
+/**
+ * Bring LabTrackItem's indexes in line with the schema: drops the old one-question-per-day unique index
+ * (it would refuse a second question on a day) and builds the per-slot one. Idempotent; run at start-up.
+ */
+export async function ensureLabTrackItemIndexes(): Promise<void> {
+  try { await LabTrackItem.syncIndexes(); }
+  catch (e: any) { console.error('[labTrack] could not sync LabTrackItem indexes:', e?.message || e); }
+}
 
 export default LabTrack;

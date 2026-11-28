@@ -1,9 +1,7 @@
 import mongoose from 'mongoose';
 import User from '../models/User';
-import DailyChallenge from '../models/DailyChallenge';
-import CommunicationAttempt from '../models/CommunicationAttempt';
 import { LabTrackAssignment, LabKind } from '../models/LabTrack';
-import { resolveLabDay, expectedDaysSoFar, ymdIn } from './labTrackService';
+import { resolveLabDay, ymdIn, learningDates, questionsPerDay, questionsDoneByDate, labDayStatus } from './labTrackService';
 import { labBatchFor, LAB_KINDS } from './placementBatchService';
 
 /**
@@ -44,42 +42,20 @@ export interface LabGateResult {
 
 const OPEN: LabGateResult = { mode: 'off', blockedAreas: [], neverBlock: [], pending: [] };
 
-/** Did the student finish this lab's work today? */
-async function completedToday(
-  lab: LabKind, tenantId: string, studentId: mongoose.Types.ObjectId, dayKey: string,
-): Promise<boolean> {
-  if (lab === 'thinking') {
-    const row = await DailyChallenge.findOne({
-      tenantId, studentId, date: dayKey, status: { $in: ['submitted', 'solved'] },
-    }).select('_id').lean();
-    return !!row;
-  }
-  const tOid = mongoose.Types.ObjectId.isValid(tenantId) ? new mongoose.Types.ObjectId(tenantId) : null;
-  if (!tOid) return false;
-  const start = new Date(`${dayKey}T00:00:00.000Z`);
-  const end = new Date(`${dayKey}T23:59:59.999Z`);
-  const row = await CommunicationAttempt.findOne({
-    tenantId: tOid, studentId, status: 'completed',
-    $or: [{ practiceDate: dayKey }, { createdAt: { $gte: start, $lte: end } }],
-  }).select('_id').lean();
-  return !!row;
-}
-
-/** How many expected days this student has not completed. Drives escalation. */
-async function missedCount(
-  lab: LabKind, tenantId: string, studentId: mongoose.Types.ObjectId, assignment: any,
-): Promise<number> {
-  const expected = expectedDaysSoFar(assignment);
-  let done = 0;
-  if (lab === 'thinking') {
-    done = await DailyChallenge.countDocuments({
-      tenantId, studentId, status: { $in: ['submitted', 'solved'] },
-    });
-  } else {
-    const tOid = mongoose.Types.ObjectId.isValid(tenantId) ? new mongoose.Types.ObjectId(tenantId) : null;
-    if (tOid) done = await CommunicationAttempt.countDocuments({ tenantId: tOid, studentId, status: 'completed' });
-  }
-  return Math.max(0, expected - done);
+/**
+ * How many expected days this student has not completed, today included (it drives escalation, so a
+ * student who has not done today's work yet is one day behind until they do). A day is complete only
+ * when every question it holds is finished.
+ */
+async function missedCount(lab: LabKind, studentId: mongoose.Types.ObjectId, assignment: any): Promise<number> {
+  const dates = learningDates(assignment);
+  if (!dates.length) return 0;
+  const [perDay, done] = await Promise.all([
+    questionsPerDay(assignment.trackId),
+    questionsDoneByDate(lab, [studentId], dates[0].date, dates[dates.length - 1].date),
+  ]);
+  const mine = done.get(String(studentId));
+  return dates.filter((d) => (mine?.get(d.date) || 0) < Math.max(1, perDay.get(d.dayIndex) || 1)).length;
 }
 
 /** Escalation table → the mode for this many missed days. */
@@ -136,10 +112,11 @@ export async function resolveLabGate(studentId: string, tenantId: string): Promi
 
     const tz = a.window?.tz || 'Asia/Kolkata';
     const dayKey = ymdIn(new Date(), tz);
-    const done = await completedToday(a.lab, tenantId, sOid, dayKey);
-    if (done) { bypass = bypass || 'completed'; continue; }
+    // Done only when every question of today is finished.
+    const day = await labDayStatus(a.lab, sOid, resolved, dayKey);
+    if (day.complete) { bypass = bypass || 'completed'; continue; }
 
-    const missed = await missedCount(a.lab, tenantId, sOid, a);
+    const missed = await missedCount(a.lab, sOid, a);
     const mode = modeForMissed(a.gate, missed);
 
     pending.push({ lab: a.lab, dayIndex: resolved.dayIndex, contentId: resolved.contentId, completedToday: false, missedDays: missed });

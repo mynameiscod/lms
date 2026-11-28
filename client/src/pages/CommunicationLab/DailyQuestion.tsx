@@ -200,6 +200,9 @@ const DailyQuestion: React.FC<{
 
   const ch = today?.challenge;
   const done = today?.status === 'completed';
+  // A day with several questions: they come one after another, one take each.
+  const day = today?.day;
+  const qLabel = day ? `QUESTION ${day.position} OF ${day.total}` : "TODAY'S QUESTION";
   const takes = today?.maxTakes || 1;
   const mins = ch?.targetSeconds ? Math.max(1, Math.round(ch.targetSeconds / 60 * 10) / 10) : null;
   const guide = (ch?.suggestedPoints || []).filter(Boolean);
@@ -224,20 +227,21 @@ const DailyQuestion: React.FC<{
       <b>{todayAttempt?.evaluation?.overallScore ?? '…'}</b><span>out of 100</span>
     </div>
     <div className="cld-done-copy">
-      <span className="clh-qlabel"><i className="bi bi-check-circle-fill" /> TODAY'S QUESTION IS DONE</span>
+      <span className="clh-qlabel"><i className="bi bi-check-circle-fill" /> {day ? `ALL ${day.total} OF TODAY'S QUESTIONS ARE DONE` : "TODAY'S QUESTION IS DONE"}</span>
       <h3>{ch.title}</h3>
       <p>{todayAttempt?.evaluation?.dailyCoachMessage || 'Your answer has been scored. Open the report to see what went well and what to work on.'}</p>
       <div className="cld-done-actions">
         <button className="clh-start" disabled={!todayAttempt} onClick={() => todayAttempt && open(todayAttempt)}><i className="bi bi-file-earmark-bar-graph" /> View my report <i className="bi bi-chevron-right" /></button>
       </div>
-      <p className="cld-next"><i className="bi bi-calendar-check" /> Your next question opens tomorrow.</p>
+      <p className="cld-next"><i className="bi bi-calendar-check" /> {day ? 'Your next questions open tomorrow.' : 'Your next question opens tomorrow.'}</p>
     </div>
   </div>;
   else body = <div className="clh-today-body">
     <div className="clh-question">
       <span className="clh-bubble"><i className="bi bi-chat-dots-fill" /></span>
-      <span className="clh-qlabel">TODAY'S QUESTION</span>
+      <span className="clh-qlabel">{qLabel}</span>
       <h3>{ch.title}</h3>
+      {day && day.done > 0 && <p className="cld-progress"><i className="bi bi-check2-circle" /> {day.done} of {day.total} done today. Answer this one to keep going.</p>}
       {ch.description && <p className="clh-hint">{ch.description}</p>}
       {failure && <div className="cld-fail" role="alert"><i className="bi bi-exclamation-triangle-fill" /><span>{failure}</span></div>}
       <button className="clh-start" onClick={() => { setFailure(null); setRecording(true); }}>
@@ -270,6 +274,16 @@ const DailyQuestion: React.FC<{
           </div>
           {today?.window?.endTime && !done && <span className="clh-badge">Open till {today.window.endTime}</span>}
         </div>
+        {day && !job && (
+          <ol className="cld-steps" aria-label="Today's questions">
+            {day.questions.map((q, i) => (
+              <li key={q._id} className={q.status} aria-current={q.status === 'current' ? 'step' : undefined}>
+                <span className="n">{q.status === 'done' ? <i className="bi bi-check-lg" /> : i + 1}</span>
+                <span className="t">{q.title}</span>
+              </li>
+            ))}
+          </ol>
+        )}
         {body}
       </section>
     </div>

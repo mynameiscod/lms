@@ -6,7 +6,7 @@ import {
   listTracks, createTrack, updateTrack, deleteTrack, getTrack,
   libraryFor, setTrackItems, autofillTrack,
   listAssignments, upsertAssignment, deleteAssignment, previewToday,
-  myGate, studentGate, setBypass, labProgress, xpLeaderboard,
+  myGate, studentGate, setBypass, labProgress, labStudentProgress, xpLeaderboard,
 } from '../controllers/labTrackController';
 
 const router = Router();
@@ -33,6 +33,7 @@ router.post('/', authMiddleware, tenantResolver, MANAGE, createTrack);
 // Everyone sees the board — it is a motivator, so it needs no admin permission.
 router.get('/leaderboard', authMiddleware, tenantResolver, xpLeaderboard);
 router.get('/progress', authMiddleware, tenantResolver, VIEW, labProgress);
+router.get('/progress/student', authMiddleware, tenantResolver, VIEW, labStudentProgress);
 
 router.get('/:id', authMiddleware, tenantResolver, VIEW, getTrack);
 router.put('/:id', authMiddleware, tenantResolver, MANAGE, updateTrack);

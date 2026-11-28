@@ -73,7 +73,7 @@
 .lt-modal-head button { background: none; border: none; font-size: 24px; color: #64748b; cursor: pointer;
   line-height: 1; min-height: 44px; min-width: 44px; }
 .lt-search { padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 9px; font-size: 13px; margin-bottom: 10px; }
-.lt-bank { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.lt-bank { overflow-y: auto; min-height: 120px; flex: 1 1 auto; display: flex; flex-direction: column; gap: 6px; }
 .lt-bank-row { flex-shrink: 0; background: #f8fafc; border: 1px solid #e8edf5; border-radius: 9px; padding: 10px 12px;
   text-align: left; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-height: 44px; }
 .lt-bank-row:hover { border-color: #005897; background: #f8fbff; }
@@ -163,3 +163,77 @@
 .lt-fill-done p { margin: 0 0 10px; font-size: 14px; color: #102A4F; }
 .lt-fill-break { color: #2F3F56 !important; font-size: 13px !important; }
 @media (max-width: 520px) { .lt-fill-mix { grid-template-columns: 1fr; } }
+
+/* A day with several questions (2026-11-28) */
+.lt-count { font-style: normal; font-size: 10px; font-weight: 800; margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: #051D64; color: #fff; }
+.lt-daylist { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; background: #f8fafc; }
+.lt-daylist-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #051D64; margin-bottom: 6px; }
+.lt-daylist-head span { font-size: 12px; color: #64748b; font-weight: 600; }
+.lt-daylist-empty { margin: 4px 0 2px; font-size: 13px; color: #64748b; }
+.lt-dayq { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid #e2e8f0; }
+.lt-dayq:first-of-type { border-top: 0; }
+.lt-dayq.missing .lt-dayq-t { color: #b45309; }
+.lt-dayq-n { flex: 0 0 22px; height: 22px; border-radius: 50%; background: #e6f4f6; color: #1f6f7d; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.lt-dayq-t { flex: 1; min-width: 0; font-size: 13.5px; color: #0f172a; overflow-wrap: anywhere; }
+.lt-dayq-act { display: flex; gap: 4px; flex: 0 0 auto; }
+.lt-dayq-act button { width: 28px; height: 28px; border: 1px solid #cbd5e1; background: #fff; border-radius: 7px; cursor: pointer; font-size: 14px; line-height: 1; color: #051D64; }
+.lt-dayq-act button:disabled { opacity: .35; cursor: default; }
+.lt-dayq-act button.rm { color: #b91c1c; }
+
+/* Progress tab: all batches, dates, filters, one student's days (2026-11-28) */
+.lt-prog-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.lt-prog-head h4 { margin: 0; }
+.lt-prog-head .lt-btn { display: inline-flex; align-items: center; gap: 6px; }
+.lt-quick { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.lt-quick button { border: 1px solid #d3dce6; background: #fff; border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 700; color: #2F3F56; cursor: pointer; }
+.lt-quick button.on { background: #051D64; border-color: #051D64; color: #fff; }
+.lt-prog-bar span { display: block; height: 100%; border-radius: 999px; }
+.lt-rate-cell { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.lt-prog-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.lt-prog-tools .lt-seg { flex-wrap: wrap; }
+.lt-prog-search, .lt-prog-sort { border: 1px solid #d3dce6; border-radius: 9px; padding: 8px 11px; font-size: 13px; background: #fff; color: #0f172a; }
+.lt-prog-search { flex: 1 1 200px; min-width: 0; }
+.lt-prog-sort { flex: 0 1 210px; }
+.lt-row-click { cursor: pointer; }
+.lt-row-click:hover td, .lt-row-click:focus td { background: #f5f8fd; }
+.lt-row-click:focus { outline: 2px solid #359AAD; outline-offset: -2px; }
+.lt-linkbtn { background: none; border: 0; padding: 0; color: #005897; font-weight: 700; cursor: pointer; font-size: 13px; text-align: left; }
+.lt-linkbtn:hover { text-decoration: underline; }
+.lt-muted { color: #94a3b8; }
+.lt-pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.lt-pill.done { background: #dcfce7; color: #166534; }
+.lt-pill.part { background: #e0f2fe; color: #075985; }
+.lt-pill.wait { background: #fef3c7; color: #92400e; }
+.lt-pill.miss { background: #fee2e2; color: #991b1b; }
+.lt-batch-table { min-width: 640px; }
+.lt-prog-table { min-width: 820px; }
+.lt-sdays { width: min(680px, 100%); }
+.lt-sdays .lt-modal-head { align-items: flex-start; }
+.lt-sdays-sum { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: #475569; margin: 4px 0 12px; }
+.lt-sdays-sum b { font-size: 16px; color: #0f172a; margin-right: 3px; }
+.lt-sdays-sum .done b { color: #166534; } .lt-sdays-sum .part b { color: #075985; } .lt-sdays-sum .miss b { color: #b91c1c; }
+.lt-seg.small button { padding: 5px 11px; font-size: 12.5px; }
+.lt-sdays-list { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.lt-sday { border: 1px solid #e2e8f0; border-left: 4px solid #cbd5e1; border-radius: 10px; padding: 10px 12px; }
+.lt-sday.done { border-left-color: #22c55e; } .lt-sday.partial { border-left-color: #0ea5e9; }
+.lt-sday.missed { border-left-color: #ef4444; } .lt-sday.today { border-left-color: #f59e0b; }
+.lt-sday-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13.5px; color: #0f172a; }
+.lt-sday-n { font-size: 12px; color: #64748b; }
+.lt-sday-score { margin-left: auto; font-size: 12.5px; font-weight: 800; color: #051D64; }
+.lt-sday ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.lt-sday li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.lt-sday li i { flex: 0 0 auto; }
+.lt-sday li.yes i { color: #16a34a; } .lt-sday li.no i { color: #94a3b8; }
+.lt-sday li .t { flex: 1; min-width: 0; color: #334155; overflow-wrap: anywhere; }
+.lt-sday li .s { flex: 0 0 auto; font-size: 12px; color: #64748b; font-weight: 600; }
+@media (max-width: 600px) {
+  .lt-prog-tools .lt-seg { width: 100%; flex-wrap: nowrap; overflow-x: auto; }
+  .lt-prog-tools .lt-seg button { flex: 0 0 auto; white-space: nowrap; }
+  .lt-prog-sort { flex: 1 1 100%; }
+}
+/* The student's days scroll inside the dialog; table cells stay on one line (the table scrolls sideways). */
+.lt-sdays-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 2px; }
+.lt-prog-table td, .lt-prog-table th, .lt-batch-table td, .lt-batch-table th { white-space: nowrap; }
+.lt-daylist { flex: 0 0 auto; }
+.lt-sdays > .lt-modal-head, .lt-sdays > .lt-sdays-sum, .lt-sdays > .lt-seg { flex-shrink: 0; }
+.lt-sdays > .lt-seg { align-self: flex-start; }

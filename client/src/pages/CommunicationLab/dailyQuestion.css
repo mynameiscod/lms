@@ -92,3 +92,15 @@
   .cld-change { padding: 14px; }
   .cld-change-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* A day with several questions (2026-11-28): the steps above today's question */
+.cld-steps { list-style: none; margin: 0 0 16px; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.cld-steps li { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 160px; padding: 8px 12px; border-radius: 10px; border: 1px solid #dbe3ef; background: #f8fafc; color: #33475b; font-size: 13.5px; }
+.cld-steps li .n { flex: 0 0 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12.5px; background: #e2e8f0; color: #33475b; }
+.cld-steps li .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cld-steps li.current { border-color: #051D64; background: #eef2fb; color: #051D64; font-weight: 700; }
+.cld-steps li.current .n { background: #051D64; color: #fff; }
+.cld-steps li.done { border-color: #b7e4d0; background: #effaf5; color: #13704E; }
+.cld-steps li.done .n { background: #13704E; color: #fff; }
+.cld-progress { margin: 6px 0 0; display: flex; align-items: center; gap: 6px; font-size: 14px; color: #13704E; font-weight: 600; }
+@media (max-width: 560px) { .cld-steps li { flex-basis: 100%; } }

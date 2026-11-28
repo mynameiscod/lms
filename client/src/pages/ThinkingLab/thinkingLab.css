@@ -57,6 +57,8 @@
 .tl-ov-sub.ok { color: #17855B; font-weight: 700; }
 .tl-ov-start { margin-top: auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; border: 0; border-radius: 12px; background: #051D64; color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 10px 22px rgba(5, 29, 100, .18); white-space: nowrap; }
 .tl-ov-start:hover { background: #0A2A7A; }
+.tl-ov-start.next { margin-top: 10px; background: #359AAD; box-shadow: none; }
+.tl-ov-start.next:hover { background: #2b8496; }
 .tl-ov-note { font-size: 13px; color: #2F3F56; text-align: center; }
 .tl-ov-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .tl-ov-step { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1px solid #E2EAF2; border-radius: 16px; padding: 16px; min-width: 0; }

@@ -230,7 +230,7 @@ const AssignPanel: React.FC = () => {
             <b>Preview — what this batch gets today</b>
             {preview.error ? <p className="lt-preview-bad">{preview.error}</p>
               : preview.contentId ? (
-                <p>Day <b>{preview.dayIndex}</b> · window <b>{preview.windowState}</b>
+                <p>Day <b>{preview.dayIndex}</b>{(preview.items?.length || 0) > 1 ? <> · <b>{preview.items.length}</b> questions</> : null} · window <b>{preview.windowState}</b>
                   {preview.item?.concept ? ` · ${preview.item.concept}` : ''}</p>
               ) : (
                 <p className="lt-preview-bad">

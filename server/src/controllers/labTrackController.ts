@@ -7,7 +7,7 @@ import CommunicationChallenge from '../models/CommunicationChallenge';
 import { AuthRequest } from '../types/express';
 import { resolveLabDay, dayIndexFor, expectedDaysSoFar } from '../services/labTrackService';
 import { resolveLabGate } from '../services/labGateService';
-import { expectedDaysSoFar as _expected, ymdIn } from '../services/labTrackService';
+import { ymdIn, learningDates, questionsPerDay, questionsDoneByDate } from '../services/labTrackService';
 import User from '../models/User';
 import DailyChallenge from '../models/DailyChallenge';
 import CommunicationAttempt from '../models/CommunicationAttempt';
@@ -19,6 +19,10 @@ import Batch from '../models/Batch';
 const tid = (req: AuthRequest) => String(req.user?.tenantId || '');
 const oid = (v: any) => (v && mongoose.Types.ObjectId.isValid(String(v)) ? new mongoose.Types.ObjectId(String(v)) : null);
 const fail = (res: Response, code: number, message: string) => res.status(code).json({ success: false, message });
+/** A day may hold several questions: a track's days are filled when each has at least one. */
+const filledDaysOf = async (trackId: any) => (await LabTrackItem.distinct('dayIndex', { trackId })).length;
+/** Most questions one day may hold. */
+const MAX_PER_DAY = 5;
 
 // ── Tracks ──────────────────────────────────────────────────────────────────
 
@@ -31,15 +35,18 @@ export const listTracks = async (req: AuthRequest, res: Response) => {
     // Item counts come from one grouped query, not one per track.
     const counts = await LabTrackItem.aggregate([
       { $match: { trackId: { $in: tracks.map((t: any) => t._id) } } },
-      { $group: { _id: '$trackId', n: { $sum: 1 } } },
+      { $group: { _id: { t: '$trackId', d: '$dayIndex' }, q: { $sum: 1 } } },
+      { $group: { _id: '$_id.t', n: { $sum: 1 }, questions: { $sum: '$q' } } },
     ]);
     const byTrack = new Map(counts.map((c: any) => [String(c._id), c.n]));
+    const questionsOf = new Map(counts.map((c: any) => [String(c._id), c.questions]));
 
     res.json({
       success: true,
       data: tracks.map((t: any) => ({
         ...t,
         filledDays: byTrack.get(String(t._id)) || 0,
+        questions: questionsOf.get(String(t._id)) || 0,
         // Publishing a plan with gaps would show students an empty day.
         isComplete: (byTrack.get(String(t._id)) || 0) >= t.totalDays,
       })),
@@ -76,7 +83,7 @@ export const updateTrack = async (req: AuthRequest, res: Response) => {
       if (req.body.status === 'published') {
         // A published track is served to students, so refuse to publish one with holes
         // rather than let a student open the app to an empty day.
-        const filled = await LabTrackItem.countDocuments({ trackId: track._id });
+        const filled = await filledDaysOf(track._id);
         if (filled < track.totalDays) {
           return fail(res, 400, `Cannot publish: ${filled} of ${track.totalDays} days filled. Fill every day first.`);
         }
@@ -108,7 +115,7 @@ export const getTrack = async (req: AuthRequest, res: Response) => {
     const track: any = await LabTrack.findOne({ _id: req.params.id, tenantId: tid(req) }).lean();
     if (!track) return fail(res, 404, 'Track not found');
 
-    const items = await LabTrackItem.find({ trackId: track._id }).sort({ dayIndex: 1 }).lean();
+    const items = await LabTrackItem.find({ trackId: track._id }).sort({ dayIndex: 1, position: 1, _id: 1 }).lean();
     const ids = items.map((i: any) => i.contentId);
     let bank: any[];
     if (track.lab === 'thinking') {
@@ -139,7 +146,8 @@ export const getTrack = async (req: AuthRequest, res: Response) => {
           // Content deleted from the library leaves a hole the admin must see.
           missing: !byId.has(String(i.contentId)),
         })),
-        filledDays: items.length,
+        filledDays: new Set(items.map((i: any) => i.dayIndex)).size,
+        maxPerDay: MAX_PER_DAY,
       },
     });
   } catch (e: any) { fail(res, 500, e.message); }
@@ -184,46 +192,62 @@ export const libraryFor = async (req: AuthRequest, res: Response) => {
 };
 
 /**
- * Set days in bulk — the builder saves a week, or a whole plan, in one call.
- * Body: { items: [{ dayIndex, contentId, concept?, optional? }] }
+ * Set days in bulk — the builder saves a day, a week, or a whole plan in one call.
+ *
+ * Body, either form:
+ *   { days:  [{ dayIndex, items: [{ contentId, contentKind?, concept?, optional? }] }] }  — REPLACES each day's
+ *            questions with that list, in that order (an empty list clears the day). Up to MAX_PER_DAY a day.
+ *   { items: [{ dayIndex, position?, contentId, ... }] }  — sets one slot (position 0 by default);
+ *            contentId null clears that slot. Kept so older callers keep working.
  */
 export const setTrackItems = async (req: AuthRequest, res: Response) => {
   try {
     const track: any = await LabTrack.findOne({ _id: req.params.id, tenantId: tid(req) }).lean();
     if (!track) return fail(res, 404, 'Track not found');
+    const kindOf = (it: any) => (track.lab === 'thinking' ? { contentKind: it?.contentKind === 'question' ? 'question' : 'problem' } : {});
+    const slot = (day: number, position: number, it: any) => ({
+      tenantId: tid(req), trackId: track._id, dayIndex: day, position,
+      contentId: oid(it.contentId), concept: it.concept || undefined, optional: !!it.optional, ...kindOf(it),
+    });
+    const badDay = (day: number) => !Number.isInteger(day) || day < 1 || day > track.totalDays;
 
-    const items = Array.isArray(req.body.items) ? req.body.items : [];
-    if (!items.length) return fail(res, 400, 'items must be a non-empty array');
-
-    const ops: any[] = [];
-    for (const it of items) {
-      const day = Number(it.dayIndex);
-      if (!Number.isInteger(day) || day < 1 || day > track.totalDays) {
-        return fail(res, 400, `dayIndex ${it.dayIndex} is outside 1..${track.totalDays}`);
+    if (Array.isArray(req.body.days)) {
+      if (!req.body.days.length) return fail(res, 400, 'days must be a non-empty array');
+      const ops: any[] = [];
+      for (const d of req.body.days) {
+        const day = Number(d?.dayIndex);
+        if (badDay(day)) return fail(res, 400, `dayIndex ${d?.dayIndex} is outside 1..${track.totalDays}`);
+        const list = Array.isArray(d.items) ? d.items : [];
+        if (list.length > MAX_PER_DAY) return fail(res, 400, `Day ${day}: at most ${MAX_PER_DAY} questions a day.`);
+        const seen = new Set<string>();
+        for (const it of list) {
+          if (!oid(it?.contentId)) return fail(res, 400, `Invalid contentId on day ${day}`);
+          if (seen.has(String(it.contentId))) return fail(res, 400, `Day ${day} has the same question twice.`);
+          seen.add(String(it.contentId));
+        }
+        ops.push({ deleteMany: { filter: { trackId: track._id, dayIndex: day } } });
+        list.forEach((it: any, position: number) => ops.push({ insertOne: { document: slot(day, position, it) } }));
       }
-      // A null contentId clears the day, which is how the builder removes an item.
-      if (it.contentId === null) {
-        ops.push({ deleteOne: { filter: { trackId: track._id, dayIndex: day } } });
-        continue;
+      await LabTrackItem.bulkWrite(ops, { ordered: true });
+    } else {
+      const items = Array.isArray(req.body.items) ? req.body.items : [];
+      if (!items.length) return fail(res, 400, 'items must be a non-empty array');
+      const ops: any[] = [];
+      for (const it of items) {
+        const day = Number(it.dayIndex);
+        if (badDay(day)) return fail(res, 400, `dayIndex ${it.dayIndex} is outside 1..${track.totalDays}`);
+        const position = Math.max(0, Math.min(MAX_PER_DAY - 1, Math.round(Number(it.position) || 0)));
+        // A null contentId clears the slot, which is how the builder removes an item.
+        if (it.contentId === null) {
+          ops.push({ deleteOne: { filter: { trackId: track._id, dayIndex: day, position } } });
+          continue;
+        }
+        if (!oid(it.contentId)) return fail(res, 400, `Invalid contentId on day ${day}`);
+        ops.push({ updateOne: { filter: { trackId: track._id, dayIndex: day, position }, update: { $set: slot(day, position, it) }, upsert: true } });
       }
-      if (!oid(it.contentId)) return fail(res, 400, `Invalid contentId on day ${day}`);
-      ops.push({
-        updateOne: {
-          filter: { trackId: track._id, dayIndex: day },
-          update: {
-            $set: {
-              tenantId: tid(req), trackId: track._id, dayIndex: day,
-              contentId: oid(it.contentId), concept: it.concept || undefined,
-              optional: !!it.optional,
-              ...(track.lab === 'thinking' ? { contentKind: it.contentKind === 'question' ? 'question' : 'problem' } : {}),
-            },
-          },
-          upsert: true,
-        },
-      });
+      await LabTrackItem.bulkWrite(ops, { ordered: false });
     }
-    await LabTrackItem.bulkWrite(ops, { ordered: false });
-    const filled = await LabTrackItem.countDocuments({ trackId: track._id });
+    const filled = await filledDaysOf(track._id);
     res.json({ success: true, data: { filledDays: filled, totalDays: track.totalDays } });
   } catch (e: any) { fail(res, 500, e.message); }
 };
@@ -231,7 +255,7 @@ export const setTrackItems = async (req: AuthRequest, res: Response) => {
 
 /*
  * POST /lab-tracks/:id/autofill — "Fill the track for me".
- * Body: { year, mix: { math, logical, critical, coding }, ramp?: true, onlyEmpty?: true }
+ * Body: { year, mix: { math, logical, critical, coding }, ramp?: true, onlyEmpty?: true, perDay?: 1..5 }
  *
  * Fills the track's days from the shared Thinking Lab bank: questions for that year only, the types in the asked
  * mix (a weighted rotation, so the mix holds across every week), easy → medium → hard across the track when ramp is
@@ -247,6 +271,8 @@ export const autofillTrack = async (req: AuthRequest, res: Response) => {
     const year = String(req.body?.year || '');
     if (!YEARS.includes(year)) return fail(res, 400, 'Choose the year this track is for.');
     const onlyEmpty = req.body?.onlyEmpty !== false;
+    // Questions each filled day gets (a day may hold several).
+    const perDay = Math.max(1, Math.min(MAX_PER_DAY, Math.round(Number(req.body?.perDay) || 1)));
     const ramp = req.body?.ramp !== false;
     const rawMix = req.body?.mix || {};
     const types = ['math', 'logical', 'critical', 'coding'] as const;
@@ -284,25 +310,31 @@ export const autofillTrack = async (req: AuthRequest, res: Response) => {
     };
     const ops: any[] = [];
     const byType: Record<string, number> = {}; const byLevel: Record<string, number> = {};
-    let short = 0;
+    let short = 0; let filledNow = 0;
     days.forEach((day, i) => {
       const pos = days.length > 1 ? i / (days.length - 1) : 0;
-      const ranked = types.filter(t => mix[t] > 0).sort((a, b) => (given[a] / mix[a]) - (given[b] / mix[b]) || mix[b] - mix[a]);
-      let q: any = null;
-      for (const t of ranked) { q = take(t, target(pos)); if (q) { given[t]++; break; } }
-      if (!q) { short++; return; }
-      byType[q.type] = (byType[q.type] || 0) + 1; byLevel[q.difficulty] = (byLevel[q.difficulty] || 0) + 1;
-      ops.push({ updateOne: {
-        filter: { trackId: track._id, dayIndex: day },
-        update: { $set: { tenantId: tid(req), trackId: track._id, dayIndex: day, contentId: q._id, contentKind: 'question', optional: false } },
-        upsert: true,
-      } });
+      const picked: any[] = [];
+      for (let k = 0; k < perDay; k++) {
+        const ranked = types.filter(t => mix[t] > 0).sort((a, b) => (given[a] / mix[a]) - (given[b] / mix[b]) || mix[b] - mix[a]);
+        let q: any = null;
+        for (const t of ranked) { q = take(t, target(pos)); if (q) { given[t]++; break; } }
+        if (!q) break;
+        picked.push(q);
+        byType[q.type] = (byType[q.type] || 0) + 1; byLevel[q.difficulty] = (byLevel[q.difficulty] || 0) + 1;
+      }
+      if (!picked.length) { short++; return; }
+      filledNow++;
+      // The day is replaced as a whole, so a refill never leaves an old question in a later slot.
+      ops.push({ deleteMany: { filter: { trackId: track._id, dayIndex: day } } });
+      picked.forEach((q, position) => ops.push({ insertOne: { document: {
+        tenantId: tid(req), trackId: track._id, dayIndex: day, position, contentId: q._id, contentKind: 'question', optional: false,
+      } } }));
     });
-    if (ops.length) await LabTrackItem.bulkWrite(ops, { ordered: false });
-    const filled = await LabTrackItem.countDocuments({ trackId: track._id });
+    if (ops.length) await LabTrackItem.bulkWrite(ops, { ordered: true });
+    const filled = await filledDaysOf(track._id);
     void total;
     res.json({ success: true, data: {
-      filled: ops.length, filledDays: filled, totalDays: track.totalDays, byType, byLevel,
+      filled: filledNow, filledDays: filled, totalDays: track.totalDays, byType, byLevel,
       short, message: short ? `${short} day(s) could not be filled — the bank has no more unused questions of the chosen types for this year.` : undefined,
     } });
   } catch (e: any) { fail(res, 500, e.message); }
@@ -424,95 +456,235 @@ export const setBypass = async (req: AuthRequest, res: Response) => {
 
 // ── Progress ────────────────────────────────────────────────────────────────
 
+const YMD = /^\d{4}-\d{2}-\d{2}$/;
+const ymdPlus = (ymd: string, days: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+const fullName = (s: any) => `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.email;
+
+/** The date range asked for, clamped to sane values: default the last 30 days, never past today, at most ~2 years. */
+function rangeOf(q: any, todayKey: string): { from: string; to: string } {
+  let to = YMD.test(String(q.to || '')) ? String(q.to) : todayKey;
+  if (to > todayKey) to = todayKey;
+  let from = YMD.test(String(q.from || '')) ? String(q.from) : ymdPlus(to, -29);
+  if (from > to) from = to;
+  if (from < ymdPlus(to, -730)) from = ymdPlus(to, -730);
+  return { from, to };
+}
+
+/** Last time each student did any daily lab work (all time, not only the range). */
+async function lastActivityOf(lab: 'thinking' | 'communication', ids: any[]): Promise<Map<string, Date>> {
+  const rows: any[] = lab === 'thinking'
+    ? await DailyChallenge.aggregate([
+      { $match: { studentId: { $in: ids }, status: { $in: ['submitted', 'solved'] } } },
+      { $group: { _id: '$studentId', at: { $max: '$updatedAt' } } },
+    ])
+    : await CommunicationAttempt.aggregate([
+      { $match: { studentId: { $in: ids }, status: 'completed', kind: { $ne: 'coach' } } },
+      { $group: { _id: '$studentId', at: { $max: '$createdAt' } } },
+    ]);
+  return new Map(rows.map((r) => [String(r._id), r.at]));
+}
+
 /**
- * Per-student progress for one batch and lab: what has been done, what is owed, and
- * whether today is finished.
+ * Per-student progress for one batch (or every batch with a plan for this lab) over a date range.
  *
- * Staff had no way to answer "is this batch actually doing the daily lab?" — the only
- * signal was a streak buried on an individual profile. `expected` comes from the batch's
- * own calendar (working days, holidays, cadence), so a batch that has had two holidays
- * is not judged against a batch that has not.
+ * GET /lab-tracks/progress?lab=thinking|communication&batchId=<id>|all&from=YYYY-MM-DD&to=YYYY-MM-DD[&format=xlsx]
+ *
+ * A day counts as DONE only when every question it holds was answered that day; a day with some of its
+ * questions answered is PARTLY done. `expected` comes from each batch's own calendar (working days,
+ * holidays, cadence) inside the range, so a batch with two holidays is not judged against one without.
+ * Students come back worst first — the list exists to find the people who have stopped.
  */
 export const labProgress = async (req: AuthRequest, res: Response) => {
   try {
-    const { batchId, lab } = req.query as any;
-    if (!oid(batchId)) return fail(res, 400, 'batchId is required');
+    const { lab } = req.query as any;
+    const batchParam = String(req.query.batchId || '');
     if (!['thinking', 'communication'].includes(lab)) return fail(res, 400, 'lab must be thinking or communication');
+    const all = batchParam === 'all';
+    if (!all && !oid(batchParam)) return fail(res, 400, 'batchId is required');
 
     const tenantId = tid(req);
-    const a: any = await LabTrackAssignment.findOne({
-      tenantId, batchId: oid(batchId), lab, status: 'active',
+    const assignments: any[] = await LabTrackAssignment.find({
+      tenantId, lab, status: 'active', ...(all ? {} : { batchId: oid(batchParam) }),
     }).populate('trackId', 'name totalDays').lean();
-    if (!a) return res.json({ success: true, data: { assigned: false, students: [] } });
+    if (!assignments.length) return res.json({ success: true, data: { assigned: false, students: [], batches: [] } });
 
-    const expected = _expected(a);
-    const today = ymdIn(new Date(), a.window?.tz || 'Asia/Kolkata');
+    const todayKey = ymdIn(new Date(), 'Asia/Kolkata');
+    const { from, to } = rangeOf(req.query, todayKey);
+    const batchNames = new Map((await Batch.find({ _id: { $in: assignments.map((a) => a.batchId) } }).select('name').lean())
+      .map((b: any) => [String(b._id), b.name]));
 
-    // Students match on batch; tenantId is stored inconsistently across collections, so
-    // the batch is the reliable key here.
-    const students: any[] = await User.find({ batchId: oid(batchId), role: 'STUDENT', isActive: true })
-      .select('firstName lastName email').lean();
-    const ids = students.map((s: any) => s._id);
-    if (!ids.length) return res.json({ success: true, data: { assigned: true, expected, students: [] } });
+    // Students match on batch; tenantId is stored inconsistently across collections, so the batch is the key.
+    const students: any[] = await User.find({ batchId: { $in: assignments.map((a) => a.batchId) }, role: 'STUDENT', isActive: true })
+      .select('firstName lastName email batchId').lean();
+    const ids = students.map((s) => s._id);
+    const [done, last] = await Promise.all([questionsDoneByDate(lab, ids, from, to), lastActivityOf(lab, ids)]);
 
-    const done = new Map<string, { total: number; today: boolean; last?: Date }>();
+    const rows: any[] = [];
+    const batches: any[] = [];
+    for (const a of assignments) {
+      const tz = a.window?.tz || 'Asia/Kolkata';
+      const dates = learningDates(a, new Date(`${to}T12:00:00Z`)).filter((d) => d.date >= from && d.date <= to);
+      const perDay = await questionsPerDay(a.trackId?._id || a.trackId);
+      const need = (dayIndex: number) => Math.max(1, perDay.get(dayIndex) || 1);
+      const today = dates.find((d) => d.date === ymdIn(new Date(), tz));
+      const mine = students.filter((s) => String(s.batchId) === String(a.batchId));
+      const bRows = mine.map((s) => {
+        const byDate = done.get(String(s._id));
+        let completed = 0; let partial = 0;
+        for (const d of dates) {
+          const n = byDate?.get(d.date) || 0;
+          if (n >= need(d.dayIndex)) completed++; else if (n > 0) partial++;
+        }
+        const expected = dates.length;
+        const lastAt = last.get(String(s._id)) || null;
+        const doneToday = !!today && (byDate?.get(today.date) || 0) >= need(today.dayIndex);
+        const missed = Math.max(0, expected - completed);
+        return {
+          _id: String(s._id), name: fullName(s), email: s.email,
+          batchId: String(a.batchId), batchName: batchNames.get(String(a.batchId)) || '',
+          completed, partial, expected, missed,
+          rate: expected ? Math.round((completed / expected) * 100) : 0,
+          doneToday,
+          today: today ? { done: Math.min(byDate?.get(today.date) || 0, need(today.dayIndex)), total: need(today.dayIndex) } : null,
+          lastActivity: lastAt,
+          status: !lastAt ? 'never' : doneToday ? 'done_today' : missed === 0 ? 'on_track' : 'behind',
+        };
+      });
+      rows.push(...bRows);
+      batches.push({
+        batchId: String(a.batchId), batchName: batchNames.get(String(a.batchId)) || '',
+        track: a.trackId, startDate: a.startDate, gate: a.gate?.mode, currentDay: dayIndexFor(a),
+        expected: dates.length, students: bRows.length,
+        questionsToday: today ? need(today.dayIndex) : 0,
+        avgRate: bRows.length ? Math.round(bRows.reduce((n, r) => n + r.rate, 0) / bRows.length) : 0,
+      });
+    }
+    rows.sort((x, y) => x.rate - y.rate || y.missed - x.missed || x.name.localeCompare(y.name));
+    batches.sort((x, y) => x.batchName.localeCompare(y.batchName));
 
-    if (lab === 'thinking') {
-      const rows = await DailyChallenge.find({
-        studentId: { $in: ids }, status: { $in: ['submitted', 'solved'] },
-      }).select('studentId date updatedAt').lean();
-      for (const r of rows as any[]) {
-        const k = String(r.studentId);
-        const cur = done.get(k) || { total: 0, today: false };
-        cur.total++;
-        if (r.date === today) cur.today = true;
-        if (!cur.last || r.updatedAt > cur.last) cur.last = r.updatedAt;
-        done.set(k, cur);
-      }
-    } else {
-      const rows = await CommunicationAttempt.find({
-        studentId: { $in: ids }, status: 'completed',
-      }).select('studentId practiceDate createdAt').lean();
-      for (const r of rows as any[]) {
-        const k = String(r.studentId);
-        const cur = done.get(k) || { total: 0, today: false };
-        cur.total++;
-        const d = r.practiceDate || ymdIn(new Date(r.createdAt));
-        if (d === today) cur.today = true;
-        if (!cur.last || r.createdAt > cur.last) cur.last = r.createdAt;
-        done.set(k, cur);
-      }
+    const summary = {
+      students: rows.length,
+      doneToday: rows.filter((r) => r.doneToday).length,
+      onTrack: rows.filter((r) => r.missed === 0).length,
+      behind: rows.filter((r) => r.missed > 0).length,
+      never: rows.filter((r) => r.status === 'never').length,
+      avgRate: rows.length ? Math.round(rows.reduce((s, r) => s + r.rate, 0) / rows.length) : 0,
+    };
+
+    if (req.query.format === 'xlsx') {
+      const XLSX = await import('xlsx');
+      const labName = lab === 'thinking' ? 'Thinking Lab' : 'Communication Lab';
+      const sheet = XLSX.utils.aoa_to_sheet([
+        [`${labName} progress`, `${from} to ${to}`, all ? 'All batches' : (batches[0]?.batchName || '')],
+        [],
+        ['Student', 'Email', 'Batch', 'Days done', 'Partly done', 'Expected', 'Missed', 'Completion %', 'Today', 'Last activity'],
+        ...rows.map((r) => [r.name, r.email, r.batchName, r.completed, r.partial, r.expected, r.missed, r.rate,
+          r.today ? `${r.today.done}/${r.today.total}` : '—',
+          r.lastActivity ? new Date(r.lastActivity).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' }) : 'Never']),
+      ]);
+      sheet['!cols'] = [28, 30, 22, 10, 11, 10, 9, 13, 8, 15].map((wch) => ({ wch }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, sheet, 'Progress');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${lab}-lab-progress-${from}-to-${to}.xlsx"`);
+      return res.send(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
     }
 
-    const rows = students.map((s: any) => {
-      const d = done.get(String(s._id)) || { total: 0, today: false };
-      const completed = Math.min(d.total, expected);
-      return {
-        _id: String(s._id),
-        name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.email,
-        email: s.email,
-        completed, expected,
-        missed: Math.max(0, expected - completed),
-        rate: expected ? Math.round((completed / expected) * 100) : 0,
-        doneToday: d.today,
-        lastActivity: d.last || null,
-      };
-    }).sort((x, y) => x.rate - y.rate);   // worst first — that is who needs attention
+    const one = !all ? batches[0] : null;
+    res.json({
+      success: true,
+      data: {
+        assigned: true, from, to, batches, summary, students: rows,
+        // One batch: the same header fields the panel showed before.
+        ...(one ? { track: one.track, startDate: one.startDate, gate: one.gate, currentDay: one.currentDay, expected: one.expected } : {}),
+      },
+    });
+  } catch (e: any) { fail(res, 500, e.message); }
+};
+
+/**
+ * One student's daily lab, day by day, over a date range: each day's questions, which were answered,
+ * and the score. GET /lab-tracks/progress/student?lab=&studentId=&from=&to=
+ */
+export const labStudentProgress = async (req: AuthRequest, res: Response) => {
+  try {
+    const { lab } = req.query as any;
+    if (!['thinking', 'communication'].includes(lab)) return fail(res, 400, 'lab must be thinking or communication');
+    const sid = oid(req.query.studentId);
+    if (!sid) return fail(res, 400, 'studentId is required');
+    const tenantId = tid(req);
+    const s: any = await User.findOne({ _id: sid, role: 'STUDENT' }).select('firstName lastName email batchId tenantId').lean();
+    if (!s || String(s.tenantId) !== tenantId) return fail(res, 404, 'Student not found');
+    const a: any = s.batchId ? await LabTrackAssignment.findOne({ tenantId, batchId: s.batchId, lab, status: 'active' }).populate('trackId', 'name').lean() : null;
+    if (!a) return res.json({ success: true, data: { assigned: false, student: { _id: String(s._id), name: fullName(s), email: s.email }, days: [] } });
+
+    const tz = a.window?.tz || 'Asia/Kolkata';
+    const todayKey = ymdIn(new Date(), tz);
+    const { from, to } = rangeOf(req.query, todayKey);
+    const dates = learningDates(a, new Date(`${to}T12:00:00Z`)).filter((d) => d.date >= from && d.date <= to);
+    const items: any[] = await LabTrackItem.find({ trackId: a.trackId._id, dayIndex: { $in: dates.map((d) => d.dayIndex) } })
+      .sort({ dayIndex: 1, position: 1 }).lean();
+
+    // What the student answered in the range, by date and question.
+    type Rec = { contentId: string; score: number | null; solved?: boolean; at: Date };
+    const recs = new Map<string, Rec[]>();
+    const push = (date: string, r: Rec) => recs.set(date, [...(recs.get(date) || []), r]);
+    if (lab === 'thinking') {
+      const rows: any[] = await DailyChallenge.find({ studentId: sid, date: { $gte: from, $lte: to }, status: { $in: ['submitted', 'solved'] } })
+        .select('date problemId score status passed updatedAt').lean();
+      for (const r of rows) push(r.date, { contentId: String(r.problemId), score: typeof r.score === 'number' ? r.score : null, solved: r.status === 'solved' || !!r.passed, at: r.updatedAt });
+    } else {
+      const rows: any[] = await CommunicationAttempt.find({ studentId: sid, practiceDate: { $gte: from, $lte: to }, status: 'completed', kind: { $ne: 'coach' } })
+        .select('practiceDate challengeId evaluation.overallScore overriddenScore createdAt').lean();
+      for (const r of rows) push(r.practiceDate, { contentId: String(r.challengeId), score: typeof r.overriddenScore === 'number' ? r.overriddenScore : (r.evaluation?.overallScore ?? null), at: r.createdAt });
+    }
+
+    // Titles for every question involved (the day's, and any answered that is no longer on the day).
+    const allIds = [...new Set([...items.map((i) => String(i.contentId)), ...[...recs.values()].flat().map((r) => r.contentId)])];
+    const titles = new Map<string, string>();
+    if (lab === 'thinking') {
+      const [qs, ps] = await Promise.all([
+        ThinkingQuestion.find({ _id: { $in: allIds } }).select('title').lean(),
+        ThinkingProblem.find({ _id: { $in: allIds } }).select('title').lean(),
+      ]);
+      [...qs, ...ps].forEach((x: any) => titles.set(String(x._id), x.title));
+    } else {
+      (await CommunicationChallenge.find({ _id: { $in: allIds } }).select('title').lean()).forEach((x: any) => titles.set(String(x._id), x.title));
+    }
+
+    const days = dates.slice().reverse().map((d) => {
+      const planned = items.filter((i) => i.dayIndex === d.dayIndex);
+      const answered = recs.get(d.date) || [];
+      const byId = new Map(answered.map((r) => [r.contentId, r]));
+      const questions = planned.map((i) => {
+        const r = byId.get(String(i.contentId));
+        return { title: titles.get(String(i.contentId)) || 'Question (deleted)', done: !!r, score: r?.score ?? null, solved: r?.solved };
+      });
+      // Answered, but not (or no longer) on this day of the plan — a day set by hand, or an edited track.
+      for (const r of answered) if (!planned.some((i) => String(i.contentId) === r.contentId)) {
+        questions.push({ title: titles.get(r.contentId) || 'Question', done: true, score: r.score, solved: r.solved });
+      }
+      const total = Math.max(1, planned.length);
+      const doneN = new Set(answered.map((r) => r.contentId)).size;
+      const status = doneN >= total ? 'done' : d.date === todayKey ? 'today' : doneN > 0 ? 'partial' : 'missed';
+      const scores = questions.map((q) => q.score).filter((x): x is number => typeof x === 'number');
+      return { date: d.date, dayIndex: d.dayIndex, total, done: Math.min(doneN, total), status, questions,
+        avgScore: scores.length ? Math.round(scores.reduce((n, x) => n + x, 0) / scores.length) : null };
+    });
 
     res.json({
       success: true,
       data: {
-        assigned: true,
-        track: a.trackId, startDate: a.startDate, gate: a.gate?.mode,
-        currentDay: dayIndexFor(a), expected,
+        assigned: true, from, to,
+        student: { _id: String(s._id), name: fullName(s), email: s.email },
+        track: a.trackId,
         summary: {
-          students: rows.length,
-          doneToday: rows.filter(r => r.doneToday).length,
-          onTrack: rows.filter(r => r.missed === 0).length,
-          behind: rows.filter(r => r.missed > 0).length,
-          avgRate: rows.length ? Math.round(rows.reduce((s, r) => s + r.rate, 0) / rows.length) : 0,
+          expected: days.length,
+          done: days.filter((d) => d.status === 'done').length,
+          partial: days.filter((d) => d.status === 'partial').length,
+          missed: days.filter((d) => d.status === 'missed').length,
         },
-        students: rows,
+        days,
       },
     });
   } catch (e: any) { fail(res, 500, e.message); }

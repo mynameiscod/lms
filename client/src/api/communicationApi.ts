@@ -23,6 +23,8 @@ export interface CommToday {
   pendingJob?: CommJob | null;
   /** Why the last send today did not count, when it failed. */
   lastFailure?: string | null;
+  /** A day of the lab track with several questions: which one is up, and where each stands. */
+  day?: { position: number; total: number; done: number; questions: { _id: string; title: string; status: 'done' | 'current' | 'next' }[] };
 }
 export interface CommJob {
   _id: string; stage: 'transcribing' | 'analysing' | 'saving'; status: 'running' | 'done' | 'failed';

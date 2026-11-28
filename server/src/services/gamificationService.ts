@@ -30,6 +30,8 @@ const ymdMinus1 = (d: string) => {
 // Mutate a StudentGameStats mongoose doc for one solve. Returns newly-earned badges + coins.
 export function applySolve(gs: any, opts: {
   xpEarned: number; category: string; difficulty: string; hintsUsed: number; perfect: boolean; dateStr: string;
+  /** false on a several-question lab day: the streak moves when the whole day is done (advanceDayStreak). */
+  countDay?: boolean;
 }): { newBadges: { key: string; name: string; icon: string }[]; coinsEarned: number } {
   const coinsEarned = coinsForSolve(opts.xpEarned);
   gs.xpTotal = (gs.xpTotal || 0) + (opts.xpEarned || 0);
@@ -45,14 +47,18 @@ export function applySolve(gs: any, opts: {
   gs.byCategory = bc;
   if (typeof gs.markModified === 'function') gs.markModified('byCategory');
 
-  // Streak (one advance per calendar day)
-  if (gs.lastSolvedDate !== opts.dateStr) {
-    gs.currentStreak = gs.lastSolvedDate === ymdMinus1(opts.dateStr) ? (gs.currentStreak || 0) + 1 : 1;
-    gs.lastSolvedDate = opts.dateStr;
-    gs.longestStreak = Math.max(gs.longestStreak || 0, gs.currentStreak);
-  }
+  if (opts.countDay !== false) advanceDayStreak(gs, opts.dateStr);
 
   return { newBadges: awardBadges(gs), coinsEarned };
+}
+
+/** Streak: one advance per calendar day. Returns true when it moved. */
+export function advanceDayStreak(gs: any, dateStr: string): boolean {
+  if (gs.lastSolvedDate === dateStr) return false;
+  gs.currentStreak = gs.lastSolvedDate === ymdMinus1(dateStr) ? (gs.currentStreak || 0) + 1 : 1;
+  gs.lastSolvedDate = dateStr;
+  gs.longestStreak = Math.max(gs.longestStreak || 0, gs.currentStreak);
+  return true;
 }
 
 // Award any badges the student now qualifies for. Mutates gs.badges; returns new ones.

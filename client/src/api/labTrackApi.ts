@@ -26,10 +26,14 @@ export interface Track {
   _id: string; name: string; lab: Lab; description?: string;
   totalDays: number; daysPerWeek: number; status: 'draft' | 'published';
   filledDays?: number; isComplete?: boolean;
+  /** Questions across all days (a day may hold several). */
+  questions?: number;
 }
 
 export interface TrackItem {
   _id?: string; dayIndex: number; week?: number;
+  /** Order inside the day (0, 1, 2…). */
+  position?: number;
   contentId: string; concept?: string; optional?: boolean;
   /** Thinking tracks: 'question' = the shared Thinking Lab bank, 'problem' = an LMS problem. */
   contentKind?: 'question' | 'problem';
@@ -49,7 +53,7 @@ export const updateTrack = (id: string, b: Partial<Track>): Promise<Track> =>
 export const deleteTrack = (id: string): Promise<void> =>
   call(`/${id}`, { method: 'DELETE' });
 
-export const getTrack = (id: string): Promise<{ track: Track; items: TrackItem[]; filledDays: number }> =>
+export const getTrack = (id: string): Promise<{ track: Track; items: TrackItem[]; filledDays: number; maxPerDay?: number }> =>
   call(`/${id}`);
 
 export interface LibraryFilters { source?: 'bank' | 'lms'; type?: string; difficulty?: string; year?: string }
@@ -60,12 +64,16 @@ export const library = (lab: Lab, q = '', f: LibraryFilters = {}): Promise<any[]
   return call(`/library?${p.toString()}`);
 };
 /** "Fill the track for me": fills the days from the shared Thinking Lab bank. */
-export const autofill = (id: string, body: { year: string; mix: Record<string, number>; ramp: boolean; onlyEmpty: boolean }):
+export const autofill = (id: string, body: { year: string; mix: Record<string, number>; ramp: boolean; onlyEmpty: boolean; perDay?: number }):
   Promise<{ filled: number; filledDays: number; totalDays: number; byType?: Record<string, number>; byLevel?: Record<string, number>; short?: number; message?: string }> =>
   call(`/${id}/autofill`, { method: 'POST', body: JSON.stringify(body) });
 
 export const setItems = (id: string, items: { dayIndex: number; contentId: string | null; contentKind?: 'question' | 'problem' }[]) =>
   call(`/${id}/items`, { method: 'PUT', body: JSON.stringify({ items }) });
+
+/** Replace one day's questions with this list, in this order (an empty list clears the day). */
+export const setDay = (id: string, dayIndex: number, items: { contentId: string; contentKind?: 'question' | 'problem' }[]) =>
+  call(`/${id}/items`, { method: 'PUT', body: JSON.stringify({ days: [{ dayIndex, items }] }) });
 
 export const listAssignments = (batchId?: string): Promise<any[]> =>
   call(`/assignments/list${batchId ? `?batchId=${batchId}` : ''}`);

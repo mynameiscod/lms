@@ -20,14 +20,34 @@ export const LAB_KINDS: LabKind[] = ['thinking', 'communication'];
 
 const oid = (v: any) => (v instanceof mongoose.Types.ObjectId ? v : new mongoose.Types.ObjectId(String(v)));
 
+/**
+ * Placement batches (newest first) that really supply `lab`: set to take it over AND holding an
+ * active lab assignment with a published track. A placement batch ticked to take over Communication
+ * but with no Communication track used to win anyway, so its members got no question at all while
+ * their home batch's track sat unused (2026-11-28). Without a live track it no longer takes over.
+ */
+async function supplyingPlacementBatches(tenantId: string, ids: mongoose.Types.ObjectId[], lab: LabKind): Promise<string[]> {
+  if (!ids.length) return [];
+  const batches: any[] = await Batch.find({
+    _id: { $in: ids }, tenantId: oid(tenantId), isActive: true, kind: 'placement', takesOverLabs: lab,
+  }).sort({ createdAt: -1 }).select('_id').lean();
+  if (!batches.length) return [];
+  const { LabTrack, LabTrackAssignment } = await import('../models/LabTrack');
+  const live: any[] = await LabTrackAssignment.find({
+    tenantId: String(tenantId), batchId: { $in: batches.map((b) => b._id) }, lab, status: 'active',
+  }).select('batchId trackId').lean();
+  if (!live.length) return [];
+  const published = new Set((await LabTrack.find({ _id: { $in: live.map((a) => a.trackId) }, status: 'published' }).select('_id').lean())
+    .map((t: any) => String(t._id)));
+  const ok = new Set(live.filter((a) => published.has(String(a.trackId))).map((a) => String(a.batchId)));
+  return batches.map((b) => String(b._id)).filter((id) => ok.has(id));
+}
+
 /** The placement batch that takes over `lab` for a student, among the given memberships. */
 async function takeoverBatch(tenantId: string, placementIds: any[], lab: LabKind): Promise<any | null> {
   const ids = (placementIds || []).filter((x) => mongoose.isValidObjectId(String(x))).map(oid);
-  if (!ids.length) return null;
-  const b: any = await Batch.findOne({
-    _id: { $in: ids }, tenantId: oid(tenantId), isActive: true, kind: 'placement', takesOverLabs: lab,
-  }).sort({ createdAt: -1 }).select('_id').lean();
-  return b?._id || null;
+  const [first] = await supplyingPlacementBatches(tenantId, ids, lab);
+  return first ? oid(first) : null;
 }
 
 /**
@@ -55,10 +75,7 @@ export async function labBatchOverrides(tenantId: string, studentIds: any[], lab
     .select('placementBatchIds').lean();
   if (!users.length) return out;
   const allIds = [...new Set(users.flatMap((u) => (u.placementBatchIds || []).map(String)))];
-  const batches: any[] = await Batch.find({
-    _id: { $in: allIds.map(oid) }, tenantId: oid(tenantId), isActive: true, kind: 'placement', takesOverLabs: lab,
-  }).sort({ createdAt: -1 }).select('_id').lean();
-  const order = batches.map((b) => String(b._id)); // newest first, as labBatchFor picks
+  const order = await supplyingPlacementBatches(tenantId, allIds.map(oid), lab); // newest first, as labBatchFor picks
   for (const u of users) {
     const mine = new Set((u.placementBatchIds || []).map(String));
     const hit = order.find((id) => mine.has(id));

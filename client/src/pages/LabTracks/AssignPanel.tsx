@@ -90,7 +90,16 @@ const AssignPanel: React.FC = () => {
   const toggleDay = (key: 'workingDays' | 'cadenceDays', d: number) =>
     set(key, f[key].includes(d) ? f[key].filter((x: number) => x !== d) : [...f[key], d].sort());
 
+  /** The batch already has a track for this lab: saving REPLACES it (one track per batch per lab). */
+  const existingRow = !editingId && f.batchId
+    ? rows.find((r: any) => String(r.batchId?._id || r.batchId) === String(f.batchId) && r.lab === f.lab && (r.status || 'active') === 'active')
+    : null;
+  const existingName = existingRow ? (existingRow.trackId?.name || 'a track') : '';
+  const batchName = batches.find((b: any) => String(b._id) === String(f.batchId))?.name || 'This batch';
+
   const save = async () => {
+    if (existingRow && String(existingRow.trackId?._id || existingRow.trackId) !== String(f.trackId)
+      && !window.confirm(`${batchName} already has the ${f.lab} track "${existingName}". Saving replaces it with the new track: students start again from day 1 on the new start date (what they already answered stays in their history). Replace it?`)) return;
     setBusy(true); setErr(''); setMsg('');
     try {
       await api.upsertAssignment({
@@ -222,6 +231,16 @@ const AssignPanel: React.FC = () => {
           </select>
           <small>{GATE_MODES.find(g => g.key === f.gateMode)?.help}</small>
         </div>
+
+        {existingRow && (
+          <div className="lt-replace-warn" role="alert">
+            <b>{batchName} already has a {f.lab} track: "{existingName}"</b>, started {new Date(existingRow.startDate).toLocaleDateString()}.
+            {String(existingRow.trackId?._id || existingRow.trackId) === String(f.trackId)
+              ? <>{' '}Saving updates its settings (start date, days, window, gating).</>
+              : <>{' '}A batch has one {f.lab} track at a time, so saving <b>replaces</b> it.
+                {' '}To give more questions a day, add them to the days of one track instead.</>}
+          </div>
+        )}
 
         <div className="lt-form-actions">
           <button className="lt-btn" onClick={doPreview} disabled={!f.batchId}>Preview today</button>

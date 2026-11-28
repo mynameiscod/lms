@@ -237,3 +237,6 @@
 .lt-daylist { flex: 0 0 auto; }
 .lt-sdays > .lt-modal-head, .lt-sdays > .lt-sdays-sum, .lt-sdays > .lt-seg { flex-shrink: 0; }
 .lt-sdays > .lt-seg { align-self: flex-start; }
+
+.lt-replace-warn { margin: 12px 0 0; padding: 10px 14px; border-radius: 9px; background: #FFF7E8; border: 1px solid #F2D4AE; color: #8A5A00; font-size: 13px; line-height: 1.55; }
+.lt-replace-warn b { color: #6B4500; }

@@ -28,6 +28,12 @@ const student = (email: string, batchId: any, placementBatchIds?: any[]) => User
   ...(placementBatchIds ? { placementBatchIds } : {}),
 } as any);
 const sorted = (a: string[]) => [...a].sort();
+/** A published track attached to the batch for that lab: what a takeover needs to take effect. */
+const giveTrack = async (batchId: any, lab: 'thinking' | 'communication', status = 'published') => {
+  const { LabTrack, LabTrackAssignment } = await import('../../models/LabTrack');
+  const t: any = await LabTrack.create({ tenantId: T, name: `${lab} plan`, lab, totalDays: 5, status } as any);
+  await LabTrackAssignment.create({ tenantId: T, batchId, trackId: t._id, lab, startDate: new Date(), status: 'active' } as any);
+};
 
 beforeAll(startMongo);
 afterAll(stopMongo);
@@ -43,9 +49,22 @@ describe('labBatchFor', () => {
   it('gives only the taken-over lab to the placement batch', async () => {
     const alpha = await batch('Alpha-5');
     const place = await batch('Placement', { kind: 'placement', takesOverLabs: ['thinking'] });
+    await giveTrack(place._id, 'thinking');
     const s = await student('a@x.com', alpha._id, [place._id]);
     expect(String(await labBatchFor(T, s._id, alpha._id, 'thinking'))).toBe(String(place._id));
     expect(String(await labBatchFor(T, s._id, alpha._id, 'communication'))).toBe(String(alpha._id));
+  });
+
+  it('does not take over a lab it has no live track for: the home batch track keeps running', async () => {
+    const alpha = await batch('Alpha-5');
+    const place = await batch('Placement', { kind: 'placement', takesOverLabs: ['thinking', 'communication'] });
+    await giveTrack(place._id, 'thinking');
+    const draftOnly = await batch('Draft placement', { kind: 'placement', takesOverLabs: ['communication'] });
+    await giveTrack(draftOnly._id, 'communication', 'draft');
+    const s = await student('a@x.com', alpha._id, [place._id, draftOnly._id]);
+    expect(String(await labBatchFor(T, s._id, alpha._id, 'thinking'))).toBe(String(place._id));
+    expect(String(await labBatchFor(T, s._id, alpha._id, 'communication'))).toBe(String(alpha._id));
+    expect((await labBatchOverrides(T, [s._id], 'communication')).size).toBe(0);
   });
 
   it('ignores an inactive placement batch and a batch not marked placement', async () => {
@@ -72,6 +91,7 @@ describe('lab cohorts count each student once', () => {
     const alpha = await batch('Alpha-5');
     const omega = await batch('Omega-6');
     const place = await batch('Placement', { kind: 'placement', takesOverLabs: ['thinking'] });
+    await giveTrack(place._id, 'thinking');
     const a = await student('a@x.com', alpha._id, [place._id]);
     const b = await student('b@x.com', alpha._id);
     const c = await student('c@x.com', omega._id, [place._id]);

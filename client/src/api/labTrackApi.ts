@@ -86,3 +86,10 @@ export const deleteAssignment = (id: string) =>
 
 export const previewToday = (batchId: string, lab: Lab) =>
   call(`/assignments/preview?batchId=${batchId}&lab=${lab}`);
+
+/** What the form WOULD give today once saved: its track, start date, days and window, nothing stored. */
+export const previewDraft = (d: { trackId: string; startDate: string; workingDays: number[]; cadence: string; cadenceDays: number[]; startTime: string; endTime: string }) =>
+  call(`/assignments/preview?${new URLSearchParams({
+    trackId: d.trackId, startDate: d.startDate, workingDays: d.workingDays.join(','), cadence: d.cadence,
+    cadenceDays: d.cadenceDays.join(','), startTime: d.startTime, endTime: d.endTime,
+  }).toString()}`);

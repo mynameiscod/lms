@@ -5,7 +5,7 @@ import ThinkingQuestion from '../models/ThinkingQuestion';
 import ThinkingProblem, { audienceFilter } from '../models/ThinkingProblem';
 import CommunicationChallenge from '../models/CommunicationChallenge';
 import { AuthRequest } from '../types/express';
-import { resolveLabDay, dayIndexFor, expectedDaysSoFar } from '../services/labTrackService';
+import { resolveLabDay, resolveDayFor, dayIndexFor, expectedDaysSoFar } from '../services/labTrackService';
 import { resolveLabGate } from '../services/labGateService';
 import { ymdIn, learningDates, questionsPerDay, questionsDoneByDate } from '../services/labTrackService';
 import User from '../models/User';
@@ -401,7 +401,26 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
 /** Preview what a batch gets today — lets an admin confirm before students see it. */
 export const previewToday = async (req: AuthRequest, res: Response) => {
   try {
-    const { batchId, lab } = req.query as any;
+    const q = req.query as any;
+    const { batchId, lab } = q;
+    // The form's own values: preview what WILL happen once saved, not what is saved now.
+    if (q.trackId) {
+      if (!oid(q.trackId) || !q.startDate) return fail(res, 400, 'trackId and startDate are required');
+      const track: any = await LabTrack.findOne({ _id: q.trackId, tenantId: tid(req) }).select('_id').lean();
+      if (!track) return fail(res, 404, 'Track not found');
+      const nums = (v: any) => String(v || '').split(',').filter(x => x !== '').map(Number).filter(n => n >= 0 && n <= 6);
+      const draft = {
+        trackId: track._id,
+        startDate: new Date(q.startDate),
+        workingDays: q.workingDays !== undefined ? nums(q.workingDays) : [1, 2, 3, 4, 5],
+        cadence: q.cadence === 'custom' ? 'custom' : 'daily',
+        cadenceDays: nums(q.cadenceDays),
+        holidays: [],
+        window: { startTime: q.startTime || '00:00', endTime: q.endTime || '23:59', tz: 'Asia/Kolkata' },
+      };
+      if (isNaN(draft.startDate.getTime())) return fail(res, 400, 'Invalid start date');
+      return res.json({ success: true, data: await resolveDayFor(draft) });
+    }
     if (!oid(batchId)) return fail(res, 400, 'batchId is required');
     const resolved = await resolveLabDay(tid(req), String(batchId), lab);
     res.json({ success: true, data: resolved });

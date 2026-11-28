@@ -116,6 +116,17 @@ export async function resolveLabDay(
   }).lean();
   if (!a) return { reason: 'no_assignment' };
 
+  return resolveDayFor(a, now);
+}
+
+/**
+ * Today's lab day for an assignment that need not be saved: the Assign panel previews exactly what
+ * is on the form (track, start date, working days, cadence, window) before the admin saves it.
+ */
+export async function resolveDayFor(
+  a: any,
+  now = new Date(),
+): Promise<ResolvedLabDay | { reason: ResolvedLabDay['reason']; dayIndex?: number; trackDays?: number }> {
   const track: any = await LabTrack.findById(a.trackId).lean();
   if (!track) return { reason: 'no_assignment' };
   // A half-authored plan must never reach a student.
@@ -129,6 +140,8 @@ export async function resolveLabDay(
 
   const items: any[] = await LabTrackItem.find({ trackId: a.trackId, dayIndex }).sort({ position: 1, _id: 1 }).lean();
   const item = items[0];
+  // Which day it landed on, and how long the track is, so "nothing today" can say why.
+  const trackDays = item ? undefined : ((await LabTrackItem.findOne({ trackId: a.trackId }).sort({ dayIndex: -1 }).select('dayIndex').lean()) as any)?.dayIndex || 0;
 
   return {
     assignment: a,
@@ -139,7 +152,8 @@ export async function resolveLabDay(
     contentId: item?.contentId || null,
     windowState: windowState(a, now),
     reason: item ? undefined : 'no_item',
-  };
+    ...(trackDays !== undefined ? { trackDays } : {}),
+  } as any;
 }
 
 /**

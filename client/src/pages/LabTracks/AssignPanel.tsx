@@ -107,9 +107,15 @@ const AssignPanel: React.FC = () => {
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   };
 
+  /* Preview reads the FORM, not what was saved before: a changed track, start date or working days
+     shows its effect before Save. Without a track chosen it falls back to the batch's saved plan. */
   const doPreview = async () => {
-    if (!f.batchId) return;
-    try { setPreview(await api.previewToday(f.batchId, f.lab)); }
+    if (!f.trackId && !f.batchId) return;
+    try {
+      setPreview(f.trackId
+        ? await api.previewDraft({ trackId: f.trackId, startDate: f.startDate, workingDays: f.workingDays, cadence: f.cadence, cadenceDays: f.cadence === 'custom' ? f.cadenceDays : [], startTime: f.startTime, endTime: f.endTime })
+        : await api.previewToday(f.batchId, f.lab));
+    }
     catch (e: any) { setPreview({ error: e.message }); }
   };
 
@@ -237,7 +243,10 @@ const AssignPanel: React.FC = () => {
                   Nothing today — {preview.reason === 'non_learning_day' ? 'not a working day for this batch'
                     : preview.reason === 'not_started' ? 'the plan has not started yet'
                     : preview.reason === 'track_unpublished' ? 'the track is still a draft'
-                    : preview.reason === 'no_item' ? 'that day has no content assigned'
+                    : preview.reason === 'no_item'
+                      ? (preview.trackDays !== undefined && preview.dayIndex > preview.trackDays
+                        ? `today is day ${preview.dayIndex}, but the track has only ${preview.trackDays} day${preview.trackDays === 1 ? '' : 's'} of questions`
+                        : `today is day ${preview.dayIndex ?? '?'} of the track, and that day has no questions yet. Add them on the Tracks tab`)
                     : 'no track is attached to this batch'}
                 </p>
               )}

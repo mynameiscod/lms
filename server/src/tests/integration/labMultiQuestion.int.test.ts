@@ -170,6 +170,10 @@ describe('Thinking Lab', () => {
     for (let i = 1; i <= 2; i++) ps.push(await ThinkingProblem.create({ tenantId: TENANT, title: `Puzzle ${i}`, category: 'logic', statement: 's', difficulty: 'easy', active: true } as any));
     await trackWith('thinking', ps.map(p => ({ contentId: String(p._id), contentKind: 'problem' })));
 
+    // Two requests at the same moment (the page loading twice) share one challenge.
+    const [a, b] = await Promise.all([call(thinkToday, student()), call(thinkToday, student())]);
+    expect(a.body.challenge.challengeId || a.body.challenge._id).toEqual(b.body.challenge.challengeId || b.body.challenge._id);
+    expect(await DailyChallenge.countDocuments({ studentId: STUDENT, date: TODAY })).toBe(1);
     let res = await call(thinkToday, student());
     expect(res.body.challenge.problem.title).toBe('Puzzle 1');
     expect(res.body.day).toEqual({ position: 1, total: 2, done: 0 });
@@ -187,7 +191,9 @@ describe('Thinking Lab', () => {
     expect((await labDayStatus('thinking', STUDENT, r, TODAY)).complete).toBe(true);
     res = await call(nextChallenge, student());
     expect(res.body).toMatchObject({ challenge: null, dayComplete: true });
-    expect(res.body.message).toMatch(/all 2 of today/);
+    expect(res.body.message).toMatch(/all 2 of today's problems/);
+    // The page asks twice at once: still one challenge per question.
+    expect(await DailyChallenge.countDocuments({ studentId: STUDENT, date: TODAY })).toBe(2);
     // Opening the lab again shows the last one, done.
     res = await call(thinkToday, student());
     expect(res.body.challenge.problem.title).toBe('Puzzle 2');

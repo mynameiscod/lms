@@ -79,6 +79,16 @@ const uId = (req: Request) => (req as any).user?.id as string;
 const today = () => ymd(istToday());
 const DONE = ['submitted', 'solved'];
 
+/** Runs `fn` once per key at a time: a second caller with the same key gets the first one's result. */
+const inFlight = new Map<string, Promise<any>>();
+function oncePer<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const running = inFlight.get(key);
+  if (running) return running as Promise<T>;
+  const p = fn().finally(() => inFlight.delete(key));
+  inFlight.set(key, p);
+  return p;
+}
+
 /**
  * Today's questions from the student's lab track when the day holds MORE than one (2026-11-28), else null.
  * `done` = the day's questions this student has finished today (by question id).
@@ -426,14 +436,22 @@ export const getToday = async (req: Request, res: Response) => {
         ? asProblem(await ThinkingQuestion.findOne({ _id: sc.problemId, status: 'PUBLISHED' }).lean())
         : await ThinkingProblem.findOne({ _id: sc.problemId, tenantId: tId(req), active: true });
       if (!p) return res.json({ challenge: null, empty: true, message: 'No challenge scheduled yet. Your instructor will assign one for your batch.' });
-      const lastToday: any = multiDay ? await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 }).select('seq').lean() : null;
-      ch = await DailyChallenge.create({
-        tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId,
-        date: d, seq: (lastToday?.seq || 0) + 1, problemId: p._id, contentKind: fromBank ? 'question' : 'problem',
-        difficulty: p.difficulty, language: p.language, code: p.starterCode || '',
+      // The page asks for today twice at once (it opened, and a second part of it loaded): both requests
+      // must get the SAME challenge, not one each. One creation per student, date and problem at a time,
+      // and it looks again before creating.
+      ch = await oncePer(`${tId(req)}:${uId(req)}:${d}:${p._id}`, async () => {
+        const again = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d, ...(multiDay ? { problemId: p._id } : {}) }).sort({ seq: -1 });
+        if (again) return again;
+        const lastToday: any = multiDay ? await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 }).select('seq').lean() : null;
+        const made = await DailyChallenge.create({
+          tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId,
+          date: d, seq: (lastToday?.seq || 0) + 1, problemId: p._id, contentKind: fromBank ? 'question' : 'problem',
+          difficulty: p.difficulty, language: p.language, code: p.starterCode || '',
+        });
+        if (fromBank) await ThinkingQuestion.updateOne({ _id: p._id }, { $inc: { timesServed: 1 } });
+        else await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesAssigned: 1 } });
+        return made;
       });
-      if (fromBank) await ThinkingQuestion.updateOne({ _id: p._id }, { $inc: { timesServed: 1 } });
-      else await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesAssigned: 1 } });
     }
     const p = await contentOf(ch);
     // "Question 2 of 3 today" when the day holds several.
@@ -483,7 +501,7 @@ export const nextChallenge = async (req: Request, res: Response) => {
       const day = await trackDayFor(req, bid);
       if (day) {
         if (day.items.some((i) => !day.done.has(String(i.contentId)))) return getToday(req, res);
-        return res.json({ challenge: null, empty: true, dayComplete: true, message: `That's all ${day.items.length} of today's questions done. Come back tomorrow for the next ones.` });
+        return res.json({ challenge: null, empty: true, dayComplete: true, message: `That's all ${day.items.length} of today's problems done. Come back tomorrow for the next ones.` });
       }
     }
     const message = isMemberView(u)

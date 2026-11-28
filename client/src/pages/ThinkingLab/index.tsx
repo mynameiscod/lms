@@ -300,6 +300,9 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
     estimatedMinutes: q.estimatedMinutes || undefined, examples: q.examples || [], totalHints: q.hintsTotal,
   } : null);
   const started = !!challenge && !done && (seconds > 0 || challenge.attempts > 0 || !!challenge.approach?.trim());
+  /** Today holds several problems (a lab-track day), and whether more come after this one. */
+  const multi = !!dayPos && dayPos.total > 1;
+  const moreToday = multi && dayPos!.position < dayPos!.total;
   /* The problem set's size and how much of it is solved, for the banner's ring and bar. */
   const setTotal = memberPos?.total || 0;
   const setPct = setTotal ? Math.min(100, Math.round(((stats?.solvedTotal || 0) / setTotal) * 100)) : 0;
@@ -331,14 +334,26 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
             <div className="plh-copy">
               <span className="plh-eyebrow">Thinking Lab</span>
               <h1>Think First, Then <span>Code</span></h1>
-              <p>One new problem every day. Explain your approach, code it in any language, and get AI feedback on how you think.</p>
+              <p>{multi
+                ? `${dayPos!.total} new problems today, one after another. Explain your approach, code each one in any language, and get AI feedback on how you think.`
+                : 'One new problem every day. Explain your approach, code it in any language, and get AI feedback on how you think.'}</p>
             </div>
             <div className="plh-bar">
               <div className="plh-actions">
                 {shown && (
-                  <button type="button" className="plh-btn primary" onClick={() => { setTab('challenge'); setOpen(true); }}>
-                    <i className={`bi ${done ? 'bi-check2-circle' : 'bi-play-fill'}`} aria-hidden /> {done ? 'Review Today’s Solution' : started ? 'Continue Solving' : 'Start Today’s Problem'}
-                  </button>
+                  moreToday && done ? (
+                    // This one is done and the day has more: straight on to the next.
+                    <button type="button" className="plh-btn primary" onClick={() => { setTab('challenge'); nextChallenge(); }}>
+                      <i className="bi bi-arrow-right" aria-hidden /> Next Problem ({dayPos!.position + 1} of {dayPos!.total})
+                    </button>
+                  ) : (
+                    <button type="button" className="plh-btn primary" onClick={() => { setTab('challenge'); setOpen(true); }}>
+                      <i className={`bi ${done ? 'bi-check2-circle' : 'bi-play-fill'}`} aria-hidden /> {done
+                        ? (multi ? 'Review Your Solutions' : 'Review Today’s Solution')
+                        : started ? (multi ? `Continue Problem ${dayPos!.position} of ${dayPos!.total}` : 'Continue Solving')
+                        : (multi ? `Start Problem ${dayPos!.position} of ${dayPos!.total}` : 'Start Today’s Problem')}
+                    </button>
+                  )
                 )}
                 <button type="button" className="plh-btn" onClick={() => setTab('progress')}><i className="bi bi-graph-up-arrow" aria-hidden /> My Progress</button>
               </div>
@@ -350,7 +365,9 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
             </div>
             {shown && (
               <p className="plh-next">
-                <span>{done ? 'Done for today' : started ? 'Continue' : 'Today’s problem'}</span>
+                <span>{multi
+                  ? (done && !moreToday ? `All ${dayPos!.total} done for today` : `Problem ${dayPos!.position} of ${dayPos!.total} today`)
+                  : done ? 'Done for today' : started ? 'Continue' : 'Today’s problem'}</span>
                 <button type="button" onClick={() => { setTab('challenge'); setOpen(true); }}>{shown.title}</button>
                 {shown.difficulty && <em className={`pl-diff ${shown.difficulty}`}>{shown.difficulty.charAt(0).toUpperCase() + shown.difficulty.slice(1)}</em>}
                 {(shown.xp > 0 || shown.estimatedMinutes) && <em className="tl3-xp">{shown.xp > 0 && <><i className="bi bi-lightning-charge-fill" aria-hidden /> {xpOf(shown.xp)} XP</>}{shown.estimatedMinutes ? `${shown.xp > 0 ? ' · ' : ''}~${shown.estimatedMinutes} min` : ''}</em>}
@@ -527,7 +544,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
                   <span style={{ fontSize: fz(t, 11.5), fontWeight: 800, color: t.primary, background: t.primarySoft, border: `1px solid ${t.primaryBorder}`, borderRadius: 999, padding: '3px 10px' }}>Problem {memberPos.position} of {memberPos.total}</span>
                 )}
                 {dayPos && (
-                  <span style={{ fontSize: fz(t, 11.5), fontWeight: 800, color: t.primary, background: t.primarySoft, border: `1px solid ${t.primaryBorder}`, borderRadius: 999, padding: '3px 10px' }}>Question {dayPos.position} of {dayPos.total} today</span>
+                  <span style={{ fontSize: fz(t, 11.5), fontWeight: 800, color: t.primary, background: t.primarySoft, border: `1px solid ${t.primaryBorder}`, borderRadius: 999, padding: '3px 10px' }}>Problem {dayPos.position} of {dayPos.total} today</span>
                 )}
                 <span style={{ fontSize: fz(t, 11), fontWeight: 800, color: '#fff', background: diffColor, borderRadius: 999, padding: '3px 10px', textTransform: 'capitalize' }}>{p.difficulty}</span>
                 <span style={{ fontSize: fz(t, 11.5), fontWeight: 700, color: cp ? t.accentInk : t.primary, background: cp ? t.accentSoft : t.primarySoft, borderRadius: 999, padding: '3px 10px' }}>{p.category}</span>
@@ -660,7 +677,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
           {err && <div role="alert" style={{ background: t.dangerSoft, color: t.danger, borderRadius: 8, padding: '10px 12px', fontSize: fz(t, 13), marginTop: 12 }}>{err}</div>}
 
           {/* AI feedback */}
-          {submitResult && <Feedback result={submitResult} onNext={nextChallenge} nextLabel={member ? 'What’s next →' : dayPos && dayPos.position < dayPos.total ? `Next question (${dayPos.position + 1} of ${dayPos.total}) →` : 'Next challenge →'} />}
+          {submitResult && <Feedback result={submitResult} onNext={nextChallenge} nextLabel={member ? 'What’s next →' : dayPos && dayPos.position < dayPos.total ? `Next problem (${dayPos.position + 1} of ${dayPos.total}) →` : 'Next challenge →'} />}
 
           {/* Thinking Journal — mandatory reflection after solving */}
           {done && (
@@ -895,7 +912,7 @@ const ChallengeOverview: React.FC<{
           <div className="tl-ov-chips">
             <span className="tl-ov-eyebrow">{puzzle ? 'Today’s question' : 'Today’s problem'}</span>
             {position && position.position > 0 && <span className="tl-ov-chip">Problem {position.position} of {position.total}</span>}
-            {day && <span className="tl-ov-chip">Question {day.position} of {day.total} today</span>}
+            {day && <span className="tl-ov-chip">{puzzle ? 'Question' : 'Problem'} {day.position} of {day.total} today</span>}
             <span className="tl-ov-chip diff" style={{ background: t.diff[p.difficulty] || t.primary }}>{p.difficulty}</span>
             {p.category && <span className="tl-ov-chip soft">{p.category}</span>}
           </div>
@@ -924,10 +941,10 @@ const ChallengeOverview: React.FC<{
           {!done && <small className="tl-ov-note">The timer starts when you open the problem.</small>}
           {done && day && day.position < day.total && onNext && (
             <button type="button" className="tl-ov-start next" onClick={onNext}>
-              Next question ({day.position + 1} of {day.total}) <i className="bi bi-arrow-right" aria-hidden />
+              Next {puzzle ? 'question' : 'problem'} ({day.position + 1} of {day.total}) <i className="bi bi-arrow-right" aria-hidden />
             </button>
           )}
-          {done && day && day.done >= day.total && <div className="tl-ov-sub ok">All {day.total} of today’s questions done</div>}
+          {done && day && day.done >= day.total && <div className="tl-ov-sub ok">All {day.total} of today’s {puzzle ? 'questions' : 'problems'} done</div>}
         </aside>
       </section>
 
